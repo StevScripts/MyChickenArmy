@@ -1,0 +1,372 @@
+--!strict
+-- Local podium presentation and subtle roll zoom. RollStation owns the offer.
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
+local Config = require(Shared.Config)
+local Catalog = require(Shared.PetCatalog)
+local Rules = require(Shared.Rules)
+local PetView = require(Shared.PetView)
+local UIColors = require(Shared.UIColors)
+local RollPresentationController = {}
+RollPresentationController.__index = RollPresentationController
+
+-- A quick shuffle, three slower beats, then a short suspense hold. Sound and
+-- preview changes use these exact beats, rather than independent repeating timers.
+local BEATS = {0.065, 0.10, 0.14, 0.185, 0.235, 0.295, 0.365, 0.455, 0.56, 0.69, 0.84}
+local GOLD = UIColors.Rewards
+local BLUE = Color3.fromRGB(67, 181, 222)
+local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6}
+-- Camera feel: edit these, then restart Play. Duration follows Config.RollRevealSeconds.
+local ROLL_ZOOM_DEGREES = 2 -- Larger means a stronger zoom.
+local ROLL_ZOOM_EASING = Enum.EasingStyle.Linear
+local ROLL_ZOOM_DIRECTION = Enum.EasingDirection.In
+local ROLL_ZOOM_OUT_SECONDS = 0.35
+local ROLL_ZOOM_OUT_EASING = Enum.EasingStyle.Back
+local ROLL_ZOOM_OUT_DIRECTION = Enum.EasingDirection.Out
+
+function RollPresentationController.new(app)
+ return setmetatable({app=app, records={}, connections={}, scanAt=0}, RollPresentationController)
+end
+
+function RollPresentationController:ClearCameraZoom()
+ local zoom=self.cameraZoom
+ if not zoom then return end
+ self.cameraZoom=nil
+ if zoom.completed then zoom.completed:Disconnect() end
+ zoom.tween:Cancel()
+ zoom.tween:Destroy()
+ -- Interruptions and teardown restore immediately, with no surviving tween.
+ zoom.camera.FieldOfView=zoom.base
+end
+
+function RollPresentationController:ReturnCameraZoom()
+ local zoom=self.cameraZoom
+ if not zoom or zoom.returning then return end
+ zoom.returning=true
+ zoom.tween:Cancel()
+ zoom.tween:Destroy()
+ zoom.tween=TweenService:Create(zoom.camera,
+  TweenInfo.new(ROLL_ZOOM_OUT_SECONDS,ROLL_ZOOM_OUT_EASING,ROLL_ZOOM_OUT_DIRECTION),
+  {FieldOfView=zoom.base})
+ zoom.completed=zoom.tween.Completed:Connect(function(state)
+  if state==Enum.PlaybackState.Completed and self.cameraZoom==zoom then
+   self:ClearCameraZoom()
+  end
+ end)
+ zoom.tween:Play()
+end
+
+function RollPresentationController:StartCameraZoom(camera, station, rollId, startedAt, now)
+ self:ClearCameraZoom()
+ local elapsed=math.clamp(now-startedAt,0,Config.RollRevealSeconds)
+ local remaining=Config.RollRevealSeconds-elapsed
+ if remaining<=0 then return end
+ local base=camera.FieldOfView
+ local degrees=math.clamp(ROLL_ZOOM_DEGREES,0,base-1)
+ -- If the roll was already underway, catch up once and tween for its remaining time.
+ local progress=TweenService:GetValue(elapsed/Config.RollRevealSeconds,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION)
+ camera.FieldOfView=base-degrees*progress
+ local tween=TweenService:Create(camera,
+  TweenInfo.new(remaining,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION),
+  {FieldOfView=base-degrees})
+ self.cameraZoom={camera=camera,base=base,tween=tween,station=station,rollId=rollId,startedAt=startedAt}
+ tween:Play()
+end
+
+function RollPresentationController:StepCameraZoom(now)
+ local camera=workspace.CurrentCamera
+ if self.cameraZoom and (self.cameraZoom.camera~=camera or self.app.reducedMotion
+  or not camera or camera.CameraType~=Enum.CameraType.Custom) then self:ClearCameraZoom() end
+ if not camera or self.app.reducedMotion or camera.CameraType~=Enum.CameraType.Custom then return end
+ local player=Players.LocalPlayer
+ local character=player.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+ local activeStation,activeRollId,activeStartedAt
+ if root and humanoid and humanoid.Health>0 and not self.app.panel.Visible and not self.app.dialogueActive then
+  for station,record in self.records do
+   local startedAt=station:GetAttribute("RollStartedAt")
+   local rollId=station:GetAttribute("RollId")
+   if record.active and (station:GetAttribute("RollSlot") or 1)==1 and station:GetAttribute("OwnerId")==player.UserId
+    and rollId and startedAt and now>=startedAt
+    and now-startedAt<Config.RollRevealSeconds and (root.Position-record.foot).Magnitude<=24 then
+    activeStation,activeRollId,activeStartedAt=station,rollId,startedAt;break
+   end
+  end
+ end
+ if not activeStation then
+  local zoom=self.cameraZoom
+  local record=zoom and self.records[zoom.station]
+  -- Only a normal reveal gets the Back/Out return; leaving or closing cancels it.
+  local revealed=zoom and record and record.active and root and humanoid and humanoid.Health>0
+   and not self.app.panel.Visible and not self.app.dialogueActive
+   and zoom.station:GetAttribute("OwnerId")==player.UserId
+   and zoom.station:GetAttribute("RollId")==zoom.rollId
+   and zoom.station:GetAttribute("RollStartedAt")==zoom.startedAt
+   and now>=zoom.startedAt+Config.RollRevealSeconds and (root.Position-record.foot).Magnitude<=24
+  if revealed then self:ReturnCameraZoom() else self:ClearCameraZoom() end
+  return
+ end
+ local zoom=self.cameraZoom
+ -- The render callback only watches eligibility/end time; TweenService moves the FOV.
+ if not zoom or zoom.station~=activeStation or zoom.rollId~=activeRollId or zoom.startedAt~=activeStartedAt then
+  self:StartCameraZoom(camera,activeStation,activeRollId,activeStartedAt,now)
+ end
+end
+
+function RollPresentationController:Track(station)
+ if self.records[station] then return end
+ local frame, foot = station:GetAttribute("DisplayFrame"), station:GetAttribute("DisplayFoot")
+ local arm, knob = station:FindFirstChild("LeverArm"), station:FindFirstChild("LeverHandle")
+ local top, anchor = station:FindFirstChild("RevealPad"), station:FindFirstChild("EffectAnchor")
+ if not frame or not foot or not top or not anchor then return end
+ if (station:GetAttribute("RollSlot") or 1)==1 and (not arm or not knob) then return end
+ local glow = Instance.new("Highlight")
+ glow.Name, glow.FillColor, glow.FillTransparency = "MysterySilhouette", Color3.fromRGB(15,20,18), 0
+ glow.OutlineColor, glow.OutlineTransparency = Color3.fromRGB(255,250,225), 0.15
+ glow.DepthMode, glow.Enabled, glow.Parent = Enum.HighlightDepthMode.Occluded, false, self.folder
+ self.records[station] = {station=station, frame=frame, foot=foot, arm=arm, knob=knob, top=top,
+  leverPivot=station:GetAttribute("LeverPivot") or frame*CFrame.new(6.1,1.85,-5), anchor=anchor,
+  armRest=station:GetAttribute("LeverArmRest") or CFrame.new(0,1.4,0),
+  knobRest=station:GetAttribute("LeverHandleRest") or CFrame.new(0,2.8,0),
+  light=anchor:FindFirstChild("RevealGlow"), burst=anchor:FindFirstChild("RevealSparkles",true),
+  cache={}, appearances={}, hidden={}, glow=glow, active=false, lastStage=0, landedAt=-100,
+  voiceKey="Roll"..tostring(station:GetAttribute("PlotIndex"))}
+end
+
+function RollPresentationController:Preview(record, species, mystery: boolean?)
+ local model = record.cache[species]
+ if not model then
+  model = PetView.Create(self.folder, "RollPreview_"..species, species, 1, record.foot)
+  model:SetAttribute("ReducedMotion",true)
+  local appearance={parts={}, surfaces={}}
+  for _, item in model:GetDescendants() do
+   if item:IsA("BillboardGui") then item.Enabled=false end
+   if item:IsA("BasePart") then
+    item.CanQuery=false;item.CanTouch=false;item.CanCollide=false
+    -- Invisible rig/effect helpers must never become part of the silhouette.
+    if item.Transparency<1 then
+     appearance.parts[item]={transparency=item.Transparency,localTransparency=item.LocalTransparencyModifier}
+    end
+   elseif item:IsA("SurfaceAppearance") then
+    appearance.surfaces[item]=item.AlphaMode
+   end
+  end
+  record.cache[species] = model
+  record.appearances[species] = appearance
+ end
+ -- Highlights do not fully cover translucent art. Change only these local
+ -- previews; restore on every reveal, even when it reuses the last shuffle bird.
+ local appearance=record.appearances[species]
+ for part, original in appearance.parts do
+  part.Transparency=if mystery then 0 else original.transparency
+  part.LocalTransparencyModifier=if mystery then 0 else original.localTransparency
+ end
+ for surface, alphaMode in appearance.surfaces do
+  surface.AlphaMode=if mystery then Enum.AlphaMode.Overlay else alphaMode
+ end
+ if record.preview ~= model then
+  if record.preview then record.preview.Parent=nil end
+  -- Position before parenting prevents a frame at the cached model's old location.
+  PetView.Move(model,record.foot,record.frame.LookVector,0)
+  model.Parent=self.folder
+  record.preview=model
+  record.glow.Adornee=model
+ end
+ return model
+end
+
+function RollPresentationController:Sound(record, name, pitch, volume, duration)
+ -- One shared shuffle soundtrack; secondary rare reveals share the capped voice key.
+ if (record.station:GetAttribute("RollSlot") or 1)>1 and name~="RollRare" then return end
+ local character=Players.LocalPlayer.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ if not root or (root.Position-record.foot).Magnitude>36 then return end
+ self.app.audio:Play(name,pitch,{parent=record.anchor,volume=volume,maxDuration=duration,
+  voiceKey=record.voiceKey..name})
+end
+
+function RollPresentationController:Reset(record)
+ if record.preview then record.preview.Parent=nil;record.preview=nil end
+ for part, value in record.hidden do if part.Parent then part.LocalTransparencyModifier=value end end
+ table.clear(record.hidden)
+ record.serverPet=nil
+ record.glow.Enabled=false
+ if record.arm and record.knob then
+  record.arm.CFrame=record.leverPivot*record.armRest
+  record.knob.CFrame=record.leverPivot*record.knobRest
+ end
+ if record.light then record.light.Brightness=0 end
+ local species=record.station:GetAttribute("RevealedSpecies")
+ record.top.Color=if species and Catalog[species] then Color3.fromRGB(table.unpack(Catalog[species].color)) else BLUE
+ record.active=false
+ record.rollId=nil
+ record.lastStage=0
+ record.result=nil
+ record.landedAt=-100
+end
+
+function RollPresentationController:StepRecord(record, now)
+ local station=record.station
+ local camera=workspace.CurrentCamera
+ local near=camera and (camera.CFrame.Position-record.foot).Magnitude<100
+ if not near or not station:GetAttribute("OwnerId") then
+  if record.active then self:Reset(record) end
+  return
+ end
+ record.active=true
+ local rollId=station:GetAttribute("RollId")
+ local startedAt=station:GetAttribute("RollStartedAt") or now
+ local elapsed=math.max(0,now-startedAt)
+ local rolling=rollId~=nil and (station:GetAttribute("Rolling") or elapsed<Config.RollRevealSeconds)
+ local reduced=self.app.reducedMotion
+ if rollId~=record.rollId then
+  if record.preview then record.preview.Parent=nil;record.preview=nil end
+  record.rollId,record.lastStage,record.result=rollId,0,nil
+  record.sequence={}
+  local tier=station:GetAttribute("RollTier") or station:GetAttribute("RecruitTier") or 1
+  local luck=station:GetAttribute("RollLuck") or 0
+  local random=Random.new(station:GetAttribute("RollSeed") or 1)
+  -- Cosmetic candidates use the same weights; rare chickens are not teased equally.
+  for i=1,#BEATS do
+   record.sequence[i]=Rules.Draw(luck,random:NextNumber(),tier)
+  end
+  if rollId and elapsed<0.3 then self:Sound(record,"RollLever",0.9,0.55,0.3) end
+ end
+
+ -- Hide only the static server offer. Cosmetics never hide inventory or army pets.
+ local serverPet=station:FindFirstChild("DisplayedPet")
+ if serverPet~=record.serverPet then
+  for part, value in record.hidden do if part.Parent then part.LocalTransparencyModifier=value end end
+  table.clear(record.hidden)
+  record.serverPet=serverPet
+ end
+ if serverPet then
+  for _, part in serverPet:GetDescendants() do
+   if part:IsA("BasePart") and record.hidden[part]==nil then
+    record.hidden[part]=part.LocalTransparencyModifier;part.LocalTransparencyModifier=1
+   end
+  end
+ end
+
+ if rolling then
+  local progress=math.clamp(elapsed/Config.RollRevealSeconds,0,1)
+  local stage=0
+  for i,beat in BEATS do if progress>=beat then stage=i else break end end
+  if stage>0 and stage~=record.lastStage then
+   record.lastStage=stage
+   self:Preview(record,record.sequence[stage],true)
+   -- Skip missed sounds when entering mid-roll or recovering from a slow frame.
+   if elapsed-BEATS[stage]*Config.RollRevealSeconds<0.12 then
+    self:Sound(record,"RollTick",1.65-stage*0.055,0.32+stage*0.008,0.14)
+   end
+  end
+  record.glow.Enabled=record.preview~=nil
+  local angle=0
+  if not reduced then
+   if elapsed<0.16 then angle=-0.95*math.sin(elapsed/0.16*math.pi/2)
+   elseif elapsed<0.24 then angle=-0.95
+   else angle=-0.95*math.max(0,1-(elapsed-0.24)/0.42)^2 end
+  end
+  local pivot=record.leverPivot*CFrame.Angles(angle,0,0)
+  if record.arm and record.knob then
+   record.arm.CFrame=pivot*record.armRest
+   record.knob.CFrame=pivot*record.knobRest
+  end
+  local beatAge=if stage>0 then elapsed-BEATS[stage]*Config.RollRevealSeconds else 0
+  local pulse=math.max(0,1-beatAge/0.18)
+  record.top.Color=GOLD:Lerp(BLUE,0.25*(1-pulse))
+  if record.light then record.light.Color=GOLD;record.light.Brightness=if reduced then 0.2 else 0.25+pulse*0.45 end
+  if record.preview then
+   local hop=if reduced then 0 else math.sin(math.min(beatAge/0.18,1)*math.pi)*0.38
+   local yaw=if reduced then 0 else (if stage%2==0 then 1 else -1)*pulse*0.16
+   PetView.Move(record.preview,record.foot,(record.frame*CFrame.Angles(0,yaw,0)).LookVector,hop)
+  end
+  return
+ end
+
+ record.glow.Enabled=false
+ local result,species=station:GetAttribute("RevealedOfferId"),station:GetAttribute("RevealedSpecies")
+ if result and result==rollId and species and Catalog[species] then
+  local def=Catalog[species]
+  local rank=RARITY[def.rarity] or 1
+  local tint=Color3.fromRGB(table.unpack(def.color))
+  if result~=record.result then
+   local fresh=elapsed<Config.RollRevealSeconds+0.65
+   record.result=result;record.landedAt=if fresh then now else now-10
+   record.finishPlayed=not fresh
+   self:Preview(record,species)
+   if fresh then self:Sound(record,"Pop",1.12,0.45,0.35) end
+  end
+  local age=now-record.landedAt
+  if not record.finishPlayed and age>=0.16 then
+   record.finishPlayed=true
+   self:Sound(record,"RollLand",1.4,0.22,0.22)
+   self:Sound(record,if rank>=4 then "RollRare" else "RollReveal",if rank>=5 then 1.12 else 1,if rank>=4 then 0.5 else 0.32,nil)
+   if record.burst and not reduced then
+    record.burst.Color=ColorSequence.new(tint,GOLD)
+    record.burst:Emit(if rank>=4 then 26 else 12)
+   end
+  end
+  local hop=0
+  if not reduced then
+   if age<0.16 then hop=0.9*(1-(age/0.16)^2)
+   elseif age<0.42 then hop=math.sin((age-0.16)/0.26*math.pi)*0.22
+   else hop=0.08*(1-math.exp(-(age-0.42)*3))*(1+math.sin(age*2)) end
+  end
+  PetView.Move(record.preview,record.foot,record.frame.LookVector,hop)
+  record.top.Color=tint:Lerp(GOLD,math.max(0,1-age/0.55)*0.55)
+  if record.light then
+   record.light.Color=if rank>=4 then GOLD else tint
+   record.light.Brightness=if reduced then 0 else math.max(0,1-age/0.9)*(if rank>=4 then 2 else 1.2)
+  end
+ else
+  if record.preview then record.preview.Parent=nil;record.preview=nil end
+  record.top.Color=BLUE
+  if record.light then record.light.Brightness=0 end
+ end
+ if record.arm and record.knob then
+  record.arm.CFrame=record.leverPivot*record.armRest
+  record.knob.CFrame=record.leverPivot*record.knobRest
+ end
+end
+
+function RollPresentationController:Start(world)
+ self.world=world
+ self.folder=Instance.new("Folder")
+ self.folder.Name,self.folder.Parent="PetRollLocalRolls",workspace
+ table.insert(self.connections,RunService.RenderStepped:Connect(function()
+  local now=workspace:GetServerTimeNow()
+  if now>=self.scanAt then
+   self.scanAt=now+0.25
+   for _,plot in world:GetChildren() do
+    for _,station in plot:GetChildren() do
+     if station:GetAttribute("IsRollStation") or station.Name=="RollStation" then self:Track(station) end
+    end
+   end
+  end
+  for station,record in self.records do
+   if not station:IsDescendantOf(world) then
+    self:Reset(record)
+    for _,model in record.cache do model:Destroy() end
+    record.glow:Destroy();self.records[station]=nil
+   else self:StepRecord(record,now) end
+  end
+  self:StepCameraZoom(now)
+ end))
+end
+
+function RollPresentationController:Destroy()
+ for _,connection in self.connections do connection:Disconnect() end
+ self:ClearCameraZoom()
+ for _,record in self.records do
+  self:Reset(record)
+  for _,model in record.cache do model:Destroy() end
+ end
+ table.clear(self.records)
+ if self.folder then self.folder:Destroy() end
+end
+
+return RollPresentationController

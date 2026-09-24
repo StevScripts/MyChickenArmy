@@ -1,0 +1,33 @@
+{
+  "version": "7.7.0",
+  "assets": {
+    "rojo-7.7.0-linux-aarch64.zip": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-aarch64.zip",
+      "digest": "sha256:7e60d864d4b735f4b1122cbe4e3db4c215fda97f596196df5c3e99f3f5387485"
+    },
+    "rojo-7.7.0-linux-x86_64.zip": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip",
+      "digest": "sha256:22503e5839864f9d7c2171c48b536fc229f2cc4d8774c9cc149f60941d864073"
+    },
+    "rojo-7.7.0-macos-aarch64.zip": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-macos-aarch64.zip",
+      "digest": "sha256:000f663eb406ec4670e1b675069a5e9fdb6e131505ff60f6a8e28bc8a97488cd"
+    },
+    "rojo-7.7.0-macos-x86_64.zip": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-macos-x86_64.zip",
+      "digest": "sha256:9bd69697ca3a0abf0ec847c779013e7315501b2d997d63d5e1766e14d49d9c66"
+    },
+    "rojo-7.7.0-windows-aarch64.zip": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-windows-aarch64.zip",
+      "digest": "sha256:f500d23ff2c3baa0cfc5a9a8c6456e49958b7123916f9e20df731c0e562b877f"
+    },
+    "rojo-7.7.0-windows-x86_64.zip": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-windows-x86_64.zip",
+      "digest": "sha256:2179c44862a10ecbd725bdfeb4abc64e16dc4aad9b6c8f3e1a7c46a87280b949"
+    },
+    "Rojo.rbxm": {
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/Rojo.rbxm",
+      "digest": "sha256:214e5ad84ccdc88f873e0467b6724e4ea9ada8ea340fcb9d4397cb899a67c83f"
+    }
+  }
+}

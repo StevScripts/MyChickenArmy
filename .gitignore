@@ -1,0 +1,18 @@
+# Local tools, exports and generated code-only places
+.tools/
+.migration/
+build/
+sourcemap.json
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+*.log
+__pycache__/
+.DS_Store
+# Credentials and local environment overrides
+.env
+.env.*
+!.env.example
+*.pem
+*.key

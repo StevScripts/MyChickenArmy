@@ -1,0 +1,64 @@
+--!strict
+-- Catalog IDs and recorded launch base prices; never a checkout quote.
+-- The client reads each buyer's current Marketplace price.
+local Config = require(script.Parent.Config)
+local ShopCatalog = {
+	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
+	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10"},
+	ArmyBonus = 5,
+	Crate = {enabled=false,rewards={}},
+	RestrictedTreatment = "GuaranteedOffers",
+	-- Restricted owners receive these known offers in order; never a random reward.
+	-- The recruit's normal coin purchase is still required after the free reveal.
+	GuaranteedLuck = {interval=10, sequence={
+		"Bucket","Jockey","Cardboard","Cactus","Zombie","Tiger","Viking","Gentleman","Slime","Skeleton","Pirate",
+		"Knight","Frost","Bonsai","Ninja","Wizard","Diamond","Dragon","Rainbow","IceDuck","StormDuck","Storm",
+	}},
+	Products = {
+		PocketCoins = {productId=3712929487, name="Pocket Cash", coins=10000, proposedPrice=49},
+		CoopStash = {productId=3712929549, name="Coop Stash", coins=100000, proposedPrice=199},
+		ArmyChest = {productId=3712929607, name="Cash Sack", coins=1000000, proposedPrice=799},
+		CommandersVault = {productId=3712929634, name="Commander's Vault", coins=10000000, proposedPrice=2499},
+		OuterSpaceCrate1 = {productId=3712929703, name="Outer Space Crate", crates=1, proposedPrice=500, paidRandom=true},
+		OuterSpaceCrate3 = {productId=3712929865, name="3 Outer Space Crates", crates=3, proposedPrice=1250, paidRandom=true},
+		OuterSpaceCrate10 = {productId=3712929926, name="10 Outer Space Crates", crates=10, proposedPrice=4000, paidRandom=true},
+	},
+	RadiusMultiplier = 2,
+	BountyMultiplier = 2,
+	Definitions = {
+		AutoCollectEggs = {passId=1978713718, name="Auto Collect Eggs", proposedPrice=199, automatic=true, description="Collect your eggs automatically.", scope="Eggs enter your bag; sell them at your stand."},
+		DoubleCash = {passId=1980764263, name="2x Cash", proposedPrice=399, description="2x coins from eggs and combat.", scope="Earned coins only; excludes cash packs and chicken sales."},
+		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Home chickens lay eggs twice as often.", scope="2x egg production; stacks with 2x Cash."},
+		AutoMerge = {enabled=Config.Features.Merging, passId=1975401932, name="Auto Merge", proposedPrice=249, automatic=true, description="Merge matching home chickens automatically.", scope="Protects favorites, deployed and manually selected chickens."},
+		BiggerArmy = {passId=1980638268, name="Bigger Army", proposedPrice=499, description="Add 5 deployment slots.", scope="Starts at 8; upgrade your base capacity to field 15."},
+		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double the roll weight of Rare+ chickens.", scope="Actual chances are shown in Details. Crates unaffected."},
+		EggMagnet = {
+			name = "Egg Magnet", category = "Convenience", proposedPrice = 49, passId = 1980009442,
+			description = "Collect eggs from twice as far.",
+			scope = "Your eggs · same value and laying rate",
+		},
+		CommanderBanner = {
+			name = "Commander Banner", category = "Style", proposedPrice = 99, passId = 1975521947,
+			description = "A gold army portrait and crown.",
+			scope = "Cosmetic · no combat bonus",
+		},
+		DoubleBounty = {
+			name = "Double NPC Bounty", category = "Rewards", proposedPrice = 249, passId = 1981040250,
+			description = "2× coins from regular NPC kills.",
+			scope = "Excludes the King, PvP and Supply Outpost",
+		},
+	},
+}
+
+for index = #ShopCatalog.Order, 1, -1 do
+	if ShopCatalog.Definitions[ShopCatalog.Order[index]].enabled == false then table.remove(ShopCatalog.Order, index) end
+end
+for _, definition in ShopCatalog.Definitions do table.freeze(definition) end
+for _, definition in ShopCatalog.Products do table.freeze(definition) end
+table.freeze(ShopCatalog.GuaranteedLuck.sequence)
+table.freeze(ShopCatalog.GuaranteedLuck)
+table.freeze(ShopCatalog.Products)
+table.freeze(ShopCatalog.ProductOrder)
+table.freeze(ShopCatalog.Definitions)
+table.freeze(ShopCatalog.Order)
+return table.freeze(ShopCatalog)

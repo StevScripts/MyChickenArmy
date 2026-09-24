@@ -1,0 +1,6007 @@
+{
+  "identity": {
+    "scriptCount": 327,
+    "running": false,
+    "gameId": 10765467283,
+    "placeId": 96683186622050,
+    "exportedAt": "2026-09-24T05:18:51Z"
+  },
+  "scripts": [
+    {
+      "exportIndex": 1,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Bee",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Bee"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Bee.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 2,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Bonsai",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Bonsai"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Bonsai.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 3,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Bucket",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Bucket.luau",
+      "scope": "active",
+      "sha256": "44d5fd5280ecf295809681fad16abd1a1ddf244439dc2c897f8bda4c18d8ad22",
+      "bytes": 131699
+    },
+    {
+      "exportIndex": 4,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Cactus",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Cactus"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Cactus.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 5,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Camo",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Camo"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Camo.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 6,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Cardboard",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Cardboard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Cardboard.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 7,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Cheesy",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Cheesy"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Cheesy.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 8,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Chunky",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Chunky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Chunky.luau",
+      "scope": "active",
+      "sha256": "7cb4fd600e0fd96d0b17c8be1fa0c6e2655969d1f58cd337cbf37b3a9fb1fa0e",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 9,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Diamond",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Diamond"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Diamond.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 10,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Dragon",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Dragon.luau",
+      "scope": "active",
+      "sha256": "5e5c8cdbf021fd3b3730f8c2d68f6fb29c699d9c2851b8afa6a279290eab4702",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 11,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Duck",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Duck.luau",
+      "scope": "active",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 12,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Frost",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Frost"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Frost.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 13,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Gentleman",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Gentleman"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Gentleman.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 14,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.IceDuck",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/IceDuck.luau",
+      "scope": "active",
+      "sha256": "b53411783733796e216f6867541ee57fda3e1d175f01a1438181d8fd4e091b8a",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 15,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Jockey",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Jockey"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Jockey.luau",
+      "scope": "active",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 16,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Knight",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Knight.luau",
+      "scope": "active",
+      "sha256": "6255c9146fb1f8713d2992fe88cd802329ce2345742bb21a33577b8b3e7f6632",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 17,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Mallard",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Mallard.luau",
+      "scope": "active",
+      "sha256": "bf80f1c899a61b2a99d23bda386dadde004305864bdec149a4632959c414062b",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 18,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Ninja",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Ninja"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Ninja.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 19,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Noob",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Noob"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Noob.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 20,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Penguin",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Penguin"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Penguin.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 21,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Pirate",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Pirate"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Pirate.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 22,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Rainbow",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Rainbow"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Rainbow.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 23,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.RubberDucky",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "RubberDucky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/RubberDucky.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 24,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Sailor",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Sailor.luau",
+      "scope": "active",
+      "sha256": "d522f5333b36bdcc7f8bb4d8b9d4a5c240f8db8a7789c0b369625aa7dbc8b5a3",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 25,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Skeleton",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Skeleton"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Skeleton.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 26,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Slime",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Slime"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Slime.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 27,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Storm",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Storm"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Storm.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 28,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.StormDuck",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/StormDuck.luau",
+      "scope": "active",
+      "sha256": "49787c67bab12b0c489226645e9e4d39e5cb44f584e6f791fe9d76b97743e4f1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 29,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Tiger",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Tiger"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Tiger.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 30,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Viking",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Viking.luau",
+      "scope": "active",
+      "sha256": "08a98a8b7a7d0508e91094768cd5e8f7b282c267c7032f2fbb45535b78f4fa6d",
+      "bytes": 131753
+    },
+    {
+      "exportIndex": 31,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Wizard",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Wizard.luau",
+      "scope": "active",
+      "sha256": "2639a18e8264bfe01ead5a54d0191ae6245673035b2f752cec2cdbb96585a6a1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 32,
+      "path": "ReplicatedStorage.PetRoll.ChickenClips.Zombie",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "ChickenClips",
+        "Zombie"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/animations/Zombie.luau",
+      "scope": "active",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 33,
+      "path": "ReplicatedStorage.PetRoll.Shared.ArmyMarch",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "ArmyMarch"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/ArmyMarch.luau",
+      "scope": "active",
+      "sha256": "8de3a900a7ec646faff4018442e257b0aeaf56964ce4b621e1f32a42837c5b18",
+      "bytes": 5117
+    },
+    {
+      "exportIndex": 34,
+      "path": "ReplicatedStorage.PetRoll.Shared.BlenderPetView",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "BlenderPetView"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/BlenderPetView.luau",
+      "scope": "active",
+      "sha256": "eeb8486d4b278d7ddff6746c180f4f3819795dcd5553d238f3f61fb0638df39d",
+      "bytes": 7277
+    },
+    {
+      "exportIndex": 35,
+      "path": "ReplicatedStorage.PetRoll.Shared.CampCommand",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "CampCommand"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/CampCommand.luau",
+      "scope": "active",
+      "sha256": "dcbb56876e09f48127fbe4b4670e338b110b75c6c181673cdc7c04a62ceed607",
+      "bytes": 937
+    },
+    {
+      "exportIndex": 36,
+      "path": "ReplicatedStorage.PetRoll.Shared.CampaignRoute",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "CampaignRoute"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/CampaignRoute.luau",
+      "scope": "active",
+      "sha256": "9ac22792c9ae02955edcbaef1e1c677a2cc59fbbb6c3da46eab1aaa37d47c822",
+      "bytes": 1604
+    },
+    {
+      "exportIndex": 37,
+      "path": "ReplicatedStorage.PetRoll.Shared.ChickenAppearanceAssets",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "ChickenAppearanceAssets"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/ChickenAppearanceAssets.luau",
+      "scope": "active",
+      "sha256": "48b9a2b2c2fc52e1a347fc23847cca163a10e5105587ecf5cb207f3fbd7bbeb2",
+      "bytes": 3399
+    },
+    {
+      "exportIndex": 38,
+      "path": "ReplicatedStorage.PetRoll.Shared.ChickenGrowth",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "ChickenGrowth"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/ChickenGrowth.luau",
+      "scope": "active",
+      "sha256": "2526e84c74d93b74ee36dbdb464ae83dabfb063514f86f9ee258510feb36d934",
+      "bytes": 2165
+    },
+    {
+      "exportIndex": 39,
+      "path": "ReplicatedStorage.PetRoll.Shared.ChickenVFXPresets",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "ChickenVFXPresets"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/ChickenVFXPresets.luau",
+      "scope": "active",
+      "sha256": "eff72203b14b9053069b2e8b028d4d708987999c29a196dbb73f8cc229dd6fa0",
+      "bytes": 58065
+    },
+    {
+      "exportIndex": 40,
+      "path": "ReplicatedStorage.PetRoll.Shared.CombatRewards",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "CombatRewards"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/CombatRewards.luau",
+      "scope": "active",
+      "sha256": "8ea692b593b8f1f699b0931e3faee67935c47412418f10652bcf24aea4d74d74",
+      "bytes": 1227
+    },
+    {
+      "exportIndex": 41,
+      "path": "ReplicatedStorage.PetRoll.Shared.Config",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "Config"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/Config.luau",
+      "scope": "active",
+      "sha256": "7010b90d3c5d575e2954b029b171dd393b51cc848a2facd2021810c3f1f367ae",
+      "bytes": 5107
+    },
+    {
+      "exportIndex": 42,
+      "path": "ReplicatedStorage.PetRoll.Shared.EggMotion",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "EggMotion"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/EggMotion.luau",
+      "scope": "active",
+      "sha256": "778187d411a595662a6520601c3b3f0e072b9e194e515359467378796cfe88ae",
+      "bytes": 711
+    },
+    {
+      "exportIndex": 43,
+      "path": "ReplicatedStorage.PetRoll.Shared.FlockLayout",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "FlockLayout"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/FlockLayout.luau",
+      "scope": "active",
+      "sha256": "b2979cb0536f03ce11117b05eaf757b7ed49254373e53545b702f1c19a0e1d86",
+      "bytes": 1368
+    },
+    {
+      "exportIndex": 44,
+      "path": "ReplicatedStorage.PetRoll.Shared.HomePlotLayout",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "HomePlotLayout"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/HomePlotLayout.luau",
+      "scope": "active",
+      "sha256": "37b5194ccb1467d958141e2662939f95776e01eb7c7b378de07a3b2fea7b52e7",
+      "bytes": 1253
+    },
+    {
+      "exportIndex": 45,
+      "path": "ReplicatedStorage.PetRoll.Shared.KingVisual",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "KingVisual"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/KingVisual.luau",
+      "scope": "active",
+      "sha256": "e19ee47b5b827a62f1e0cc8c1c9e9f14dda9d0d9696cf41b5cf0911bd2fe7861",
+      "bytes": 3661
+    },
+    {
+      "exportIndex": 46,
+      "path": "ReplicatedStorage.PetRoll.Shared.MapLayout",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "MapLayout"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/MapLayout.luau",
+      "scope": "active",
+      "sha256": "35f0ccc47a5973e04892155332ef7f6f8762b52554f401fc935d4df4815a05e9",
+      "bytes": 3915
+    },
+    {
+      "exportIndex": 47,
+      "path": "ReplicatedStorage.PetRoll.Shared.PetCatalog",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "PetCatalog"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/PetCatalog.luau",
+      "scope": "active",
+      "sha256": "c4e6f9e534ccc776bd462c6a5257dc4cba6239dad33b0e42309df9016cc115d4",
+      "bytes": 4147
+    },
+    {
+      "exportIndex": 48,
+      "path": "ReplicatedStorage.PetRoll.Shared.PetView",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "PetView"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/PetView.luau",
+      "scope": "active",
+      "sha256": "c5b82fd6ad076d84ba785bd801c590124853d37d7bad8278f0d422d7d9d78ca5",
+      "bytes": 25523
+    },
+    {
+      "exportIndex": 49,
+      "path": "ReplicatedStorage.PetRoll.Shared.Progression",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "Progression"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/Progression.luau",
+      "scope": "active",
+      "sha256": "ca630bf71c26f6eef088b70dcc613a1e8e18ece037a07886f1fafa7a8e49ae0c",
+      "bytes": 5985
+    },
+    {
+      "exportIndex": 50,
+      "path": "ReplicatedStorage.PetRoll.Shared.Rules",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "Rules"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/Rules.luau",
+      "scope": "active",
+      "sha256": "7eb0aa8033334303a8acf05079b920a34da05d64bf08bf4fa03e288ed2c78ac9",
+      "bytes": 5763
+    },
+    {
+      "exportIndex": 51,
+      "path": "ReplicatedStorage.PetRoll.Shared.ShopCatalog",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "ShopCatalog"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/ShopCatalog.luau",
+      "scope": "active",
+      "sha256": "60873a7e047f3b4d641107841e6f9a04cf33763d0596f0406ea2f65feb49072e",
+      "bytes": 4296
+    },
+    {
+      "exportIndex": 52,
+      "path": "ReplicatedStorage.PetRoll.Shared.UIColors",
+      "segments": [
+        "ReplicatedStorage",
+        "PetRoll",
+        "Shared",
+        "UIColors"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/shared/UIColors.luau",
+      "scope": "active",
+      "sha256": "f77f5b1bf299fbee1f3ff5644c554e46cf3b96113e3fbe42042e3d347a5049ec",
+      "bytes": 1156
+    },
+    {
+      "path": "ServerScriptService.PetRollBootstrap",
+      "tags": [],
+      "exportIndex": 53,
+      "attributes": [],
+      "className": "Script",
+      "runContext": "Legacy",
+      "disabled": false,
+      "segments": [
+        "ServerScriptService",
+        "PetRollBootstrap"
+      ],
+      "childCount": 0,
+      "file": "src/bootstraps/PetRollBootstrap.server.luau",
+      "scope": "active",
+      "sha256": "23dd76759922b75a0a9c9f0716f0d96c05af1548a8e706dabd5d7b1d80ced6de",
+      "bytes": 1757
+    },
+    {
+      "exportIndex": 54,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionAnimationPlayer",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionAnimationPlayer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionAnimationPlayer.luau",
+      "scope": "archive",
+      "sha256": "4fd63188ba112a86e7f4abeadfb04c73c087b6c48ba06874bae2de5856ce6bfa",
+      "bytes": 1684
+    },
+    {
+      "exportIndex": 55,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Bonsai",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Bonsai"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Bonsai.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 56,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Cactus",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Cactus"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Cactus.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 57,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Camo",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Camo"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Camo.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 58,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Cardboard",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Cardboard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Cardboard.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 59,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Diamond",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Diamond"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Diamond.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 60,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Frost",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Frost"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Frost.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 61,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Gentleman",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Gentleman"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Gentleman.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 62,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Noob",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Noob"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Noob.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 63,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Rainbow",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Rainbow"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Rainbow.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 64,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.RubberDucky",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "RubberDucky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/RubberDucky.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 65,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Slime",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Slime"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Slime.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 66,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.ExpansionClips.Storm",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "ExpansionClips",
+        "Storm"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/ExpansionClips/Storm.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 67,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Bucket",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Bucket.luau",
+      "scope": "archive",
+      "sha256": "44d5fd5280ecf295809681fad16abd1a1ddf244439dc2c897f8bda4c18d8ad22",
+      "bytes": 131699
+    },
+    {
+      "exportIndex": 68,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Chunky",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Chunky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Chunky.luau",
+      "scope": "archive",
+      "sha256": "7cb4fd600e0fd96d0b17c8be1fa0c6e2655969d1f58cd337cbf37b3a9fb1fa0e",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 69,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Dragon",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Dragon.luau",
+      "scope": "archive",
+      "sha256": "5e5c8cdbf021fd3b3730f8c2d68f6fb29c699d9c2851b8afa6a279290eab4702",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 70,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Duck",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Duck.luau",
+      "scope": "archive",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 71,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.IceDuck",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/IceDuck.luau",
+      "scope": "archive",
+      "sha256": "b53411783733796e216f6867541ee57fda3e1d175f01a1438181d8fd4e091b8a",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 72,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Knight",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Knight.luau",
+      "scope": "archive",
+      "sha256": "6255c9146fb1f8713d2992fe88cd802329ce2345742bb21a33577b8b3e7f6632",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 73,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Mallard",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Mallard.luau",
+      "scope": "archive",
+      "sha256": "bf80f1c899a61b2a99d23bda386dadde004305864bdec149a4632959c414062b",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 74,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Sailor",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Sailor.luau",
+      "scope": "archive",
+      "sha256": "d522f5333b36bdcc7f8bb4d8b9d4a5c240f8db8a7789c0b369625aa7dbc8b5a3",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 75,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.StormDuck",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/StormDuck.luau",
+      "scope": "archive",
+      "sha256": "49787c67bab12b0c489226645e9e4d39e5cb44f584e6f791fe9d76b97743e4f1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 76,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Viking",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Viking.luau",
+      "scope": "archive",
+      "sha256": "08a98a8b7a7d0508e91094768cd5e8f7b282c267c7032f2fbb45535b78f4fa6d",
+      "bytes": 131753
+    },
+    {
+      "exportIndex": 77,
+      "path": "ServerStorage.ApprovedPBRImport20260917.ApprovedChickenPBRRecovery.PlayableClips.Wizard",
+      "segments": [
+        "ServerStorage",
+        "ApprovedPBRImport20260917",
+        "ApprovedChickenPBRRecovery",
+        "PlayableClips",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ApprovedPBRImport20260917/ApprovedChickenPBRRecovery/PlayableClips/Wizard.luau",
+      "scope": "archive",
+      "sha256": "2639a18e8264bfe01ead5a54d0191ae6245673035b2f752cec2cdbb96585a6a1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 78,
+      "path": "ServerStorage.CampFoldersBefore20260924.AuthoredMap",
+      "segments": [
+        "ServerStorage",
+        "CampFoldersBefore20260924",
+        "AuthoredMap"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CampFoldersBefore20260924/AuthoredMap.luau",
+      "scope": "archive",
+      "sha256": "835834852707a42228a559d06884f0a665c65b2cef29c8e67dcaf648bfea5073",
+      "bytes": 1255
+    },
+    {
+      "exportIndex": 79,
+      "path": "ServerStorage.ChickenExpansionPBR.AnimationPlayer",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "AnimationPlayer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/AnimationPlayer.luau",
+      "scope": "archive",
+      "sha256": "4fd63188ba112a86e7f4abeadfb04c73c087b6c48ba06874bae2de5856ce6bfa",
+      "bytes": 1684
+    },
+    {
+      "exportIndex": 80,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Bonsai",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Bonsai"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Bonsai.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 81,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Cactus",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Cactus"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Cactus.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 82,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Camo",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Camo"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Camo.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 83,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Cardboard",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Cardboard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Cardboard.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 84,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Diamond",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Diamond"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Diamond.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 85,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Frost",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Frost"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Frost.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 86,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Gentleman",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Gentleman"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Gentleman.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 87,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Noob",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Noob"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Noob.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 88,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Rainbow",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Rainbow"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Rainbow.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 89,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.RubberDucky",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "RubberDucky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/RubberDucky.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 90,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Slime",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Slime"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Slime.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 91,
+      "path": "ServerStorage.ChickenExpansionPBR.Clips.Storm",
+      "segments": [
+        "ServerStorage",
+        "ChickenExpansionPBR",
+        "Clips",
+        "Storm"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenExpansionPBR/Clips/Storm.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 92,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Bee",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Bee"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Bee.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 93,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Cheesy",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Cheesy"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Cheesy.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 94,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Ninja",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Ninja"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Ninja.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 95,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Penguin",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Penguin"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Penguin.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 96,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Pirate",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Pirate"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Pirate.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 97,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Skeleton",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Skeleton"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Skeleton.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 98,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Tiger",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Tiger"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Tiger.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 99,
+      "path": "ServerStorage.ChickenSkinsV2Library.Clips.Zombie",
+      "segments": [
+        "ServerStorage",
+        "ChickenSkinsV2Library",
+        "Clips",
+        "Zombie"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ChickenSkinsV2Library/Clips/Zombie.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 100,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Bucket",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Bucket.luau",
+      "scope": "archive",
+      "sha256": "44d5fd5280ecf295809681fad16abd1a1ddf244439dc2c897f8bda4c18d8ad22",
+      "bytes": 131699
+    },
+    {
+      "exportIndex": 101,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Chunky",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Chunky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Chunky.luau",
+      "scope": "archive",
+      "sha256": "7cb4fd600e0fd96d0b17c8be1fa0c6e2655969d1f58cd337cbf37b3a9fb1fa0e",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 102,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Dragon",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Dragon.luau",
+      "scope": "archive",
+      "sha256": "5e5c8cdbf021fd3b3730f8c2d68f6fb29c699d9c2851b8afa6a279290eab4702",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 103,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Duck",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Duck.luau",
+      "scope": "archive",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 104,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.IceDuck",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/IceDuck.luau",
+      "scope": "archive",
+      "sha256": "b53411783733796e216f6867541ee57fda3e1d175f01a1438181d8fd4e091b8a",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 105,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Knight",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Knight.luau",
+      "scope": "archive",
+      "sha256": "6255c9146fb1f8713d2992fe88cd802329ce2345742bb21a33577b8b3e7f6632",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 106,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Mallard",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Mallard.luau",
+      "scope": "archive",
+      "sha256": "bf80f1c899a61b2a99d23bda386dadde004305864bdec149a4632959c414062b",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 107,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Sailor",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Sailor.luau",
+      "scope": "archive",
+      "sha256": "d522f5333b36bdcc7f8bb4d8b9d4a5c240f8db8a7789c0b369625aa7dbc8b5a3",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 108,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.StormDuck",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/StormDuck.luau",
+      "scope": "archive",
+      "sha256": "49787c67bab12b0c489226645e9e4d39e5cb44f584e6f791fe9d76b97743e4f1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 109,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Viking",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Viking.luau",
+      "scope": "archive",
+      "sha256": "08a98a8b7a7d0508e91094768cd5e8f7b282c267c7032f2fbb45535b78f4fa6d",
+      "bytes": 131753
+    },
+    {
+      "exportIndex": 110,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.ChickenClips.Wizard",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "ChickenClips",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/ChickenClips/Wizard.luau",
+      "scope": "archive",
+      "sha256": "2639a18e8264bfe01ead5a54d0191ae6245673035b2f752cec2cdbb96585a6a1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 111,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.AnimationPlayer",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "AnimationPlayer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/AnimationPlayer.luau",
+      "scope": "archive",
+      "sha256": "4fd63188ba112a86e7f4abeadfb04c73c087b6c48ba06874bae2de5856ce6bfa",
+      "bytes": 1684
+    },
+    {
+      "exportIndex": 112,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Bonsai",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Bonsai"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Bonsai.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 113,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Cactus",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Cactus"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Cactus.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 114,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Camo",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Camo"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Camo.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 115,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Cardboard",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Cardboard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Cardboard.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 116,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Diamond",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Diamond"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Diamond.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 117,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Frost",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Frost"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Frost.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 118,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Gentleman",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Gentleman"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Gentleman.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 119,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Noob",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Noob"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Noob.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 120,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Rainbow",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Rainbow"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Rainbow.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 121,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.RubberDucky",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "RubberDucky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/RubberDucky.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 122,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Slime",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Slime"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Slime.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 123,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.Expansion.Clips.Storm",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "Expansion",
+        "Clips",
+        "Storm"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/Expansion/Clips/Storm.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 124,
+      "path": "ServerStorage.CompletePBRImport20260916.ChickenArmyCompletePBR.GalaxyTextureAnimator",
+      "segments": [
+        "ServerStorage",
+        "CompletePBRImport20260916",
+        "ChickenArmyCompletePBR",
+        "GalaxyTextureAnimator"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/CompletePBRImport20260916/ChickenArmyCompletePBR/GalaxyTextureAnimator.luau",
+      "scope": "archive",
+      "sha256": "b7589d2c4040285597022f506d9795635e9d90f3ad555609466af1c52803acf6",
+      "bytes": 9460
+    },
+    {
+      "exportIndex": 125,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenAppearanceAssets",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenAppearanceAssets"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenAppearanceAssets.luau",
+      "scope": "archive",
+      "sha256": "aa05bee0db2749f82ea5eba6adc58ee000cafb81e142f05e98546f0eeb689dc4",
+      "bytes": 2795
+    },
+    {
+      "exportIndex": 126,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Bonsai",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Bonsai"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Bonsai.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 127,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Bucket",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Bucket.luau",
+      "scope": "archive",
+      "sha256": "44d5fd5280ecf295809681fad16abd1a1ddf244439dc2c897f8bda4c18d8ad22",
+      "bytes": 131699
+    },
+    {
+      "exportIndex": 128,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Cactus",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Cactus"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Cactus.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 129,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Camo",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Camo"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Camo.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 130,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Cardboard",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Cardboard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Cardboard.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 131,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Chunky",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Chunky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Chunky.luau",
+      "scope": "archive",
+      "sha256": "7cb4fd600e0fd96d0b17c8be1fa0c6e2655969d1f58cd337cbf37b3a9fb1fa0e",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 132,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Diamond",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Diamond"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Diamond.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 133,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Dragon",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Dragon.luau",
+      "scope": "archive",
+      "sha256": "5e5c8cdbf021fd3b3730f8c2d68f6fb29c699d9c2851b8afa6a279290eab4702",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 134,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Duck",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Duck.luau",
+      "scope": "archive",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 135,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Frost",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Frost"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Frost.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 136,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Gentleman",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Gentleman"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Gentleman.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 137,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.IceDuck",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/IceDuck.luau",
+      "scope": "archive",
+      "sha256": "b53411783733796e216f6867541ee57fda3e1d175f01a1438181d8fd4e091b8a",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 138,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Jockey",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Jockey"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Jockey.luau",
+      "scope": "archive",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 139,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Knight",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Knight.luau",
+      "scope": "archive",
+      "sha256": "6255c9146fb1f8713d2992fe88cd802329ce2345742bb21a33577b8b3e7f6632",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 140,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Mallard",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Mallard.luau",
+      "scope": "archive",
+      "sha256": "bf80f1c899a61b2a99d23bda386dadde004305864bdec149a4632959c414062b",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 141,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Noob",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Noob"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Noob.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 142,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Rainbow",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Rainbow"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Rainbow.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 143,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.RubberDucky",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "RubberDucky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/RubberDucky.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 144,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Sailor",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Sailor.luau",
+      "scope": "archive",
+      "sha256": "d522f5333b36bdcc7f8bb4d8b9d4a5c240f8db8a7789c0b369625aa7dbc8b5a3",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 145,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Slime",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Slime"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Slime.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 146,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Storm",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Storm"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Storm.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 147,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.StormDuck",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/StormDuck.luau",
+      "scope": "archive",
+      "sha256": "49787c67bab12b0c489226645e9e4d39e5cb44f584e6f791fe9d76b97743e4f1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 148,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Viking",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Viking.luau",
+      "scope": "archive",
+      "sha256": "08a98a8b7a7d0508e91094768cd5e8f7b282c267c7032f2fbb45535b78f4fa6d",
+      "bytes": 131753
+    },
+    {
+      "exportIndex": 149,
+      "path": "ServerStorage.EightChickens20260922.Before.ChickenClips.Wizard",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "ChickenClips",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/ChickenClips/Wizard.luau",
+      "scope": "archive",
+      "sha256": "2639a18e8264bfe01ead5a54d0191ae6245673035b2f752cec2cdbb96585a6a1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 150,
+      "path": "ServerStorage.EightChickens20260922.Before.CombatRewards",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "CombatRewards"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/CombatRewards.luau",
+      "scope": "archive",
+      "sha256": "d6d6877a07631ad6910c221a9add2786b78bc3f3bf14703ad1f45df864faa300",
+      "bytes": 1047
+    },
+    {
+      "exportIndex": 151,
+      "path": "ServerStorage.EightChickens20260922.Before.PetCatalog",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Before",
+        "PetCatalog"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Before/PetCatalog.luau",
+      "scope": "archive",
+      "sha256": "a9196bfdce0323dea48820e719324edd456cc5e302464b00416b3709cc747b8b",
+      "bytes": 3471
+    },
+    {
+      "exportIndex": 152,
+      "path": "ServerStorage.EightChickens20260922.Import",
+      "segments": [
+        "ServerStorage",
+        "EightChickens20260922",
+        "Import"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/EightChickens20260922/Import.luau",
+      "scope": "archive",
+      "sha256": "97ec99f2ef0e45fe17c2c2a5defc748923933f7166f9d5e55db47ffc0b76a746",
+      "bytes": 8654
+    },
+    {
+      "exportIndex": 153,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Bucket",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Bucket.luau",
+      "scope": "archive",
+      "sha256": "44d5fd5280ecf295809681fad16abd1a1ddf244439dc2c897f8bda4c18d8ad22",
+      "bytes": 131699
+    },
+    {
+      "exportIndex": 154,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Chunky",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Chunky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Chunky.luau",
+      "scope": "archive",
+      "sha256": "7cb4fd600e0fd96d0b17c8be1fa0c6e2655969d1f58cd337cbf37b3a9fb1fa0e",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 155,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Dragon",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Dragon.luau",
+      "scope": "archive",
+      "sha256": "5e5c8cdbf021fd3b3730f8c2d68f6fb29c699d9c2851b8afa6a279290eab4702",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 156,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Duck",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Duck.luau",
+      "scope": "archive",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 157,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.IceDuck",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/IceDuck.luau",
+      "scope": "archive",
+      "sha256": "b53411783733796e216f6867541ee57fda3e1d175f01a1438181d8fd4e091b8a",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 158,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Knight",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Knight.luau",
+      "scope": "archive",
+      "sha256": "6255c9146fb1f8713d2992fe88cd802329ce2345742bb21a33577b8b3e7f6632",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 159,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Mallard",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Mallard.luau",
+      "scope": "archive",
+      "sha256": "bf80f1c899a61b2a99d23bda386dadde004305864bdec149a4632959c414062b",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 160,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Sailor",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Sailor.luau",
+      "scope": "archive",
+      "sha256": "d522f5333b36bdcc7f8bb4d8b9d4a5c240f8db8a7789c0b369625aa7dbc8b5a3",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 161,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.StormDuck",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/StormDuck.luau",
+      "scope": "archive",
+      "sha256": "49787c67bab12b0c489226645e9e4d39e5cb44f584e6f791fe9d76b97743e4f1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 162,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Viking",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Viking.luau",
+      "scope": "archive",
+      "sha256": "08a98a8b7a7d0508e91094768cd5e8f7b282c267c7032f2fbb45535b78f4fa6d",
+      "bytes": 131753
+    },
+    {
+      "exportIndex": 163,
+      "path": "ServerStorage.ExpandedRoster20260921.ChickenClips.Wizard",
+      "segments": [
+        "ServerStorage",
+        "ExpandedRoster20260921",
+        "ChickenClips",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/ExpandedRoster20260921/ChickenClips/Wizard.luau",
+      "scope": "archive",
+      "sha256": "2639a18e8264bfe01ead5a54d0191ae6245673035b2f752cec2cdbb96585a6a1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 164,
+      "path": "ServerStorage.JockeyClassicBefore20260923.ChickenPortraitsBefore",
+      "segments": [
+        "ServerStorage",
+        "JockeyClassicBefore20260923",
+        "ChickenPortraitsBefore"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/JockeyClassicBefore20260923/ChickenPortraitsBefore.luau",
+      "scope": "archive",
+      "sha256": "8134e0302f3f540c1cb510546e637d3f0bed43c8b075387f7d522fd0403dd9f1",
+      "bytes": 2010
+    },
+    {
+      "exportIndex": 165,
+      "path": "ServerStorage.PetRoll.ArmyReinforcements",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "ArmyReinforcements"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/ArmyReinforcements.luau",
+      "scope": "active",
+      "sha256": "dae884e4f429fb45b7fbcfac2324f30f8dfd647cb376d0a5ebdac38183e4af79",
+      "bytes": 4131
+    },
+    {
+      "exportIndex": 166,
+      "path": "ServerStorage.PetRoll.ArmyService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "ArmyService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/ArmyService.luau",
+      "scope": "active",
+      "sha256": "e81f2910953dc344f1d80b01b9bef05f2dd08bbb7b7612b55ac205ab3e8c1c00",
+      "bytes": 10922
+    },
+    {
+      "exportIndex": 167,
+      "path": "ServerStorage.PetRoll.AuthoredMap",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "AuthoredMap"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/AuthoredMap.luau",
+      "scope": "active",
+      "sha256": "2dccef08f3d594491f60464bffdec77c76001bcbf28853f8201062445150a24a",
+      "bytes": 1917
+    },
+    {
+      "exportIndex": 168,
+      "path": "ServerStorage.PetRoll.AuthoredPlot",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "AuthoredPlot"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/AuthoredPlot.luau",
+      "scope": "active",
+      "sha256": "173c703eb6b1fb43bd6ea78d15cd78001b30ce80df9dffa9fcbb909c2106b325",
+      "bytes": 1622
+    },
+    {
+      "exportIndex": 169,
+      "path": "ServerStorage.PetRoll.Battle",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "Battle"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/Battle.luau",
+      "scope": "active",
+      "sha256": "a879ed5b26a1565148b9c667df51d4a045b901341ff4247dd841329288c8e166",
+      "bytes": 25723
+    },
+    {
+      "exportIndex": 170,
+      "path": "ServerStorage.PetRoll.BattleService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "BattleService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/BattleService.luau",
+      "scope": "active",
+      "sha256": "22ba47babb64aac781d9a25a56d0db4b5e8820a3ecc7f483001a4bac40705f12",
+      "bytes": 53848
+    },
+    {
+      "exportIndex": 171,
+      "path": "ServerStorage.PetRoll.CampScenery",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "CampScenery"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/CampScenery.luau",
+      "scope": "active",
+      "sha256": "4f96e45b02b7656c64f9493b078c7d70b92c85490ff145a24f9f1ff3ead49d21",
+      "bytes": 14365
+    },
+    {
+      "exportIndex": 172,
+      "path": "ServerStorage.PetRoll.CommerceService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "CommerceService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/CommerceService.luau",
+      "scope": "active",
+      "sha256": "57d89e77b17afd11e8862dd70f51bbc12928e09f81f74e1b82645db5d2ec4557",
+      "bytes": 10142
+    },
+    {
+      "exportIndex": 173,
+      "path": "ServerStorage.PetRoll.CrateService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "CrateService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/CrateService.luau",
+      "scope": "active",
+      "sha256": "8a5a711e9a9cbf3ad298c21efac7f494c6c2a90f03437c4443ef421ddb7a23f5",
+      "bytes": 2181
+    },
+    {
+      "exportIndex": 174,
+      "path": "ServerStorage.PetRoll.DataService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "DataService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/DataService.luau",
+      "scope": "active",
+      "sha256": "7c501a1350e4a6fb35a10fa498d81930c70e3d454e6d367b265366be1fc4eb6a",
+      "bytes": 9611
+    },
+    {
+      "exportIndex": 175,
+      "path": "ServerStorage.PetRoll.DebugService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "DebugService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/DebugService.luau",
+      "scope": "active",
+      "sha256": "b41e8e5e6de226f625527bfe610eae602d2076aed2e75088e3194a2e41245245",
+      "bytes": 6105
+    },
+    {
+      "exportIndex": 176,
+      "path": "ServerStorage.PetRoll.EggService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "EggService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/EggService.luau",
+      "scope": "active",
+      "sha256": "cca17c439640495f21fd6325b1288cd6cace3c3fe24653f5c11dd6c271a47968",
+      "bytes": 8480
+    },
+    {
+      "exportIndex": 177,
+      "path": "ServerStorage.PetRoll.GameServer",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "GameServer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/GameServer.luau",
+      "scope": "active",
+      "sha256": "7607dc7a685379644e8989809362562d0b14fbee68d6d0b34e506ff22bacbd3c",
+      "bytes": 18457
+    },
+    {
+      "exportIndex": 178,
+      "path": "ServerStorage.PetRoll.IdlePatrol",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "IdlePatrol"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/IdlePatrol.luau",
+      "scope": "active",
+      "sha256": "031c77a2cb161574f69dcbca45b8cef37cccf14bf773be478304f2d190f591c7",
+      "bytes": 2132
+    },
+    {
+      "exportIndex": 179,
+      "path": "ServerStorage.PetRoll.KingArena",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "KingArena"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/KingArena.luau",
+      "scope": "active",
+      "sha256": "11b96ea05489f005ce8e57348c41e6c79e0aef5f56f2e49c981a97b8e822f825",
+      "bytes": 13419
+    },
+    {
+      "exportIndex": 180,
+      "path": "ServerStorage.PetRoll.KingEncounter",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "KingEncounter"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/KingEncounter.luau",
+      "scope": "active",
+      "sha256": "bb9d8e6d9a15bfb696c226eee2a9167a054af3306e00730b06b4939a9ef6e3ea",
+      "bytes": 1104
+    },
+    {
+      "exportIndex": 181,
+      "path": "ServerStorage.PetRoll.LeaderboardService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "LeaderboardService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/LeaderboardService.luau",
+      "scope": "active",
+      "sha256": "4b9496b763d440d0a4569050c0c0031d0e684346ba957fb167d4573d6cccdd2d",
+      "bytes": 6489
+    },
+    {
+      "exportIndex": 182,
+      "path": "ServerStorage.PetRoll.LiveBattleActors",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "LiveBattleActors"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/LiveBattleActors.luau",
+      "scope": "active",
+      "sha256": "3d39555792082fcc5a46eb20f06f3152a2b1f886b7820a815d2e05ef4f17e188",
+      "bytes": 5006
+    },
+    {
+      "exportIndex": 183,
+      "path": "ServerStorage.PetRoll.LoopTelemetry",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "LoopTelemetry"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/LoopTelemetry.luau",
+      "scope": "active",
+      "sha256": "ef480bee0b3bfc4ec71084038339a600a03d79600516a89ca9ba582696654ee5",
+      "bytes": 3524
+    },
+    {
+      "exportIndex": 184,
+      "path": "ServerStorage.PetRoll.MapScenery",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "MapScenery"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/MapScenery.luau",
+      "scope": "active",
+      "sha256": "1d2fbbca33d5e45613329d1045c35114ad36a7b72dfb5f29350053b5007f0b11",
+      "bytes": 11317
+    },
+    {
+      "exportIndex": 185,
+      "path": "ServerStorage.PetRoll.MerchantVisual",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "MerchantVisual"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/MerchantVisual.luau",
+      "scope": "active",
+      "sha256": "d0609f08c125d324437defe6bf319c298001ead3af56d635b22908343cc2e413",
+      "bytes": 1735
+    },
+    {
+      "exportIndex": 186,
+      "path": "ServerStorage.PetRoll.MergeStand",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "MergeStand"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/MergeStand.luau",
+      "scope": "active",
+      "sha256": "a387a8698b6acdb4b421c420b2fdfe08c54a17db8da5b1341ce0032914009a68",
+      "bytes": 4105
+    },
+    {
+      "exportIndex": 187,
+      "path": "ServerStorage.PetRoll.PetActor",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "PetActor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/PetActor.luau",
+      "scope": "active",
+      "sha256": "709350cc940488e70254aa20587e29558d4eaca51e87e4fad83464d405e46f9c",
+      "bytes": 11577
+    },
+    {
+      "exportIndex": 188,
+      "path": "ServerStorage.PetRoll.PlayerSession",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "PlayerSession"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/PlayerSession.luau",
+      "scope": "active",
+      "sha256": "f817c605a9d6754a16ee48caf0c7d567e66d2c8d6b3db58943d3a84285713979",
+      "bytes": 29368
+    },
+    {
+      "exportIndex": 189,
+      "path": "ServerStorage.PetRoll.ProductService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "ProductService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/ProductService.luau",
+      "scope": "active",
+      "sha256": "2688c2f6b1ea2d9ae894bfd2cd00821e84d08bc3d64bb13d9181bbdcd08f3d0e",
+      "bytes": 5178
+    },
+    {
+      "exportIndex": 190,
+      "path": "ServerStorage.PetRoll.RollService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "RollService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/RollService.luau",
+      "scope": "active",
+      "sha256": "cdd15fe5b8426dba7f67405ad4224c3f62289a69a911d8272d34af372b594e2f",
+      "bytes": 5145
+    },
+    {
+      "exportIndex": 191,
+      "path": "ServerStorage.PetRoll.RollStation",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "RollStation"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/RollStation.luau",
+      "scope": "active",
+      "sha256": "6518cc3b9aa0ac6595be25dc7e0a9487cb091761afeb659dc3355755f59bf65c",
+      "bytes": 14653
+    },
+    {
+      "exportIndex": 192,
+      "path": "ServerStorage.PetRoll.TerritoryContest",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "TerritoryContest"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/TerritoryContest.luau",
+      "scope": "active",
+      "sha256": "4bd7c91975e5d74fbc96ab9241e04e9cb42f914fe5e2aa89bd32439f3636acd6",
+      "bytes": 5372
+    },
+    {
+      "exportIndex": 193,
+      "path": "ServerStorage.PetRoll.TerritoryIncome",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "TerritoryIncome"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/TerritoryIncome.luau",
+      "scope": "active",
+      "sha256": "4531d010be0c519e33279dd970050cd50e1924ed753d69de24fb3baa5aefec90",
+      "bytes": 2344
+    },
+    {
+      "exportIndex": 194,
+      "path": "ServerStorage.PetRoll.WorldBuilder",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "WorldBuilder"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/WorldBuilder.luau",
+      "scope": "active",
+      "sha256": "14810159f59ce8b845d584f7b094e83ad867948a125a21562f407cfd29f78073",
+      "bytes": 14823
+    },
+    {
+      "exportIndex": 195,
+      "path": "ServerStorage.PetRoll.WorldService",
+      "segments": [
+        "ServerStorage",
+        "PetRoll",
+        "WorldService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/server/WorldService.luau",
+      "scope": "active",
+      "sha256": "78163bee03346c71d425c55f9fa602d0d2c2ca3dd9cc1d0df1773bf372bc1b64",
+      "bytes": 29626
+    },
+    {
+      "exportIndex": 196,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.ArmyMarch",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "ArmyMarch"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/ArmyMarch.luau",
+      "scope": "archive",
+      "sha256": "a568139e37abce34a86fd38f7b2f638204a5aff2c2ca78130c5a45c143f7ef18",
+      "bytes": 5069
+    },
+    {
+      "exportIndex": 197,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.BattleService",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "BattleService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/BattleService.luau",
+      "scope": "archive",
+      "sha256": "4165ba4fec43424596148c4725536d985702af73b25dacd20947136532292c5f",
+      "bytes": 53839
+    },
+    {
+      "exportIndex": 198,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.Config",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "Config"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/Config.luau",
+      "scope": "archive",
+      "sha256": "ae111408d31a2e386c378ac669f3abd105e1072d8fe6f96d44465035ef996f92",
+      "bytes": 4837
+    },
+    {
+      "exportIndex": 199,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.HomePlotLayout",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "HomePlotLayout"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/HomePlotLayout.luau",
+      "scope": "archive",
+      "sha256": "37b5194ccb1467d958141e2662939f95776e01eb7c7b378de07a3b2fea7b52e7",
+      "bytes": 1253
+    },
+    {
+      "exportIndex": 200,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.HudController",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "HudController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/HudController.luau",
+      "scope": "archive",
+      "sha256": "aa619a7fb513ae0982af834105f8806b3da5bb6443dfa0360a10079f0ef4aaaf",
+      "bytes": 16675
+    },
+    {
+      "exportIndex": 201,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.KingArena",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "KingArena"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/KingArena.luau",
+      "scope": "archive",
+      "sha256": "11b96ea05489f005ce8e57348c41e6c79e0aef5f56f2e49c981a97b8e822f825",
+      "bytes": 13419
+    },
+    {
+      "exportIndex": 202,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.MapLayout",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "MapLayout"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/MapLayout.luau",
+      "scope": "archive",
+      "sha256": "56c03439ae36c97670bcecb8abb8d9efe61ecb6252d3ce79e1f0d6a960697dc0",
+      "bytes": 2296
+    },
+    {
+      "exportIndex": 203,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.Progression",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "Progression"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/Progression.luau",
+      "scope": "archive",
+      "sha256": "db795bbf7365adb51ec24fa3bb5bc44e7075069e39c6f45ed6017656a42eb9bc",
+      "bytes": 6031
+    },
+    {
+      "exportIndex": 204,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.WorldBuilder",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "WorldBuilder"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/WorldBuilder.luau",
+      "scope": "archive",
+      "sha256": "14810159f59ce8b845d584f7b094e83ad867948a125a21562f407cfd29f78073",
+      "bytes": 14823
+    },
+    {
+      "exportIndex": 205,
+      "path": "ServerStorage.PetRollArtBackups.BeforeBuilderMap20260922.Scripts.WorldService",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeBuilderMap20260922",
+        "Scripts",
+        "WorldService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeBuilderMap20260922/Scripts/WorldService.luau",
+      "scope": "archive",
+      "sha256": "68e5fcc938515bcec8bea6a7d0b73c015a3adcdd7157ee412fefc180794cfbe5",
+      "bytes": 27961
+    },
+    {
+      "exportIndex": 206,
+      "path": "ServerStorage.PetRollArtBackups.BeforeEnemyPatrol20260920.KingArena",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeEnemyPatrol20260920",
+        "KingArena"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeEnemyPatrol20260920/KingArena.luau",
+      "scope": "archive",
+      "sha256": "296b8fd0600e976458ad88d0bf093b1ec0d6048fa3ee6d12e4e500fb6e006317",
+      "bytes": 12272
+    },
+    {
+      "path": "ServerStorage.PetRollArtBackups.BeforeEnemyPatrol20260920.PetRollBootstrap",
+      "tags": [],
+      "exportIndex": 207,
+      "attributes": [],
+      "className": "Script",
+      "runContext": "Legacy",
+      "disabled": false,
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeEnemyPatrol20260920",
+        "PetRollBootstrap"
+      ],
+      "childCount": 0,
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeEnemyPatrol20260920/PetRollBootstrap.server.luau",
+      "scope": "archive",
+      "sha256": "23dd76759922b75a0a9c9f0716f0d96c05af1548a8e706dabd5d7b1d80ced6de",
+      "bytes": 1757
+    },
+    {
+      "exportIndex": 208,
+      "path": "ServerStorage.PetRollArtBackups.BeforeEnemyPatrol20260920.WorldService",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforeEnemyPatrol20260920",
+        "WorldService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforeEnemyPatrol20260920/WorldService.luau",
+      "scope": "archive",
+      "sha256": "e363a3e40545a86b194618f5b8e96b62079e8adbd8d1a591e1004c193f860363",
+      "bytes": 27491
+    },
+    {
+      "exportIndex": 209,
+      "path": "ServerStorage.PetRollArtBackups.BeforePlot1Editing20260918.BeforeScripts.DebugService",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforePlot1Editing20260918",
+        "BeforeScripts",
+        "DebugService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforePlot1Editing20260918/BeforeScripts/DebugService.luau",
+      "scope": "archive",
+      "sha256": "dcd64ff47a57d0dbc928dac797297668be6cea34fb39aed5d7b785b2a9a35597",
+      "bytes": 6056
+    },
+    {
+      "exportIndex": 210,
+      "path": "ServerStorage.PetRollArtBackups.BeforePlot1Editing20260918.BeforeScripts.GameServer",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforePlot1Editing20260918",
+        "BeforeScripts",
+        "GameServer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforePlot1Editing20260918/BeforeScripts/GameServer.luau",
+      "scope": "archive",
+      "sha256": "acebe08f9c24fb869fb2003a96ccf33463309c79e1da3d71b7986425146ed93f",
+      "bytes": 17173
+    },
+    {
+      "exportIndex": 211,
+      "path": "ServerStorage.PetRollArtBackups.BeforePlot1Editing20260918.BeforeScripts.WorldService",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforePlot1Editing20260918",
+        "BeforeScripts",
+        "WorldService"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforePlot1Editing20260918/BeforeScripts/WorldService.luau",
+      "scope": "archive",
+      "sha256": "f84b044c1fc61331fa6bb011204e3001ca29eaf0de07eac131c3d1bb4ed41a5b",
+      "bytes": 27301
+    },
+    {
+      "exportIndex": 212,
+      "path": "ServerStorage.PetRollArtBackups.BeforePlot1PlaytestRepair20260918.RollStation",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "BeforePlot1PlaytestRepair20260918",
+        "RollStation"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/BeforePlot1PlaytestRepair20260918/RollStation.luau",
+      "scope": "archive",
+      "sha256": "b8f47750227735290b43411e6a6173c7f7da5cc0cbc614f33dd9f606a34e4211",
+      "bytes": 12883
+    },
+    {
+      "exportIndex": 213,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Bucket",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Bucket.luau",
+      "scope": "archive",
+      "sha256": "7efde23098effd9ebcc0c87f86465f2a20573fe47c720cdace2f6a74570980fc",
+      "bytes": 95933
+    },
+    {
+      "exportIndex": 214,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Dragon",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Dragon.luau",
+      "scope": "archive",
+      "sha256": "7cdaead87ea8b41cbcf884d70cf8478b119d880ccdad0d156e5036170a998a1e",
+      "bytes": 95773
+    },
+    {
+      "exportIndex": 215,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Duck",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Duck.luau",
+      "scope": "archive",
+      "sha256": "12c1b0d3b78284db89ccd36e0cf485fdec6c30cb39dba8814627c14f5393b852",
+      "bytes": 95737
+    },
+    {
+      "exportIndex": 216,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.IceDuck",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/IceDuck.luau",
+      "scope": "archive",
+      "sha256": "42097c287c0e720a30f02380791f362268263d38beb9512932a3a723ec762a79",
+      "bytes": 95739
+    },
+    {
+      "exportIndex": 217,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Knight",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Knight.luau",
+      "scope": "archive",
+      "sha256": "7efde23098effd9ebcc0c87f86465f2a20573fe47c720cdace2f6a74570980fc",
+      "bytes": 95933
+    },
+    {
+      "exportIndex": 218,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Mallard",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Mallard.luau",
+      "scope": "archive",
+      "sha256": "12c1b0d3b78284db89ccd36e0cf485fdec6c30cb39dba8814627c14f5393b852",
+      "bytes": 95737
+    },
+    {
+      "exportIndex": 219,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Pirate",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Pirate"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Pirate.luau",
+      "scope": "archive",
+      "sha256": "c7beff0bcd28f228a9e85deca0516498a4a7953d767ed933e779813794ce380f",
+      "bytes": 96436
+    },
+    {
+      "exportIndex": 220,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Robot",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Robot"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Robot.luau",
+      "scope": "archive",
+      "sha256": "f013e7e5e48507d50cfa3ec957c41d1df676668ad2be7c3822848aef61b8c176",
+      "bytes": 95101
+    },
+    {
+      "exportIndex": 221,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Sailor",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Sailor.luau",
+      "scope": "archive",
+      "sha256": "61f2cb5034b967073cb748e7e88c77808484f40861f2cf0f1d0b2f680af36d9d",
+      "bytes": 95717
+    },
+    {
+      "exportIndex": 222,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.StormDuck",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/StormDuck.luau",
+      "scope": "archive",
+      "sha256": "f0a972d596fc19bb4a4d2379487f233d001fb5fa47e8803062382218bcb650ce",
+      "bytes": 95719
+    },
+    {
+      "exportIndex": 223,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Viking",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Viking.luau",
+      "scope": "archive",
+      "sha256": "12c1b0d3b78284db89ccd36e0cf485fdec6c30cb39dba8814627c14f5393b852",
+      "bytes": 95737
+    },
+    {
+      "exportIndex": 224,
+      "path": "ServerStorage.PetRollArtBackups.ChickenClips_BeforeV3.Wizard",
+      "segments": [
+        "ServerStorage",
+        "PetRollArtBackups",
+        "ChickenClips_BeforeV3",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PetRollArtBackups/ChickenClips_BeforeV3/Wizard.luau",
+      "scope": "archive",
+      "sha256": "42097c287c0e720a30f02380791f362268263d38beb9512932a3a723ec762a79",
+      "bytes": 95739
+    },
+    {
+      "exportIndex": 225,
+      "path": "ServerStorage.PetRollTests.ArrivalCombatChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "ArrivalCombatChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/ArrivalCombatChecks.luau",
+      "scope": "test",
+      "sha256": "48dc7e45efde2a300d408dacc308edaccb9d8b10ca0fba9281c183bac394401f",
+      "bytes": 3698
+    },
+    {
+      "exportIndex": 226,
+      "path": "ServerStorage.PetRollTests.CampRespawnChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "CampRespawnChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/CampRespawnChecks.luau",
+      "scope": "test",
+      "sha256": "05880ef09612ea295fe3040fd76079cdce693ca21ec2878cae2cbec2b4e77185",
+      "bytes": 9381
+    },
+    {
+      "exportIndex": 227,
+      "path": "ServerStorage.PetRollTests.CampWorldRespawnChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "CampWorldRespawnChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/CampWorldRespawnChecks.luau",
+      "scope": "test",
+      "sha256": "8b659af3fbabf31eeb67e2bfe06b61c0c36bf064c1a7a249d92085f2d7907364",
+      "bytes": 3437
+    },
+    {
+      "exportIndex": 228,
+      "path": "ServerStorage.PetRollTests.CoreLoopObservationChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "CoreLoopObservationChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/CoreLoopObservationChecks.luau",
+      "scope": "test",
+      "sha256": "d18b2407a375ce77e56b0d21bc6da345f8b049c40ac628772dc175242e1edb7c",
+      "bytes": 3101
+    },
+    {
+      "exportIndex": 229,
+      "path": "ServerStorage.PetRollTests.IncomeTerritoryChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "IncomeTerritoryChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/IncomeTerritoryChecks.luau",
+      "scope": "test",
+      "sha256": "816d37d3af5a8aa53f969f4b5ac5e9f47a577acd1580f2f35b7cb185ffe5d81a",
+      "bytes": 17275
+    },
+    {
+      "exportIndex": 230,
+      "path": "ServerStorage.PetRollTests.LiveAcceptance",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "LiveAcceptance"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/LiveAcceptance.luau",
+      "scope": "test",
+      "sha256": "d68ac0fe68d6be3549299ad975d3ce4e604bb30b78503974ea2bf9137a6a6047",
+      "bytes": 21727
+    },
+    {
+      "exportIndex": 231,
+      "path": "ServerStorage.PetRollTests.LiveRigChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "LiveRigChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/LiveRigChecks.luau",
+      "scope": "test",
+      "sha256": "66f4dbf19a9fb867cd62346e3c480ea8233085e78a102b6c6619bae926f20874",
+      "bytes": 12805
+    },
+    {
+      "exportIndex": 232,
+      "path": "ServerStorage.PetRollTests.MergeStandChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "MergeStandChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/MergeStandChecks.luau",
+      "scope": "test",
+      "sha256": "3bb5a5f5e3817d6717b3c477655cd2d6e696468ea9e13bfb353322f224692910",
+      "bytes": 3362
+    },
+    {
+      "exportIndex": 233,
+      "path": "ServerStorage.PetRollTests.OpenRollChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "OpenRollChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/OpenRollChecks.luau",
+      "scope": "test",
+      "sha256": "e736277464497a5fd2714b8e7859cd7f2d202018fd70b3b16bb590ee109f2afb",
+      "bytes": 5213
+    },
+    {
+      "exportIndex": 234,
+      "path": "ServerStorage.PetRollTests.OpeningGrowthChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "OpeningGrowthChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/OpeningGrowthChecks.luau",
+      "scope": "test",
+      "sha256": "b6738153a3ffa17678818798ceaa04bff03476f7a1bbef416341f02bcc0d9880",
+      "bytes": 2250
+    },
+    {
+      "exportIndex": 235,
+      "path": "ServerStorage.PetRollTests.OrderedConquestChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "OrderedConquestChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/OrderedConquestChecks.luau",
+      "scope": "test",
+      "sha256": "2578fbb7ef6f720a028fc61a52945c5640436e8e2d7823143045f7b737ae3415",
+      "bytes": 8716
+    },
+    {
+      "exportIndex": 236,
+      "path": "ServerStorage.PetRollTests.PersistenceChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "PersistenceChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/PersistenceChecks.luau",
+      "scope": "test",
+      "sha256": "e1761419b0ac32de335ece5a232ce79459f0c7404810b6c5629875a8b185bbfd",
+      "bytes": 14223
+    },
+    {
+      "exportIndex": 237,
+      "path": "ServerStorage.PetRollTests.PetVisualChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "PetVisualChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/PetVisualChecks.luau",
+      "scope": "test",
+      "sha256": "3d592d0512b683e9fe0a0348d7640479da362f66f86e3400755a79948b3a5ec8",
+      "bytes": 6799
+    },
+    {
+      "exportIndex": 238,
+      "path": "ServerStorage.PetRollTests.PlotEggDepositChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "PlotEggDepositChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/PlotEggDepositChecks.luau",
+      "scope": "test",
+      "sha256": "58d1d5ad35fd6ff5917b201e1f5150daa30bb26413406108b805d12d100955d4",
+      "bytes": 3014
+    },
+    {
+      "exportIndex": 239,
+      "path": "ServerStorage.PetRollTests.PondChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "PondChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/PondChecks.luau",
+      "scope": "test",
+      "sha256": "d8aac7b210e2e0ac1a489f4e19a05545e6f0e7e4eb4cfd0af8cac0f0aaf54f16",
+      "bytes": 8720
+    },
+    {
+      "exportIndex": 240,
+      "path": "ServerStorage.PetRollTests.ProgressionSimulation",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "ProgressionSimulation"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/ProgressionSimulation.luau",
+      "scope": "test",
+      "sha256": "6243df8d211ecdf7428e1d9b860656953d08960bc9e3610d2ece828bfce5f905",
+      "bytes": 11831
+    },
+    {
+      "exportIndex": 241,
+      "path": "ServerStorage.PetRollTests.RecruitFeedbackChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "RecruitFeedbackChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/RecruitFeedbackChecks.luau",
+      "scope": "test",
+      "sha256": "2e3cf71e41c8e1977fe2371b553c553f05d2c0fbc3d4b892097dd0a4de08fee4",
+      "bytes": 2490
+    },
+    {
+      "exportIndex": 242,
+      "path": "ServerStorage.PetRollTests.RecruitIntentChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "RecruitIntentChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/RecruitIntentChecks.luau",
+      "scope": "test",
+      "sha256": "e0d8a73042565bfcd3e3eab62f57183403cde4c9b6749b6aaabc2d67669cbed7",
+      "bytes": 5462
+    },
+    {
+      "exportIndex": 243,
+      "path": "ServerStorage.PetRollTests.RulesAndBattles",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "RulesAndBattles"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/RulesAndBattles.luau",
+      "scope": "test",
+      "sha256": "672c863e1842697c0a3a968cd0af58c845b961508c4aee105178c991303107ec",
+      "bytes": 18374
+    },
+    {
+      "exportIndex": 244,
+      "path": "ServerStorage.PetRollTests.ShopIndexChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "ShopIndexChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/ShopIndexChecks.luau",
+      "scope": "test",
+      "sha256": "40b5263f541b0ae668b7f07f9e08340f286fafbd9bb4f3a63447b23c29dd1c52",
+      "bytes": 16712
+    },
+    {
+      "exportIndex": 245,
+      "path": "ServerStorage.PetRollTests.TerritoryIncomeChecks",
+      "segments": [
+        "ServerStorage",
+        "PetRollTests",
+        "TerritoryIncomeChecks"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "tests/TerritoryIncomeChecks.luau",
+      "scope": "test",
+      "sha256": "682c7cc022a3b1e3a51831b358f71f5f94febd03615a89f9ec9a23c9d1c28e34",
+      "bytes": 7317
+    },
+    {
+      "exportIndex": 246,
+      "path": "ServerStorage.Photobooth.Bindings",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings"
+      ],
+      "className": "ModuleScript",
+      "childCount": 6,
+      "tags": [
+        "Photobooth_Bindings"
+      ],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings.luau",
+      "scope": "archive",
+      "sha256": "fac99ea93b17b3ee4c1a7f60372867e789d8f69434c6eee74cd097ef6cc4e27b",
+      "bytes": 1720
+    },
+    {
+      "exportIndex": 247,
+      "path": "ServerStorage.Photobooth.Bindings.Binding",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Binding"
+      ],
+      "className": "ModuleScript",
+      "childCount": 1,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Binding.luau",
+      "scope": "archive",
+      "sha256": "03b861d8b2445ce0afbbbdd5dd348506fcf7e3d5a90e4963079c460ea0749dba",
+      "bytes": 1316
+    },
+    {
+      "exportIndex": 248,
+      "path": "ServerStorage.Photobooth.Bindings.Helpers.CachelessRequire",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Helpers",
+        "CachelessRequire"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Helpers/CachelessRequire.luau",
+      "scope": "archive",
+      "sha256": "a294891455ad8d808bb655da3718fc9aa4ef636bc74b2d328bdccb353744f063",
+      "bytes": 1840
+    },
+    {
+      "exportIndex": 249,
+      "path": "ServerStorage.Photobooth.Bindings.Helpers.RenderRect",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Helpers",
+        "RenderRect"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Helpers/RenderRect.luau",
+      "scope": "archive",
+      "sha256": "3ad82820dc4de46a7f1a17b841ca20576a3597b766f17ef656215628157906b2",
+      "bytes": 1034
+    },
+    {
+      "exportIndex": 250,
+      "path": "ServerStorage.Photobooth.Bindings.Helpers.Reversible",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Helpers",
+        "Reversible"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Helpers/Reversible.luau",
+      "scope": "archive",
+      "sha256": "3b2d9a155af9dcc6e0f8f11f3e504130b5ddb5688e7c3b45b53b2133be313936",
+      "bytes": 3426
+    },
+    {
+      "exportIndex": 251,
+      "path": "ServerStorage.Photobooth.Bindings.LICENSE",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "LICENSE"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/LICENSE.luau",
+      "scope": "archive",
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+      "bytes": 34523
+    },
+    {
+      "exportIndex": 252,
+      "path": "ServerStorage.Photobooth.Bindings.Templates.BatchUI.Action",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Templates",
+        "BatchUI",
+        "Action"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Templates/BatchUI/Action.luau",
+      "scope": "archive",
+      "sha256": "deb6df0ee1ef394e82e4f24af785b0876e93d33e2bc9665065388e24002b6da8",
+      "bytes": 1521
+    },
+    {
+      "exportIndex": 253,
+      "path": "ServerStorage.Photobooth.Bindings.Templates.FitToFrame.Action",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Templates",
+        "FitToFrame",
+        "Action"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Templates/FitToFrame/Action.luau",
+      "scope": "archive",
+      "sha256": "b22e663f5894f8d5f94b7320def66f52bcbea2c54608ddba02b5099fb151e92f",
+      "bytes": 4275
+    },
+    {
+      "exportIndex": 254,
+      "path": "ServerStorage.Photobooth.Bindings.Templates.StaticFrame.Action",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Templates",
+        "StaticFrame",
+        "Action"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Templates/StaticFrame/Action.luau",
+      "scope": "archive",
+      "sha256": "0fa9ea1a2933d4ad4de844a31c3c5bfe874df96c67b5c5be29872d72feb70b06",
+      "bytes": 2665
+    },
+    {
+      "exportIndex": 255,
+      "path": "ServerStorage.Photobooth.Bindings.Types",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Types"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Types.luau",
+      "scope": "archive",
+      "sha256": "b61b808a520ac4af82fe8c442d18d78cebd203db64ececd1d843dedf01c38c5e",
+      "bytes": 423
+    },
+    {
+      "exportIndex": 256,
+      "path": "ServerStorage.Photobooth.Bindings.Wally",
+      "segments": [
+        "ServerStorage",
+        "Photobooth",
+        "Bindings",
+        "Wally"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/Photobooth/Bindings/Wally.luau",
+      "scope": "archive",
+      "sha256": "ad26ed8e76ce664ea0d768b7495995e243ba4a046e8872328c3504b94ed8f552",
+      "bytes": 858
+    },
+    {
+      "exportIndex": 257,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.AnimationPlayer",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "AnimationPlayer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/AnimationPlayer.luau",
+      "scope": "archive",
+      "sha256": "4fd63188ba112a86e7f4abeadfb04c73c087b6c48ba06874bae2de5856ce6bfa",
+      "bytes": 1684
+    },
+    {
+      "exportIndex": 258,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Bonsai",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Bonsai"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Bonsai.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 259,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Cactus",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Cactus"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Cactus.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 260,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Camo",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Camo"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Camo.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 261,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Cardboard",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Cardboard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Cardboard.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 262,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Diamond",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Diamond"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Diamond.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 263,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Frost",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Frost"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Frost.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 264,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Gentleman",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Gentleman"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Gentleman.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 265,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Noob",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Noob"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Noob.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 266,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Rainbow",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Rainbow"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Rainbow.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 267,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.RubberDucky",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "RubberDucky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/RubberDucky.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 268,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Slime",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Slime"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Slime.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 269,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.ExpansionAssets.Clips.Storm",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "ExpansionAssets",
+        "Clips",
+        "Storm"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/ExpansionAssets/Clips/Storm.luau",
+      "scope": "archive",
+      "sha256": "29687a830673c8d7b523234ad406a646cd9ed9815945cc9a2b2a5334c89895cc",
+      "bytes": 141605
+    },
+    {
+      "exportIndex": 270,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Bucket",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Bucket"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Bucket.luau",
+      "scope": "archive",
+      "sha256": "44d5fd5280ecf295809681fad16abd1a1ddf244439dc2c897f8bda4c18d8ad22",
+      "bytes": 131699
+    },
+    {
+      "exportIndex": 271,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Chunky",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Chunky"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Chunky.luau",
+      "scope": "archive",
+      "sha256": "7cb4fd600e0fd96d0b17c8be1fa0c6e2655969d1f58cd337cbf37b3a9fb1fa0e",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 272,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Dragon",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Dragon"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Dragon.luau",
+      "scope": "archive",
+      "sha256": "5e5c8cdbf021fd3b3730f8c2d68f6fb29c699d9c2851b8afa6a279290eab4702",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 273,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Duck",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Duck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Duck.luau",
+      "scope": "archive",
+      "sha256": "121e0c736287132c3de663fde93c14688946f12dd035e841fc58ef37e28c00b1",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 274,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.IceDuck",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "IceDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/IceDuck.luau",
+      "scope": "archive",
+      "sha256": "b53411783733796e216f6867541ee57fda3e1d175f01a1438181d8fd4e091b8a",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 275,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Knight",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Knight"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Knight.luau",
+      "scope": "archive",
+      "sha256": "6255c9146fb1f8713d2992fe88cd802329ce2345742bb21a33577b8b3e7f6632",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 276,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Mallard",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Mallard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Mallard.luau",
+      "scope": "archive",
+      "sha256": "bf80f1c899a61b2a99d23bda386dadde004305864bdec149a4632959c414062b",
+      "bytes": 131717
+    },
+    {
+      "exportIndex": 277,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Sailor",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Sailor"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Sailor.luau",
+      "scope": "archive",
+      "sha256": "d522f5333b36bdcc7f8bb4d8b9d4a5c240f8db8a7789c0b369625aa7dbc8b5a3",
+      "bytes": 131771
+    },
+    {
+      "exportIndex": 278,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.StormDuck",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "StormDuck"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/StormDuck.luau",
+      "scope": "archive",
+      "sha256": "49787c67bab12b0c489226645e9e4d39e5cb44f584e6f791fe9d76b97743e4f1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 279,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Viking",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Viking"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Viking.luau",
+      "scope": "archive",
+      "sha256": "08a98a8b7a7d0508e91094768cd5e8f7b282c267c7032f2fbb45535b78f4fa6d",
+      "bytes": 131753
+    },
+    {
+      "exportIndex": 280,
+      "path": "ServerStorage.PolishVFXImport20260916.FinalRecovery.PlayableClips.Wizard",
+      "segments": [
+        "ServerStorage",
+        "PolishVFXImport20260916",
+        "FinalRecovery",
+        "PlayableClips",
+        "Wizard"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/PolishVFXImport20260916/FinalRecovery/PlayableClips/Wizard.luau",
+      "scope": "archive",
+      "sha256": "2639a18e8264bfe01ead5a54d0191ae6245673035b2f752cec2cdbb96585a6a1",
+      "bytes": 131735
+    },
+    {
+      "exportIndex": 281,
+      "path": "ServerStorage.RainbowTexture20260923Before.SpecialChickenVFX",
+      "segments": [
+        "ServerStorage",
+        "RainbowTexture20260923Before",
+        "SpecialChickenVFX"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/RainbowTexture20260923Before/SpecialChickenVFX.luau",
+      "scope": "archive",
+      "sha256": "800c3ac41986e4174fddcec5f6d77b0a369ef4da6c3bef13e1024d116478f579",
+      "bytes": 11925
+    },
+    {
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon",
+      "tags": [],
+      "exportIndex": 282,
+      "attributes": [],
+      "className": "Script",
+      "runContext": "Client",
+      "disabled": false,
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon"
+      ],
+      "childCount": 2,
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon.server.luau",
+      "scope": "archive",
+      "sha256": "d300d31bc3805012f67cf8579022f896cb08f8b9c7a2b9d3a649fb8eaaf88458",
+      "bytes": 2254
+    },
+    {
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon",
+      "tags": [],
+      "exportIndex": 283,
+      "attributes": [],
+      "className": "Script",
+      "runContext": "Client",
+      "disabled": false,
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon"
+      ],
+      "childCount": 2,
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon__2.server.luau",
+      "scope": "archive",
+      "sha256": "d300d31bc3805012f67cf8579022f896cb08f8b9c7a2b9d3a649fb8eaaf88458",
+      "bytes": 2254
+    },
+    {
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon",
+      "tags": [],
+      "exportIndex": 284,
+      "attributes": [],
+      "className": "Script",
+      "runContext": "Client",
+      "disabled": false,
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon"
+      ],
+      "childCount": 2,
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon__3.server.luau",
+      "scope": "archive",
+      "sha256": "d300d31bc3805012f67cf8579022f896cb08f8b9c7a2b9d3a649fb8eaaf88458",
+      "bytes": 2254
+    },
+    {
+      "exportIndex": 285,
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon.DistanceFade",
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon",
+        "DistanceFade"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon/DistanceFade.luau",
+      "scope": "archive",
+      "sha256": "a7580df7eb9c93607861f35037aa2efee0f8840475479f23ad328c2bc4b9c36f",
+      "bytes": 40102
+    },
+    {
+      "exportIndex": 286,
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon.DistanceFade",
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon",
+        "DistanceFade"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon/DistanceFade__2.luau",
+      "scope": "archive",
+      "sha256": "a7580df7eb9c93607861f35037aa2efee0f8840475479f23ad328c2bc4b9c36f",
+      "bytes": 40102
+    },
+    {
+      "exportIndex": 287,
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon.DistanceFade",
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon",
+        "DistanceFade"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon/DistanceFade__3.luau",
+      "scope": "archive",
+      "sha256": "a7580df7eb9c93607861f35037aa2efee0f8840475479f23ad328c2bc4b9c36f",
+      "bytes": 40102
+    },
+    {
+      "exportIndex": 288,
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon.DistanceFadeInverse",
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon",
+        "DistanceFadeInverse"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon/DistanceFadeInverse.luau",
+      "scope": "archive",
+      "sha256": "3a2bcf8321fb047fe8a1d1fc1ce57c1f201024a3326ef134c59f5dd54cf75eac",
+      "bytes": 40608
+    },
+    {
+      "exportIndex": 289,
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon.DistanceFadeInverse",
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon",
+        "DistanceFadeInverse"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon/DistanceFadeInverse__2.luau",
+      "scope": "archive",
+      "sha256": "3a2bcf8321fb047fe8a1d1fc1ce57c1f201024a3326ef134c59f5dd54cf75eac",
+      "bytes": 40608
+    },
+    {
+      "exportIndex": 290,
+      "path": "ServerStorage.VFX.ForceField (CHANGE TRANSPARENCY OF PARTS TO 1).Model.Hexagon.DistanceFadeInverse",
+      "segments": [
+        "ServerStorage",
+        "VFX",
+        "ForceField (CHANGE TRANSPARENCY OF PARTS TO 1)",
+        "Model",
+        "Hexagon",
+        "DistanceFadeInverse"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "archive/studio-scripts/ServerStorage/VFX/ForceField %28CHANGE TRANSPARENCY OF PARTS TO 1%29/Model/Hexagon/DistanceFadeInverse__3.luau",
+      "scope": "archive",
+      "sha256": "3a2bcf8321fb047fe8a1d1fc1ce57c1f201024a3326ef134c59f5dd54cf75eac",
+      "bytes": 40608
+    },
+    {
+      "path": "StarterGui.CountryUIStylePreview.Controller",
+      "tags": [],
+      "exportIndex": 291,
+      "attributes": [],
+      "className": "LocalScript",
+      "runContext": "Legacy",
+      "disabled": true,
+      "segments": [
+        "StarterGui",
+        "CountryUIStylePreview",
+        "Controller"
+      ],
+      "childCount": 0,
+      "file": "archive/studio-scripts/StarterGui/CountryUIStylePreview/Controller.client.luau",
+      "scope": "archive",
+      "sha256": "a303b20933f36ee6b853b842160c35f1d05304f4aa4b5f4c753ca036405b21b9",
+      "bytes": 1441
+    },
+    {
+      "exportIndex": 292,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AcceptanceClient",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "AcceptanceClient"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/AcceptanceClient.luau",
+      "scope": "active",
+      "sha256": "cee84e0dc50254b337157df05b89f85e92ef74375e9551fe8768d70fadbf7224",
+      "bytes": 4587
+    },
+    {
+      "exportIndex": 293,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ActionFeedback",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ActionFeedback"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ActionFeedback.luau",
+      "scope": "active",
+      "sha256": "cbb2d2e79d3e7118c6b1aae00ebab93938dfb80b1eaf0a3c3691da6e2854197e",
+      "bytes": 9660
+    },
+    {
+      "exportIndex": 294,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AppController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "AppController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/AppController.luau",
+      "scope": "active",
+      "sha256": "34fc167593caa32d43fc5e94ba8c832bea5668a282f51542dc4e0beaebaed297",
+      "bytes": 33729
+    },
+    {
+      "exportIndex": 295,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ArmyMarkerController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ArmyMarkerController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ArmyMarkerController.luau",
+      "scope": "active",
+      "sha256": "cbeecba82508f0b939d7cc8821fe2f96d425581675d772393ff45d020e3e2e27",
+      "bytes": 5556
+    },
+    {
+      "exportIndex": 296,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AudioController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "AudioController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/AudioController.luau",
+      "scope": "active",
+      "sha256": "5cebb5a2b2605833f5d09ba51a46c2fcb17479d0d448ab9412dd78fb3d96c6a4",
+      "bytes": 5581
+    },
+    {
+      "exportIndex": 297,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BaseController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "BaseController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/BaseController.luau",
+      "scope": "active",
+      "sha256": "7aad7cdc1abb56d20054cb3692ed0630e468df752d76fc9e38574c9a6281f11a",
+      "bytes": 23624
+    },
+    {
+      "exportIndex": 298,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BattleController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "BattleController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/BattleController.luau",
+      "scope": "active",
+      "sha256": "ac019ed82794b052626d23f80e1e6cec94f82836fc0bc88ba76d4b8fd3703596",
+      "bytes": 19315
+    },
+    {
+      "exportIndex": 299,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenBrowser",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ChickenBrowser"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ChickenBrowser.luau",
+      "scope": "active",
+      "sha256": "1902d1848d6e948fe2f4930e55164fa29f99c9d955b2b3daab0ad49fe0b37f28",
+      "bytes": 50655
+    },
+    {
+      "exportIndex": 300,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenClipPlayer",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ChickenClipPlayer"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ChickenClipPlayer.luau",
+      "scope": "active",
+      "sha256": "4e90357baea3950d2d5eceffacbd23dc71c77ebdb13148ae560fafa78f6a1b80",
+      "bytes": 5824
+    },
+    {
+      "exportIndex": 301,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenPortraits",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ChickenPortraits"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ChickenPortraits.luau",
+      "scope": "active",
+      "sha256": "f5cf303788732f4554eaf87a4514d8d2d812a85364b275f2ffc280716322d49c",
+      "bytes": 2038
+    },
+    {
+      "exportIndex": 302,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenPreview",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ChickenPreview"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ChickenPreview.luau",
+      "scope": "active",
+      "sha256": "1acd7ed317fc6e9c543ec528fb1bb8217573f0220a7b676639c2320eb03d5a0c",
+      "bytes": 3366
+    },
+    {
+      "exportIndex": 303,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.CommerceController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "CommerceController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/CommerceController.luau",
+      "scope": "active",
+      "sha256": "aebe8182ad76679ccc707ef2b150ec51822653ce0632da5160ed21c545e00470",
+      "bytes": 8177
+    },
+    {
+      "exportIndex": 304,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.DuckAnimator",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "DuckAnimator"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/DuckAnimator.luau",
+      "scope": "active",
+      "sha256": "e00cfc9098979101beb5cfdfc6833cc0c380e173976f0042309f0f997ee0f918",
+      "bytes": 7361
+    },
+    {
+      "exportIndex": 305,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "EggController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/EggController.luau",
+      "scope": "active",
+      "sha256": "6cd15f762f9debd063e6a8646a4b661973612a5b02ef1897267fadba65c170bf",
+      "bytes": 9915
+    },
+    {
+      "exportIndex": 306,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggView",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "EggView"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/EggView.luau",
+      "scope": "active",
+      "sha256": "7badf2b19144025fa92a059b91c50450b578867e918d2cdb108c8c7229e9e947",
+      "bytes": 2763
+    },
+    {
+      "exportIndex": 307,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.GalaxyTextureAnimator",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "GalaxyTextureAnimator"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/GalaxyTextureAnimator.luau",
+      "scope": "active",
+      "sha256": "b7589d2c4040285597022f506d9795635e9d90f3ad555609466af1c52803acf6",
+      "bytes": 9460
+    },
+    {
+      "exportIndex": 308,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.GlitchEditableMesh",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "GlitchEditableMesh"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/GlitchEditableMesh.luau",
+      "scope": "active",
+      "sha256": "871728f1524c76e9246898eec08f57d5852c3cd06ef81c14082a1b7f96812de7",
+      "bytes": 11540
+    },
+    {
+      "exportIndex": 309,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.HudController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "HudController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/HudController.luau",
+      "scope": "active",
+      "sha256": "4a4d7821e94a383f9bbfb418e736e0d8cc56ca754d0d6a22f06135561dc9123a",
+      "bytes": 16741
+    },
+    {
+      "exportIndex": 310,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.IndexBrowser",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "IndexBrowser"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/IndexBrowser.luau",
+      "scope": "active",
+      "sha256": "129d60bdc4d6a67b7e8fcb676d9bbfd829ca942cc5d5cd2a6d3fddc548946f24",
+      "bytes": 9712
+    },
+    {
+      "exportIndex": 311,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MerchantDialogue",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "MerchantDialogue"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/MerchantDialogue.luau",
+      "scope": "active",
+      "sha256": "ce69714dc8f93dabe464f4fcbc3d329e1423cfd471e3c320d9f21e362be40ceb",
+      "bytes": 9916
+    },
+    {
+      "exportIndex": 312,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MergeBrowser",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "MergeBrowser"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/MergeBrowser.luau",
+      "scope": "active",
+      "sha256": "2a2bcf6edf177fc171d41a1b5b03e969c012c2c573c4f78e23c22759d8f98a15",
+      "bytes": 13540
+    },
+    {
+      "exportIndex": 313,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MergePresentation",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "MergePresentation"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/MergePresentation.luau",
+      "scope": "active",
+      "sha256": "ac0693b8b57e2078f5f47369e4e15e95d28b60b1f5d21397d1de757d7109d835",
+      "bytes": 5308
+    },
+    {
+      "exportIndex": 314,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ProgressionBrowser",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ProgressionBrowser"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ProgressionBrowser.luau",
+      "scope": "active",
+      "sha256": "70aaceb677626cac509710deb42956e0bb5ba0ce57ad2f8203d0f273263f1903",
+      "bytes": 10058
+    },
+    {
+      "exportIndex": 315,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.PromptStyleController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "PromptStyleController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/PromptStyleController.luau",
+      "scope": "active",
+      "sha256": "772fc28456842d8dc08ec135c7301540878c8e71cabaf41f2a640cbabb8ea652",
+      "bytes": 1550
+    },
+    {
+      "exportIndex": 316,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.RainbowTextureAnimator",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "RainbowTextureAnimator"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/RainbowTextureAnimator.luau",
+      "scope": "active",
+      "sha256": "fc6408f65b36cde6e039c82b6721c780f3b43408610b577ba5409dfb858898e4",
+      "bytes": 7441
+    },
+    {
+      "exportIndex": 317,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.RareChickenVFX",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "RareChickenVFX"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/RareChickenVFX.luau",
+      "scope": "active",
+      "sha256": "b8a2cbe385d136f76d04c22988f210c7b4863718a5a316d36ab5fa8785deb273",
+      "bytes": 4496
+    },
+    {
+      "exportIndex": 318,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.RollPresentationController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "RollPresentationController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/RollPresentationController.luau",
+      "scope": "active",
+      "sha256": "ffcbf1c97b6f43b110de473461cd3b880b0717fef037c6b5ef0ac6443413f273",
+      "bytes": 16708
+    },
+    {
+      "exportIndex": 319,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.SellBrowser",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "SellBrowser"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/SellBrowser.luau",
+      "scope": "active",
+      "sha256": "63a0a4291879637da2c3fc1d98afa661d79733ab0653f46f3959c342a8c38386",
+      "bytes": 6476
+    },
+    {
+      "exportIndex": 320,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ShopBrowser",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ShopBrowser"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ShopBrowser.luau",
+      "scope": "active",
+      "sha256": "78048b5a18288fcce46b6fef213634aba562710734dac276545758ee51bc3f83",
+      "bytes": 42389
+    },
+    {
+      "exportIndex": 321,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ShopPreviewArt",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "ShopPreviewArt"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/ShopPreviewArt.luau",
+      "scope": "active",
+      "sha256": "e7402b13d6332ce06384d88960be2b69e5aa52195f85e722106d464f58b79520",
+      "bytes": 4565
+    },
+    {
+      "exportIndex": 322,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.SpecialChickenVFX",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "SpecialChickenVFX"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/SpecialChickenVFX.luau",
+      "scope": "active",
+      "sha256": "500866b9672d4d02b23f4b02449755526b701d6cff8bd2bef3a4e9d763ee6015",
+      "bytes": 12243
+    },
+    {
+      "exportIndex": 323,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.TutorialController",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "TutorialController"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/TutorialController.luau",
+      "scope": "active",
+      "sha256": "d22e5ae3aac3f1306b1498742f896c417dc7a52a837037d64c9a4e5c2476ca9f",
+      "bytes": 3178
+    },
+    {
+      "exportIndex": 324,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UIMotion",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "UIMotion"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/UIMotion.luau",
+      "scope": "active",
+      "sha256": "b9ea0e45b8936c7be8a2d942cdbd0ef825f1d9cf5db4f807ae569b38b66b59f8",
+      "bytes": 9602
+    },
+    {
+      "exportIndex": 325,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UITheme",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "UITheme"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/UITheme.luau",
+      "scope": "active",
+      "sha256": "548776b0a983ccd1d2b203b37958b0b1fee8933719c6b6ed2cba13d9d0b6f28f",
+      "bytes": 26122
+    },
+    {
+      "exportIndex": 326,
+      "path": "StarterPlayer.StarterPlayerScripts.PetRoll.VoxelChickenAnimator",
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRoll",
+        "VoxelChickenAnimator"
+      ],
+      "className": "ModuleScript",
+      "childCount": 0,
+      "tags": [],
+      "attributes": [],
+      "file": "src/client/VoxelChickenAnimator.luau",
+      "scope": "active",
+      "sha256": "6769cd57afa7fdfaf3ef92abf1e98cedfae86307cd8fa8026c86086400ef5631",
+      "bytes": 10315
+    },
+    {
+      "path": "StarterPlayer.StarterPlayerScripts.PetRollClient",
+      "tags": [],
+      "exportIndex": 327,
+      "attributes": [],
+      "className": "LocalScript",
+      "runContext": "Legacy",
+      "disabled": false,
+      "segments": [
+        "StarterPlayer",
+        "StarterPlayerScripts",
+        "PetRollClient"
+      ],
+      "childCount": 0,
+      "file": "src/bootstraps/PetRollClient.client.luau",
+      "scope": "active",
+      "sha256": "5032130f2dd61b45da7e87259a38da1070cdac4a9dd7279f58502a78443a9fe1",
+      "bytes": 367
+    }
+  ]
+}

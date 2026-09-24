@@ -1,0 +1,61 @@
+{
+  "name": "My Chicken Army - Scripts",
+  "servePort": 34872,
+  "serveAddress": "127.0.0.1",
+  "servePlaceIds": [
+    96683186622050
+  ],
+  "emitLegacyScripts": true,
+  "tree": {
+    "$className": "DataModel",
+    "$ignoreUnknownInstances": true,
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "$ignoreUnknownInstances": true,
+      "PetRoll": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "Shared": {
+          "$path": "src/shared",
+          "$ignoreUnknownInstances": true
+        },
+        "ChickenClips": {
+          "$path": "src/animations",
+          "$ignoreUnknownInstances": true
+        }
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "$ignoreUnknownInstances": true,
+      "PetRoll": {
+        "$path": "src/server",
+        "$ignoreUnknownInstances": true
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$ignoreUnknownInstances": true,
+      "PetRollBootstrap": {
+        "$path": "src/bootstraps/PetRollBootstrap.server.luau",
+        "$ignoreUnknownInstances": true
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$ignoreUnknownInstances": true,
+        "PetRoll": {
+          "$path": "src/client",
+          "$ignoreUnknownInstances": true
+        },
+        "PetRollClient": {
+          "$path": "src/bootstraps/PetRollClient.client.luau",
+          "$ignoreUnknownInstances": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "Disabled": false,
+    "RunContext": "Legacy"
+  },
+  "ignoreUnknownInstances": true
+}

@@ -1,0 +1,9 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "Rojo: Serve", "type": "process", "command": "python3", "args": ["tools/rojo.py", "serve"], "options": {"cwd": "${workspaceFolder}"}, "isBackground": true, "problemMatcher": [], "presentation": {"reveal": "always", "panel": "dedicated"}, "runOptions": {"instanceLimit": 1}},
+    {"label": "Rojo: Build scripts only", "type": "process", "command": "python3", "args": ["tools/rojo.py", "build"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": [], "group": {"kind": "build", "isDefault": true}},
+    {"label": "Rojo: Sourcemap", "type": "process", "command": "python3", "args": ["tools/rojo.py", "sourcemap"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "Migration: Verify original export", "type": "process", "command": "python3", "args": ["tools/check_migration.py"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []}
+  ]
+}

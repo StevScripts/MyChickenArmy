@@ -1,0 +1,14 @@
+{
+  "files.associations": {"*.luau": "luau"},
+  "files.exclude": {"**/.DS_Store": true, "**/__pycache__": true, ".tools": true, ".migration": true, "sourcemap.json": true},
+  "search.exclude": {"archive/**": true, "src/animations/**": true, "build/**": true, ".migration/**": true, ".tools/**": true},
+  "files.watcherExclude": {"**/.migration/**": true, "**/.tools/**": true, "**/build/**": true},
+  "editor.formatOnSave": false,
+  "luau-lsp.platform.type": "roblox",
+  "luau-lsp.sourcemap.enabled": true,
+  "luau-lsp.sourcemap.autogenerate": true,
+  "luau-lsp.sourcemap.rojoPath": ".tools/rojo",
+  "luau-lsp.sourcemap.rojoProjectFile": "default.project.json",
+  "luau-lsp.ignoreGlobs": ["**/archive/**", "**/src/animations/**", "**/tests/**"],
+  "luau-lsp.completion.imports.ignoreGlobs": ["**/archive/**", "**/tests/**"]
+}

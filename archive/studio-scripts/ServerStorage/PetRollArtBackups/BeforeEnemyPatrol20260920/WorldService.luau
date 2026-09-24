@@ -1,0 +1,590 @@
+--!strict
+-- Owns home flock presentation, physical recruitment, and personal camp landmarks.
+-- Each visible chicken has one PetActor; encounter handoffs transfer that ownership.
+local Players = game:GetService("Players")
+local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
+local Config = require(Shared.Config)
+local Progression = require(Shared.Progression)
+local PetView = require(Shared.PetView)
+local FlockLayout = require(Shared.FlockLayout)
+local HomePlot = require(Shared.HomePlotLayout)
+local MapLayout = require(Shared.MapLayout)
+local CampCommand=require(Shared.CampCommand)
+local UIColors = require(Shared.UIColors)
+local PetActor = require(script.Parent.PetActor)
+local RollStation = require(script.Parent.RollStation)
+local MergeStand = require(script.Parent.MergeStand)
+local Builder = require(script.Parent.WorldBuilder)
+local KingArena = require(script.Parent.KingArena)
+local AuthoredMap = require(script.Parent.AuthoredMap)
+local WorldService = {}
+WorldService.__index = WorldService
+
+local YARD_MIN_X, YARD_MAX_X, YARD_MIN_Z, YARD_MAX_Z = HomePlot.YardMinX, HomePlot.YardMaxX, HomePlot.YardMinZ, HomePlot.YardMaxZ
+local MAX_WANDERING = 12
+local MAX_VISIBLE = 40
+local FOOT_Y = HomePlot.FootY
+
+local function attribute(instance, name, value)
+	if instance:GetAttribute(name) ~= value then instance:SetAttribute(name, value) end
+end
+
+local function disposeActors(actors)
+	for _, actor in actors do actor:Destroy() end
+	table.clear(actors)
+end
+
+function WorldService.new()
+	return setmetatable({plots = {}, lanes = {}, outposts = {}, campModels = {}, campAppearance = {}, revisions = {},
+		lastRoamAt = 0, random = Random.new(4129)}, WorldService)
+end
+
+function WorldService:Position(index: number): Vector3
+	local p = Config.PlotPositions[index]
+	assert(p, "Unknown plot index")
+	return Vector3.new(p[1], MapLayout.HomeHeight(index), p[2])
+end
+
+function WorldService:PlotFrame(index: number): CFrame
+	local p = self:Position(index)
+	return CFrame.lookAt(p, Vector3.new(0, p.Y, 0))
+end
+
+function WorldService:CampPosition(index: number, plotIndex: number): Vector3
+	local record = self.lanes[plotIndex] and self.lanes[plotIndex][index]
+	if record then return record.frame.Position end
+	local plot = self:Position(plotIndex)
+	local radius = Config.CampRadii[index]
+	assert(radius, "Unknown camp index")
+	local outward = Vector3.new(plot.X, 0, plot.Z).Unit
+	return outward * radius + Vector3.new(0, 1.05, 0)
+end
+
+function WorldService:CampFrame(index: number, plotIndex: number): CFrame
+	local record = self.lanes[plotIndex] and self.lanes[plotIndex][index]
+	if record then return record.frame end
+	local p = self:CampPosition(index, plotIndex)
+	return CFrame.lookAt(p, Vector3.new(0, p.Y, 0))
+end
+
+function WorldService:OutpostFrame(index)
+ -- Interleave six exploration destinations between the six home spokes.
+ local angle=-math.pi/3+(index-1)*math.pi/3
+ local radius=Config.Map.OutpostRadius
+ local p=Vector3.new(math.cos(angle)*radius,1.05,math.sin(angle)*radius)
+ return CFrame.lookAt(p,Vector3.new(0,p.Y,0))
+end
+
+function WorldService:IncomeFrame()
+ local p=Config.IncomeOutpost.Position
+ local position=Vector3.new(p[1],p[2],p[3])
+ return CFrame.lookAt(position,Vector3.new(0,position.Y,0))
+end
+
+function WorldService:HomePosition(index: number, ordinal: number): Vector3
+	local layout=HomePlot.ForPlot(index)
+	local x,z=HomePlot.Home(ordinal,index)
+	return (self:PlotFrame(index)*CFrame.new(x,layout.FootY,z)).Position
+end
+
+function WorldService:ReservePosition(index: number, ordinal: number): Vector3
+	return self:HomePosition(index, ordinal)
+end
+
+function WorldService:AssemblyPosition(index: number, ordinal: number, count: number): Vector3
+	local x, z = FlockLayout.Assembly(ordinal, count)
+	z=HomePlot.ForPlot(index).AssemblyZ+(ordinal-1)*3.4
+	return (self:PlotFrame(index) * CFrame.new(x, HomePlot.ForPlot(index).FootY, z)).Position
+end
+
+function WorldService:ReturnPosition(session, petId: string, fallback: number?): Vector3
+	local plot = self.plots[session.plotIndex]
+	if not plot then return self:HomePosition(session.plotIndex, fallback or 1) end
+	local ordinal = plot.homeOrdinals[petId]
+	if not ordinal then
+		local used = {}
+		for id, n in plot.homeOrdinals do if session.pets[id] then used[n] = true else plot.homeOrdinals[id] = nil end end
+		for n = 1, MAX_VISIBLE do if not used[n] then ordinal = n; break end end
+		ordinal = ordinal or fallback or 1 -- Legacy over-capacity birds share the bounded yard temporarily.
+		plot.homeOrdinals[petId] = ordinal
+	end
+	return self:HomePosition(session.plotIndex, ordinal)
+end
+
+function WorldService:RoamTarget(index: number, from: Vector3, petId: string?): Vector3
+	local cf = self:PlotFrame(index)
+	local layout=HomePlot.ForPlot(index)
+	local plot = self.plots[index]
+	local best, bestScore = from, -math.huge
+	-- Sample the whole walkable yard and favor space not occupied or reserved by
+	-- another chicken. Small random steps kept the flock near its starting row.
+	for _ = 1, 12 do
+		local candidate = (cf * CFrame.new(self.random:NextNumber(layout.YardMinX, layout.YardMaxX),
+			layout.FootY, self.random:NextNumber(layout.YardMinZ, layout.YardMaxZ))).Position
+		local travel = (candidate - from).Magnitude
+		local clearance = 24
+		if plot then for id, home in plot.roaming do if id ~= petId then
+			clearance = math.min(clearance, (candidate - home.position).Magnitude)
+			if home.moving then clearance = math.min(clearance, (candidate - home.target).Magnitude) end
+		end end end
+		local score = clearance - (if travel < 6 then 20 else 0)
+		if score > bestScore then best, bestScore = candidate, score end
+	end
+	return best
+end
+
+function WorldService:TakeActor(index: number, petId: string)
+	local plot = self.plots[index]
+	if not plot then return nil end
+	local actor = plot.actors[petId]
+	plot.actors[petId], plot.roaming[petId] = nil, nil
+	if actor then actor:Stop(); attribute(actor.model, "AtHome", false) end
+	return actor
+end
+
+function WorldService:RestoreActor(session, petId: string, actor)
+	local plot, pet = self.plots[session.plotIndex], session.pets[petId]
+	if not plot or not pet then actor:Destroy(); return end
+	local previous = plot.actors[petId]
+	if not previous then
+		local count = 0
+		for _ in plot.actors do count += 1 end
+		if count >= MAX_VISIBLE then
+			local best = {}
+			for _, id in session:BestPetIds() do best[id] = true end
+			if not best[petId] then actor:Destroy(); return false end
+			local evicted = false
+			for id, old in plot.actors do
+				if not best[id] then
+					old:Destroy(); plot.actors[id], plot.roaming[id] = nil, nil
+					evicted = true; break
+				end
+			end
+			if not evicted then actor:Destroy(); return false end
+		end
+	end
+	if previous and previous ~= actor then previous:Destroy() end
+	actor:Stop()
+	actor.model.Name, actor.model.Parent = petId, plot.pets
+	for _, name in {"BattleId", "UnitId", "Side", "Defeated", "AttackSerial", "Reinforcing"} do actor.model:SetAttribute(name, nil) end
+	actor.model:SetAttribute("AtHome", true)
+	actor.model:SetAttribute("OwnerUserId", session.userId)
+	actor.model:SetAttribute("OwnerId", session.userId)
+	actor.model:SetAttribute("PetId", petId)
+	actor.model:SetAttribute("Recruiting", false)
+	if PetView.Flash then PetView.Flash(actor.model, false) end
+	if PetView.Cash then PetView.Cash(actor.model, 0, false) end
+	local at = actor:Position()
+	plot.actors[petId] = actor
+	plot.roaming[petId] = {position = at, target = at, moving = false, pauseUntil = os.clock() + self.random:NextNumber(1, 4)}
+	self:ReturnPosition(session, petId)
+	return true
+end
+
+function WorldService:Recruit(session, petId: string)
+	local plot, pet = self.plots[session.plotIndex], session.pets[petId]
+	if not plot or not pet or not session:IsPetHome(petId) or plot.actors[petId] then return end
+	if #plot.pets:GetChildren() >= MAX_VISIBLE then return end
+	local at = (plot.station.frame * CFrame.new(0, FOOT_Y, -9)).Position
+	local actor = PetActor.new(plot.pets, petId, pet.species, pet.stars, at, self:PlotFrame(session.plotIndex).RightVector)
+	if not self:RestoreActor(session, petId, actor) then return end
+	local home = plot.roaming[petId]
+	home.target, home.moving, home.startedAt = self:ReturnPosition(session, petId), true, os.clock()
+	home.recruiting = true
+	actor.model:SetAttribute("Recruiting", true)
+	actor:MoveTo(home.target, math.max(5, Config.RoamSpeed))
+end
+
+function WorldService:PetPosition(index: number, petId: string): Vector3?
+	local plot = self.plots[index]
+	local actor = plot and plot.actors[petId]
+	return actor and actor:Position()
+end
+
+function WorldService:SpawnFrame(index: number): CFrame
+	local plot = self:PlotFrame(index)
+	local at = (plot * HomePlot.ForPlot(index).Spawn).Position
+	return CFrame.lookAt(at, at+plot.LookVector*20)
+end
+
+-- Player travel uses the whole owned plot, not the smaller chicken-wandering yard.
+function WorldService:UpdatePlayerSpeed(player, index: number)
+	local character=player and player.Character
+	local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+	local root=character and character:FindFirstChild("HumanoidRootPart")
+	local plot=self.plots[index]
+	local deck=plot and plot.folder:FindFirstChild("Deck")
+	if not humanoid or humanoid.Health<=0 or not root or not deck or not deck:IsA("BasePart") then return end
+	local position=deck.CFrame:PointToObjectSpace(root.Position)
+	-- Start the boost just beyond the edge; restore normal speed on re-entry.
+	-- Ignoring height keeps jumps on the base at the home speed.
+	local padding=if humanoid:GetAttribute("OutsideHomeBase")==true then 0 else Config.PlayerTravelBoundaryPadding
+	local outside=math.abs(position.X)>deck.Size.X/2+padding or math.abs(position.Z)>deck.Size.Z/2+padding
+	local speed=if outside then Config.PlayerTravelWalkSpeed else Config.PlayerHomeWalkSpeed
+	if humanoid.WalkSpeed~=speed then humanoid.WalkSpeed=speed end
+	attribute(humanoid,"OutsideHomeBase",outside)
+end
+
+function WorldService:CanUseStation(player, session, index): boolean
+	if index ~= session.plotIndex then return false end
+	local plot = self.plots[index]
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	return plot ~= nil and root ~= nil and (root.Position - plot.station.leverBase.Position).Magnitude <= Config.RollInteractDistance
+end
+
+function WorldService:EggDeposit(index)
+ local plot=self.plots[index]
+ if not plot or not plot.folder:GetAttribute("EggDepositEnabled") then return nil end
+ return plot.folder:FindFirstChild("sellpart",true),plot.ownerId
+end
+
+-- Match the physical prompt's entrance position; all client attack requests pass here.
+function WorldService:CanCommand(player,session,targetId,sessions): boolean
+	if type(targetId)~="string" then return false end
+ local kind,id=targetId:match("^(%a+):([%-]?%d+)$")
+	local index=tonumber(id)
+	local model
+	if targetId=="king:1" then model=self.kingArena and self.kingArena.folder
+	elseif targetId=="income:1" and Config.IncomeOutpost.Enabled then model=self.incomeOutpost and self.incomeOutpost.folder
+	elseif kind=="camp" and index then
+		local record=self.lanes[session.plotIndex] and self.lanes[session.plotIndex][index]
+		model=record and record.folder
+	elseif kind=="outpost" and index then
+  local record=self.outposts[index];model=record and record.folder
+	end
+	local body=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	return model~=nil and body~=nil and CampCommand.InRange(model,body.Position,2)
+end
+
+function WorldService:Build()
+	self:Destroy()
+	local old = workspace:FindFirstChild("PetRollWorld")
+	if old then assert(old:GetAttribute("PetRollGenerated"), "PetRollWorld is not ours"); old:Destroy() end
+	local root = AuthoredMap.Instantiate() or Instance.new("Folder")
+	root.Name = "PetRollWorld"
+	root:SetAttribute("PetRollGenerated", true)
+	root:SetAttribute("BuildVersion", "ChickenKingdomMap20260917")
+	root.Parent, self.root = workspace, root
+	if not root:GetAttribute("AuthoredMap") then
+		Builder.ApplyLighting()
+		Builder.BuildIsland(root, Config.PlotPositions, Config.CampRadii, Config.Map)
+	end
+	self.kingArena = KingArena.new(root)
+	local starterCamps=Progression.Camps(1)
+	for index = 1, #Config.PlotPositions do
+		-- Authored homes are opt-in: removing a plot for editing must not regenerate it.
+		if not root:GetAttribute("AuthoredMap") or root:FindFirstChild("Plot"..index) then
+			local cf = self:PlotFrame(index)
+			local folder, title = Builder.BuildPlot(root, index, cf)
+			local pets = Instance.new("Folder")
+			pets.Name, pets.Parent = "Pets", folder
+			local station = RollStation.new(folder, cf * HomePlot.Roll, index, function(player, action, plotIndex, offerId)
+				if self.onAction then self.onAction(player, action, plotIndex, offerId) end
+			end)
+			local conquestTitle=if folder:GetAttribute("AuthoredPlot") then nil else Builder.Sign(folder,"ConquestSign",cf*CFrame.new(21,4.8,-26),
+				#starterCamps.." CAMPS → CHICKEN KING",Builder.Palette.ink,15,3.5)
+			local plot={folder=folder,pets=pets,title=title,station=station,actors={},roaming={},
+				homeOrdinals={},index=index,connections={},conquestTitle=conquestTitle}
+			plot.mergeStand=MergeStand.new(folder,cf*HomePlot.Merge,index,function(player,action,plotIndex)
+				if self.onAction then self.onAction(player,action,plotIndex) end
+			end)
+			self.plots[index]=plot
+		end
+		local lane = root:FindFirstChild("Lane" .. index) or Instance.new("Folder")
+		lane.Name, lane.Parent = "Lane" .. index, root
+		lane:SetAttribute("LaneOwnerIndex", index)
+		self.lanes[index], self.campModels[index], self.campAppearance[index] = {}, {}, {}
+		for campIndex, camp in starterCamps do
+			local campFolder, campFrame = Builder.BuildCamp(lane, campIndex, camp, Config.CampHalfSize,
+				false, self:CampFrame(campIndex, index), index)
+			local defenders = Instance.new("Folder")
+			defenders.Name, defenders.Parent = "Defenders", campFolder
+			self.lanes[index][campIndex] = {folder = campFolder, defenders = defenders, frame = campFrame,
+				actors = {}, busy = false, roster = nil}
+			self.campModels[index][campIndex] = defenders
+		end
+	end
+	local frontier=root:FindFirstChild("Outposts") or Instance.new("Folder")
+ frontier.Name,frontier.Parent="Outposts",root
+ for i,camp in Progression.Outposts() do
+  local folder,frame=Builder.BuildCamp(frontier,math.min(i+1,5),camp,Config.CampHalfSize,false,self:OutpostFrame(i),nil,frontier:FindFirstChild("Outpost"..i))
+  folder.Name="Outpost"..i
+  folder:SetAttribute("CommandTarget","outpost:"..i)
+  folder:SetAttribute("OutpostIndex",i)
+  folder:SetAttribute("RequiredTier",camp.tier)
+  local defenders=Instance.new("Folder");defenders.Name,defenders.Parent="Defenders",folder
+  local record={folder=folder,frame=frame,defenders=defenders,actors={},busy=false,roster=Progression.OutpostRoster(i),promotion=camp.tier}
+  self.outposts[i]=record
+  Builder.ApplyCampPromotion(folder,camp.tier,i.." · "..camp.name)
+  self:PopulateCamp(record)
+ end
+ if Config.IncomeOutpost and Config.IncomeOutpost.Enabled then
+  local definition=Config.IncomeOutpost
+  local folder,frame,label=Builder.BuildIncomeOutpost(root,self:IncomeFrame(),definition)
+  local defenders=Instance.new("Folder");defenders.Name,defenders.Parent="Defenders",folder
+  self.incomeOutpost={folder=folder,frame=frame,label=label,defenders=defenders,
+   actors={},busy=false,roster=definition.NeutralRoster,promotion=1}
+  self:PopulateCamp(self.incomeOutpost)
+ end
+ self.lastRoamAt = os.clock()
+end
+
+function WorldService:CanUseMergeStand(player,session,index)
+ local plot=self.plots[session.plotIndex]
+ return plot~=nil and index==session.plotIndex and plot.mergeStand:CanUse(player)
+end
+
+function WorldService:CelebrateMerge(session)
+ local plot=self.plots[session.plotIndex]
+ if plot then plot.mergeStand:Celebrate() end
+end
+
+function WorldService:PopulateCamp(record)
+	disposeActors(record.actors)
+	if record.busy or record.conquerorId or not record.roster then return end
+	for ordinal, pet in record.roster do
+		local x, z = FlockLayout.Offset(ordinal, #record.roster)
+		local foot = (record.frame * CFrame.new(x, 0, z)).Position
+		local actor = PetActor.new(record.defenders, "Guard" .. ordinal, pet.species, pet.stars or 1, foot, -record.frame.LookVector)
+		PetView.Level(actor.model,pet.level or 1)
+		actor.model:SetAttribute("CampGuard", record.folder:GetAttribute("Difficulty"))
+		actor.model:SetAttribute("Promotion",record.promotion)
+		actor.model:SetAttribute("LaneOwnerIndex", record.folder:GetAttribute("LaneOwnerIndex"))
+		actor.model:SetAttribute("OwnerUserId", record.ownerId)
+		actor:Stop()
+		table.insert(record.actors, actor)
+	end
+end
+
+-- Presentation is queued while an encounter owns this camp. Releasing one lane
+-- never rebuilds any other player's guards or changes an active battle roster.
+function WorldService:ApplyCampStage(record)
+ if record.busy or not record.pendingStage then return false end
+ local stage=record.pendingStage
+ record.pendingStage=nil
+ record.roster,record.rosterKey,record.ownerId=stage.roster,stage.key,stage.ownerId
+ record.promotion=stage.promotion
+ attribute(record.folder,"OwnerUserId",stage.ownerId)
+ Builder.ApplyCampPromotion(record.folder,stage.promotion,stage.name)
+ Builder.ApplyCampOwnership(record.folder,record.frame,record.conquerorId,record.conquerorName)
+ self:PopulateCamp(record)
+ return true
+end
+
+function WorldService:UpdateSession(session)
+	local plot = self.plots[session.plotIndex]
+	if not plot then return end
+	plot.ownerId = session.userId
+	local rank=session.promotion or 1
+	local promotion=Progression.Get(rank)
+	local camps=Progression.Camps(rank)
+	local completed=session:Completed()
+	local earnedTrophy = session.kingCleared==true
+	if earnedTrophy and not plot.trophy and not plot.folder:GetAttribute("AuthoredPlot") then
+		plot.trophy = Builder.BuildConquestTrophy(plot.folder, self:PlotFrame(session.plotIndex) * CFrame.new(25, 0.3, 25))
+	elseif not earnedTrophy and plot.trophy then
+		plot.trophy:Destroy(); plot.trophy = nil
+	end
+	attribute(plot.folder, "ConquestCompleted", earnedTrophy)
+	attribute(plot.folder,"Promotion",rank)
+	plot.station:Sync(session)
+	plot.mergeStand:Sync(session)
+	for name, value in {CommandTarget = "base:" .. session.userId, OwnerUserId = session.userId,
+		ArmyState = session.armyState} do attribute(plot.folder, name, value) end
+	local title = session.name .. "'S ARMY"
+	if plot.title.Text ~= title then plot.title.Text = title end
+	local won=0
+	for index in camps do if session.firstWins[index] then won+=1 end end
+ if plot.conquestTitle then plot.conquestTitle.Text=if earnedTrophy then "CHICKEN CROWN" else won.."/"..#camps.." CAMPS → KING" end
+
+	for index, camp in camps do
+		local record = self.lanes[session.plotIndex][index]
+  local roster=Progression.Roster(rank,index)
+  local entries={camp.name}
+  for _,pet in roster do table.insert(entries,pet.species..":"..tostring(pet.level)) end
+		local key = table.concat(entries, ",")
+		if record.rosterKey ~= key or record.ownerId ~= session.userId then
+   record.pendingStage={roster=roster,key=key,ownerId=session.userId,promotion=index,name=camp.name}
+   self:ApplyCampStage(record)
+		end
+	end
+	local desired, visibleCount = {}, 0
+	local homePets = session:HomePets()
+	local best = {}
+	for _, id in session:BestPetIds() do best[id] = true end
+	-- Retain current home actors first; new snapshots never reshuffle their destinations.
+	table.sort(homePets, function(a, b)
+		if best[a.id] ~= best[b.id] then return best[a.id] == true end
+		if (plot.actors[a.id] ~= nil) ~= (plot.actors[b.id] ~= nil) then return plot.actors[a.id] ~= nil end
+		return a.id < b.id
+	end)
+	for ordinal, pet in homePets do
+		if ordinal > MAX_VISIBLE then break end
+		desired[pet.id] = true
+	end
+	for id, actor in plot.actors do
+		if not desired[id] then actor:Destroy(); plot.actors[id], plot.roaming[id] = nil, nil end
+	end
+	for ordinal, pet in homePets do
+		if ordinal > MAX_VISIBLE then break end
+		visibleCount += 1
+		local actor = plot.actors[pet.id]
+		if actor and actor.model:GetAttribute("Species") ~= pet.species then actor:Destroy(); plot.actors[pet.id] = nil; actor = nil end
+		if not actor then
+			local position = self:ReturnPosition(session, pet.id, ordinal)
+			actor = PetActor.new(plot.pets, pet.id, pet.species, pet.stars, position, self:PlotFrame(session.plotIndex).LookVector)
+			if not self:RestoreActor(session, pet.id, actor) then visibleCount -= 1; continue end
+		end
+		for name, value in {PetId = pet.id, OwnerId = session.userId, OwnerUserId = session.userId, AtHome = true,
+			InArmy = best[pet.id] == true} do attribute(actor.model, name, value) end
+		PetView.Level(actor.model, pet.level or 1)
+		actor.model:SetAttribute("DeploymentSlot", nil)
+		actor.model:SetAttribute("StoredCash", nil)
+		if PetView.Cash then PetView.Cash(actor.model, 0, false) end
+	end
+	for id, actor in plot.actors do
+		if not desired[id] then actor:Destroy(); plot.actors[id], plot.roaming[id] = nil, nil end
+	end
+	for id in plot.homeOrdinals do if not session.pets[id] then plot.homeOrdinals[id] = nil end end
+	attribute(plot.folder, "HomeCount", visibleCount)
+	attribute(plot.folder, "HiddenHomeCount", math.max(0, #homePets - visibleCount))
+	self.revisions[session.userId] = session.revision
+end
+
+function WorldService:Step(now)
+	if self.kingArena then self.kingArena:Step(now) end
+	for _, plot in self.plots do plot.station:Step(now) end
+	if now - self.lastRoamAt < Config.RoamStep then return end
+	self.lastRoamAt = now
+	local viewers = {}
+	for _, player in Players:GetPlayers() do
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root then table.insert(viewers, root.Position) end
+	end
+	for _, plot in self.plots do
+		if plot.ownerId and plot.ownerId>0 then self:UpdatePlayerSpeed(Players:GetPlayerByUserId(plot.ownerId),plot.index) end
+		local near, active = false, 0
+		for _, at in viewers do if (at - self:Position(plot.index)).Magnitude < 115 then near = true; break end end
+		for _, home in plot.roaming do if home.moving then active += 1 end end
+		for id, home in plot.roaming do
+			local actor = plot.actors[id]
+			if not actor then plot.roaming[id] = nil; continue end
+			local state = actor:Step(now)
+			home.position = actor:Position()
+			if home.moving then
+				local delta = home.target - home.position
+				local arrived = Vector2.new(delta.X, delta.Z).Magnitude < 1.3 or state == "arrived"
+				if arrived or state == "blocked" or now - home.startedAt > (home.travelTimeout or 14) or (not near and not home.recruiting) then
+					actor:Stop(); home.moving, home.recruiting = false, false
+					actor.model:SetAttribute("Recruiting", false)
+					home.pauseUntil = now + self.random:NextNumber(2, 6)
+					active -= 1
+				end
+			elseif near and now >= home.pauseUntil and active < MAX_WANDERING then
+				home.target = self:RoamTarget(plot.index, home.position, id)
+				home.travelTimeout = math.max(14, (home.target - home.position).Magnitude / Config.RoamSpeed + 4)
+				home.startedAt, home.moving = now, true
+				active += 1
+				actor:MoveTo(home.target, Config.RoamSpeed)
+			end
+		end
+	end
+	for _, lane in self.lanes do for _, record in lane do for _, actor in record.actors do actor:Step(now) end end end
+ for _,record in self.outposts do for _,actor in record.actors do actor:Step(now) end end
+ if self.incomeOutpost then for _,actor in self.incomeOutpost.actors do actor:Step(now) end end
+end
+
+function WorldService:SetTerritoryOwner(location,userId,name)
+ if location.king then
+  if self.kingArena then self.kingArena:SetOwner(userId,name) end
+  return
+ end
+ local record=if location.income then self.incomeOutpost elseif location.outpost then self.outposts[location.outpost]
+  else self.lanes[location.plot] and self.lanes[location.plot][location.index]
+ if not record then return end
+ record.conquerorId,record.conquerorName=userId,name
+ Builder.ApplyCampOwnership(record.folder,record.frame,userId,name)
+ self:PopulateCamp(record)
+end
+
+function WorldService:SetIncomeBusy(busy)
+ local record=self.incomeOutpost
+ if not record or record.busy==busy then return end
+ record.busy=busy;attribute(record.folder,"Occupied",busy)
+ self:PopulateCamp(record)
+end
+
+function WorldService:SetIncomeStatus(summary)
+ local record=self.incomeOutpost
+ if not record or not summary then return end
+ local text
+ if summary.contested then text="Income paused · contested"
+ elseif summary.npcWarningEndsAt then
+  text="Raid in "..math.max(0,math.ceil(summary.npcWarningEndsAt-workspace:GetServerTimeNow())).."s · +$"..summary.effectiveRate.."/s"
+ elseif summary.ownerId then text="+$"..summary.effectiveRate.."/s · owned"
+ else text="Capture · +$"..summary.configuredRate.."/s" end
+ if record.label.Text~=text then record.label.Text=text end
+ attribute(record.folder,"TerritoryRate",summary.effectiveRate)
+ attribute(record.folder,"Contested",summary.contested==true)
+ attribute(record.folder,"GraceEndsAt",summary.graceEndsAt)
+ attribute(record.folder,"NpcWarningEndsAt",summary.npcWarningEndsAt)
+end
+
+function WorldService:SetOutpostBusy(index,busy)
+ local record=self.outposts[index]
+ if not record or record.busy==busy then return end
+ record.busy=busy;attribute(record.folder,"Occupied",busy)
+ self:PopulateCamp(record)
+end
+
+function WorldService:SetCampBusy(index: number, busy: boolean, plotIndex: number)
+	local record = self.lanes[plotIndex] and self.lanes[plotIndex][index]
+	if not record or record.busy == busy then return end
+	record.busy = busy
+	attribute(record.folder, "Occupied", busy)
+	if not self:ApplyCampStage(record) then self:PopulateCamp(record) end
+end
+
+function WorldService:Release(session)
+	local plot = self.plots[session.plotIndex]
+	if plot then
+		disposeActors(plot.actors)
+		plot.roaming, plot.homeOrdinals, plot.ownerId = {}, {}, nil
+		plot.station:Clear()
+		plot.mergeStand:Clear()
+		if plot.trophy then plot.trophy:Destroy(); plot.trophy = nil end
+		attribute(plot.folder, "ConquestCompleted", nil)
+		plot.title.Text = "HOME " .. session.plotIndex .. " · OPEN"
+		if plot.conquestTitle then plot.conquestTitle.Text = #Progression.Camps(1).." CAMPS → CHICKEN KING" end
+		for _, name in {"CommandTarget", "OwnerUserId", "ArmyState", "HomeCount", "HiddenHomeCount", "Promotion"} do plot.folder:SetAttribute(name, nil) end
+		for index, record in self.lanes[session.plotIndex] do
+			disposeActors(record.actors)
+			record.roster, record.rosterKey, record.ownerId, record.busy = nil, nil, nil, false
+			record.pendingStage,record.promotion=nil,nil
+			record.conquerorId,record.conquerorName=nil,nil
+			Builder.ApplyCampOwnership(record.folder,record.frame,nil,nil)
+			Builder.ApplyCampPromotion(record.folder,index,Progression.Camps(1)[index].name)
+			attribute(record.folder, "Occupied", false)
+			attribute(record.folder, "OwnerUserId", nil)
+		end
+	end
+	self.revisions[session.userId] = nil
+end
+
+function WorldService:Destroy()
+	if self.kingArena then self.kingArena:Destroy(); self.kingArena = nil end
+	for _, plot in self.plots do
+		disposeActors(plot.actors)
+		plot.station:Destroy()
+		plot.mergeStand:Destroy()
+		for _, connection in plot.connections do connection:Disconnect() end
+	end
+	for _, lane in self.lanes do for _, record in lane do disposeActors(record.actors) end end
+	for _,record in self.outposts do disposeActors(record.actors) end
+ if self.incomeOutpost then disposeActors(self.incomeOutpost.actors);self.incomeOutpost=nil end
+ self.outposts={}
+ self.plots, self.lanes, self.campModels, self.campAppearance, self.revisions = {}, {}, {}, {}, {}
+	if self.root then self.root:Destroy(); self.root = nil end
+end
+
+return WorldService
