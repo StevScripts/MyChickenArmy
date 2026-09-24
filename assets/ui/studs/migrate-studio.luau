@@ -1,5 +1,5 @@
 -- Run in canonical Studio Edit via Studio Flow. Never writes mapped script Source.
--- Keep the currently uploaded texture until stud-tile.png has an approved Roblox ID.
+-- Historical first pass; already applied. Use apply-sheet-studio.luau for the full sheet.
 local TEXTURE = "rbxassetid://114518181344801"
 assert(game.PlaceId == 96683186622050 and not game:GetService("RunService"):IsRunning())
 local legacyNames = {StudPattern=true, FigmaStuds=true, PopupStudTexture=true, CheckerPattern=true}

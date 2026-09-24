@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "bridge": "ok",
+  "result": "{\"guiDestroyed\":true,\"selectionCleared\":true,\"receiptId\":\"ceiling\",\"connectionsAfterDestroy\":0,\"duplicateIgnored\":true,\"ceilingFits\":true,\"narrowAmountMeasurements\":[{\"slot\":224,\"bounds\":212.5,\"textSize\":22,\"panelWidth\":280},{\"slot\":240,\"bounds\":217.5,\"textSize\":23,\"panelWidth\":296},{\"slot\":295,\"bounds\":283.75,\"textSize\":31,\"panelWidth\":351},{\"slot\":392,\"bounds\":368.75,\"textSize\":40,\"panelWidth\":448}],\"labels\":[{\"bounds\":[258,45],\"name\":\"TextFace\",\"text\":\"Offline Earnings\",\"fits\":true,\"textSize\":45,\"size\":[416,48]},{\"bounds\":[193,38],\"name\":\"LeadIn\",\"text\":\"You've earned\",\"fits\":true,\"textSize\":38,\"size\":[392,38]},{\"bounds\":[363,50],\"name\":\"Amount\",\"text\":\"+$1,000,000,000,000\",\"fits\":true,\"textSize\":40,\"size\":[392,117.5]},{\"bounds\":[274,35],\"name\":\"Explanation\",\"text\":\"while you were away!\",\"fits\":true,\"textSize\":35,\"size\":[392,38]},{\"bounds\":[207,30],\"name\":\"SavedText\",\"text\":\"Added to your cash\",\"fits\":true,\"textSize\":30,\"size\":[220,30]},{\"bounds\":[133,40],\"name\":\"TextFace\",\"text\":\"Continue\",\"fits\":true,\"textSize\":40,\"size\":[392,62]}]}",
+  "output": []
+}

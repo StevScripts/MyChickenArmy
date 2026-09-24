@@ -59,9 +59,7 @@ function Browser:BuildCards()
 		visual.Position,visual.AnchorPoint,visual.ClipsDescendants=REST,Vector2.new(0.5,0.5),true
 		Theme.Stroke(visual,Theme.Arcade.border,3)
 		local scale=Theme.Motion:Scale(visual)
-		local studs=Theme.Studs(visual,0.15)
-		studs.Position,studs.Size=UDim2.fromOffset(3,3),UDim2.new(1,-6,1,-6)
-		studs.TileSize=UDim2.fromOffset(32,32)
+		local studs=Theme.Studs(visual,0.15,32,3)
 		local inset=Theme.Frame(visual,"InnerRim",UDim2.new(1,-8,1,-8))
 		inset.Position,inset.BackgroundTransparency,inset.ZIndex=UDim2.fromOffset(4,4),1,4
 		local rim=Theme.Stroke(inset,C.white,1)

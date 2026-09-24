@@ -19,19 +19,16 @@ return {
 		Volume = 0.24,
 	},
 	Cash = {
-		-- Sept 24 reference: player-centered spray, white tails, gold flash.
-		BurstSeconds = 0.26, Lifetime = 1.05, Stagger = 0.006,
-		MaxSprites = 10, LooseBills = 12, MaxBursts = 3,
-		MinRadius = 4.5, MaxRadius = 7.5, SpriteStuds = 0.95,
-		TrailSeconds = 0.22, TrailWidth = 0.14,
-		FlashSeconds = 0.30, FlashStuds = 5.5,
-		Volume = 0.36, ChimeVolume = 0.19, HudPulse = 1.09,
+		OutSeconds = 0.65, -- Full curve duration with Exponential Out easing.
+		ReturnDelay = 0.30, -- Interrupt the outward curve, matching the supplied script.
+		InSeconds = 0.30, -- Exponential In return; Quad In image fade.
+		Count = 10, -- Clones of the Studio-authored Assets.CashDrop (including its trail).
+		Volume = 0.28,
 	},
 	Sounds = {
 		-- Existing game assets, separate roles/mixes; no asset upload required.
 		EggPickup = "rbxassetid://6586979979", -- Soft cartoon pop.
 		EggDeposit = "rbxassetid://9120914570", -- Short wood/basket contact.
 		CashTick = "rbxassetid://135483737426662", -- Coin arrival.
-		CashFinish = "rbxassetid://9126073001", -- Sparkle confirmation.
 	},
 }

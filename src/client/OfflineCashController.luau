@@ -3,15 +3,25 @@
 local GuiService = game:GetService("GuiService")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
+local TextService = game:GetService("TextService")
 local Theme = require(script.Parent.UITheme)
-local Art = require(script.Parent.ShopPreviewArt)
 local Controller = {}
 Controller.__index = Controller
 
-local function duration(seconds)
-	local minutes = math.floor(seconds / 60)
-	if minutes < 60 then return minutes .. "m" end
-	return math.floor(minutes / 60) .. "h " .. minutes % 60 .. "m"
+-- Exact icon: assets/offline-cash/compact-ui/saved-check.png (Figma 360:3844).
+-- Studio image import is pending; an empty URI avoids an invalid asset request.
+local SAVED_CHECK = ""
+local GREEN = Theme.ReferenceColors.Army
+
+-- Keep money on one line, using the same measured fitting as ChickenBrowser.
+-- Setting TextWrapped=false also disables Roblox's automatic TextScaled fit.
+local function fitSingleLine(item, width, maximum, minimum)
+	item.TextScaled,item.TextWrapped=false,false
+	local size=maximum
+	while size>minimum and TextService:GetTextSize(item.Text,size,item.Font,Vector2.new(100000,100000)).X>width-8 do
+		size-=1
+	end
+	item.TextSize=size
 end
 
 function Controller.new(app)
@@ -44,81 +54,104 @@ function Controller:Receive(state)
 	self.gui=gui
 	local backdrop=Theme.Frame(gui,"Backdrop",UDim2.fromScale(1,1),Theme.Arcade.border)
 	backdrop.BackgroundTransparency,backdrop.Active=0.5,true
-	local panel=Theme.Frame(gui,"OfflineCash",UDim2.fromOffset(560,454))
+	-- Figma 359:3508: 448×394, with an inset body and one clear action.
+	local panel=Theme.Frame(gui,"OfflineCash",UDim2.fromOffset(448,394))
 	panel.BackgroundTransparency,panel.Active,panel.ZIndex=1,true,2
 	panel.AnchorPoint,panel.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
 	local scale=Instance.new("UIScale");scale.Parent=panel
-	local header,title=Theme.Header(panel,"Header","Welcome back!",Theme.Arcade.gold)
+	local header,title=Theme.Header(panel,"Header","Offline Earnings",GREEN)
 	header.Size=UDim2.new(1,0,0,64)
-	title.Position,title.Size,title.TextSize=UDim2.fromOffset(18,0),UDim2.new(1,-110,1,0),32
-	local function close() self.app.audio:Play("Click");self:Dismiss() end
-	local closeButton=Theme.ActionButton(header,"Close","×",close,Theme.ActionColors.danger)
-	closeButton.Position,closeButton.Size,closeButton.TextSize=UDim2.new(1,-84,0,0),UDim2.fromOffset(84,64),32
-	local body=Theme.Frame(panel,"Body",UDim2.new(1,0,1,-64))
-	body.Position=UDim2.fromOffset(0,64)
+	title.Position,title.Size=UDim2.fromOffset(16,8),UDim2.new(1,-32,0,48)
+	title.TextXAlignment=Enum.TextXAlignment.Center
+	Theme.Stroke(header,Theme.Arcade.border,3)
+	local function close()
+		if not self.gui then return end
+		self.app.audio:Play("Click")
+		self:Dismiss()
+	end
+	local body=Theme.Frame(panel,"Body",UDim2.new(1,-24,0,330))
+	body.Position=UDim2.fromOffset(12,64)
 	Theme.Surface(body);Theme.ApplyPopupStyle(panel)
-	local content=Theme.Frame(body,"Content",UDim2.new(1,-40,1,-40))
-	content.Position,content.BackgroundTransparency=UDim2.fromOffset(20,20),1
+	body.UIGradient.Transparency=NumberSequence.new(0.13)
+	Theme.Stroke(body,Theme.Arcade.border,3).Transparency=0
+	Theme.Studs(header,0.16,28,0).ZIndex=header.ZIndex
+	local content=Theme.Frame(body,"Content",UDim2.new(1,-32,1,-36))
+	content.Position,content.BackgroundTransparency=UDim2.fromOffset(16,20),1
 	local list=Instance.new("UIListLayout")
-	list.Padding,list.SortOrder,list.Parent=UDim.new(0,14),Enum.SortOrder.LayoutOrder,content
+	list.Padding,list.SortOrder,list.Parent=UDim.new(0,16),Enum.SortOrder.LayoutOrder,content
 	local function label(parent,name,value,size,height,color)
 		local item=Theme.Label(parent,name,value,size,color)
 		item.Size=UDim2.new(1,0,0,height)
+		item.TextXAlignment=Enum.TextXAlignment.Center
 		return item
 	end
-	local hero=Theme.Frame(content,"CashEarned",UDim2.new(1,0,0,106))
+	local hero=Theme.Frame(content,"CashEarned",UDim2.new(1,0,0,170))
 	hero.BackgroundTransparency,hero.LayoutOrder=1,1
-	local art=Art.CashPile(hero,1)
-	art.Position=UDim2.fromOffset(0,3)
-	local eyebrow=label(hero,"Eyebrow","OFFLINE CASH",16,22,Theme.Colors.muted)
-	local amount=label(hero,"Amount","+$"..Theme.Money(reward.amount),56,68)
-	amount.TextScaled,amount.TextWrapped=true,false
-	local amountSize=Instance.new("UITextSizeConstraint")
-	amountSize.MaxTextSize,amountSize.MinTextSize,amountSize.Parent=56,20,amount
-	local explanation=label(content,"Explanation","Your flock earned cash while you were away.",20,24)
-	explanation.LayoutOrder=2
-	local stats=Theme.Frame(content,"Statistics",UDim2.new(1,0,0,48))
-	stats.BackgroundTransparency,stats.LayoutOrder=1,3
-	local cents=math.floor(reward.rate*100+0.5)
-	local rateText="$"..Theme.Money(math.floor(cents/100))..string.format(".%02d / sec",cents%100)
-	for index,entry in {{"TIME AWAY",duration(reward.awaySeconds)},{"OFFLINE RATE",rateText}} do
-		local column=Theme.Frame(stats,"Stat"..index,UDim2.new(0.5,-8,1,0))
-		column.Position,column.BackgroundTransparency=UDim2.new((index-1)*0.5,if index==2 then 8 else 0,0,0),1
-		label(column,"Name",entry[1],14,20,Theme.Colors.muted)
-		local value=label(column,"Value",entry[2],22,28)
-		value.Position,value.TextScaled=UDim2.fromOffset(0,20),true
-		local size=Instance.new("UITextSizeConstraint");size.MaxTextSize,size.MinTextSize,size.Parent=22,14,value
-	end
-	local hours=math.floor(reward.maxSeconds/3600)
-	local limit=label(content,"Limit",if reward.capped then hours.."-hour limit reached · "..hours.."h counted"
-		else math.floor(reward.efficiency*100+0.5).."% earnings · Up to "..hours.." hours",16,20,Theme.Colors.muted)
-	limit.LayoutOrder=4
-	local continue=Theme.ActionButton(content,"Continue","Let's go!",close,Theme.ActionColors.purchase)
-	continue.Size,continue.LayoutOrder=UDim2.new(1,0,0,56),5
-	local saved=label(content,"Saved","Cash already added. Closing this keeps it.",16,20,Theme.Colors.muted)
-	saved.LayoutOrder=6
+	local lead=label(hero,"LeadIn","You've earned",38,38)
+	local amount=label(hero,"Amount","+$"..Theme.Money(reward.amount),92,94,Color3.new(1,1,1))
+	-- SourceSans uses smaller em metrics in Roblox. Scale the amount's glyphs
+	-- to the Figma size without exceeding Roblox's 100px TextSize ceiling.
+	local amountScale=Instance.new("UIScale")
+	amountScale.Scale,amountScale.Parent=1.25,amount
+	amount.AnchorPoint,amount.Position=Vector2.new(0.5,0.5),UDim2.new(0.5,0,0,85)
+	amount.Size=UDim2.new(0.8,0,0,94)
+	local gradient=Instance.new("UIGradient")
+	gradient.Color,gradient.Rotation,gradient.Parent=Theme.ReferenceGradients.Army,90,amount
+	local explanation=label(hero,"Explanation","while you were away!",35,38)
+	explanation.Position=UDim2.fromOffset(0,132)
+	local saved=Theme.Frame(content,"Saved",UDim2.new(1,0,0,30))
+	saved.BackgroundTransparency,saved.LayoutOrder=1,2
+	local savedLayout=Instance.new("UIListLayout")
+	savedLayout.FillDirection=Enum.FillDirection.Horizontal
+	savedLayout.HorizontalAlignment=Enum.HorizontalAlignment.Center
+	savedLayout.VerticalAlignment=Enum.VerticalAlignment.Center
+	savedLayout.SortOrder,savedLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0,8)
+	savedLayout.Parent=saved
+	local check=Theme.Image(saved,"SavedCheck",SAVED_CHECK,UDim2.fromOffset(28,28))
+	check.LayoutOrder=1
+	local savedText=label(saved,"SavedText","Added to your cash",30,30,GREEN)
+	savedText.Size,savedText.LayoutOrder=UDim2.fromOffset(220,30),2
+	savedText.TextXAlignment=Enum.TextXAlignment.Left
+	local continue=Theme.ActionButton(content,"Continue","Continue",close,GREEN)
+	continue.Size,continue.LayoutOrder,continue.TextSize=UDim2.new(1,0,0,62),3,40
+	Theme.Studs(continue.Visual.Face,0.16,28,0)
+	continue.Visual.Caption.Position=UDim2.fromOffset(0,0)
+	continue.Visual.Caption.Size=UDim2.fromScale(1,1)
+	-- Figma uses a single outlined text face. Keep the shared title/button
+	-- components, with their motion and selection behavior, but hide shadows.
+	title.TextShadow.Visible=false
+	continue.Visual.Caption.TextShadow.Visible=false
 	local function resize()
 		local available=gui.AbsoluteSize
 		if available.X<=0 or available.Y<=0 then return end
-		local width=math.min(560,math.max(280,available.X-24))
-		local compact=width<460
-		local height=if compact then 474 else 454
-		panel.Size=UDim2.fromOffset(width,height)
-		scale.Scale=math.min(1,(available.X-24)/width,(available.Y-24)/height)
-		title.TextSize=if compact then 28 else 32
-		explanation.TextSize,explanation.Size=if compact then 18 else 20,UDim2.new(1,0,0,if compact then 44 else 24)
-		local iconWidth=if compact then 84 else 108
-		art.Size=UDim2.fromOffset(iconWidth,100)
-		eyebrow.Position,eyebrow.Size=UDim2.fromOffset(iconWidth+16,15),UDim2.new(1,-iconWidth-16,0,22)
-		amount.Position,amount.Size=UDim2.fromOffset(iconWidth+16,37),UDim2.new(1,-iconWidth-16,0,68)
-		amountSize.MaxTextSize=if compact then 42 else 56
+		local width=math.min(448,math.max(280,available.X-24))
+		panel.Size=UDim2.fromOffset(width,394)
+		scale.Scale=math.max(0.1,math.min(1,(available.X-24)/width,(available.Y-24)/394))
+		local contentWidth=width-56
+		fitSingleLine(title,width-32,45,20)
+		fitSingleLine(lead,contentWidth,38,18)
+		fitSingleLine(amount,contentWidth/1.25,92,12)
+		fitSingleLine(explanation,contentWidth,35,16)
+		local savedWidth=math.min(220,contentWidth-36)
+		savedText.Size=UDim2.fromOffset(savedWidth,30)
+		fitSingleLine(savedText,savedWidth,30,16)
+		title.TextFace.TextOutline.Thickness=2
+		lead.TextOutline.Thickness=1.3
+		amount.TextOutline.Thickness=math.min(2.4,amount.TextSize*0.04)
+		explanation.TextOutline.Thickness=1.5
+		savedText.TextOutline.Thickness=1.2
+		continue.Visual.Caption.TextFace.TextOutline.Thickness=1.5
 	end
 	table.insert(self.connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize))
 	resize()
 	ContextActionService:BindActionAtPriority("PetRollOfflineCashClose",function(_,inputState)
 		if inputState==Enum.UserInputState.Begin then close() end
 		return Enum.ContextActionResult.Sink
-	end,false,3000,Enum.KeyCode.ButtonB,Enum.KeyCode.Escape)
+	end,false,3000,Enum.KeyCode.ButtonB)
+	-- Escape is also a Roblox core menu key; follow AppController's input path.
+	table.insert(self.connections,UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode==Enum.KeyCode.Escape then close() end
+	end))
 	if UserInputService.GamepadEnabled then GuiService.SelectedObject=continue end
 end
 

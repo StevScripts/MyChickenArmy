@@ -40,7 +40,7 @@ Theme.ActionColors = {
 	danger=Theme.Arcade.red, disabled=Palette.Disabled, selected=Palette.Rewards,
 }
 Theme.Assets = {
-	Cash="rbxassetid://101788696120931", Studs="rbxassetid://114518181344801",
+	Cash="rbxassetid://101788696120931", Studs="rbxassetid://93331178043153",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
@@ -90,20 +90,91 @@ function Theme.Image(parent, name, asset, size, position)
 	return image
 end
 
--- One tiled image per surface, independent of its size. Never build individual studs.
+-- One full-sheet image cropped by a transparent frame; never individual studs.
+local studBindings = setmetatable({}, {__mode="k"})
+
+function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
+	local parent=pattern.Parent
+	if not parent then return end
+	local clip
+	if parent:IsA("Frame") and parent:GetAttribute("StudSheetClip")==true then
+		clip=parent
+	else
+		clip=Instance.new("Frame")
+		clip.Name="StudClip"
+		clip:SetAttribute("StudSheetClip",true)
+		clip.Size,clip.Position,clip.AnchorPoint=pattern.Size,pattern.Position,pattern.AnchorPoint
+		clip.Rotation,clip.LayoutOrder=pattern.Rotation,pattern.LayoutOrder
+		clip.BackgroundTransparency,clip.BorderSizePixel,clip.Active=1,0,false
+		clip.ClipsDescendants=true
+		clip.Parent=parent
+		pattern.Parent=clip
+	end
+	local pixels=spacing or pattern:GetAttribute("StudSpacing") or pattern.TileSize.X.Offset
+	pattern:SetAttribute("StudSpacing",if type(pixels)=="number" and pixels>0 then pixels else 28)
+	pattern.Image,pattern.ScaleType=Theme.Assets.Studs,Enum.ScaleType.Stretch
+	pattern.ImageRectOffset,pattern.ImageRectSize=Vector2.zero,Vector2.zero
+	pattern.Position,pattern.AnchorPoint,pattern.Rotation=UDim2.new(),Vector2.zero,0
+	pattern.BackgroundTransparency,pattern.BorderSizePixel,pattern.Active=1,0,false
+	if studBindings[pattern] then return pattern end
+	local function resize()
+		-- AbsoluteSize includes ancestor UIScales; offset sizes must use local pixels.
+		local scale=1
+		local ancestor: Instance?=clip
+		while ancestor do
+			if ancestor:IsA("GuiObject") then
+				for _,child in ancestor:GetChildren() do
+					if child:IsA("UIScale") then scale*=child.Scale end
+				end
+			end
+			ancestor=ancestor.Parent
+		end
+		local size=clip.AbsoluteSize/math.max(scale,0.001)
+		local side=math.max((pattern:GetAttribute("StudSpacing") or 28)*24,size.X,size.Y)
+		pattern.Size=UDim2.fromOffset(side,side)
+	end
+	local function layer()
+		clip.ZIndex,clip.Visible=pattern.ZIndex,pattern.Visible
+	end
+	local connections={
+		clip:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize),
+		pattern.AncestryChanged:Connect(resize),
+		pattern:GetAttributeChangedSignal("StudSpacing"):Connect(resize),
+		pattern:GetPropertyChangedSignal("ZIndex"):Connect(layer),
+		pattern:GetPropertyChangedSignal("Visible"):Connect(layer),
+	}
+	studBindings[pattern]=connections
+	table.insert(connections,pattern.Destroying:Connect(function()
+		for _,connection in connections do connection:Disconnect() end
+		studBindings[pattern]=nil
+	end))
+	resize()
+	layer()
+	return pattern
+end
+
+-- Connections do not clone with authored SurfaceGuis; bind each live copy.
+function Theme.BindStudTextures(root: Instance)
+	for _,item in root:GetDescendants() do
+		if item:IsA("ImageLabel") and item.Name=="StudTexture" then
+			Theme.BindStudTexture(item)
+		end
+	end
+end
+
 function Theme.Studs(parent, opacity, tilePixels, inset)
 	for _,name in {"CheckerPattern","PopupStudTexture","FigmaStuds","StudPattern"} do
 		local old=parent:FindFirstChild(name)
 		if old then old:Destroy() end
 	end
-	local existing=parent:FindFirstChild("StudTexture")
+	local clip=parent:FindFirstChild("StudClip")
+	local existing=(clip and clip:FindFirstChild("StudTexture")) or parent:FindFirstChild("StudTexture")
 	if existing and not existing:IsA("ImageLabel") then existing:Destroy();existing=nil end
 	local pattern = if existing and existing:IsA("ImageLabel") then existing else Theme.Image(parent,"StudTexture",Theme.Assets.Studs,UDim2.fromScale(1,1))
 	local padding,spacing=inset or 5,tilePixels or 28
-	pattern.Image=Theme.Assets.Studs
-	pattern.Size,pattern.Position=UDim2.new(1,-padding*2,1,-padding*2),UDim2.fromOffset(padding,padding)
-	pattern.ScaleType, pattern.TileSize = Enum.ScaleType.Tile, UDim2.fromOffset(spacing,spacing)
-	pattern.BackgroundTransparency,pattern.Active=1,false
+	Theme.BindStudTexture(pattern,spacing)
+	local bounds=pattern.Parent
+	bounds.Size,bounds.Position=UDim2.new(1,-padding*2,1,-padding*2),UDim2.fromOffset(padding,padding)
 	pattern.ImageTransparency, pattern.ZIndex = 1-(opacity or 0.14), 2
 	return pattern
 end

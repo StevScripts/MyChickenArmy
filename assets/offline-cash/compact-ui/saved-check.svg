@@ -1,0 +1,26 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Saved check">
+<path d="M27 1V27H1V1H27Z" fill="url(#paint0_linear_0_4)"/>
+<path d="M27 1V27H1V1H27Z" stroke="#101710" stroke-width="2"/>
+<path id="Checkmark" d="M6 15L11 20L22 8" stroke="#FFFEF5" stroke-width="3.2" stroke-linecap="square"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_4" x1="14" y1="0" x2="14" y2="28" gradientUnits="userSpaceOnUse">
+<stop stop-color="#B0FF01"/>
+<stop offset="0.009346" stop-color="#ADFE00"/>
+<stop offset="0.037383" stop-color="#A9FD00"/>
+<stop offset="0.074766" stop-color="#A4FC00"/>
+<stop offset="0.168224" stop-color="#95FA01"/>
+<stop offset="0.261682" stop-color="#88F600"/>
+<stop offset="0.35514" stop-color="#7AF301"/>
+<stop offset="0.448598" stop-color="#6BF000"/>
+<stop offset="0.542056" stop-color="#5DEE00"/>
+<stop offset="0.635514" stop-color="#4DEB00"/>
+<stop offset="0.728972" stop-color="#3FE800"/>
+<stop offset="0.82243" stop-color="#31E501"/>
+<stop offset="0.915888" stop-color="#24E202"/>
+<stop offset="0.981308" stop-color="#1AE001"/>
+<stop offset="1" stop-color="#17DF00"/>
+</linearGradient>
+</defs>
+</svg>

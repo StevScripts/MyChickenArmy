@@ -86,6 +86,23 @@ function UpgradeService:Offers(session)
 	add("RollSlots", slots, tostring(session.rollSlotCount or 1),
 		if slots < physicalLimit then Definitions.RollSlotPrices[slots] else nil,
 		Definitions.RollSlotRanks[slots])
+	-- Preview the real next benefit, including verified passes, without changing
+	-- prices, progression or the current value used by the purchase transaction.
+	local function preview(key, value)
+		if offers[key].price then offers[key].nextText = value end
+	end
+	local nextRate = Definitions.EggSpeedRates[session.eggSpeedLevel + 2]
+	if nextRate then
+		local nextProduction = nextRate * (if session.entitlements.DoubleEggSpawn then 2 else 1)
+		preview("EggSpeed", decimal(Config.EggLaySeconds / nextProduction) .. "s")
+	end
+	preview("PlotSize", "Lv " .. (session.plotSizeLevel + 2))
+	preview("EggValue", decimal((1 + (session.incomeLevel + 1) * Config.IncomeMultiplierPerLevel)
+		* (if session.entitlements.DoubleCash then 2 else 1)) .. "x")
+	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
+	preview("Luck", decimal((1 + (session.luck + 1) * Config.LuckWeightPerLevel)
+		* session:PaidLuckMultiplier()) .. "x")
+	preview("RollSlots", tostring(math.min(slots + 1, physicalLimit)))
 	return offers
 end
 

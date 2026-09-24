@@ -13,9 +13,10 @@ local Feedback = {}
 Feedback.__index = Feedback
 local GOLD = Theme.Colors.gold
 local GREEN = Theme.Arcade.green
+local random = Random.new()
 
 function Feedback.new(app)
-	return setmetatable({app = app, alive = false, flights = {}, cashBursts = {}, cashSerial = 0, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
+	return setmetatable({app = app, alive = false, flights = {}, cashEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
 end
 
 function Feedback:Root()
@@ -110,159 +111,87 @@ function Feedback:Fly(image, start, goal, delay, duration, size, seed, arrive)
 	Debris:AddItem(anchor, delay + duration + 0.2)
 end
 
-function Feedback:CashSprite(parent, position, bill)
-	local anchor=self:Anchor(if bill then "LooseBill" else "CashBundle",position)
-	anchor.Parent=parent
-	local gui=Instance.new("BillboardGui")
-	gui.Name,gui.Adornee,gui.Size="CashSprite",anchor,UDim2.fromScale(Feel.Cash.SpriteStuds,Feel.Cash.SpriteStuds)
-	gui.AlwaysOnTop,gui.LightInfluence,gui.Brightness,gui.MaxDistance=false,0,2,100
-	gui.Enabled,gui.Parent=false,anchor
-	local face
-	if bill then
-		face=Instance.new("Frame")
-		face.BackgroundColor3,face.BorderSizePixel=Color3.fromRGB(50,212,69),0
-		face.Size=UDim2.fromScale(1,0.46)
-		local outline=Instance.new("UIStroke")
-		outline.Color,outline.Thickness,outline.Parent=Color3.fromRGB(13,66,29),1.5,face
-		local band=Instance.new("Frame")
-		band.Size,band.Position=UDim2.fromScale(0.3,1),UDim2.fromScale(0.35,0)
-		band.BackgroundColor3,band.BorderSizePixel,band.Parent=Color3.fromRGB(255,206,42),0,face
-	else
-		face=Instance.new("ImageLabel")
-		face.Size,face.BackgroundTransparency,face.Image=UDim2.fromScale(1,1),1,Theme.Assets.Cash
+-- User's CashDrop sequence: curved burst, then tween back and fade.
+function Feedback:Cash(_position, confirm)
+	if not self.alive then return end
+	if confirm then confirm() end
+	if self.app.reducedMotion then return end
+	local root = self:Root()
+	if not root then return end
+	local assets = Shared.Parent:FindFirstChild("Assets")
+	local template = assets and assets:FindFirstChild("CashDrop")
+	if not template or not template:IsA("BasePart") then
+		warn("Cash effect needs ReplicatedStorage.PetRoll.Assets.CashDrop")
+		return
 	end
-	face.AnchorPoint,face.Position,face.Parent=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),gui
-	local trails={}
-	if not bill then
-		local a,b=Instance.new("Attachment"),Instance.new("Attachment")
-		a.Position,b.Position=Vector3.new(-Feel.Cash.TrailWidth/2,0,0),Vector3.new(Feel.Cash.TrailWidth/2,0,0)
-		a.Parent,b.Parent=anchor,anchor
-		for i=1,2 do
-			local trail=Instance.new("Trail")
-			trail.Attachment0,trail.Attachment1,trail.FaceCamera=a,b,true
-			trail.Lifetime,trail.MinLength,trail.LightEmission=Feel.Cash.TrailSeconds,0,1
-			trail.Color=ColorSequence.new(if i==1 then Color3.fromRGB(255,241,134) else Color3.new(1,1,1))
-			trail.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,if i==1 then 0.65 else 0),NumberSequenceKeypoint.new(0.7,0.3),NumberSequenceKeypoint.new(1,1)})
-			trail.WidthScale=NumberSequence.new({NumberSequenceKeypoint.new(0,if i==1 then 3 else 1),NumberSequenceKeypoint.new(1,0)})
-			trail.Enabled,trail.Parent=false,anchor
-			table.insert(trails,trail)
+	if #self.cashEffects >= 3 then table.remove(self.cashEffects, 1):Destroy() end
+	local group = Instance.new("Folder")
+	group.Name, group.Parent = "CashPickup", self.folder
+	local origin = root.Position
+	local parts, tweens, outwardTweens, connections = {}, {}, {}, {}
+	local returning = false
+	local rootGone = root.Destroying:Once(function() group:Destroy() end)
+	table.insert(self.cashEffects, group)
+	group.Destroying:Once(function()
+		rootGone:Disconnect()
+		for _, connection in connections do connection:Disconnect() end
+		for _, tween in tweens do tween:Cancel(); tween:Destroy() end
+		local index = table.find(self.cashEffects, group)
+		if index then table.remove(self.cashEffects, index) end
+	end)
+
+	for _ = 1, Feel.Cash.Count do
+		local cashDrop = template:Clone()
+		cashDrop.Anchored = true
+		cashDrop.CanCollide, cashDrop.CanTouch, cashDrop.CanQuery = false, false, false
+		cashDrop.Position = origin
+		cashDrop.Parent = group
+		table.insert(parts, cashDrop)
+
+		local randomUnitVector = random:NextUnitVector() * Vector3.new(1, 0, 1)
+		local middle = origin + randomUnitVector * 3 + Vector3.new(0, 1, 0)
+		local finish = origin + randomUnitVector * 6 - Vector3.new(0, 2.5, 0)
+		-- BezierTween isn't installed: tween a scalar along the same three waypoints.
+		local progress = Instance.new("NumberValue")
+		progress.Name, progress.Parent = "CurveProgress", cashDrop
+		table.insert(connections, progress.Changed:Connect(function(t)
+			if returning or not group.Parent then return end
+			cashDrop.Position = origin:Lerp(middle, t):Lerp(middle:Lerp(finish, t), t)
+		end))
+		local outward = TweenService:Create(progress,
+			TweenInfo.new(Feel.Cash.OutSeconds, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+			{Value = 1})
+		table.insert(tweens, outward)
+		table.insert(outwardTweens, outward)
+		outward:Play()
+	end
+
+	task.delay(Feel.Cash.ReturnDelay, function()
+		if not group.Parent then return end
+		if not root.Parent then group:Destroy(); return end
+		-- Stop the curve before returning so two animations never fight over Position.
+		returning = true
+		for _, tween in outwardTweens do tween:Cancel() end
+		for _, connection in connections do connection:Disconnect() end
+		for _, part in parts do
+			local imageLabel = (part :: any).BillboardGui.ImageLabel
+			local fade = TweenService:Create(imageLabel,
+				TweenInfo.new(Feel.Cash.InSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ImageTransparency = 1})
+			local inward = TweenService:Create(part,
+				TweenInfo.new(Feel.Cash.InSeconds, Enum.EasingStyle.Exponential, Enum.EasingDirection.In),
+				{Position = root.Position})
+			table.insert(tweens, fade); table.insert(tweens, inward)
+			fade:Play()
+			inward:Play()
 		end
-	end
-	return {anchor=anchor,gui=gui,face=face,trails=trails,bill=bill}
+		task.delay(Feel.Cash.InSeconds + 0.05, function() group:Destroy() end)
+	end)
+	Debris:AddItem(group, Feel.Cash.ReturnDelay + Feel.Cash.InSeconds + 0.15)
 end
 
-function Feedback:CashFlash(parent,position)
-	local anchor=self:Anchor("CashFlash",position);anchor.Parent=parent
-	local gui=Instance.new("BillboardGui")
-	gui.Adornee,gui.Size,gui.LightInfluence,gui.Brightness=anchor,UDim2.fromScale(1,1),0,3
-	-- Place the flash just camera-side of the torso, retaining world occlusion.
-	gui.AlwaysOnTop,gui.Parent=false,anchor
-	local flare=Instance.new("Frame")
-	flare.BackgroundTransparency,flare.Size,flare.Parent=1,UDim2.fromScale(1,1),gui
-	local layers={}
-	local function layer(size,color,alpha,rotation,round)
-		local frame=Instance.new("Frame")
-		frame.AnchorPoint,frame.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
-		frame.Size,frame.BackgroundColor3,frame.BackgroundTransparency=size,color,alpha
-		frame.BorderSizePixel,frame.Rotation,frame.Parent=0,rotation,flare
-		if round then local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(1,0);corner.Parent=frame end
-		table.insert(layers,{frame=frame,alpha=alpha})
-		return frame
-	end
-	-- Native soft halo and tapered star rays avoid a particle-only DDS in an ImageLabel.
-	for i=6,1,-1 do layer(UDim2.fromScale(i*0.10,i*0.10),Color3.fromRGB(255,232,20),0.82,0,true) end
-	for i=1,8 do
-		for j=1,2 do
-			local ray=layer(UDim2.fromScale(if j==1 then 1 else 0.85,if j==1 then 0.08 else 0.025),
-				if j==1 then Color3.fromRGB(255,236,35) else Color3.new(1,1,1),if j==1 then 0.3 else 0,i*22.5,false)
-			local fade=Instance.new("UIGradient")
-			fade.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.35,0.4),NumberSequenceKeypoint.new(0.5,0),NumberSequenceKeypoint.new(0.65,0.4),NumberSequenceKeypoint.new(1,1)})
-			fade.Parent=ray
-		end
-	end
-	layer(UDim2.fromScale(0.16,0.16),Color3.new(1,1,1),0,0,true)
-	local ring=Instance.new("CylinderHandleAdornment")
-	ring.Adornee,ring.Radius,ring.InnerRadius,ring.Height=anchor,0.6,0.52,0.025
-	ring.CFrame=CFrame.new(0,-1.4,0)*CFrame.Angles(math.pi/2,0,0)
-	ring.Color3,ring.Transparency,ring.Parent=Color3.fromRGB(255,222,35),0.25,anchor
-	return {anchor=anchor,gui=gui,flare=flare,layers=layers,ring=ring}
-end
-
-function Feedback:Cash(position, count, onBurst)
-	-- The reference celebrates payment at the player with an outward spray.
-	-- Reward confirmation is immediate and independent of cosmetic lifetime.
-	if onBurst then onBurst() end
-	if self.app.reducedMotion or not self.alive then return end
-	local root=self:Root()
-	local origin=if root then root.Position+Vector3.new(0,0.1,0) else position
-	if #self.cashBursts>=Feel.Cash.MaxBursts then
-		self.cashBursts[1].folder:Destroy();table.remove(self.cashBursts,1)
-	end
-	self.cashSerial+=1
-	local random=Random.new(self.cashSerial*7919)
-	local folder=Instance.new("Folder");folder.Name="CashBurst";folder.Parent=self.folder
-	local group={at=os.clock(),origin=origin,folder=folder,sprites={},flash=self:CashFlash(folder,origin)}
-	local bundles=math.clamp(count,1,Feel.Cash.MaxSprites)
-	local total=bundles+Feel.Cash.LooseBills
-	for i=1,total do
-		local bill=i>bundles
-		local index=if bill then i-bundles else i
-		local number=if bill then Feel.Cash.LooseBills else bundles
-		local angle=index/number*math.pi*2+random:NextNumber(-0.15,0.15)
-		local radius=random:NextNumber(Feel.Cash.MinRadius,Feel.Cash.MaxRadius)*(if bill then 0.7 else 1)
-		local sprite=self:CashSprite(folder,origin,bill)
-		sprite.offset=Vector3.new(math.cos(angle)*radius,random:NextNumber(-0.35,2.4),math.sin(angle)*radius)
-		sprite.delay=(index-1)*Feel.Cash.Stagger
-		sprite.lifetime=Feel.Cash.Lifetime+random:NextNumber(-0.08,0.08)
-		sprite.size=Feel.Cash.SpriteStuds*random:NextNumber(0.85,1.15)*(if bill then 0.68 else 1)
-		sprite.rotation=if bill then random:NextNumber(-40,40) else random:NextNumber(-12,12)
-		sprite.spin=random:NextNumber(-80,80)
-		table.insert(group.sprites,sprite)
-	end
-	-- Start after construction so the first rendered frame cannot skip the flash.
-	group.at=os.clock()
-	table.insert(self.cashBursts,group)
-	Debris:AddItem(folder,Feel.Cash.Lifetime+0.5)
-end
-
-function Feedback:StepCash(now)
-	for i=#self.cashBursts,1,-1 do
-		local group=self.cashBursts[i]
-		local elapsed=now-group.at
-		if self.app.reducedMotion or not group.folder.Parent or elapsed>Feel.Cash.Lifetime+0.2 then
-			group.folder:Destroy();table.remove(self.cashBursts,i);continue
-		end
-		local flash=group.flash
-		local ft=math.clamp(elapsed/Feel.Cash.FlashSeconds,0,1)
-		flash.gui.Enabled=ft<1
-		local camera=workspace.CurrentCamera
-		if camera then
-			local toward=camera.CFrame.Position-flash.anchor.Position
-			flash.gui.StudsOffsetWorldSpace=if toward.Magnitude>0.01 then toward.Unit*1.8 else Vector3.zero
-		end
-		local diameter=Feel.Cash.FlashStuds*(0.35+0.9*(1-(1-ft)^3))
-		flash.gui.Size=UDim2.fromScale(diameter,diameter)
-		for _,layer in flash.layers do layer.frame.BackgroundTransparency=layer.alpha+(1-layer.alpha)*ft*ft end
-		flash.flare.Rotation=ft*35
-		flash.ring.Radius=0.6+3*ft;flash.ring.InnerRadius=flash.ring.Radius-0.08
-		flash.ring.Transparency=0.25+0.75*ft
-		for _,sprite in group.sprites do
-			local age=elapsed-sprite.delay
-			local t=math.clamp(age/sprite.lifetime,0,1)
-			sprite.gui.Enabled=age>=0 and t<1
-			local shoot=math.clamp(age/Feel.Cash.BurstSeconds,0,1)
-			local travel=1-(1-shoot)^3
-			local drift=math.max(0,age-Feel.Cash.BurstSeconds)
-			for _,trail in sprite.trails do trail.Enabled=age>=0 and shoot<1 end
-			-- Keep this burst anchored where it happened while the player moves on.
-			sprite.anchor.Position=group.origin+sprite.offset*travel+Vector3.new(0,-1.1*drift*drift,0)
-			local fade=math.clamp((t-0.68)/0.32,0,1)
-			local grow=math.min(1,math.max(0,age)/0.035)
-			local size=sprite.size*grow*(1-fade*fade)
-			sprite.gui.Size=UDim2.fromScale(size,size)
-			sprite.face.Rotation=sprite.rotation+sprite.spin*age
-		end
-	end
+function Feedback:ClearCash()
+	while #self.cashEffects > 0 do table.remove(self.cashEffects):Destroy() end
 end
 
 function Feedback:CashReward(receipt)
@@ -275,15 +204,13 @@ end
 
 function Feedback:ShowCash(position,value)
 	local serial=self.collectionSerial
-	self:Cash(position,Feel.Cash.MaxSprites,function()
+	self:Cash(position,function()
 		if not self.alive or serial~=self.collectionSerial then return end
 		self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,maxDuration=0.7,voiceKey="CashPayoff",maxVoices=3,cooldown=0.08})
-		self.app.audio:Play("CashFinish",1.05,{volume=Feel.Cash.ChimeVolume,maxDuration=0.85,voiceKey="CashFinish",maxVoices=2,cooldown=0.25})
 		local root=self:Root()
 		if self.app.reducedMotion then
 			self:Amount(if root then root.Position+Vector3.new(0,3.8,0) else position+Vector3.new(0,2,0),value)
 		end
-		if self.app.hud then Theme.Motion:Pulse(self.app.hud.cashIcon,Feel.Cash.HudPulse) end
 	end)
 end
 
@@ -316,7 +243,6 @@ function Feedback:ShowDeposit(receipt)
 	local serial=self.collectionSerial
 	local function contact()
 		if not self.alive or serial~=self.collectionSerial then return end
-		self:Burst(basket,if receipt.queued then GREEN else GOLD,false)
 		self.app.audio:Play("EggDeposit",1.12,{volume=Feel.Deposit.Volume,maxDuration=0.35,voiceKey="EggDeposit",maxVoices=3,cooldown=0.1})
 		if receipt.queued then self.app:Notify("Deposited "..Theme.Money(receipt.count).." eggs",true)
 		else self:ShowCash(basket,receipt.value) end
@@ -337,9 +263,8 @@ function Feedback:Action(kind)
 	if kind == "Sell" then
 		local function arrive()
 			self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,maxDuration=0.7,voiceKey="Sale",maxVoices=3})
-			if self.app.hud then Theme.Motion:Pulse(self.app.hud.cashIcon,Feel.Cash.HudPulse) end
 		end
-		if root then self:Cash(root.Position + root.CFrame.LookVector * 2 + Vector3.new(0, 1, 0),5,arrive) else arrive() end
+		if root then self:Cash(root.Position + root.CFrame.LookVector * 2 + Vector3.new(0, 1, 0),arrive) else arrive() end
 		return
 	end
 	local color = if kind == "Buy" then GOLD elseif kind == "Expand" then GREEN else Theme.Arcade.blue
@@ -377,7 +302,7 @@ function Feedback:Step(now)
 			flight.icon.Rotation = math.sin(alpha * math.pi) * (if flight.seed % 2 == 0 then 18 else -18)
 		end
 	end
-	self:StepCash(now)
+	if self.app.reducedMotion then self:ClearCash() end
 end
 
 function Feedback:ResetCollections()
@@ -385,8 +310,8 @@ function Feedback:ResetCollections()
 	self.depositPending,self.cashPending=nil,nil
 	self.nextDeposit=0
 	for _,flight in self.flights do flight.anchor:Destroy() end
-	for _,group in self.cashBursts do group.folder:Destroy() end
-	table.clear(self.flights);table.clear(self.cashBursts)
+	self:ClearCash()
+	table.clear(self.flights)
 end
 
 function Feedback:Destroy()

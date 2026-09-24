@@ -36,6 +36,7 @@ function Board:Bind(source)
 	self.views[source]=view
 	source.Enabled=false
 	gui.Parent=self.playerGui
+	Theme.BindStudTextures(gui)
 	table.insert(view.connections,source.AncestryChanged:Connect(function()
 		if not source:IsDescendantOf(workspace) then self:Unbind(source) end
 	end))

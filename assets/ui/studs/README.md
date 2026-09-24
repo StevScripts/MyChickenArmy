@@ -6,9 +6,11 @@ User direction: use one **full sheet of repeated studs**, cropped to the visible
 
 `stud-sheet.png` is the new full-area transparent PNG (1254 × 1254 output). It was generated with built-in image generation and visually inspected. The requested grid was 32 × 32; the returned art has approximately 24 × 24 cells, so do not assume the prompt dimensions are the actual asset dimensions.
 
-`stud-tile.png` is the superseded first draft. Neither image has been uploaded. Permission to upload the full sheet is pending. The implementation temporarily retains the game's existing uploaded image (`114518181344801`) with its existing tiled-image rendering so UI art does not disappear during this handoff. **Full-sheet cropping is not yet deployed.**
+`stud-sheet.png` was uploaded through Studio Asset Manager using computer use under **Kiru Experiences**, the experience's creator group (778575811). Verified uploaded image ID: **93331178043153**. `stud-tile.png` is the superseded first draft and was not uploaded. The previous native picker issue was resolved; no browser sign-in is needed.
 
-After upload approval: import only `stud-sheet.png` under the experience's creator group (778575811), record its verified image ID, and update the shared helper plus all 12 active authored `StudTexture` ImageLabels. Use `ImageRectSize`/`ImageRectOffset` to select a region of the full sheet and `ScaleType.Crop`, not single-stud tiling. Recompute the crop region when a runtime surface resizes; bind cloned world-board surfaces too. Preserve current positions, scale, tint, opacity, and the user's ongoing board edits. Do not rerun the old board-building recipe over their rearrangement.
+**Full-sheet cropping is applied in local code and Studio Edit.** `UITheme.Studs` uses one square full-sheet ImageLabel inside one transparent `StudClip` frame with `ClipsDescendants=true`. No single-stud tiling remains in the shared runtime helper. `StudSpacing` controls nominal cell size; the square enlarges if needed to cover a larger surface. Resize handling accounts for ancestor UIScales and does not depend on uploaded source resolution. The egg and upgrades controllers rebind cloned surfaces. Index cards retain their original 3px inset and 32px spacing.
+
+`apply-sheet-studio.luau` migrated all 12 active authored images, preserving layout, tint, opacity, and the user's board arrangement. Original ImageLabels are recoverable in `ServerStorage.StudSheetBackup_1790287287`, with original-parent references. `StudClip` now owns each surface's Position/Size; move or resize that frame when arranging the texture area. Do not rerun the old board-building recipe over the user's rearrangement.
 
 ## Sweep findings
 
@@ -23,9 +25,11 @@ After upload approval: import only `stud-sheet.png` under the experience's creat
 
 ## Ownership
 
-`src/client/UITheme.luau` owns the shared image and presentation helper. `ProgressionBrowser`, `ChickenBrowser`, `IndexBrowser`, common headers/buttons, and `assets/egg-board/build.luau` consume it. Code changes go through Rojo. `migrate-studio.luau` edits only Studio-owned GUI assets and retains recoverable originals.
+Figma reuse: the approved sheet is uploaded in file `4lJjZOqNhR8K7rfMbVIjaK` with image hash `90717abd1059ec66c34e8ef157d8632033975e15`. The compact Offline Earnings popup (`359:3508`) uses this image in its header and Continue button, with a square 672px sheet cropped to each surface. Its 52 individually authored button-stud layers were removed and its inherited header vector pattern suppressed. This is a scoped popup correction, not a migration of every older Figma screen. Future UI work must follow the mandatory image-reuse rule in AGENTS.md.
 
-Evidence so far: source readback matched the three changed mapped modules; Studio inspection confirmed the migrated pattern count and preserved the user's current egg-board arrangement. No Play session, purchase, game publish, or cloud save was performed for this sweep. Do not describe this as a measured FPS improvement.
+`src/client/UITheme.luau` owns the shared image and presentation helper. `ProgressionBrowser`, `ChickenBrowser`, `IndexBrowser`, common headers/buttons, and `assets/egg-board/build.luau` consume it. Code changes go through Rojo. `migrate-studio.luau` is the historical first pass; `apply-sheet-studio.luau` performs the final sheet migration. Both operate only on authored GUI art and retain recoverable originals.
+
+Evidence: final source readback matched UITheme, IndexBrowser, EggProcessorController, and UpgradeBoardController. Studio inspection found all 12 authored images referencing the uploaded sheet inside clipping frames; both visible egg-board images reported loaded. An Edit viewport screenshot showed the sheet rendered and clipped on Finish Now and Upgrade, with the user's current board arrangement intact. No Play session, purchase, game publish, or cloud save was performed for this sweep. Runtime resizing has not been playtested. Do not describe this as a measured FPS improvement.
 
 ## Asset generation
 
