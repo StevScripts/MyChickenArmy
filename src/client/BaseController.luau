@@ -94,8 +94,12 @@ function BaseController.OpeningGuidance(state)
 	for _, won in state.firstWins or {} do if won then return nil end end
 	for _, won in state.frontierWins or {} do if won then return nil end end
 	local coins, selected = state.coins or 0, state.selectedCount or #(state.selectedIds or {})
+	local processor=state.eggs and state.eggs.processor
+	if processor and processor.enabled and processor.readyCash>0 then
+		return {target="EggCash",text="Collect your cash from the pad in front of the egg board"}
+	end
 	if state.eggs and state.eggs.requiresDeposit and (state.eggs.carriedValue or 0)>0 then
-		return {target="EggDeposit",text="Walk onto the green pad to sell eggs"}
+		return {target="EggDeposit",text=if processor and processor.enabled then "Deposit eggs at your stand to start selling" else "Walk onto the green pad to sell eggs"}
 	end
 	if (state.capacity or 3) < 4 then
 		local slot = state.nextSlot
@@ -369,6 +373,9 @@ function BaseController:UpdateObjective()
  if guidance then
   if guidance.target=="Camp1" then target=lane and lane:FindFirstChild("Camp1")
   elseif guidance.target=="EggDeposit" then target=plot and plot:FindFirstChild("sellpart",true)
+  elseif guidance.target=="EggCash" then
+   local board=world:FindFirstChild("EggCollectionBoard") or (plot and plot:FindFirstChild("EggCollectionBoard",true))
+   target=board and board:FindFirstChild("TouchPart",true)
   elseif guidance.target=="Yard" then
    local pets=plot and plot:FindFirstChild("Pets")
    local model=pets and pets:FindFirstChildWhichIsA("Model")

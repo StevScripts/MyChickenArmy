@@ -6,6 +6,9 @@ local Rules = require(Shared.Rules)
 local Catalog = require(Shared.PetCatalog)
 local Progression = require(Shared.Progression)
 local ShopCatalog = require(Shared.ShopCatalog)
+local UpgradeCatalog = require(Shared.UpgradeCatalog)
+local EggProcessor = require(script.Parent.EggProcessor)
+local OfflineCash = require(script.Parent.OfflineCash)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 
@@ -26,7 +29,13 @@ function PlayerSession:Reset()
 	self.guaranteedLuckRolls=self.guaranteedLuckRolls or 0
 	self.commerceAutomatic=self.commerceAutomatic or {AutoCollectEggs=true,AutoMerge=true}
 	self.coins, self.capacity, self.luck = Config.StartingCoins, Config.StartingSlots, 0
+	self.eggSpeedLevel, self.plotSizeLevel, self.rollSlotsUnlocked = 0, 0, 1
 	self.eggCarry={count=0,value=0}
+	self.offlineCash = {at=0,rate=0}
+	self.offlineCashReceipt = nil
+	local finishCredits = if self.eggProcessor then self.eggProcessor.finishCredits else 0
+	self.eggProcessor = EggProcessor.New()
+	self.eggProcessor.finishCredits = finishCredits
 	self.enemyKills=0
  self.incomeLevel=0
  self.promotion,self.recruitTier=1,1
@@ -72,6 +81,16 @@ end
 
 function PlayerSession:Capacity(): number
  return self.capacity + (if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0)
+end
+
+function PlayerSession:CollectionLimit(): number
+ return math.min(Config.LegacyCollectionLimit,
+  Config.CollectionLimit + self.plotSizeLevel * UpgradeCatalog.ExtraChickensPerPlotLevel)
+end
+
+function PlayerSession:EggProductionMultiplier(): number
+ return UpgradeCatalog.EggSpeedRates[self.eggSpeedLevel + 1]
+  * (if self.entitlements.DoubleEggSpawn then 2 else 1)
 end
 
 function PlayerSession:AutomaticEnabled(key: string): boolean
@@ -216,7 +235,7 @@ end
 
 function PlayerSession:DisplayedPetIncome(species: string, stars: number, level: number?): number
  local raw=Rules.Income(species,stars,level,self.incomeLevel)
- return self:EarnedAmount(raw*(if self.entitlements.DoubleEggSpawn then 2 else 1),"eggs")
+ return self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs")
 end
 
 function PlayerSession:Income(): number
@@ -329,7 +348,7 @@ function PlayerSession:Snapshot(now: number)
 	local offer=offers[1]
 	local campsWon=0
 	for i=1,#Progression.Camps(1) do if self.firstWins[i] then campsWon+=1 end end
-	local eggProduction=if self.entitlements.DoubleEggSpawn then 2 else 1
+	local eggProduction=self:EggProductionMultiplier()
 	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")
 	return {nextSlot=self:NextSlot(),
 		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=rank.capacityCap+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
@@ -341,13 +360,14 @@ function PlayerSession:Snapshot(now: number)
 		incomeUpgrade=self:GlobalUpgrade("Income"),luckUpgrade=self:GlobalUpgrade("Luck"),
 		frontierWins=table.clone(self.frontierWins),kingCleared=self.kingCleared,
         firstWins=table.clone(self.firstWins),homeCount=#self:HomePets(),reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,
+		offlineCash=if self.offlineCashReceipt then table.clone(self.offlineCashReceipt) else nil,
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		campsWon=campsWon,allCampsWon=self:Completed(),
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
 		coins=self.coins,income=income,capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
-		collectionLimit=Config.CollectionLimit,selectedIds=best,deployedIds=deployedIds,
+		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
 		selectionMode=if self.armySelection==nil then "Auto" else "Manual",
-		selectedCount=#best,deployedCount=#deployedIds,overflowCount=math.max(0,#pets-Config.CollectionLimit),
+		selectedCount=#best,deployedCount=#deployedIds,overflowCount=math.max(0,#pets-self:CollectionLimit()),
 		offer=offer,offers=offers,rollSlotCount=self.rollSlotCount or 1,rollRemaining=math.max(0,self.rollReadyAt-now),odds=Rules.Odds(self.luck,self.recruitTier,self:PaidLuckMultiplier()),luck=self.luck,
 		campUnlocked=self.campUnlocked,armyState=self.armyState,outgoing=self.outgoing,incoming=self.incoming,stationedAt=self.stationedAt,
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
@@ -380,9 +400,12 @@ function PlayerSession:ToData()
 		purchaseReceipts=table.clone(self.purchaseReceipts),crateCredits=self.crateCredits,commerceAutomatic=table.clone(self.commerceAutomatic),
 		guaranteedLuckRolls=self.guaranteedLuckRolls,
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,
+		eggProcessor=EggProcessor.Copy(self.eggProcessor),
+		offlineCash=table.clone(self.offlineCash),
 		promotion=self.promotion,recruitTier=self.recruitTier,
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
+		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
 		pets=pets,discovered=table.clone(self.discovered),firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,tutorial=table.clone(self.tutorial),
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned}
 end
@@ -462,9 +485,22 @@ function PlayerSession:LoadData(data)
  end
  local revision=data.dataRevision or 1
 	if not numberIn(revision,1,Config.DataRevision,true) then return false,"Unsupported saved profile revision." end
+	-- Additive fields: never reduce the six slots an existing profile already had.
+	local eggSpeedLevel = if data.eggSpeedLevel == nil then 0 else data.eggSpeedLevel
+	local plotSizeLevel = if data.plotSizeLevel == nil then 0 else data.plotSizeLevel
+	local rollSlotsUnlocked = if data.rollSlotsUnlocked == nil then Config.RollSlotsUnlocked else data.rollSlotsUnlocked
+	if not numberIn(eggSpeedLevel,0,#UpgradeCatalog.EggSpeedPrices,true)
+		or not numberIn(plotSizeLevel,0,#UpgradeCatalog.PlotPrices,true)
+		or not numberIn(rollSlotsUnlocked,1,Config.RollSlotsUnlocked,true) then
+		return false,"Invalid saved board upgrades."
+	end
 	local legacy=revision==1
 	-- New carried eggs are distinct from the already-converted revision-1 egg bag.
 	local carry=data.eggCarry or {count=0,value=0}
+	local processor=EggProcessor.Read(data.eggProcessor)
+	if not processor then return false,"Invalid saved egg processor." end
+	local offlineCash=OfflineCash.Read(data.offlineCash)
+	if not offlineCash then return false,"Invalid saved offline cash." end
 	if type(carry)~="table" or not numberIn(carry.count,0,1e12,true)
 		or not numberIn(carry.value,0,1e12,true) or ((carry.count==0)~=(carry.value==0))
 		or not numberIn(data.enemyKills or 0,0,1e12,true) then return false,"Invalid saved eggs or defeat count." end
@@ -579,7 +615,10 @@ function PlayerSession:LoadData(data)
 	self.purchaseReceipts,self.crateCredits,self.commerceAutomatic=receipts,data.crateCredits or 0,automatic
 	self.guaranteedLuckRolls=(data.guaranteedLuckRolls or 0)%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
 	self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,grant
+	self.eggSpeedLevel,self.plotSizeLevel,self.rollSlotsUnlocked=eggSpeedLevel,plotSizeLevel,rollSlotsUnlocked
 	self.eggCarry={count=carry.count,value=carry.value};self.enemyKills=data.enemyKills or 0
+	self.eggProcessor=processor
+	self.offlineCash,self.offlineCashReceipt=offlineCash,nil
 	-- Preserve saved ranks and validation; always use the best earned odds now.
 	self.promotion,self.recruitTier=promotion,promotion
  self.frontierWins,self.kingCleared=frontier,king

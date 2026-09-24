@@ -29,21 +29,8 @@ local function surface(parent,name,x,y,width,height,body)
  return frame
 end
 
--- Native hollow square studs reproduce the Figma component without stretching a texture.
-local function studs(parent,width,height)
- local old=parent:FindFirstChild("StudTexture") or parent:FindFirstChild("CheckerPattern")
- if old then old:Destroy() end
- local pattern=Theme.Frame(parent,"FigmaStuds",UDim2.fromScale(1,1))
- pattern.BackgroundTransparency,pattern.ClipsDescendants,pattern.ZIndex=1,true,2
- for y=10,height-1,28 do
-  for x=10,width-1,28 do
-   local stud=Theme.Frame(pattern,"Stud",UDim2.fromOffset(13,13))
-   stud.Position,stud.BackgroundTransparency=UDim2.fromOffset(x,y),1
-   Theme.Stroke(stud,INK,1.5).Transparency=0.86
-   local glint=Theme.Frame(stud,"Glint",UDim2.fromOffset(11,1),WHITE)
-   glint.Position,glint.BackgroundTransparency=UDim2.fromOffset(1,1),0.86
-  end
- end
+local function studs(parent)
+ return Theme.Studs(parent,0.14,28,0)
 end
 
 local function dress(button,sequence,width,height,fontSize)
@@ -54,7 +41,7 @@ local function dress(button,sequence,width,height,fontSize)
  visual.UIStroke.Color,visual.UIStroke.Thickness=sequence.Keypoints[1].Value,3
  visual.LowerLip.BackgroundColor3=INK
  visual.Caption.Position,visual.Caption.Size=UDim2.fromOffset(10,0),UDim2.new(1,-20,1,-5)
- studs(visual.Face,width,height-5)
+ studs(visual.Face)
  return button
 end
 
@@ -71,7 +58,7 @@ function Browser:Mount(parent)
  local header,title=Theme.Header(root,"Header","Upgrades!",CYAN)
  header.Size,header.ZIndex=UDim2.fromOffset(1120,84),4
  header.UIStroke.Color=INK
- studs(header,1120,84)
+ studs(header)
  header.PageIcon.Visible,header.PageIcon.Image=true,Theme.Assets.Luck
  header.PageIcon.Size,header.PageIcon.Position=UDim2.fromOffset(78,78),UDim2.fromOffset(12,1)
  title.Position,title.Size,title.TextColor3=UDim2.fromOffset(104,0),UDim2.fromOffset(910,84),WHITE

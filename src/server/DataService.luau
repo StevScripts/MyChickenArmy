@@ -4,6 +4,7 @@ local DataStoreService=game:GetService("DataStoreService")
 local HttpService=game:GetService("HttpService")
 local RunService=game:GetService("RunService")
 local Config=require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
+local OfflineCash=require(script.Parent.OfflineCash)
 local DataService={}
 DataService.__index=DataService
 
@@ -72,10 +73,39 @@ function DataService:Load(session)
  end
  self.entries[session.userId]={session=session,key=key,lastSaved=self.clock(),leaseExpires=record.lease.expires,
   savedReceipts=table.clone(record.data.purchaseReceipts or {})}
+ -- Keep requests blocked until the reward and consumed interval share one
+ -- successful profile save. Retrying an uncertain write uses the same payload.
+ local receipt=OfflineCash.Reward(session.offlineCash,self.clock(),session.coins)
+ if receipt.amount>0 then session:Credit(receipt.amount,"offline") end
+ local saved,saveError=self:Save(session,false)
+ if not saved then
+  session.coins-=receipt.amount
+  self.entries[session.userId]=nil
+  self:Update(key,function(old)
+   if old and old.lease and old.lease.owner==self.token then old.lease=nil;return old end
+   return nil
+  end)
+  session.loaded=false;session.offlineCashReceipt=nil
+  session.saveStatus="error";session.saveMessage="Your offline cash is still being saved. Rejoin shortly."
+  self.loading[session.userId]=nil
+  return false,saveError
+ end
+ if receipt.amount>0 then
+  receipt.id=HttpService:GenerateGUID(false)
+  session.offlineCashReceipt=receipt
+ end
  session.saveStatus="saved";session.saveMessage="Progress saved automatically."
  self.loading[session.userId]=nil
  session.loaded=true;session:Touch()
  return true,"Loaded."
+end
+
+function DataService:Capture(session,release)
+ local payload=session:ToData()
+ -- During a crash the last persisted lease may include active play. Count
+ -- offline time only after its expiry; a clean exit starts at departure.
+ payload.offlineCash={at=self.clock()+(if release then 0 else Config.SaveLeaseSeconds),rate=OfflineCash.Rate(session)}
+ return payload
 end
 
 function DataService:Save(session,release)
@@ -83,7 +113,7 @@ function DataService:Save(session,release)
  if not entry or entry.session~=session or self.saving[session.userId] then return false,"No writable session, or save already running." end
  self.saving[session.userId]=true
  session.saveStatus="saving";session.saveMessage="Saving your flock…";session:Touch()
- local captured,payload=pcall(function() return entry.releasePayload or session:ToData() end)
+ local captured,payload=pcall(function() return entry.releasePayload or self:Capture(session,release) end)
  if not captured then
   self.saving[session.userId]=nil
   session.saveStatus="error";session.saveMessage="Saving interrupted. Your purchase will retry safely.";session:Touch()
@@ -106,6 +136,7 @@ function DataService:Save(session,release)
  -- Only a successful store response proves a receipt is durable. In-memory markers
  -- can also include a grant whose last save failed and must not acknowledge it yet.
  entry.savedReceipts=table.clone(record.data.purchaseReceipts or {})
+ session.offlineCash=table.clone(record.data.offlineCash)
  session.saveStatus="saved";session.saveMessage="Progress saved automatically.";session:Touch()
  if release then self.entries[session.userId]=nil end
  return true,"Saved."
@@ -168,7 +199,7 @@ function DataService:Step()
  local now=self.clock()
  for id,entry in self.entries do
   local session=entry.session
-  if (entry.releasePayload or not session.closing) and not self.saving[id] and now-entry.lastSaved>=Config.SaveInterval then
+  if (entry.releasePayload or (session.loaded and not session.closing)) and not self.saving[id] and now-entry.lastSaved>=Config.SaveInterval then
    -- Advance the retry clock before scheduling so a failing service cannot spawn a save every frame.
    entry.lastSaved=now
    task.spawn(function() self:Save(session,entry.releasePayload~=nil) end)
@@ -183,7 +214,7 @@ function DataService:Release(session)
  if session.dataReleasing then return end
  session.dataReleasing=true
  local entry=self.entries[session.userId]
- if entry and entry.session==session and not entry.releasePayload then entry.releasePayload=session:ToData() end
+ if entry and entry.session==session and not entry.releasePayload then entry.releasePayload=self:Capture(session,true) end
  local deadline=os.clock()+24
  while self.saving[session.userId] and os.clock()<deadline do task.wait(0.1) end
  if not self.saving[session.userId] then self:Save(session,true) end

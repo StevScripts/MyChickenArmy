@@ -5,6 +5,7 @@ local SoundService = game:GetService("SoundService")
 local ContentProvider = game:GetService("ContentProvider")
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
+local Feel = require(game:GetService("ReplicatedStorage").PetRoll.Shared.CollectionFeel)
 local AudioController = {}
 AudioController.__index = AudioController
 
@@ -21,11 +22,12 @@ AudioController.Assets = {
 	RollReveal = "rbxassetid://9126073001", -- Short synth sparkle bell.
 	RollRare = "rbxassetid://9126073318", -- Longer sparkle bell for epic+ reveals.
 }
+for name, id in Feel.Sounds do AudioController.Assets[name] = id end
 local FALLBACK = "rbxasset://sounds/volume_slider.ogg"
 local IMPACT = "rbxasset://sounds/action_jump_land.mp3"
 
 function AudioController.new()
-	return setmetatable({musicEnabled = true, sfxEnabled = true, templates = {}, last = {}, voices = {}, active = {}, activeCount = 0, alive = true}, AudioController)
+	return setmetatable({musicEnabled = true, sfxEnabled = true, templates = {}, last = {}, voices = {}, pools = {}, fallbackCounts = {}, active = {}, activeCount = 0, alive = true}, AudioController)
 end
 
 function AudioController:Start()
@@ -52,18 +54,26 @@ function AudioController:Start()
 	tick.Name, tick.SoundId, tick.Volume = "Tick", FALLBACK, 0.18
 	tick.SoundGroup, tick.Parent = self.sfxGroup, folder
 	self.templates.Tick = tick
-	task.spawn(function()
-		local sounds = {}
-		for _, sound in self.templates do table.insert(sounds, sound) end
-		pcall(function() ContentProvider:PreloadAsync(sounds) end)
-		if not self.alive then return end
-		for name, sound in self.templates do
-			if name ~= "Music" and not sound.IsLoaded then sound.SoundId = FALLBACK end
-		end
-		local music = self.templates.Music
-		music.Looped = true
-		if music.IsLoaded and self.musicEnabled then music:Play() end
-	end)
+	-- Load independently: a slow music request must not hold up pickup readiness.
+	-- Keep the configured ID so a transient failure can recover later.
+	for name, sound in self.templates do
+		task.spawn(function()
+			pcall(function() ContentProvider:PreloadAsync({sound}) end)
+			if not self.alive then return end
+			if name == "Music" then
+				sound.Looped = true
+				if sound.IsLoaded and self.musicEnabled then sound:Play() end
+			end
+		end)
+	end
+end
+
+function AudioController:FadeVoice(sound)
+	if not sound or not sound.Parent or sound:GetAttribute("Fading") then return end
+	sound:SetAttribute("Fading", true)
+	local fade = TweenService:Create(sound, TweenInfo.new(0.04), {Volume=0})
+	fade.Completed:Once(function() sound:Destroy();fade:Destroy() end)
+	fade:Play()
 end
 
 function AudioController:Play(name, pitch, options)
@@ -73,16 +83,25 @@ function AudioController:Play(name, pitch, options)
 	local cooldown = options.cooldown or (if name == "Impact" then 0.12 elseif name == "Collect" then 0.08 else 0.04)
 	local key = options.voiceKey or name
 	if now - (self.last[key] or -10) < cooldown then return end
-	self.last[key] = now
 	local template = self.templates[name] or self.templates.Pop
 	if not template then return end
-	if options.voiceKey then
+	if self.activeCount >= 24 then return end
+	self.last[key] = now
+	local pool
+	if options.maxVoices then
+		pool = self.pools[key] or {}
+		self.pools[key] = pool
+		while #pool >= math.max(1, options.maxVoices) do self:FadeVoice(table.remove(pool, 1)) end
+	elseif options.voiceKey then
 		local previous = self.voices[key]
 		if previous then previous:Destroy() end
 	end
-	if self.activeCount >= 24 then return end
 	local sound = template:Clone()
-	if not template.IsLoaded then sound.SoundId = if name == "Impact" then IMPACT else FALLBACK end
+	if not template.IsLoaded then
+		sound.SoundId = if name == "Impact" or name == "EggDeposit" then IMPACT else FALLBACK
+		self.fallbackCounts[name] = (self.fallbackCounts[name] or 0) + 1
+	end
+	sound:SetAttribute("Fallback", not template.IsLoaded)
 	sound.PlaybackSpeed = pitch or 1
 	if options.volume then sound.Volume=options.volume end
 	if options.parent then
@@ -90,7 +109,8 @@ function AudioController:Play(name, pitch, options)
 		sound.RollOffMinDistance,sound.RollOffMaxDistance=8,42
 	end
 	sound.Parent = options.parent or self.folder
-	if options.voiceKey then
+	if pool then table.insert(pool, sound)
+	elseif options.voiceKey then
 		self.voices[key]=sound
 	end
 	self.active[sound] = true
@@ -98,6 +118,7 @@ function AudioController:Play(name, pitch, options)
 	sound.Destroying:Once(function()
 		if self.active[sound] then self.active[sound] = nil;self.activeCount -= 1 end
 		if self.voices[key] == sound then self.voices[key] = nil end
+		if pool then local index=table.find(pool,sound);if index then table.remove(pool,index) end end
 	end)
 	local function cleanup()
 		if self.voices[key]==sound then self.voices[key]=nil end
@@ -108,12 +129,11 @@ function AudioController:Play(name, pitch, options)
 	if options.maxDuration then
 		task.delay(math.max(0,options.maxDuration-0.03),function()
 			if not sound.Parent then return end
-			local fade=TweenService:Create(sound,TweenInfo.new(0.03),{Volume=0})
-			fade.Completed:Once(cleanup)
-			fade:Play()
+			self:FadeVoice(sound)
 		end)
 	end
 	Debris:AddItem(sound, 7)
+	return sound
 end
 
 function AudioController:SetMusic(enabled)
@@ -132,6 +152,7 @@ function AudioController:Destroy()
 	self.alive = false
 	for sound in self.active do sound:Destroy() end
 	table.clear(self.voices)
+	table.clear(self.pools)
 	if self.folder then self.folder:Destroy() end
 end
 

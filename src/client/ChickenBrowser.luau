@@ -22,7 +22,6 @@ local SELECTED=Color3.fromRGB(0,223,255)
 local GOLD=Color3.fromRGB(255,221,96)
 local DESIGN_WIDTH,DESIGN_HEIGHT=1536,1024
 local Art={
-	Studs = "rbxassetid://131070262280618",
 	Helmet = "rbxassetid://80504375672119",
 	Damage = "rbxassetid://127164621014549",
 	Heart = "rbxassetid://137324953369813",
@@ -121,11 +120,8 @@ local function art(parent,name,asset,size,position)
 end
 
 local function figmaStuds(parent)
- for _,name in {"StudTexture","CheckerPattern","PopupStudTexture"} do
-  local old=parent:FindFirstChild(name);if old then old:Destroy() end
- end
- local pattern=art(parent,"FigmaStuds",Art.Studs,UDim2.fromScale(1,1))
- pattern.ScaleType,pattern.TileSize=Enum.ScaleType.Tile,UDim2.fromOffset(50,50)
+ local pattern=Theme.Studs(parent,0.14,50,0)
+ pattern.ZIndex=parent.ZIndex+1
  return pattern
 end
 

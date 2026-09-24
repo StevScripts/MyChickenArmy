@@ -90,11 +90,21 @@ function Theme.Image(parent, name, asset, size, position)
 	return image
 end
 
-function Theme.Studs(parent, opacity)
-	local pattern = Theme.Image(parent,"StudTexture",Theme.Assets.Studs,UDim2.new(1,-10,1,-10),UDim2.fromOffset(5,5))
-	pattern.ScaleType, pattern.TileSize = Enum.ScaleType.Tile, UDim2.fromOffset(28,28)
+-- One tiled image per surface, independent of its size. Never build individual studs.
+function Theme.Studs(parent, opacity, tilePixels, inset)
+	for _,name in {"CheckerPattern","PopupStudTexture","FigmaStuds","StudPattern"} do
+		local old=parent:FindFirstChild(name)
+		if old then old:Destroy() end
+	end
+	local existing=parent:FindFirstChild("StudTexture")
+	if existing and not existing:IsA("ImageLabel") then existing:Destroy();existing=nil end
+	local pattern = if existing and existing:IsA("ImageLabel") then existing else Theme.Image(parent,"StudTexture",Theme.Assets.Studs,UDim2.fromScale(1,1))
+	local padding,spacing=inset or 5,tilePixels or 28
+	pattern.Image=Theme.Assets.Studs
+	pattern.Size,pattern.Position=UDim2.new(1,-padding*2,1,-padding*2),UDim2.fromOffset(padding,padding)
+	pattern.ScaleType, pattern.TileSize = Enum.ScaleType.Tile, UDim2.fromOffset(spacing,spacing)
+	pattern.BackgroundTransparency,pattern.Active=1,false
 	pattern.ImageTransparency, pattern.ZIndex = 1-(opacity or 0.14), 2
-	Theme.Round(pattern,8)
 	return pattern
 end
 
@@ -267,18 +277,7 @@ function Theme.Header(parent,name,title,color)
 	local header=Theme.Frame(parent,name,UDim2.new(1,0,0,84),Color3.new(1,1,1))
 	Theme.SetHeaderColor(header,color)
 	Theme.Stroke(header,Theme.Arcade.border,4)
-	local pattern=Theme.Frame(header,"CheckerPattern",UDim2.new(1,-12,1,-12))
-	pattern.Position,pattern.BackgroundTransparency,pattern.ClipsDescendants=UDim2.fromOffset(6,6),1,true
-	for row=0,3 do
-		for column=0,44 do
-			if (row+column)%2==0 then
-				local cell=Instance.new("Frame")
-				cell.Name,cell.Size,cell.Position="Checker",UDim2.fromOffset(20,20),UDim2.fromOffset(column*20,row*20)
-				cell.BackgroundColor3,cell.BackgroundTransparency,cell.BorderSizePixel=Color3.new(1,1,1),0.94,0
-				cell.Parent=pattern
-			end
-		end
-	end
+	Theme.Studs(header,0.14,28,0).ZIndex=header.ZIndex
 	local text=Theme.Display(header,"Title",title,50)
 	text.Position,text.Size=UDim2.fromOffset(24,0),UDim2.new(1,-132,1,0)
 	local icon=Theme.Image(header,"PageIcon",Theme.Assets.Army,UDim2.fromOffset(78,78),UDim2.fromOffset(12,1))
@@ -352,35 +351,11 @@ function Theme.ApplyPopupStyle(panel)
 	if not panel then return end
 	local header=panel:FindFirstChild("Header")
 	if header then
-		local checker=header:FindFirstChild("CheckerPattern")
-		if checker then checker:Destroy() end
-		if not header:FindFirstChild("PopupStudTexture") then
-			local pattern=Instance.new("Frame")
-			pattern.Name,pattern.Size="PopupStudTexture",UDim2.fromScale(1,1)
-			pattern.BackgroundTransparency,pattern.BorderSizePixel=1,0
-			pattern.Active,pattern.ClipsDescendants=false,true
-			pattern.ZIndex,pattern.Parent=header.ZIndex,header
-			for row=0,2 do
-				for column=0,39 do
-					local stud=Instance.new("Frame")
-					stud.Name,stud.Size="Stud",UDim2.fromOffset(13,13)
-					stud.Position=UDim2.new(column/40,9,row/3,9)
-					stud.BackgroundColor3,stud.BackgroundTransparency=Color3.new(0,0,0),0.86
-					stud.BorderSizePixel,stud.ZIndex,stud.Parent=0,pattern.ZIndex,pattern
-					local face=Instance.new("Frame")
-					face.Name,face.Size,face.Position="Face",UDim2.fromScale(1,1),UDim2.fromOffset(-2,-2)
-					face.BackgroundColor3,face.BackgroundTransparency=Color3.new(1,1,1),0.92
-					face.BorderSizePixel,face.ZIndex,face.Parent=0,pattern.ZIndex,stud
-					local rim=Instance.new("UIStroke")
-					rim.Color,rim.Transparency,rim.Thickness=Color3.new(1,1,1),0.84,1
-					rim.LineJoinMode,rim.Parent=Enum.LineJoinMode.Miter,face
-				end
-			end
-			for _,name in {"Title","PageIcon","Close"} do
-				local foreground=header:FindFirstChild(name)
-				if foreground and foreground:IsA("GuiObject") then
-					foreground.ZIndex=math.max(foreground.ZIndex,header.ZIndex+1)
-				end
+		Theme.Studs(header,0.14,28,0).ZIndex=header.ZIndex
+		for _,name in {"Title","PageIcon","Close"} do
+			local foreground=header:FindFirstChild(name)
+			if foreground and foreground:IsA("GuiObject") then
+				foreground.ZIndex=math.max(foreground.ZIndex,header.ZIndex+1)
 			end
 		end
 	end

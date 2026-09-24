@@ -56,7 +56,7 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local species = offer.species
 	local level = math.clamp(offer.level or 1, 1, Config.MaxPetLevel)
 	local price = offer.price or Rules.RecruitPrice(species, level)
-	if session:Count() >= Config.CollectionLimit then return false, "Flock full — sell reserve chickens in the Army menu." end
+	if session:Count() >= session:CollectionLimit() then return false, "Flock full — sell reserve chickens in the Army menu." end
 	if session.coins < price then return false, "Not enough coins. This offer will wait for you." end
 	local before=session:BestPetIds()
 	-- This transaction does not yield: an offer cannot be bought twice.

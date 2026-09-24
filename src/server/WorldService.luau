@@ -18,12 +18,13 @@ local MergeStand = require(script.Parent.MergeStand)
 local Builder = require(script.Parent.WorldBuilder)
 local KingArena = require(script.Parent.KingArena)
 local AuthoredMap = require(script.Parent.AuthoredMap)
+local PlotUpgradeService = require(script.Parent.PlotUpgradeService)
 local WorldService = {}
 WorldService.__index = WorldService
 
 local YARD_MIN_X, YARD_MAX_X, YARD_MIN_Z, YARD_MAX_Z = HomePlot.YardMinX, HomePlot.YardMaxX, HomePlot.YardMinZ, HomePlot.YardMaxZ
 local MAX_WANDERING = 12
-local MAX_VISIBLE = 40
+local MAX_VISIBLE = Config.LegacyCollectionLimit
 local FOOT_Y = HomePlot.FootY
 
 local function attribute(instance, name, value)
@@ -304,6 +305,7 @@ function WorldService:Build()
 				#starterCamps.." CAMPS → CHICKEN KING",Builder.Palette.ink,15,3.5)
 			local plot={folder=folder,pets=pets,title=title,station=station,stations=stations,actors={},roaming={},
 				homeOrdinals={},index=index,connections={},conquestTitle=conquestTitle}
+			plot.upgrades=PlotUpgradeService.new(folder,index,cf)
 			if Config.Features.Merging then
 				plot.mergeStand=MergeStand.new(folder,cf*HomePlot.Merge,index,function(player,action,plotIndex)
 					if self.onAction then self.onAction(player,action,plotIndex) end
@@ -428,7 +430,10 @@ function WorldService:UpdateSession(session)
 	end
 	attribute(plot.folder, "ConquestCompleted", earnedTrophy)
 	attribute(plot.folder,"Promotion",rank)
-	session.rollSlotCount=math.min(#plot.stations,Config.RollSlotsUnlocked)
+	plot.upgrades:SetLevel(session.plotSizeLevel)
+	session.plotExpansionAvailable=plot.upgrades.available
+	session.rollSlotLimit=math.min(#plot.stations,Config.RollSlotsUnlocked)
+	session.rollSlotCount=math.min(session.rollSlotLimit,session.rollSlotsUnlocked)
 	for _,station in plot.stations do station:Sync(session) end
 	if plot.mergeStand then plot.mergeStand:Sync(session) end
 	for name, value in {CommandTarget = "base:" .. session.userId, OwnerUserId = session.userId,
@@ -592,6 +597,7 @@ function WorldService:Release(session)
 	if plot then
 		disposeActors(plot.actors)
 		plot.roaming, plot.homeOrdinals, plot.ownerId = {}, {}, nil
+		plot.upgrades:SetLevel(0)
 		for _,station in plot.stations do station:Clear() end
 		if plot.mergeStand then plot.mergeStand:Clear() end
 		if plot.trophy then plot.trophy:Destroy(); plot.trophy = nil end
@@ -618,6 +624,7 @@ function WorldService:Destroy()
 	if self.kingArena then self.kingArena:Destroy(); self.kingArena = nil end
 	for _, plot in self.plots do
 		disposeActors(plot.actors)
+		plot.upgrades:Destroy()
 		for _,station in plot.stations do station:Destroy() end
 		if plot.mergeStand then plot.mergeStand:Destroy() end
 		for _, connection in plot.connections do connection:Disconnect() end

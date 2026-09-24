@@ -1,0 +1,88 @@
+{
+  "realDataStoreCalls": 0,
+  "balance": [
+    {
+      "payouts": {
+        "60": 19,
+        "600": 192,
+        "3600": 1152,
+        "28800": 9216,
+        "86400": 9216
+      },
+      "name": "Starter",
+      "rate": 0.32
+    },
+    {
+      "payouts": {
+        "60": 161,
+        "600": 1612,
+        "3600": 9676,
+        "28800": 77414,
+        "86400": 77414
+      },
+      "name": "Ten Robo-Clucks, base seller",
+      "rate": 2.688
+    },
+    {
+      "payouts": {
+        "60": 336,
+        "600": 3360,
+        "3600": 20160,
+        "28800": 161280,
+        "86400": 161280
+      },
+      "name": "Ten Robo-Clucks, 8 eggs/s seller",
+      "rate": 5.6000000000000005
+    },
+    {
+      "payouts": {
+        "60": 4492,
+        "600": 44928,
+        "3600": 269568,
+        "28800": 2156544,
+        "86400": 2156544
+      },
+      "name": "Twenty Magma, value 2, speed 2",
+      "rate": 74.88
+    },
+    {
+      "payouts": {
+        "60": 24576,
+        "600": 245760,
+        "3600": 1474560,
+        "28800": 11796480,
+        "86400": 11796480
+      },
+      "name": "Forty Shadow, max coin upgrades",
+      "rate": 409.6
+    },
+    {
+      "payouts": {
+        "60": 98304,
+        "600": 983040,
+        "3600": 5898240,
+        "28800": 47185920,
+        "86400": 47185920
+      },
+      "name": "Forty Shadow, both existing 2x passes",
+      "rate": 1638.4
+    }
+  ],
+  "passed": [
+    "starter rate and eight-hour cap",
+    "minimum, future clock, no-history and fractional rounding",
+    "verified bonuses apply once and seller limits dense flocks",
+    "old saves migrate without a retroactive windfall",
+    "malformed offline data fails before any wallet replacement",
+    "reward is durable before loaded and leaves egg balances untouched",
+    "live lease excludes a second server",
+    "clean release starts exactly at departure; quick rejoin cannot replay",
+    "UpdateAsync callback replay pays once",
+    "failed reward save blocks session and can recover on next join",
+    "committed write with lost response cannot pay twice on recovery",
+    "crash recovery excludes the possibly-active lease window",
+    "wallet ceiling is preserved",
+    "previous-session bonus is not retroactively changed on login"
+  ],
+  "count": 14
+}

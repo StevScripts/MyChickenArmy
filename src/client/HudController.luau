@@ -252,7 +252,8 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateTerritory(state)
 	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.Money(value) end)
 	local eggs=state.eggs or {}
-	self.income.Text=if eggs.requiresDeposit then "Eggs "..Theme.Money(eggs.carriedCount or 0).." · $"..Theme.Money(eggs.carriedValue or 0)
+	self.income.Text=if eggs.processor and eggs.processor.enabled then "Eggs "..Theme.Money(eggs.carriedCount or 0)
+		elseif eggs.requiresDeposit then "Eggs "..Theme.Money(eggs.carriedCount or 0).." · $"..Theme.Money(eggs.carriedValue or 0)
 		else "Yard eggs: $"..Theme.Money(eggs.value or 0)
 	self.flock.Text="Chickens "..count.."/"..limit
 	local atHome=state.armyState=="Home"

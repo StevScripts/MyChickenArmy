@@ -17,6 +17,9 @@ local EggController = require(script.Parent.EggController)
 local HudController = require(script.Parent.HudController)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
+local UpgradeBoardController = require(script.Parent.UpgradeBoardController)
+local EggProcessorController = require(script.Parent.EggProcessorController)
+local OfflineCashController = require(script.Parent.OfflineCashController)
 local ChickenBrowser = require(script.Parent.ChickenBrowser)
 local MergeBrowser = if Config.Features.Merging then require(script.Parent.MergeBrowser) else nil
 local ShopBrowser = require(script.Parent.ShopBrowser)
@@ -38,6 +41,9 @@ function AppController.new()
 	self.eggs = EggController.new(self)
 	self.commerce = CommerceController.new(self)
 	self.progression=ProgressionBrowser.new(self)
+	self.upgradeBoard=UpgradeBoardController.new(self)
+	self.eggBoard=EggProcessorController.new(self)
+	self.offlineCash=OfflineCashController.new(self)
 	self.base, self.battle = BaseController.new(self), BattleController.new(self)
 	return self
 end
@@ -560,6 +566,8 @@ function AppController:Receive(packet)
 	if self.mergeBrowser then self.mergeBrowser:Receive(result) end
 	self.commerce:Receive(result)
 	self.progression:Receive(result)
+	self.upgradeBoard:Receive(result)
+	self.eggBoard:Receive(result)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" then
 		local shownInMerge=result.action=="OpenMerge" or ((result.action=="Merge" or result.action=="MergeAll") and self.page=="Merge" and self.panel.Visible)
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
@@ -580,6 +588,7 @@ function AppController:Receive(packet)
 	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner);self.lastBanner = state.banner end
 	if old and state.lastResult ~= old.lastResult and not packet.result then self:Notify(state.lastResult) end
 	self:RenderPanel(old == nil)
+	self.offlineCash:Receive(state)
 	if result and result.ok then
 		local changed=if result.action=="Expand" or result.action=="Income" or result.action=="Luck" then self.progression.row else nil
 		if changed then
@@ -596,6 +605,8 @@ end
 function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
+	self.upgradeBoard:Start()
+	self.eggBoard:Start()
 	self.audio:Start()
 	self.feedback:Start()
 	self.commerce:Start()
@@ -634,6 +645,9 @@ function AppController:Destroy()
 	self.commerce:Destroy();self.shopBrowser:Destroy();self.indexBrowser:Destroy()
 	if self.mergeBrowser then self.mergeBrowser:Destroy() end
 	self.progression:Destroy()
+	self.upgradeBoard:Destroy()
+	self.eggBoard:Destroy()
+	self.offlineCash:Destroy()
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
 	self.gui:Destroy()

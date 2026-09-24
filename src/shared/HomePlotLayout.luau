@@ -14,10 +14,23 @@ local authored = {
  Spawn=CFrame.new(-0.5,3.8,-23.5), Entrance=CFrame.new(-0.49,0.1,-31), AssemblyZ=-43,
  YardMinX=-11.9,YardMaxX=11.9,YardMinZ=-11.5,YardMaxZ=11.5,
 }
+local runtimeYards = {}
+function Layout.SetYard(index:number, bounds)
+ if not bounds then runtimeYards[index]=nil;return end
+ local layout=table.clone(authored)
+ for key,value in bounds do layout[key]=value end
+ runtimeYards[index]=layout
+end
 function Layout.ForPlot(index:number)
- return authored
+ return runtimeYards[index] or authored
 end
 function Layout.Home(index:number,plotIndex:number?):(number,number)
+ local yard=plotIndex and runtimeYards[plotIndex]
+ if yard then
+  local cell=((math.max(1,math.floor(index))-1)*17)%64
+  return yard.YardMinX+(cell%8+0.5)/8*(yard.YardMaxX-yard.YardMinX),
+   yard.YardMinZ+(math.floor(cell/8)+0.5)/8*(yard.YardMaxZ-yard.YardMinZ)
+ end
  local ordinal=(math.max(1,math.floor(index))-1)%40
  if plotIndex then
   local cell=(ordinal*17)%42

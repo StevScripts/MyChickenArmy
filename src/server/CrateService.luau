@@ -20,7 +20,7 @@ function CrateService:Open(session)
  if not session.loaded or session.closing or session.saveLost then return false,"Wait for your flock to load." end
  if session.paidRandomAllowed~=true then return false,"This random reward is unavailable for your account." end
  if session.crateCredits<1 then return false,"You have no crates to open." end
- if session:Count()>=Config.CollectionLimit then return false,"Make room in your flock first. Your crate is safe." end
+ if session:Count()>=session:CollectionLimit() then return false,"Make room in your flock first. Your crate is safe." end
  local total=0
  for _,entry in definition.rewards do
   if not Catalog[entry.species] or type(entry.chance)~="number" or entry.chance~=entry.chance

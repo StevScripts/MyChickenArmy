@@ -182,7 +182,7 @@ function RollStation:Sync(session)
  self.cosmeticSpecies = Catalog.Order
  self.model:SetAttribute("RecruitTier",self.recruitTier)
 	self.incomeLevel = session.incomeLevel or 0
-	self.flockFull = session:Count() >= Config.CollectionLimit
+	self.flockFull = session:Count() >= session:CollectionLimit()
 	self.coins=session.coins
  self.offerAdvice,self.offerImprovesArmy="",false
  local offer=if self.loaded then session.offers and session.offers[self.slot] else nil

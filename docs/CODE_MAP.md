@@ -37,6 +37,7 @@ Paths below are relative to `src/`. Search for the named symbol in VS Code with 
 | Marching and reinforcements | `shared/ArmyMarch.luau`, `server/ArmyReinforcements.luau` | Routes and lineup changes; `server/PetActor.luau` owns physical actor movement |
 | Idle guards and Chicken King | `server/WorldService.luau`, `server/KingArena.luau` | Patrol lifecycle; `server/IdlePatrol.luau` is the movement helper, `server/KingEncounter.luau` defines the encounter |
 | Eggs: production, collection and deposits | `server/EggService.luau` | Authoritative egg state; frequency/radius in `shared/Config.luau`; collection visuals in `client/EggController.luau`, `client/EggView.luau`, `shared/EggMotion.luau` |
+| Egg vacuum: sweep, cargo and animation | `server/EggRover.luau`, `shared/VacuumConfig.luau`, `client/VacuumController.luau` | [Vacuum tuning and Blender workflow](VACUUM.md); exported motion in `shared/VacuumClips.luau` |
 | Kill rewards | `shared/CombatRewards.luau`, `server/BattleService.luau` | Reward calculation and server award boundary |
 | Chicken appearance, portraits and animation | `shared/ChickenAppearanceAssets.luau`, `client/ChickenPortraits.luau`, `client/VoxelChickenAnimator.luau` | Asset references, menu images and clip playback; clip data lives in `animations/` |
 | Native proximity prompts and attack highlight | `client/BaseController.luau`, `client/PromptStyleController.luau` | Local visibility/style; `shared/CampCommand.luau` supplies command rules |

@@ -18,6 +18,7 @@ local CommerceService=require(script.Parent.CommerceService)
 local ProductService=require(script.Parent.ProductService)
 local CrateService=require(script.Parent.CrateService)
 local LoopTelemetry=require(script.Parent.LoopTelemetry)
+local UpgradeService=require(script.Parent.UpgradeService)
 local GameServer={}
 GameServer.__index=GameServer
 
@@ -29,6 +30,7 @@ function GameServer.new()
 	self.leaderboards=LeaderboardService.new(self.world,self.sessions)
 	self.commerce=CommerceService.new()
 	self.rolls=RollService.new()
+	self.upgrades=UpgradeService.new(self.world,self.rolls)
 	self.battles=BattleService.new(self.sessions,self.world)
 	self.telemetry=LoopTelemetry.new()
 	self.battles.telemetry=self.telemetry
@@ -44,6 +46,7 @@ function GameServer:Send(player,result)
 	if not session then return end
 	local now=os.clock()
 	local state=session:Snapshot(now)
+	state.boardUpgrades=self.upgrades:Offers(session)
  local routeCamps,routeOutposts=self.battles:RouteProgress(session)
  state.routeCamps,state.routeOutposts=table.clone(routeCamps),table.clone(routeOutposts)
  local kingOwner=self.battles.campOwners["king:1"]
@@ -91,7 +94,9 @@ function GameServer:Handle(player,request)
 		ok,message=self.commerce:Refresh(player,session)
 		if self.sessions[player.UserId]~=session or session.closing or session.saveLost then return end
 	elseif action=="PreparePurchase" then
-		ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session))
+		if request.key=="FinishEggs" and not self.eggs:CanUseBoard(player,session) then
+			message="Walk up to your egg selling board."
+		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session)) end
 	elseif action=="OpenCrate" then
 		if not self.products:CanPurchase(session) then message="Crates need a safely loaded, saved profile."
 		else
@@ -132,6 +137,10 @@ function GameServer:Handle(player,request)
    ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.level)
    if ok then self.world:CelebrateMerge(session) end
   end
+	elseif action=="BoardUpgrade" then
+		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)
+	elseif action=="EggSellerUpgrade" then
+		ok,message=self.eggs:Upgrade(player,session,request.expectedLevel,request.expectedPrice)
 	elseif action=="Expand" then ok,message=ArmyService.Expand(session)
 	elseif action=="Promote" then ok,message=ArmyService.Promote(session)
 	elseif action=="Income" then ok,message=ArmyService.UpgradeIncome(session)
@@ -308,6 +317,7 @@ function GameServer:Start()
 	self.started=true
 	assert(self.products:Start(),"Could not initialize purchase delivery")
 	self.world:Build()
+	self.upgrades:Start()
 	self.leaderboards:Build()
 	local folder=ReplicatedStorage.PetRoll:FindFirstChild("Remotes")
 	if not folder then folder=Instance.new("Folder");folder.Name="Remotes";folder.Parent=ReplicatedStorage.PetRoll end

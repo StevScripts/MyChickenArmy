@@ -1,6 +1,7 @@
 --!strict
 -- Client presentation only. Timings never gate a request or manufacture a reward.
 local TweenService=game:GetService("TweenService")
+local RunService=game:GetService("RunService")
 local Motion={}
 Motion.__index=Motion
 
@@ -8,6 +9,7 @@ function Motion.new()
 	return setmetatable({
 		reduced=false,
 		tracks={},
+		pulses={},
 		bindings=setmetatable({}, {__mode = "k"}),
 		spins=setmetatable({}, {__mode = "k"}),
 		panelSerial=0,
@@ -35,6 +37,7 @@ end
 
 function Motion:Tween(object,channel,goals,seconds,style,direction,complete,repeats)
 	self:Cancel(object,channel)
+	if channel=="scale" then self.pulses[object]=nil end
 	if self.reduced or seconds<=0 then
 		for property,value in goals do object[property]=value end
 		if complete then complete() end
@@ -64,6 +67,42 @@ function Motion:Pop(item,amount)
 	self:Cancel(scale,"scale")
 	scale.Scale=if self.reduced then 1 else amount or 1.08
 	self:Tween(scale,"scale",{Scale=1},0.24,Enum.EasingStyle.Back)
+end
+
+-- Reward arrivals add energy to the current motion instead of resetting scale.
+function Motion:Pulse(item,amount)
+	if not item or not item.Parent then return end
+	local scale=self:Scale(item)
+	self:Cancel(scale,"scale")
+	if self.reduced then scale.Scale=1;return end
+	local pulse=self.pulses[scale] or {x=scale.Scale-1,v=0,limit=0}
+	pulse.limit=math.max(pulse.limit,(amount or 1.06)-1)
+	pulse.v=math.min(pulse.v+pulse.limit*48,pulse.limit*65)
+	self.pulses[scale]=pulse
+	if self.pulseConnection then return end
+	self.pulseConnection=RunService.RenderStepped:Connect(function(dt)
+		for target,p in self.pulses do
+			if not target.Parent then self.pulses[target]=nil;continue end
+			-- Exact critically damped spring; consistent at different frame rates.
+			local time=math.min(dt,0.1)
+			local omega=24
+			local decay=math.exp(-omega*time)
+			local c=p.v+omega*p.x
+			p.x,p.v=(p.x+c*time)*decay,(p.v-omega*c*time)*decay
+			p.x=math.clamp(p.x,0,p.limit)
+			target.Scale=1+p.x
+			if math.abs(p.x)<0.0005 and math.abs(p.v)<0.005 then
+				target.Scale=1;self.pulses[target]=nil
+			end
+		end
+		if not next(self.pulses) then self.pulseConnection:Disconnect();self.pulseConnection=nil end
+	end)
+end
+
+function Motion:ClearPulses()
+	if self.pulseConnection then self.pulseConnection:Disconnect();self.pulseConnection=nil end
+	for scale in self.pulses do if scale.Parent then scale.Scale=1 end end
+	table.clear(self.pulses)
 end
 
 function Motion:Shine(face)
@@ -195,12 +234,16 @@ function Motion:Count(label,value,format)
 	local amount=label:FindFirstChild("DisplayedAmount")
 	if not amount then
 		amount=Instance.new("NumberValue");amount.Name="DisplayedAmount";amount.Value=value;amount.Parent=label
+		amount:SetAttribute("Target",value)
 		amount.Changed:Connect(function(v) label.Text=format(v) end)
 		label.Text=format(value)
 		return
 	end
+	local previous=amount:GetAttribute("Target")
+	if previous==value then return end
+	amount:SetAttribute("Target",value)
 	-- Spend immediately; smooth only confirmed gains. Never count beyond server state.
-	self:Tween(amount,"count",{Value=value},if value<amount.Value then 0 else 0.18)
+	self:Tween(amount,"count",{Value=value},if value<(previous or amount.Value) then 0 else 0.18)
 end
 
 function Motion:Spin(image)
@@ -234,6 +277,7 @@ end
 function Motion:SetReduced(value)
 	self.reduced=value
 	if not value then return end
+	self:ClearPulses()
 	self:StopSpins()
 	local pending={}
 	for object,channels in self.tracks do for channel,track in channels do table.insert(pending,{object=object,channel=channel,goals=track.goals,finish=track.finish}) end end
@@ -247,6 +291,7 @@ function Motion:SetReduced(value)
 end
 
 function Motion:Reset()
+	self:ClearPulses()
 	self:StopSpins()
 	local pending={}
 	for object,channels in self.tracks do for channel in channels do table.insert(pending,{object,channel}) end end

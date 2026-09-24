@@ -1,0 +1,7 @@
+# Reproducible transport data, local snapshots and Blender automatic backup.
+export/*.rgba
+export/model.json
+export/studio-before.json
+export/sync-manifest.json
+export/verification-sources.json
+source/*.blend1

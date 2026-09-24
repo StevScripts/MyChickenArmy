@@ -3,6 +3,7 @@
 local MarketplaceService=game:GetService("MarketplaceService")
 local Players=game:GetService("Players")
 local ShopCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
+local EggProcessor=require(script.Parent.EggProcessor)
 local ProductService={}
 ProductService.__index=ProductService
 local Granted=Enum.ProductPurchaseDecision.PurchaseGranted
@@ -70,7 +71,9 @@ function ProductService:_ProcessReceipt(receipt)
  local saved=self.data:CommitPurchase(session,receipt.PurchaseId,receipt.ProductId,function()
   -- This function must not yield. Recheck presence after waiting for an autosave.
   if not self:CanPurchase(session) then return false,"The player left during delivery." end
-  if product.coins~=nil and product.crates==nil and integer(product.coins,1,MaxCoins)
+  if product.finishEggs==true then
+   return EggProcessor.GrantFinish(session.eggProcessor)
+  elseif product.coins~=nil and product.crates==nil and integer(product.coins,1,MaxCoins)
    and integer(session.coins,0,MaxCoins-product.coins) then
    -- Exact purchased amount: earned-income passes never multiply paid currency.
    session.coins+=product.coins

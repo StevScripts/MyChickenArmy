@@ -1,15 +1,91 @@
 --!strict
 -- Server-owned pickup ledger. Authored plots carry eggs until their sell pad is reached.
 local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
+local VacuumConfig=require(Shared.VacuumConfig)
 local Layout=require(Shared.HomePlotLayout)
 local ShopCatalog=require(Shared.ShopCatalog)
+local EggRover=require(script.Parent.EggRover)
+local Processor=require(script.Parent.EggProcessor)
+local ProcessorConfig=require(Shared.EggProcessorConfig)
 local EggService={}
 EggService.__index=EggService
 
 function EggService.new(world)
  return setmetatable({world=world,yards={},serial=0,generation=0},EggService)
+end
+
+function EggService:Board(session)
+ local root=self.world.root
+ if not root then return nil end
+ local board=root:FindFirstChild("EggCollectionBoard")
+ if board and board:GetAttribute("PlotIndex")==session.plotIndex then return board end
+ local plot=self.world.plots[session.plotIndex]
+ return plot and plot.folder:FindFirstChild("EggCollectionBoard",true)
+end
+
+function EggService:CanUseBoard(player,session)
+ local board=self:Board(session)
+ local screen=board and board:FindFirstChild("Screen")
+ local character=player.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+ if not screen or not screen:IsA("BasePart") or not root or not humanoid or humanoid.Health<=0 then return false end
+ return (root.Position-screen.Position).Magnitude<=ProcessorConfig.BoardDistance
+end
+
+function EggService:Upgrade(player,session,level,price)
+ if not self:CanUseBoard(player,session) then return false,"Walk up to your egg selling board." end
+ local state=session.eggProcessor
+ local cost=ProcessorConfig.Prices[state.level+1]
+ if not cost then return false,"Selling speed is at its maximum." end
+ if level~=state.level or price~=cost then return false,"The upgrade changed. Try again." end
+ if session.coins<cost then return false,"Not enough cash for this upgrade." end
+ session.coins-=cost;state.level+=1;session:Touch()
+ return true,"Eggs sell at "..Processor.Rate(state,session.entitlements.DoubleEggSpawn).." eggs/sec."
+end
+
+function EggService:AcceptDeposit(session,count,value)
+ if self:Board(session) then
+  if not Processor.Deposit(session.eggProcessor,count,value) then return false end
+  session:Touch()
+  return true,0,true
+ end
+ return true,session:Credit(value,"eggs"),false
+end
+
+function EggService:ProcessAndClaim(session,position,dt,now)
+ local state=session.eggProcessor
+ if Processor.Step(state,dt,Processor.Rate(state,session.entitlements.DoubleEggSpawn)) then session:Touch() end
+ local board=self:Board(session)
+ local collection=board and board:FindFirstChild("CollectionPart")
+ local pad=collection and collection:FindFirstChild("TouchPart")
+ -- A rejoin can assign an older plot without the new board. Its owned sell pad
+ -- still lets the player claim saved processing proceeds instead of stranding them.
+ if not board then
+  local fallback,owner=self.world:EggDeposit(session.plotIndex)
+  if owner==session.userId then pad=fallback end
+ end
+ local inside=false
+ if position and pad and pad:IsA("BasePart") then
+  local at=pad.CFrame:PointToObjectSpace(position)
+  inside=math.abs(at.X)<=pad.Size.X/2+0.7 and math.abs(at.Z)<=pad.Size.Z/2+0.7
+   and at.Y>=-1 and at.Y<=pad.Size.Y/2+5
+ end
+ local yard=self:Yard(session)
+ local entering=inside and not yard.onCashPad
+ yard.onCashPad=inside
+ if not entering or state.readyValue<=0 then return end
+ local amount=session:EarnedAmount(state.readyValue,"eggs")
+ if session.coins+amount>ProcessorConfig.MaxValue then return end
+ local raw=state.readyValue;state.readyValue=0
+ local credited=session:Credit(raw,"eggs")
+ session.tutorial.soldEggs=true
+ yard.cashSerial=(yard.cashSerial or 0)+1
+ yard.cashClaim={id=yard.generation..":"..yard.cashSerial,value=credited,at=now,
+  x=pad.Position.X,y=pad.Position.Y+1,z=pad.Position.Z}
 end
 
 function EggService:Yard(session)
@@ -60,7 +136,7 @@ end
 
 function EggService:Produce(session,dt,now)
  local yard=self:Yard(session)
- local production=if session.entitlements and session.entitlements.DoubleEggSpawn==true then 2 else 1
+ local production=session:EggProductionMultiplier()
  local interval=Config.EggLaySeconds/production
  for id,pet in session.pets do
   local layer=yard.layers[id]
@@ -88,9 +164,23 @@ function EggService:Produce(session,dt,now)
 end
 
 function EggService:Pay(session,yard,drop,now)
+ if drop.paid then return end
+ drop.paid=true
  local deposit=self.world:EggDeposit(session.plotIndex)
  local credited=session:EarnedAmount(drop.value,"eggs")
- if deposit then
+ if drop.collector=="rover" then
+  local rover=yard.rover
+  if rover and rover.enabled then
+   rover.pendingCount=math.max(0,rover.pendingCount-(drop.stack or 1))
+   rover.cargoCount+=drop.stack or 1
+   rover.cargoValue+=drop.value
+  else
+   -- A claim already belongs to this player, even if the robot was toggled off.
+   session.eggCarry.count+=drop.stack or 1
+   session.eggCarry.value+=drop.value
+   session:Touch()
+  end
+ elseif deposit then
   session.eggCarry.count+=drop.stack or 1
   session.eggCarry.value+=drop.value
   session:Touch()
@@ -102,7 +192,15 @@ function EggService:Pay(session,yard,drop,now)
   credited=session:Credit(drop.value+carried,"eggs")
  end
  session.tutorial.collectedEggs=true
- table.insert(yard.receipts,{id=drop.id,value=credited,count=drop.stack or 1,at=now})
+ table.insert(yard.receipts,{id=drop.id,value=credited,count=drop.stack or 1,at=now,
+  collector=drop.collector or "player",targetX=drop.targetX,targetY=drop.targetY,targetZ=drop.targetZ})
+ yard.revision+=1
+end
+
+function EggService:RecordDeposit(yard,count,credited,now,collector,position,queued)
+ yard.depositSerial=(yard.depositSerial or 0)+1
+ yard.deposit={id=yard.generation..":"..yard.depositSerial,count=count,value=credited,at=now,
+  collector=collector,queued=queued,targetX=position and position.X,targetY=position and position.Y,targetZ=position and position.Z}
  yard.revision+=1
 end
 
@@ -116,38 +214,134 @@ function EggService:Deposit(session,position,now)
  local carry=session.eggCarry
  if carry.value<=0 then return false end
  local count,value=carry.count,carry.value
- -- No yield between clearing the bag and crediting: repeated overlap cannot pay twice.
+ -- No yield between ledger transfer and clearing the bag.
+ local accepted,credited,queued=self:AcceptDeposit(session,count,value)
+ if not accepted then return false end
  session.eggCarry={count=0,value=0}
- local credited=session:Credit(value,"eggs");session.tutorial.soldEggs=true
+ session:Touch()
+ if not queued then session.tutorial.soldEggs=true end
  local yard=self:Yard(session)
- yard.depositSerial=(yard.depositSerial or 0)+1
- yard.deposit={id=yard.generation..":"..yard.depositSerial,count=count,value=credited,at=now}
- yard.revision+=1
+ self:RecordDeposit(yard,count,credited,now,"player",pad.Position,queued)
  return true,credited
+end
+
+function EggService:SettleClaims(session,yard,now,roverOnly,forceAll)
+ for i=#yard.drops,1,-1 do
+  local drop=yard.drops[i]
+  if drop.claimAt and (forceAll or (if roverOnly then drop.collector=="rover" else now>=drop.claimAt+Config.EggFlightSeconds)) then
+   self:Pay(session,yard,drop,now);table.remove(yard.drops,i)
+  end
+ end
+end
+
+function EggService:PreserveCargo(session,yard,now)
+ local rover=yard.rover
+ if not rover then return end
+ -- Finish earned claims while this rover still owns them, then transfer once.
+ self:SettleClaims(session,yard,now,true)
+ if rover.cargoCount>0 or rover.cargoValue>0 then
+  session.eggCarry.count+=rover.cargoCount
+  session.eggCarry.value+=rover.cargoValue
+  rover.cargoCount,rover.cargoValue=0,0
+  session:Touch()
+ end
+ rover.enabled=false
+ yard.revision+=1
+end
+
+function EggService:UpdateRover(session,yard,dt,now)
+ local pad,ownerId=self.world:EggDeposit(session.plotIndex)
+ local enabled=session:AutomaticEnabled("AutoCollectEggs")
+  or (RunService:IsStudio() and workspace:GetAttribute(VacuumConfig.StudioTestAttribute)==true)
+ enabled=enabled and pad~=nil and pad:IsA("BasePart") and ownerId==session.userId
+ if not enabled then
+  if yard.rover and yard.rover.enabled then self:PreserveCargo(session,yard,now) end
+  return
+ end
+ -- Resize the next empty sweep, not a rover carrying earned eggs or in-flight claims.
+ if yard.rover and yard.rover.enabled and yard.roverPlotSize~=session.plotSizeLevel
+  and yard.rover.state=="Idle" and yard.rover.cargoCount==0 and yard.rover.pendingCount==0 then
+  yard.rover=nil
+ end
+ if not yard.rover or not yard.rover.enabled then
+  yard.roverSerial=(yard.roverSerial or 0)+1
+  yard.roverPlotSize=session.plotSizeLevel
+  yard.rover=EggRover.new(session.userId..":"..yard.generation..":"..yard.roverSerial,
+   self.world:PlotFrame(session.plotIndex),session.plotIndex,pad,now)
+ end
+ local rover=yard.rover
+ local hasEggs=false
+ for _,drop in yard.drops do
+  if not drop.claimAt and now>=drop.readyAt then hasEggs=true;break end
+ end
+ rover:Step(dt,now,hasEggs)
+ -- Send the latest nozzle as a fallback for late packets or a removed model.
+ local nozzle=rover:Nozzle()
+ for _,drop in yard.drops do
+  if drop.collector=="rover" and drop.claimAt then
+   drop.targetX,drop.targetY,drop.targetZ=nozzle.X,nozzle.Y,nozzle.Z
+  end
+ end
+ if rover:ReadyToUnload(now) then
+  -- Recheck the owner's physical input pad at the payment boundary. The rover
+  -- cannot sell remotely simply because its state says it reached a dock.
+  local localAt=pad.CFrame:PointToObjectSpace(rover.position)
+  local atPad=math.abs(localAt.X)<=pad.Size.X/2+0.7 and math.abs(localAt.Z)<=pad.Size.Z/2+0.7
+   and math.abs(localAt.Y)<=pad.Size.Y/2+5
+  if not atPad then return end
+  local count,value=rover.cargoCount,rover.cargoValue
+  if value>0 then
+   local accepted,credited,queued=self:AcceptDeposit(session,count,value)
+   if not accepted then return end
+   if not queued then session.tutorial.soldEggs=true end
+   self:RecordDeposit(yard,count,credited,now,"rover",rover.position,queued)
+  end
+  rover.cargoCount,rover.cargoValue=0,0
+  rover:FinishUnload(now)
+ end
+end
+
+function EggService:Claim(yard,drop,now,collector,target)
+ if drop.claimAt then return false end
+ drop.claimAt=now;drop.collector=collector
+ drop.targetX,drop.targetY,drop.targetZ=target.X,target.Y,target.Z
+ yard.revision+=1
+ if collector=="rover" then
+  yard.rover.pendingCount+=drop.stack or 1
+  yard.rover.suctionSerial+=1
+ end
+ return true
 end
 
 function EggService:Collect(session,position,now)
  local yard=self:Yard(session)
- for i=#yard.drops,1,-1 do
-  local drop=yard.drops[i]
-  if drop.claimAt and now>=drop.claimAt+Config.EggFlightSeconds then
-   self:Pay(session,yard,drop,now);table.remove(yard.drops,i)
-  end
- end
- local automatic=session:AutomaticEnabled("AutoCollectEggs")
- if position or automatic then
+ if position then
   local near={}
   local radius=Config.EggMagnetRadius*(if session.entitlements and session.entitlements.EggMagnet==true then ShopCatalog.RadiusMultiplier else 1)
   for _,drop in yard.drops do
    if not drop.claimAt and now>=drop.readyAt then
-    local distance=if position then (position-Vector3.new(drop.x,drop.y+0.8,drop.z)).Magnitude else 0
-    if automatic or distance<=radius then table.insert(near,{drop=drop,distance=distance}) end
+    local distance=(position-Vector3.new(drop.x,drop.y+0.8,drop.z)).Magnitude
+    if distance<=radius then table.insert(near,{drop=drop,distance=distance}) end
    end
   end
   table.sort(near,function(a,b)return a.distance<b.distance end)
   for i=1,math.min(Config.EggPickupBatch,#near) do
-   near[i].drop.claimAt=now+(i-1)*0.06
-   yard.revision+=1
+   self:Claim(yard,near[i].drop,now+(i-1)*0.06,"player",position+Vector3.new(0,-0.25,0))
+  end
+ end
+ local rover=yard.rover
+ if rover and rover.enabled and rover:CanCollect() then
+  local nozzle=rover:Nozzle()
+  local near={}
+  for _,drop in yard.drops do
+   if not drop.claimAt and now>=drop.readyAt then
+    local distance=(nozzle-Vector3.new(drop.x,drop.y+0.8,drop.z)).Magnitude
+    if distance<=rover.suctionRadius then table.insert(near,{drop=drop,distance=distance}) end
+   end
+  end
+  table.sort(near,function(a,b)return a.distance<b.distance end)
+  for i=1,math.min(VacuumConfig.PickupBatch,#near) do
+   self:Claim(yard,near[i].drop,now+(i-1)*VacuumConfig.PickupStagger,"rover",nozzle)
   end
  end
  for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end
@@ -157,6 +351,9 @@ function EggService:Step(sessions,dt,now)
  for _,session in sessions do
   if not session.loaded or session.closing or session.saveLost then continue end
   self:Produce(session,dt,now)
+  local yard=self:Yard(session)
+  self:SettleClaims(session,yard,now,false)
+  self:UpdateRover(session,yard,dt,now)
   local player=Players:GetPlayerByUserId(session.userId)
   local character=player and player.Character
   local root=character and character:FindFirstChild("HumanoidRootPart")
@@ -164,6 +361,7 @@ function EggService:Step(sessions,dt,now)
   local position=if root and humanoid and humanoid.Health>0 then root.Position else nil
   self:Collect(session,position,now)
   self:Deposit(session,position,now)
+  self:ProcessAndClaim(session,position,dt,now)
  end
 end
 
@@ -179,20 +377,35 @@ function EggService:Snapshot(session,now)
   copy.born,copy.readyAt,copy.claimAt=nil,nil,nil
   table.insert(drops,copy);value+=copy.value
  end
- for _,receipt in yard.receipts do table.insert(receipts,{id=receipt.id,value=receipt.value,count=receipt.count}) end
- local deposit=if yard.deposit and now-yard.deposit.at<3 then {id=yard.deposit.id,value=yard.deposit.value,count=yard.deposit.count} else nil
+ for _,receipt in yard.receipts do
+  local copy=table.clone(receipt);copy.at=nil;table.insert(receipts,copy)
+ end
+ local deposit=if yard.deposit and now-yard.deposit.at<3 then table.clone(yard.deposit) else nil
+ if deposit then deposit.at=nil end
+ local processor=session.eggProcessor
+ local queued=Processor.Totals(processor)
+ local cashClaim=if yard.cashClaim and now-yard.cashClaim.at<3 then table.clone(yard.cashClaim) else nil
+ if cashClaim then cashClaim.at=nil end
  return {revision=yard.revision,generation=yard.generation,drops=drops,receipts=receipts,value=value,
+  processor={enabled=self:Board(session)~=nil,queuedCount=queued,
+   rate=Processor.Rate(processor,session.entitlements.DoubleEggSpawn),level=processor.level,
+   nextRate=ProcessorConfig.Rates[processor.level+2] and ProcessorConfig.Rates[processor.level+2]*(if session.entitlements.DoubleEggSpawn then 2 else 1),
+   upgradePrice=ProcessorConfig.Prices[processor.level+1],readyCash=session:EarnedAmount(processor.readyValue,"eggs"),
+   finishCredits=processor.finishCredits},cashClaim=cashClaim,
   requiresDeposit=self.world:EggDeposit(session.plotIndex)~=nil,carriedCount=session.eggCarry.count,
-  carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit}
+  carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit,
+  rover=if yard.rover then yard.rover:Snapshot(session) else {enabled=false}}
 end
 
 function EggService:Release(session)
  local yard=self.yards[session.userId]
  if not yard then return end
  -- A proximity-claimed pickup is already earned even if the player leaves mid-flight.
- if not session.saveLost then for _,drop in yard.drops do
-  if drop.claimAt then self:Pay(session,yard,drop,os.clock()) end
- end end
+ if not session.saveLost then
+  local now=os.clock()
+  self:SettleClaims(session,yard,now,false,true)
+  self:PreserveCargo(session,yard,now)
+ end
  self.yards[session.userId]=nil
 end
 

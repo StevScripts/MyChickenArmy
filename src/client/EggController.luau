@@ -4,15 +4,17 @@ local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
+local Feel=require(Shared.CollectionFeel)
 local ShopCatalog=require(Shared.ShopCatalog)
 local Motion=require(Shared.EggMotion)
 local EggView=require(script.Parent.EggView)
+local VacuumController=require(script.Parent.VacuumController)
 local Theme=require(script.Parent.UITheme)
 local Eggs={}
 Eggs.__index=Eggs
 
 function Eggs.new(app)
- return setmetatable({app=app,views={},feedback={},combo=0,lastPickup=0,total=0},Eggs)
+ return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,total=0},Eggs)
 end
 
 function Eggs:Root()
@@ -22,6 +24,7 @@ end
 
 function Eggs:Start()
  self.folder=Instance.new("Folder");self.folder.Name="PetRollEggVisuals";self.folder.Parent=workspace
+ self.vacuum=VacuumController.new(self.app,self.folder)
  self:CreateCollectionRange()
  self.popup=Instance.new("BillboardGui")
  self.popup.Name="EggPickup";self.popup.Size=UDim2.fromOffset(230,52)
@@ -94,39 +97,73 @@ function Eggs:Spark(root)
  self.spark:Emit(4)
 end
 
-function Eggs:Feedback(id,value,count)
+function Eggs:Feedback(id,value,count,receipt)
  if self.feedback[id] then return end
  local now=os.clock();self.feedback[id]=now
- if now-self.lastPickup>0.8 then self.combo,self.total=0,0 end
- self.combo=math.min(self.combo+1,8);self.total+=if self.requiresDeposit then count or 1 else value;self.lastPickup=now
- self.app.audio:Play("Collect",0.95+self.combo*0.055,{volume=0.35,maxDuration=0.65,voiceKey="EggPickup"})
+ if not self.finishedFlights[id] then self:PickupCue(receipt and receipt.collector,now) end
+ if receipt and receipt.collector=="rover" then
+  self.vacuum:Pickup(receipt,now)
+  return
+ end
+ if now-self.lastPickup>Feel.Egg.ComboReset then self.total=0 end
+ self.total+=if self.requiresDeposit then count or 1 else value;self.lastPickup=now
  local root=self:Root()
  if root then
   self.popup.Adornee=root;self.popup.Enabled=true
   self.label.Text=if self.requiresDeposit then "+"..Theme.Money(self.total).." eggs" else "+$"..Theme.Money(self.total)
-  if not self.app.reducedMotion then self:Spark(root) end
  end
- if self.app.hud then Theme.Motion:Pop(if self.requiresDeposit then self.app.hud.income else self.app.hud.cashIcon,1.08) end
+end
+
+function Eggs:PickupCue(collector,now)
+ if collector=="rover" then self.vacuum:PickupCue(now);return end
+ if now-(self.lastCue or -10)<Feel.Egg.SoundGap then return end
+ if now-(self.lastCue or -10)>Feel.Egg.ComboReset then self.combo=0 end
+ self.lastCue=now;self.combo=self.combo%#Feel.Egg.Pitches+1
+ self.app.audio:Play("EggPickup",Feel.Egg.Pitches[self.combo],{volume=Feel.Egg.Volume,
+  maxDuration=Feel.Egg.SoundTail,voiceKey="EggPickup",maxVoices=Feel.Egg.MaxVoices,cooldown=Feel.Egg.SoundGap})
+ local root=self:Root()
+ if root and not self.app.reducedMotion and now-(self.lastSpark or -10)>=Feel.Egg.SparkGap then
+  self.lastSpark=now;self:Spark(root)
+ end
+ if self.app.hud then Theme.Motion:Pulse(if self.requiresDeposit then self.app.hud.income else self.app.hud.cashIcon,Feel.Egg.HudPulse) end
+end
+
+function Eggs:StartFlight(view,now)
+ -- Packets may already be settled. Start from the currently rendered position.
+ local stagger=math.min((self.batchFlights or 0)*Feel.Egg.Stagger,Feel.Egg.MaxStartWindow)
+ self.batchFlights=(self.batchFlights or 0)+1
+ view.flightAt=now+stagger;view.flightStart=view.position
+ view.lastStep=now;view.trail.Enabled=false
 end
 
 function Eggs:Receive(snapshot)
  if not snapshot or not self.folder then return end
  local now=os.clock()
+ self.batchFlights=0
  self.requiresDeposit=snapshot.requiresDeposit==true
- if snapshot.deposit and snapshot.deposit.id~=self.lastDeposit then
-  self.lastDeposit=snapshot.deposit.id
-  self.app.feedback:Deposit(snapshot.deposit)
- end
  if self.generation~=snapshot.generation then
   for _,view in self.views do view:Destroy() end
-  table.clear(self.views);table.clear(self.feedback)
+  table.clear(self.views);table.clear(self.feedback);table.clear(self.finishedFlights)
   self.generation=snapshot.generation;self.popup.Enabled=false;self.total=0;self.lastPickup=0
+  self.lastDeposit=nil;self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
+  self.app.feedback:ResetCollections()
+  self.vacuum:Clear()
+ end
+ self.vacuum:Receive(snapshot.rover,now)
+ if snapshot.deposit and snapshot.deposit.id~=self.lastDeposit then
+  self.lastDeposit=snapshot.deposit.id
+  if snapshot.deposit.collector=="rover" then self.vacuum:Deposit(snapshot.deposit,now) end
+  self.app.feedback:Deposit(snapshot.deposit)
+ end
+ if snapshot.cashClaim and snapshot.cashClaim.id~=self.lastCashClaim then
+  self.lastCashClaim=snapshot.cashClaim.id
+  self.app.feedback:CashReward(snapshot.cashClaim)
  end
  local seen={}
  for _,data in snapshot.drops or {} do
   seen[data.id]=true
   local view=self.views[data.id]
-  if not view and not self.feedback[data.id] then
+  if not view and not self.feedback[data.id] and not self.finishedFlights[data.id] then
    view=EggView.new(self.folder,data);self.views[data.id]=view
    view.bornAt=now-(data.age or 0)
    view.ground=Vector3.new(data.x,data.y+0.8,data.z)
@@ -140,8 +177,7 @@ function Eggs:Receive(snapshot)
   if view then
    view.data=data;view:SetValue(data.value)
    if data.flightAge~=nil and not view.flightAt then
-    view.flightAt=now-data.flightAge;view.flightStart=view.position
-    view.trail.Enabled=not self.app.reducedMotion
+    self:StartFlight(view,now)
    end
   end
  end
@@ -151,8 +187,13 @@ function Eggs:Receive(snapshot)
    -- A late packet may skip the claim snapshot; still show its short pickup flight.
    view.data.value=receipt.value
    view.data.stack=receipt.count or view.data.stack
-   if not view.flightAt then view.flightAt=now;view.flightStart=view.position;view.trail.Enabled=not self.app.reducedMotion end
-  else self:Feedback(receipt.id,receipt.value,receipt.count) end
+   view.data.collector=receipt.collector or view.data.collector
+   view.data.targetX=receipt.targetX or view.data.targetX
+   view.data.targetY=receipt.targetY or view.data.targetY
+   view.data.targetZ=receipt.targetZ or view.data.targetZ
+   view.receipt=receipt
+   if not view.flightAt then self:StartFlight(view,now) end
+  else self:Feedback(receipt.id,receipt.value,receipt.count,receipt) end
  end
  for id,view in self.views do
   if not seen[id] and not view.flightAt then view:Destroy();self.views[id]=nil end
@@ -161,6 +202,7 @@ end
 
 function Eggs:Step(now)
  local root=self:Root()
+ self.vacuum:Step(now)
  self:StepCollectionRange(root,now)
  local camera=workspace.CurrentCamera
  for id,view in self.views do
@@ -169,12 +211,27 @@ function Eggs:Step(now)
    and (camera.CFrame.Position-view.ground).Magnitude>Config.EggSpriteMaxDistance then continue end
   local size=1+math.min(0.3,math.log(math.max(1,view.data.stack),2)*0.07)
   if view.flightAt then
-   local t=math.clamp((now-view.flightAt)/Config.EggFlightSeconds,0,1)
-   local goal=if root then root.Position+Vector3.new(0,-0.25,0) else view.ground
-   local position=Motion.Flight(view.flightStart,goal,t,view.seed,self.app.reducedMotion)
-   local shrink=1-math.clamp((t-0.72)/0.28,0,1)*0.85
-   view:Set(position,size*shrink,if self.app.reducedMotion then 0 else t*0.6,view.seed+t*2)
-   if t>=1 then self:Feedback(id,view.data.value,view.data.stack);view:Destroy();self.views[id]=nil end
+   local t=math.clamp((now-view.flightAt)/Feel.Egg.FlightSeconds,0,1)
+   local rover=view.data.collector=="rover"
+   -- Auto Collect targets the physical nozzle, even while the owner is away.
+   -- Fallback coordinates preserve an in-flight pickup if the rover is disabled.
+   local goal=if rover then self.vacuum:NozzlePosition(view.data) or view.ground
+    elseif root then root.Position+Vector3.new(0,-0.25,0) else view.ground
+   local dt=math.clamp(now-(view.lastStep or now),0,0.1);view.lastStep=now
+   local interrupted=not rover and not root or view.goal and (goal-view.goal).Magnitude>Feel.Egg.TeleportDistance
+   view.goal=if not view.goal then goal else view.goal:Lerp(goal,1-math.exp(-Feel.Egg.TargetResponse*dt))
+   if interrupted then t=1 end
+   local position=Motion.Flight(view.flightStart,view.goal,t,view.seed,self.app.reducedMotion)
+   view.trail.Enabled=not self.app.reducedMotion and t>0
+   local shrink=1-math.clamp((t-0.8)/0.2,0,1)*0.85
+   local lift=if self.app.reducedMotion then 1 else 1+math.sin(math.min(t*4,1)*math.pi)*0.12
+   view:Set(position,size*shrink*lift,if self.app.reducedMotion then 0 else math.sin(t*math.pi)*0.24,view.seed)
+   if t>=1 then
+    self.finishedFlights[id]=now
+    if not interrupted then self:PickupCue(view.data.collector,now) end
+    if view.receipt then self:Feedback(id,view.receipt.value,view.receipt.count,view.receipt) end
+    view:Destroy();self.views[id]=nil
+   end
   elseif age<Config.EggSettleSeconds and not self.app.reducedMotion then
    local t=math.clamp(age/Config.EggSettleSeconds,0,1)
    local position=view.origin:Lerp(view.ground,t)+Vector3.new(0,math.sin(t*math.pi)*1.8,0)
@@ -192,10 +249,12 @@ function Eggs:Step(now)
   self.label.TextOutline.Transparency=self.label.TextTransparency
  end
  for id,at in self.feedback do if now-at>10 then self.feedback[id]=nil end end
+ for id,at in self.finishedFlights do if now-at>10 then self.finishedFlights[id]=nil end end
 end
 
 function Eggs:Destroy()
  if self.connection then self.connection:Disconnect() end
+ if self.vacuum then self.vacuum:Destroy() end
  for _,view in self.views do view:Destroy() end
  table.clear(self.views)
  if self.rangeRing then self.rangeRing:Destroy() end

@@ -1,0 +1,23 @@
+{
+  "placeId": 96683186622050,
+  "summary": {
+    "animatedPickupsObserved": 6,
+    "cycleSeconds": [
+      17.2,
+      23.1,
+      23.2,
+      23.3
+    ],
+    "nearestNozzleDistance": 0.6141954660415649,
+    "peakFlightWorldY": 4.958860874176025,
+    "deliveries": 5,
+    "pickups": 88,
+    "states": {
+      "Idle": true,
+      "Sweeping": true,
+      "Unloading": true,
+      "Returning": true
+    }
+  },
+  "camera": "Enum.CameraType.Custom"
+}

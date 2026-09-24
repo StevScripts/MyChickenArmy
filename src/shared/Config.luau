@@ -31,7 +31,7 @@ local Config = {
   RaidRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Mallard",stars=1,level=1}},
  },
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=40,LegacyCollectionLimit=60,
- DataRevision=8,StarterFlock={"Duck","Duck","Mallard"},
+ DataRevision=10,StarterFlock={"Duck","Duck","Mallard"},
  CommandDistance=14,
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.

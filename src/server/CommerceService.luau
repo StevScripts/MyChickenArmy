@@ -184,6 +184,7 @@ function CommerceService:PreparePurchase(player,session,key,productReady)
   if record.owned[key] then return false,"You already own this pass." end
  elseif not productReady then return false,"Purchases need a safely loaded, saved profile." end
  if definition.coins and session.coins>1e12-definition.coins then return false,"Spend some coins before buying this pack." end
+ if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
  if definition.crates and session.crateCredits>1e9-definition.crates then return false,"Open some crates before buying more." end
  if definition.crates and not self.catalog.Crate.enabled then return false,"Crate rewards are being prepared." end
  if definition.paidRandom then
