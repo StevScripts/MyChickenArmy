@@ -3,7 +3,6 @@
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Definitions = require(Shared.UpgradeCatalog)
-local Progression = require(Shared.Progression)
 local ArmyService = require(script.Parent.ArmyService)
 local UpgradeService = {}
 UpgradeService.__index = UpgradeService
@@ -58,23 +57,23 @@ end
 
 function UpgradeService:Offers(session)
 	local offers = {}
-	local function add(key, level, current, price, requiredRank, available)
-		local unlocked = available ~= false and (not requiredRank or session.promotion >= requiredRank)
+	-- Cash upgrades never require camp visits, victories or an earned rank.
+	local function add(key, level, current, price, available)
+		local unlocked = available ~= false
 		offers[key] = {level = level, currentText = current, price = price, unlocked = unlocked,
-			requirement = if available == false then "This plot has no additional upgrade space."
-				elseif not unlocked then "Reach " .. Progression.Get(requiredRank).name .. " first." else "",
+			requirement = if available == false then "This plot has no additional upgrade space." else "",
 			ready = session.loaded == true and not session.closing and not session.saveLost}
 	end
 	local production = session:EggProductionMultiplier()
 	add("EggSpeed", session.eggSpeedLevel, decimal(Config.EggLaySeconds / production) .. "s",
-		Definitions.EggSpeedPrices[session.eggSpeedLevel + 1], session.eggSpeedLevel + 1)
+		Definitions.EggSpeedPrices[session.eggSpeedLevel + 1])
 	add("PlotSize", session.plotSizeLevel, "Lv " .. (session.plotSizeLevel + 1),
-		Definitions.PlotPrices[session.plotSizeLevel + 1], session.plotSizeLevel + 1, session.plotExpansionAvailable)
+		Definitions.PlotPrices[session.plotSizeLevel + 1], session.plotExpansionAvailable)
 	local income = session:GlobalUpgrade("Income")
 	add("EggValue", session.incomeLevel,
 		decimal((1 + session.incomeLevel * Config.IncomeMultiplierPerLevel)
 			* (if session.entitlements.DoubleCash then 2 else 1)) .. "x",
-		income and income.price, session.incomeLevel + 1)
+		income and income.price)
 	local army = session:NextSlot()
 	add("ArmySize", session.capacity, tostring(session:Capacity()), army and army.price)
 	if army then offers.ArmySize.unlocked = army.unlocked; offers.ArmySize.requirement = army.requirement end
@@ -84,8 +83,7 @@ function UpgradeService:Offers(session)
 	local slots = session.rollSlotsUnlocked
 	local physicalLimit = session.rollSlotLimit or 1
 	add("RollSlots", slots, tostring(session.rollSlotCount or 1),
-		if slots < physicalLimit then Definitions.RollSlotPrices[slots] else nil,
-		Definitions.RollSlotRanks[slots])
+		if slots < physicalLimit then Definitions.RollSlotPrices[slots] else nil)
 	-- Preview the real next benefit, including verified passes, without changing
 	-- prices, progression or the current value used by the purchase transaction.
 	local function preview(key, value)

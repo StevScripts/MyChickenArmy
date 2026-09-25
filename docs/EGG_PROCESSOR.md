@@ -15,25 +15,41 @@ the buttons receive input, and displays only the local owner's balances.
 `src/client/EggProcessorController.luau` owns local pad presentation. The owner's
 pad turns grey at zero ready cash and returns to its authored green when cash is
 available. Standing on it alternates the face down 0.18 studs and back up, with
-each leg lasting 0.5 seconds (one second per full cycle). Leaving returns it over
-0.16 seconds. Both use Quad Out. The existing `$0`/cash
-label remains the non-color state cue. Empty pads still respond to a step.
+each visual leg lasting the user's current 0.25 seconds. Leaving returns it over
+the user's current 0.01 seconds. Circular Out easing is preserved. The existing
+`$0`/cash label remains the non-color state cue.
 
 Detection requires a grounded humanoid and a downward ray hitting the actual
 pad, rather than merely entering the wider cash-claim bounds. One TweenService
-tween repeats and reverses automatically while occupied; there is no custom
-animation clock or scripted character movement. Heartbeat only checks occupancy
-and color. Character movement is left to normal physics. Jumping, walking off,
+tween repeats and reverses automatically while standing on the pad; there is no
+custom animation clock or scripted character movement. Heartbeat checks
+occupancy and color. Jumping, walking off,
 character loss and ownership changes
 release it; reduced motion keeps the face still. Unbinding restores authored
 position and color. Tune `PAD_STEP_SECONDS` and `PAD_PRESS_DEPTH` in the controller.
-The server's claim/rearm, cash amounts and transactions are unchanged.
+Collection is server-owned and independent of tween speed. Stepping onto the
+owned collector pays ready cash; staying grounded on it pays new ready cash at
+most once per second. Horizontal movement is not required. Leaving, jumping or
+losing the character stops collection. Re-entering cannot bypass the server's
+one-second cooldown, and old `EggCashCollect` requests remain ignored.
+Reduced-motion players collect while standing without seeing the pad animation.
 
-The source matched Studio before editing and after Rojo sync and compiled.
-The earlier fifteen-check fixture covered the superseded manual pulse/carry
-implementation, not this simpler native repeating tween. Live humanoid movement
-with the simplified tween has not been playtested. No Play session was started,
-and the authored board geometry was not resized.
+Egg processing accumulates elapsed time and visits the queue only on whole-second
+ticks: subtract the current selling rate from the queued count, capped by what
+remains, and move those eggs' value to ready cash. Fractional frames no longer
+recalculate batches. Slow frames catch up whole seconds without losing eggs;
+idle time is not banked. Batch values, multipliers and saved-state format remain
+unchanged.
+
+The September 25 contact fix passed 19 focused Edit checks in
+`assets/egg-board/contact-checks.luau`: entry, standing, cooldown/re-entry,
+ownership, airborne/off-pad rejection, whole-second processing and value
+conservation. A fresh session-only Play also verified a real stationary R15
+character on the authored pad: 40/40 grounded samples, 0.18-stud visual travel,
+and two ready balances paid exactly once through an isolated session ledger.
+Sources match their single Studio copies and compile. Play stopped; authored
+geometry and saved profiles were untouched. The older movement-only checks are
+historical evidence for the superseded interaction.
 
 ## Compact surface layout
 
@@ -75,7 +91,8 @@ this compact revision.
 
 Manual egg bags and the existing vacuum deposit into the seller at the original
 Plot1 sellpart. Depositing does not pay the wallet. Eggs process while online;
-the separate front pad pays ready cash on entry, then rearms after leaving.
+the separate front pad pays ready cash on entry and at most once per second
+while the player stands on it.
 Other plots retain their current instant selling until boards are authored there.
 If a rejoining player is assigned an older plot, saved queued eggs still process
 and its owned sellpart permits claiming the saved proceeds.
@@ -122,3 +139,11 @@ is added. Processing, deposits and cash transfers never depend on GUI animation.
   Native Save to Roblox was invoked, but no save toast/log confirmation was returned;
   cloud-save status is unconfirmed. The code is on disk and synced into Studio;
   authored surfaces are present in the open place.
+# Purchase button presentation — September 25, 2026
+
+Upgrade and Finish Now retain their shared UIMotion hover/press/shine behavior.
+Only Upgrade changes its face gradient to UITheme.UnaffordableGradient when
+cash is below upgradePrice; it restores the authored gradient at affordability.
+Finish Now retains its original gradient regardless of the player's cash.
+Pending/MAX eligibility and purchase routing are unchanged. Focused cash-state
+and animation checks passed; evidence is in assets/purchase-buttons-20260925.

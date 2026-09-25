@@ -302,10 +302,11 @@ function PetView.CreateRig(parent: Instance, id: string, species: string, stars:
 	end
 	local model = PetView.Create(parent, id, species, stars, foot)
 	local size = model:GetAttribute("Size") :: number
-	local footOffset = size * 0.45
+	-- Match the imported rig's low-obstacle clearance without raising the art.
+	local footOffset = size * 0.75
 	local body = model:FindFirstChild("Body") :: BasePart
 	local head = model:FindFirstChild("Head") :: BasePart
-	model:PivotTo(CFrame.new(foot + Vector3.new(0, footOffset, 0)) * CFrame.Angles(0, math.pi, 0))
+	model:PivotTo(CFrame.new(foot + Vector3.new(0, size * 0.45, 0)) * CFrame.Angles(0, math.pi, 0))
 
 	local root = Instance.new("Part")
 	root.Name = "HumanoidRootPart"
@@ -380,7 +381,10 @@ function PetView.CreateRig(parent: Instance, id: string, species: string, stars:
 	end
 
 	local tag = body:FindFirstChild("Tag") :: BillboardGui?
-	if tag then tag.Parent = root end
+	if tag then
+		tag.StudsOffset -= Vector3.new(0, size * 0.3, 0)
+		tag.Parent = root
+	end
 	local humanoid = Instance.new("Humanoid")
 	humanoid.Name = "Humanoid"
 	humanoid.RigType = Enum.HumanoidRigType.R15

@@ -2,6 +2,8 @@
 
 The editable Luau code for **Pet Roll Test**, place **96683186622050**. Open this folder in VS Code. The original Studio map, chicken models and imported art stay in the existing place.
 
+**Current upgrade rule:** available upgrades require cash, never camp visits, conquests or rank. Existing track maxima and authored plot limits remain. Read [UPGRADE_RULES.md](docs/UPGRADE_RULES.md); older rank-gated guidance is superseded.
+
 ## Start coding
 
 1. Run **Terminal → Run Task → Rojo: Serve** in VS Code, or `python3 tools/rojo.py serve` in its terminal.

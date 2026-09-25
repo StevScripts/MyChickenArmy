@@ -1,0 +1,7045 @@
+[
+  {
+    "panel": [
+      1120,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "desktop-1280x720/Army",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          652.5599975585938,
+          390.4000244140625
+        ],
+        "canvas": [
+          638.5599975585938,
+          390.4000244140625
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          410,
+          462.4000244140625
+        ],
+        "canvas": [
+          410,
+          542
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          700.3999633789062,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          371.6000061035156,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          388,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          388,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [],
+    "label": "desktop-1280x720/Army-capacity",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1096,
+          578.4000244140625
+        ],
+        "canvas": [
+          1090,
+          578.4000244140625
+        ],
+        "name": "MoreArmySlots"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ViewInShop",
+        "size": [
+          1068,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          1068,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 4,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "desktop-1280x720/Army-dense",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          638.5599975585938,
+          390.4000244140625
+        ],
+        "canvas": [
+          638.5599975585938,
+          644
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          410,
+          462.4000244140625
+        ],
+        "canvas": [
+          410,
+          542
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          700.3999633789062,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          371.6000061035156,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          388,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          388,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "desktop-1280x720/Army-detail",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          652.5599975585938,
+          390.4000244140625
+        ],
+        "canvas": [
+          638.5599975585938,
+          390.4000244140625
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          410,
+          462.4000244140625
+        ],
+        "canvas": [
+          410,
+          542
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          700.3999633789062,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          371.6000061035156,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          145,
+          151
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          388,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          388,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [],
+    "label": "desktop-1280x720/Army-stats",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1090,
+          578.4000244140625
+        ],
+        "canvas": [
+          1090,
+          590
+        ],
+        "name": "ArmyInfo"
+      },
+      {
+        "window": [
+          1080,
+          274
+        ],
+        "canvas": [
+          1080,
+          276
+        ],
+        "name": "EquippedRoster"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          120,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 4,
+        "name": "IndexGrid"
+      }
+    ],
+    "label": "desktop-1280x720/Index",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1090,
+          570.4000244140625
+        ],
+        "canvas": [
+          1090,
+          2166
+        ],
+        "name": "IndexGrid"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      759.9999389648438,
+      514
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [],
+    "label": "desktop-1280x720/Settings",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          730,
+          422
+        ],
+        "canvas": [
+          730,
+          435
+        ],
+        "name": "Content"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ToggleMusic",
+        "size": [
+          715.9999389648438,
+          48
+        ]
+      },
+      {
+        "name": "ToggleEffects",
+        "size": [
+          715.9999389648438,
+          48
+        ]
+      },
+      {
+        "name": "ReducedMotion",
+        "size": [
+          715.9999389648438,
+          48
+        ]
+      },
+      {
+        "name": "OpenTest",
+        "size": [
+          715.9999389648438,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "desktop-1280x720/Shop",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          958,
+          546.4000244140625
+        ],
+        "canvas": [
+          958,
+          1664
+        ],
+        "name": "ShopSections"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          137.760009765625,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          317.2799987792969,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "desktop-1280x720/Shop-details",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          958,
+          546.4000244140625
+        ],
+        "canvas": [
+          958,
+          1664
+        ],
+        "name": "ShopSections"
+      },
+      {
+        "window": [
+          958,
+          474.4000244140625
+        ],
+        "canvas": [
+          958,
+          2298
+        ],
+        "name": "Outcomes"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          137.760009765625,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          317.2799987792969,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Back",
+        "size": [
+          327.79998779296875,
+          48
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      662.4000244140625
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "desktop-1280x720/Shop-details-fixed",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          958,
+          546.4000244140625
+        ],
+        "canvas": [
+          958,
+          1664
+        ],
+        "name": "ShopSections"
+      },
+      {
+        "window": [
+          958,
+          474.4000244140625
+        ],
+        "canvas": [
+          958,
+          2298
+        ],
+        "name": "Outcomes"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          137.760009765625,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          317.2799987792969,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Back",
+        "size": [
+          327.79998779296875,
+          48
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      660
+    ],
+    "touch": false,
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "UpgradeCards"
+      }
+    ],
+    "label": "desktop-1280x720/Upgrades",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1096,
+          564
+        ],
+        "canvas": [
+          1090,
+          564
+        ],
+        "name": "UpgradeCards"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          327.3333435058594,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          245.93333435058594,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          327.3333435058594,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          245.93333435058594,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          327.3333435058594,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          245.93333435058594,
+          48
+        ]
+      },
+      {
+        "name": "ViewOdds",
+        "size": [
+          335.3333435058594,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      662.4000244140625
+    ],
+    "touch": false,
+    "label": "desktop-1280x720/hud",
+    "safe": [
+      1279,
+      720
+    ],
+    "grids": [],
+    "hudCenter": 0.5000000105963813,
+    "failures": [],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          266.7528991699219,
+          63
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          153.38291931152344,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          121.98787689208984,
+          118.4000015258789
+        ]
+      }
+    ],
+    "scrolls": []
+  },
+  {
+    "panel": [
+      1522.800048828125,
+      1015.2000122070312
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "desktop-1920x1080/Army",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          898.26806640625,
+          743.199951171875
+        ],
+        "canvas": [
+          884.26806640625,
+          743.199951171875
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          572.800048828125,
+          815.199951171875
+        ],
+        "canvas": [
+          566.800048828125,
+          815.199951171875
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          962.219970703125,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          512.5800170898438,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          544.800048828125,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          544.800048828125,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1522.800048828125,
+      1015.2000122070312
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [],
+    "label": "desktop-1920x1080/Army-capacity",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1498.800048828125,
+          931.199951171875
+        ],
+        "canvas": [
+          1492.800048828125,
+          931.199951171875
+        ],
+        "name": "MoreArmySlots"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ViewInShop",
+        "size": [
+          1470,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          1470,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1522.800048828125,
+      1015.2000122070312
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 4,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "desktop-1920x1080/Army-dense",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          884.26806640625,
+          743.199951171875
+        ],
+        "canvas": [
+          884.26806640625,
+          900
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          572.800048828125,
+          815.199951171875
+        ],
+        "canvas": [
+          566.800048828125,
+          815.199951171875
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          962.219970703125,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          512.5800170898438,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          544.800048828125,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          544.800048828125,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1522.800048828125,
+      1015.2000122070312
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "desktop-1920x1080/Army-detail",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          898.26806640625,
+          743.199951171875
+        ],
+        "canvas": [
+          884.26806640625,
+          743.199951171875
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          572.800048828125,
+          815.199951171875
+        ],
+        "canvas": [
+          566.800048828125,
+          815.199951171875
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          962.219970703125,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          512.5800170898438,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          206,
+          215
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          544.800048828125,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          544.800048828125,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1522.800048828125,
+      1015.2000122070312
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [],
+    "label": "desktop-1920x1080/Army-stats",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1492.800048828125,
+          931.199951171875
+        ],
+        "canvas": [
+          1492.800048828125,
+          943
+        ],
+        "name": "ArmyInfo"
+      },
+      {
+        "window": [
+          1486,
+          627
+        ],
+        "canvas": [
+          1482,
+          627
+        ],
+        "name": "EquippedRoster"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          120,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      740
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 4,
+        "name": "IndexGrid"
+      }
+    ],
+    "label": "desktop-1920x1080/Index",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1090,
+          648
+        ],
+        "canvas": [
+          1090,
+          2166
+        ],
+        "name": "IndexGrid"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      760,
+      514
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [],
+    "label": "desktop-1920x1080/Settings",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          730,
+          422
+        ],
+        "canvas": [
+          730,
+          435
+        ],
+        "name": "Content"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ToggleMusic",
+        "size": [
+          716,
+          48
+        ]
+      },
+      {
+        "name": "ToggleEffects",
+        "size": [
+          716,
+          48
+        ]
+      },
+      {
+        "name": "ReducedMotion",
+        "size": [
+          716,
+          48
+        ]
+      },
+      {
+        "name": "OpenTest",
+        "size": [
+          716,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      740
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "desktop-1920x1080/Shop",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          958,
+          624
+        ],
+        "canvas": [
+          958,
+          1664
+        ],
+        "name": "ShopSections"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          137.760009765625,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          317.2799987792969,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      740
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "desktop-1920x1080/Shop-details",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          958,
+          624
+        ],
+        "canvas": [
+          958,
+          1664
+        ],
+        "name": "ShopSections"
+      },
+      {
+        "window": [
+          958,
+          552
+        ],
+        "canvas": [
+          958,
+          2298
+        ],
+        "name": "Outcomes"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          137.760009765625,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          317.2799987792969,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          279.66668701171875,
+          52
+        ]
+      },
+      {
+        "name": "Back",
+        "size": [
+          327.79998779296875,
+          48
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1120,
+      660
+    ],
+    "touch": false,
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "UpgradeCards"
+      }
+    ],
+    "label": "desktop-1920x1080/Upgrades",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          1096,
+          564
+        ],
+        "canvas": [
+          1090,
+          564
+        ],
+        "name": "UpgradeCards"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          327.3333435058594,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          245.93333435058594,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          327.3333435058594,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          245.93333435058594,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          327.3333435058594,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          245.93333435058594,
+          48
+        ]
+      },
+      {
+        "name": "ViewOdds",
+        "size": [
+          335.3333435058594,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      1080,
+      740
+    ],
+    "touch": false,
+    "label": "desktop-1920x1080/hud",
+    "safe": [
+      1918,
+      1080
+    ],
+    "grids": [],
+    "hudCenter": 0.5,
+    "failures": [],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          399.55230712890625,
+          94
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          229.74258422851562,
+          72
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          148.3636474609375,
+          144
+        ]
+      }
+    ],
+    "scrolls": []
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "phone-landscape-844x390/Army",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          384.83660888671875,
+          122.55999755859375
+        ],
+        "canvas": [
+          384.83660888671875,
+          256
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          248.06002807617188,
+          194.55999755859375
+        ],
+        "canvas": [
+          248.06002807617188,
+          224
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          220,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          123,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          124,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          108.02999877929688,
+          48
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          110.02999877929688,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [],
+    "label": "phone-landscape-844x390/Army-capacity",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          674.06005859375,
+          254.55999755859375
+        ],
+        "canvas": [
+          674.06005859375,
+          439.9999694824219
+        ],
+        "name": "MoreArmySlots"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ViewInShop",
+        "size": [
+          652,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          652,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "phone-landscape-844x390/Army-dense",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          384.83660888671875,
+          122.55999755859375
+        ],
+        "canvas": [
+          384.83660888671875,
+          1048
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          248.06002807617188,
+          194.55999755859375
+        ],
+        "canvas": [
+          248.06002807617188,
+          224
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          220,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          123,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          124,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          108.02999877929688,
+          48
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          110.02999877929688,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "phone-landscape-844x390/Army-detail",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          384.83660888671875,
+          122.55999755859375
+        ],
+        "canvas": [
+          384.83660888671875,
+          256
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          248.06002807617188,
+          194.55999755859375
+        ],
+        "canvas": [
+          248.06002807617188,
+          224
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          220,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          123,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          124,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          175,
+          120
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          108.02999877929688,
+          48
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          110.02999877929688,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [],
+    "label": "phone-landscape-844x390/Army-stats",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          674.06005859375,
+          254.55999755859375
+        ],
+        "canvas": [
+          674.06005859375,
+          495.9999694824219
+        ],
+        "name": "ArmyInfo"
+      },
+      {
+        "window": [
+          664,
+          179.99996948242188
+        ],
+        "canvas": [
+          664,
+          275.9999694824219
+        ],
+        "name": "EquippedRoster"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          120,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "IndexGrid"
+      }
+    ],
+    "label": "phone-landscape-844x390/Index",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          674.06005859375,
+          246.55999755859375
+        ],
+        "canvas": [
+          674.06005859375,
+          5318
+        ],
+        "name": "IndexGrid"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [],
+    "label": "phone-landscape-844x390/Settings",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          674.06005859375,
+          246.55999755859375
+        ],
+        "canvas": [
+          674.06005859375,
+          434.9999694824219
+        ],
+        "name": "Content"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ToggleMusic",
+        "size": [
+          660.0599975585938,
+          48
+        ]
+      },
+      {
+        "name": "ToggleEffects",
+        "size": [
+          660.0599975585938,
+          48
+        ]
+      },
+      {
+        "name": "ReducedMotion",
+        "size": [
+          660.0599975585938,
+          48
+        ]
+      },
+      {
+        "name": "OpenTest",
+        "size": [
+          660.0599975585938,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "PassCards"
+      },
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "phone-landscape-844x390/Shop",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          582.06005859375,
+          222.55999755859375
+        ],
+        "canvas": [
+          582.06005859375,
+          2344
+        ],
+        "name": "ShopSections"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          124.49440002441406,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          178.1822052001953,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "PassCards"
+      },
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "phone-landscape-844x390/Shop-details",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          582.06005859375,
+          222.55999755859375
+        ],
+        "canvas": [
+          582.06005859375,
+          2344
+        ],
+        "name": "ShopSections"
+      },
+      {
+        "window": [
+          582.06005859375,
+          150.55999755859375
+        ],
+        "canvas": [
+          582.06005859375,
+          2298
+        ],
+        "name": "Outcomes"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          124.49440002441406,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          178.1822052001953,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          252.02999877929688,
+          52
+        ]
+      },
+      {
+        "name": "Back",
+        "size": [
+          196.2209930419922,
+          48
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "UpgradeCards"
+      }
+    ],
+    "label": "phone-landscape-844x390/Upgrades",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          674.06005859375,
+          242.55999755859375
+        ],
+        "canvas": [
+          674.06005859375,
+          532
+        ],
+        "name": "UpgradeCards"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          301.0299987792969,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          301.0299987792969,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          301.0299987792969,
+          52
+        ]
+      },
+      {
+        "name": "ViewOdds",
+        "size": [
+          309.0299987792969,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      704.0599975585938,
+      338.55999755859375
+    ],
+    "touch": true,
+    "label": "phone-landscape-844x390/hud",
+    "safe": [
+      749,
+      368
+    ],
+    "grids": [],
+    "hudCenter": 0.46043479960897693,
+    "failures": [],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          207.90699768066406,
+          55.999996185302734
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          119.54651641845703,
+          47.999996185302734
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          60.33454513549805,
+          58.560001373291016
+        ]
+      }
+    ],
+    "scrolls": []
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "phone-portrait-390x844/Army",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          325,
+          429.0400390625
+        ],
+        "canvas": [
+          311,
+          429.0400390625
+        ],
+        "name": "ChickenInventory"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          209.64999389648438,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          107.3499984741211,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          124,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          138,
+          144
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          138,
+          144
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          138,
+          144
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [],
+    "label": "phone-portrait-390x844/Army-capacity",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          341,
+          617.0400390625
+        ],
+        "canvas": [
+          335,
+          617.0400390625
+        ],
+        "name": "MoreArmySlots"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ViewInShop",
+        "size": [
+          313,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          313,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "phone-portrait-390x844/Army-dense",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          311,
+          429.0400390625
+        ],
+        "canvas": [
+          311,
+          1240
+        ],
+        "name": "ChickenInventory"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          209.64999389648438,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          107.3499984741211,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          124,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          138,
+          144
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          138,
+          144
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          138,
+          144
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [],
+    "label": "phone-portrait-390x844/Army-detail",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          341,
+          561.0400390625
+        ],
+        "canvas": [
+          335,
+          561.0400390625
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          313,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          313,
+          52
+        ]
+      },
+      {
+        "name": "BackToFlock",
+        "size": [
+          341,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [],
+    "label": "phone-portrait-390x844/Army-stats",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          335,
+          617.0400390625
+        ],
+        "canvas": [
+          335,
+          629
+        ],
+        "name": "ArmyInfo"
+      },
+      {
+        "window": [
+          325,
+          201
+        ],
+        "canvas": [
+          325,
+          276
+        ],
+        "name": "EquippedRoster"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          120,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [
+      {
+        "expected": 2,
+        "columns": 2,
+        "name": "IndexGrid"
+      }
+    ],
+    "label": "phone-portrait-390x844/Index",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          335,
+          609.0400390625
+        ],
+        "canvas": [
+          335,
+          2598
+        ],
+        "name": "IndexGrid"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      514
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [],
+    "label": "phone-portrait-390x844/Settings",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          335,
+          422
+        ],
+        "canvas": [
+          335,
+          435
+        ],
+        "name": "Content"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ToggleMusic",
+        "size": [
+          321,
+          48
+        ]
+      },
+      {
+        "name": "ToggleEffects",
+        "size": [
+          321,
+          48
+        ]
+      },
+      {
+        "name": "ReducedMotion",
+        "size": [
+          321,
+          48
+        ]
+      },
+      {
+        "name": "OpenTest",
+        "size": [
+          321,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [
+      {
+        "expected": 1,
+        "columns": 1,
+        "name": "PassCards"
+      },
+      {
+        "expected": 1,
+        "columns": 1,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "phone-portrait-390x844/Shop",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          271,
+          585.0400390625
+        ],
+        "canvas": [
+          271,
+          4008
+        ],
+        "name": "ShopSections"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          115.36000061035156,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          225,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          56,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          56,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [
+      {
+        "expected": 1,
+        "columns": 1,
+        "name": "PassCards"
+      },
+      {
+        "expected": 1,
+        "columns": 1,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "phone-portrait-390x844/Shop-details",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          271,
+          585.0400390625
+        ],
+        "canvas": [
+          271,
+          4008
+        ],
+        "name": "ShopSections"
+      },
+      {
+        "window": [
+          271,
+          513.0400390625
+        ],
+        "canvas": [
+          271,
+          2378
+        ],
+        "name": "Outcomes"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          115.36000061035156,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          225,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          233,
+          52
+        ]
+      },
+      {
+        "name": "Back",
+        "size": [
+          87.3499984741211,
+          48
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          56,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          56,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      660
+    ],
+    "touch": true,
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [
+      {
+        "expected": 1,
+        "columns": 1,
+        "name": "UpgradeCards"
+      }
+    ],
+    "label": "phone-portrait-390x844/Upgrades",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          335,
+          564
+        ],
+        "canvas": [
+          335,
+          1344
+        ],
+        "name": "UpgradeCards"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          299,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          226.09999084472656,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          299,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          226.09999084472656,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          299,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          226.09999084472656,
+          48
+        ]
+      },
+      {
+        "name": "ViewOdds",
+        "size": [
+          307,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      365,
+      701.0400390625
+    ],
+    "touch": true,
+    "label": "phone-portrait-390x844/hud",
+    "safe": [
+      389,
+      762
+    ],
+    "grids": [],
+    "hudCenter": 0.5,
+    "failures": [],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          125.63999938964844,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          111.68000030517578,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          129.34423828125,
+          125.54000854492188
+        ]
+      }
+    ],
+    "scrolls": []
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "tablet-1024x768/Army",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          555.374755859375,
+          433.6400146484375
+        ],
+        "canvas": [
+          541.374755859375,
+          433.6400146484375
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          347.67999267578125,
+          505.6400146484375
+        ],
+        "canvas": [
+          347.67999267578125,
+          542
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          596.8419799804688,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          315.8379821777344,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          325.67999267578125,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          325.67999267578125,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [],
+    "label": "tablet-1024x768/Army-capacity",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          936.679931640625,
+          621.6400146484375
+        ],
+        "canvas": [
+          930.679931640625,
+          621.6400146484375
+        ],
+        "name": "MoreArmySlots"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ViewInShop",
+        "size": [
+          908,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          908,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "tablet-1024x768/Army-dense",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          541.374755859375,
+          433.6400146484375
+        ],
+        "canvas": [
+          541.374755859375,
+          911.9999389648438
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          347.67999267578125,
+          505.6400146484375
+        ],
+        "canvas": [
+          347.67999267578125,
+          542
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          596.8419799804688,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          315.8379821777344,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          325.67999267578125,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          325.67999267578125,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "ChickenInventory"
+      }
+    ],
+    "label": "tablet-1024x768/Army-detail",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          555.374755859375,
+          433.6400146484375
+        ],
+        "canvas": [
+          541.374755859375,
+          433.6400146484375
+        ],
+        "name": "ChickenInventory"
+      },
+      {
+        "window": [
+          347.67999267578125,
+          505.6400146484375
+        ],
+        "canvas": [
+          347.67999267578125,
+          542
+        ],
+        "name": "SelectedChicken"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "FlockCapacity",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "MoreArmySlots",
+        "size": [
+          48,
+          48
+        ]
+      },
+      {
+        "name": "SelectBest",
+        "size": [
+          596.8419799804688,
+          48
+        ]
+      },
+      {
+        "name": "ArmyInfo",
+        "size": [
+          315.8379821777344,
+          48
+        ]
+      },
+      {
+        "name": "InventorySort",
+        "size": [
+          160,
+          48
+        ]
+      },
+      {
+        "name": "Chicken_da6c5476-2fd0-43c0-94fa-126af8fcbfa1",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "Chicken_6b102315-7c2e-493f-b336-fa38efccb139",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "Chicken_a77df31c-0a86-4a96-baa9-43c4ba5f75e1",
+        "size": [
+          165,
+          172
+        ]
+      },
+      {
+        "name": "AssignChicken",
+        "size": [
+          325.67999267578125,
+          56
+        ]
+      },
+      {
+        "name": "SellChicken",
+        "size": [
+          325.67999267578125,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [],
+    "label": "tablet-1024x768/Army-stats",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          930.679931640625,
+          621.6400146484375
+        ],
+        "canvas": [
+          930.679931640625,
+          633
+        ],
+        "name": "ArmyInfo"
+      },
+      {
+        "window": [
+          924,
+          317
+        ],
+        "canvas": [
+          920,
+          317
+        ],
+        "name": "EquippedRoster"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BackToChickens",
+        "size": [
+          120,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 4,
+        "columns": 4,
+        "name": "IndexGrid"
+      }
+    ],
+    "label": "tablet-1024x768/Index",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          930.679931640625,
+          613.6400146484375
+        ],
+        "canvas": [
+          930.679931640625,
+          1846
+        ],
+        "name": "IndexGrid"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      760,
+      514
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [],
+    "label": "tablet-1024x768/Settings",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          730,
+          422
+        ],
+        "canvas": [
+          730,
+          435
+        ],
+        "name": "Content"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "ToggleMusic",
+        "size": [
+          716,
+          48
+        ]
+      },
+      {
+        "name": "ToggleEffects",
+        "size": [
+          716,
+          48
+        ]
+      },
+      {
+        "name": "ReducedMotion",
+        "size": [
+          716,
+          48
+        ]
+      },
+      {
+        "name": "OpenTest",
+        "size": [
+          716,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "tablet-1024x768/Shop",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          838.679931640625,
+          589.6400146484375
+        ],
+        "canvas": [
+          838.679931640625,
+          1664
+        ],
+        "name": "ShopSections"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          118.6688003540039,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          273.131591796875,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "PassCards"
+      },
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "CashTiers"
+      }
+    ],
+    "label": "tablet-1024x768/Shop-details",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          838.679931640625,
+          589.6400146484375
+        ],
+        "canvas": [
+          838.679931640625,
+          1664
+        ],
+        "name": "ShopSections"
+      },
+      {
+        "window": [
+          838.679931640625,
+          517.6400146484375
+        ],
+        "canvas": [
+          838.679931640625,
+          2298
+        ],
+        "name": "Outcomes"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "BuyAutoCollectEggs",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleCash",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleEggSpawn",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyBiggerArmy",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleLuck",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "Details",
+        "size": [
+          118.6688003540039,
+          48
+        ]
+      },
+      {
+        "name": "BuyEggMagnet",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommanderBanner",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyDoubleBounty",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyCommandersVault",
+        "size": [
+          273.131591796875,
+          60
+        ]
+      },
+      {
+        "name": "BuyArmyChest",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyCoopStash",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "BuyPocketCoins",
+        "size": [
+          239.89334106445312,
+          52
+        ]
+      },
+      {
+        "name": "Back",
+        "size": [
+          286.0379943847656,
+          48
+        ]
+      },
+      {
+        "name": "Passes",
+        "size": [
+          84,
+          88
+        ]
+      },
+      {
+        "name": "Cash",
+        "size": [
+          84,
+          88
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      660
+    ],
+    "touch": true,
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [
+      {
+        "expected": 3,
+        "columns": 3,
+        "name": "UpgradeCards"
+      }
+    ],
+    "label": "tablet-1024x768/Upgrades",
+    "failures": [],
+    "scrolls": [
+      {
+        "window": [
+          936.679931640625,
+          564
+        ],
+        "canvas": [
+          930.679931640625,
+          564
+        ],
+        "name": "UpgradeCards"
+      }
+    ],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Close",
+        "size": [
+          52,
+          52
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          274.2266845703125,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          208.75868225097656,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          274.2266845703125,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          208.75868225097656,
+          48
+        ]
+      },
+      {
+        "name": "Buy",
+        "size": [
+          274.2266845703125,
+          56
+        ]
+      },
+      {
+        "name": "Skip",
+        "size": [
+          208.75868225097656,
+          48
+        ]
+      },
+      {
+        "name": "ViewOdds",
+        "size": [
+          282.2266845703125,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "panel": [
+      960.6799926757812,
+      705.6400146484375
+    ],
+    "touch": true,
+    "label": "tablet-1024x768/hud",
+    "safe": [
+      1022,
+      767
+    ],
+    "grids": [],
+    "hudCenter": 0.5,
+    "failures": [],
+    "buttons": [
+      {
+        "name": "Base",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Army",
+        "size": [
+          226.04652404785156,
+          56
+        ]
+      },
+      {
+        "name": "Upgrades",
+        "size": [
+          129.97674560546875,
+          48
+        ]
+      },
+      {
+        "name": "Shop",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      },
+      {
+        "name": "Index",
+        "size": [
+          130.22000122070312,
+          126.38999938964844
+        ]
+      }
+    ],
+    "scrolls": []
+  }
+]

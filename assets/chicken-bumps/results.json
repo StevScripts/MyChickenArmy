@@ -1,0 +1,225 @@
+{
+  "walking": {
+    "results": [
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 3.961100999993505,
+        "passed": true,
+        "jumps": 0,
+        "name": "0.30 stud step",
+        "position": "1795.2152099609375, 0.9999997615814209, 2114",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 2.224389833310852,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 3.9611325833247975,
+        "passed": true,
+        "jumps": 0,
+        "name": "0.60 stud step",
+        "position": "1795.2152099609375, 0.9999997615814209, 2128",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 2.224434083327651,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 7.440677708334988,
+        "passed": true,
+        "jumps": 0,
+        "name": "Slow 0.60 step",
+        "position": "1795.1907958984375, 0.9999997615814209, 2142",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 4.043458500003908,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 2.1910003333177883,
+        "passed": true,
+        "jumps": 0,
+        "name": "Fast 0.60 step",
+        "position": "1795.064453125, 0.9999997615814209, 2156",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 1.2911764583259355,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 3.96117229165975,
+        "passed": true,
+        "jumps": 0,
+        "name": "Angled 0.45 ridge",
+        "position": "1795.2152099609375, 0.9999997615814209, 2170",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 2.2244783333153464,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 3.9612783333286643,
+        "passed": true,
+        "jumps": 0,
+        "name": "Thin 0.20 ridge",
+        "position": "1795.2152099609375, 0.9999997615814209, 2184",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 2.2245089583157096,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.7019999623298645,
+        "duration": 3.961301250004908,
+        "passed": true,
+        "jumps": 0,
+        "name": "Mallard 0.60 step",
+        "position": "1795.208740234375, 0.9999996423721313, 2198",
+        "settledFootError": -3.5762786865234375e-7,
+        "outwardTime": 2.2245413749769796,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 1.2504373788833618,
+        "duration": 3.961312541650841,
+        "passed": true,
+        "jumps": 0,
+        "name": "Level 10 0.60 step",
+        "position": "1795.1573486328125, 0.9999997615814209, 2212",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 2.2245756250049453,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 3.9613222916668747,
+        "passed": true,
+        "jumps": 0,
+        "name": "Low overhang",
+        "position": "1795.2152099609375, 0.9999997615814209, 2226",
+        "settledFootError": -2.384185791015625e-7,
+        "outwardTime": 2.2246013333206065,
+        "roundTrip": true,
+        "recoveries": 0
+      },
+      {
+        "wallBlocked": true,
+        "clearance": 0.6581249833106995,
+        "duration": 4.00695029165945,
+        "passed": true,
+        "jumps": 0,
+        "name": "Tall wall stays solid",
+        "position": "1799.2947998046875, 0.9999780654907227, 2240",
+        "settledFootError": -0.00002193450927734375,
+        "roundTrip": false,
+        "recoveries": 0
+      },
+      {
+        "clearance": 0.6581249833106995,
+        "duration": 1.6934572916652542,
+        "passed": true,
+        "jumps": 0,
+        "name": "Authored yard lip",
+        "position": "304.0341491699219, 2.4202208518981934, -171.9376678466797",
+        "settledFootError": 0.060198307037353516,
+        "outwardTime": 1.0913265833223704,
+        "roundTrip": true,
+        "recoveries": 0
+      }
+    ],
+    "done": true
+  },
+  "appearance": {
+    "failures": [],
+    "count": 102
+  },
+  "recovery": {
+    "ok": true,
+    "done": true,
+    "result": {
+      "total": 18,
+      "passed": 18,
+      "results": [
+        {
+          "passed": true,
+          "name": "Idle Humanoid death"
+        },
+        {
+          "passed": true,
+          "name": "Deleted whole model"
+        },
+        {
+          "passed": true,
+          "name": "Detached whole model"
+        },
+        {
+          "passed": true,
+          "name": "Deleted root"
+        },
+        {
+          "passed": true,
+          "name": "Deleted Humanoid"
+        },
+        {
+          "passed": true,
+          "name": "Deleted visual body"
+        },
+        {
+          "passed": true,
+          "name": "Anchored chicken"
+        },
+        {
+          "passed": true,
+          "name": "Idle fall below map"
+        },
+        {
+          "passed": true,
+          "name": "Physics fling returns to previous ground"
+        },
+        {
+          "passed": true,
+          "name": "King crown, scale and metadata survive repair"
+        },
+        {
+          "passed": true,
+          "name": "Transfer repairs into current owner, explicit Destroy never respawns"
+        },
+        {
+          "passed": true,
+          "name": "Combat HP, death timer and rewards remain authoritative"
+        },
+        {
+          "passed": true,
+          "name": "Stuck home recruitment recovers to yard"
+        },
+        {
+          "passed": true,
+          "name": "Home detours keep progressing but still have a hard deadline"
+        },
+        {
+          "passed": true,
+          "name": "Wander destinations reject solid props and missing ground"
+        },
+        {
+          "passed": true,
+          "name": "Invalid inputs do not poison movement"
+        },
+        {
+          "passed": true,
+          "name": "Normal walking does not teleport or falsely recover"
+        },
+        {
+          "passed": true,
+          "name": "Closed route fails boundedly, then retries after obstruction opens"
+        }
+      ]
+    }
+  }
+}

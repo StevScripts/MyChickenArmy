@@ -22,7 +22,10 @@ function BlenderPetView.Create(parent, id, species, stars, foot, physical)
 	local v3 = body and art and body:FindFirstChild(art.bonePrefix .. "Root") ~= nil
 	local boneRoot = body and body:FindFirstChild(if v3 then art.bonePrefix .. "Root" else "root")
 	if not body or not boneRoot then model:Destroy() return nil end
-	local offset = stats.size * 0.45
+	-- Keep the mesh's feet on the floor, but lift the physical shell into its
+	-- body. HipHeight then clears low yard lips without jumping. Previews retain
+	-- their original pivot; the mesh/joint offsets below preserve the same art pose.
+	local offset = stats.size * (if physical then 0.75 else 0.45)
 	-- Expansion imports have a foot-level pivot and several separately skinned
 	-- surfaces. Keep their authored relative poses and compiled PBR materials.
 	if art and art.pivotRig then

@@ -399,6 +399,7 @@ function Browser:CreateDetails()
  scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,6
  scroll.ScrollBarImageColor3,scroll.AutomaticCanvasSize,scroll.CanvasSize=P.cyan,Enum.AutomaticSize.Y,UDim2.new()
  scroll.ScrollingDirection,scroll.Parent=Enum.ScrollingDirection.Y,root
+ scroll.VerticalScrollBarInset=Enum.ScrollBarInset.Always
  local layout=Instance.new("UIListLayout")
  layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0,4),Enum.SortOrder.LayoutOrder,scroll
  self.detailsScroll=scroll
@@ -491,12 +492,13 @@ function Browser:RenderDetails()
  for _,row in rows do signature..="|"..row.name..":"..row.value end
  if self.detailsRowsKey~=signature then
   self.detailsRowsKey=signature
-  for _,item in self.detailsScroll:GetChildren() do if item:IsA("GuiObject") then item:Destroy() end end
+  for _,item in self.detailsScroll:GetChildren() do if item:IsA("GuiObject") and item~=self.detailsDescription and item~=self.detailsNote then item:Destroy() end end
   for index,row in rows do
-   local entry=frame(self.detailsScroll,"Outcome"..index,UDim2.new(1,-12,0,40))
+   local entry=frame(self.detailsScroll,"Outcome"..index,UDim2.new(1,-12,0,60))
    entry.BackgroundTransparency,entry.LayoutOrder,entry.ZIndex=1,index,21
    local name=plain(entry,"Name",row.name,20,UDim2.fromOffset(0,0),UDim2.new(0.5,0,1,0),P.white)
    local value=plain(entry,"Chance",row.value,20,UDim2.fromScale(0.5,0),UDim2.new(0.5,0,1,0),P.white)
+   name.TextWrapped,value.TextWrapped=true,true
    value.TextXAlignment=Enum.TextXAlignment.Right
    name.ZIndex,value.ZIndex=22,22
   end
@@ -676,7 +678,7 @@ end
 -- Fixed authored sizes prevent repeated renders from compounding the conversion.
 function Browser:ApplyTypography()
  local function apply(label,size,lineHeight)
-  local nativeSize=size*1.23
+  local nativeSize=size*(if self.compact then 1 else 1.23)
   local leading=(lineHeight or size*1.2)/nativeSize
   label.TextSize,label.LineHeight,label.TextScaled=nativeSize,leading,false
   -- Theme.Display and buttons draw their visible glyphs in child text labels.
@@ -711,92 +713,96 @@ end
 
 function Browser:Resize()
  if not self.alive then return end
- local globalScale=math.max(self.app.uiScale or 1,0.01)
- local size=self.app.panel.Size
- local pixelWidth=size.X.Offset*globalScale
- local pixelHeight=size.Y.Offset*globalScale
- local layoutScale=math.min(pixelWidth/1080,pixelHeight/740)
- local key=pixelWidth..":"..pixelHeight..":"..globalScale
+ local width,height=self.app.panelWidth or 1080,self.app.panelHeight or 740
+ local key=width..":"..height
  if self.layoutKey==key then self:ApplyTypography();self:UpdateSection();return end
  self.layoutKey=key
  self:CancelScroll()
- -- Figma 9:3915 is the responsive reference shell; 9:2742 owns the 940px content.
- local width,height,mainX,mainWidth,contentWidth=1080,740,92,988,940
- self.scale.Scale,self.root.Size=layoutScale/globalScale,UDim2.fromOffset(width,height)
- self.root.AnchorPoint,self.root.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
- self.header.Position,self.header.Size=UDim2.fromOffset(mainX,0),UDim2.fromOffset(mainWidth,72)
- self.header.Title.TextSize=36
- self.header.Title.Position,self.header.Title.Size=UDim2.fromOffset(76,0),UDim2.fromOffset(836,72)
- self.header.PageIcon.Size,self.header.PageIcon.Position=UDim2.fromOffset(56,56),UDim2.fromOffset(8,8)
- self.closeButton.Size,self.closeButton.Position=UDim2.fromOffset(56,56),UDim2.fromOffset(924,8)
- self.body.Position,self.body.Size=UDim2.fromOffset(mainX,80),UDim2.fromOffset(mainWidth,660)
- self.navigation.Position,self.navigation.Size=UDim2.fromOffset(5,270),UDim2.fromOffset(80,216)
- self.scroll.Position,self.scroll.Size=UDim2.fromOffset(16,12),UDim2.fromOffset(956,608)
- self.previewStatus.Position,self.previewStatus.Size=UDim2.fromOffset(12,628),UDim2.fromOffset(964,24)
+ self.compact=width<900 or height<600
+ local rail=if width<600 then 64 else 92
+ local mainWidth=width-rail
+ local contentWidth=mainWidth-36
+ local columns=math.clamp(math.floor((contentWidth+16)/276),1,3)
+ local cardWidth=(contentWidth-(columns-1)*16)/columns
+ local passRows=math.ceil(self.passCount/columns)
+ local passHeight=passRows*300+math.max(0,passRows-1)*16
+ self.scale.Scale=1
+ self.root.Size,self.root.Position,self.root.AnchorPoint=UDim2.fromScale(1,1),UDim2.new(),Vector2.zero
+ self.header.Position,self.header.Size=UDim2.fromScale(rail/width,0),UDim2.new(1,-rail,0,64)
+ self.header.Title.Position,self.header.Title.Size=UDim2.fromOffset(58,0),UDim2.new(1,-116,1,0)
+ self.header.PageIcon.Size,self.header.PageIcon.Position=UDim2.fromOffset(48,48),UDim2.fromOffset(4,8)
+ self.closeButton.Size,self.closeButton.Position=UDim2.fromOffset(52,52),UDim2.new(1,-56,0,6)
+ self.body.Position,self.body.Size=UDim2.new(rail/width,0,0,72),UDim2.new(1,-rail,1,-72)
+ self.navigation.AnchorPoint=Vector2.new(0,0.5)
+ self.navigation.Position,self.navigation.Size=UDim2.fromScale(0,0.5),UDim2.fromOffset(rail-8,184)
+ self.scroll.Position,self.scroll.Size=UDim2.fromOffset(12,8),UDim2.new(1,-24,1,-44)
+ self.previewStatus.Position,self.previewStatus.Size=UDim2.new(0,8,1,-32),UDim2.new(1,-16,0,28)
+ self.previewStatus.TextWrapped=true
  self.layout.Padding=UDim.new(0,24)
  for _,button in self.tabs do
-  button.Size,button.TextSize=UDim2.fromOffset(80,104),16
+  button.Size=UDim2.new(1,0,0,88)
   local visual=button.Visual
-  visual.Icon.Size,visual.Icon.Position=UDim2.fromOffset(76,76),UDim2.fromOffset(2,0)
-  visual.Label.Position,visual.Label.Size=UDim2.fromOffset(0,80),UDim2.fromOffset(80,20)
-  visual.LabelShade.Size,visual.LabelShade.Position=UDim2.fromOffset(96,96),UDim2.fromScale(0.5,0.42)
+  visual.Icon.Size,visual.Icon.Position=UDim2.fromScale(1,0.74),UDim2.new()
+  visual.Label.Position,visual.Label.Size=UDim2.fromScale(0,0.76),UDim2.fromScale(1,0.24)
+  visual.LabelShade.Size,visual.LabelShade.Position=UDim2.fromScale(1.2,1.2),UDim2.fromScale(0.5,0.42)
  end
- for _,section in self.sections do section.Heading.TextSize=24 end
-
- local passRows=math.ceil(self.passCount/3)
- local passHeight=passRows*300+math.max(0,passRows-1)*16
- self.passGrid.Position,self.passGrid.Size=UDim2.fromOffset(0,40),UDim2.fromOffset(940,passHeight)
- self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromOffset(18.5,16),UDim2.fromOffset(301,300)
- self.passLayout.FillDirectionMaxCells=3
- for _,view in self.cards do
-  view.title.Position,view.title.Size,view.title.TextSize=UDim2.fromOffset(8,12),UDim2.fromOffset(285,36),24
+ self.passGrid.Position,self.passGrid.Size=UDim2.fromOffset(0,40),UDim2.new(1,0,0,passHeight)
+ self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromOffset(16,16),UDim2.new(1/columns,-math.ceil(16*(columns-1)/columns),0,300)
+ self.passLayout.FillDirectionMaxCells=columns
+ local function layoutPass(view)
+  view.title.Position,view.title.Size=UDim2.fromOffset(8,8),UDim2.new(1,-16,0,44)
+  view.title.TextWrapped=true
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromOffset(84,140),UDim2.fromOffset(156,156)
-  if view.multiplier then view.multiplier.TextSize=53.04 end
-  view.description.Position,view.description.Size=UDim2.fromOffset(166,56),UDim2.fromOffset(129,168)
-  view.description.Font,view.description.TextSize,view.description.TextXAlignment=Theme.Font,22,Enum.TextXAlignment.Center
+  view.art.Position,view.art.Size=UDim2.fromScale(0.26,0.46),UDim2.fromOffset(math.min(156,cardWidth*0.48),math.min(156,cardWidth*0.48))
+  view.description.Position,view.description.Size=UDim2.new(0.52,0,0,56),UDim2.new(0.48,-8,0,if view.details then 110 else 164)
+  view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Center
   if view.details then
-   view.description.Size=UDim2.fromOffset(129,122)
-   view.details.Position,view.details.Size=UDim2.fromOffset(166,184),UDim2.fromOffset(129,38)
+   view.details.Position,view.details.Size=UDim2.new(0.52,0,0,176),UDim2.new(0.48,-8,0,48)
   end
-  view.buy.Position,view.buy.Size,view.buy.TextSize=UDim2.fromOffset(16,232),UDim2.fromOffset(269,52),20
+  view.buy.Position,view.buy.Size=UDim2.new(0,12,1,-64),UDim2.new(1,-24,0,52)
  end
- self.sections.Passes.Size=UDim2.fromOffset(940,40+passHeight)
-
- self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromOffset(0,40),UDim2.fromOffset(940,248)
- self.cashTitle.Position,self.cashTitle.Size,self.cashTitle.TextSize=UDim2.fromOffset(20,16),UDim2.fromOffset(500,40),32
- self.cashTitle.TextWrapped,self.cashTitle.TextXAlignment=false,Enum.TextXAlignment.Left
- self.cashNote.Position,self.cashNote.Size,self.cashNote.TextSize=UDim2.fromOffset(20,56),UDim2.fromOffset(500,64),56
- self.cashNote.TextXAlignment=Enum.TextXAlignment.Left
- self.cashSubtitle.Position,self.cashSubtitle.Size,self.cashSubtitle.TextSize=UDim2.fromOffset(20,120),UDim2.fromOffset(500,32),24
- self.cashSubtitle.TextWrapped,self.cashSubtitle.TextXAlignment=false,Enum.TextXAlignment.Left
- self.cashSubtitle.TextColor3=Color3.fromRGB(199,242,104)
+ for _,view in self.cards do layoutPass(view) end
+ for _,view in self.existingCards do layoutPass(view) end
+ self.sections.Passes.Size=UDim2.new(1,-6,0,40+passHeight)
+ local featuredHeight=if contentWidth<500 then 284 else 248
+ self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromOffset(0,40),UDim2.new(1,0,0,featuredHeight)
+ local copyWidth=if contentWidth<500 then 1 else 0.58
+ self.cashTitle.Position,self.cashTitle.Size=UDim2.fromOffset(16,12),UDim2.new(copyWidth,-32,0,40)
+ self.cashNote.Position,self.cashNote.Size=UDim2.fromOffset(16,54),UDim2.new(copyWidth,-32,0,64)
+ self.cashSubtitle.Position,self.cashSubtitle.Size=UDim2.fromOffset(16,120),UDim2.new(copyWidth,-32,0,56)
+ self.cashTitle.TextWrapped,self.cashSubtitle.TextWrapped=true,true
+ self.cashTitle.TextXAlignment,self.cashNote.TextXAlignment,self.cashSubtitle.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
  self.cashRays.Visible=false
- self.cashShade.Position,self.cashShade.Size=UDim2.new(),UDim2.fromOffset(651,248)
- self.cashArt.Position,self.cashArt.Size=UDim2.fromOffset(0,-98.0764465),UDim2.fromOffset(940,346.0764465)
- self.cashBuy.Position,self.cashBuy.Size,self.cashBuy.TextSize=UDim2.fromOffset(608.9286,161),UDim2.fromOffset(311.0714,67),26.3214
- self.cashShelf.Position,self.cashShelf.Size=UDim2.fromOffset(0,304),UDim2.fromOffset(940,376)
- self.cashLayout.CellPadding,self.cashLayout.CellSize=UDim2.fromOffset(18.5,16),UDim2.fromOffset(301,376)
- self.cashLayout.FillDirectionMaxCells=3
+ self.cashShade.Position,self.cashShade.Size=UDim2.new(),UDim2.fromScale(copyWidth+0.1,1)
+ self.cashArt.Position,self.cashArt.Size=UDim2.fromScale(0,-0.3),UDim2.fromScale(1,1.3)
+ self.cashBuy.Position,self.cashBuy.Size=UDim2.new(if contentWidth<500 then 0 else 0.63,16,1,-76),UDim2.new(if contentWidth<500 then 1 else 0.37,-32,0,60)
+ local cashRows=math.ceil(#self.cashViews/columns)
+ local cashHeight=cashRows*348+math.max(0,cashRows-1)*16
+ self.cashShelf.Position,self.cashShelf.Size=UDim2.fromOffset(0,featuredHeight+56),UDim2.new(1,0,0,cashHeight)
+ self.cashLayout.CellPadding,self.cashLayout.CellSize=UDim2.fromOffset(16,16),UDim2.new(1/columns,-math.ceil(16*(columns-1)/columns),0,348)
+ self.cashLayout.FillDirectionMaxCells=columns
  for _,view in self.cashViews do
-  view.title.Position,view.title.Size,view.title.TextSize=UDim2.fromOffset(16,12),UDim2.fromOffset(269,30),24
+  view.title.Position,view.title.Size=UDim2.fromOffset(12,8),UDim2.new(1,-24,0,36)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromOffset(150.5,150),UDim2.fromOffset(208,208)
-  view.rays.Position,view.rays.Size=UDim2.fromOffset(-3.1,-37.6),UDim2.fromOffset(307.2,307.2)
-  view.note.Position,view.note.Size,view.note.TextSize=UDim2.fromOffset(16,258),UDim2.fromOffset(269,48),40
-  view.buy.Position,view.buy.Size,view.buy.TextSize=UDim2.fromOffset(16,310),UDim2.fromOffset(269,52),20
+  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.41),UDim2.fromOffset(math.min(200,cardWidth-24),180)
+  view.rays.Position,view.rays.Size=UDim2.fromScale(0,-0.1),UDim2.fromScale(1,1)
+  view.note.Position,view.note.Size=UDim2.fromOffset(12,230),UDim2.new(1,-24,0,48)
+  view.buy.Position,view.buy.Size=UDim2.new(0,12,1,-64),UDim2.new(1,-24,0,52)
  end
- self.sections.Cash.Size=UDim2.fromOffset(940,680)
- for _,view in self.cards do view.buy.Visual.Caption.TextColor3=FIGMA.text end
- for _,view in self.cashViews do view.buy.Visual.Caption.TextColor3=FIGMA.text end
- self.cashBuy.Visual.Caption.TextColor3=FIGMA.text
- -- Native labels keep the existing SourceSans font; no automatic text shrinking.
- for _,label in self.root:GetDescendants() do
-  if label:IsA("TextLabel") then label.TextScaled=false end
- end
+ self.sections.Cash.Size=UDim2.new(1,-6,0,featuredHeight+56+cashHeight)
+ -- Details keep their actions fixed while explanation/outcomes scroll on short phones.
+ self.detailsTitle.Position,self.detailsTitle.Size=UDim2.fromOffset(12,4),UDim2.new(1,-24,0,44)
+ self.detailsTitle.TextSize=if mainWidth<400 then 22 else 30
+ self.detailsScroll.Position,self.detailsScroll.Size=UDim2.fromOffset(12,52),UDim2.new(1,-24,1,-116)
+ self.detailsDescription.Parent,self.detailsDescription.LayoutOrder=self.detailsScroll,-1
+ self.detailsDescription.Size=UDim2.new(1,-12,0,if mainWidth<400 then 190 else 110)
+ self.detailsNote.Parent,self.detailsNote.LayoutOrder=self.detailsScroll,1000
+ self.detailsNote.Size=UDim2.new(1,-12,0,72)
+ self.detailsBack.Position,self.detailsBack.Size=UDim2.new(0,12,1,-60),UDim2.new(0.35,-18,0,48)
+ self.detailsBuy.Position,self.detailsBuy.Size=UDim2.new(0.35,0,1,-60),UDim2.new(0.65,-12,0,48)
  self:ApplyTypography()
- self.scroll.AutomaticCanvasSize=Enum.AutomaticSize.None
- self.scroll.CanvasSize=UDim2.fromOffset(0,16+24+40+passHeight+680)
+ self.scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
+ self.scroll.CanvasSize=UDim2.new()
  self:UpdateSection()
 end
 

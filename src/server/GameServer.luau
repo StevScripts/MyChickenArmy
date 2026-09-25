@@ -89,6 +89,9 @@ function GameServer:Handle(player,request)
 	local receipt,purchase,crate
 	local selectedBefore=#session:BestPetIds()
 	if action=="Sync" then self:Send(player);return
+	elseif action=="EggCashCollect" then
+		-- Old clients cannot bypass server-owned movement/one-second collection.
+		return
 	elseif action=="RefreshShop" then
 		-- This may yield; no client-owned flag, price or product benefit is accepted.
 		ok,message=self.commerce:Refresh(player,session)

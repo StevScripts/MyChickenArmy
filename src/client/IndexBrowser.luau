@@ -105,7 +105,7 @@ function Browser:Resize()
 	local scale=math.max((self.app.uiScale or 1)*motionScale,0.01)
 	local width=math.floor(self.grid.AbsoluteSize.X/scale+0.5)-30
 	if width<=0 then return end
-	local columns=math.clamp(math.floor((width+GAP)/224),1,4)
+	local columns=math.clamp(math.floor((width+GAP)/(if width<500 then 156 else 224)),1,4)
 	local cellWidth=math.max(1,math.floor((width-GAP*(columns-1))/columns))
 	self.columns=columns
 	self.layout.CellSize=UDim2.fromOffset(cellWidth,cellWidth)

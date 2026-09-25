@@ -1,0 +1,168 @@
+{
+  "live": {
+    "total": 18,
+    "passed": 18,
+    "results": [
+      {
+        "name": "Idle Humanoid death",
+        "passed": true
+      },
+      {
+        "name": "Deleted whole model",
+        "passed": true
+      },
+      {
+        "name": "Detached whole model",
+        "passed": true
+      },
+      {
+        "name": "Deleted root",
+        "passed": true
+      },
+      {
+        "name": "Deleted Humanoid",
+        "passed": true
+      },
+      {
+        "name": "Deleted visual body",
+        "passed": true
+      },
+      {
+        "name": "Anchored chicken",
+        "passed": true
+      },
+      {
+        "name": "Idle fall below map",
+        "passed": true
+      },
+      {
+        "name": "Physics fling returns to previous ground",
+        "passed": true
+      },
+      {
+        "name": "King crown, scale and metadata survive repair",
+        "passed": true
+      },
+      {
+        "name": "Transfer repairs into current owner, explicit Destroy never respawns",
+        "passed": true
+      },
+      {
+        "name": "Combat HP, death timer and rewards remain authoritative",
+        "passed": true
+      },
+      {
+        "name": "Stuck home recruitment recovers to yard",
+        "passed": true
+      },
+      {
+        "name": "Home detours keep progressing but still have a hard deadline",
+        "passed": true
+      },
+      {
+        "name": "Wander destinations reject solid props and missing ground",
+        "passed": true
+      },
+      {
+        "name": "Invalid inputs do not poison movement",
+        "passed": true
+      },
+      {
+        "name": "Normal walking does not teleport or falsely recover",
+        "passed": true
+      },
+      {
+        "name": "Closed route fails boundedly, then retries after obstruction opens",
+        "passed": true
+      }
+    ]
+  },
+  "paths": {
+    "total": 6,
+    "passed": 6,
+    "results": [
+      {
+        "passed": true,
+        "name": "CreatePath errors release both global slots"
+      },
+      {
+        "passed": true,
+        "name": "ComputeAsync errors release slots and destroy paths"
+      },
+      {
+        "passed": true,
+        "name": "Two-request cap, timeout, and exact budget release"
+      },
+      {
+        "passed": true,
+        "name": "New route and Destroy cancel pending callbacks"
+      },
+      {
+        "passed": true,
+        "name": "Blocked event ignores passed segments and invalidates future segments"
+      },
+      {
+        "passed": true,
+        "name": "Sideways jitter cannot reset the progress watchdog"
+      }
+    ]
+  },
+  "gate": {
+    "legs": [
+      {
+        "state": "arrived",
+        "remaining": 0.7334874868392944,
+        "seconds": 1.217993166676024
+      },
+      {
+        "state": "arrived",
+        "remaining": 1.236283779144287,
+        "seconds": 0.7829880833160132
+      },
+      {
+        "state": "arrived",
+        "remaining": 0.7652561664581299,
+        "seconds": 0.4500269166601356
+      },
+      {
+        "state": "arrived",
+        "remaining": 0.7997652888298035,
+        "seconds": 0.334832666645525
+      },
+      {
+        "state": "arrived",
+        "remaining": 0.7528285384178162,
+        "seconds": 0.8813384166860487
+      },
+      {
+        "state": "arrived",
+        "remaining": 0.8470631837844849,
+        "seconds": 1.2330875000043306
+      }
+    ],
+    "ok": true,
+    "recoveries": 0
+  },
+  "yardObservation": {
+    "seconds": 66.62832874999731,
+    "home": [
+      {
+        "moving": true,
+        "id": "fe710da7-dda3-4f48-953f-98854bee1bbd",
+        "recoveries": 0
+      },
+      {
+        "moving": true,
+        "id": "6f6f4bc0-458d-454b-a2b9-296773071046",
+        "recoveries": 1,
+        "reason": "Home route blocked"
+      },
+      {
+        "moving": true,
+        "id": "c897f64d-b4e4-40d8-a677-fb1033235879",
+        "recoveries": 3,
+        "reason": "Home route blocked"
+      }
+    ]
+  }
+}

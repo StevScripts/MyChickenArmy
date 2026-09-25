@@ -58,7 +58,7 @@ function Controller:Receive(state)
 	local panel=Theme.Frame(gui,"OfflineCash",UDim2.fromOffset(448,394))
 	panel.BackgroundTransparency,panel.Active,panel.ZIndex=1,true,2
 	panel.AnchorPoint,panel.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
-	local scale=Instance.new("UIScale");scale.Parent=panel
+	-- Reflow the receipt inside the safe viewport; keep Continue at touch size.
 	local header,title=Theme.Header(panel,"Header","Offline Earnings",GREEN)
 	header.Size=UDim2.new(1,0,0,64)
 	title.Position,title.Size=UDim2.fromOffset(16,8),UDim2.new(1,-32,0,48)
@@ -124,14 +124,28 @@ function Controller:Receive(state)
 	local function resize()
 		local available=gui.AbsoluteSize
 		if available.X<=0 or available.Y<=0 then return end
-		local width=math.min(448,math.max(280,available.X-24))
-		panel.Size=UDim2.fromOffset(width,394)
-		scale.Scale=math.max(0.1,math.min(1,(available.X-24)/width,(available.Y-24)/394))
+		local width,height=math.min(448,available.X-24),math.min(394,available.Y-24)
+		local short=height<370
+		local headerHeight=if short then 56 else 64
+		local buttonHeight=if short then 52 else 62
+		local gap=if short then 8 else 16
+		local heroHeight=height-headerHeight-24-buttonHeight-30-gap*2
+		panel.Size=UDim2.fromScale(width/available.X,height/available.Y)
+		header.Size=UDim2.new(1,0,0,headerHeight)
+		title.Position,title.Size=UDim2.fromOffset(16,0),UDim2.new(1,-32,1,0)
+		body.Position,body.Size=UDim2.fromOffset(12,headerHeight),UDim2.new(1,-24,1,-headerHeight)
+		content.Position,content.Size=UDim2.fromOffset(16,12),UDim2.new(1,-32,1,-24)
+		list.Padding=UDim.new(0,gap)
+		hero.Size=UDim2.new(1,0,0,heroHeight)
+		lead.Size=UDim2.new(1,0,0,if short then 26 else 38)
+		amount.Position,amount.Size=UDim2.fromScale(0.5,0.5),UDim2.new(0.8,0,0,(heroHeight-60)/1.25)
+		explanation.Position,explanation.Size=UDim2.new(0,0,1,if short then -26 else -38),UDim2.new(1,0,0,if short then 26 else 38)
+		continue.Size,continue.TextSize=UDim2.new(1,0,0,buttonHeight),if short then 30 else 40
 		local contentWidth=width-56
-		fitSingleLine(title,width-32,45,20)
-		fitSingleLine(lead,contentWidth,38,18)
-		fitSingleLine(amount,contentWidth/1.25,92,12)
-		fitSingleLine(explanation,contentWidth,35,16)
+		fitSingleLine(title,width-32,if short then 34 else 45,20)
+		fitSingleLine(lead,contentWidth,if short then 26 else 38,18)
+		fitSingleLine(amount,contentWidth/1.25,math.min(92,(heroHeight-60)/1.25),12)
+		fitSingleLine(explanation,contentWidth,if short then 24 else 35,16)
 		local savedWidth=math.min(220,contentWidth-36)
 		savedText.Size=UDim2.fromOffset(savedWidth,30)
 		fitSingleLine(savedText,savedWidth,30,16)

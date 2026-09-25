@@ -16,7 +16,7 @@ return table.freeze({
 	DockCorridorZ = -5,
 	DockApproachX = -20.25,
 	DockPadOffsetX = 1.65,
-	SuctionRadius = 5.5,
+	SuctionRadius = 9,
 	SuctionEdgePadding = 1.5,
 	PickupBatch = 8,
 	PickupStagger = 0.06,

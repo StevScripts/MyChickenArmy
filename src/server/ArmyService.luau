@@ -230,9 +230,9 @@ function ArmyService.UpgradeIncome(session)
  return true,"Every owned chicken now earns more coins, including your deployed squad!"
 end
 
--- Older clients may still request this action. Progress now comes only from conquest.
+-- Older clients may still request promotion; cash upgrades do not require conquest.
 function ArmyService.Promote(_session)
- return false,"Territories increase army capacity. Upgrade luck for better rolls; every chicken is available from the start."
+ return false,"Promotion is unavailable. Buy available upgrades with cash; camps are not required."
 end
 
 return ArmyService

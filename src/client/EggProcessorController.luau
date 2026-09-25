@@ -9,15 +9,15 @@ local Board = {}
 Board.__index = Board
 local EMPTY_PAD_COLOR = Color3.fromRGB(128, 128, 128)
 local PAD_PRESS_DEPTH = 0.18
-local PAD_STEP_SECONDS = 0.5 -- Down for half a second, then up for half a second.
-local PAD_RELEASE_SECONDS = 0.16
+local PAD_STEP_SECONDS = 0.25 -- Visual tween duration; payout cadence is server-owned.
+local PAD_RELEASE_SECONDS = 0.01
 
 local function padTween(view, key, seconds, goals, instant, repeats)
 	if view[key] then view[key]:Cancel(); view[key]:Destroy(); view[key]=nil end
 	if instant then
 		for property,value in goals do view.pad[property]=value end
 	else
-		local info=TweenInfo.new(seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,if repeats then -1 else 0,repeats==true)
+		local info=TweenInfo.new(seconds,Enum.EasingStyle.Circular,Enum.EasingDirection.Out,if repeats then -1 else 0,repeats==true)
 		view[key]=TweenService:Create(view.pad,info,goals)
 		view[key]:Play()
 	end
@@ -53,6 +53,8 @@ function Board:Bind(source)
 			local visual=button:FindFirstChild("Visual")
 			if visual then Theme.Motion:BindButton(button,visual,visual.Face,visual.Face.InsetHighlight.UIStroke) end
 		end
+		view.upgradeGradient=view.content.Upgrade.Visual.Face:FindFirstChildWhichIsA("UIGradient")
+		view.affordableGradient=view.upgradeGradient and view.upgradeGradient.Color
 	else
 		view.cash=gui:FindFirstChild("ReadyCash",true)
 		if view.cash then
@@ -98,7 +100,8 @@ function Board:Render()
 				c.QueuedCount.TextSize=math.min(88,math.max(12,math.floor(88*253/math.max(1,width))))
 			end
 			c.Rate.Text=tostring(offer.rate).." eggs/sec"
-			if view.inlinePrice then
+			local upgradeCost=c:FindFirstChild("UpgradeCost")
+			if view.inlinePrice or not upgradeCost then
 				c.Upgrade.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Upgrade • $"..Theme.Money(offer.upgradePrice) else "MAX SPEED"
 				-- Authored GUI clones do not retain UITheme's caption-sync connections.
 				local caption=c.Upgrade.Visual.Caption
@@ -107,9 +110,13 @@ function Board:Render()
 					if label:IsA("TextLabel") then label.Text=c.Upgrade.Text end
 				end
 			else
-				c.UpgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: $"..Theme.Money(offer.upgradePrice) else "MAX SPEED"
+				upgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: $"..Theme.Money(offer.upgradePrice) else "MAX SPEED"
 			end
 			local status=self.app.commerce:State("FinishEggs")
+			if view.upgradeGradient then
+				local unaffordable=offer.upgradePrice~=nil and state.coins<offer.upgradePrice
+				view.upgradeGradient.Color=if unaffordable then Theme.UnaffordableGradient else view.affordableGradient
+			end
 			c.Upgrade.Active=self.pending==nil and offer.upgradePrice~=nil
 			c.FinishNow.Active=offer.queuedCount>0 and status~="pending" and status~="preparing"
 			c.Upgrade.Selectable,c.FinishNow.Selectable=c.Upgrade.Active,c.FinishNow.Active

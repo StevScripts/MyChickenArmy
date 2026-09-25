@@ -15,12 +15,14 @@ local FEEL = {SuccessScale = 1.06, RejectDistance = 0.012, RejectSeconds = 0.07,
 local function buttonVisual(button)
 	local children = button:GetChildren()
 	local visual = Instance.new("Frame")
-	visual.Name, visual.BackgroundTransparency, visual.BorderSizePixel = "BoardMotionVisual", 1, 0
+	visual.Name, visual.BackgroundTransparency, visual.BorderSizePixel = "BoardMotionVisual", button.BackgroundTransparency, 0
+	visual.BackgroundColor3 = button.BackgroundColor3
+	button.BackgroundTransparency = 1
 	visual.AnchorPoint, visual.Position, visual.Size = Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromScale(1, 1)
 	visual.ZIndex, visual.Parent = button.ZIndex, button
 	-- Animate the artwork, not the hit target. Child geometry remains unchanged.
 	for _, child in children do
-		if child:IsA("GuiObject") then child.Parent = visual end
+		if child:IsA("GuiObject") or child:IsA("UIStroke") then child.Parent = visual end
 	end
 	return visual
 end
@@ -82,8 +84,11 @@ function Board:Bind(source)
 			button:SetAttribute("DesignPreviewOnly", false)
 			local face = button:FindFirstChild("Face")
 			local visual = buttonVisual(button)
-			Theme.Motion:BindButton(button, visual, face)
-			view.cards[key] = {button = button, current = current, price = price, visual = visual, face = face}
+			local rim = face and face:FindFirstChild("InsetHighlight")
+			Theme.Motion:BindButton(button, visual, face, rim and rim:FindFirstChildWhichIsA("UIStroke"))
+			local gradient = face and face:FindFirstChildWhichIsA("UIGradient")
+			view.cards[key] = {button = button, current = current, price = price, visual = visual, face = face,
+				gradient = gradient, affordableGradient = gradient and gradient.Color}
 			table.insert(view.connections, button.Activated:Connect(function() self:Purchase(key) end))
 		end
 	end
@@ -111,8 +116,12 @@ function Board:Render()
 			card.price.Text = if not offer or not offer.ready then "Loading"
 				elseif waiting then "..." elseif not offer.price then "MAX"
 				elseif not offer.unlocked then "Locked" else money(offer.price)
-			-- Leave colors, font, artwork, geometry and scale exactly as authored.
-			-- Unaffordable/locked clicks explain why through the existing game toast.
+			-- Cash tint is opt-in for this board; keep the authored gradient to restore it.
+			if card.gradient then
+				local unaffordable = offer and offer.ready and offer.price and state.coins < offer.price
+				card.gradient.Color = if unaffordable then Theme.UnaffordableGradient else card.affordableGradient
+			end
+			-- Unaffordable/locked clicks still explain why through the existing toast.
 			local active = offer ~= nil and offer.ready == true and offer.price ~= nil and not waiting
 			card.button.Active, card.button.Selectable = active, active
 		end

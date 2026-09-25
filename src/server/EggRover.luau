@@ -56,7 +56,7 @@ function EggRover.new(id, frame, plotIndex, pad, now)
 		corridor = frame:PointToWorldSpace(corridor), dockApproach = frame:PointToWorldSpace(dockApproach),
 		frame = frame, minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ, floorY = floorY,
 		route = {}, waypoint = 1, suctionRadius = suctionRadius,
-		collectFrom = math.huge, nextSweepAt = now, unloadAt = 0,
+		nextSweepAt = now, unloadAt = 0,
 		cargoCount = 0, cargoValue = 0, pendingCount = 0,
 		suctionSerial = 0, unloadSerial = 0,
 	}, EggRover)
@@ -72,7 +72,6 @@ end
 
 function EggRover:BeginSweep()
 	local route = {self.dockApproach, self.corridor, self.approach}
-	self.collectFrom = #route + 1
 	for _, point in self.rows do table.insert(route, point) end
 	self:SetRoute("Sweeping", route)
 end
@@ -86,8 +85,11 @@ function EggRover:BeginReturn()
 	})
 end
 
-function EggRover:CanCollect()
-	return self.state == "Sweeping" and self.waypoint >= self.collectFrom
+function EggRover:CanCollect(now)
+	-- Keep suction on along the approach and return, not just the lawn rows.
+	-- Close the dock intake after the unload window so pending flights can drain.
+	return self.enabled and (self.state=="Sweeping" or self.state=="Returning"
+		or (self.state=="Unloading" and now<self.unloadAt))
 end
 
 function EggRover:Move(dt)

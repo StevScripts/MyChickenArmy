@@ -50,13 +50,14 @@ function Browser.new(app)
 end
 
 function Browser:Mount(parent)
- local root=Theme.Frame(parent,"UpgradesBrowser",UDim2.fromOffset(1120,660))
+ local root=Theme.Frame(parent,"UpgradesBrowser",UDim2.fromScale(1,1))
  root.BackgroundTransparency,root.Visible,root.ZIndex=1,false,2
  root:SetAttribute("OwnsPopupStyle",true)
  self.root=root
- self.scale=Instance.new("UIScale");self.scale.Name,self.scale.Parent="DesignScale",root
+ self.header,self.parent=nil,parent
  local header,title=Theme.Header(root,"Header","Upgrades!",CYAN)
- header.Size,header.ZIndex=UDim2.fromOffset(1120,84),4
+ header.Size,header.ZIndex=UDim2.new(1,0,0,64),4
+ self.header,self.title=header,title
  header.UIStroke.Color=INK
  studs(header)
  header.PageIcon.Visible,header.PageIcon.Image=true,Theme.Assets.Luck
@@ -65,11 +66,17 @@ function Browser:Mount(parent)
  local close=Theme.ActionButton(header,"Close","X",function() self.app.audio:Play("Click");self.app:ClosePanel() end,Theme.ActionColors.danger)
  dress(close,RED,84,84,60);close.Position=UDim2.fromOffset(1036,0)
  self.closeButton=close
- surface(root,"Body",0,96,1120,564,true)
- local row=Theme.Frame(root,"UpgradeCards",UDim2.fromOffset(1080,532))
+ self.body=surface(root,"Body",0,72,1120,564,true)
+ local row=Instance.new("ScrollingFrame")
+ row.Name,row.BackgroundTransparency,row.BorderSizePixel="UpgradeCards",1,0
+ row.AutomaticCanvasSize,row.CanvasSize=Enum.AutomaticSize.Y,UDim2.new()
+ row.ScrollBarThickness,row.ScrollingDirection=6,Enum.ScrollingDirection.Y
+ row.VerticalScrollBarInset=Enum.ScrollBarInset.Always
+ row.Parent=root
  row.Position,row.BackgroundTransparency,row.ZIndex=UDim2.fromOffset(20,112),1,3
- local layout=Instance.new("UIListLayout")
- layout.FillDirection,layout.Padding,layout.SortOrder=Enum.FillDirection.Horizontal,UDim.new(0,12),Enum.SortOrder.LayoutOrder
+ local layout=Instance.new("UIGridLayout")
+ layout.CellPadding,layout.SortOrder=UDim2.fromOffset(12,12),Enum.SortOrder.LayoutOrder
+ self.layout=layout
  layout.Parent=row;self.row=row
  local images={header.PageIcon}
  for order,definition in {{"Capacity","Army Size","Expand"},{"Income","Egg Value","Income"},{"Luck","Roll Luck","Luck"}} do
@@ -106,6 +113,43 @@ function Browser:Mount(parent)
  task.spawn(function() pcall(function() ContentProvider:PreloadAsync(images) end) end)
 end
 
+function Browser:Resize()
+ local width=self.app.panelWidth or 1120
+ local short=(self.app.panelHeight or 660)<500
+ local cardHeight=if short then 260 else 440
+ self.root.Size=UDim2.fromScale(1,1)
+ self.header.PageIcon.Size,self.header.PageIcon.Position=UDim2.fromOffset(52,52),UDim2.fromOffset(6,6)
+ self.title.Position,self.title.Size,self.title.TextSize=UDim2.fromOffset(68,0),UDim2.new(1,-132,1,0),36
+ self.closeButton.Size,self.closeButton.Position,self.closeButton.TextSize=UDim2.fromOffset(52,52),UDim2.new(1,-58,0,6),32
+ self.body.Position,self.body.Size=UDim2.fromOffset(0,72),UDim2.new(1,0,1,-72)
+ self.row.Position,self.row.Size=UDim2.fromOffset(12,84),UDim2.new(1,-24,1,-96)
+ local columns=if width>=920 then 3 elseif width>=620 then 2 else 1
+ local cardWidth=(width-36-(columns-1)*12)/columns
+ self.layout.CellSize,self.layout.FillDirectionMaxCells=UDim2.new(1/columns,-math.ceil((12+12*(columns-1))/columns),0,cardHeight),columns
+ for _,view in self.cards do
+  local card=view.root
+  card.Title.Position,card.Title.Size,card.Title.TextSize=UDim2.fromOffset(8,8),UDim2.new(1,-16,0,44),34
+  view.current.Position,view.current.Size,view.current.TextSize=UDim2.fromOffset(8,54),UDim2.new(1,-16,0,32),24
+  card.Icon.AnchorPoint=Vector2.new(0.5,0)
+  card.Icon.Position,card.Icon.Size=UDim2.fromScale(0.5,0.21),UDim2.fromOffset(math.min(190,cardWidth-32),168)
+  view.nextLabel.Position,view.nextLabel.Size=UDim2.fromOffset(8,270),UDim2.new(1,-16,0,48)
+  view.buy.Position,view.buy.Size=UDim2.fromOffset(12,324),UDim2.new(1,-24,0,56)
+  view.buy.TextSize=28
+  view.skip.Position,view.skip.Size=UDim2.new(0.15,0,0,388),UDim2.new(0.7,0,0,48)
+  view.hint.Position,view.hint.Size=UDim2.fromOffset(12,302),UDim2.new(1,-24,0,22)
+  view.skip.Visible=not short
+  if short then
+   card.Title.Position,card.Title.Size,card.Title.TextSize=UDim2.fromOffset(8,4),UDim2.new(1,-16,0,32),28
+   view.current.Position,view.current.Size,view.current.TextSize=UDim2.fromOffset(8,38),UDim2.new(1,-16,0,26),22
+   card.Icon.Position,card.Icon.Size=UDim2.new(0.5,0,0,65),UDim2.fromOffset(90,80)
+   view.nextLabel.Position,view.nextLabel.Size=UDim2.fromOffset(8,145),UDim2.new(1,-16,0,48)
+   view.buy.Position,view.buy.Size=UDim2.fromOffset(12,200),UDim2.new(1,-24,0,52)
+  end
+  local odds=card:FindFirstChild("ViewOdds")
+  if odds then odds.Position,odds.Size=view.nextLabel.Position,view.nextLabel.Size end
+ end
+end
+
 function Browser:Offer(name)
  local state=self.app.state
  if not state then return nil end
@@ -124,7 +168,7 @@ end
 
 function Browser:Render()
  if not self.root or not self.app.state then return end
- self.scale.Scale=self.app.panel.Size.X.Offset/1120
+ self:Resize()
  for name,view in self.cards do
   local offer=self:Offer(name)
   if not offer then continue end

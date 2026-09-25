@@ -164,7 +164,7 @@ return function(EggServiceOverride, EggRoverOverride)
 		f.service:UpdateRover(f.session, f.yard, 0.1, completedAt + 0.1)
 		expect(f.session.creditCount == 1, "finished trip does not repeat its deposit")
 		routeRobot:BeginSweep()
-		expect(routeRobot.waypoint == 1 and routeRobot.route[routeRobot.collectFrom] == routeRobot.rows[1],
+		expect(routeRobot.waypoint == 1 and routeRobot.route[4] == routeRobot.rows[1],
 			"next sweep restarts the same four-pass route")
 
 		Layout.SetYard(testPlotIndex, {YardMinX = -20, YardMaxX = 20, YardMinZ = -14,

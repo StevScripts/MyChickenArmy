@@ -2,6 +2,8 @@
 
 Start with the feature table below. The migration keeps the existing ModuleScripts and runtime hierarchy; it does not introduce a framework or rename the game's internal IDs.
 
+All available cash upgrades are independent of camp/rank progress. [UPGRADE_RULES.md](UPGRADE_RULES.md) is the current eligibility contract; never reinstate historical conquest gates when editing offers or UI.
+
 ## Source → Studio
 
 | Source folder/file | Studio destination |
@@ -26,12 +28,12 @@ Paths below are relative to `src/`. Search for the named symbol in VS Code with 
 | Menu hover, press, open and pop animations | `client/UIMotion.luau` | Reusable tweens; start with `BindButton`, `Pop` and `Tween` |
 | UI palette and shared controls | `shared/UIColors.luau`, `client/UITheme.luau` | Colors, typography and reusable component styling |
 | Army inventory and chicken selling | `client/ChickenBrowser.luau` | Cards, selection and confirmation; `server/ArmyService.luau` validates transactions |
-| HUD and menu navigation | `client/HudController.luau`, `client/AppController.luau` | HUD rendering and page/controller coordination |
+| HUD and menu navigation | `client/HudController.luau`, `client/AppController.luau` | HUD rendering and page/controller coordination; [responsive layout and device checks](UI_RESPONSIVE.md) |
 | Upgrades menu | `client/ProgressionBrowser.luau` | Presentation of server-provided upgrade prices and eligibility |
 | Shop and Index | `client/ShopBrowser.luau`, `client/IndexBrowser.luau` | Shop cards and collection discovery; `shared/ShopCatalog.luau` defines commerce catalog |
 | Starting coins, squad limits, upgrade prices | `shared/Config.luau` | `StartingCoins`, `StartingSlots`, `SlotUnlocks`, `IncomePrices`, `LuckPrices` |
 | Chicken stats, recruit prices and odds | `shared/PetCatalog.luau`, `shared/Rules.luau` | Species definitions and shared calculations; `server/RollService.luau` creates and purchases offers |
-| Progression gates and encounter rosters | `shared/Progression.luau` | Main camps, ranks, capacity limits and King access |
+| Camp progression and encounter rosters | `shared/Progression.luau` | Main camps, rank milestones and King access; does not gate cash upgrade purchases |
 | Damage, capture phases and respawn timing | `server/Battle.luau` | Active encounter state; timing/ranges are in `shared/Config.luau` |
 | Camp ownership and prerequisite routing | `server/BattleService.luau`, `shared/CampaignRoute.luau` | Which objective can be reached, occupied or released |
 | Marching and reinforcements | `shared/ArmyMarch.luau`, `server/ArmyReinforcements.luau` | Routes and lineup changes; `server/PetActor.luau` owns physical actor movement |

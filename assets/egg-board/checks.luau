@@ -62,7 +62,7 @@ local session=Session.new(123,"Fixture",1)
 session.loaded=true
 session.entitlements.DoubleCash=true
 local initial=session.coins
-check("manual deposit queues; pad pays once; Double Cash applies once",function()
+check("manual deposit queues; moving collector pays once per second; Double Cash applies once",function()
 	session.eggCarry={count=4,value=101}
 	assert(service:Deposit(session,pad.Position+Vector3.new(0,2,0),1))
 	assert(session.coins==initial and session.eggCarry.count==0)
@@ -70,12 +70,11 @@ check("manual deposit queues; pad pays once; Double Cash applies once",function(
 	local cashAt=board.CollectionPart.TouchPart.Position+Vector3.new(0,2,0)
 	service:ProcessAndClaim(session,nil,1,2)
 	assert(session.eggProcessor.readyValue==50)
-	service:ProcessAndClaim(session,cashAt,0,3)
-	assert(session.coins==initial+100)
-	service:ProcessAndClaim(session,cashAt,1,4)
-	assert(session.coins==initial+100 and session.eggProcessor.readyValue==51)
-	service:ProcessAndClaim(session,nil,0,5)
-	service:ProcessAndClaim(session,cashAt,0,6)
+	service:ProcessAndClaim(session,cashAt,0,3,true)
+	assert(session.coins==initial)
+	for i=1,10 do
+		service:ProcessAndClaim(session,cashAt+Vector3.new(if i%2==1 then 0.2 else -0.2,0,0),0.1,3+i*0.1,true)
+	end
 	assert(session.coins==initial+202 and session.eggProcessor.readyValue==0)
 end)
 check("vacuum unload enters queue once without paying the wallet",function()

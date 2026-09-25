@@ -4,6 +4,12 @@ Auto Collect uses the user's Tripo vacuum. Nine original parts remain separate; 
 
 Each trip covers four straight, parallel passes, alternating direction, then returns to the cash stand. Cargo never interrupts a pass. The route uses the current chicken-yard bounds, including plot-size upgrades; the rover's intake widens enough to cover its four strips. Manual collection range is unchanged. Disabling Auto Collect or leaving transfers earned cargo into the existing saved egg bag. This does not add offline collection. Cargo not yet autosaved has the same sudden-server-loss limitation as other unsaved pickups.
 
+September 25: suction stays active on the outbound approach, all sweep passes,
+and the entire return route. Minimum pickup radius is now 9 studs (previously
+5.5); larger plots still expand it as needed. Suction also runs during the brief
+dock settling window, then closes so in-flight pickups can finish and the
+delivery cannot stall indefinitely. Parked/disabled robots do not claim eggs.
+
 Eggs use the same arcing pickup motion as player collection, but their destination follows the moving nozzle. Late pickup packets retain a visible flight. In-game wheels have 35% larger diameter and 12% more width; their ground contact and distance-based rotation are adjusted together. The imported template and Blender source geometry remain intact; these size multipliers are editable in code.
 
 On Plot1, the egg-processing board now queues vacuum deliveries and pays processed cash through its separate front pad. Plots without that board retain instant conversion. See [EGG_PROCESSOR.md](EGG_PROCESSOR.md) for the processing and Finish Now behavior.
@@ -16,12 +22,18 @@ Rover presentation currently renders for its owner, like the existing egg sprite
 
 ## Tune in VS Code
 
-- `src/shared/VacuumConfig.luau`: MoveSpeed (16 studs/second), PassCount (4), WheelDiameterScale (1.35), WheelWidthScale (1.12), minimum SuctionRadius (5.5), SuctionEdgePadding (1.5), PickupBatch (8), IdleSeconds, UnloadSeconds (0.8) and dock approach offsets. Intake increases with strip width; the wider overlap and larger pickup batch help collect eggs before the faster vacuum passes them. There is no cargo-capacity detour.
+- `src/shared/VacuumConfig.luau`: MoveSpeed (16 studs/second), PassCount (4), WheelDiameterScale (1.35), WheelWidthScale (1.12), minimum SuctionRadius (9), SuctionEdgePadding (1.5), PickupBatch (8), IdleSeconds, UnloadSeconds (0.8) and dock approach offsets. Intake increases with strip width; the wider overlap and larger pickup batch help collect eggs before the faster vacuum passes them. There is no cargo-capacity detour.
 - `src/client/VacuumController.luau`, `MOTION`: snapshot blending, pose smoothing and pickup audio cadence.
 - `src/shared/VacuumClips.luau`: generated pose data; edit/re-export Blender actions rather than hand-editing every sample.
 - `src/server/EggRover.luau`: movement/state machine. `EggService.luau`: authoritative claims, cargo and payment. Never award coins from animation callbacks.
 
 Changing cached ModuleScripts requires restarting Play. Rojo only syncs source; it does not refresh a running `require` automatically.
+
+The September 25 continuous-pickup revision passed 15 isolated Edit checks in
+`assets/egg-vacuum/tools/check_continuous_pickup.luau`: radius boundaries,
+outbound/return/dock pickup, pending-flight drainage, exactly-once delivery and
+disabled behavior. The user's existing Play session was left running; this was
+not an end-to-end playtest, save or publish.
 
 ## Blender controls
 

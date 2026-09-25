@@ -197,6 +197,16 @@ local function pointOf(input)
 end
 
 
+local function scrollingPanel(parent,name)
+ local item=Instance.new("ScrollingFrame")
+ item.Name,item.BackgroundTransparency,item.BorderSizePixel=name,1,0
+ item.CanvasSize,item.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.None
+ item.ScrollBarThickness,item.ScrollingDirection=6,Enum.ScrollingDirection.Y
+ item.VerticalScrollBarInset=Enum.ScrollBarInset.Always
+ item.ZIndex,item.Parent=parent.ZIndex+1,parent
+ return item
+end
+
 function Browser.new(app,parent)
 	local self=setmetatable({app=app,parent=parent,key="",pending=nil,connections={},slots={},cards={},
 		suppressUntil=0,placing=nil,notice=nil,inspecting=false,showInfo=false,showCapacity=false,
@@ -304,6 +314,7 @@ function Browser.new(app,parent)
  grid.Name,grid.BackgroundTransparency,grid.BorderSizePixel="ChickenInventory",1,0
  grid.Position,grid.Size=UDim2.fromOffset(19,179),UDim2.fromOffset(897,692)
  grid.ScrollBarThickness,grid.ScrollBarImageColor3=14,Color3.fromRGB(181,205,223)
+ grid.VerticalScrollBarInset=Enum.ScrollBarInset.Always
  grid.ScrollingDirection,grid.CanvasSize=Enum.ScrollingDirection.Y,UDim2.new()
  grid.AutomaticCanvasSize,grid.ClipsDescendants=Enum.AutomaticSize.Y,true
  grid.ZIndex,grid.Parent=inventory.ZIndex+2,inventory
@@ -324,7 +335,7 @@ function Browser.new(app,parent)
   self.grid.CanvasPosition=Vector2.zero;self:Render(true)
  end))
 
-	self.armyInfo=frame(self.body,"ArmyInfo",UDim2.fromScale(1,1))
+	self.armyInfo=scrollingPanel(self.body,"ArmyInfo")
 	self.infoTitle=label(self.armyInfo,"Title","Your Army at a glance",30,UDim2.new(),UDim2.new(),WHITE,true)
 	self.infoMode=label(self.armyInfo,"Mode","",17,UDim2.new(),UDim2.new(),MUTED)
 	local function back()
@@ -347,6 +358,7 @@ function Browser.new(app,parent)
 	local roster=Instance.new("ScrollingFrame")
 	roster.Name,roster.BackgroundTransparency,roster.BorderSizePixel="EquippedRoster",1,0
 	roster.ScrollBarThickness,roster.ScrollBarImageColor3=4,GREEN
+	roster.VerticalScrollBarInset=Enum.ScrollBarInset.Always
 	roster.CanvasSize,roster.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.Y
 	roster.ScrollingDirection,roster.ZIndex,roster.Parent=Enum.ScrollingDirection.Y,self.armyInfo.ZIndex+1,self.armyInfo
 	local list=Instance.new("UIListLayout")
@@ -355,7 +367,7 @@ function Browser.new(app,parent)
 	self.infoFooter=label(self.armyInfo,"StatsScope","",16,UDim2.new(),UDim2.new(),MUTED)
 	self.infoFooter.TextWrapped,self.infoFooter.TextTruncate=true,Enum.TextTruncate.None
 
-	self.capacityPage=frame(self.body,"MoreArmySlots",UDim2.fromScale(1,1))
+	self.capacityPage=scrollingPanel(self.body,"MoreArmySlots")
 	self.passTitle=label(self.capacityPage,"Title","Bigger Army",32,UDim2.new(),UDim2.new(),WHITE,true)
 	self.passBadge=label(self.capacityPage,"Type","GAMEPASS / +5 SLOTS",17,UDim2.new(),UDim2.new(),GREEN)
 	self.passArt=Theme.Image(self.capacityPage,"BiggerArmy",Theme.Assets.Army,UDim2.fromOffset(140,140),UDim2.new())
@@ -372,7 +384,7 @@ function Browser.new(app,parent)
 	self.passBack=button(self.capacityPage,"BackToChickens","Back",back,Theme.ReferenceColors.Upgrades)
 
  -- Fixed inline inspector. Equipment is represented by checks, never a Reserve badge.
- self.detail=frame(self.body,"SelectedChicken",UDim2.fromOffset(535,780),UDim2.fromOffset(931,95))
+ self.detail=scrollingPanel(self.body,"SelectedChicken")
  self.detailBorder=dark(self.detail,Color3.fromRGB(23,199,238),"Inspector")
  self.detailBorder.Thickness=2
  local inset=frame(self.detail,"InsetRim",UDim2.new(1,-8,1,-8),UDim2.fromOffset(4,4))
@@ -408,6 +420,12 @@ function Browser.new(app,parent)
  self.sell.Position,self.sell.Size,self.sell.TextSize=UDim2.fromOffset(100,684),UDim2.fromOffset(340,76),40
  self.mergeHint=label(self.detail,"MergeHint","",12,UDim2.new(),UDim2.new(),MUTED)
  self.mergeHint.Visible=false
+ self.detailBack=button(self.body,"BackToFlock","Back to flock",function()
+  self.app.audio:Play("Click");self.inspecting=false;self.app.selected=nil
+  self.saleQuote=nil;self:Render(true)
+ end,CYAN)
+ self.detailBack.Visible=false
+
 	self.salePanel=frame(self.detail,"ConfirmSale",UDim2.new())
 	dark(self.salePanel,RED)
 	self.salePrompt=label(self.salePanel,"Quote","",14,UDim2.fromOffset(10,6),UDim2.new(1,-20,0,80),WHITE)
@@ -471,60 +489,161 @@ function Browser:OpenInventory()
 	local id=if pet then pet.id else nil
 	if self.app.selected~=id then self.saleQuote=nil end
 	self.app.selected,self.lastSelected=id,id
-	self.inspecting,self.showInfo,self.showCapacity=pet~=nil,false,false
+	self.inspecting,self.showInfo,self.showCapacity=pet~=nil and self.app.gui.AbsoluteSize.X>=660,false,false
 	self.placing,self.placingExpected=nil,nil
 end
 
 function Browser:Resize()
- -- Preserve the approved canvas and four-column landscape inventory at every size.
- local width,bodyHeight=1474,875
- self.pixelScale.Scale=self.parent.Size.X.Offset/DESIGN_WIDTH
- self.root.Position,self.root.Size=UDim2.new(),UDim2.fromOffset(DESIGN_WIDTH,DESIGN_HEIGHT)
- self.width,self.height,self.narrow=width,bodyHeight,false
+ local width,height=self.app.panelWidth or 1120,self.app.panelHeight or 660
+ local bodyHeight=height-84
+ local narrow=width<620
+ self.pixelScale.Scale=1
+ self.root.Position,self.root.Size=UDim2.new(),UDim2.fromScale(1,1)
+ self.width,self.height,self.narrow=width-24,bodyHeight,narrow
+ local function place(item,x,y,w,h)
+  item.Position,item.Size=UDim2.fromOffset(x,y),UDim2.fromOffset(w,h)
+ end
+ local background=self.root.ArmyBackground
+ background.Position,background.Size=UDim2.new(),UDim2.fromScale(1,1)
+ self.header.Position,self.header.Size=UDim2.new(),UDim2.new(1,0,0,64)
+ self.header.PageIcon.Position,self.header.PageIcon.Size=UDim2.fromOffset(6,6),UDim2.fromOffset(64,52)
+ self.title.Position,self.title.Size,self.title.TextSize=UDim2.fromOffset(76,0),UDim2.new(1,-136,1,0),if narrow then 28 else 38
+ self.closeButton.Position,self.closeButton.Size,self.closeButton.TextSize=UDim2.new(1,-58,0,6),UDim2.fromOffset(52,52),32
+ self.body.Position,self.body.Size=UDim2.fromOffset(12,76),UDim2.new(1,-24,1,-84)
+ local contentWidth=width-24
  local inventoryVisible=not self.showInfo and not self.showCapacity
- self.inventory.Visible,self.detail.Visible=inventoryVisible,inventoryVisible
+ local inspecting=narrow and self.inspecting and not self.placing
+ self.inventory.Visible=inventoryVisible and not inspecting
+ self.detail.Visible=inventoryVisible and (not narrow or inspecting)
+ self.detailBack.Visible=inventoryVisible and inspecting
  self.armyInfo.Visible,self.capacityPage.Visible=self.showInfo,self.showCapacity
- self.cellWidth,self.cellHeight=210,220
- self.previewPosition,self.previewSize=UDim2.fromOffset(125,156),UDim2.fromOffset(286,286)
- local function place(item,x,y,w,h) item.Position,item.Size=UDim2.fromOffset(x,y),UDim2.fromOffset(w,h) end
-	local infoBackWidth=if width>=700 then 230 else 116
-	place(self.infoTitle,0,0,width-infoBackWidth-14,37)
-	self.infoTitle.TextSize=if width>=700 then 30 else 23
-	place(self.infoMode,1,42,width-infoBackWidth-12,25)
-	place(self.infoBack,width-infoBackWidth,4,infoBackWidth,50)
-	self.infoBack.Text=if width>=700 then "Back to Chickens" else "Back"
-	local statColumns=if width>=700 then 4 else 2
-	local tileWidth=math.floor((width-12*(statColumns-1))/statColumns)
-	local tileHeight=if statColumns==4 then 116 else 96
-	for index,name in {"Damage","Health","Deployed","Flock"} do
-		local tile=self.statTiles[name]
-		place(tile.frame,((index-1)%statColumns)*(tileWidth+12),86+math.floor((index-1)/statColumns)*(tileHeight+12),tileWidth,tileHeight)
-		tile.value.TextSize=if statColumns==4 then 40 else 32
-		place(tile.value,14,31,tileWidth-28,44)
-		place(tile.note,14,tileHeight-28,tileWidth-28,23)
-	end
-	local rosterTitleY=86+math.ceil(4/statColumns)*(tileHeight+12)+8
-	place(self.rosterTitle,0,rosterTitleY,width,34)
-	place(self.infoRoster,0,rosterTitleY+42,width,math.max(80,bodyHeight-rosterTitleY-106))
-	place(self.infoFooter,0,bodyHeight-54,width,50)
-	self.infoFooter.TextSize=if width>=700 then 16 else 14
-
-	local passWidth=math.min(width,620)
-	local passX=math.floor((width-passWidth)/2)
-	place(self.passTitle,passX,0,passWidth,40)
-	place(self.passBadge,passX,46,passWidth,24)
-	place(self.passArt,passX,88,if passWidth>=440 then 144 else 90,140)
-	local copyX=if passWidth>=440 then 166 else 106
-	place(self.passCopy,passX+copyX,98,passWidth-copyX,100)
-	place(self.passNote,passX,238,passWidth,66)
-	place(self.passShop,passX,bodyHeight-58,math.floor(passWidth*0.61),52)
-	place(self.passBack,passX+math.floor(passWidth*0.65),bodyHeight-58,math.floor(passWidth*0.35),52)
-
- place(self.salePanel,20,466,496,294)
- place(self.salePrompt,14,10,468,114);self.salePrompt.TextSize=26
- place(self.saleConfirm,12,132,472,70);self.saleConfirm.TextSize=32
- place(self.saleCancel,12,212,472,68);self.saleCancel.TextSize=30
- return width..":"..bodyHeight..":"..tostring(self.inspecting)..":"..tostring(self.showInfo)..":"..tostring(self.showCapacity)
+ self.toolbar.Position,self.toolbar.Size=UDim2.new(),UDim2.new(1,0,0,108)
+ local half=contentWidth/2
+ self.toolbar.Divider.Visible=false
+ local short=height<500 and not narrow
+ place(self.flockLabel,8,4,54,42);self.flockLabel.TextSize=18
+ place(self.summary,64,4,half-116,42);self.summary.TextSize=20
+ place(self.flockPlus,half-50,0,48,48);self.flockPlus.TextSize=28
+ place(self.capacityLabel,half+8,4,52,42);self.capacityLabel.TextSize=18
+ place(self.capacity,half+62,4,half-114,42);self.capacity.TextSize=20
+ place(self.capacityPlus,contentWidth-48,0,48,48);self.capacityPlus.TextSize=28
+ self.best.Position,self.best.Size,self.best.TextSize=UDim2.fromOffset(8,56),UDim2.new(0.65,-12,0,48),24
+ self.infoButton.Position,self.infoButton.Size,self.infoButton.TextSize=UDim2.new(0.65,4,0,56),UDim2.new(0.35,-12,0,48),24
+ if short then
+  self.toolbar.Size=UDim2.new(1,0,0,52)
+  place(self.flockLabel,8,0,92,20);place(self.summary,8,20,92,28)
+  place(self.flockPlus,102,0,48,48)
+  place(self.capacityLabel,166,0,92,20);place(self.capacity,166,20,92,28)
+  place(self.capacityPlus,260,0,48,48)
+  local actions=contentWidth-328
+  place(self.best,320,0,actions*0.65-8,48)
+  place(self.infoButton,320+actions*0.65,0,actions*0.35,48)
+ elseif narrow then
+  place(self.flockLabel,8,0,half-64,20)
+  place(self.summary,8,20,half-64,28)
+  place(self.capacityLabel,half+8,0,half-64,20)
+  place(self.capacity,half+8,20,half-64,28)
+ end
+ local inventoryWidth=if narrow then contentWidth else math.floor(contentWidth*0.61)
+ local toolbarHeight=if short then 52 else 108
+ local inventoryTop=toolbarHeight+8
+ self.inventoryPanel.Position,self.inventoryPanel.Size=UDim2.fromOffset(0,inventoryTop),UDim2.new(if narrow then 1 else 0.61,0,1,-inventoryTop)
+ self.inventoryPanel.InnerLeftRim.Visible=false
+ self.inventory.InventoryScrollTrack.Visible=false
+ local sortWidth=if inventoryWidth<440 then 124 else 160
+ place(self.searchShell,8,inventoryTop+8,inventoryWidth-sortWidth-24,48)
+ self.searchShell.SearchIcon.Position,self.searchShell.SearchIcon.Size=UDim2.fromOffset(6,10),UDim2.fromOffset(28,28)
+ self.search.Position,self.search.Size,self.search.TextSize=UDim2.fromOffset(40,0),UDim2.new(1,-44,1,0),22
+ place(self.sortButton,inventoryWidth-sortWidth-8,inventoryTop+8,sortWidth,48)
+ self.sortButton.Caption.Position,self.sortButton.Caption.Size,self.sortButton.Caption.TextSize=UDim2.fromOffset(8,0),UDim2.new(1,-36,1,0),20
+ self.sortButton.Chevron.Position,self.sortButton.Chevron.Size=UDim2.new(1,-28,0.5,-8),UDim2.fromOffset(20,16)
+ self.grid.Position,self.grid.Size=UDim2.fromOffset(8,inventoryTop+64),UDim2.new(if narrow then 1 else 0.61,-16,1,-inventoryTop-72)
+ local gridWidth=inventoryWidth-52
+ local columns=math.clamp(math.floor((gridWidth+12)/150),1,4)
+ self.cellWidth=math.floor((gridWidth-(columns-1)*12)/columns)
+ self.cellHeight=if short then 120 else math.floor(self.cellWidth*220/210)
+ self.gridLayout.CellSize=UDim2.fromOffset(self.cellWidth,self.cellHeight)
+ self.gridLayout.CellPadding,self.gridLayout.FillDirectionMaxCells=UDim2.fromOffset(12,12),columns
+ self.hint.Position,self.hint.Size,self.hint.TextSize=UDim2.new(0,8,1,-52),UDim2.new(if narrow then 1 else 0.61,-16,0,48),18
+ self.hint.TextWrapped=true
+ local detailX=if narrow then 0 else inventoryWidth+12
+ local detailTop=if narrow then 56 else inventoryTop
+ local detailWidth=contentWidth-detailX
+ self.detail.Position,self.detail.Size=UDim2.fromOffset(detailX,detailTop),UDim2.new(1,-detailX,1,-detailTop)
+ self.detail.CanvasSize=UDim2.fromOffset(0,542)
+ self.detailBack.Position,self.detailBack.Size,self.detailBack.TextSize=UDim2.new(),UDim2.new(1,0,0,48),24
+ self.detail.InsetRim.Visible=false
+ self.detailRibbon.Position,self.detailRibbon.Size=UDim2.fromOffset(8,8),UDim2.new(1,-22,0,48)
+ self.name.Position,self.name.Size=UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0)
+ self.name.TextSize=28
+ self.metadata.Position,self.metadata.Size,self.metadata.TextSize=UDim2.fromOffset(8,62),UDim2.new(1,-22,0,28),20
+ local previewWidth=math.min(156,detailWidth-32)
+ self.previewPosition,self.previewSize=UDim2.new(0.5,-previewWidth/2,0,96),UDim2.fromOffset(previewWidth,156)
+ self.detailHalo.Position,self.detailHalo.Size=UDim2.new(0.5,-90,0,84),UDim2.fromOffset(180,180)
+ self.stats.Position,self.stats.Size=UDim2.fromOffset(8,260),UDim2.new(1,-22,0,60)
+ for index,name in {"DamageTile","HealthTile"} do
+  local tile=self.stats[name]
+  tile.Position,tile.Size=UDim2.fromScale((index-1)*0.51,0),UDim2.fromScale(0.49,1)
+  local icon=tile:FindFirstChild(if index==1 then "DamageIcon" else "HealthIcon")
+  icon.Position,icon.Size=UDim2.fromOffset(4,4),UDim2.fromOffset(28,24)
+  local value=if index==1 then self.damageValue else self.healthValue
+  value.Position,value.Size,value.TextSize=UDim2.fromOffset(4,28),UDim2.new(1,-8,0,28),22
+ end
+ self.assign.Position,self.assign.Size,self.assign.TextSize=UDim2.fromOffset(8,332),UDim2.new(1,-22,0,56),26
+ self.sell.Position,self.sell.Size,self.sell.TextSize=UDim2.fromOffset(8,400),UDim2.new(1,-22,0,52),24
+ self.detailNotice.Position,self.detailNotice.Size,self.detailNotice.TextSize=UDim2.fromOffset(8,462),UDim2.new(1,-22,0,68),17
+ self.detailNotice.TextWrapped=true
+ self.hideDetailPreview=short
+ if short then
+  self.detail.CanvasSize=UDim2.fromOffset(0,224)
+  self.detailRibbon.Size=UDim2.new(1,-22,0,36)
+  self.metadata.Position,self.metadata.Size=UDim2.fromOffset(8,46),UDim2.new(1,-22,0,24)
+  self.metadata.TextSize=18
+  self.stats.Position,self.stats.Size=UDim2.fromOffset(8,76),UDim2.new(1,-22,0,40)
+  for _,name in {"DamageTile","HealthTile"} do
+   local tile=self.stats[name]
+   local value=tile:FindFirstChild(if name=="DamageTile" then "Damage" else "Health")
+   local icon=tile:FindFirstChild(if name=="DamageTile" then "DamageIcon" else "HealthIcon")
+   icon.Size,icon.Position=UDim2.fromOffset(20,20),UDim2.fromOffset(4,10)
+   value.Position,value.Size,value.TextSize=UDim2.fromOffset(26,0),UDim2.new(1,-30,1,0),18
+  end
+  self.assign.Position,self.assign.Size,self.assign.TextSize=UDim2.fromOffset(8,128),UDim2.new(0.5,-16,0,48),20
+  self.sell.Position,self.sell.Size,self.sell.TextSize=UDim2.new(0.5,0,0,128),UDim2.new(0.5,-14,0,48),20
+  self.detailNotice.Position,self.detailNotice.Size=UDim2.fromOffset(8,182),UDim2.new(1,-22,0,40)
+ end
+ self.salePanel.Position,self.salePanel.Size=UDim2.fromOffset(8,if short then 76 else 260),UDim2.new(1,-22,0,266)
+ self.salePrompt.Position,self.salePrompt.Size,self.salePrompt.TextSize=UDim2.fromOffset(8,8),UDim2.new(1,-16,0,120),20
+ self.saleConfirm.Position,self.saleConfirm.Size,self.saleConfirm.TextSize=UDim2.fromOffset(8,140),UDim2.new(1,-16,0,52),22
+ self.saleCancel.Position,self.saleCancel.Size,self.saleCancel.TextSize=UDim2.fromOffset(8,204),UDim2.new(1,-16,0,48),22
+ -- Secondary pages scroll independently; fixed menu header/close never leave the screen.
+ self.armyInfo.Size,self.capacityPage.Size=UDim2.fromScale(1,1),UDim2.fromScale(1,1)
+ local infoWidth=contentWidth-12
+ place(self.infoTitle,0,0,infoWidth-128,42);self.infoTitle.TextSize=if narrow then 22 else 30
+ place(self.infoBack,infoWidth-120,0,120,48);self.infoBack.Text="Back";self.infoBack.TextSize=24
+ place(self.infoMode,0,52,infoWidth,28)
+ local statColumns=if infoWidth>=620 then 4 else 2
+ local tileWidth=(infoWidth-12*(statColumns-1))/statColumns
+ for index,name in {"Damage","Health","Deployed","Flock"} do
+  local tile=self.statTiles[name]
+  place(tile.frame,((index-1)%statColumns)*(tileWidth+12),88+math.floor((index-1)/statColumns)*112,tileWidth,100)
+  place(tile.value,8,30,tileWidth-16,40);tile.value.TextSize=30
+  place(tile.note,8,72,tileWidth-16,24);tile.note.TextSize=14
+ end
+ local rosterTop=88+math.ceil(4/statColumns)*112
+ place(self.rosterTitle,0,rosterTop,infoWidth,36)
+ local rosterHeight=math.max(180,bodyHeight-rosterTop-104)
+ place(self.infoRoster,0,rosterTop+44,infoWidth,rosterHeight)
+ place(self.infoFooter,0,rosterTop+rosterHeight+52,infoWidth,56)
+ self.armyInfo.CanvasSize=UDim2.fromOffset(0,rosterTop+rosterHeight+116)
+ self.capacityPage.CanvasSize=UDim2.fromOffset(0,440)
+ place(self.passTitle,8,0,infoWidth-16,40)
+ place(self.passBadge,8,44,infoWidth-16,28)
+ place(self.passArt,8,84,96,120)
+ place(self.passCopy,116,84,infoWidth-124,128);self.passCopy.TextSize=22
+ place(self.passNote,8,222,infoWidth-16,96)
+ place(self.passShop,8,330,infoWidth-16,52);self.passShop.TextSize=24
+ place(self.passBack,8,390,infoWidth-16,48);self.passBack.TextSize=24
+ return width..":"..height..":"..tostring(inspecting)..":"..tostring(self.showInfo)..":"..tostring(self.showCapacity)
 end
 
 function Browser:Send(action,payload)
@@ -589,6 +708,7 @@ function Browser:UpdateAction()
 	self.sell.Text=if self.pending and self.pending.action=="Sell" then "Selling..." else "Sell"
 	local reviewing=self.saleQuote~=nil
 	self.salePanel.Visible=reviewing
+ if self.hideDetailPreview then self.detail.CanvasSize=UDim2.fromOffset(0,if reviewing then 350 else 224) end
 	self.stats.Visible,self.assign.Visible,self.sell.Visible=not reviewing,not reviewing,not reviewing
 	self.detailNotice.Visible=not reviewing
 	enabled(self.saleConfirm,canSell and reviewing)
@@ -677,7 +797,7 @@ function Browser:TogglePet(id)
 	else
 		self.app.audio:Play("Click")
 		self.placing,self.placingExpected=id,table.clone(ids)
-		self.inspecting,self.showInfo=true,false
+		self.inspecting,self.showInfo=false,false
 		self.search.Text="";self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 	end
 end
@@ -825,20 +945,20 @@ function Browser:Card(parent,pet,slot,width,height,order)
  local background=art(card,"RarityBackground",Art.Card[rarity] or Art.Card.Common,UDim2.fromScale(1,1))
  background.ScaleType=Enum.ScaleType.Stretch
  Theme.Round(background).CornerRadius=UDim.new(0,5)
- local ribbon=frame(card,"RarityRibbon",UDim2.fromOffset(196,30),UDim2.fromOffset(7,7))
+ local ribbon=frame(card,"RarityRibbon",UDim2.new(1,-12,0,26),UDim2.fromOffset(6,6))
  ribbon.ZIndex=card.ZIndex+2
  surface(ribbon,color,color:Lerp(Color3.new(0,0,0),0.22),Color3.fromRGB(7,16,22),1.5,1)
- local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),21,UDim2.new(),UDim2.fromScale(1,1),WHITE)
+ local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),18,UDim2.new(),UDim2.fromScale(1,1),WHITE)
  rarityLabel.TextXAlignment=Enum.TextXAlignment.Center
- local portrait=Preview.Create(card,pet,UDim2.fromOffset(132,132),UDim2.fromOffset(39,38))
+ local portrait=Preview.Create(card,pet,UDim2.fromOffset(math.min(width*0.63,height-86),height-86),UDim2.new(0.5,-math.min(width*0.63,height-86)/2,0,32))
  portrait.ZIndex=card.ZIndex+3
  if portrait:IsA("ViewportFrame") then
   portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
  end
- local name=label(card,"Name",definition.name:gsub(" Chicken$",""),27,UDim2.fromOffset(5,166),UDim2.fromOffset(200,29),WHITE)
+ local name=label(card,"Name",definition.name:gsub(" Chicken$",""),math.clamp(width*0.128,18,27),UDim2.new(0,5,1,-54),UDim2.new(1,-10,0,28),WHITE)
  name.TextXAlignment=Enum.TextXAlignment.Center
  local stats=Rules.Stats(pet.species,pet.stars,pet.level)
- local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",25,UDim2.fromOffset(5,193),UDim2.fromOffset(200,25),GOLD,true)
+ local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",math.clamp(width*0.119,18,25),UDim2.new(0,5,1,-26),UDim2.new(1,-10,0,24),GOLD,true)
  strength.TextXAlignment=Enum.TextXAlignment.Center
  local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
  outline.ZIndex=card.ZIndex+7
@@ -851,10 +971,10 @@ function Browser:Card(parent,pet,slot,width,height,order)
  if slot then self.slots[slot]=entry end
  card:SetAttribute("PetId",pet.id);card:SetAttribute("InArmy",equipped)
  if equipped then
-  local badge=frame(card,"EquippedCheck",UDim2.fromOffset(54,59))
+  local badge=frame(card,"EquippedCheck",UDim2.fromScale(0.25,0.27))
   badge.ZIndex=card.ZIndex+8
   surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),2,5)
-  art(badge,"Check",Art.Check,UDim2.fromOffset(40,38),UDim2.fromOffset(5,9))
+  art(badge,"Check",Art.Check,UDim2.fromScale(0.75,0.65),UDim2.fromScale(0.1,0.15))
  end
  card.Activated:Connect(function()
   if os.clock()<self.suppressUntil then return end
@@ -928,9 +1048,10 @@ function Browser:RenderDetail(pet)
  self.name.Text=definition.name
  local rarity=RARITIES[definition.rarity] or RARITIES.Common
  self.metadata.Text=string.format('<font color="#%s">%s</font> / Lv. %d',rarity:ToHex(),definition.rarity,pet.level)
- self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or Art.Glow.Common,true
+ self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or Art.Glow.Common,not self.hideDetailPreview
  self.damageValue.Text=Theme.Number(stats.damage/stats.interval).." DPS"
  self.healthValue.Text=Theme.Number(stats.hp).." HP"
+ if self.hideDetailPreview then return end
  self.detailPreview=Preview.Create(self.detail,pet,self.previewSize,self.previewPosition)
  self.detailPreview.ZIndex=self.detail.ZIndex+3
  if self.detailPreview:IsA("ViewportFrame") then

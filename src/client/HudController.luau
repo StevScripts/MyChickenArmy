@@ -1,6 +1,7 @@
 --!strict
 -- Compact play HUD; menus and economy actions remain owned by AppController.
 local Theme=require(script.Parent.UITheme)
+local EggFeedback=require(script.Parent.EggFeedback)
 local GuiService=game:GetService("GuiService")
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
@@ -33,6 +34,7 @@ function Hud.new(app,shell)
 	self.money.Position,self.money.Size=UDim2.new(0,108,1,-84),UDim2.fromOffset(265,54)
 	self.income=Theme.Display(shell,"Income","",20)
 	self.income.Position,self.income.Size=UDim2.new(0,23,1,-35),UDim2.fromOffset(290,22)
+	self.income.TextWrapped=false
 	self.income.Visible=false
 	self.territory=Theme.Display(shell,"TerritoryIncome","",18,A.gold)
 	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.new(0,108,1,-111),UDim2.fromOffset(360,22),false
@@ -103,6 +105,7 @@ end
 function Hud:UpdateSettingsTopbar()
 	local app=self.app
 	local selected=app.panel and app.panel.Visible and not app.panelClosing and app.page=="Settings"
+	self.settings.Visible=not (app.panel and app.panel.Visible)
 	local hot=self.settingsHovered==true
 	self.settingsCaption.Visible=hot and self.settingsGui.Enabled
 	if self.settingsSelected==selected and self.settingsHot==hot then return end
@@ -124,104 +127,99 @@ function Hud:Resize(width, height, scale)
 		self.navigation.Destroying:Once(function() insetConnection:Disconnect() end)
 	end
 	self:UpdateSettingsTopbar()
-	local screenWidth,screenHeight=width*scale,height*scale
 	local touch=game:GetService("UserInputService").TouchEnabled
-	local compact=touch or screenWidth<1280 or screenHeight<600
-	local shellTop=self.navigation.Parent.AbsolutePosition.Y
-	-- Cancel the menu canvas scale for controls, not for the menus themselves.
-	local function controlScale(item,visualScale)
-		local sizing=item:FindFirstChild("HudControlScale")
-		if not sizing then
-			sizing=Instance.new("UIScale")
-			sizing.Name,sizing.Parent="HudControlScale",item
-		end
-		sizing.Scale=(visualScale or 1)/scale
-	end
-	-- Reference proportions at 1920x1080: 230x72, 400x94, 230x72; 32px gaps.
-	local referenceScale=math.min(screenWidth/1920,screenHeight/1080,1.25)
-	-- The ScreenGui ignores the core inset: position top controls from the shell edge.
-	-- Subtracting its negative AbsolutePosition would add the topbar gap back again.
-	local topPadding=6
-	local top=topPadding
-	local navigationMinX,navigationMaxX=12,screenWidth-12
+	local compact=touch or width<1280 or height<600
+	local shell=self.navigation.Parent
+	local reference=math.min(width/1920,height/1080,1.25)
+	local top=6
+	local left,right=12,width-12
+	local inset=GuiService.TopbarInset
 	if compact then
-		local inset=GuiService.TopbarInset
-		local hasInset=inset.Width>0 and inset.Height>0
-		local freeLeft=if hasInset then math.max(12,inset.Min.X+8) else 168
-		-- The settings target is 44px wide, 8px from the safe right edge; retain a 12px gap.
-		local freeRight=math.min(screenWidth-12,if hasInset then inset.Max.X-64 else screenWidth-64)
-		if freeRight-freeLeft>=280 then
-			navigationMinX,navigationMaxX=freeLeft,freeRight
-			top=if hasInset then math.max(topPadding,inset.Min.Y+topPadding) else topPadding
+		local freeLeft=math.max(left,inset.Min.X-shell.AbsolutePosition.X+8)
+		local freeRight=math.min(right,inset.Max.X-shell.AbsolutePosition.X-64)
+		if inset.Width>0 and freeRight-freeLeft>=380 then
+			left,right=freeLeft,freeRight
 		else
-			-- Exceptional narrow/split-screen layouts cannot safely share the native top bar.
-			top=if hasInset then inset.Max.Y+topPadding else 56
+			top=math.max(6,inset.Max.Y-shell.AbsolutePosition.Y+6)
 		end
 	end
-	local buttonHeight=math.max(64,math.floor(94*referenceScale+0.5))
-	local sideHeight=math.max(52,math.floor(72*referenceScale+0.5))
-	local toolbarGap=math.max(8,math.floor(32*referenceScale+0.5))
-	local gap=if compact then 6 else 8
-	local navigationWidth=math.min(math.max(math.floor(924*referenceScale+0.5),if compact then 520 else 660),navigationMaxX-navigationMinX)
-	local contentWidth=navigationWidth-toolbarGap*2
-	local armyFraction=if screenWidth<600 then 0.4 else 400/860
-	local armyWidth=math.floor(contentWidth*armyFraction+0.5)
-	local sideWidth=(contentWidth-armyWidth)/2
-	local navigationLeft=math.clamp(math.floor((screenWidth-navigationWidth)/2),navigationMinX,navigationMaxX-navigationWidth)
-	local navigationCenter=navigationLeft+navigationWidth/2
-	controlScale(self.navigation,1)
-	self.navigation.Size=UDim2.fromOffset(navigationWidth,buttonHeight)
-	self.navigation.AnchorPoint=Vector2.new(0,0)
-	self.navigation.Position=UDim2.fromOffset(navigationLeft/scale,top/scale)
+	local navHeight=math.max(56,math.floor(94*reference+0.5))
+	local sideHeight=math.max(48,math.floor(72*reference+0.5))
+	local gap=math.max(8,math.floor(32*reference+0.5))
+	local navWidth=math.min(math.max(924*reference,520),right-left)
+	local navLeft=math.clamp((width-navWidth)/2,left,right-navWidth)
+	self.navigation.AnchorPoint=Vector2.zero
+	self.navigation.Position=UDim2.fromScale(navLeft/width,top/height)
+	self.navigation.Size=UDim2.fromScale(navWidth/width,navHeight/height)
 	local list=self.navigation:FindFirstChildWhichIsA("UIListLayout")
-	if list then
-		list.Padding=UDim.new(0,toolbarGap)
-		list.VerticalAlignment=Enum.VerticalAlignment.Center
-	end
+	list.Padding,list.VerticalAlignment=UDim.new(gap/navWidth,0),Enum.VerticalAlignment.Center
+	local armyFraction=if width<600 then 0.36 else 400/860
+	local armyWidth=(navWidth-gap*2)*armyFraction
+	local sideWidth=(navWidth-gap*2-armyWidth)/2
 	for _,button in self.navigation:GetChildren() do
 		if button:IsA("TextButton") then
-			local isArmy=button.Name=="Army"
-			button.Size=UDim2.fromOffset(if isArmy then armyWidth else sideWidth,if isArmy then buttonHeight else sideHeight)
-			button.TextSize=if isArmy then math.clamp(math.floor(34*referenceScale+0.5),21,42)
-				else math.min(math.max(22,math.floor(42*referenceScale+0.5)),math.floor(sideWidth/4.6))
+			local army=button.Name=="Army"
+			button.Size=UDim2.fromScale((if army then armyWidth else sideWidth)/navWidth,(if army then navHeight else sideHeight)/navHeight)
+			button.TextSize=if army then math.clamp(34*reference,20,42) else math.clamp(sideWidth/4.6,18,42)
 		end
 	end
-	local statusTop=top+buttonHeight+6
-	controlScale(self.status,1)
-	self.status.Position=UDim2.fromOffset(navigationCenter/scale,statusTop/scale)
-	self.status.Size=UDim2.fromOffset(math.min(520,screenWidth-24),28)
-	self.status.TextSize=if compact then 20 else 22
-	controlScale(self.objective,1)
-	self.objective.Position=self.status.Position
-	self.objective.Size=UDim2.fromOffset(math.min(570,screenWidth-24),28)
-	self.objective.TextSize=if compact then 19 else 22
-	-- Keep the two large utility targets together and above phone movement controls.
-	local utilityTop=if screenWidth<600 then statusTop+94 else 64
-	local utilityBottom=screenHeight-136
-	local iconScale=math.clamp((utilityBottom-utilityTop-gap)/264,0.42,if compact then 0.9 else 1.1)
-	local utilityHeight=264*iconScale+gap
-	controlScale(self.shortcuts,iconScale)
-	self.shortcuts.Size=UDim2.fromOffset(136,264+gap/iconScale)
+	local statusTop=top+navHeight+6
+	for _,label in {self.status,self.objective} do
+		label.Position=UDim2.fromScale((navLeft+navWidth/2)/width,statusTop/height)
+		label.Size=UDim2.fromScale(math.min(570,width-24)/width,28/height)
+		label.TextSize=if compact then 18 else 22
+	end
+	-- Anchor the PAIR to screen center; the old fixed utilityTop made it drift on PC.
+	local utilityHeight=math.clamp(height*0.34,112,296)
+	local utilityWidth=(utilityHeight-8)*136/264
+	local center=height*0.5
+	if touch then
+		local minCenter=statusTop+32+utilityHeight/2
+		local maxCenter=height-136-utilityHeight/2
+		center=if minCenter<=maxCenter then math.clamp(center,minCenter,maxCenter) else (statusTop+28+height-116)/2
+	end
 	self.shortcuts.AnchorPoint=Vector2.new(0,0.5)
-	self.shortcuts.Position=UDim2.new(0,12/scale,0,(utilityTop+utilityHeight/2-shellTop)/scale)
+	self.shortcuts.Position=UDim2.fromScale(0.012,center/height)
+	self.shortcuts.Size=UDim2.fromScale(utilityWidth/width,utilityHeight/height)
 	for i,page in {"Shop","Index"} do
 		local button=self.shortcuts:FindFirstChild(page)
-		if button then
-			button.Size=UDim2.fromOffset(136,132)
-			button.Position=UDim2.fromOffset(0,(i-1)*(132+gap/iconScale))
-		end
+		button.Size=UDim2.fromScale(1,(utilityHeight-8)/(2*utilityHeight))
+		button.Position=UDim2.fromScale(0,(i-1)*(0.5+4/utilityHeight))
+		button.TextSize=math.clamp(utilityWidth*0.23,18,32)
 	end
-	self.save.Position=UDim2.new(1,-18,0,(if compact then 64 else top+64)/scale)
-	local narrow=screenWidth<850
-	self.money.TextSize=if narrow then 32 else 46
-	self.money.Size=UDim2.fromOffset(if narrow then 180 else 265,54)
-	self.cashIcon.Size=UDim2.fromOffset(if narrow then 70 else 96,86)
-	self.money.Position=UDim2.new(0,if narrow then 82 else 108,1,-84)
-	self.territory.Position=UDim2.new(0,if narrow then 82 else 108,1,-111)
-	self.conquered.TextSize=if narrow then 21 else 27
-	self.flock.TextSize=if narrow then 20 else 25
-	self.conquered.Size=UDim2.fromOffset(if narrow then 260 else 360,28)
-	self.flock.Size=self.conquered.Size
+	self.save.Position,self.save.Size=UDim2.fromScale(0.988,(top+navHeight+8)/height),UDim2.fromScale(math.min(200,width*0.4)/width,28/height)
+	local small=width<850
+	local moneyY=if touch then math.min(0.73,1-124/height) else 0.925
+	self.cashIcon.AnchorPoint=Vector2.new(0,0.5)
+	self.cashIcon.Position,self.cashIcon.Size=UDim2.fromScale(0.012,moneyY),UDim2.fromScale((if small then 48 else 88)/width,(if small then 46 else 80)/height)
+	self.money.AnchorPoint=Vector2.new(0,0.5)
+	self.money.Position,self.money.Size=UDim2.fromScale(0.012+(if small then 52 else 94)/width,moneyY),UDim2.fromScale(math.min(265,width*0.46)/width,54/height)
+	self.money.TextSize=if small then 28 else 46
+	self.eggLineCompact=width*0.45<420 or (touch and height<500)
+	self.eggLineWidth=if touch and height<500 then 150 else width*0.45
+	local eggHeight=if self.eggLineCompact then 44 else 24
+	self.income.TextSize=if self.eggLineCompact then 18 else 20
+	self.income.Position,self.income.Size=UDim2.fromScale(0.012,moneyY+28/height),UDim2.fromScale(0.45,eggHeight/height)
+	if touch and height<500 then
+		self.money.Size=UDim2.fromScale(144/width,54/height)
+		self.income.Position,self.income.Size=UDim2.fromScale(218/width,moneyY-10/height),UDim2.fromScale(150/width,eggHeight/height)
+	end
+	self:UpdateEggLine(self.app.state and self.app.state.eggs or {})
+	self.territory.Position,self.territory.Size=UDim2.fromScale(0.012,moneyY-48/height),UDim2.fromScale(0.48,24/height)
+	self.conquered.Position,self.flock.Position=UDim2.fromScale(0.988,if touch then 0.76 else 0.95),UDim2.fromScale(0.988,if touch then 0.76+26/height else 0.98)
+	self.conquered.Size,self.flock.Size=UDim2.fromScale(0.48,28/height),UDim2.fromScale(0.48,28/height)
+	self.conquered.TextSize,self.flock.TextSize=if small then 18 else 27,if small then 18 else 25
+end
+
+function Hud:UpdateEggLine(eggs)
+	if eggs.requiresDeposit then
+		local count=eggs.carriedCount or 0
+		local width=self.eggLineWidth or 290
+		local budget=if self.eggLineCompact then width else (width-20)/2
+		self.income.Text=EggFeedback.Fit(count,"Bag: ",if count==1 then " egg" else " eggs",budget,self.income.TextSize,false)
+			..(if self.eggLineCompact then "\n" else " · ")
+			..EggFeedback.Fit(eggs.carriedValue or 0,"Worth ","",budget,self.income.TextSize,true)
+	else self.income.Text="Yard eggs: $"..Theme.Money(eggs.value or 0) end
 end
 
 function Hud:UpdateOpening(state)
@@ -251,10 +249,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateOpening(state)
 	self:UpdateTerritory(state)
 	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.Money(value) end)
-	local eggs=state.eggs or {}
-	self.income.Text=if eggs.processor and eggs.processor.enabled then "Eggs "..Theme.Money(eggs.carriedCount or 0)
-		elseif eggs.requiresDeposit then "Eggs "..Theme.Money(eggs.carriedCount or 0).." · $"..Theme.Money(eggs.carriedValue or 0)
-		else "Yard eggs: $"..Theme.Money(eggs.value or 0)
+	self:UpdateEggLine(state.eggs or {})
 	self.flock.Text="Chickens "..count.."/"..limit
 	local atHome=state.armyState=="Home"
 	self.army.Text="My Army\n"..(if atHome then selected else deployed).."/"..capacity

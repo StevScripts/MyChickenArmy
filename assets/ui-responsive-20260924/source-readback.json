@@ -1,0 +1,46 @@
+{
+  "place": 96683186622050,
+  "running": false,
+  "scripts": [
+    {
+      "compiled": true,
+      "name": "UITheme",
+      "sha256": "8b44ffd69a02e74e0311533810e5065295c8f38029a832bfad28a6bd863d6d11"
+    },
+    {
+      "compiled": true,
+      "name": "AppController",
+      "sha256": "6f135e7890c74d39e6a78ef0de4f895773274a84d4364016547ed5f900b9205b"
+    },
+    {
+      "compiled": true,
+      "name": "HudController",
+      "sha256": "74ba4c9fa37de555f38748ea791b488a6c10da5071ecc4254ca18cbf34065251"
+    },
+    {
+      "compiled": true,
+      "name": "ChickenBrowser",
+      "sha256": "b381fe19f7fd96ea25adc11ce1c4b5234b67527a5c0fafa2a818b1846f3c9a06"
+    },
+    {
+      "compiled": true,
+      "name": "ProgressionBrowser",
+      "sha256": "9498b75e3a8af83ef5efd95a0cfac3bb41fe6278cc5dfc03ba286a6a967dc2d9"
+    },
+    {
+      "compiled": true,
+      "name": "IndexBrowser",
+      "sha256": "8fe1ebcb08f1bd3e4f85a48b5e648ee12cf8e4d526f30f3228e885c842f53def"
+    },
+    {
+      "compiled": true,
+      "name": "ShopBrowser",
+      "sha256": "76dce872b43bc772d5493ebc17b08347498f74a5cd9917b8ead7f88daff693c3"
+    },
+    {
+      "compiled": true,
+      "name": "OfflineCashController",
+      "sha256": "4de63eaeca2c8227751307557bb082d086acc9c44a65bfb551d56ae95b912e88"
+    }
+  ]
+}

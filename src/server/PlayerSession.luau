@@ -268,8 +268,8 @@ function PlayerSession:UnlockProgress()
  if earned<=self.promotion then return false end
  self.promotion,self.recruitTier=earned,earned
  -- A victory may happen while the player is rolling. Preserve that reveal and offer;
- -- ranks change combat limits, not this offer or future roll odds.
- self.banner=Progression.Get(earned).name.." reached! Higher army capacity unlocked."
+ -- Conquest ranks do not unlock cash upgrades or change roll odds.
+ self.banner=Progression.Get(earned).name.." reached!"
  self:Touch()
  return true
 end
@@ -282,11 +282,9 @@ end
 function PlayerSession:NextSlot()
  local rule=Config.SlotUnlocks[self.capacity]
  if not rule then return nil end
- local unlocked=rule.capacity<=Progression.Get(self.promotion).capacityCap
- local requiredRank=1
- while requiredRank<Progression.Count() and rule.capacity>Progression.Get(requiredRank).capacityCap do requiredRank+=1 end
- return {capacity=rule.capacity,displayCapacity=rule.capacity+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),price=rule.price,unlocked=unlocked,
-  requirement=if unlocked then "Buy one more deployment slot" else "Reach "..Progression.Get(requiredRank).name}
+ -- Deployment upgrades depend on cash and the configured track, never conquest.
+ return {capacity=rule.capacity,displayCapacity=rule.capacity+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),price=rule.price,unlocked=true,
+  requirement="Buy one more deployment slot"}
 end
 
 function PlayerSession:GlobalUpgrade(kind: string)
@@ -294,8 +292,7 @@ function PlayerSession:GlobalUpgrade(kind: string)
 	local prices=if kind=="Income" then Config.IncomePrices else Config.LuckPrices
 	local price=prices[current+1]
 	if not price then return nil end
-	local unlocked=kind=="Luck" or current+1<=self.promotion
-	return {price=price,unlocked=unlocked,requirement=if unlocked then "" else "Reach "..Progression.Get(current+1).name}
+	return {price=price,unlocked=true,requirement=""}
 end
 
 -- Compare a reveal to the best owned squad, including pending replacements while away.
@@ -351,12 +348,13 @@ function PlayerSession:Snapshot(now: number)
 	local eggProduction=self:EggProductionMultiplier()
 	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")
 	return {nextSlot=self:NextSlot(),
-		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=rank.capacityCap+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
+		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=Config.MaxSlots+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
 			levelCap=rank.levelCap,ready=false,
             goal=Progression.NextGoal(self.firstWins,self.frontierWins,self.kingCleared),
             requirement=Progression.Requirement(math.min(self.promotion+1,4)),
 			nextName=if self.promotion<Progression.Count() then Progression.Get(self.promotion+1).name else nil,
-			recruitTier=self.recruitTier,recruitName=Progression.Get(self.recruitTier).name,nextUnlock=rank.nextUnlock},
+			recruitTier=self.recruitTier,recruitName=Progression.Get(self.recruitTier).name,
+			nextUnlock=Progression.NextGoal(self.firstWins,self.frontierWins,self.kingCleared)},
 		incomeUpgrade=self:GlobalUpgrade("Income"),luckUpgrade=self:GlobalUpgrade("Luck"),
 		frontierWins=table.clone(self.frontierWins),kingCleared=self.kingCleared,
         firstWins=table.clone(self.firstWins),homeCount=#self:HomePets(),reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,

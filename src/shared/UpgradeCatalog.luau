@@ -1,5 +1,6 @@
 --!strict
 -- Board-only tracks. Existing army, income and luck prices remain in Config.
+-- No rank/camp gates. Benchmark income bands below set prices only.
 local Config = require(script.Parent.Config)
 local UpgradeCatalog = {
 	Order = {"EggSpeed", "PlotSize", "EggValue", "ArmySize", "Luck", "RollSlots"},
@@ -15,6 +16,5 @@ local UpgradeCatalog = {
 		math.floor(Config.Economy.ReferenceIncome[3] * 120),
 		math.floor(Config.Economy.ReferenceIncome[4] * 120),
 	},
-	RollSlotRanks = {1, 1, 2, 3, 4},
 }
 return UpgradeCatalog

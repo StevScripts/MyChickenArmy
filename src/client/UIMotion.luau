@@ -117,6 +117,8 @@ function Motion:Shine(face)
 		gradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.38,1),NumberSequenceKeypoint.new(0.5,0.66),NumberSequenceKeypoint.new(0.62,1),NumberSequenceKeypoint.new(1,1)})
 		gradient.Parent=shine;shine.Parent=face
 	end
+	-- Authored world/shop faces can sit above the default UITheme layers.
+	shine.ZIndex=face.ZIndex+2
 	shine.Visible=true
 	local gradient=shine.UIGradient
 	self:Cancel(gradient,"shine");gradient.Offset=Vector2.new(-1,0)
@@ -217,16 +219,23 @@ function Motion:ClosePanel(panel,backdrop,complete)
 	end)
 end
 
-function Motion:Toast(frame,show,target)
+function Motion:Toast(frame,show,target,quiet)
 	target=target or (if show then UDim2.new(0.5,0,1,-140) else frame.Position)
 	self:Cancel(frame,"toast")
+	self:Cancel(frame,"toast-fade")
 	if show then
+		local entering=not frame.Visible
 		frame.Visible=true
-		frame.Position=target+UDim2.fromOffset(0,16)
-		self:Pop(frame,0.94)
+		frame.Position=if entering and not self.reduced then target+UDim2.fromOffset(0,6) else frame.Position
+		if frame:IsA("CanvasGroup") then
+			if not quiet then frame.GroupTransparency=1 end
+			self:Tween(frame,"toast-fade",{GroupTransparency=0},0.14)
+		end
 		self:Tween(frame,"toast",{Position=target},0.18)
 	else
-		self:Tween(frame,"toast",{Position=target+UDim2.fromOffset(0,12)},0.12,nil,nil,function() frame.Visible=false end)
+		if frame:IsA("CanvasGroup") then
+			self:Tween(frame,"toast-fade",{GroupTransparency=1},0.16,nil,nil,function() frame.Visible=false end)
+		else frame.Visible=false end
 	end
 end
 

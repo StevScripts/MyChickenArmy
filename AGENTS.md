@@ -2,6 +2,9 @@
 
 This repository is the code source of truth starting with the September 24, 2026 Rojo migration. Read README.md and docs/CODE_MAP.md first. The legacy pet-roll-prototype tree under Documents/ChatGPT/RobloxGameIdeas is historical; do not copy its scripts over these files without comparing changes.
 
+## Upgrade rule — never gate upgrades behind camps
+All available cash upgrades are purchasable from the start when the player can afford them. Egg Speed, Egg Value, Plot Size, Army Size, Luck, Roll Slots and Selling Speed must not require visiting/conquering another camp, earning a rank, or reaching the King. This explicit September 25 user correction supersedes historical rank/camp gates in code, docs, tests and handoffs; never reintroduce them during UI work or balancing. Preserve configured track maxima, prices, server validation and physical plot/podium limits unless separately changed. Camp-route/King access and disabled merging remain separate. Read `docs/UPGRADE_RULES.md` for the authoritative rule.
+
 Edit code in this repository and sync with Rojo. Do not simultaneously write mapped scripts through Studio MCP; Rojo can overwrite those edits. Use Studio Flow for readback and asset work. Canonical Pet Roll Test place ID: 96683186622050. Check its identity and Edit state before connecting. Do not publish or push to a GitHub remote without user authorization.
 
 The map, rigs, assets, world settings, saved profiles and builder geometry remain Studio-owned. The default Rojo project owns only the existing named code containers and two bootstraps. Preserve `$ignoreUnknownInstances` and the place-ID allowlist. Do not load a scripts-only build over the existing place or treat it as a map backup.

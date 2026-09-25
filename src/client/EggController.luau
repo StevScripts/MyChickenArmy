@@ -2,19 +2,26 @@
 -- Local pickup presentation. Proximity, egg value and payment remain on the server.
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
+local TweenService=game:GetService("TweenService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Feel=require(Shared.CollectionFeel)
 local ShopCatalog=require(Shared.ShopCatalog)
 local Motion=require(Shared.EggMotion)
 local EggView=require(script.Parent.EggView)
+local Feedback=require(script.Parent.EggFeedback)
 local VacuumController=require(script.Parent.VacuumController)
 local Theme=require(script.Parent.UITheme)
 local Eggs={}
 Eggs.__index=Eggs
+-- Presentation-only budgets; collection distance and server timing stay in Config.
+local CAPTION_DISTANCE,CAPTION_LIMIT,CAPTION_REFRESH=22,3,0.15
+local POPUP_HOLD,POPUP_FADE,POPUP_LIFT=0.7,0.4,0.5
+local POPUP_OFFSET=Vector3.new(0,3.7,0)
 
 function Eggs.new(app)
- return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,total=0},Eggs)
+ return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,
+  totalCount=0,totalValue=0,popupTweens={}},Eggs)
 end
 
 function Eggs:Root()
@@ -27,11 +34,15 @@ function Eggs:Start()
  self.vacuum=VacuumController.new(self.app,self.folder)
  self:CreateCollectionRange()
  self.popup=Instance.new("BillboardGui")
- self.popup.Name="EggPickup";self.popup.Size=UDim2.fromOffset(230,52)
- self.popup.StudsOffset=Vector3.new(0,3.7,0);self.popup.AlwaysOnTop=true
+ self.popup.Name="EggPickup";self.popup.Size=UDim2.fromOffset(300,64)
+ self.popup.StudsOffset=POPUP_OFFSET;self.popup.AlwaysOnTop=true
  self.popup.MaxDistance=65;self.popup.Enabled=false;self.popup.Parent=self.app.gui
  self.label=Theme.Label(self.popup,"Value","",30,Theme.Arcade.gold)
- self.label.Size=UDim2.fromScale(1,1);self.label.TextXAlignment=Enum.TextXAlignment.Center
+ self.label.Size=UDim2.new(1,0,0,34);self.label.TextXAlignment=Enum.TextXAlignment.Center
+ self.label.TextWrapped=false
+ self.worth=Theme.Label(self.popup,"Worth","",21)
+ self.worth.Position,self.worth.Size=UDim2.fromOffset(0,34),UDim2.new(1,0,0,26)
+ self.worth.TextXAlignment,self.worth.TextWrapped=Enum.TextXAlignment.Center,false
  self.connection=RunService.RenderStepped:Connect(function() self:Step(os.clock()) end)
 end
 
@@ -105,13 +116,58 @@ function Eggs:Feedback(id,value,count,receipt)
   self.vacuum:Pickup(receipt,now)
   return
  end
- if now-self.lastPickup>Feel.Egg.ComboReset then self.total=0 end
- self.total+=if self.requiresDeposit then count or 1 else value;self.lastPickup=now
  local root=self:Root()
- if root then
-  self.popup.Adornee=root;self.popup.Enabled=true
-  self.label.Text=if self.requiresDeposit then "+"..Theme.Money(self.total).." eggs" else "+$"..Theme.Money(self.total)
+ if not root then return end
+ if now-self.lastPickup>Feel.Egg.ComboReset or self.popupDeposit~=self.requiresDeposit then
+  self.totalCount,self.totalValue=0,0
  end
+ self.totalCount+=count or 1;self.totalValue+=value
+ self.lastPickup,self.popupDeposit=now,self.requiresDeposit
+ if not self.popup.Enabled or self.popup.Adornee~=root then self.popup.StudsOffset=POPUP_OFFSET end
+ self.popup.Adornee,self.popup.Enabled=root,true
+ self.label.Text=if self.requiresDeposit then Feedback.Fit(self.totalCount,"+",if self.totalCount==1 then " egg" else " eggs",300,30,false)
+  else Feedback.Fit(self.totalValue,"+","",300,30,true)
+ self.worth.Text,self.worth.Visible=Feedback.Fit(self.totalValue,"Worth ","",300,21,true),self.requiresDeposit
+ for _,label in {self.label,self.worth} do label.TextTransparency=0;label.TextOutline.Transparency=0 end
+ self:AnimatePopup(now)
+end
+
+function Eggs:CancelPopupTweens()
+ if self.popupDone then self.popupDone:Disconnect();self.popupDone=nil end
+ for _,tween in self.popupTweens do tween:Cancel();tween:Destroy() end
+ table.clear(self.popupTweens)
+end
+
+function Eggs:HidePopup()
+ self:CancelPopupTweens()
+ self.popup.Enabled=false
+end
+
+function Eggs:AnimatePopup(now)
+ self:CancelPopupTweens()
+ local since=now-self.lastPickup
+ local remaining=POPUP_HOLD+POPUP_FADE-since
+ if remaining<=0 then self.popup.Enabled=false;return end
+ self.popupReduced=self.app.reducedMotion
+ local function tween(target,info,properties)
+  local animation=TweenService:Create(target,info,properties)
+  table.insert(self.popupTweens,animation)
+  return animation
+ end
+ if self.popupReduced then self.popup.StudsOffset=POPUP_OFFSET
+ else tween(self.popup,TweenInfo.new(remaining,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+  {StudsOffset=POPUP_OFFSET+Vector3.new(0,POPUP_LIFT,0)}) end
+ local fade=TweenInfo.new(math.min(POPUP_FADE,remaining),Enum.EasingStyle.Quad,Enum.EasingDirection.Out,
+  0,false,math.max(0,POPUP_HOLD-since))
+ local finish
+ for _,label in {self.label,self.worth} do
+  finish=tween(label,fade,{TextTransparency=1})
+  tween(label.TextOutline,fade,{Transparency=1})
+ end
+ self.popupDone=finish.Completed:Connect(function(state)
+  if state==Enum.PlaybackState.Completed then self:HidePopup() end
+ end)
+ for _,animation in self.popupTweens do animation:Play() end
 end
 
 function Eggs:PickupCue(collector,now)
@@ -134,6 +190,7 @@ function Eggs:StartFlight(view,now)
  self.batchFlights=(self.batchFlights or 0)+1
  view.flightAt=now+stagger;view.flightStart=view.position
  view.lastStep=now;view.trail.Enabled=false
+ view.caption.Enabled=false
 end
 
 function Eggs:Receive(snapshot)
@@ -144,7 +201,8 @@ function Eggs:Receive(snapshot)
  if self.generation~=snapshot.generation then
   for _,view in self.views do view:Destroy() end
   table.clear(self.views);table.clear(self.feedback);table.clear(self.finishedFlights)
-  self.generation=snapshot.generation;self.popup.Enabled=false;self.total=0;self.lastPickup=0
+  self.generation=snapshot.generation;self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
+  self.nextCaptionAt=nil;self.popupDeposit=nil
   self.lastDeposit=nil;self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
   self.app.feedback:ResetCollections()
   self.vacuum:Clear()
@@ -200,11 +258,40 @@ function Eggs:Receive(snapshot)
  end
 end
 
+function Eggs:StepCaptions(root,camera,now)
+ if root and camera and now<(self.nextCaptionAt or 0) then return end
+ self.nextCaptionAt=now+CAPTION_REFRESH
+ local nearest={}
+ for _,view in self.views do
+  view.caption.Enabled=false
+  if not root or not camera or view.flightAt or now-view.bornAt<Config.EggSettleSeconds then continue end
+  local distance=(root.Position-view.ground).Magnitude
+  if distance>CAPTION_DISTANCE then continue end
+  local point,onScreen=camera:WorldToViewportPoint(view.ground+view.caption.StudsOffset)
+  if onScreen then table.insert(nearest,{view=view,distance=distance,point=point}) end
+ end
+ table.sort(nearest,function(a,b)
+  return if a.distance==b.distance then a.view.seed<b.view.seed else a.distance<b.distance
+ end)
+ local shown={}
+ for _,candidate in nearest do
+  local overlap=false
+  for _,point in shown do
+   if math.abs(point.X-candidate.point.X)<164 and math.abs(point.Y-candidate.point.Y)<34 then overlap=true;break end
+  end
+  if not overlap then
+   candidate.view.caption.Enabled=true;table.insert(shown,candidate.point)
+   if #shown>=CAPTION_LIMIT then break end
+  end
+ end
+end
+
 function Eggs:Step(now)
  local root=self:Root()
  self.vacuum:Step(now)
  self:StepCollectionRange(root,now)
  local camera=workspace.CurrentCamera
+ self:StepCaptions(root,camera,now)
  for id,view in self.views do
   local age=now-view.bornAt
   if not view.flightAt and age>=Config.EggSettleSeconds and camera
@@ -241,12 +328,10 @@ function Eggs:Step(now)
    view:Set(view.ground+Vector3.new(0,bob,0),size,0,view.seed)
   end
  end
- local since=now-self.lastPickup
  if self.popup.Enabled then
-  self.popup.Enabled=since<1.1 and root~=nil
-  self.popup.StudsOffset=Vector3.new(0,3.7+math.min(since,1)*0.5,0)
-  self.label.TextTransparency=math.clamp((since-0.65)/0.45,0,1)
-  self.label.TextOutline.Transparency=self.label.TextTransparency
+  if not root or self.popup.Adornee~=root then
+   self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
+  elseif self.popupReduced~=self.app.reducedMotion then self:AnimatePopup(now) end
  end
  for id,at in self.feedback do if now-at>10 then self.feedback[id]=nil end end
  for id,at in self.finishedFlights do if now-at>10 then self.finishedFlights[id]=nil end end
@@ -254,6 +339,7 @@ end
 
 function Eggs:Destroy()
  if self.connection then self.connection:Disconnect() end
+ self:CancelPopupTweens()
  if self.vacuum then self.vacuum:Destroy() end
  for _,view in self.views do view:Destroy() end
  table.clear(self.views)

@@ -39,6 +39,8 @@ Theme.ActionColors = {
 	navigation=Theme.Arcade.blue, purchase=Theme.Arcade.green, sell=Theme.Arcade.sell,
 	danger=Theme.Arcade.red, disabled=Palette.Disabled, selected=Palette.Rewards,
 }
+-- Opt-in cash affordability feedback for the yard and egg-collection upgrades.
+Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color3.fromRGB(92,92,92))
 Theme.Assets = {
 	Cash="rbxassetid://101788696120931", Studs="rbxassetid://93331178043153",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
@@ -46,6 +48,23 @@ Theme.Assets = {
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
 }
 Theme.Rarities = Palette.Rarities
+-- Background-free simulator feedback: bold status-colored text and a clear outline.
+Theme.NotificationStyles = {
+	success={symbol="✓",color=Color3.fromRGB(112,222,98)},
+	error={symbol="×",color=Color3.fromRGB(255,120,132)},
+	warning={symbol="!",color=Color3.fromRGB(244,194,71)},
+	info={symbol="i",color=Theme.Arcade.blue:Lerp(Palette.Text,0.35)},
+	pending={symbol="…",color=Palette.Muted},
+}
+
+function Theme.SetNotification(label, text, kind)
+	local style=Theme.NotificationStyles[kind] or Theme.NotificationStyles.info
+	-- Names remain literal; color the full message so status reads at a glance.
+	local escaped=text:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;")
+	label.TextColor3=style.color
+	label.Text=style.symbol.."  "..escaped
+	label:SetAttribute("PlainText",style.symbol.."  "..text)
+end
 
 function Theme.Round(item, radius)
 	local corner = item:FindFirstChildWhichIsA("UICorner") or Instance.new("UICorner")
@@ -212,10 +231,26 @@ function Theme.Label(parent, name, text, size, color)
 	outline.Enabled = not lightSurface
 	outline.Parent=label
 	label:GetPropertyChangedSignal("TextSize"):Connect(function()
-		outline.Thickness=math.clamp(label.TextSize*0.068,1.25,4)
+		outline.Thickness=label:GetAttribute("OutlineThickness") or math.clamp(label.TextSize*0.068,1.25,4)
 	end)
 	label.Parent = parent
 	return label
+end
+
+function Theme.Notification(parent)
+	local group=Instance.new("CanvasGroup")
+	group.Name,group.Size="Notification",UDim2.fromOffset(720,80)
+	group.BackgroundTransparency,group.BorderSizePixel=1,0
+	group.Active,group.Visible,group.ZIndex=false,false,20
+	group.AnchorPoint,group.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.24)
+	group.Parent=parent
+	local label=Theme.Label(group,"Toast","",34,Theme.Colors.ink)
+	label:SetAttribute("OutlineThickness",3)
+	label.TextOutline.Thickness=3
+	label.Position,label.Size=UDim2.fromOffset(12,8),UDim2.new(1,-24,1,-16)
+	label.RichText,label.TextXAlignment,label.TextYAlignment=true,Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
+	label.Active=false
+	return group,label
 end
 
 function Theme.Button(parent, name, text, callback, color)
@@ -299,7 +334,7 @@ function Theme.IconButton(parent,name,text,asset,callback)
 	button.Font,button.TextSize,button.TextColor3=Theme.Font,31,Theme.Colors.ink
 	local visual=Theme.Frame(button,"Visual",UDim2.fromScale(1,1))
 	visual.AnchorPoint,visual.Position,visual.BackgroundTransparency=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),1
-	local shade=Theme.Frame(visual,"LabelShade",UDim2.fromOffset(160,160))
+	local shade=Theme.Frame(visual,"LabelShade",UDim2.fromScale(160/136,160/132))
 	shade.AnchorPoint,shade.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.58)
 	shade.BackgroundTransparency,shade.ZIndex=1,1
 	-- Circular alpha layers fade in every direction, with no rectangular edge.
@@ -315,9 +350,9 @@ function Theme.IconButton(parent,name,text,asset,callback)
 		Theme.Round(disk).CornerRadius=UDim.new(0.5,0)
 		previousOpacity=opacity
 	end
-	local icon=Theme.Image(visual,"Icon",asset,UDim2.fromOffset(124,102),UDim2.fromOffset(6,-2))
+	local icon=Theme.Image(visual,"Icon",asset,UDim2.fromScale(124/136,102/132),UDim2.fromScale(6/136,-2/132))
 	local caption=Theme.Label(visual,"Label",text,31)
-	caption.Position,caption.Size,caption.TextXAlignment=UDim2.fromOffset(0,94),UDim2.new(1,0,0,36),Enum.TextXAlignment.Center
+	caption.Position,caption.Size,caption.TextXAlignment=UDim2.fromScale(0,94/132),UDim2.fromScale(1,36/132),Enum.TextXAlignment.Center
 	local function sync()
 		caption.Text,caption.TextSize=button.Text,button.TextSize
 		caption.TextColor3=if button.Active then button.TextColor3 else Palette.Muted

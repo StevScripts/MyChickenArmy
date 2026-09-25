@@ -22,7 +22,8 @@ function LiveBattleActors:Adopt(unit,actor)
  local existing=self.actors[unit.id]
  if existing and existing~=actor then existing:Destroy() end
  actor:Stop()
- actor.model.Name,actor.model.Parent=unit.id,self.folder
+ actor.model.Name=unit.id
+ actor:SetParent(self.folder)
  actor.model:SetAttribute("AtHome",false)
  actor.model:SetAttribute("Recruiting",false)
  actor.model:SetAttribute("InArmy",true)
@@ -99,6 +100,8 @@ function LiveBattleActors:Respawn(unit,x,z)
  local position=spawnFoot(x or unit.entryX,z or unit.entryZ)+Vector3.new(0,footOffset,0)
  actor.model:PivotTo(CFrame.new(position)*actor.root.CFrame.Rotation)
  actor.root.AssemblyLinearVelocity,actor.root.AssemblyAngularVelocity=Vector3.zero,Vector3.zero
+ actor.safeFoot=spawnFoot(x or unit.entryX,z or unit.entryZ)
+ actor.healthPosition,actor.healthAt=actor.safeFoot,os.clock()
  actor.model:SetAttribute("Defeated",false)
  PetView.Health(actor.model,1)
 end

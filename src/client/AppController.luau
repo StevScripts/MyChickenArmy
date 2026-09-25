@@ -5,6 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
+local TextService = game:GetService("TextService")
 local Shared = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
@@ -14,6 +15,7 @@ local Theme = require(script.Parent.UITheme)
 local AudioController = require(script.Parent.AudioController)
 local ActionFeedback = require(script.Parent.ActionFeedback)
 local EggController = require(script.Parent.EggController)
+local EggFeedback = require(script.Parent.EggFeedback)
 local HudController = require(script.Parent.HudController)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
@@ -35,7 +37,7 @@ local C = Theme.Colors
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
 		confirm = nil, panelKey = "", reducedMotion = false, toastSerial = 0, alive = true,
-		recruitIntents = {}, recruitReceipts = {}}, AppController)
+		recruitIntents = {}, recruitReceipts = {}, productionRequests = {}, productionReceipts = {}}, AppController)
 	self.audio = AudioController.new()
 	self.feedback = ActionFeedback.new(self)
 	self.eggs = EggController.new(self)
@@ -53,6 +55,15 @@ function AppController:Request(action, payload)
 	self.requestId += 1
 	local request = payload or {}
 	request.action, request.id = action, self.requestId
+	local productionKey=if action=="Income" then "EggValue" elseif action=="BoardUpgrade" then request.upgradeKey else nil
+	if productionKey=="EggValue" or productionKey=="EggSpeed" then
+		local offer=self.state and self.state.boardUpgrades and self.state.boardUpgrades[productionKey]
+		if offer then
+			-- Keep the displayed server offer with this request; the reply has no upgrade key.
+			self.productionRequests[request.id]={key=productionKey,level=offer.level,currentText=offer.currentText,
+				expiresAt=os.clock()+30}
+		end
+	end
 	self.remotes.RequestAction:FireServer(request)
 	return self.requestId
 end
@@ -60,16 +71,42 @@ end
 
 function AppController:NoticePosition()
 	-- Menu feedback sits over the dimmed HUD, away from purchase controls.
-	return if self.panel.Visible then UDim2.new(0.5,0,0,82) else UDim2.new(0.5,0,1,-140)
+	local height=self.gui.AbsoluteSize.Y
+	local noticeHeight=self.toastFrame.Size.Y.Scale*height+self.toastFrame.Size.Y.Offset
+	local top=math.max(if self.panel.Visible then 82 else height*0.24,noticeHeight+12)
+	return UDim2.new(0.5,0,0,top)
+end
+
+function AppController:SizeNotice()
+	local available=self.gui.AbsoluteSize
+	if available.X<=0 or available.Y<=0 then return end
+	local width=math.max(48,math.min(720,available.X-24))
+	local compact=available.X<700 or available.Y<500
+	local outline=if compact then 2.5 else 3
+	self.toast:SetAttribute("OutlineThickness",outline)
+	self.toast.TextSize=if compact then 28 else 34
+	self.toast.TextOutline.Thickness=outline
+	local bounds=TextService:GetTextSize(self.toast:GetAttribute("PlainText") or "",self.toast.TextSize,
+		self.toast.Font,Vector2.new(width-24,10000))
+	-- Wrap naturally instead of shrinking text or clipping two-line receipts.
+	self.toastFrame.Size=UDim2.fromScale(width/available.X,math.max(52,bounds.Y+24)/available.Y)
 end
 
 function AppController:Notify(text, ok)
 	if not text or text == "" then return end
+	local kind=if type(ok)=="string" and Theme.NotificationStyles[ok] then ok
+		elseif ok==false then "error" elseif ok==true then "success" else "info"
+	local repeated=self.toastFrame.Visible and self.noticeText==text and self.noticeKind==kind
+	self.noticeText,self.noticeKind=text,kind
 	self.toastSerial += 1
 	local serial = self.toastSerial
-	self.toast.Text, self.toast.TextColor3 = text, if ok == false then C.red else C.ink
-	Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition())
-	task.delay(if ok == false then 5 else 2, function()
+	Theme.SetNotification(self.toast,text,kind)
+	self:SizeNotice()
+	Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),repeated)
+	if self.toastDelay then task.cancel(self.toastDelay) end
+	local duration=math.clamp(#text/24+1,if kind=="error" or kind=="warning" then 5 else 4,8)
+	self.toastDelay=task.delay(duration, function()
+		self.toastDelay=nil
 		if self.alive and serial == self.toastSerial then Theme.Motion:Toast(self.toastFrame,false) end
 	end)
 end
@@ -78,6 +115,25 @@ function AppController:Pet(id)
 	if not self.state or not id then return nil end
 	for _, pet in self.state.pets do if pet.id == id then return pet end end
 	return nil
+end
+
+function AppController:TrackProductionUpgrade(result)
+	if result.action~="BoardUpgrade" and result.action~="Income" then return false end
+	if self.productionReceipts[result.id] then return true,false end
+	local requested=self.productionRequests[result.id]
+	if not requested then return false end
+	self.productionRequests[result.id]=nil
+	if not result.ok then return false end
+	self.productionReceipts[result.id]=os.clock()+600
+	local offer=self.state.boardUpgrades and self.state.boardUpgrades[requested.key]
+	if not offer or offer.level~=requested.level+1 then
+		self:Notify(result.message,true)
+		return true,true
+	end
+	local name=if requested.key=="EggSpeed" then "Egg Speed" else "Egg Value"
+	local benefit=if requested.key=="EggSpeed" then "Each chicken lays more often" else "New eggs are worth more"
+	self:Notify(name..": "..requested.currentText.." → "..offer.currentText.."\n"..benefit,true)
+	return true,true
 end
 
 -- Purchase classification describes selection, not a bird arriving at a battle.
@@ -98,15 +154,27 @@ function AppController:TrackRecruit(result)
 		pendingBattleId = recruit.pendingBattleId, deferred = recruit.deferredUntilContestEnds == true,
 		selectedOnce = assignment ~= "Reserve",
 		homeAcknowledged = false, arrivalAcknowledged = false, contributionAcknowledged = false}
-	local text
+	local classification
 	if assignment == "Reserve" then
-		text = name .. " · yard eggs +$" .. Theme.Money(pet and pet.income or 0) .. "/s"
+		classification = "Reserve"
 	else
-		text = if assignment == "Added" and type(recruit.selectedBefore) == "number" and type(recruit.selectedAfter) == "number"
-			then "Squad " .. recruit.selectedBefore .. " → " .. recruit.selectedAfter else "Stronger chicken selected"
-		if recruit.deferredUntilContestEnds then text ..= " · joins after this contest"
-		elseif recruit.pendingBattleId then text ..= " · marching" end
+		classification = if assignment == "Added" and type(recruit.selectedBefore) == "number" and type(recruit.selectedAfter) == "number"
+			then "Squad " .. recruit.selectedBefore .. " → " .. recruit.selectedAfter else assignment
+		if recruit.deferredUntilContestEnds then classification ..= " · joins after this contest"
+		elseif recruit.pendingBattleId then classification ..= " · marching" end
 	end
+	-- Per-bird potential, not a promise of net home income or cash paid immediately.
+	local identity=name
+	if pet and type(pet.income)=="number" then
+		local width=math.max(1,self.toast.AbsoluteSize.X)
+		identity=EggFeedback.Fit(pet.income,name.." · eggs ","/s at home",width,self.toast.TextSize,true,true)
+		if EggFeedback.Width(identity,self.toast.TextSize)>width then
+			identity=EggFeedback.Fit(pet.income,name.." · ","/s at home",width,self.toast.TextSize,true,true)
+		end
+		-- Preserve identity and assignment if a very narrow viewport cannot fit the optional rate.
+		if EggFeedback.Width(identity,self.toast.TextSize)>width then identity=name end
+	end
+	local text=identity.."\n"..classification
 	self:Notify(text, true)
 	self.feedback:Action("Buy")
 	-- Bound presentation history independently of inventory size.
@@ -123,6 +191,8 @@ function AppController:StepRecruitFeedback()
 	if not self.state then return end
 	local now = os.clock()
 	for id, expires in self.recruitReceipts do if now >= expires then self.recruitReceipts[id] = nil end end
+	for id, expires in self.productionReceipts do if now >= expires then self.productionReceipts[id] = nil end end
+	for id, request in self.productionRequests do if now >= request.expiresAt then self.productionRequests[id] = nil end end
 	for id, intent in self.recruitIntents do
 		local pet = self:Pet(id)
 		if now >= intent.expiresAt or not pet then self.recruitIntents[id] = nil;continue end
@@ -255,13 +325,13 @@ function AppController:BuildUI()
 	gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "PetRollGui", false, Enum.ZIndexBehavior.Sibling
 	-- The backdrop covers the viewport; the HUD reserves horizontal space for Roblox controls.
 	gui.IgnoreGuiInset = true
-	gui.ScreenInsets = Enum.ScreenInsets.None
+	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 	gui.DisplayOrder, gui.Parent = 5, playerGui
 	self.gui = gui
 	local shell = Theme.Frame(gui,"Shell",UDim2.fromScale(1,1))
 	shell.BackgroundTransparency=1
-	local scale=Instance.new("UIScale");scale.Parent=shell
+	-- Keep screen coordinates in rendered pixels; each menu owns its content layout.
 	self.hud=HudController.new(self,shell)
 	local backdrop=Theme.Frame(shell,"Backdrop",UDim2.fromScale(1,1),C.dark)
 	backdrop.BackgroundTransparency,backdrop.Visible,backdrop.Active=0.44,false,true
@@ -284,6 +354,7 @@ function AppController:BuildUI()
 	content.Name,content.Position,content.Size="Content",UDim2.fromOffset(20,114),UDim2.new(1,-40,1,-134)
 	content.BackgroundTransparency,content.BorderSizePixel,content.ZIndex=1,0,2
 	content.ScrollBarThickness,content.ScrollBarImageColor3=6,Theme.Arcade.green
+	content.VerticalScrollBarInset=Enum.ScrollBarInset.Always
 	content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.Y,UDim2.new(),panel
 	local padding=Instance.new("UIPadding")
 	padding.PaddingLeft,padding.PaddingTop,padding.PaddingBottom=UDim.new(0,6),UDim.new(0,5),UDim.new(0,10)
@@ -298,26 +369,18 @@ function AppController:BuildUI()
 	self.indexBrowser=IndexBrowser.new(self,panel)
 	self.progression:Mount(panel)
 	table.insert(self.connections,list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() self:FitPanel() end))
-	self.toastFrame=Theme.Frame(shell,"Notification",UDim2.fromOffset(420,64))
-	Theme.Surface(self.toastFrame)
-	self.toastFrame.AnchorPoint,self.toastFrame.Position=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-140)
-	self.toastFrame.Visible,self.toastFrame.ZIndex=false,20
-	self.toast=Theme.Label(self.toastFrame,"Toast","",21)
-	self.toast.Position,self.toast.Size,self.toast.TextXAlignment=UDim2.fromOffset(14,7),UDim2.new(1,-28,1,-14),Enum.TextXAlignment.Center
+	self.toastFrame,self.toast=Theme.Notification(shell)
 	local function resize()
 		local available=gui.AbsoluteSize
 		if available.X<=0 or available.Y<=0 then return end
-		-- Fit the complete design to both axes. Wide, short windows must not enlarge menus.
-		-- The 1120 x 660 menu occupies at most 76% x 77% of the viewport.
-		local factor=math.min(available.X/1480,available.Y/860,1.1)
-		local width,height=available.X/factor,available.Y/factor
-		scale.Scale,shell.Size=factor,UDim2.fromScale(1/factor,1/factor)
-		self.uiScale,self.panelMaxHeight=factor,math.max(200,math.min(660,height-32))
-		self.panelMaxWidth=math.min(1120,width-40)
-		panel.Size=UDim2.fromOffset(self.panelMaxWidth,self.panelMaxHeight)
+		local width,height=available.X,available.Y
+		self.uiScale=1
+		self.panelMaxHeight=math.min(740,height-24)
+		self.panelMaxWidth=math.min(1120,width-24)
 		self:FitPanel()
-		self.hud:Resize(width,height,factor)
-		self.toastFrame.Size=UDim2.fromOffset(math.min(420,width-32),64)
+		self.hud:Resize(width,height,1)
+		self:SizeNotice()
+		if self.toastFrame.Visible then Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),true) end
 		if self.state and self.panel.Visible then self:RenderPanel(true) end
 	end
 	table.insert(self.connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize))
@@ -326,39 +389,39 @@ end
 
 function AppController:FitPanel()
 	if not self.contentLayout or not self.panelMaxHeight then return end
-	if self.page=="Merge" then
-		self.panel.Size=UDim2.fromOffset(math.min(860,self.panelMaxWidth),math.min(510,self.panelMaxHeight));return
-	end
-	if self.page=="Shop" then
-		-- Match the current linked Figma viewport, not the archived responsive shell.
-		local available=self.gui.AbsoluteSize
-		local factor=math.max(self.uiScale or 1,0.1)
-		local fit=math.max(0.01,math.min(1,available.X*0.90/1080,(available.X-24)/1080,
-			available.Y*0.90/740,(available.Y-24)/740))
-		self.panel.Size=UDim2.fromOffset(1080*fit/factor,740*fit/factor)
-		return
-	end
+	local available=self.gui.AbsoluteSize
+	if available.X<=0 or available.Y<=0 then return end
+	local width=math.min(self.panelMaxWidth,available.X*0.94)
+	local height=math.min(self.panelMaxHeight,available.Y*0.92)
 	if self.page=="Army" then
-		-- Current Figma 221:2294: one scale, fixed four-column landscape layout.
-		local available=self.gui.AbsoluteSize
-		local factor=math.max(self.uiScale or 1,0.1)
-		local fit=math.max(0.01,math.min(1.1,(available.X-24)/1536,available.X*0.96/1536,
-			(available.Y-24)/1024,available.Y*0.94/1024))
-		self.panel.Size=UDim2.fromOffset(1536*fit/factor,1024*fit/factor)
-		return
+		local fit=math.min(1.1,(available.X-24)/1536,available.X*0.96/1536,
+			(available.Y-24)/1024,available.Y*0.94/1024)
+		self.armyCompact=fit<0.8
+		if not self.armyCompact then width,height=1536*fit,1024*fit end
+	elseif self.page=="Shop" then
+		width=math.min(1080,width)
+	elseif self.page=="Upgrades" then
+		height=math.min(660,height)
+	elseif self.page=="Merge" then
+		width,height=math.min(860,width),math.min(510,height)
+	elseif self.page~="Index" then
+		width=math.min(760,width)
+		local motion=math.max(self.panelMotionScale.Scale,0.01)
+		local contentHeight=self.contentLayout.AbsoluteContentSize.Y/motion
+		height=math.min(height,math.max(300,math.ceil(contentHeight)+94))
 	end
-	if self.page=="Upgrades" then
-		-- Figma 7:676 at the established, uniformly fitted menu scale.
-		self.panel.Size=UDim2.fromOffset(1120,660)
-		return
-	end
-	if self.page=="Index" then
-		self.panel.Size=UDim2.fromOffset(self.panelMaxWidth,self.panelMaxHeight)
-		return
-	end
-	local contentHeight=self.contentLayout.AbsoluteContentSize.Y/((self.uiScale or 1)*self.panelMotionScale.Scale)
-	local height=math.min(self.panelMaxHeight,math.max(300,math.ceil(contentHeight)+150))
-	self.panel.Size=UDim2.fromOffset(self.panelMaxWidth,height)
+	self.panelWidth,self.panelHeight=width,height
+	self.panel.Size=UDim2.fromScale(width/available.X,height/available.Y)
+	-- Shared Index/Settings/Odds shell: fixed readable header, flexible scrolling body.
+	self.panelHeader.Size=UDim2.new(1,0,0,60)
+	self.panelHeader.PageIcon.Size,self.panelHeader.PageIcon.Position=UDim2.fromOffset(48,48),UDim2.fromOffset(8,6)
+	self.panelTitle.TextSize=32
+	self.panelTitle.Position=UDim2.fromOffset(if self.panelHeader.PageIcon.Visible then 64 else 16,0)
+	self.panelTitle.Size=UDim2.new(1,if self.panelHeader.PageIcon.Visible then -128 else -80,1,0)
+	self.closeButton.Size,self.closeButton.Position,self.closeButton.TextSize=UDim2.fromOffset(52,52),UDim2.new(1,-56,0,4),32
+	self.panelBody.Position,self.panelBody.Size=UDim2.fromOffset(0,68),UDim2.new(1,0,1,-68)
+	self.content.Position,self.content.Size=UDim2.fromOffset(12,80),UDim2.new(1,-24,1,-92)
+	self.indexBrowser.root.Position,self.indexBrowser.root.Size=UDim2.fromOffset(12,80),UDim2.new(1,-24,1,-92)
 end
 
 function AppController:ClearPanel()
@@ -562,6 +625,8 @@ function AppController:Receive(packet)
 	local result = packet.result
 	if result and not self.mergeBrowser and (result.action=="OpenMerge" or result.action=="Merge" or result.action=="MergeAll") then result=nil end
 	local shownRecruit, newRecruit = false, false
+	local shownProduction,newProduction=false,false
+	if result then shownProduction,newProduction=self:TrackProductionUpgrade(result) end
 	self.chickenBrowser:Receive(result)
 	if self.mergeBrowser then self.mergeBrowser:Receive(result) end
 	self.commerce:Receive(result)
@@ -571,14 +636,15 @@ function AppController:Receive(packet)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" then
 		local shownInMerge=result.action=="OpenMerge" or ((result.action=="Merge" or result.action=="MergeAll") and self.page=="Merge" and self.panel.Visible)
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
-  if not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
+  if not shownProduction and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
 		if result.ok and (result.action == "Merge" or result.action == "MergeAll") then
 			self.base:PetPulse(result.petId,C.gold)
 		end
-		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand") then self.feedback:Action(result.action) end
+		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand")
+			and (not shownProduction or newProduction) then self.feedback:Action(result.action) end
 		if result.ok and result.action == "Attack" then self:ClosePanel() end
 	end
 	local count, limit, capacity, selectedCount, deployedCount = self:Counts()
@@ -590,15 +656,15 @@ function AppController:Receive(packet)
 	self:RenderPanel(old == nil)
 	self.offlineCash:Receive(state)
 	if result and result.ok then
-		local changed=if result.action=="Expand" or result.action=="Income" or result.action=="Luck" then self.progression.row else nil
+		local changed=if (result.action=="Expand" or result.action=="Income" or result.action=="Luck")
+			and (not shownProduction or newProduction) then self.progression.row else nil
 		if changed then
 			local name=if result.action=="Expand" then "Capacity" else result.action
 			local card=changed:FindFirstChild(name)
 			if card and card:FindFirstChild("Icon") then Theme.Motion:Pop(card.Icon,1.18) end
 		end
-		if (result.action=="Buy" and (not shownRecruit or newRecruit)) or result.action=="Expand" or result.action=="Income" or result.action=="Luck" then
-			Theme.Motion:Burst(self.toastFrame,UDim2.fromScale(0.5,0.5),C.gold)
-		elseif result.action=="Sell" then Theme.Motion:Pop(self.hud.cashIcon,1.14) end
+		-- Keep reward motion local to the action, not behind notification text.
+		if result.action=="Sell" then Theme.Motion:Pop(self.hud.cashIcon,1.14) end
 	end
 end
 
@@ -636,6 +702,7 @@ end
 
 function AppController:Destroy()
 	self.alive = false
+	if self.toastDelay then task.cancel(self.toastDelay);self.toastDelay=nil end
 	Theme.Motion:Reset()
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	for _, connection in self.connections do connection:Disconnect() end
@@ -650,6 +717,7 @@ function AppController:Destroy()
 	self.offlineCash:Destroy()
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
+	self.productionRequests,self.productionReceipts={},{}
 	self.gui:Destroy()
 end
 

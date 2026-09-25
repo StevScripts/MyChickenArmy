@@ -116,12 +116,14 @@ function WorldService:RoamTarget(index: number, from: Vector3, petId: string?): 
 	local cf = self:PlotFrame(index)
 	local layout=HomePlot.ForPlot(index)
 	local plot = self.plots[index]
+	local actor = plot and petId and plot.actors[petId]
 	local best, bestScore = from, -math.huge
 	-- Sample the whole walkable yard and favor space not occupied or reserved by
 	-- another chicken. Small random steps kept the flock near its starting row.
 	for _ = 1, 12 do
 		local candidate = (cf * CFrame.new(self.random:NextNumber(layout.YardMinX, layout.YardMaxX),
 			layout.FootY, self.random:NextNumber(layout.YardMinZ, layout.YardMaxZ))).Position
+		if actor and not actor:CanStandAt(candidate) then continue end
 		local travel = (candidate - from).Magnitude
 		local clearance = 24
 		if plot then for id, home in plot.roaming do if id ~= petId then
@@ -166,7 +168,8 @@ function WorldService:RestoreActor(session, petId: string, actor)
 	end
 	if previous and previous ~= actor then previous:Destroy() end
 	actor:Stop()
-	actor.model.Name, actor.model.Parent = petId, plot.pets
+	actor.model.Name = petId
+	actor:SetParent(plot.pets)
 	for _, name in {"BattleId", "UnitId", "Side", "Defeated", "AttackSerial", "Reinforcing"} do actor.model:SetAttribute(name, nil) end
 	actor.model:SetAttribute("AtHome", true)
 	actor.model:SetAttribute("OwnerUserId", session.userId)
@@ -177,8 +180,8 @@ function WorldService:RestoreActor(session, petId: string, actor)
 	if PetView.Cash then PetView.Cash(actor.model, 0, false) end
 	local at = actor:Position()
 	plot.actors[petId] = actor
-	plot.roaming[petId] = {position = at, target = at, moving = false, pauseUntil = os.clock() + self.random:NextNumber(1, 4)}
-	self:ReturnPosition(session, petId)
+	plot.roaming[petId] = {position = at, target = at, moving = false, pauseUntil = os.clock() + self.random:NextNumber(1, 4),
+		recoveryFoot = self:ReturnPosition(session, petId)}
 	return true
 end
 
@@ -521,7 +524,18 @@ function WorldService:Step(now)
 			if home.moving then
 				local delta = home.target - home.position
 				local arrived = Vector2.new(delta.X, delta.Z).Magnitude < 1.3 or state == "arrived"
-				if arrived or state == "blocked" or now - home.startedAt > (home.travelTimeout or 14) or (not near and not home.recruiting) then
+				local timeout = home.travelTimeout or 14
+				-- A path around scenery takes longer than the straight-line estimate.
+				-- Allow real progress, while retaining a hard cap on endless detours.
+				local elapsed = now - home.startedAt
+				local timedOut = (elapsed > timeout and now - actor.progressAt > 4)
+					or elapsed > math.max(45, timeout * 3)
+				if arrived or state == "blocked" or timedOut or (not near and not home.recruiting) then
+					-- Failed home walks must not leave a bought/idle bird lodged forever.
+					if not arrived and (state == "blocked" or timedOut) then
+						actor:Recover(home.recoveryFoot, if timedOut then "Home walk timed out" else "Home route blocked", now)
+						home.position = actor:Position()
+					end
 					actor:Stop(); home.moving, home.recruiting = false, false
 					actor.model:SetAttribute("Recruiting", false)
 					home.pauseUntil = now + self.random:NextNumber(2, 6)

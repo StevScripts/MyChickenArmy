@@ -12,6 +12,14 @@ local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
 local EggService={}
 EggService.__index=EggService
+local CASH_COLLECT_SECONDS=1
+
+local function onCashPad(pad,position)
+ if not position or not pad or not pad:IsA("BasePart") then return false end
+ local at=pad.CFrame:PointToObjectSpace(position)
+ return math.abs(at.X)<=pad.Size.X/2+0.7 and math.abs(at.Z)<=pad.Size.Z/2+0.7
+  and at.Y>=-1 and at.Y<=pad.Size.Y/2+5
+end
 
 function EggService.new(world)
  return setmetatable({world=world,yards={},serial=0,generation=0},EggService)
@@ -56,9 +64,19 @@ function EggService:AcceptDeposit(session,count,value)
  return true,session:Credit(value,"eggs"),false
 end
 
-function EggService:ProcessAndClaim(session,position,dt,now)
+function EggService:ProcessAndClaim(session,position,dt,now,grounded)
  local state=session.eggProcessor
- if Processor.Step(state,dt,Processor.Rate(state,session.entitlements.DoubleEggSpawn)) then session:Touch() end
+ local yard=self:Yard(session)
+ -- Only visit the queue/value ledger on whole-second ticks.
+ if #state.batches>0 then
+  yard.processorSeconds=(yard.processorSeconds or 0)+dt
+  local seconds=math.floor(yard.processorSeconds+1e-9)
+  if seconds>0 then
+   yard.processorSeconds=math.max(0,yard.processorSeconds-seconds)
+   if Processor.Step(state,seconds,Processor.Rate(state,session.entitlements.DoubleEggSpawn)) then session:Touch() end
+  end
+ else yard.processorSeconds=0 end
+ if #state.batches==0 then yard.processorSeconds=0 end
  local board=self:Board(session)
  local collection=board and board:FindFirstChild("CollectionPart")
  local pad=collection and collection:FindFirstChild("TouchPart")
@@ -68,24 +86,27 @@ function EggService:ProcessAndClaim(session,position,dt,now)
   local fallback,owner=self.world:EggDeposit(session.plotIndex)
   if owner==session.userId then pad=fallback end
  end
- local inside=false
- if position and pad and pad:IsA("BasePart") then
-  local at=pad.CFrame:PointToObjectSpace(position)
-  inside=math.abs(at.X)<=pad.Size.X/2+0.7 and math.abs(at.Z)<=pad.Size.Z/2+0.7
-   and at.Y>=-1 and at.Y<=pad.Size.Y/2+5
- end
+ -- Stepping onto the collector is enough. Standing still must keep collecting;
+ -- ClaimReady owns the one-second payout limit and atomic ready-balance transfer.
+ if grounded~=true or not onCashPad(pad,position) then return end
+ self:ClaimReady(session,pad,now)
+end
+
+function EggService:ClaimReady(session,pad,now)
+ local state=session.eggProcessor
  local yard=self:Yard(session)
- local entering=inside and not yard.onCashPad
- yard.onCashPad=inside
- if not entering or state.readyValue<=0 then return end
+ -- Only the server's current ready balance can be paid; repeated requests cannot duplicate it.
+ if state.readyValue<=0 or now-(yard.lastCashClaimAt or -math.huge)+1e-9<CASH_COLLECT_SECONDS then return false end
  local amount=session:EarnedAmount(state.readyValue,"eggs")
- if session.coins+amount>ProcessorConfig.MaxValue then return end
+ if session.coins+amount>ProcessorConfig.MaxValue then return false end
  local raw=state.readyValue;state.readyValue=0
  local credited=session:Credit(raw,"eggs")
+ yard.lastCashClaimAt=now
  session.tutorial.soldEggs=true
  yard.cashSerial=(yard.cashSerial or 0)+1
  yard.cashClaim={id=yard.generation..":"..yard.cashSerial,value=credited,at=now,
   x=pad.Position.X,y=pad.Position.Y+1,z=pad.Position.Z}
+ return true
 end
 
 function EggService:Yard(session)
@@ -330,7 +351,7 @@ function EggService:Collect(session,position,now)
   end
  end
  local rover=yard.rover
- if rover and rover.enabled and rover:CanCollect() then
+ if rover and rover.enabled and rover:CanCollect(now) then
   local nozzle=rover:Nozzle()
   local near={}
   for _,drop in yard.drops do
@@ -361,7 +382,9 @@ function EggService:Step(sessions,dt,now)
   local position=if root and humanoid and humanoid.Health>0 then root.Position else nil
   self:Collect(session,position,now)
   self:Deposit(session,position,now)
-  self:ProcessAndClaim(session,position,dt,now)
+  local grounded=humanoid~=nil and humanoid.Health>0 and not humanoid.Jump and not humanoid.Sit
+   and not humanoid.PlatformStand and humanoid.FloorMaterial~=Enum.Material.Air
+  self:ProcessAndClaim(session,position,dt,now,grounded)
  end
 end
 

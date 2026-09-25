@@ -18,6 +18,26 @@ This folder is the editable code project. Rojo sends its scripts into the existi
 
 The Python wrapper downloads the project's pinned Rojo version locally when needed. Keep its serving terminal running while editing; stop it with **Ctrl+C**. A terminal command alone does not connect the Studio plugin.
 
+## An old error returns despite synced code
+
+Check for duplicate same-named ModuleScripts under the same parent. Roblox's
+displayed full paths can be identical, so inspecting just one named child does
+not establish which copy a `require` loads. Compare every candidate against the
+codebase, preserve the stale copy outside the runtime tree, and restart Play.
+Do not overwrite mapped script source through Studio to work around this.
+
+On September 24, a duplicate `EggProcessorController` still accessed
+`UpgradeCost` at line 68 while the Rojo-synced copy already contained the fix.
+The stale module is recoverable in
+`ServerStorage.EggProcessorDuplicateBackup_1790306379.EggProcessorController`.
+The active module matches `src/client/EggProcessorController.luau`.
+
+On September 25, an additional stale `UpgradeBoardController` lacked the shared
+button animation. It is preserved in
+`ServerStorage.PurchaseButtonRecovery20260925.UpgradeBoardController` and exported
+under `assets/purchase-buttons-20260925/stale-UpgradeBoardController.luau`.
+One active controller remains and matches the Rojo source.
+
 ## A small first edit
 
 Open `src/client/RollPresentationController.luau`. Near the top are:
