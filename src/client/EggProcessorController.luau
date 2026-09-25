@@ -2,12 +2,32 @@
 -- Uses the authored board and cash-pad surfaces, preserving editable Studio art.
 local Players = game:GetService("Players")
 local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.UITheme)
 local Board = {}
 Board.__index = Board
+local EMPTY_PAD_COLOR = Color3.fromRGB(128, 128, 128)
+local PAD_PRESS_DEPTH = 0.18
+local PAD_STEP_SECONDS = 0.5 -- Down for half a second, then up for half a second.
+local PAD_RELEASE_SECONDS = 0.16
+
+local function padTween(view, key, seconds, goals, instant, repeats)
+	if view[key] then view[key]:Cancel(); view[key]:Destroy(); view[key]=nil end
+	if instant then
+		for property,value in goals do view.pad[property]=value end
+	else
+		local info=TweenInfo.new(seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,if repeats then -1 else 0,repeats==true)
+		view[key]=TweenService:Create(view.pad,info,goals)
+		view[key]:Play()
+	end
+end
 
 function Board.new(app)
-	return setmetatable({app=app,views={},connections={},alive=true},Board)
+	local groundRay=RaycastParams.new()
+	groundRay.FilterType=Enum.RaycastFilterType.Exclude
+	groundRay.RespectCanCollide=true
+	return setmetatable({app=app,views={},connections={},alive=true,groundRay=groundRay},Board)
 end
 
 function Board:Bind(source)
@@ -26,13 +46,19 @@ function Board:Bind(source)
 	local root=gui:FindFirstChild("EggSellingBoard")
 	if root then
 		view.content=root.Content
+		view.inlinePrice=root:GetAttribute("InlineUpgradePrice")==true
 		for _,name in {"Upgrade","FinishNow"} do
 			local button=view.content[name]
 			table.insert(view.connections,button.Activated:Connect(function() self:Activate(name) end))
 			local visual=button:FindFirstChild("Visual")
 			if visual then Theme.Motion:BindButton(button,visual,visual.Face,visual.Face.InsetHighlight.UIStroke) end
 		end
-	else view.cash=gui:FindFirstChild("ReadyCash",true) end
+	else
+		view.cash=gui:FindFirstChild("ReadyCash",true)
+		if view.cash then
+			view.pad,view.padFrame,view.padColor=screen,screen.CFrame,screen.Color
+		end
+	end
 	self.views[source]=view
 	source.Enabled=false
 	gui.Parent=self.playerGui
@@ -48,6 +74,10 @@ function Board:Unbind(source)
 	if not view then return end
 	self.views[source]=nil
 	for _,connection in view.connections do connection:Disconnect() end
+	if view.pad then
+		padTween(view,"pressTween",0,{CFrame=view.padFrame},true)
+		padTween(view,"colorTween",0,{Color=view.padColor},true)
+	end
 	view.gui:Destroy()
 	if source.Parent then source.Enabled=view.originalEnabled end
 end
@@ -62,16 +92,63 @@ function Board:Render()
 		if view.content then
 			local c=view.content
 			c.QueuedCount.Text=Theme.Money(offer.queuedCount)
-			local width=TextService:GetTextSize(c.QueuedCount.Text,88,c.QueuedCount.Font,Vector2.new(10000,1000)).X
-			c.QueuedCount.TextSize=math.min(88,math.max(12,math.floor(88*253/math.max(1,width))))
+			if not c.QueuedCount.TextScaled then
+				-- Legacy authored boards still use a fixed-size headline.
+				local width=TextService:GetTextSize(c.QueuedCount.Text,88,c.QueuedCount.Font,Vector2.new(10000,1000)).X
+				c.QueuedCount.TextSize=math.min(88,math.max(12,math.floor(88*253/math.max(1,width))))
+			end
 			c.Rate.Text=tostring(offer.rate).." eggs/sec"
-			c.UpgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: $"..Theme.Money(offer.upgradePrice) else "MAX SPEED"
+			if view.inlinePrice then
+				c.Upgrade.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Upgrade • $"..Theme.Money(offer.upgradePrice) else "MAX SPEED"
+				-- Authored GUI clones do not retain UITheme's caption-sync connections.
+				local caption=c.Upgrade.Visual.Caption
+				caption.Text=c.Upgrade.Text
+				for _,label in caption:GetChildren() do
+					if label:IsA("TextLabel") then label.Text=c.Upgrade.Text end
+				end
+			else
+				c.UpgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: $"..Theme.Money(offer.upgradePrice) else "MAX SPEED"
+			end
 			local status=self.app.commerce:State("FinishEggs")
 			c.Upgrade.Active=self.pending==nil and offer.upgradePrice~=nil
 			c.FinishNow.Active=offer.queuedCount>0 and status~="pending" and status~="preparing"
 			c.Upgrade.Selectable,c.FinishNow.Selectable=c.Upgrade.Active,c.FinishNow.Active
 		end
 	end
+end
+
+function Board:UpdatePad(view, root, humanoid)
+	if not view.pad or not view.pad.Parent then return end
+	local state=self.app.state
+	local offer=state and state.eggs and state.eggs.processor
+	local owned=offer~=nil and offer.enabled and view.index==state.plotIndex
+	local ready=owned and offer.readyCash>0
+	local color=if not owned then view.padColor elseif ready then view.padColor else EMPTY_PAD_COLOR
+	local reduced=self.app.reducedMotion==true
+	if view.targetColor~=color or view.reduced~=reduced then
+		view.targetColor=color
+		padTween(view,"colorTween",0.12,{Color=color},reduced)
+	end
+	local pressed=false
+	if owned and root and humanoid and humanoid.Health>0 and not reduced
+		and not humanoid.Jump and not humanoid.Sit and not humanoid.PlatformStand
+		and humanoid.FloorMaterial~=Enum.Material.Air then
+		local state=humanoid:GetState()
+		if state~=Enum.HumanoidStateType.Jumping and state~=Enum.HumanoidStateType.Freefall then
+			-- Require the actual supporting pad, not just the wider cash-claim region.
+			self.groundRay.FilterDescendantsInstances={root.Parent}
+			self.groundRay.CollisionGroup=root.CollisionGroup
+			local reach=humanoid.HipHeight+root.Size.Y/2+2.5 -- Includes R6 leg height.
+			local hit=workspace:Raycast(root.Position,Vector3.new(0,-reach,0),self.groundRay)
+			pressed=hit~=nil and hit.Instance==view.pad
+		end
+	end
+	if view.pressed~=pressed or view.reduced~=reduced then
+		view.pressed=pressed
+		local frame=if pressed then view.padFrame+Vector3.new(0,-PAD_PRESS_DEPTH,0) else view.padFrame
+		padTween(view,"pressTween",if pressed then PAD_STEP_SECONDS else PAD_RELEASE_SECONDS,{CFrame=frame},reduced,pressed)
+	end
+	view.reduced=reduced
 end
 
 function Board:Activate(name)
@@ -105,6 +182,12 @@ end
 function Board:Start()
 	self.playerGui=Players.LocalPlayer:WaitForChild("PlayerGui")
 	self.app.commerce:Load("FinishEggs")
+	table.insert(self.connections,RunService.Heartbeat:Connect(function()
+		local character=Players.LocalPlayer.Character
+		local root=character and character:FindFirstChild("HumanoidRootPart")
+		local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+		for _,view in self.views do self:UpdatePad(view,root,humanoid) end
+	end))
 	table.insert(self.connections,workspace.DescendantAdded:Connect(function(item)
 		if item:IsA("SurfaceGui") or item.Name=="EggSellingBoard" or item.Name=="ReadyCash" then
 			task.defer(function()

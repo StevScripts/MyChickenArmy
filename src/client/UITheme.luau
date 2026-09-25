@@ -130,6 +130,13 @@ function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
 			ancestor=ancestor.Parent
 		end
 		local size=clip.AbsoluteSize/math.max(scale,0.001)
+		local relativeWidth=pattern:GetAttribute("StudScaleWidth")
+		if type(relativeWidth)=="number" and relativeWidth>0 then
+			-- Opt-in for fully scale-authored surfaces; keep the cropped sheet square.
+			local side=math.max(size.X*relativeWidth,size.X,size.Y)
+			pattern.Size=UDim2.fromScale(side/math.max(size.X,0.001),side/math.max(size.Y,0.001))
+			return
+		end
 		local side=math.max((pattern:GetAttribute("StudSpacing") or 28)*24,size.X,size.Y)
 		pattern.Size=UDim2.fromOffset(side,side)
 	end
@@ -140,6 +147,7 @@ function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
 		clip:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize),
 		pattern.AncestryChanged:Connect(resize),
 		pattern:GetAttributeChangedSignal("StudSpacing"):Connect(resize),
+		pattern:GetAttributeChangedSignal("StudScaleWidth"):Connect(resize),
 		pattern:GetPropertyChangedSignal("ZIndex"):Connect(layer),
 		pattern:GetPropertyChangedSignal("Visible"):Connect(layer),
 	}

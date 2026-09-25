@@ -8,6 +8,9 @@ The map, rigs, assets, world settings, saved profiles and builder geometry remai
 
 Preserve the current relative module paths, internal PetRoll/Duck IDs and save compatibility. Server modules own state, money and transactions; client modules own input/presentation. No unrelated framework, file reshuffle or formatting pass. The user prefers quick PC iteration and small relevant checks over extensive suites.
 
+## Simple animations — use TweenService
+When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
+
 ## Stud texture — mandatory image reuse
 ALWAYS use the approved generated full-sheet image for My Chicken Army stud patterns in Roblox UI, authored GUI art, and Figma. Source: `assets/ui/studs/stud-sheet.png`; uploaded Roblox image: `rbxassetid://93331178043153`. Reuse `UITheme.Studs` in runtime UI and the same uploaded image fill in Figma. Preserve the square sheet's proportions and crop it to the visible surface at a consistent stud scale. Never create or clone individual studs, per-stud Frames/Parts/vectors/rectangles/highlights, procedural stud grids, or single-stud tiles. Existing vector-based kit patterns are not an exception. Keep labels and controls separately editable. If the image is unavailable, report the missing asset rather than recreating studs. See `assets/ui/studs/README.md` for the asset and crop contract.
 

@@ -1,13 +1,77 @@
 # Egg selling board
 
-Implemented September 24, 2026 from Figma `4lJjZOqNhR8K7rfMbVIjaK / 328:885`.
+Implemented September 24, 2026; compact revision from Figma
+`4lJjZOqNhR8K7rfMbVIjaK / 328:844`.
 
 The Studio-owned `Workspace.MyChickenArmyMap["03_HomePlots"].EggCollectionBoard`
 is beside Plot1, with `PlotIndex=1`. Its existing Screen.SurfaceGui contains the
-editable Figma count, rate, upgrade price and green buttons. The existing
+editable count, rate, purple Finish Now and green inline-price Upgrade button. The existing
 CollectionPart.TouchPart.SurfaceGui displays ready cash. Geometry is unchanged.
 The client clones these surfaces into PlayerGui with the original Adornee so
 the buttons receive input, and displays only the local owner's balances.
+
+## Cash pad feedback
+
+`src/client/EggProcessorController.luau` owns local pad presentation. The owner's
+pad turns grey at zero ready cash and returns to its authored green when cash is
+available. Standing on it alternates the face down 0.18 studs and back up, with
+each leg lasting 0.5 seconds (one second per full cycle). Leaving returns it over
+0.16 seconds. Both use Quad Out. The existing `$0`/cash
+label remains the non-color state cue. Empty pads still respond to a step.
+
+Detection requires a grounded humanoid and a downward ray hitting the actual
+pad, rather than merely entering the wider cash-claim bounds. One TweenService
+tween repeats and reverses automatically while occupied; there is no custom
+animation clock or scripted character movement. Heartbeat only checks occupancy
+and color. Character movement is left to normal physics. Jumping, walking off,
+character loss and ownership changes
+release it; reduced motion keeps the face still. Unbinding restores authored
+position and color. Tune `PAD_STEP_SECONDS` and `PAD_PRESS_DEPTH` in the controller.
+The server's claim/rearm, cash amounts and transactions are unchanged.
+
+The source matched Studio before editing and after Rojo sync and compiled.
+The earlier fifteen-check fixture covered the superseded manual pulse/carry
+implementation, not this simpler native repeating tween. Live humanoid movement
+with the simplified tween has not been playtested. No Play session was started,
+and the authored board geometry was not resized.
+
+## Compact surface layout
+
+The compact Figma arrangement is implemented on the existing shortened board:
+cyan title, small Finish Now above the queue, large count, speed row and Upgrade.
+The SurfaceGui uses a 320 x 300 canvas (half the Figma reference resolution,
+allowing the count to fill its label without hitting the native font-size cap).
+EggSellingBoard fills it with Size
+`{1,0},{1,0}`; layout positions and sizes use native Scale values. Labels use
+`TextScaled`, including the count, with no headline UIScale or custom text-fit
+attributes. Changing the root size now scales the layout together. Keep the
+canvas near its authored size: an unnecessarily huge canvas can make native
+text appear small because Roblox caps its font size.
+
+The controller updates the inline upgrade price and native caption layers.
+Existing transactions, Finish Now routing, cash-pad behavior and builder geometry
+are preserved. Shared UITheme colors, square controls and the approved cropped
+stud-sheet image remain in use.
+
+All authored GuiObject Position/Size properties on the board (including cash
+display and the three stud sheets) now have zero offsets. The sheets opt into
+UITheme's `StudScaleWidth` mode so runtime rebinding preserves scale sizing and
+square cropping. Other screens keep their existing texture sizing. Pre-conversion
+images remain in `EggSellerCompactBackup20260924.BeforeScaleStudTextures`.
+
+Fourteen focused Edit checks passed for the compact controller integration before
+the final native-scale simplification (bindings, live values, pending/max states,
+upgrade/Finish Now routing, ownership, count fitting and pad teardown). Those
+earlier count-fitting checks are not evidence for the later TextScaled layout.
+The final scale layout was inspected in the Studio viewport; no Play session was
+started.
+
+The prior SurfaceGui is recoverable under
+`ServerStorage.EggSellerCompactBackup20260924.SurfaceGui`; the user's intermediate
+layout is preserved there as `BeforeNativeScale`.
+`assets/egg-board/compact-studio.luau` records the compact authoring recipe and
+refuses to overwrite an existing migration. No save or publish was invoked for
+this compact revision.
 
 Manual egg bags and the existing vacuum deposit into the seller at the original
 Plot1 sellpart. Depositing does not pay the wallet. Eggs process while online;
@@ -47,9 +111,9 @@ is added. Processing, deposits and cash transfers never depend on GUI animation.
   fake purchase storage only; no real profiles or purchases. Fixture is
   `assets/egg-board/checks.luau`.
 - Relevant new server/client modules compiled; Git whitespace check passed.
-- Board inspected visually in Studio Edit. Large count uses native UIScale to
-  preserve Figma's 176px headline despite TextSize's 100 limit. Long live counts
-  shrink to fit the same area.
+- Original board inspected visually in Studio Edit. The initial 800px layout used
+  UIScale for its headline; the compact revision above replaces that with native
+  TextScaled and scale-based layout.
 - Original board preserved in ServerStorage.EggCollectionBoardBefore20260924.
   Original in-scope sources are in assets/egg-board/before/source-baseline.json.
   Asset recipe: assets/egg-board/build.luau. Do not rerun it after manual visual
