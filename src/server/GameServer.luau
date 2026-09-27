@@ -34,7 +34,7 @@ function GameServer.new()
 	self.battles=BattleService.new(self.sessions,self.world)
 	self.telemetry=LoopTelemetry.new()
 	self.battles.telemetry=self.telemetry
-	self.debug=DebugService.new(self.sessions,self.battles)
+	self.debug=DebugService.new(self.sessions,self.battles,self.commerce)
  self.data=DataService.new()
  self.products=ProductService.new(self.data,self.sessions)
  self.crates=CrateService.new()
@@ -97,9 +97,7 @@ function GameServer:Handle(player,request)
 		ok,message=self.commerce:Refresh(player,session)
 		if self.sessions[player.UserId]~=session or session.closing or session.saveLost then return end
 	elseif action=="PreparePurchase" then
-		if request.key=="FinishEggs" and not self.eggs:CanUseBoard(player,session) then
-			message="Walk up to your egg selling board."
-		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session)) end
+		ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session))
 	elseif action=="OpenCrate" then
 		if not self.products:CanPurchase(session) then message="Crates need a safely loaded, saved profile."
 		else
@@ -134,11 +132,11 @@ function GameServer:Handle(player,request)
    message="Walk to the merge stand at your base."
   elseif action=="OpenMerge" then ok,message=true,"Choose matching chickens to merge."
   elseif action=="MergeAll" then
-   ok,message,receipt=ArmyService.MergeAll(session,request.pairs)
-   if ok then petId=receipt.results[1].petId;self.world:CelebrateMerge(session) end
+   ok,message,receipt=ArmyService.MergeAll(session,request.triples)
+   if ok then petId=receipt.results[1].petId;self.world:CelebrateMerge(session,petId) end
   else
-   ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.level)
-   if ok then self.world:CelebrateMerge(session) end
+   ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level)
+   if ok then self.world:CelebrateMerge(session,petId) end
   end
 	elseif action=="BoardUpgrade" then
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)

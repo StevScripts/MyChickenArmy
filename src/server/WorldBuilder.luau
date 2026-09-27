@@ -129,7 +129,8 @@ end
 function WorldBuilder.BuildPlot(root,index,cf)
  local existing=root:GetAttribute("AuthoredMap") and root:FindFirstChild("Plot"..index)
  if existing then
-  local title=existing.Props["Your Plot"]:FindFirstChildWhichIsA("TextLabel",true)
+  local sign=existing:FindFirstChild("Your Plot",true)
+  local title=sign and sign:FindFirstChildWhichIsA("TextLabel",true)
   assert(title,"Authored plot is missing its owner sign")
   return existing,title
  end

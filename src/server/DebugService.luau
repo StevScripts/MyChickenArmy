@@ -4,12 +4,13 @@ local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Progression=require(Shared.Progression)
 local Catalog=require(Shared.PetCatalog)
+local ShopCatalog=require(Shared.ShopCatalog)
 local PlayerSession=require(script.Parent.PlayerSession)
 local DebugService={}
 DebugService.__index=DebugService
 
-function DebugService.new(sessions,battles)
-	return setmetatable({sessions=sessions,battles=battles},DebugService)
+function DebugService.new(sessions,battles,commerce)
+	return setmetatable({sessions=sessions,battles=battles,commerce=commerce},DebugService)
 end
 
 function DebugService.Allowed(player): boolean
@@ -19,7 +20,31 @@ end
 function DebugService:Run(player,session,command,argument,now)
 	if not DebugService.Allowed(player) then return false,"Debug access denied." end
 	if type(command)~="string" then return false,"Invalid debug action." end
-	if command=="ResetProtected" then
+	if command=="TestPurchases" then
+		if not self.commerce then return false,"Purchase tests unavailable." end
+		return self.commerce:SetTestPreset(player,session,argument)
+	elseif command=="FreshEconomy" then
+		local presets={Free="NoPasses",LowRobux="EggSpawn",CashPack="NoPasses",AllPasses="AllPasses",AllItems="AllPasses"}
+		local preset=if type(argument)=="string" then presets[argument] else nil
+		if not preset or not self.commerce then return false,"Choose a valid economy test." end
+		local ok,message=self.commerce:SetTestPreset(player,session,preset)
+		if not ok then return false,message end
+		self.battles:CancelPlayer(session.userId,now)
+		session:Reset()
+		-- Consumable balances are cleared only in this disposable Studio profile.
+		-- Receipt acknowledgements remain intact even here.
+		session.crateCredits,session.guaranteedLuckRolls=0,0
+		session.eggProcessor.finishCredits=0
+		session.commerceAutomatic={AutoCollectEggs=true,AutoMerge=true}
+		if argument=="CashPack" then session:Credit(ShopCatalog.Products.PocketCoins.coins,"debug") end
+		if argument=="AllItems" then
+			for _,product in ShopCatalog.Products do
+				if product.enabled~=false and product.coins then session:Credit(product.coins,"debug") end
+			end
+		end
+		session:RefreshArmy();session:Touch()
+		return true,"TEST: fresh "..argument.." session. Saved progress and real purchases are untouched."
+	elseif command=="ResetProtected" then
   if argument~="RESET MY TEST SAVE" then return false,"Reset requires the explicit test-save confirmation." end
 		self.battles:CancelPlayer(session.userId,now)
 		session:Reset()

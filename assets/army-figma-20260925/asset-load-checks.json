@@ -1,0 +1,194 @@
+{
+  "loaded": 31,
+  "total": 31,
+  "rows": [
+    {
+      "id": "rbxassetid://88462567298666",
+      "species": "Bee",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://81553239084231",
+      "species": "Bonsai",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://112302411319810",
+      "species": "Bucket",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://117655474132630",
+      "species": "Cactus",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://121486446922308",
+      "species": "Camo",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://102920498471088",
+      "species": "Cardboard",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://96068709619770",
+      "species": "Cheesy",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://80778694472023",
+      "species": "Chunky",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://82827806713449",
+      "species": "Diamond",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://107215698305113",
+      "species": "Dragon",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://135168626845574",
+      "species": "Duck",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://94992563797854",
+      "species": "Frost",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://131409448183516",
+      "species": "Gentleman",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://94060234748285",
+      "species": "IceDuck",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://139578825644272",
+      "species": "Knight",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://104818014921703",
+      "species": "Mallard",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://93691653179431",
+      "species": "Ninja",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://97678362273308",
+      "species": "Noob",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://110240531570665",
+      "species": "Penguin",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://125852241428308",
+      "species": "Pirate",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://118856240143960",
+      "species": "Rainbow",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://75924906371749",
+      "species": "RubberDucky",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://80668767894217",
+      "species": "Sailor",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://136479549798589",
+      "species": "Skeleton",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://95105111561063",
+      "species": "Slime",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://122546714884572",
+      "species": "Storm",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://128361113244653",
+      "species": "StormDuck",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://126241404487200",
+      "species": "Tiger",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://116824155288046",
+      "species": "Viking",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://81208031603020",
+      "species": "Wizard",
+      "loaded": true
+    },
+    {
+      "id": "rbxassetid://91762184050457",
+      "species": "Zombie",
+      "loaded": true
+    }
+  ],
+  "statuses": {
+    "rbxassetid://126241404487200": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://96068709619770": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://75924906371749": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://117655474132630": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://81553239084231": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://82827806713449": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://118856240143960": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://139578825644272": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://121486446922308": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://81208031603020": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://107215698305113": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://95105111561063": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://102920498471088": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://80778694472023": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://136479549798589": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://112302411319810": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://91762184050457": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://116824155288046": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://97678362273308": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://135168626845574": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://88462567298666": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://80668767894217": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://94060234748285": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://94992563797854": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://110240531570665": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://128361113244653": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://131409448183516": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://93691653179431": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://104818014921703": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://122546714884572": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://125852241428308": "Enum.AssetFetchStatus.Success"
+  }
+}

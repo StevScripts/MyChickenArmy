@@ -35,7 +35,7 @@ return {
   Ninja={name="Ninja",bonePrefix="",unitScale=0.670163170,pivotRig=true},
   Penguin={name="Penguin",bonePrefix="",unitScale=0.670163170,pivotRig=true},
  },
- GalaxyFPS=6,
+ GalaxyFPS=6, -- Authored keyframes/second (four-second loop); rendered frames blend between these.
  GalaxyFrames={"rbxassetid://114363887846700","rbxassetid://89717942260960","rbxassetid://116377617958660","rbxassetid://127153191911453","rbxassetid://138008826208070","rbxassetid://81241838493203","rbxassetid://74809866074171","rbxassetid://115118299664435","rbxassetid://133073576420046","rbxassetid://111391290943579","rbxassetid://132092525554328","rbxassetid://124243870819707","rbxassetid://126781169567125","rbxassetid://121217120756137","rbxassetid://123372324533506","rbxassetid://125665443469392","rbxassetid://103025880751226","rbxassetid://98338854775620","rbxassetid://102165843306470","rbxassetid://93268520577458","rbxassetid://137464319044154","rbxassetid://118894842871762","rbxassetid://97515286540412","rbxassetid://101197365870090"},
  Textures={Code="rbxassetid://83989304556210",Glitter="rbxassetid://78670800898830",Star="rbxassetid://108947004524152",Smoke="rbxassetid://96448486330893"},
 }

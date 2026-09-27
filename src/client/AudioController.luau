@@ -1,71 +1,89 @@
 --!strict
--- Public free Creator Store assets. Preload is bounded to a background task; UI never waits on audio.
--- Native fallback files were verified in installed Roblox / Roblox Studio content/sounds.
+-- Edit sound IDs in SoundService.MyChickenArmyAudio, not in scripts.
+-- Authored templates survive cleanup; only local playback copies are disposable.
 local SoundService = game:GetService("SoundService")
 local ContentProvider = game:GetService("ContentProvider")
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
-local Feel = require(game:GetService("ReplicatedStorage").PetRoll.Shared.CollectionFeel)
 local AudioController = {}
 AudioController.__index = AudioController
-
-AudioController.Assets = {
-	Click = "rbxassetid://82845990304289", -- Free UI glass click, Johnson_BaconMain.
-	Collect = "rbxassetid://135483737426662", -- Coin Collect, G00byBBQSauce.
-	Pop = "rbxassetid://6586979979", -- cartoon_pop, Schnogrind.
-	Victory = "rbxassetid://9044739323", -- Sugar Crash sting, APMOfficial / APM Music.
-	Music = "rbxassetid://136012265808588", -- Happy Ukulele Day, DistrokidOfficial.
-	-- Free Creator Store / Pro Sound Effects. Individual cues, never a ripped game loop.
-	RollLever = "rbxassetid://9120914570", -- Short wood clunk.
-	RollTick = "rbxassetid://9119717523", -- Toggle-switch click.
-	RollLand = "rbxassetid://9120914570", -- Softer, pitched landing layer.
-	RollReveal = "rbxassetid://9126073001", -- Short synth sparkle bell.
-	RollRare = "rbxassetid://9126073318", -- Longer sparkle bell for epic+ reveals.
-}
-for name, id in Feel.Sounds do AudioController.Assets[name] = id end
-local FALLBACK = "rbxasset://sounds/volume_slider.ogg"
-local IMPACT = "rbxasset://sounds/action_jump_land.mp3"
+local LIBRARY_NAME = "MyChickenArmyAudio"
 
 function AudioController.new()
-	return setmetatable({musicEnabled = true, sfxEnabled = true, templates = {}, last = {}, voices = {}, pools = {}, fallbackCounts = {}, active = {}, activeCount = 0, alive = true}, AudioController)
+	return setmetatable({musicEnabled = true, sfxEnabled = true, templates = {}, last = {}, voices = {}, pools = {}, fallbackCounts = {}, active = {}, activeCount = 0, alive = true, connections = {}, revisions = {}}, AudioController)
+end
+
+function AudioController:Prepare(name, template)
+	local revision = (self.revisions[name] or 0) + 1
+	self.revisions[name] = revision
+	if name == "Music" then
+		if self.music then self.music:Destroy() end
+		local music = template:Clone()
+		music:Stop()
+		music.SoundGroup, music.Parent = self.musicGroup, self.folder
+		self.music = music
+	end
+	if template.SoundId == "" then return end
+	-- Each cue loads independently. Late completion cannot restart an older track.
+	task.spawn(function()
+		pcall(function() ContentProvider:PreloadAsync({template}) end)
+		if not self.alive or self.revisions[name] ~= revision then return end
+		if name == "Music" then self:SetMusic(self.musicEnabled) end
+	end)
+end
+
+function AudioController:BindLibrary(library)
+	local mix = library:FindFirstChild("Mix")
+	local musicGroup = mix and mix:FindFirstChild("Music")
+	local effectsGroup = mix and mix:FindFirstChild("Effects")
+	if not musicGroup or not musicGroup:IsA("SoundGroup") or not effectsGroup or not effectsGroup:IsA("SoundGroup") then
+		warn("My Chicken Army audio is missing its SoundService Mix groups.")
+		return
+	end
+	self.musicGroup, self.sfxGroup = musicGroup:Clone(), effectsGroup:Clone()
+	self.musicGroup.Parent, self.sfxGroup.Parent = self.folder, self.folder
+	local function applyMix()
+		self.musicGroup.Volume = musicGroup.Volume
+		self.effectsVolume = effectsGroup.Volume
+		self.sfxGroup.Volume = if self.sfxEnabled then self.effectsVolume else 0
+	end
+	applyMix()
+	table.insert(self.connections, musicGroup:GetPropertyChangedSignal("Volume"):Connect(applyMix))
+	table.insert(self.connections, effectsGroup:GetPropertyChangedSignal("Volume"):Connect(applyMix))
+	for _,template in library:GetDescendants() do
+		if not template:IsA("Sound") then continue end
+		local name = template:GetAttribute("AudioCue") or template.Name
+		if type(name) ~= "string" or self.templates[name] then
+			warn("Duplicate or invalid audio cue: "..template:GetFullName())
+			continue
+		end
+		self.templates[name] = template
+		table.insert(self.connections, template:GetPropertyChangedSignal("SoundId"):Connect(function()
+			self:Prepare(name, template)
+		end))
+		if name == "Music" then
+			for _,property in {"Volume", "PlaybackSpeed", "Looped"} do
+				table.insert(self.connections, template:GetPropertyChangedSignal(property):Connect(function()
+					if self.music then self.music[property] = template[property] end
+				end))
+			end
+		end
+		self:Prepare(name, template)
+	end
 end
 
 function AudioController:Start()
 	local folder = Instance.new("Folder")
 	folder.Name, folder.Parent = "PetRollAudio", SoundService
+	folder:SetAttribute("EditingHelp", "Temporary playback copies. Edit MyChickenArmyAudio instead.")
 	self.folder = folder
-	self.musicGroup = Instance.new("SoundGroup")
-	self.musicGroup.Name, self.musicGroup.Volume, self.musicGroup.Parent = "Music", 0.13, folder
-	self.sfxGroup = Instance.new("SoundGroup")
-	self.sfxGroup.Name, self.sfxGroup.Volume, self.sfxGroup.Parent = "Effects", 0.55, folder
-	for name, id in AudioController.Assets do
-		local sound = Instance.new("Sound")
-		sound.Name, sound.SoundId = name, id
-		sound.Volume = if name == "Collect" then 0.55 else 0.4
-		sound.SoundGroup = if name == "Music" then self.musicGroup else self.sfxGroup
-		sound.Parent = folder
-		self.templates[name] = sound
-	end
-	local impact = Instance.new("Sound")
-	impact.Name, impact.SoundId, impact.Volume = "Impact", IMPACT, 0.25
-	impact.SoundGroup, impact.Parent = self.sfxGroup, folder
-	self.templates.Impact = impact
-	local tick = Instance.new("Sound")
-	tick.Name, tick.SoundId, tick.Volume = "Tick", FALLBACK, 0.18
-	tick.SoundGroup, tick.Parent = self.sfxGroup, folder
-	self.templates.Tick = tick
-	-- Load independently: a slow music request must not hold up pickup readiness.
-	-- Keep the configured ID so a transient failure can recover later.
-	for name, sound in self.templates do
-		task.spawn(function()
-			pcall(function() ContentProvider:PreloadAsync({sound}) end)
-			if not self.alive then return end
-			if name == "Music" then
-				sound.Looped = true
-				if sound.IsLoaded and self.musicEnabled then sound:Play() end
-			end
-		end)
-	end
+	-- Library replication/loading never blocks the UI startup path.
+	task.spawn(function()
+		local library = SoundService:WaitForChild(LIBRARY_NAME, 10)
+		if not self.alive then return end
+		if not library then warn("Missing SoundService."..LIBRARY_NAME.." audio library."); return end
+		self:BindLibrary(library)
+	end)
 end
 
 function AudioController:FadeVoice(sound)
@@ -84,7 +102,7 @@ function AudioController:Play(name, pitch, options)
 	local key = options.voiceKey or name
 	if now - (self.last[key] or -10) < cooldown then return end
 	local template = self.templates[name] or self.templates.Pop
-	if not template then return end
+	if not template or template.SoundId == "" then return end
 	if self.activeCount >= 24 then return end
 	self.last[key] = now
 	local pool
@@ -97,12 +115,18 @@ function AudioController:Play(name, pitch, options)
 		if previous then previous:Destroy() end
 	end
 	local sound = template:Clone()
+	local fallbackUsed = false
 	if not template.IsLoaded then
-		sound.SoundId = if name == "Impact" or name == "EggDeposit" then IMPACT else FALLBACK
-		self.fallbackCounts[name] = (self.fallbackCounts[name] or 0) + 1
+		local fallback = self.templates[if name == "Impact" or name == "EggDeposit" then "FallbackImpact" else "Tick"]
+		if fallback and fallback.SoundId ~= "" then
+			sound.SoundId = fallback.SoundId
+			fallbackUsed = true
+			self.fallbackCounts[name] = (self.fallbackCounts[name] or 0) + 1
+		end
 	end
-	sound:SetAttribute("Fallback", not template.IsLoaded)
-	sound.PlaybackSpeed = pitch or 1
+	sound:SetAttribute("Fallback", fallbackUsed)
+	sound.SoundGroup, sound.Looped, sound.PlayOnRemove = self.sfxGroup, false, false
+	sound.PlaybackSpeed = pitch or template.PlaybackSpeed
 	if options.volume then sound.Volume=options.volume end
 	if options.parent then
 		sound.RollOffMode=Enum.RollOffMode.InverseTapered
@@ -138,21 +162,26 @@ end
 
 function AudioController:SetMusic(enabled)
 	self.musicEnabled = enabled
-	local music = self.templates.Music
+	local music = self.music
 	if not music then return end
-	if enabled and music.IsLoaded then music:Resume() else music:Pause() end
+	if enabled and music.IsLoaded then
+		if music.IsPaused then music:Resume() elseif not music.IsPlaying then music:Play() end
+	else music:Pause() end
 end
 
 function AudioController:SetEffects(enabled)
 	self.sfxEnabled = enabled
-	if self.sfxGroup then self.sfxGroup.Volume = if enabled then 0.55 else 0 end
+	if self.sfxGroup then self.sfxGroup.Volume = if enabled then self.effectsVolume else 0 end
 end
 
 function AudioController:Destroy()
 	self.alive = false
+	for _,connection in self.connections do connection:Disconnect() end
+	table.clear(self.connections)
 	for sound in self.active do sound:Destroy() end
 	table.clear(self.voices)
 	table.clear(self.pools)
+	table.clear(self.templates)
 	if self.folder then self.folder:Destroy() end
 end
 

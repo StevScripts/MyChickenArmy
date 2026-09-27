@@ -14,25 +14,37 @@ the buttons receive input, and displays only the local owner's balances.
 
 `src/client/EggProcessorController.luau` owns local pad presentation. The owner's
 pad turns grey at zero ready cash and returns to its authored green when cash is
-available. Standing on it alternates the face down 0.18 studs and back up, with
+available. Moving horizontally on it alternates the face down 0.18 studs and back up, with
 each visual leg lasting the user's current 0.25 seconds. Leaving returns it over
 the user's current 0.01 seconds. Circular Out easing is preserved. The existing
 `$0`/cash label remains the non-color state cue.
 
 Detection requires a grounded humanoid and a downward ray hitting the actual
 pad, rather than merely entering the wider cash-claim bounds. One TweenService
-tween repeats and reverses automatically while standing on the pad; there is no
+tween repeats and reverses automatically while moving on the pad; there is no
 custom animation clock or scripted character movement. Heartbeat checks
-occupancy and color. Jumping, walking off,
+occupancy, horizontal movement and color. Stopping, jumping, walking off,
 character loss and ownership changes
 release it; reduced motion keeps the face still. Unbinding restores authored
 position and color. Tune `PAD_STEP_SECONDS` and `PAD_PRESS_DEPTH` in the controller.
-Collection is server-owned and independent of tween speed. Stepping onto the
-owned collector pays ready cash; staying grounded on it pays new ready cash at
-most once per second. Horizontal movement is not required. Leaving, jumping or
-losing the character stops collection. Re-entering cannot bypass the server's
-one-second cooldown, and old `EggCashCollect` requests remain ignored.
-Reduced-motion players collect while standing without seeing the pad animation.
+Collection is server-owned and independent of tween speed. As requested on
+September 26, every payout requires being grounded on the owned collector and
+currently moving horizontally faster than 0.5 studs/sec. Standing still does not
+collect, even after the cooldown expires or more cash arrives. Vertical pad
+travel and small standing jitter do not count. Moving again permits collection,
+still at most once per second; re-entry cannot bypass that cooldown. Leaving,
+jumping or losing the character stops collection. Old `EggCashCollect` requests
+remain ignored. Reduced motion suppresses animation, not the movement requirement.
+
+The September 26 movement-only change passed 12 isolated checks against current
+disk sources using fake sessions, pad contact and tweens. The fixture is
+`assets/egg-board/moving-contact-checks.luau`. It covers stationary/new cash,
+movement/resumption, vertical-only travel, jitter, cooldown, airborne/off-pad,
+one-time payout and animation/reduced-motion behavior. No Play/Stop or real
+profile operation was performed. At handoff Studio instance `w6a-k5r` had a
+running session and older pre-quantity/pre-retirement sources; sync and fresh
+runtime verification remain pending. Historical fixtures expecting stationary
+auto-collection are superseded, not evidence for the new behavior.
 
 Egg processing accumulates elapsed time and visits the queue only on whole-second
 ticks: subtract the current selling rate from the queued count, capped by what
@@ -41,7 +53,8 @@ recalculate batches. Slow frames catch up whole seconds without losing eggs;
 idle time is not banked. Batch values, multipliers and saved-state format remain
 unchanged.
 
-The September 25 contact fix passed 19 focused Edit checks in
+Historical evidence (stationary behavior below was superseded September 26):
+the September 25 contact fix passed 19 focused Edit checks in
 `assets/egg-board/contact-checks.luau`: entry, standing, cooldown/re-entry,
 ownership, airborne/off-pad rejection, whole-second processing and value
 conservation. A fresh session-only Play also verified a real stationary R15
@@ -55,14 +68,30 @@ historical evidence for the superseded interaction.
 
 The compact Figma arrangement is implemented on the existing shortened board:
 cyan title, small Finish Now above the queue, large count, speed row and Upgrade.
-The SurfaceGui uses a 320 x 300 canvas (half the Figma reference resolution,
-allowing the count to fill its label without hitting the native font-size cap).
-EggSellingBoard fills it with Size
-`{1,0},{1,0}`; layout positions and sizes use native Scale values. Labels use
-`TextScaled`, including the count, with no headline UIScale or custom text-fit
-attributes. Changing the root size now scales the layout together. Keep the
-canvas near its authored size: an unnecessarily huge canvas can make native
-text appear small because Roblox caps its font size.
+The current user-authored SurfaceGui uses PixelsPerStud sizing at 60, so
+CanvasSize is ignored. The user's layout and other controls are preserved.
+On September 25, the queue headline was corrected to match the supplied Figma
+reference: SourceSansBold, TextSize 100, TextScaled false, and a native child
+`FigmaTextScale` UIScale of 1.375. Its reciprocal Size adjustment preserves the
+original on-screen label rectangle and center; only the rendered number grows.
+The visible outline remains the same thickness. Other labels retain TextScaled.
+
+To tune the number in Studio, select
+`Screen.SurfaceGui.EggSellingBoard.Content.QueuedCount` and adjust TextSize, or
+its `FigmaTextScale.Scale` child to exceed Roblox's TextSize ceiling. Keep
+TextScaled false: native auto fitting still caps the number at 100 rendered
+pixels on this canvas even with a UIScale. The controller captures the authored
+TextSize when binding, shrinks only overlong counts to the actual available
+width including the outline, and restores the headline size for shorter counts.
+It no longer resets the number to the legacy 88 px / 253 px fitting rule.
+
+The corrected `10,000` has 323 px text bounds in its unchanged 509.813 px row,
+approximately the reference's 63% width. The Studio screenshot confirms the
+visual result; all other GuiObject Position/Size/AnchorPoint values match the
+before-copy. Actual controller rendering was checked with zero, 10,000, six-digit,
+billion and trillion counts, then 10,000 again. No Play session was needed.
+Recovery: `ServerStorage.EggQueueTypographyBefore20260925`; the bounded asset
+recipe and original controller are under `assets/egg-board/queue-typography-20260925/`.
 
 The controller updates the inline upgrade price and native caption layers.
 Existing transactions, Finish Now routing, cash-pad behavior and builder geometry
@@ -91,14 +120,15 @@ this compact revision.
 
 Manual egg bags and the existing vacuum deposit into the seller at the original
 Plot1 sellpart. Depositing does not pay the wallet. Eggs process while online;
-the separate front pad pays ready cash on entry and at most once per second
-while the player stands on it.
+the separate front pad pays ready cash at most once per second
+while the player is grounded and moving horizontally on it.
 Other plots retain their current instant selling until boards are authored there.
 If a rejoining player is assigned an older plot, saved queued eggs still process
 and its owned sellpart permits claiming the saved proceeds.
 
-Selling starts at 2 eggs/sec. Rates are 2 / 4 / 8 / 16 / 32; upgrade costs are
-480 / 2,400 / 9,600 / 28,800 coins, from the earlier proposal. Configure these in
+Under the September 26 [quantity economy](EGG_ECONOMY.md), selling starts at
+4 eggs/sec. Rates are 4 / 16 / 64 / 256 / 1,024; upgrade costs remain
+480 / 2,400 / 9,600 / 28,800 coins. Configure these in
 `src/shared/EggProcessorConfig.luau`. Double Egg Spawn doubles seller throughput;
 Double Cash applies once, when ready cash is claimed. Board purchases check
 ownership, distance, current level and price on the server.

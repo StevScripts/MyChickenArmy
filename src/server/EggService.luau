@@ -4,6 +4,7 @@ local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
+local Rules=require(Shared.Rules)
 local VacuumConfig=require(Shared.VacuumConfig)
 local Layout=require(Shared.HomePlotLayout)
 local ShopCatalog=require(Shared.ShopCatalog)
@@ -13,6 +14,7 @@ local ProcessorConfig=require(Shared.EggProcessorConfig)
 local EggService={}
 EggService.__index=EggService
 local CASH_COLLECT_SECONDS=1
+local CASH_MIN_HORIZONTAL_SPEED=0.5 -- Ignore standing jitter and vertical pad travel.
 
 local function onCashPad(pad,position)
  if not position or not pad or not pad:IsA("BasePart") then return false end
@@ -34,61 +36,34 @@ function EggService:Board(session)
  return plot and plot.folder:FindFirstChild("EggCollectionBoard",true)
 end
 
-function EggService:CanUseBoard(player,session)
- local board=self:Board(session)
- local screen=board and board:FindFirstChild("Screen")
- local character=player.Character
- local root=character and character:FindFirstChild("HumanoidRootPart")
- local humanoid=character and character:FindFirstChildOfClass("Humanoid")
- if not screen or not screen:IsA("BasePart") or not root or not humanoid or humanoid.Health<=0 then return false end
- return (root.Position-screen.Position).Magnitude<=ProcessorConfig.BoardDistance
-end
-
-function EggService:Upgrade(player,session,level,price)
- if not self:CanUseBoard(player,session) then return false,"Walk up to your egg selling board." end
- local state=session.eggProcessor
- local cost=ProcessorConfig.Prices[state.level+1]
- if not cost then return false,"Selling speed is at its maximum." end
- if level~=state.level or price~=cost then return false,"The upgrade changed. Try again." end
- if session.coins<cost then return false,"Not enough cash for this upgrade." end
- session.coins-=cost;state.level+=1;session:Touch()
- return true,"Eggs sell at "..Processor.Rate(state,session.entitlements.DoubleEggSpawn).." eggs/sec."
+function EggService:Upgrade(_player,_session,_level,_price)
+ -- Stale clients must never spend cash on the retired track.
+ return false,"Eggs now sell instantly. Selling Speed is no longer needed."
 end
 
 function EggService:AcceptDeposit(session,count,value)
- if self:Board(session) then
-  if not Processor.Deposit(session.eggProcessor,count,value) then return false end
-  session:Touch()
-  return true,0,true
- end
- return true,session:Credit(value,"eggs"),false
+ if not Processor.Deposit(session.eggProcessor,count,value) then return false end
+ session:Touch()
+ -- The old queued receipt flag means transferred to the collector rather than
+ -- paid to the wallet. Conversion itself is immediate on every plot.
+ return true,0,true
 end
 
-function EggService:ProcessAndClaim(session,position,dt,now,grounded)
- local state=session.eggProcessor
- local yard=self:Yard(session)
- -- Only visit the queue/value ledger on whole-second ticks.
- if #state.batches>0 then
-  yard.processorSeconds=(yard.processorSeconds or 0)+dt
-  local seconds=math.floor(yard.processorSeconds+1e-9)
-  if seconds>0 then
-   yard.processorSeconds=math.max(0,yard.processorSeconds-seconds)
-   if Processor.Step(state,seconds,Processor.Rate(state,session.entitlements.DoubleEggSpawn)) then session:Touch() end
-  end
- else yard.processorSeconds=0 end
- if #state.batches==0 then yard.processorSeconds=0 end
+function EggService:ProcessAndClaim(session,position,_dt,now,grounded,velocity)
+ -- Also retries any legacy compensation held while the wallet was full.
+ session:RetireEggSeller()
  local board=self:Board(session)
  local collection=board and board:FindFirstChild("CollectionPart")
  local pad=collection and collection:FindFirstChild("TouchPart")
- -- A rejoin can assign an older plot without the new board. Its owned sell pad
- -- still lets the player claim saved processing proceeds instead of stranding them.
+ -- An unavailable board must not strand earned cash; retain the owned-pad fallback.
  if not board then
   local fallback,owner=self.world:EggDeposit(session.plotIndex)
   if owner==session.userId then pad=fallback end
  end
- -- Stepping onto the collector is enough. Standing still must keep collecting;
- -- ClaimReady owns the one-second payout limit and atomic ready-balance transfer.
+ -- Every payout requires current horizontal movement, not merely pad occupancy.
+ -- Read replicated root velocity on the server; client MoveDirection is not the grant authority.
  if grounded~=true or not onCashPad(pad,position) then return end
+ if not velocity or not (velocity.X^2+velocity.Z^2>CASH_MIN_HORIZONTAL_SPEED^2) then return end
  self:ClaimReady(session,pad,now)
 end
 
@@ -121,21 +96,22 @@ function EggService:Yard(session)
 end
 
 function EggService:Lay(session,yard,petId,layer,now)
- local value=math.floor(layer.value+1e-7)
- if value<1 then return end
- layer.value-=value
+ local quantity,value=layer.count,layer.value
+ if quantity<1 then return end
  local count,existing=0,nil
  for _,drop in yard.drops do
   if drop.petId==petId and not drop.claimAt then count+=1;existing=drop end
  end
- -- At capacity, keep the value in an existing egg instead of spawning clutter.
+ -- A visual represents an exact quantity of identical eggs. Work is bounded by
+ -- drop count, even when one chicken produces hundreds of thousands per second.
  if count>=Config.EggsPerChicken or #yard.drops>=Config.EggMaxDrops then
   if not existing then for _,drop in yard.drops do if not drop.claimAt then existing=drop;break end end end
   if existing then
-   existing.value+=value;existing.stack+=1;yard.revision+=1
+   existing.value+=value;existing.stack+=quantity;yard.revision+=1
+   layer.count,layer.value=0,0
    return
   end
-  layer.value+=value -- All available eggs are in flight; keep their next value.
+  -- All available stacks are in flight; retain their next quantity and value.
   return
  end
  local pet=session.pets[petId]
@@ -151,33 +127,32 @@ function EggService:Lay(session,yard,petId,layer,now)
   layout.FootY,math.clamp(localAt.Z+math.sin(angle)*2.2,layout.YardMinZ,layout.YardMaxZ))).Position
  table.insert(yard.drops,{id=tostring(self.serial),petId=petId,species=pet.species,
   x=position.X,y=position.Y,z=position.Z,originX=origin.X,originY=origin.Y+0.8,originZ=origin.Z,
-  value=value,stack=1,born=now,readyAt=now+Config.EggSettleSeconds})
+  value=value,stack=quantity,born=now,readyAt=now+Config.EggSettleSeconds})
+ layer.count,layer.value=0,0
  yard.revision+=1
 end
 
 function EggService:Produce(session,dt,now)
  local yard=self:Yard(session)
  local production=session:EggProductionMultiplier()
- local interval=Config.EggLaySeconds/production
+ local unitValue=Rules.EggUnitValue(session.incomeLevel)
  for id,pet in session.pets do
   local layer=yard.layers[id]
   if not layer then
    yard.ordinal+=1
-   layer={value=0,elapsed=0,ordinal=yard.ordinal,interval=interval,
-    nextLay=interval*(0.5+((yard.ordinal-1)%8)/8)}
+   layer={count=0,value=0,fraction=0,elapsed=0,ordinal=yard.ordinal}
    yard.layers[id]=layer
   end
-  if layer.interval~=interval then
-   -- Preserve progress through this egg when ownership refreshes. Do not dump
-   -- a backlog or multiply value that was already produced before the pass.
-   local ratio=interval/(layer.interval or Config.EggLaySeconds)
-   layer.elapsed*=ratio;layer.nextLay*=ratio;layer.interval=interval
-  end
   if not session:IsPetHome(id) then continue end
-  layer.value+=session:PetIncome(id)*dt*production
+  -- Speed changes affect future production only; partial eggs survive upgrades
+  -- and time away. Price each completed egg once, at the shared current value.
+  local accrued=layer.fraction+Rules.EggRate(pet.species,pet.stars,pet.level)*production*dt
+  local quantity=math.floor(accrued+1e-7)
+  layer.fraction=math.max(0,accrued-quantity)
+  layer.count+=quantity;layer.value+=quantity*unitValue
   layer.elapsed+=dt
-  if layer.elapsed+1e-7>=layer.nextLay then
-   layer.elapsed=math.max(0,layer.elapsed-layer.nextLay);layer.nextLay=interval
+  if layer.count>0 and layer.elapsed+1e-7>=Config.EggVisualBatchSeconds then
+   layer.elapsed=0
    self:Lay(session,yard,id,layer,now)
   end
  end
@@ -187,7 +162,6 @@ end
 function EggService:Pay(session,yard,drop,now)
  if drop.paid then return end
  drop.paid=true
- local deposit=self.world:EggDeposit(session.plotIndex)
  local credited=session:EarnedAmount(drop.value,"eggs")
  if drop.collector=="rover" then
   local rover=yard.rover
@@ -201,16 +175,10 @@ function EggService:Pay(session,yard,drop,now)
    session.eggCarry.value+=drop.value
    session:Touch()
   end
- elseif deposit then
+ else
   session.eggCarry.count+=drop.stack or 1
   session.eggCarry.value+=drop.value
   session:Touch()
- else
-  -- Unconverted plots retain their old pickup behavior during the Plot1 trial.
-  -- A returning player never strands previously carried value on an old plot.
-  local carried=session.eggCarry.value
-  session.eggCarry={count=0,value=0}
-  credited=session:Credit(drop.value+carried,"eggs")
  end
  session.tutorial.collectedEggs=true
  table.insert(yard.receipts,{id=drop.id,value=credited,count=drop.stack or 1,at=now,
@@ -273,7 +241,8 @@ end
 function EggService:UpdateRover(session,yard,dt,now)
  local pad,ownerId=self.world:EggDeposit(session.plotIndex)
  local enabled=session:AutomaticEnabled("AutoCollectEggs")
-  or (RunService:IsStudio() and workspace:GetAttribute(VacuumConfig.StudioTestAttribute)==true)
+  or (RunService:IsStudio() and session.commerceTestPreset==nil
+   and workspace:GetAttribute(VacuumConfig.StudioTestAttribute)==true)
  enabled=enabled and pad~=nil and pad:IsA("BasePart") and ownerId==session.userId
  if not enabled then
   if yard.rover and yard.rover.enabled then self:PreserveCargo(session,yard,now) end
@@ -384,21 +353,21 @@ function EggService:Step(sessions,dt,now)
   self:Deposit(session,position,now)
   local grounded=humanoid~=nil and humanoid.Health>0 and not humanoid.Jump and not humanoid.Sit
    and not humanoid.PlatformStand and humanoid.FloorMaterial~=Enum.Material.Air
-  self:ProcessAndClaim(session,position,dt,now,grounded)
+  self:ProcessAndClaim(session,position,dt,now,grounded,root and root.AssemblyLinearVelocity)
  end
 end
 
 function EggService:Snapshot(session,now)
  local yard=self:Yard(session)
  local drops,receipts={},{}
- local value=0
+ local value,count=0,0
  for _,drop in yard.drops do
   local copy=table.clone(drop)
   copy.value=session:EarnedAmount(drop.value,"eggs")
   copy.age=math.max(0,now-drop.born)
   copy.flightAge=if drop.claimAt then now-drop.claimAt else nil
   copy.born,copy.readyAt,copy.claimAt=nil,nil,nil
-  table.insert(drops,copy);value+=copy.value
+  table.insert(drops,copy);value+=copy.value;count+=copy.stack
  end
  for _,receipt in yard.receipts do
   local copy=table.clone(receipt);copy.at=nil;table.insert(receipts,copy)
@@ -406,16 +375,12 @@ function EggService:Snapshot(session,now)
  local deposit=if yard.deposit and now-yard.deposit.at<3 then table.clone(yard.deposit) else nil
  if deposit then deposit.at=nil end
  local processor=session.eggProcessor
- local queued=Processor.Totals(processor)
  local cashClaim=if yard.cashClaim and now-yard.cashClaim.at<3 then table.clone(yard.cashClaim) else nil
  if cashClaim then cashClaim.at=nil end
- return {revision=yard.revision,generation=yard.generation,drops=drops,receipts=receipts,value=value,
-  processor={enabled=self:Board(session)~=nil,queuedCount=queued,
-   rate=Processor.Rate(processor,session.entitlements.DoubleEggSpawn),level=processor.level,
-   nextRate=ProcessorConfig.Rates[processor.level+2] and ProcessorConfig.Rates[processor.level+2]*(if session.entitlements.DoubleEggSpawn then 2 else 1),
-   upgradePrice=ProcessorConfig.Prices[processor.level+1],readyCash=session:EarnedAmount(processor.readyValue,"eggs"),
-   finishCredits=processor.finishCredits},cashClaim=cashClaim,
-  requiresDeposit=self.world:EggDeposit(session.plotIndex)~=nil,carriedCount=session.eggCarry.count,
+ return {revision=yard.revision,generation=yard.generation,drops=drops,receipts=receipts,value=value,count=count,
+  processor={enabled=true,instant=true,queuedCount=0,
+   readyCash=session:EarnedAmount(processor.readyValue,"eggs")},cashClaim=cashClaim,
+  requiresDeposit=true,carriedCount=session.eggCarry.count,
   carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit,
   rover=if yard.rover then yard.rover:Snapshot(session) else {enabled=false}}
 end

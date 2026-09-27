@@ -2,6 +2,11 @@
 
 Current user direction, 25 September 2026: **Players can keep buying available upgrades whenever they can afford them. No upgrade requires visiting, attacking, conquering or unlocking a camp, earning a conquest rank, or progressing toward the King.**
 
+The September 26 [egg quantity economy](EGG_ECONOMY.md) preserves this rule, all
+upgrade counts and prices. Egg Value now sets one shared unit value and rarity
+changes egg quantity. Selling Speed's throughput curve was retuned for those
+larger quantities; its four purchases and prices remain unchanged.
+
 This supersedes older documents, research proposals, screenshots, fixtures and code that attach upgrade availability to `promotion`, `firstWins`, `frontierWins`, rank capacity caps or `RollSlotRanks`. Do not restore those restrictions when updating UI, balancing the economy, rebuilding a board, or implementing feedback.
 
 ## What is available
@@ -22,7 +27,7 @@ The user removed **camp prerequisites**, not the configured maximum level of eac
 
 Keep server authority over loaded/closing/save-lost state, sufficient cash, existing track maxima, valid expected level/price, board ownership and proximity, and actual plot/podium support. A missing authored capability is different from a camp requirement. UI must display the server's current offer and must not add a separate local rank lock.
 
-Camp-route prerequisites, King access, rank milestones, existing combat encounters and rewards remain separate progression systems. Merging remains disabled for release; this change does not enable dormant merge/individual-level upgrades. Historical rank metadata in Progression is not an instruction to gate cash upgrades.
+Camp-route prerequisites, King access, rank milestones, existing combat encounters and rewards remain separate progression systems. The no-camp-upgrade change did not itself enable merging. The user subsequently authorized manual three-chicken merging on September 25; its separate existing progression rules are documented in `MERGING.md`. Historical rank metadata in Progression is not an instruction to gate cash upgrades.
 
 Existing levels, balances, chicken ownership, investments, entitlements and save schema are preserved. There is no migration or refund/reset requirement for removing these gates. High upgrade levels in a rank-one profile are valid.
 

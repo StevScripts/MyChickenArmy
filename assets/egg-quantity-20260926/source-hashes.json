@@ -1,0 +1,90 @@
+{
+  "src/shared/Config.luau": {
+    "bytes": 5092,
+    "hash": 782369526
+  },
+  "src/shared/Rules.luau": {
+    "bytes": 6114,
+    "hash": 1834389734
+  },
+  "src/shared/PetCatalog.luau": {
+    "bytes": 4147,
+    "hash": 889751784
+  },
+  "src/shared/Progression.luau": {
+    "bytes": 5985,
+    "hash": 260265634
+  },
+  "src/shared/ShopCatalog.luau": {
+    "bytes": 4478,
+    "hash": 1142497895
+  },
+  "src/shared/UpgradeCatalog.luau": {
+    "bytes": 776,
+    "hash": 1734185259
+  },
+  "src/shared/EggProcessorConfig.luau": {
+    "bytes": 273,
+    "hash": 922047430
+  },
+  "src/shared/OfflineCashConfig.luau": {
+    "bytes": 200,
+    "hash": 1867218498
+  },
+  "src/shared/HomePlotLayout.luau": {
+    "bytes": 1786,
+    "hash": 1310560461
+  },
+  "src/shared/VacuumConfig.luau": {
+    "bytes": 810,
+    "hash": 655739076
+  },
+  "src/server/PlayerSession.luau": {
+    "bytes": 31622,
+    "hash": 590371350
+  },
+  "src/server/EggService.luau": {
+    "bytes": 19020,
+    "hash": 508335844
+  },
+  "src/server/EggProcessor.luau": {
+    "bytes": 3977,
+    "hash": 1108381085
+  },
+  "src/server/OfflineCash.luau": {
+    "bytes": 1983,
+    "hash": 1333792729
+  },
+  "src/server/EggRover.luau": {
+    "bytes": 6358,
+    "hash": 1627148992
+  },
+  "src/server/ArmyService.luau": {
+    "bytes": 11651,
+    "hash": 881415309
+  },
+  "src/server/UpgradeService.luau": {
+    "bytes": 6484,
+    "hash": 2828735
+  },
+  "src/client/EggView.luau": {
+    "bytes": 3767,
+    "hash": 711342862
+  },
+  "src/client/EggController.luau": {
+    "bytes": 16667,
+    "hash": 268995076
+  },
+  "src/client/AppController.luau": {
+    "bytes": 38682,
+    "hash": 2011461316
+  },
+  "src/client/MergeBrowser.luau": {
+    "bytes": 17403,
+    "hash": 1142003128
+  },
+  "src/client/ChickenBrowser.luau": {
+    "bytes": 62655,
+    "hash": 814674168
+  }
+}

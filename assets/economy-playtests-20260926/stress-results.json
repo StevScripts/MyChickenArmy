@@ -1,0 +1,364 @@
+{
+  "stress": {
+    "Stress360": {
+      "memoryMb": 6552.22216796875,
+      "instances": 30929,
+      "plots": [
+        {
+          "plot": 1,
+          "bag": 228969520,
+          "count": 60,
+          "drops": 79,
+          "groundEggs": 9967546,
+          "rate": 30382489.6,
+          "ready": 1959528816
+        },
+        {
+          "plot": 2,
+          "bag": 0,
+          "count": 60,
+          "drops": 80,
+          "groundEggs": 7331023,
+          "rate": 30382489.6,
+          "ready": 559703120
+        },
+        {
+          "plot": 3,
+          "bag": 0,
+          "count": 60,
+          "drops": 80,
+          "groundEggs": 10164633,
+          "rate": 30382489.6,
+          "ready": 1213692256
+        },
+        {
+          "plot": 4,
+          "bag": 0,
+          "count": 60,
+          "drops": 80,
+          "groundEggs": 4884737,
+          "rate": 30382489.6,
+          "ready": 591223376
+        },
+        {
+          "plot": 5,
+          "bag": 0,
+          "count": 60,
+          "drops": 80,
+          "groundEggs": 7930677,
+          "rate": 30382489.6,
+          "ready": 1249435552
+        },
+        {
+          "plot": 6,
+          "bag": 0,
+          "count": 60,
+          "drops": 80,
+          "groundEggs": 7296131,
+          "rate": 30382489.6,
+          "ready": 546160944
+        }
+      ]
+    },
+    "Stress60": {
+      "memoryMb": 6382.86279296875,
+      "instances": 13754,
+      "plots": [
+        {
+          "plot": 1,
+          "bag": 115463792,
+          "count": 60,
+          "drops": 77,
+          "groundEggs": 4783500,
+          "rate": 30382489.6,
+          "ready": 605812240
+        }
+      ]
+    }
+  },
+  "cpu": {
+    "CashPackRepeat": {
+      "p95Ms": 1.0567500003162422,
+      "maxMs": 4.223625000122411,
+      "heartbeatP50Ms": 16.728583723306656,
+      "p50Ms": 0.14195833318808582,
+      "meanMs": 0.2886109762713559,
+      "n": 8961
+    },
+    "Stress60": {
+      "p95Ms": 2.5482500004727626,
+      "maxMs": 5.576625000685453,
+      "heartbeatP50Ms": 16.847167164087296,
+      "p50Ms": 0.12466666703403462,
+      "meanMs": 0.49505888888604577,
+      "n": 2700
+    },
+    "Stress360": {
+      "p95Ms": 6.561541666087578,
+      "maxMs": 13.273499999741034,
+      "heartbeatP50Ms": 16.627708449959755,
+      "p50Ms": 0.09620833316148492,
+      "meanMs": 1.313749566455256,
+      "n": 2691
+    }
+  },
+  "frames": {
+    "CashPackRepeat": {
+      "p95Ms": 69.86908614635468,
+      "maxMs": 249.52596426010132,
+      "p50Ms": 66.66558235883713,
+      "meanMs": 66.75532889309073,
+      "n": 1462
+    }
+  },
+  "profilers": {
+    "server": {
+      "ok": true,
+      "json_bytes": 14038,
+      "top_functions": [
+        {
+          "name": "PetRollBootstrap",
+          "total_us": 316892,
+          "function_index": 1,
+          "pct_of_capture": 7.92,
+          "rank": 1
+        },
+        {
+          "line": 336,
+          "name": "ServerStorage.PetRoll.GameServer:336",
+          "total_us": 316892,
+          "function_index": 2,
+          "pct_of_capture": 7.92,
+          "source": "ServerStorage.PetRoll.GameServer",
+          "rank": 2
+        },
+        {
+          "line": 89,
+          "name": "Workspace.__MCPEvalPayload:89",
+          "total_us": 316892,
+          "function_index": 3,
+          "pct_of_capture": 7.92,
+          "source": "Workspace.__MCPEvalPayload",
+          "rank": 3
+        },
+        {
+          "line": 288,
+          "name": "Step",
+          "total_us": 315251,
+          "function_index": 4,
+          "pct_of_capture": 7.88,
+          "source": "ServerStorage.PetRoll.GameServer",
+          "rank": 4
+        },
+        {
+          "line": 510,
+          "name": "Step",
+          "total_us": 111250,
+          "function_index": 5,
+          "pct_of_capture": 2.78,
+          "source": "ServerStorage.PetRoll.WorldService",
+          "rank": 5
+        },
+        {
+          "line": 426,
+          "name": "UpdateSession",
+          "total_us": 98548,
+          "function_index": 15,
+          "pct_of_capture": 2.46,
+          "source": "ServerStorage.PetRoll.WorldService",
+          "rank": 6
+        },
+        {
+          "line": 344,
+          "name": "Step",
+          "total_us": 89059,
+          "function_index": 6,
+          "pct_of_capture": 2.23,
+          "source": "ServerStorage.PetRoll.PetActor",
+          "rank": 7
+        },
+        {
+          "line": 340,
+          "name": "Step",
+          "total_us": 76170,
+          "function_index": 9,
+          "pct_of_capture": 1.9,
+          "source": "ServerStorage.PetRoll.EggService",
+          "rank": 8
+        },
+        {
+          "name": "Instance.FindFirstChild",
+          "total_us": 53868,
+          "function_index": 25,
+          "pct_of_capture": 1.35,
+          "source": "[C]",
+          "rank": 9
+        },
+        {
+          "line": 137,
+          "name": "AutoBestPetIds",
+          "total_us": 48291,
+          "function_index": 17,
+          "pct_of_capture": 1.21,
+          "source": "ServerStorage.PetRoll.PlayerSession",
+          "rank": 10
+        }
+      ],
+      "session": {
+        "end_time": 1790458866958,
+        "start_time": 1790458862954
+      },
+      "version": 2,
+      "debug_labels": [],
+      "duration_ms": 4000,
+      "categories": [
+        "delayedThreads",
+        "Heartbeat"
+      ],
+      "applied": {
+        "include_native": false,
+        "max_functions": 10,
+        "min_total_us": 0,
+        "sort": "total_us_desc",
+        "include_plugin": false
+      },
+      "omitted": {
+        "plugin": 10
+      },
+      "counts": {
+        "categories": 2,
+        "nodes": 130,
+        "functions": 81
+      },
+      "frequency": 1000,
+      "target": "server",
+      "output_path": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/economy-playtests-20260926/server-stress360-profiler.json"
+    },
+    "client": {
+      "ok": true,
+      "counts": {
+        "categories": 7,
+        "nodes": 100,
+        "functions": 76
+      },
+      "json_bytes": 12828,
+      "top_functions": [
+        {
+          "name": "PetRollClient",
+          "total_us": 55218,
+          "function_index": 1,
+          "pct_of_capture": 1.38,
+          "rank": 1
+        },
+        {
+          "line": 715,
+          "name": "Players.Stev_Scripts.PlayerScripts.PetRoll.AppController:715",
+          "total_us": 49147,
+          "function_index": 7,
+          "pct_of_capture": 1.23,
+          "source": "Players.Stev_Scripts.PlayerScripts.PetRoll.AppController",
+          "rank": 2
+        },
+        {
+          "line": 637,
+          "name": "Receive",
+          "total_us": 44605,
+          "function_index": 8,
+          "pct_of_capture": 1.12,
+          "source": "Players.Stev_Scripts.PlayerScripts.PetRoll.AppController",
+          "rank": 3
+        },
+        {
+          "line": 196,
+          "name": "Receive",
+          "total_us": 34006,
+          "function_index": 9,
+          "pct_of_capture": 0.85,
+          "source": "Players.Stev_Scripts.PlayerScripts.PetRoll.EggController",
+          "rank": 4
+        },
+        {
+          "line": 377,
+          "name": "Players.Stev_Scripts.PlayerScripts.RbxCharacterSounds:377",
+          "total_us": 27623,
+          "function_index": 18,
+          "pct_of_capture": 0.69,
+          "source": "Players.Stev_Scripts.PlayerScripts.RbxCharacterSounds",
+          "rank": 5
+        },
+        {
+          "name": "RbxCharacterSounds",
+          "total_us": 27623,
+          "function_index": 17,
+          "pct_of_capture": 0.69,
+          "rank": 6
+        },
+        {
+          "line": 10,
+          "name": "new",
+          "total_us": 13205,
+          "function_index": 10,
+          "pct_of_capture": 0.33,
+          "source": "Players.Stev_Scripts.PlayerScripts.PetRoll.EggView",
+          "rank": 7
+        },
+        {
+          "line": 52,
+          "name": "SetValue",
+          "total_us": 10886,
+          "function_index": 12,
+          "pct_of_capture": 0.27,
+          "source": "Players.Stev_Scripts.PlayerScripts.PetRoll.EggView",
+          "rank": 8
+        },
+        {
+          "line": 345,
+          "name": "Players.Stev_Scripts.PlayerScripts.RbxCharacterSounds:345",
+          "total_us": 9314,
+          "function_index": 24,
+          "pct_of_capture": 0.23,
+          "source": "Players.Stev_Scripts.PlayerScripts.RbxCharacterSounds",
+          "rank": 9
+        },
+        {
+          "source": "[C]",
+          "total_us": 9294,
+          "function_index": 16,
+          "pct_of_capture": 0.23,
+          "name": "TextService.GetTextSize",
+          "rank": 10
+        }
+      ],
+      "categories": [
+        "delayedThreads",
+        "Ended",
+        "OnClientEvent",
+        "Stepped",
+        "DescendantAdded",
+        "WaitingScripts",
+        "Heartbeat"
+      ],
+      "debug_labels": [],
+      "player": "Stev_Scripts",
+      "version": 2,
+      "applied": {
+        "include_native": false,
+        "max_functions": 10,
+        "min_total_us": 0,
+        "include_plugin": false,
+        "sort": "total_us_desc"
+      },
+      "duration_ms": 4000,
+      "omitted": {
+        "plugin": 6
+      },
+      "session": {
+        "start_time": 1790458867072,
+        "end_time": 1790458871092
+      },
+      "frequency": 1000,
+      "target": "client-1",
+      "output_path": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/economy-playtests-20260926/client-stress360-profiler.json"
+    }
+  }
+}

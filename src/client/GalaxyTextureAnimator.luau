@@ -8,7 +8,7 @@ Galaxy.__index = Galaxy
 
 local MAX_FRAMES, MAX_EDGE = 24, 512
 local shared = {references = 0, generation = 0, state = "idle", error = nil,
-	image = nil, content = nil, size = nil, frames = {}, lastIndex = 0,
+	image = nil, blendImage = nil, content = nil, size = nil, frames = {}, lastIndex = 0, lastUpdate = nil,
 	surface = nil, surfaceImages = {}, surfaceState = "idle", surfaceError = nil}
 
 local function contentId(value: any): string?
@@ -25,6 +25,8 @@ local function releaseShared()
 	for _, image in shared.surfaceImages do image:Destroy() end
 	shared.surface, shared.surfaceImages, shared.surfaceState, shared.surfaceError = nil, {}, "idle", nil
 	if shared.image then shared.image:Destroy() end
+	if shared.blendImage then shared.blendImage:Destroy() end
+	shared.blendImage, shared.lastUpdate = nil, nil
 	shared.image, shared.content, shared.size = nil, nil, nil
 	table.clear(shared.frames)
 	shared.lastIndex, shared.state, shared.error = 0, "idle", nil
@@ -40,7 +42,7 @@ local function beginLoad()
 	end
 	task.spawn(function()
 		local frames, size = {}, nil
-		local input, output
+		local input, output, blendImage
 		local ok, problem = pcall(function()
 			local ids = Assets.GalaxyFrames or {}
 			if #ids < 2 or #ids > MAX_FRAMES then error("Galaxy requires 2–24 atlas frames") end
@@ -64,14 +66,18 @@ local function beginLoad()
 			if not current() then return end
 			output = AssetService:CreateEditableImage({Size = size})
 			if not output then error("Galaxy output image allocation unavailable") end
+			blendImage = AssetService:CreateEditableImage({Size = size})
+			if not blendImage then error("Galaxy blend image allocation unavailable") end
 			output:WritePixelsBuffer(Vector2.zero, size, frames[1])
 			if not current() then return end
 			shared.image, shared.content, shared.size = output, Content.fromObject(output), size
+			shared.blendImage, shared.lastUpdate = blendImage, nil
 			shared.frames, shared.lastIndex, shared.state, shared.error = frames, 1, "ready", nil
-			output = nil -- Shared cache now owns the allocation.
+			output, blendImage = nil, nil -- Shared cache now owns the allocations.
 		end)
 		if input then input:Destroy() end
 		if output then output:Destroy() end
+		if blendImage then blendImage:Destroy() end
 		if not current() or not ok then table.clear(frames) end
 		if current() and not ok then shared.state, shared.error = "failed", tostring(problem) end
 	end)
@@ -169,11 +175,25 @@ function Galaxy.Step(self: any, now: number, reduced: boolean, camera: Camera?)
 	beginLoad()
 	self.state, self.error, self.frameCount = shared.state, shared.error, #shared.frames
 	if shared.state ~= "ready" then self:_restore(); return end
+	-- FPS describes the authored keys, not the display rate. Interpolate on
+	-- DuckAnimator's existing RenderStepped clock without speeding up the loop.
 	local fps = math.clamp(tonumber(Assets.GalaxyFPS) or 6, 1, 8)
-	local index = math.floor(now * fps) % #shared.frames + 1
-	if index ~= shared.lastIndex then
+	local position = (now * fps) % #shared.frames
+	local index = math.floor(position) + 1
+	local alpha = position % 1
+	if now ~= shared.lastUpdate then
 		local ok, problem = pcall(function()
 			shared.image:WritePixelsBuffer(Vector2.zero, shared.size, shared.frames[index])
+			if alpha > 0 then
+				-- Native compositing avoids a 512x512 Luau pixel loop each frame.
+				-- Reset the scratch image before multiplying its alpha so neither
+				-- transparency nor previous blends accumulate. Authored atlases
+				-- are opaque; source-over keeps the displayed result opaque too.
+				shared.blendImage:WritePixelsBuffer(Vector2.zero, shared.size, shared.frames[index % #shared.frames + 1])
+				shared.blendImage:DrawRectangle(Vector2.zero, shared.size, Color3.new(1, 1, 1),
+					1 - alpha, Enum.ImageCombineType.Multiply)
+				shared.image:DrawImage(Vector2.zero, shared.blendImage, Enum.ImageCombineType.BlendSourceOver)
+			end
 		end)
 		if not ok then
 			shared.state, shared.error = "failed", tostring(problem)
@@ -182,6 +202,7 @@ function Galaxy.Step(self: any, now: number, reduced: boolean, camera: Camera?)
 			return
 		end
 		shared.lastIndex = index
+		shared.lastUpdate = now -- All Galaxy instances share one composite per render frame.
 	end
 	local surface = self.body:FindFirstChildOfClass("SurfaceAppearance")
 	if self.animatedSurface and surface ~= self.animatedSurface then self:_restore(); surface = self.body:FindFirstChildOfClass("SurfaceAppearance") end

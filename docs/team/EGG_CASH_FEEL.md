@@ -43,3 +43,26 @@ Only ActionFeedback, CollectionFeel, these docs and that template's parent chang
 Both runtime sources match Studio and compile. Isolated Edit checks passed for
 authored clone preservation, both phases, return target, fade, repeats and cleanup.
 No Play session, save, publish, upload or player-data change.
+
+September 25 Money attachment revision: replaced the CashDrop curve with the
+user-authored Money attachment, moved intact from ReplicatedStorage.Money to
+ReplicatedStorage.PetRoll.Assets.Money. ActionFeedback centers a clone on the
+local HumanoidRootPart, disables continuous emission, emits 20 from each of its
+three ParticleEmitters and destroys the clone with Debris after one second.
+CollectionFeel now exposes Count=20 and Lifetime=1. CashDrop is retained.
+Only ActionFeedback, CollectionFeel, these cash-feedback docs and the Money
+parent changed, plus preservation of the stale duplicate CollectionFeel under
+ServerStorage.CashMoneyVFXRecovery20260925 so it cannot shadow the new settings.
+Native isolated Edit checks passed for placement, cleanup, repeats, reset,
+reduced motion and character destruction. Sources compile and match Studio.
+No Play, place save, publishing, uploads or player data changes. Ownership released.
+
+Money sound follow-up: moved the user's ReplicatedStorage.Money Sound intact to
+ReplicatedStorage.PetRoll.Assets.Sounds.Money. CollectionFeel points CashTick to
+6809101819 and uses its authored 0.25 volume. Removed the two CashTick 0.7-second
+cutoffs in ActionFeedback so the full 0.904-second sound plays through the
+existing audio controller. Silent isolated Edit checks passed for confirmed cash
+routing, asset loading without fallback, removal of the old cutoff, voice
+destruction cleanup and Effects mute. The native Ended timing check did not
+complete in Edit; audible gameplay playback/completion remains unverified.
+No Play, save, publish, upload or player-data changes. Ownership released.

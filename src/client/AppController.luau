@@ -96,6 +96,9 @@ function AppController:Notify(text, ok)
 	if not text or text == "" then return end
 	local kind=if type(ok)=="string" and Theme.NotificationStyles[ok] then ok
 		elseif ok==false then "error" elseif ok==true then "success" else "info"
+	if kind=="error" then
+		self.audio:Play("Error",nil,{voiceKey="ErrorNotification",cooldown=0.25})
+	end
 	local repeated=self.toastFrame.Visible and self.noticeText==text and self.noticeKind==kind
 	self.noticeText,self.noticeKind=text,kind
 	self.toastSerial += 1
@@ -131,7 +134,7 @@ function AppController:TrackProductionUpgrade(result)
 		return true,true
 	end
 	local name=if requested.key=="EggSpeed" then "Egg Speed" else "Egg Value"
-	local benefit=if requested.key=="EggSpeed" then "Each chicken lays more often" else "New eggs are worth more"
+	local benefit=if requested.key=="EggSpeed" then "Every chicken produces more eggs" else "Same value for every new egg"
 	self:Notify(name..": "..requested.currentText.." → "..offer.currentText.."\n"..benefit,true)
 	return true,true
 end
@@ -165,11 +168,11 @@ function AppController:TrackRecruit(result)
 	end
 	-- Per-bird potential, not a promise of net home income or cash paid immediately.
 	local identity=name
-	if pet and type(pet.income)=="number" then
+	if pet and type(pet.eggsPerSecond)=="number" then
 		local width=math.max(1,self.toast.AbsoluteSize.X)
-		identity=EggFeedback.Fit(pet.income,name.." · eggs ","/s at home",width,self.toast.TextSize,true,true)
+		identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · "," eggs/s at home",width,self.toast.TextSize,false,true)
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then
-			identity=EggFeedback.Fit(pet.income,name.." · ","/s at home",width,self.toast.TextSize,true,true)
+			identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · "," eggs/s",width,self.toast.TextSize,false,true)
 		end
 		-- Preserve identity and assignment if a very narrow viewport cannot fit the optional rate.
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then identity=name end
@@ -288,7 +291,7 @@ function AppController:OpenPage(page)
 	self:RenderPanel(true)
 	Theme.Motion:OpenPanel(self.panel,self.backdrop,switching)
 	if self.toastFrame.Visible then Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition()) end
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject=if page=="Upgrades" then self.progression.closeButton else self.closeButton end
+	if UserInputService.GamepadEnabled then GuiService.SelectedObject=if page=="Upgrades" then self.progression.closeButton elseif page=="Merge" and self.mergeBrowser then self.mergeBrowser.closeButton else self.closeButton end
 	ContextActionService:BindActionAtPriority("PetRollClosePanel",function(_,state)
 		if state==Enum.UserInputState.Begin then self:ClosePanel() end
 		return Enum.ContextActionResult.Sink
@@ -394,16 +397,22 @@ function AppController:FitPanel()
 	local width=math.min(self.panelMaxWidth,available.X*0.94)
 	local height=math.min(self.panelMaxHeight,available.Y*0.92)
 	if self.page=="Army" then
-		local fit=math.min(1.1,(available.X-24)/1536,available.X*0.96/1536,
-			(available.Y-24)/1024,available.Y*0.94/1024)
-		self.armyCompact=fit<0.8
-		if not self.armyCompact then width,height=1536*fit,1024*fit end
+		-- Keep the Figma window's proportions so the inspector footer fits on desktop.
+		self.armyCompact=available.X<900 or available.Y<550
+		if not self.armyCompact then
+			local fit=math.min(1.1,(available.X-24)/1474,available.X*0.96/1474,
+				(available.Y-24)/976,available.Y*0.94/976)
+			width,height=1474*fit,976*fit
+		end
 	elseif self.page=="Shop" then
 		width=math.min(1080,width)
 	elseif self.page=="Upgrades" then
 		height=math.min(660,height)
 	elseif self.page=="Merge" then
-		width,height=math.min(860,width),math.min(510,height)
+		if available.X>=900 and available.Y>=550 then
+			local fit=math.min(1.1,available.X*0.94/1318,available.Y*0.88/838)
+			width,height=1318*fit,838*fit
+		end
 	elseif self.page~="Index" then
 		width=math.min(760,width)
 		local motion=math.max(self.panelMotionScale.Scale,0.01)
@@ -534,7 +543,23 @@ function AppController:RenderTest()
 		self:Button("CancelReset", "Keep my progress", function() self.confirm = nil;self:RenderPanel(true) end)
 		return
 	end
-	self:Text("TestHelp", "Changes here affect your test progress. Use the protected reset to start a fresh playthrough.", 13, 42, C.muted)
+	local shop=self.state.shop
+	self:Text("TestHelp", if shop and shop.testAllowed then "Disposable Studio session · test progress disappears when Play stops."
+		else "Changes here affect your test progress. Use the protected reset to start a fresh playthrough.", 13, 42, C.muted)
+	if shop and shop.testAllowed then
+		local presetNames={Account="My account's passes",NoPasses="No paid passes",EggSpawn="2x Egg Spawn only",AllPasses="All enabled passes"}
+		self:Text("PurchaseTestStatus", "PURCHASE TEST · "..(presetNames[shop.testPreset] or presetNames.Account), 14, 30, C.green)
+		self:Text("PurchaseTestHelp", "Session only. Fresh starts clear test cash, chickens, upgrades and consumables. Your real purchases and save stay intact.", 13, 62, C.muted)
+		self:Button("TestNoPasses", "Ignore all owned passes · keep test progress", function() self:Request("Debug",{command="TestPurchases",argument="NoPasses"}) end)
+		self:Button("TestAccountPasses", "Use my account's passes again", function() self:Request("Debug",{command="TestPurchases",argument="Account"}) end)
+		for _,preset in {{"Free","Fresh free player · no paid items"},{"LowRobux","Fresh low spend · 2x Egg Spawn only"},
+			{"CashPack","Fresh cash pack · +10,000 cash, no passes"},{"AllPasses","Fresh all enabled passes · no cash packs"},
+			{"AllItems","Fresh all items · passes + one of each cash pack"}} do
+			self:Button("FreshEconomy"..preset[1],preset[2],function() self:Request("Debug",{command="FreshEconomy",argument=preset[1]}) end)
+		end
+	else
+		self:Text("PurchaseTestUnavailable", "Purchase presets need Studio session-only mode (PetRollPlaytestSessionOnly).", 13, 46, C.muted)
+	end
 	local actions = {{"Coins", "+10,000 test coins"}, {"Unlock", "Clear 2 route camps + test capacity"},
 		{"Pair", "Add two common chickens"}, {"FillCommon", "Replace flock with common chickens"},
 		{"FillMixed", "Replace flock with varied chickens"}, {"FillReserves", "Fill flock to 40"}, {"Opponent", "Create a defended test base"},
@@ -560,7 +585,7 @@ function AppController:RenderPanel(force)
 	self.progression.root.Visible=upgrading
 	self.content.Visible,self.chickenBrowser.root.Visible=not browsing and not merging and not shopping and not indexing and not upgrading,browsing
 	if self.mergeBrowser then self.mergeBrowser.root.Visible=merging end
-	self.panelHeader.Visible,self.panelBody.Visible=not shopping and not browsing and not upgrading,not shopping and not browsing and not upgrading
+	self.panelHeader.Visible,self.panelBody.Visible=not shopping and not browsing and not upgrading and not merging,not shopping and not browsing and not upgrading and not merging
 	self.shopBrowser.root.Visible,self.indexBrowser.root.Visible=shopping,indexing
 	if upgrading then
 		self:FitPanel();self.progression:Render();return
@@ -587,6 +612,10 @@ function AppController:RenderPanel(force)
 	local p=state.progression
 	if p then table.insert(keys,p.rank..":"..p.recruitTier..":"..tostring(p.goal)..":"..tostring(p.requirement)..":"..tostring(state.kingCleared)) end
 	if self.page == "Settings" then table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage)) end
+	if self.page == "Test" then
+		table.insert(keys, tostring(state.shop and state.shop.testAllowed))
+		table.insert(keys, tostring(state.shop and state.shop.testPreset))
+	end
 	local key = table.concat(keys, "|")
 	if not force and key == self.panelKey then return end
 	self.panelKey = key

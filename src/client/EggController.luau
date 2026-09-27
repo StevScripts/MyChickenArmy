@@ -233,7 +233,7 @@ function Eggs:Receive(snapshot)
    end
   end
   if view then
-   view.data=data;view:SetValue(data.value)
+   view.data=data;view:SetValue(data.value,data.stack)
    if data.flightAge~=nil and not view.flightAt then
     self:StartFlight(view,now)
    end

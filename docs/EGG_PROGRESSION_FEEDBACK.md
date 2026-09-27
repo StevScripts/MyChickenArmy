@@ -1,5 +1,12 @@
 # Egg progression feedback
 
+**September 26 update:** [EGG_ECONOMY.md](EGG_ECONOMY.md) supersedes this original
+presentation pass's variable-value assumptions. Eggs now use identical art with
+quantity captions; recruit and merge rates are eggs/sec. Egg Speed shows a
+production multiplier and Egg Value shows the shared per-egg cash amount. The
+original implementation/evidence below is historical where it describes rarity
+tints, per-pickup worth captions or equal laying intervals.
+
 Implemented locally on 25 September 2026. This is the presentation pass from the [approved plan](</Users/stevin/Documents/ChatGPT/My Chicken Army/Cyber/EGG_FEEDBACK_PLAN.md>), not the earlier proposal to convert valuable chickens into additional logical eggs.
 
 ## Player-facing changes

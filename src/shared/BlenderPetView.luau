@@ -108,7 +108,9 @@ function BlenderPetView.Create(parent, id, species, stars, foot, physical)
 		model:SetAttribute("Appearance", art.name)
 		model:SetAttribute("BonePrefix", art.bonePrefix)
 		model:SetAttribute("ClipUnitScale", art.unitScale)
-		if art.name == "Galaxy" then body.Transparency = 0.08 end
+		-- Galaxy's face and feathers share one mesh. Translucency makes its
+		-- overlapping surfaces sort over the eyes/beak; keep the mesh opaque.
+		if art.name == "Galaxy" then body.Transparency = 0 end
 	end
 	model:SetAttribute("VisualStyle", if v3 then "VoxelChickenV3" else "BlenderStudChicken")
 	model:SetAttribute("FootOffset", offset)

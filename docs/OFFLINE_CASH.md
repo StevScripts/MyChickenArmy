@@ -24,6 +24,12 @@ not a new purchase after returning. Seller/bag/vacuum balances are unchanged.
 No claim remote or client-submitted timestamp/amount exists. Currency is already
 saved before the UI says it was added.
 
+September 26 quantity-economy correction: the rate sums each species/level's actual
+eggs/sec, caps that total by seller eggs/sec and multiplies by the shared egg unit
+value before the existing paid benefit and efficiency. It no longer estimates
+egg quantity from the number of chickens. Existing frozen checkpoints retain their
+recorded rate until consumed. See [EGG_ECONOMY.md](EGG_ECONOMY.md).
+
 Normal exit starts at departure; crash recovery conservatively starts at the
 last saved lease expiry (180 seconds after the snapshot). A new/old profile's
 first visit establishes its rate and earns no historical windfall. Standard

@@ -1,0 +1,26 @@
+{
+  "savedPreviews": [
+    "ServerStorage.MCA_ArmyOutlinedReview20260925.MCA_ArmyFigmaReview_Army_Desktop",
+    "ServerStorage.MCA_ArmyOutlinedReview20260925.MCA_ArmyFigmaReview_Army_PhoneLandscape",
+    "ServerStorage.MCA_ArmyOutlinedReview20260925.MCA_ArmyFigmaReview_Army_PhonePortrait"
+  ],
+  "placeId": 96683186622050,
+  "sources": [
+    {
+      "bytes": 38338,
+      "name": "AppController",
+      "hash": 2660565725
+    },
+    {
+      "bytes": 62692,
+      "name": "ChickenBrowser",
+      "hash": 3564491409
+    },
+    {
+      "bytes": 2059,
+      "name": "ChickenPortraits",
+      "hash": 1716065552
+    }
+  ],
+  "creatorId": 778575811
+}

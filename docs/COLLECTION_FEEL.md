@@ -2,39 +2,36 @@
 
 Tune `src/shared/CollectionFeel.luau`, then restart Play. ModuleScripts are cached.
 
-## Cash: supplied CashDrop script and asset
+## Cash: authored Money particle burst
 
-Cash collection clones the user's authored `CashDrop` ten times, preserving its
-BillboardGui image and Trail. The original template was moved from `Workspace.CashDrop`
-to `ReplicatedStorage.PetRoll.Assets.CashDrop`; it remains Studio-owned, not Rojo art.
-Save the place separately to persist that asset move.
+Cash collection clones the user's `Money` Attachment from
+`ReplicatedStorage.PetRoll.Assets.Money` into the local player's HumanoidRootPart.
+The template was moved intact from `ReplicatedStorage.Money`; it remains
+Studio-owned. Save the place separately to persist that asset move.
 
-The supplied script's three waypoints are the player's starting position,
-that position plus a random horizontal vector times 3 and 1 stud upward,
-then that position plus the same vector times 6 and 2.5 studs downward.
-The outward curve uses Exponential Out over 0.65 seconds. At 0.30 seconds,
-the drops return to the player's then-current position over 0.30 seconds using
-Exponential In, while the images fade with Quad In. Cleanup follows 0.05 seconds later.
-The return destination is captured once, matching the supplied script.
+Each clone is centered on the root with an identity local CFrame, because the
+imported template has an offset from its original authoring position. Every
+descendant ParticleEmitter is disabled for continuous emission and receives one
+`Emit(20)` call. The three current emitters are Spec1, Diamonds1 and Money.
+Authored textures, colors and other particle settings remain intact; the shared
+burst count overrides their individual EmitCount attributes. Debris destroys the
+entire clone after one second, including any longer-lived particles.
 
-`BezierTween` and the `CrashPart` collision group were absent. TweenService drives
-a scalar along the quadratic curve instead; clones are anchored and have collision,
-touch and query disabled. The outward driver is cancelled before the return starts
-so the two phases do not fight over Position. No package or collision group was added.
-One quiet coin sound still plays on confirmation; eggs and sound assets are unchanged.
+This replaces the previous CashDrop curve in `Feedback:Cash`. The older
+`ReplicatedStorage.PetRoll.Assets.CashDrop` template is retained. Existing cash
+receipt routing, sale feedback and the quiet confirmation sound still use the
+same presentation entry point; no server collection or currency logic changes.
 
 The `Cash` section has these controls:
 
-- `OutSeconds` / `InSeconds`: curve and return/fade durations.
-- `ReturnDelay`: when to interrupt the curve and start returning.
-- `Count`: number of template clones.
+- `Count`: particles emitted by each emitter (20).
+- `Lifetime`: seconds before the cloned attachment is destroyed (1).
 - `Volume`: collection sound volume.
 
-Edit `Feedback:Cash` in `src/client/ActionFeedback.luau` to change the curve
-waypoints and TweenService calls. Edit the stored template in Studio to change
-its image, size or trail. Up to three groups can overlap. Completion destroys the
-clones; reset, teardown and reduced motion cancel active tweens. Confirmation
-does not depend on animation completion. Reduced motion uses an amount popup.
+Edit the stored template in Studio to change its particles. Up to three bursts
+can overlap. Reset, teardown, character destruction and reduced motion clear
+active clones. Confirmation does not depend on effect completion. Reduced motion
+uses the existing amount popup.
 
 `Feedback:CashReward` groups exact receipt values. EggController owns receipt
 and generation deduplication. The wallet always follows server snapshots;
@@ -47,17 +44,36 @@ Egg pickups retain their existing curved flight and moving-player/nozzle trackin
 flights into the seller. Deposits confirm eggs; processor cash is celebrated only
 when the server confirms a separate cash claim.
 
-`Sounds` selects EggPickup, EggDeposit and CashTick assets. AudioController owns
-preloading, bounded overlap and the existing Effects mute setting.
+Edit EggPickup, EggDeposit and Money SoundIds in
+`SoundService.MyChickenArmyAudio.Collection`. AudioController owns preloading,
+bounded overlap and the existing Effects mute setting. See [AUDIO.md](AUDIO.md).
+
+CashTick uses the user's Money sound (`rbxassetid://6809101819`), now moved intact
+to `SoundService.MyChickenArmyAudio.Collection.Money`. Its editable SoundId is
+the source of truth, with the authored 0.25 volume in `Cash.Volume` and normal
+playback speed. The full 0.904-second clip
+plays on confirmed cash receipts (and the existing sale cue); the old 0.7-second
+cutoff was removed. AudioController retains Effects mute, overlap limits,
+background preloading and Ended cleanup. Save the place to persist the asset move.
 
 ## Verification
 
-The supplied-script revision passed isolated Edit checks using actual native
-tweens: ten authored clones with preserved image/trail attachment references,
-confirmation, outward curve, interrupted curve, inward fade, return to a moved
-root's captured position, completion, bounded repeats, reset, reduced-motion
-interruption/confirmation, character removal and delayed teardown callbacks.
-Cleanup checks allow deferred Destroying signals to run.
-The two changed runtime sources compile and match Studio through
-Rojo. No Play session was started or stopped; start a fresh Play session to review
-the effect in gameplay. No place save, publish, upload or player-data change.
+The Money revision passed isolated Edit checks using the current ActionFeedback
+source, the actual authored attachment, native ParticleEmitter emission and
+Debris: root placement, three burst-only emitters, unchanged template, presence
+at 0.25 seconds, destruction by 1.2 seconds, bounded repeats, reset, reduced-motion
+confirmation and character removal. This is not a gameplay visual review.
+
+Both changed runtime sources compile and match Studio through Rojo. A stale
+duplicate CollectionFeel was preserved outside the runtime tree at
+`ServerStorage.CashMoneyVFXRecovery20260925.CollectionFeel`; one current copy
+remains active. No Play session was started or stopped, and no place save,
+publish, upload or player-data change was made.
+
+The Money sound follow-up passed a silent isolated Edit check through the actual
+ActionFeedback and AudioController sources: cash confirmation selects the loaded
+clip without fallback at volume 0.25/pitch 1, the old cutoff no longer fades it,
+Effects mute blocks new voices, and destroying a voice clears its tracking.
+An attempted native Ended timing check did not complete in Edit mode; full audible
+playback and natural completion remain unverified in gameplay. The existing
+Ended/deferred cleanup code is unchanged. No Play session was started.

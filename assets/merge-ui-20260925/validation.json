@@ -1,0 +1,212 @@
+{
+  "sourceReadback": {
+    "machinePreserved": true,
+    "buttonPromptPreserved": true,
+    "scripts": [
+      {
+        "hash": 160212133,
+        "path": "ServerStorage.PetRoll.ArmyService",
+        "name": "ArmyService",
+        "length": 11531,
+        "compiled": true
+      },
+      {
+        "hash": 803694569,
+        "path": "ServerStorage.PetRoll.GameServer",
+        "name": "GameServer",
+        "length": 19216,
+        "compiled": true
+      },
+      {
+        "hash": 3733282735,
+        "path": "ServerStorage.PetRoll.WorldService",
+        "name": "WorldService",
+        "length": 31229,
+        "compiled": true
+      },
+      {
+        "hash": 903326180,
+        "path": "ServerStorage.PetRoll.MergeStand",
+        "name": "MergeStand",
+        "length": 6642,
+        "compiled": true
+      },
+      {
+        "hash": 108448650,
+        "path": "ReplicatedStorage.PetRoll.Shared.Config",
+        "name": "Config",
+        "length": 5128,
+        "compiled": true
+      },
+      {
+        "hash": 6158900,
+        "path": "ReplicatedStorage.PetRoll.Shared.ShopCatalog",
+        "name": "ShopCatalog",
+        "length": 4478,
+        "compiled": true
+      },
+      {
+        "hash": 3748890460,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UITheme",
+        "name": "UITheme",
+        "length": 30072,
+        "compiled": true
+      },
+      {
+        "hash": 4116719951,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AppController",
+        "name": "AppController",
+        "length": 38549,
+        "compiled": true
+      },
+      {
+        "hash": 1678134583,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MergeBrowser",
+        "name": "MergeBrowser",
+        "length": 17407,
+        "compiled": true
+      },
+      {
+        "hash": 204065094,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MergePresentation",
+        "name": "MergePresentation",
+        "length": 5550,
+        "compiled": true
+      }
+    ]
+  },
+  "checks": [
+    {
+      "passed": true,
+      "name": "Exactly three become one; retained ID, investment, coins and save roundtrip"
+    },
+    {
+      "passed": true,
+      "name": "Replay and old two-ID payload cannot consume more chickens"
+    },
+    {
+      "passed": true,
+      "name": "Duplicate, foreign, malformed, mismatched species/stars/levels fail atomically"
+    },
+    {
+      "passed": true,
+      "name": "Favorites, away, defending and capped chickens are excluded"
+    },
+    {
+      "passed": true,
+      "name": "Three home reserves can merge while their squad is away"
+    },
+    {
+      "passed": true,
+      "name": "Only 3+ copies shown, extra copies remain; preview uses actual stats"
+    },
+    {
+      "passed": true,
+      "name": "Whole batch rejects shared IDs or invalid final triple without partial mutation"
+    },
+    {
+      "passed": true,
+      "name": "Sparse batches and legacy pairs rejected; paid automation stays disabled"
+    }
+  ],
+  "integration": {
+    "sessionOnly": true,
+    "eligibleGroups": 8,
+    "desktopGrid": [
+      4,
+      2
+    ],
+    "clientMergeBefore": 27,
+    "clientMergeAfter": 25,
+    "near": true,
+    "otherPlotRejected": true,
+    "farRejected": true,
+    "searchCamoGroups": 1,
+    "searchCamoCount": 6,
+    "emptyStateDisabled": true,
+    "doubleClickBlocked": true,
+    "closedReplyDoesNotRecreate": true,
+    "reopenDoesNotReplay": true,
+    "gateParts": 21,
+    "gateLift": 5.662224769592285,
+    "cosmeticInputs": 3,
+    "gateReturnedOffset": 0
+  },
+  "layouts": [
+    {
+      "panel": [
+        1318,
+        838
+      ],
+      "columns": 4,
+      "grid": [
+        864,
+        636
+      ],
+      "action": [
+        376,
+        120
+      ]
+    },
+    {
+      "panel": [
+        947,
+        602
+      ],
+      "columns": 4,
+      "grid": [
+        620,
+        456
+      ],
+      "action": [
+        270,
+        86
+      ]
+    },
+    {
+      "panel": [
+        749,
+        339
+      ],
+      "columns": 3,
+      "grid": [
+        474,
+        193
+      ],
+      "action": [
+        230,
+        60
+      ]
+    },
+    {
+      "panel": [
+        365,
+        700
+      ],
+      "columns": 2,
+      "grid": [
+        341,
+        346
+      ],
+      "action": [
+        211,
+        68
+      ]
+    },
+    {
+      "panel": [
+        565,
+        330
+      ],
+      "columns": 2,
+      "grid": [
+        290,
+        184
+      ],
+      "action": [
+        230,
+        60
+      ]
+    }
+  ]
+}

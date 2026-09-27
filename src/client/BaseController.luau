@@ -10,6 +10,7 @@ local Progression = require(game:GetService("ReplicatedStorage").PetRoll.Shared.
 local CampCommand=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CampCommand)
 local Theme = require(script.Parent.UITheme)
 local RollPresentationController = require(script.Parent.RollPresentationController)
+local AutoCollectStandController = require(script.Parent.AutoCollectStandController)
 local C = Theme.Colors
 local BaseController = {}
 BaseController.__index = BaseController
@@ -37,7 +38,8 @@ end
 
 function BaseController:CommandFor(part)
 	local state = self.app.state
-	if not state or (state.armyState ~= "Home" and state.armyState ~= "Deployed") then return nil end
+	if not state or (state.armyState ~= "Home" and state.armyState ~= "Deployed"
+		and state.armyState ~= "Traveling" and state.armyState ~= "Fighting") then return nil end
 	local target = part
 	while target and target ~= workspace and not target:GetAttribute("CommandTarget") do target = target.Parent end
 	if not target or target == workspace then return nil end
@@ -266,6 +268,8 @@ function BaseController:Start()
 	end
 	local world = workspace:WaitForChild("PetRollWorld", 15)
 	if world then
+		self.autoCollectStand = AutoCollectStandController.new(self.app)
+		self.autoCollectStand:Start(world)
 		self.roller = RollPresentationController.new(self.app)
 		self.roller:Start(world)
 		for _, item in world:GetDescendants() do localHomeTagsOnly(item);self:FilterStationPrompt(item, world) end
@@ -305,6 +309,7 @@ function BaseController:Start()
 		self.poll+=dt
 		if self.poll<0.1 then return end
 		self.poll=0;self:RefreshPromptOwnership();self:PollCommand();self:UpdateObjective();self.app:StepRecruitFeedback();self:UpdateMergeStand()
+		if self.autoCollectStand then self.autoCollectStand:Step() end
 		self.app.hud:UpdateTerritory(self.app.state)
 	end))
 	-- Clicking a chicken still opens its inventory entry. Ground clicks never issue army orders.
@@ -445,6 +450,7 @@ end
 
 function BaseController:Destroy()
 	self.alive = false
+	if self.autoCollectStand then self.autoCollectStand:Destroy() end
 	if self.roller then self.roller:Destroy() end
 	for _, connection in self.connections do connection:Disconnect() end
 	local filters = {}

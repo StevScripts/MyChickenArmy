@@ -57,128 +57,144 @@ local function mergeEligible(session, pet)
 		and (pet.level or 1) < Progression.Get(session.promotion).levelCap
 end
 
--- The physical stand offers exact pairs. Prefer retaining an existing squad ID.
+-- Exact triples; keep a selected squad ID so the survivor retains its place.
 function ArmyService.MergeOptions(session, automatic: boolean?)
 	if not Config.Features.Merging then return {} end
-	local groups, options = {}, {}
-	local protected={}
-	-- Automation never changes a lineup the player explicitly chose. Manual
-	-- stand merges retain their existing ability to merge selected home birds.
+	local groups,options,protected={},{},{}
 	if automatic and session.armySelection then
 		for _,id in session.armySelection do protected[id]=true end
 	end
-	for _, pet in session.pets do
-		if not protected[pet.id] and mergeEligible(session, pet) then
-			local key = pet.species .. ":" .. (pet.level or 1)
-			groups[key] = groups[key] or {}
-			table.insert(groups[key], pet)
+	for _,pet in session.pets do
+		if not protected[pet.id] and mergeEligible(session,pet) then
+			local key=pet.species..":"..(pet.stars or 1)..":"..(pet.level or 1)
+			groups[key]=groups[key] or {};table.insert(groups[key],pet)
 		end
 	end
-	for key, pets in groups do
-		if #pets < 2 then continue end
-		table.sort(pets, function(a, b)
-			local sa, sb = session:FindSlot(a.id) or math.huge, session:FindSlot(b.id) or math.huge
-			if sa ~= sb then return sa < sb end
-			return a.id < b.id
+	for key,pets in groups do
+		if #pets<3 then continue end
+		table.sort(pets,function(a,b)
+			local sa,sb=session:FindSlot(a.id) or math.huge,session:FindSlot(b.id) or math.huge
+			if sa~=sb then return sa<sb end
+			return a.id<b.id
 		end)
-		local a, b = pets[1], pets[2]
-		local level = a.level or 1
-		local petIds = {}
-		for index=1,math.floor(#pets/2)*2 do petIds[index]=pets[index].id end
-		table.insert(options, {key=key, firstId=a.id, secondId=b.id, species=a.species, level=level,
-			pairs=math.floor(#pets / 2), petIds=petIds,
-			beforeIncome=session:DisplayedPetIncome(a.species,a.stars,level)+session:DisplayedPetIncome(b.species,b.stars,level),
-			afterIncome=session:DisplayedPetIncome(a.species,1,level+1)})
+		local a,b,c=pets[1],pets[2],pets[3]
+		local level,stars=a.level or 1,a.stars or 1
+		local ids={};for _,pet in pets do table.insert(ids,pet.id) end
+		local before,after=Rules.Stats(a.species,stars,level),Rules.Stats(a.species,stars,level+1)
+		local income=session:DisplayedPetIncome(a.species,stars,level)
+		table.insert(options,{key=key,firstId=a.id,secondId=b.id,thirdId=c.id,
+			species=a.species,stars=stars,level=level,count=#pets,merges=math.floor(#pets/3),petIds=ids,
+			inputIncome=income,beforeIncome=income*3,
+			inputEggRate=session:PetEggRate(a.species,stars,level),
+			afterEggRate=session:PetEggRate(a.species,stars,level+1),
+			afterIncome=session:DisplayedPetIncome(a.species,stars,level+1),
+			beforeDps=before.damage/before.interval,afterDps=after.damage/after.interval})
 	end
-	table.sort(options, function(a, b)
-		if a.species ~= b.species then return Catalog[a.species].price < Catalog[b.species].price
-			or (Catalog[a.species].price == Catalog[b.species].price and a.species < b.species) end
-		return a.level < b.level
+	table.sort(options,function(a,b)
+		if a.species~=b.species then return Catalog[a.species].price<Catalog[b.species].price
+			or (Catalog[a.species].price==Catalog[b.species].price and a.species<b.species) end
+		if a.level~=b.level then return a.level<b.level end
+		return a.stars<b.stars
 	end)
 	return options
 end
 
-local function mergePair(session, firstId, secondId, expectedLevel)
-	if type(firstId) ~= "string" or type(secondId) ~= "string" or #firstId>64 or #secondId>64 or firstId == secondId then
-		return nil, "Choose two different owned chickens."
+local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel)
+	if type(firstId)~="string" or type(secondId)~="string" or type(thirdId)~="string"
+		or #firstId>64 or #secondId>64 or #thirdId>64
+		or firstId==secondId or firstId==thirdId or secondId==thirdId then
+		return nil,"Choose three different owned chickens."
 	end
-	local a, b = session.pets[firstId], session.pets[secondId]
-	if not mergeEligible(session, a) or not mergeEligible(session, b) then
-		return nil, "Merge home chickens below your unlocked level cap. Kept and deployed chickens are protected."
-	end
-	local level = a.level or 1
-	if a.species ~= b.species or level ~= (b.level or 1) or level ~= expectedLevel then
-		return nil, "That pair changed. Match the same chicken and level at the stand."
-	end
-	return {first=a,second=b,level=level}
-end
-
-local function consumePair(session, pair)
-	local a,b,level=pair.first,pair.second,pair.level
-	-- No yield: consume one exact ID and upgrade the other. Existing save data
-	-- already persists individual levels and removed IDs; no parallel star tier.
-	session.pets[b.id] = nil
-	a.investment = (a.investment or Rules.Investment(a.species,level)) + (b.investment or Rules.Investment(b.species,level))
-	a.level = level + 1
-end
-
-function ArmyService.Merge(session, firstId, secondId, expectedLevel)
-	if not Config.Features.Merging then return false, "Merging is unavailable." end
-	local pair,reason=mergePair(session,firstId,secondId,expectedLevel)
-	if not pair then return false,reason end
-	consumePair(session,pair)
-	local a=pair.first
-	session.tutorial.upgraded = true
-	session:RefreshArmy(); session:Touch()
-	return true, Catalog[a.species].name .. " merged to level " .. a.level .. "!", a.id
-end
-
-function ArmyService.MergeAll(session, pairs)
-	if not Config.Features.Merging then return false, "Merging is unavailable." end
-	local limit=math.floor(Config.LegacyCollectionLimit/2)
-	if type(pairs)~="table" or #pairs<1 or #pairs>limit then return false,"Choose ready pairs to merge." end
-	local validated,seen,count={},{},0
-	for index,request in pairs do
-		count+=1
-		if count>limit or type(index)~="number" or index%1~=0 or index<1 or index>#pairs or type(request)~="table" then
-			return false,"Invalid merge selection."
+	local a,b,c=session.pets[firstId],session.pets[secondId],session.pets[thirdId]
+	for _,pet in {a or false,b or false,c or false} do
+		if not mergeEligible(session,pet) then
+			return nil,"Choose unprotected home chickens below your merge level cap."
 		end
-		local pair,reason=mergePair(session,request.firstId,request.secondId,request.level)
-		if not pair then return false,reason end
-		if seen[pair.first.id] or seen[pair.second.id] then return false,"Each chicken can only merge once." end
-		seen[pair.first.id],seen[pair.second.id]=true,true
-		validated[index]=pair
 	end
-	if count~=#pairs then return false,"Invalid merge selection." end
-	-- Validate every original pair before consuming any. New results never enter this batch.
-	local results={}
-	for _,pair in validated do
-		consumePair(session,pair)
-		table.insert(results,{petId=pair.first.id,species=pair.first.species,level=pair.first.level})
+	local level,stars=a.level or 1,a.stars or 1
+	if a.species~=b.species or a.species~=c.species or stars~=(b.stars or 1) or stars~=(c.stars or 1)
+		or level~=(b.level or 1) or level~=(c.level or 1) or level~=expectedLevel then
+		return nil,"Those chickens changed. Match the same chicken and level."
 	end
+	local investment=(a.investment or Rules.Investment(a.species,level))
+		+(b.investment or Rules.Investment(b.species,level))+(c.investment or Rules.Investment(c.species,level))
+	if investment~=investment or investment<0 or investment>1e12 then
+		return nil,"This merge exceeds the saved investment limit."
+	end
+	return {first=a,second=b,third=c,level=level,investment=investment}
+end
+
+local function consumeTriple(session,triple)
+	local a,b,c,level=triple.first,triple.second,triple.third,triple.level
+	-- Validate everything before mutation, without yielding. Existing saves already
+	-- store the retained ID, level and investment; no new progression currency.
+	a.investment=triple.investment
+	session.pets[b.id],session.pets[c.id]=nil,nil
+	if session.armySelection then
+		for index=#session.armySelection,1,-1 do
+			local id=session.armySelection[index]
+			if id==b.id or id==c.id then table.remove(session.armySelection,index) end
+		end
+	end
+	a.level=level+1
+end
+
+function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel)
+	if not Config.Features.Merging then return false,"Merging is unavailable." end
+	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel)
+	if not triple then return false,reason end
+	consumeTriple(session,triple)
+	local a=triple.first
 	session.tutorial.upgraded=true
 	session:RefreshArmy();session:Touch()
-	return true,"Merged "..count..(if count==1 then " pair!" else " pairs!"),{count=count,results=results}
+	return true,Catalog[a.species].name.." merged to level "..a.level.."!",a.id
+end
+
+function ArmyService.MergeAll(session,triples)
+	if not Config.Features.Merging then return false,"Merging is unavailable." end
+	local limit=math.floor(Config.LegacyCollectionLimit/3)
+	if type(triples)~="table" or #triples<1 or #triples>limit then return false,"Choose matching groups to merge." end
+	local validated,seen,count={},{},0
+	for index,request in triples do
+		count+=1
+		if count>limit or type(index)~="number" or index%1~=0 or index<1 or index>#triples or type(request)~="table" then
+			return false,"Invalid merge selection."
+		end
+		local triple,reason=mergeTriple(session,request.firstId,request.secondId,request.thirdId,request.level)
+		if not triple then return false,reason end
+		for _,pet in {triple.first,triple.second,triple.third} do
+			if seen[pet.id] then return false,"Each chicken can only merge once." end
+			seen[pet.id]=true
+		end
+		validated[index]=triple
+	end
+	if count~=#triples then return false,"Invalid merge selection." end
+	local results={}
+	for _,triple in validated do
+		consumeTriple(session,triple)
+		table.insert(results,{petId=triple.first.id,species=triple.first.species,level=triple.first.level})
+	end
+	session.tutorial.upgraded=true;session:RefreshArmy();session:Touch()
+	return true,"Merged "..count.." groups!",{count=count,results=results}
 end
 
 function ArmyService.AutoMerge(session)
-	if not Config.Features.Merging then return false, "Merging is unavailable." end
+	if not Config.Features.Merging or not Config.Features.AutoMerging then return false,"Auto Merge is unavailable." end
 	if not session.loaded or session.closing or session.saveLost or not session:AutomaticEnabled("AutoMerge") then
 		return false,"Auto Merge is off."
 	end
-	local pairs={}
-	local limit=math.floor(Config.LegacyCollectionLimit/2)
+	local triples={}
+	local limit=math.floor(Config.LegacyCollectionLimit/3)
 	for _,option in ArmyService.MergeOptions(session,true) do
-		for index=1,#option.petIds-1,2 do
-			if #pairs>=limit then break end
-			table.insert(pairs,{firstId=option.petIds[index],secondId=option.petIds[index+1],level=option.level})
+		for index=1,#option.petIds-2,3 do
+			if #triples>=limit then break end
+			table.insert(triples,{firstId=option.petIds[index],secondId=option.petIds[index+1],
+				thirdId=option.petIds[index+2],level=option.level})
 		end
-		if #pairs>=limit then break end
+		if #triples>=limit then break end
 	end
-	if #pairs==0 then return false,"No matching home chickens are ready." end
-	-- One original-pair batch per server tick. Any new pair waits until the next
-	-- scheduled call, and all usual favorite, location and rank checks still apply.
-	return ArmyService.MergeAll(session,pairs)
+	if #triples==0 then return false,"No matching home chickens are ready." end
+	return ArmyService.MergeAll(session,triples)
 end
 
 function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)

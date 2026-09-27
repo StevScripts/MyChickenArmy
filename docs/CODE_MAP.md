@@ -4,6 +4,10 @@ Start with the feature table below. The migration keeps the existing ModuleScrip
 
 All available cash upgrades are independent of camp/rank progress. [UPGRADE_RULES.md](UPGRADE_RULES.md) is the current eligibility contract; never reinstate historical conquest gates when editing offers or UI.
 
+Egg rarity now scales quantity, with one upgrade-defined value for every new egg.
+[EGG_ECONOMY.md](EGG_ECONOMY.md) owns the formulas, batching, seller tuning and
+earned-balance compatibility contract; start in shared `Rules` and server `EggService`.
+
 ## Source → Studio
 
 | Source folder/file | Studio destination |
@@ -26,6 +30,7 @@ Paths below are relative to `src/`. Search for the named symbol in VS Code with 
 | Roll zoom strength, duration and easing | `client/RollPresentationController.luau` | `ROLL_ZOOM_*` constants, `StartCameraZoom`, `ReturnCameraZoom`; presentation only |
 | Rolling shuffle, reveal and lever feel | `client/RollPresentationController.luau` | `BEATS`, visual timing and sound cues; `shared/Config.luau` supplies `RollRevealSeconds` |
 | Menu hover, press, open and pop animations | `client/UIMotion.luau` | Reusable tweens; start with `BindButton`, `Pop` and `Tween` |
+| Sound asset IDs and audio playback | `SoundService.MyChickenArmyAudio`, `client/AudioController.luau` | Edit native SoundId properties in Studio; [audio folders and editing guide](AUDIO.md). Client handles playback, mute, spatial parents and cleanup. |
 | UI palette and shared controls | `shared/UIColors.luau`, `client/UITheme.luau` | Colors, typography and reusable component styling |
 | Army inventory and chicken selling | `client/ChickenBrowser.luau` | Cards, selection and confirmation; `server/ArmyService.luau` validates transactions |
 | HUD and menu navigation | `client/HudController.luau`, `client/AppController.luau` | HUD rendering and page/controller coordination; [responsive layout and device checks](UI_RESPONSIVE.md) |
@@ -62,6 +67,6 @@ The server decides coins, ownership, purchases and combat results. Client contro
 
 ## Code retained for later
 
-Merging remains in `ArmyService`, `MergeStand`, `MergeBrowser` and `MergePresentation`, but release availability is gated by `Config.Features.Merging`. A retained module is not proof that a feature is enabled. Crate and legacy UI helpers may likewise be dormant. Check where a module is required and which feature flag enables it before changing it.
+Manual three-chicken merging is enabled in `ArmyService`, `MergeStand`, `MergeBrowser` and `MergePresentation` through `Config.Features.Merging`; the separately gated paid `AutoMerging` feature remains off. See `MERGING.md`. A retained module is not proof that a feature is enabled. Crate and legacy UI helpers may likewise be dormant. Check where a module is required and which feature flag enables it before changing it.
 
 Archived/editor/plugin scripts and optional tests are not normal startup code. The map, imported rigs, textures and other Studio-owned assets are intentionally outside this code map. See [EDITING.md](EDITING.md) for sync, save and Git workflows.

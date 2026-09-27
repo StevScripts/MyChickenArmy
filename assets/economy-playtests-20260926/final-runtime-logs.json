@@ -1,0 +1,13 @@
+{
+  "instanceId": "instance:w6a-k5r",
+  "entries": [
+    {
+      "message": "HttpService permission denied on domain raw.githubusercontent.com for plugin 10366079803.",
+      "ts": 1790458755.726,
+      "level": "WARN",
+      "data": []
+    }
+  ],
+  "totalDropped": 0,
+  "nextCursor": "eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZUlkIjoiaW5zdGFuY2U6dzZhLWs1ciIsInBlZXJzIjp7InBlZXI6ZzRmLTMyMyI6NiwicGVlcjpudHYtbXI5IjozMCwicGVlcjp3dXEtaXVlIjoxfX0"
+}

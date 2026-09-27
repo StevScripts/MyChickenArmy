@@ -18,8 +18,8 @@ local function pacedPrice(rank: number, seconds: number): number
 end
 
 local Config = {
-	-- Release switch. Merge code and authored stands are retained for a later update.
-	Features = {Merging = false},
+	-- Manual three-chicken merging is enabled; paid automation is a separate rollout.
+	Features = {Merging = true, AutoMerging = false},
 	Economy = Economy,
  Version="1.19.0-paced-economy", GameTitle="My Chicken Army!",
  -- Staged rollout: enable territory after the opening/feedback PC check.
@@ -55,8 +55,8 @@ local Config = {
  LuckPrices={pacedPrice(1,Economy.LuckUpgradeSeconds),pacedPrice(2,Economy.LuckUpgradeSeconds),pacedPrice(3,Economy.LuckUpgradeSeconds),pacedPrice(4,Economy.LuckUpgradeSeconds)},LuckWeightPerLevel=0.35,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,
  MaxStars=1,StarHP={1},StarSize={1},SellFraction=0.5,
- -- Whole-coin value accumulates only while the chicken is physically home.
- EggLaySeconds=2.4,EggsPerChicken=5,EggMaxDrops=80, -- 25% more frequent pickups; accumulated coin value is preserved.
+ -- All chickens lay the same egg. Species/levels change quantity, not unit value.
+ EggBaseValue=4,EggVisualBatchSeconds=0.25,EggsPerChicken=5,EggMaxDrops=80,
  LegacyEggLaySeconds=5, -- Older profile egg timers used the original five-second cycle.
  EggSpriteImage="rbxassetid://91011618236242",EggSpriteSize=2,EggSpriteMaxDistance=120,
  EggMagnetRadius=7.5,EggSettleSeconds=0.4,EggFlightSeconds=0.62,EggPickupBatch=4,
@@ -65,7 +65,7 @@ local Config = {
  BattleStep=0.1,SnapshotInterval=0.2,TravelSeconds=5,ReturnSeconds=5,
  -- Authored Blender pecks make contact at 0.30s; damage follows that beat.
  AttackWindupSeconds=0.3,AttackStaggerSeconds=0.06,DefenderSpawnDepth=9,
- RouteRegroupSeconds=1.2,CampHalfSize=11.7,CampRespawnGrace=0.4,
+ RouteRegroupSeconds=1.2,CampHalfSize=11.7,CampRespawnGrace=2,
  RoamStep=0.1,RoamSpeed=2.5,CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,
  KillCoins={Duck=100,Mallard=160,Chunky=280,Sailor=280,Bucket=520,Viking=960,Knight=1760,Wizard=3360,Dragon=7200,IceDuck=9600,StormDuck=14400},
  KillLevelBonus=0.15,

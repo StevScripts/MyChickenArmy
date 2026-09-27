@@ -215,8 +215,7 @@ function Special._visible(self: any, visible: boolean)
 end
 
 function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?)
-	if self.destroyed or now < self.nextUpdate then return end
-	self.nextUpdate = now + UPDATE_INTERVAL
+	if self.destroyed then return end
 	local model = self.model
 	if not model.Parent then self:Destroy(); return end
 	local body, root = model:FindFirstChild("Body"), model.PrimaryPart
@@ -231,6 +230,10 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?)
 		self.galaxyState, self.galaxyError = self.galaxy.state, self.galaxy.error
 		self.galaxyFrame, self.galaxyFrameCount = self.galaxy.frame, self.galaxy.frameCount
 	end
+	-- Galaxy composites at render cadence; particles and other effects keep
+	-- their existing inexpensive 20 Hz updates.
+	if now < self.nextUpdate then return end
+	self.nextUpdate = now + UPDATE_INTERVAL
 	if self.rainbow then self.rainbow:Step(now, reduced, camera) end
 	local visible = not reduced and model:GetAttribute("ReducedMotion") ~= true
 		and model:GetAttribute("Defeated") ~= true and model:GetAttribute("PresentationHidden") ~= true

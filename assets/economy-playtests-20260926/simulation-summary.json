@@ -1,0 +1,2838 @@
+{
+  "Free": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 2361.0,
+        "min": 2341,
+        "max": 2381,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 1181.0,
+        "min": 1161,
+        "max": 1201,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 361.0,
+        "min": 361,
+        "max": 361,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 2003.5,
+        "min": 2002,
+        "max": 2044,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 781.0,
+        "min": 763,
+        "max": 790,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 2563.0,
+        "min": 2524,
+        "max": 2626,
+        "n": 8
+      },
+      "firstLegendary": {
+        "median": 2839.0,
+        "min": 2641,
+        "max": 2953,
+        "n": 8
+      },
+      "firstMythic": {
+        "median": 3083.5,
+        "min": 2968,
+        "max": 3136,
+        "n": 8
+      },
+      "firstNormalRecruit": {
+        "median": 50.5,
+        "min": 43,
+        "max": 187,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 1754.5,
+        "min": 1702,
+        "max": 1822,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 241.0,
+        "min": 61,
+        "max": 241,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 562.0,
+        "min": 541,
+        "max": 568,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 16128.0,
+          "min": 14400,
+          "max": 17280,
+          "n": 8
+        },
+        "power": {
+          "median": 45.0,
+          "min": 45,
+          "max": 45,
+          "n": 8
+        },
+        "pending": {
+          "median": 560.0,
+          "min": 500,
+          "max": 570,
+          "n": 8
+        },
+        "rate": {
+          "median": 28.0,
+          "min": 25,
+          "max": 30,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 6.0,
+          "min": 4,
+          "max": 6,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 0.0,
+          "min": 0,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 3693.5,
+          "min": 3652,
+          "max": 3728,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "cash": {
+          "median": 686.0,
+          "min": 215,
+          "max": 2615,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 39744.0,
+          "min": 36432,
+          "max": 39744,
+          "n": 8
+        },
+        "power": {
+          "median": 45.0,
+          "min": 45,
+          "max": 58,
+          "n": 8
+        },
+        "pending": {
+          "median": 1345.0,
+          "min": 1265,
+          "max": 1360,
+          "n": 8
+        },
+        "rate": {
+          "median": 69.0,
+          "min": 63.24999999999999,
+          "max": 69,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 11.0,
+          "min": 10,
+          "max": 11,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 21488.5,
+          "min": 21055,
+          "max": 21618,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 3.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 734.5,
+          "min": 604,
+          "max": 1495,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 395784.0,
+          "min": 387504,
+          "max": 410688,
+          "n": 8
+        },
+        "power": {
+          "median": 127.0,
+          "min": 118,
+          "max": 148,
+          "n": 8
+        },
+        "pending": {
+          "median": 13725.0,
+          "min": 13350,
+          "max": 14170,
+          "n": 8
+        },
+        "rate": {
+          "median": 687.125,
+          "min": 672.75,
+          "max": 713,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "count": {
+          "median": 45.0,
+          "min": 45,
+          "max": 45,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 360594.5,
+          "min": 351938,
+          "max": 369923,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 3.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 4,
+          "max": 5,
+          "n": 8
+        },
+        "cash": {
+          "median": 6275.5,
+          "min": 1478,
+          "max": 10665,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 10336435.0,
+          "min": 9786873,
+          "max": 11266012,
+          "n": 8
+        },
+        "power": {
+          "median": 1529.5,
+          "min": 1330,
+          "max": 1790,
+          "n": 8
+        },
+        "pending": {
+          "median": 354231.5,
+          "min": 339822,
+          "max": 391181,
+          "n": 8
+        },
+        "rate": {
+          "median": 17945.199999999997,
+          "min": 16991.1,
+          "max": 19559.05,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "luck": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 3.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "count": {
+          "median": 55.0,
+          "min": 50,
+          "max": 55,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "earned": {
+          "median": 11324643.5,
+          "min": 10098899,
+          "max": 11559369,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 5.0,
+          "min": 5,
+          "max": 5,
+          "n": 8
+        },
+        "army": {
+          "median": 8.0,
+          "min": 8,
+          "max": 8,
+          "n": 8
+        },
+        "cash": {
+          "median": 1477255.5,
+          "min": 990599,
+          "max": 1736133,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 0.0,
+      "min": 0,
+      "max": 0,
+      "n": 8
+    },
+    "maxDrops": 80
+  },
+  "LowRobux": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 1171.0,
+        "min": 1161,
+        "max": 1181,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 611.0,
+        "min": 601,
+        "max": 621,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 181.0,
+        "min": 181,
+        "max": 201,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 797.5,
+        "min": 781,
+        "max": 811,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 227.5,
+        "min": 221,
+        "max": 244,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 1204.0,
+        "min": 1150,
+        "max": 1252,
+        "n": 8
+      },
+      "firstLegendary": {
+        "median": 1331.5,
+        "min": 1186,
+        "max": 1411,
+        "n": 8
+      },
+      "firstMythic": {
+        "median": 1495.0,
+        "min": 1366,
+        "max": 1630,
+        "n": 8
+      },
+      "firstNormalRecruit": {
+        "median": 29.5,
+        "min": 25,
+        "max": 88,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 752.5,
+        "min": 703,
+        "max": 784,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 81.0,
+        "min": 41,
+        "max": 81,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 287.5,
+        "min": 283,
+        "max": 313,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 46080.0,
+          "min": 40320,
+          "max": 46080,
+          "n": 8
+        },
+        "power": {
+          "median": 45.0,
+          "min": 45,
+          "max": 58,
+          "n": 8
+        },
+        "pending": {
+          "median": 1495.0,
+          "min": 1400,
+          "max": 1570,
+          "n": 8
+        },
+        "rate": {
+          "median": 80.0,
+          "min": 70,
+          "max": 80,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 7.0,
+          "min": 6,
+          "max": 7,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 8755.0,
+          "min": 8494,
+          "max": 8794,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 3.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 508.0,
+          "min": 300,
+          "max": 2860,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 264960.0,
+          "min": 245088,
+          "max": 278208,
+          "n": 8
+        },
+        "power": {
+          "median": 77.0,
+          "min": 57,
+          "max": 77,
+          "n": 8
+        },
+        "pending": {
+          "median": 8990.0,
+          "min": 8300,
+          "max": 9380,
+          "n": 8
+        },
+        "rate": {
+          "median": 459.99999999999994,
+          "min": 425.49999999999994,
+          "max": 482.99999999999994,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 32.5,
+          "min": 31,
+          "max": 34,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 91204.5,
+          "min": 84609,
+          "max": 94475,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 1063.0,
+          "min": 100,
+          "max": 2014,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 19240502.0,
+          "min": 18521395,
+          "max": 22941273,
+          "n": 8
+        },
+        "power": {
+          "median": 1287.0,
+          "min": 993,
+          "max": 2032,
+          "n": 8
+        },
+        "pending": {
+          "median": 653495.5,
+          "min": 628005,
+          "max": 791700,
+          "n": 8
+        },
+        "rate": {
+          "median": 33403.649999999994,
+          "min": 32155.2,
+          "max": 39828.6,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "luck": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 3.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "count": {
+          "median": 55.0,
+          "min": 50,
+          "max": 55,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "earned": {
+          "median": 11352135.0,
+          "min": 10040975,
+          "max": 12407904,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 5.0,
+          "min": 5,
+          "max": 5,
+          "n": 8
+        },
+        "army": {
+          "median": 8.5,
+          "min": 8,
+          "max": 9,
+          "n": 8
+        },
+        "cash": {
+          "median": 1768176.5,
+          "min": 1550675,
+          "max": 2121329,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 54285926.0,
+          "min": 49648435,
+          "max": 61444915,
+          "n": 8
+        },
+        "power": {
+          "median": 3080.0,
+          "min": 2816,
+          "max": 3740,
+          "n": 8
+        },
+        "pending": {
+          "median": 1884928.0,
+          "min": 1687040,
+          "max": 2133504,
+          "n": 8
+        },
+        "rate": {
+          "median": 94246.40000000001,
+          "min": 86195.20000000001,
+          "max": 106675.20000000001,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "count": {
+          "median": 60.0,
+          "min": 60,
+          "max": 60,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 141910732.0,
+          "min": 126925523,
+          "max": 150321326,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 6.0,
+          "min": 6,
+          "max": 6,
+          "n": 8
+        },
+        "army": {
+          "median": 10.0,
+          "min": 10,
+          "max": 10,
+          "n": 8
+        },
+        "cash": {
+          "median": 105650512.0,
+          "min": 91427303,
+          "max": 114123506,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 0.0,
+      "min": 0,
+      "max": 0,
+      "n": 8
+    },
+    "maxDrops": 80
+  },
+  "AllPasses": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 601.0,
+        "min": 601,
+        "max": 621,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 331.0,
+        "min": 321,
+        "max": 341,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 101.0,
+        "min": 101,
+        "max": 101,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 343.0,
+        "min": 322,
+        "max": 343,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 21.0,
+        "min": 21,
+        "max": 21,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 575.5,
+        "min": 523,
+        "max": 607,
+        "n": 8
+      },
+      "firstLegendary": {
+        "median": 638.5,
+        "min": 544,
+        "max": 805,
+        "n": 8
+      },
+      "firstMythic": {
+        "median": 769.0,
+        "min": 601,
+        "max": 880,
+        "n": 8
+      },
+      "firstNormalRecruit": {
+        "median": 50.5,
+        "min": 43,
+        "max": 73,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 343.0,
+        "min": 322,
+        "max": 403,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 21.0,
+        "min": 21,
+        "max": 21,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 172.0,
+        "min": 169,
+        "max": 190,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 158976.0,
+          "min": 132480,
+          "max": 158976,
+          "n": 8
+        },
+        "power": {
+          "median": 116.0,
+          "min": 110,
+          "max": 122,
+          "n": 8
+        },
+        "pending": {
+          "median": 5145.0,
+          "min": 4600,
+          "max": 5380,
+          "n": 8
+        },
+        "rate": {
+          "median": 276.0,
+          "min": 229.99999999999997,
+          "max": 276,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 10.0,
+          "min": 8,
+          "max": 11,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 22600.0,
+          "min": 20780,
+          "max": 24360,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 2,
+          "n": 8
+        },
+        "army": {
+          "median": 8.0,
+          "min": 8,
+          "max": 8,
+          "n": 8
+        },
+        "cash": {
+          "median": 1950.0,
+          "min": 20,
+          "max": 4760,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 5211647.5,
+          "min": 4690483,
+          "max": 5732812,
+          "n": 8
+        },
+        "power": {
+          "median": 550.0,
+          "min": 529,
+          "max": 633,
+          "n": 8
+        },
+        "pending": {
+          "median": 170598.0,
+          "min": 155712,
+          "max": 187860,
+          "n": 8
+        },
+        "rate": {
+          "median": 9048.0,
+          "min": 8143.200000000001,
+          "max": 9952.800000000001,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "luck": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "count": {
+          "median": 45.0,
+          "min": 45,
+          "max": 45,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "earned": {
+          "median": 899563.0,
+          "min": 827244,
+          "max": 960044,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "army": {
+          "median": 10.0,
+          "min": 10,
+          "max": 10,
+          "n": 8
+        },
+        "cash": {
+          "median": 7321.0,
+          "min": 1808,
+          "max": 39336,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 95389286.0,
+          "min": 83489587,
+          "max": 98618572,
+          "n": 8
+        },
+        "power": {
+          "median": 3799.0,
+          "min": 3068,
+          "max": 4261,
+          "n": 8
+        },
+        "pending": {
+          "median": 3305904.0,
+          "min": 2898944,
+          "max": 3417184,
+          "n": 8
+        },
+        "rate": {
+          "median": 165606.40000000002,
+          "min": 144947.2,
+          "max": 171212.80000000002,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "count": {
+          "median": 60.0,
+          "min": 60,
+          "max": 60,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 117796136.0,
+          "min": 107217840,
+          "max": 128532588,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 6.0,
+          "min": 6,
+          "max": 6,
+          "n": 8
+        },
+        "army": {
+          "median": 15.0,
+          "min": 15,
+          "max": 15,
+          "n": 8
+        },
+        "cash": {
+          "median": 83490716.0,
+          "min": 73969620,
+          "max": 93831168,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 137709158.0,
+          "min": 123863040,
+          "max": 146954649,
+          "n": 8
+        },
+        "power": {
+          "median": 4849.5,
+          "min": 4290,
+          "max": 5479,
+          "n": 8
+        },
+        "pending": {
+          "median": 4781568.0,
+          "min": 4272528,
+          "max": 5102592,
+          "n": 8
+        },
+        "rate": {
+          "median": 239078.40000000002,
+          "min": 215040,
+          "max": 255129.6,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "count": {
+          "median": 60.0,
+          "min": 60,
+          "max": 60,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 478648904.0,
+          "min": 438090432,
+          "max": 509253852,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 6.0,
+          "min": 6,
+          "max": 6,
+          "n": 8
+        },
+        "army": {
+          "median": 15.0,
+          "min": 15,
+          "max": 15,
+          "n": 8
+        },
+        "cash": {
+          "median": 438891884.0,
+          "min": 399924612,
+          "max": 469063632,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 0.0,
+      "min": 0,
+      "max": 0,
+      "n": 8
+    },
+    "maxDrops": 80
+  },
+  "CashPack": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 2021.0,
+        "min": 1981,
+        "max": 2041,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 881.0,
+        "min": 861,
+        "max": 901,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 221.0,
+        "min": 221,
+        "max": 221,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 1675.0,
+        "min": 1621,
+        "max": 1687,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 464.5,
+        "min": 403,
+        "max": 469,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 2242.0,
+        "min": 2125,
+        "max": 2302,
+        "n": 8
+      },
+      "firstLegendary": {
+        "median": 2380.0,
+        "min": 2275,
+        "max": 2488,
+        "n": 8
+      },
+      "firstMythic": {
+        "median": 2807.5,
+        "min": 2701,
+        "max": 3112,
+        "n": 8
+      },
+      "firstNormalRecruit": {
+        "median": 4.0,
+        "min": 4,
+        "max": 13,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 1391.5,
+        "min": 1321,
+        "max": 1447,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 1.0,
+        "min": 1,
+        "max": 1,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 257.5,
+        "min": 229,
+        "max": 286,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 29808.0,
+          "min": 29808,
+          "max": 33120,
+          "n": 8
+        },
+        "power": {
+          "median": 61.0,
+          "min": 51,
+          "max": 64,
+          "n": 8
+        },
+        "pending": {
+          "median": 1035.0,
+          "min": 1035,
+          "max": 1150,
+          "n": 8
+        },
+        "rate": {
+          "median": 51.74999999999999,
+          "min": 51.74999999999999,
+          "max": 57.49999999999999,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 7.5,
+          "min": 7,
+          "max": 8,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 7012.5,
+          "min": 6855,
+          "max": 7480,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 2107.5,
+          "min": 1235,
+          "max": 2260,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 79488.0,
+          "min": 76176,
+          "max": 86112,
+          "n": 8
+        },
+        "power": {
+          "median": 64.0,
+          "min": 51,
+          "max": 70,
+          "n": 8
+        },
+        "pending": {
+          "median": 2740.0,
+          "min": 2645,
+          "max": 2935,
+          "n": 8
+        },
+        "rate": {
+          "median": 138.0,
+          "min": 132.25,
+          "max": 149.5,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 22.0,
+          "min": 20,
+          "max": 24,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 43017.5,
+          "min": 42400,
+          "max": 46935,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 1110.0,
+          "min": 85,
+          "max": 3000,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 698832.0,
+          "min": 678960,
+          "max": 755136,
+          "n": 8
+        },
+        "power": {
+          "median": 192.0,
+          "min": 153,
+          "max": 212,
+          "n": 8
+        },
+        "pending": {
+          "median": 24167.5,
+          "min": 23330,
+          "max": 26010,
+          "n": 8
+        },
+        "rate": {
+          "median": 1213.25,
+          "min": 1178.75,
+          "max": 1311,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "count": {
+          "median": 45.0,
+          "min": 45,
+          "max": 45,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 656952.5,
+          "min": 641520,
+          "max": 710060,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "army": {
+          "median": 5.0,
+          "min": 4,
+          "max": 5,
+          "n": 8
+        },
+        "cash": {
+          "median": 6950.0,
+          "min": 1200,
+          "max": 19200,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 14692838.0,
+          "min": 13850956,
+          "max": 17340825,
+          "n": 8
+        },
+        "power": {
+          "median": 2041.5,
+          "min": 1892,
+          "max": 2406,
+          "n": 8
+        },
+        "pending": {
+          "median": 509612.0,
+          "min": 479264,
+          "max": 587752,
+          "n": 8
+        },
+        "rate": {
+          "median": 25508.399999999998,
+          "min": 24046.8,
+          "max": 30105.600000000002,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 3.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "count": {
+          "median": 55.0,
+          "min": 55,
+          "max": 55,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 18028504.5,
+          "min": 17586662,
+          "max": 20215445,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 5.0,
+          "min": 5,
+          "max": 5,
+          "n": 8
+        },
+        "army": {
+          "median": 9.0,
+          "min": 9,
+          "max": 9,
+          "n": 8
+        },
+        "cash": {
+          "median": 2439267.5,
+          "min": 364425,
+          "max": 2812648,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 0.0,
+      "min": 0,
+      "max": 0,
+      "n": 8
+    },
+    "maxDrops": 80
+  },
+  "AllItems": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 101.0,
+        "min": 101,
+        "max": 101,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 61.0,
+        "min": 61,
+        "max": 61,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 41.0,
+        "min": 21,
+        "max": 41,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 17.5,
+        "min": 7,
+        "max": 25,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 1.0,
+        "min": 1,
+        "max": 1,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 26.5,
+        "min": 10,
+        "max": 43,
+        "n": 8
+      },
+      "firstLegendary": {
+        "median": 52.0,
+        "min": 7,
+        "max": 97,
+        "n": 8
+      },
+      "firstMythic": {
+        "median": 122.5,
+        "min": 64,
+        "max": 274,
+        "n": 8
+      },
+      "firstNormalRecruit": {
+        "median": 4.0,
+        "min": 4,
+        "max": 4,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 7.0,
+        "min": 4,
+        "max": 13,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 1.0,
+        "min": 1,
+        "max": 1,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 19.0,
+        "min": 19,
+        "max": 19,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 38176358.0,
+          "min": 30493900,
+          "max": 42024960,
+          "n": 8
+        },
+        "power": {
+          "median": 1581.5,
+          "min": 1118,
+          "max": 2090,
+          "n": 8
+        },
+        "pending": {
+          "median": 1243600.0,
+          "min": 1035744,
+          "max": 1344816,
+          "n": 8
+        },
+        "rate": {
+          "median": 66278.4,
+          "min": 52940.8,
+          "max": 72960,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 3.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 3.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "count": {
+          "median": 55.0,
+          "min": 50,
+          "max": 55,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 4493740.0,
+          "min": 4038242,
+          "max": 4935788,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 5.0,
+          "min": 5,
+          "max": 5,
+          "n": 8
+        },
+        "army": {
+          "median": 13.0,
+          "min": 13,
+          "max": 13,
+          "n": 8
+        },
+        "cash": {
+          "median": 954140.0,
+          "min": 647908,
+          "max": 1677942,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 70749388.5,
+          "min": 62108467,
+          "max": 78918451,
+          "n": 8
+        },
+        "power": {
+          "median": 2831.5,
+          "min": 2055,
+          "max": 3464,
+          "n": 8
+        },
+        "pending": {
+          "median": 2428776.0,
+          "min": 2151616,
+          "max": 2723008,
+          "n": 8
+        },
+        "rate": {
+          "median": 122828.8,
+          "min": 107827.20000000001,
+          "max": 137011.2,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "count": {
+          "median": 60.0,
+          "min": 60,
+          "max": 60,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 44351380.0,
+          "min": 40117042,
+          "max": 47828940,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 6.0,
+          "min": 6,
+          "max": 6,
+          "n": 8
+        },
+        "army": {
+          "median": 15.0,
+          "min": 15,
+          "max": 15,
+          "n": 8
+        },
+        "cash": {
+          "median": 24141560.0,
+          "min": 20260022,
+          "max": 26840320,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 108586598.0,
+          "min": 102599884,
+          "max": 119085465,
+          "n": 8
+        },
+        "power": {
+          "median": 4488.0,
+          "min": 3987,
+          "max": 4686,
+          "n": 8
+        },
+        "pending": {
+          "median": 3770368.0,
+          "min": 3551936,
+          "max": 4097568,
+          "n": 8
+        },
+        "rate": {
+          "median": 188518.40000000002,
+          "min": 178124.80000000002,
+          "max": 206745.6,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "count": {
+          "median": 60.0,
+          "min": 60,
+          "max": 60,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 235417044.0,
+          "min": 224401138,
+          "max": 258615724,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 6.0,
+          "min": 6,
+          "max": 6,
+          "n": 8
+        },
+        "army": {
+          "median": 15.0,
+          "min": 15,
+          "max": 15,
+          "n": 8
+        },
+        "cash": {
+          "median": 210596224.0,
+          "min": 200029718,
+          "max": 232649504,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 140702515.0,
+          "min": 137222553,
+          "max": 150641049,
+          "n": 8
+        },
+        "power": {
+          "median": 5017.0,
+          "min": 4554,
+          "max": 5743,
+          "n": 8
+        },
+        "pending": {
+          "median": 4885504.0,
+          "min": 4764672,
+          "max": 5230592,
+          "n": 8
+        },
+        "rate": {
+          "median": 244275.2,
+          "min": 238233.6,
+          "max": 261529.6,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "luck": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "count": {
+          "median": 60.0,
+          "min": 60,
+          "max": 60,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "earned": {
+          "median": 642939162.0,
+          "min": 602085186,
+          "max": 692769292,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 6.0,
+          "min": 6,
+          "max": 6,
+          "n": 8
+        },
+        "army": {
+          "median": 15.0,
+          "min": 15,
+          "max": 15,
+          "n": 8
+        },
+        "cash": {
+          "median": 614587942.0,
+          "min": 573027766,
+          "max": 663081872,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 0.0,
+      "min": 0,
+      "max": 0,
+      "n": 8
+    },
+    "maxDrops": 80
+  },
+  "CasualFree": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 2341.0,
+        "min": 2281,
+        "max": 2341,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 1261.0,
+        "min": 1201,
+        "max": 1261,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 361.0,
+        "min": 361,
+        "max": 421,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 1984.0,
+        "min": 1921,
+        "max": 1990,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 841.0,
+        "min": 781,
+        "max": 850,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 2284.0,
+        "min": 1981,
+        "max": 2407,
+        "n": 8
+      },
+      "firstLegendary": {
+        "median": 2681.5,
+        "min": 2281,
+        "max": 2845,
+        "n": 8
+      },
+      "firstMythic": {
+        "median": 3052.0,
+        "min": 2581,
+        "max": 3202,
+        "n": 8
+      },
+      "firstNormalRecruit": {
+        "median": 187.0,
+        "min": 181,
+        "max": 196,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 1411.0,
+        "min": 1321,
+        "max": 1621,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 61.0,
+        "min": 61,
+        "max": 61,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 607.0,
+        "min": 601,
+        "max": 619,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 14400.0,
+          "min": 14400,
+          "max": 14400,
+          "n": 8
+        },
+        "power": {
+          "median": 45.0,
+          "min": 45,
+          "max": 45,
+          "n": 8
+        },
+        "pending": {
+          "median": 1500.0,
+          "min": 1500,
+          "max": 1500,
+          "n": 8
+        },
+        "rate": {
+          "median": 25.0,
+          "min": 25,
+          "max": 25,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 2695.0,
+          "min": 2695,
+          "max": 2695,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "cash": {
+          "median": 1615.0,
+          "min": 1615,
+          "max": 1615,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 33120.0,
+          "min": 33120,
+          "max": 33120,
+          "n": 8
+        },
+        "power": {
+          "median": 58.0,
+          "min": 45,
+          "max": 58,
+          "n": 8
+        },
+        "pending": {
+          "median": 3357.5,
+          "min": 3305,
+          "max": 3440,
+          "n": 8
+        },
+        "rate": {
+          "median": 57.49999999999999,
+          "min": 57.49999999999999,
+          "max": 57.49999999999999,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 9.0,
+          "min": 9,
+          "max": 9,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 18167.5,
+          "min": 18040,
+          "max": 18265,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 2,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 1007.5,
+          "min": 880,
+          "max": 2275,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 389160.0,
+          "min": 384192,
+          "max": 437184,
+          "n": 8
+        },
+        "power": {
+          "median": 178.5,
+          "min": 136,
+          "max": 195,
+          "n": 8
+        },
+        "pending": {
+          "median": 40385.0,
+          "min": 39710,
+          "max": 44990,
+          "n": 8
+        },
+        "rate": {
+          "median": 675.625,
+          "min": 667,
+          "max": 758.9999999999999,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "count": {
+          "median": 45.0,
+          "min": 42,
+          "max": 45,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 312747.5,
+          "min": 303225,
+          "max": 333345,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 3.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 4,
+          "max": 5,
+          "n": 8
+        },
+        "cash": {
+          "median": 1737.5,
+          "min": 70,
+          "max": 3335,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 11187086.0,
+          "min": 9985651,
+          "max": 12750998,
+          "n": 8
+        },
+        "power": {
+          "median": 1641.5,
+          "min": 993,
+          "max": 2137,
+          "n": 8
+        },
+        "pending": {
+          "median": 1136667.0,
+          "min": 1033676,
+          "max": 1299949,
+          "n": 8
+        },
+        "rate": {
+          "median": 19422.025,
+          "min": 17336.2,
+          "max": 22137.149999999998,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "luck": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "count": {
+          "median": 55.0,
+          "min": 55,
+          "max": 55,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "earned": {
+          "median": 11929454.0,
+          "min": 11226667,
+          "max": 12603541,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 5.0,
+          "min": 5,
+          "max": 5,
+          "n": 8
+        },
+        "army": {
+          "median": 8.0,
+          "min": 8,
+          "max": 9,
+          "n": 8
+        },
+        "cash": {
+          "median": 1564794.0,
+          "min": 983903,
+          "max": 2091751,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 0.0,
+      "min": 0,
+      "max": 0,
+      "n": 8
+    },
+    "maxDrops": 80
+  },
+  "MergeEarly": {
+    "n": 8,
+    "milestones": {
+      "1000000earned": {
+        "median": 3091.0,
+        "min": 3041,
+        "max": 3201,
+        "n": 8
+      },
+      "100000earned": {
+        "median": 1641.0,
+        "min": 1601,
+        "max": 1781,
+        "n": 8
+      },
+      "10000earned": {
+        "median": 441.0,
+        "min": 421,
+        "max": 461,
+        "n": 8
+      },
+      "1000cashPerSecond": {
+        "median": 2783.5,
+        "min": 2734,
+        "max": 2884,
+        "n": 8
+      },
+      "100cashPerSecond": {
+        "median": 1330.0,
+        "min": 1306,
+        "max": 1507,
+        "n": 8
+      },
+      "firstEpic": {
+        "median": 3283.0,
+        "min": 3274,
+        "max": 3292,
+        "n": 2
+      },
+      "firstLegendary": {
+        "median": 3274,
+        "min": 3274,
+        "max": 3274,
+        "n": 1
+      },
+      "firstNormalRecruit": {
+        "median": 50.5,
+        "min": 43,
+        "max": 73,
+        "n": 8
+      },
+      "firstRare": {
+        "median": 2681.5,
+        "min": 2521,
+        "max": 2782,
+        "n": 8
+      },
+      "firstUpgrade": {
+        "median": 501.0,
+        "min": 381,
+        "max": 841,
+        "n": 8
+      },
+      "tenChickens": {
+        "median": 1552.0,
+        "min": 1423,
+        "max": 1681,
+        "n": 8
+      }
+    },
+    "snapshots": {
+      "180": {
+        "offline8h": {
+          "median": 13824.0,
+          "min": 11520,
+          "max": 13824,
+          "n": 8
+        },
+        "power": {
+          "median": 48.0,
+          "min": 48,
+          "max": 48,
+          "n": 8
+        },
+        "pending": {
+          "median": 432.0,
+          "min": 400,
+          "max": 468,
+          "n": 8
+        },
+        "rate": {
+          "median": 24.0,
+          "min": 20,
+          "max": 24,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 4.0,
+          "min": 3,
+          "max": 4,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "earned": {
+          "median": 3038.0,
+          "min": 2948,
+          "max": 3068,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "cash": {
+          "median": 50.0,
+          "min": 8,
+          "max": 2384,
+          "n": 8
+        }
+      },
+      "600": {
+        "offline8h": {
+          "median": 23040.0,
+          "min": 23040,
+          "max": 25920,
+          "n": 8
+        },
+        "power": {
+          "median": 51.0,
+          "min": 51,
+          "max": 51,
+          "n": 8
+        },
+        "pending": {
+          "median": 800.0,
+          "min": 788,
+          "max": 885,
+          "n": 8
+        },
+        "rate": {
+          "median": 40.0,
+          "min": 40,
+          "max": 45,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 5.0,
+          "min": 4,
+          "max": 7,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 0,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 15104.0,
+          "min": 14348,
+          "max": 16276,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "army": {
+          "median": 3.0,
+          "min": 3,
+          "max": 3,
+          "n": 8
+        },
+        "cash": {
+          "median": 1032.0,
+          "min": 31,
+          "max": 2020,
+          "n": 8
+        }
+      },
+      "1800": {
+        "offline8h": {
+          "median": 119232.0,
+          "min": 99360,
+          "max": 132480,
+          "n": 8
+        },
+        "power": {
+          "median": 87.0,
+          "min": 82,
+          "max": 96,
+          "n": 8
+        },
+        "pending": {
+          "median": 4220.0,
+          "min": 3415,
+          "max": 4565,
+          "n": 8
+        },
+        "rate": {
+          "median": 206.99999999999997,
+          "min": 172.5,
+          "max": 229.99999999999997,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "luck": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "n": 8
+        },
+        "count": {
+          "median": 12.0,
+          "min": 10,
+          "max": 15,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 1.0,
+          "min": 1,
+          "max": 1,
+          "n": 8
+        },
+        "earned": {
+          "median": 125672.0,
+          "min": 101606,
+          "max": 134611,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "army": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "cash": {
+          "median": 2004.0,
+          "min": 89,
+          "max": 3970,
+          "n": 8
+        }
+      },
+      "3600": {
+        "offline8h": {
+          "median": 1334361.0,
+          "min": 1199577,
+          "max": 1551513,
+          "n": 8
+        },
+        "power": {
+          "median": 325.5,
+          "min": 289,
+          "max": 361,
+          "n": 8
+        },
+        "pending": {
+          "median": 46332.0,
+          "min": 41652,
+          "max": 53872,
+          "n": 8
+        },
+        "rate": {
+          "median": 2316.6000000000004,
+          "min": 2082.6,
+          "max": 2693.6,
+          "n": 8
+        },
+        "eggSpeed": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "luck": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "plotSize": {
+          "median": 2.0,
+          "min": 2,
+          "max": 2,
+          "n": 8
+        },
+        "count": {
+          "median": 50.0,
+          "min": 50,
+          "max": 50,
+          "n": 8
+        },
+        "eggValue": {
+          "median": 2.0,
+          "min": 2,
+          "max": 3,
+          "n": 8
+        },
+        "earned": {
+          "median": 2037217.5,
+          "min": 1756027,
+          "max": 2174511,
+          "n": 8
+        },
+        "rollSlots": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "n": 8
+        },
+        "army": {
+          "median": 7.0,
+          "min": 7,
+          "max": 7,
+          "n": 8
+        },
+        "cash": {
+          "median": 603431.5,
+          "min": 61191,
+          "max": 692973,
+          "n": 8
+        }
+      }
+    },
+    "merges": {
+      "median": 47.0,
+      "min": 43,
+      "max": 50,
+      "n": 8
+    },
+    "maxDrops": 80
+  }
+}

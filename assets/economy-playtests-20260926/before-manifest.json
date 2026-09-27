@@ -1,0 +1,517 @@
+[
+  {
+    "path": "ServerStorage.PetRoll.PlayerSession",
+    "bytes": 32546,
+    "hash": 2631251996
+  },
+  {
+    "path": "ServerStorage.PetRoll.CampScenery",
+    "bytes": 14365,
+    "hash": 1216134214
+  },
+  {
+    "path": "ServerStorage.PetRoll.ArmyReinforcements",
+    "bytes": 4131,
+    "hash": 1863145515
+  },
+  {
+    "path": "ServerStorage.PetRoll.LeaderboardService",
+    "bytes": 6489,
+    "hash": 3508680772
+  },
+  {
+    "path": "ServerStorage.PetRoll.CrateService",
+    "bytes": 2184,
+    "hash": 2142065857
+  },
+  {
+    "path": "ServerStorage.PetRoll.MergeStand",
+    "bytes": 6642,
+    "hash": 3364308607
+  },
+  {
+    "path": "ServerStorage.PetRoll.CommerceService",
+    "bytes": 10142,
+    "hash": 4286891690
+  },
+  {
+    "path": "ServerStorage.PetRoll.EggProcessor",
+    "bytes": 2957,
+    "hash": 29050576
+  },
+  {
+    "path": "ServerStorage.PetRoll.TerritoryIncome",
+    "bytes": 2344,
+    "hash": 3043797009
+  },
+  {
+    "path": "ServerStorage.PetRoll.DebugService",
+    "bytes": 6105,
+    "hash": 2008603786
+  },
+  {
+    "path": "ServerStorage.PetRoll.WorldBuilder",
+    "bytes": 14823,
+    "hash": 1129146688
+  },
+  {
+    "path": "ServerStorage.PetRoll.KingEncounter",
+    "bytes": 1104,
+    "hash": 3260997272
+  },
+  {
+    "path": "ServerStorage.PetRoll.AuthoredPlot",
+    "bytes": 1622,
+    "hash": 3460859893
+  },
+  {
+    "path": "ServerStorage.PetRoll.ProductService",
+    "bytes": 5395,
+    "hash": 4158825074
+  },
+  {
+    "path": "ServerStorage.PetRoll.BattleService",
+    "bytes": 53848,
+    "hash": 2231604227
+  },
+  {
+    "path": "ServerStorage.PetRoll.IdlePatrol",
+    "bytes": 2132,
+    "hash": 4191206072
+  },
+  {
+    "path": "ServerStorage.PetRoll.EggRover",
+    "bytes": 6358,
+    "hash": 2583983173
+  },
+  {
+    "path": "ServerStorage.PetRoll.ArmyService",
+    "bytes": 11651,
+    "hash": 824036158
+  },
+  {
+    "path": "ServerStorage.PetRoll.Battle",
+    "bytes": 25723,
+    "hash": 1311279677
+  },
+  {
+    "path": "ServerStorage.PetRoll.UpgradeService",
+    "bytes": 6484,
+    "hash": 3470038255
+  },
+  {
+    "path": "ServerStorage.PetRoll.RollStation",
+    "bytes": 14656,
+    "hash": 3098581400
+  },
+  {
+    "path": "ServerStorage.PetRoll.RollService",
+    "bytes": 5148,
+    "hash": 4054969297
+  },
+  {
+    "path": "ServerStorage.PetRoll.OfflineCash",
+    "bytes": 1813,
+    "hash": 3724148135
+  },
+  {
+    "path": "ServerStorage.PetRoll.WorldService",
+    "bytes": 31229,
+    "hash": 1348892190
+  },
+  {
+    "path": "ServerStorage.PetRoll.GameServer",
+    "bytes": 19077,
+    "hash": 3988170082
+  },
+  {
+    "path": "ServerStorage.PetRoll.LiveBattleActors",
+    "bytes": 5129,
+    "hash": 2569734816
+  },
+  {
+    "path": "ServerStorage.PetRoll.EggService",
+    "bytes": 17023,
+    "hash": 3488672220
+  },
+  {
+    "path": "ServerStorage.PetRoll.DataService",
+    "bytes": 11057,
+    "hash": 446393349
+  },
+  {
+    "path": "ServerStorage.PetRoll.KingArena",
+    "bytes": 13419,
+    "hash": 996958735
+  },
+  {
+    "path": "ServerStorage.PetRoll.PlotUpgradeService",
+    "bytes": 2659,
+    "hash": 1073034525
+  },
+  {
+    "path": "ServerStorage.PetRoll.PetActor",
+    "bytes": 19027,
+    "hash": 3836502604
+  },
+  {
+    "path": "ServerStorage.PetRoll.LoopTelemetry",
+    "bytes": 3524,
+    "hash": 813695284
+  },
+  {
+    "path": "ServerStorage.PetRoll.MerchantVisual",
+    "bytes": 1735,
+    "hash": 3374201243
+  },
+  {
+    "path": "ServerStorage.PetRoll.TerritoryContest",
+    "bytes": 5372,
+    "hash": 4253378738
+  },
+  {
+    "path": "ServerStorage.PetRoll.MapScenery",
+    "bytes": 11317,
+    "hash": 2562264613
+  },
+  {
+    "path": "ServerStorage.PetRoll.AuthoredMap",
+    "bytes": 1917,
+    "hash": 3651839787
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.VacuumClips",
+    "bytes": 35915,
+    "hash": 1914266120
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.FlockLayout",
+    "bytes": 1368,
+    "hash": 3293442343
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.BlenderPetView",
+    "bytes": 7685,
+    "hash": 2033868882
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.UIColors",
+    "bytes": 1156,
+    "hash": 3018641847
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.UpgradeCatalog",
+    "bytes": 776,
+    "hash": 1046827213
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.HomePlotLayout",
+    "bytes": 1786,
+    "hash": 1200887386
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.OfflineCashConfig",
+    "bytes": 200,
+    "hash": 2191870010
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.CampaignRoute",
+    "bytes": 1604,
+    "hash": 223214321
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.MapLayout",
+    "bytes": 3915,
+    "hash": 2641057027
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.Config",
+    "bytes": 5092,
+    "hash": 853735414
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.KingVisual",
+    "bytes": 3661,
+    "hash": 1455832576
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.PetCatalog",
+    "bytes": 4147,
+    "hash": 821990974
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.Rules",
+    "bytes": 6114,
+    "hash": 1823186327
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.VacuumConfig",
+    "bytes": 810,
+    "hash": 2751819399
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.ChickenVFXPresets",
+    "bytes": 58065,
+    "hash": 1046056770
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.ArmyMarch",
+    "bytes": 5117,
+    "hash": 704171201
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.ShopCatalog",
+    "bytes": 4586,
+    "hash": 1701738744
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.CollectionFeel",
+    "bytes": 1159,
+    "hash": 2185242610
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.ChickenGrowth",
+    "bytes": 2165,
+    "hash": 181837235
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.PetView",
+    "bytes": 25655,
+    "hash": 1934757553
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.EggMotion",
+    "bytes": 980,
+    "hash": 427473176
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.Progression",
+    "bytes": 5985,
+    "hash": 1522524360
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.CombatRewards",
+    "bytes": 1227,
+    "hash": 3529497180
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.CampCommand",
+    "bytes": 937,
+    "hash": 943304768
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.ChickenAppearanceAssets",
+    "bytes": 3485,
+    "hash": 1208900743
+  },
+  {
+    "path": "ReplicatedStorage.PetRoll.Shared.EggProcessorConfig",
+    "bytes": 203,
+    "hash": 3471467109
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UITheme",
+    "bytes": 30072,
+    "hash": 1714550821
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.GlitchEditableMesh",
+    "bytes": 11540,
+    "hash": 568846116
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.HudController",
+    "bytes": 15544,
+    "hash": 1547847508
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.TutorialController",
+    "bytes": 3178,
+    "hash": 3264475141
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.IndexBrowser",
+    "bytes": 9634,
+    "hash": 1613477148
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.SpecialChickenVFX",
+    "bytes": 12380,
+    "hash": 263202573
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ShopPreviewArt",
+    "bytes": 4565,
+    "hash": 2707626835
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenClipPlayer",
+    "bytes": 5824,
+    "hash": 3039715273
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ActionFeedback",
+    "bytes": 12705,
+    "hash": 2197504988
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ArmyMarkerController",
+    "bytes": 5556,
+    "hash": 3132109778
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.SellBrowser",
+    "bytes": 6476,
+    "hash": 876322017
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenBrowser",
+    "bytes": 62655,
+    "hash": 955503893
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenPreview",
+    "bytes": 3366,
+    "hash": 1117994641
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.DuckAnimator",
+    "bytes": 7361,
+    "hash": 3923578770
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MerchantDialogue",
+    "bytes": 9916,
+    "hash": 2485716118
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.VoxelChickenAnimator",
+    "bytes": 10315,
+    "hash": 917661423
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.PromptStyleController",
+    "bytes": 1550,
+    "hash": 2803376825
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BaseController",
+    "bytes": 24472,
+    "hash": 2532914894
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggProcessorController",
+    "bytes": 8084,
+    "hash": 1727157450
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AutoCollectStandController",
+    "bytes": 9720,
+    "hash": 1104034073
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.OfflineCashController",
+    "bytes": 8665,
+    "hash": 1804876707
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.GalaxyTextureAnimator",
+    "bytes": 10829,
+    "hash": 2929604192
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MergePresentation",
+    "bytes": 5550,
+    "hash": 4278486769
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AppController",
+    "bytes": 38682,
+    "hash": 1921890922
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UpgradeBoardController",
+    "bytes": 9338,
+    "hash": 2680459307
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.RainbowTextureAnimator",
+    "bytes": 7441,
+    "hash": 1478224192
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BattleController",
+    "bytes": 19315,
+    "hash": 3146413705
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ProgressionBrowser",
+    "bytes": 11902,
+    "hash": 1941530432
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggFeedback",
+    "bytes": 1265,
+    "hash": 3915781769
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggView",
+    "bytes": 3767,
+    "hash": 3429471224
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.CommerceController",
+    "bytes": 8177,
+    "hash": 315052224
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.VacuumController",
+    "bytes": 14759,
+    "hash": 70181822
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ShopBrowser",
+    "bytes": 42952,
+    "hash": 878297689
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggController",
+    "bytes": 16667,
+    "hash": 2446600161
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.RareChickenVFX",
+    "bytes": 4496,
+    "hash": 3174425928
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AudioController",
+    "bytes": 7367,
+    "hash": 3967967906
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UIMotion",
+    "bytes": 11759,
+    "hash": 1571745822
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.RollPresentationController",
+    "bytes": 16708,
+    "hash": 5796771
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ChickenPortraits",
+    "bytes": 2095,
+    "hash": 804096128
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.MergeBrowser",
+    "bytes": 17403,
+    "hash": 3801181842
+  },
+  {
+    "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AcceptanceClient",
+    "bytes": 4587,
+    "hash": 4112347436
+  }
+]

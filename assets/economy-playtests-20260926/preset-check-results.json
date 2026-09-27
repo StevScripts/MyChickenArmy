@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Free preset suppresses an account owning every pass",
+    "passed": true
+  },
+  {
+    "name": "An in-flight marketplace refresh cannot restore suppressed benefits",
+    "passed": true
+  },
+  {
+    "name": "Low spend enables only Double Egg Spawn",
+    "passed": true
+  },
+  {
+    "name": "All enabled passes stack once and leave disabled Auto Merge off",
+    "passed": true
+  },
+  {
+    "name": "Fresh reset removes consumables while preserving receipt acknowledgements",
+    "passed": true
+  },
+  {
+    "name": "Cash presets reset instead of accumulating repeat grants",
+    "passed": true
+  },
+  {
+    "name": "Account mode restores verified passes and no override enters saved data",
+    "passed": true
+  },
+  {
+    "name": "Native checkout blocked for both passes and products in disposable tests",
+    "passed": true
+  },
+  {
+    "name": "Non-Studio and persistent profiles cannot activate presets",
+    "passed": true
+  },
+  {
+    "name": "Release removes the override and benefits",
+    "passed": true
+  }
+]

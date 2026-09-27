@@ -82,7 +82,9 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 		self.leverBase=Builder.Part(model,"LeverBase",Vector3.one,anchors.RollLever.CFrame,colors.ink,false)
 		self.leverBase.Transparency,self.leverBase.CastShadow=1,false
 		self.leverPivot=anchors.RollLever.CFrame*CFrame.new(0,0.45,0)
-		local lever=parent.Spin.Level
+		local spin=parent:FindFirstChild("Spin",true)
+		local lever=spin and spin:FindFirstChild("Level",true)
+		assert(lever,"Authored roller needs its Level lever assembly inside Spin")
 		-- Named roles survive builder resizing, recoloring and nested grouping.
 		self.arm=lever:FindFirstChild("LeverArm",true)
 		self.knob=lever:FindFirstChild("LeverHandle",true)

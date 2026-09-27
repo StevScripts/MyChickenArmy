@@ -2,6 +2,7 @@
 -- Owns board offers and transactions, not authored GUI or general player input.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
+local Rules = require(Shared.Rules)
 local Definitions = require(Shared.UpgradeCatalog)
 local ArmyService = require(script.Parent.ArmyService)
 local UpgradeService = {}
@@ -65,14 +66,13 @@ function UpgradeService:Offers(session)
 			ready = session.loaded == true and not session.closing and not session.saveLost}
 	end
 	local production = session:EggProductionMultiplier()
-	add("EggSpeed", session.eggSpeedLevel, decimal(Config.EggLaySeconds / production) .. "s",
+	add("EggSpeed", session.eggSpeedLevel, decimal(production) .. "x",
 		Definitions.EggSpeedPrices[session.eggSpeedLevel + 1])
 	add("PlotSize", session.plotSizeLevel, "Lv " .. (session.plotSizeLevel + 1),
 		Definitions.PlotPrices[session.plotSizeLevel + 1], session.plotExpansionAvailable)
 	local income = session:GlobalUpgrade("Income")
 	add("EggValue", session.incomeLevel,
-		decimal((1 + session.incomeLevel * Config.IncomeMultiplierPerLevel)
-			* (if session.entitlements.DoubleCash then 2 else 1)) .. "x",
+		"$" .. decimal(Rules.EggUnitValue(session.incomeLevel)),
 		income and income.price)
 	local army = session:NextSlot()
 	add("ArmySize", session.capacity, tostring(session:Capacity()), army and army.price)
@@ -92,11 +92,10 @@ function UpgradeService:Offers(session)
 	local nextRate = Definitions.EggSpeedRates[session.eggSpeedLevel + 2]
 	if nextRate then
 		local nextProduction = nextRate * (if session.entitlements.DoubleEggSpawn then 2 else 1)
-		preview("EggSpeed", decimal(Config.EggLaySeconds / nextProduction) .. "s")
+		preview("EggSpeed", decimal(nextProduction) .. "x")
 	end
 	preview("PlotSize", "Lv " .. (session.plotSizeLevel + 2))
-	preview("EggValue", decimal((1 + (session.incomeLevel + 1) * Config.IncomeMultiplierPerLevel)
-		* (if session.entitlements.DoubleCash then 2 else 1)) .. "x")
+	preview("EggValue", "$" .. decimal(Rules.EggUnitValue(session.incomeLevel + 1)))
 	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
 	preview("Luck", decimal((1 + (session.luck + 1) * Config.LuckWeightPerLevel)
 		* session:PaidLuckMultiplier()) .. "x")

@@ -8,6 +8,7 @@ local Progression = require(Shared.Progression)
 local ShopCatalog = require(Shared.ShopCatalog)
 local UpgradeCatalog = require(Shared.UpgradeCatalog)
 local EggProcessor = require(script.Parent.EggProcessor)
+local EggProcessorConfig = require(Shared.EggProcessorConfig)
 local OfflineCash = require(script.Parent.OfflineCash)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
@@ -238,6 +239,28 @@ function PlayerSession:DisplayedPetIncome(species: string, stars: number, level:
  return self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs")
 end
 
+function PlayerSession:PetEggRate(species: string, stars: number, level: number?): number
+ return Rules.EggRate(species,stars,level)*self:EggProductionMultiplier()
+end
+
+function PlayerSession:RetireEggSeller()
+ local state=self.eggProcessor
+ local finished=EggProcessor.Finish(state)>0
+ local refund=0
+ -- The remaining saved level represents exactly the purchases not refunded yet.
+ while state.level>0 do
+  local price=EggProcessorConfig.Prices[state.level]
+  if self.coins+refund+price>EggProcessorConfig.MaxValue then break end
+  refund+=price;state.level-=1
+ end
+ local compensation=ShopCatalog.Products.FinishEggs.retirementCoins
+ local credits=math.min(state.finishCredits,math.floor(math.max(0,EggProcessorConfig.MaxValue-self.coins-refund)/compensation))
+ state.finishCredits-=credits;refund+=credits*compensation
+ -- Refunds and paid replacements are exact cash, never multiplied by 2x Cash.
+ if refund>0 then self:Credit(refund,"refund") elseif finished then self:Touch() end
+ return refund
+end
+
 function PlayerSession:Income(): number
 	local income=0
 	for id in self.pets do if self:IsPetHome(id) then income+=self:PetIncome(id) end end
@@ -324,6 +347,7 @@ function PlayerSession:Snapshot(now: number)
 		table.insert(pets,{id=pet.id,species=pet.species,stars=pet.stars,level=pet.level,favorite=pet.favorite,
 			slot=self:FindSlot(pet.id),selected=selected[pet.id]==true,deployed=deployed[pet.id]==true,
 			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level),home=self:IsPetHome(pet.id),
+			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level),
 			nextIncome=if (pet.level or 1)<rank.levelCap then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1) else nil,
 			levelCap=rank.levelCap,upgradeLocked=(pet.level or 1)>=rank.levelCap,
 			investment=pet.investment,refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))})
@@ -362,7 +386,9 @@ function PlayerSession:Snapshot(now: number)
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		campsWon=campsWon,allCampsWon=self:Completed(),
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
-		coins=self.coins,income=income,capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
+		coins=self.coins,income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel),
+		homeEggsPerSecond=self:Income()/Rules.EggUnitValue(self.incomeLevel)*eggProduction,
+		capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
 		selectionMode=if self.armySelection==nil then "Auto" else "Manual",
 		selectedCount=#best,deployedCount=#deployedIds,overflowCount=math.max(0,#pets-self:CollectionLimit()),
@@ -631,6 +657,7 @@ function PlayerSession:LoadData(data)
 	self.campUnlocked=1
 	while self.firstWins[self.campUnlocked] and self.campUnlocked<#Progression.Camps(1) do self.campUnlocked+=1 end
 	self.offer,self.offers=nil,{}
+	self:RetireEggSeller()
 	self:UnlockProgress();self:RefreshArmy();self:Touch()
 	return true,if legacy then "Loaded and converted stored egg value to coins." else "Loaded."
 end

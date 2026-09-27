@@ -10,12 +10,20 @@ local HistoricalPrices = {
 	Knight=26000, Wizard=48000, Dragon=96000, IceDuck=128000, StormDuck=192000,
 }
 
--- Round the level-1 rate once, then preserve both inputs' production on every merge.
-function Rules.Income(species: string, stars: number, level: number?, incomeLevel: number?): number
+-- Catalog income is the existing base cash/sec balance. Express it as egg quantity.
+-- Retain the approved level curve: a merged bird produces 2x one input bird.
+function Rules.EggRate(species: string, stars: number, level: number?): number
 	local rank = math.clamp(level or 1, 1, Config.MaxPetLevel)
 	local base = Catalog[species].income * Config.PassiveIncomeMultiplier
-		* (1 + (incomeLevel or 0) * Config.IncomeMultiplierPerLevel)
-	return math.floor(base + 0.5) * 2 ^ (stars - 1) * 2 ^ (rank - 1)
+	return base / Config.EggBaseValue * 2 ^ (stars - 1) * 2 ^ (rank - 1)
+end
+
+function Rules.EggUnitValue(incomeLevel: number?): number
+	return math.floor(Config.EggBaseValue * (1 + (incomeLevel or 0) * Config.IncomeMultiplierPerLevel) + 0.5)
+end
+
+function Rules.Income(species: string, stars: number, level: number?, incomeLevel: number?): number
+	return Rules.EggRate(species, stars, level) * Rules.EggUnitValue(incomeLevel)
 end
 
 -- Every copy-equivalent costs the same, independent of the buyer's income or coins.

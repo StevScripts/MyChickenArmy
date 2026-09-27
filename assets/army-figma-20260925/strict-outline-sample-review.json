@@ -1,0 +1,20 @@
+{
+  "source": "original-portraits/Mallard.png",
+  "candidate": "generated-brown-border-sample-not-applied.png",
+  "sourceSize": [
+    512,
+    512
+  ],
+  "candidateSize": [
+    1254,
+    1254
+  ],
+  "candidateMode": "RGBA",
+  "candidateAlphaExtrema": [
+    0,
+    255
+  ],
+  "decision": "not applied",
+  "reason": "Generation adds the outline but repaints shading and edge detail instead of preserving the source artwork. The requested 512px output size was also not preserved.",
+  "uploaded": false
+}

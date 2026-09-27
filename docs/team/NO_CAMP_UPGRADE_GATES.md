@@ -28,3 +28,9 @@ All seven focused checks passed again after the final message correction. Before
 A second, exact known-old UpgradeCatalog (741 bytes, hash 1595420473) still held RollSlotRanks. After confirming the corrected catalog, the old instance was preserved as `ServerStorage.UpgradeGateRecovery20260925.UpgradeCatalog_Legacy741` with its original path attribute. Exactly one active catalog remains. Both obsolete modules are kept outside active module lookup paths; no Source property was overwritten through MCP.
 
 The seven-check fixture covers transaction behavior using actual modules with fake boundaries; it is not a visual or end-to-end gameplay test. No claim of live published availability is made.
+
+## Follow-up documentation audit
+
+A fresh Studio Flow readback found one active copy each of PlayerSession, UpgradeService, UpgradeCatalog, ArmyService, ProgressionBrowser and UpgradeBoardController. All six byte lengths and rolling hashes matched the canonical local sources. No new source changes or Play session were needed for this audit.
+
+Corrected the remaining launch-plan claims that outposts raise army purchase caps and the design guide's ambiguous instruction to preserve progression requirements. The September 7 UI report now explicitly labels its camp-gated purchase observation as superseded. Existing project AGENTS files, egg handoffs and task-start/UI skills already carry the no-camp rule.

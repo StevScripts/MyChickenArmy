@@ -1,9 +1,8 @@
 --!strict
 -- Offline cash calculation only. DataService owns the durable award boundary.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
-local Config = require(Shared.Config)
+local Rules = require(Shared.Rules)
 local Tuning = require(Shared.OfflineCashConfig)
-local Processor = require(script.Parent.EggProcessor)
 local OfflineCash = {}
 
 function OfflineCash.Read(value)
@@ -19,15 +18,14 @@ end
 function OfflineCash.Rate(session)
 	-- All owned chickens return home between visits; quitting in battle must not
 	-- permanently remove them from the next night's earning rate.
-	local raw, count = 0, 0
-	for id in session.pets do raw += session:PetIncome(id); count += 1 end
-	if count == 0 then return 0 end
-	local production = session:EggProductionMultiplier()
-	local eggsPerSecond = count * production / Config.EggLaySeconds
-	local sellerRate = Processor.Rate(session.eggProcessor, session.entitlements.DoubleEggSpawn)
-	local throughput = math.min(1, sellerRate / eggsPerSecond)
+	local eggsPerSecond = 0
+	for _, pet in session.pets do
+		eggsPerSecond += Rules.EggRate(pet.species, pet.stars, pet.level)
+	end
+	eggsPerSecond *= session:EggProductionMultiplier()
 	-- Use the existing income and pass owners. No extra multiplier at award time.
-	return session:EarnedAmount(raw * production * throughput, "eggs") * Tuning.Efficiency
+	local raw = eggsPerSecond * Rules.EggUnitValue(session.incomeLevel)
+	return session:EarnedAmount(raw, "eggs") * Tuning.Efficiency
 end
 
 function OfflineCash.Reward(checkpoint, now, coins)

@@ -42,6 +42,7 @@ Theme.ActionColors = {
 -- Opt-in cash affordability feedback for the yard and egg-collection upgrades.
 Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color3.fromRGB(92,92,92))
 Theme.Assets = {
+	Merge = "rbxassetid://122096168414414",
 	Cash="rbxassetid://101788696120931", Studs="rbxassetid://93331178043153",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",

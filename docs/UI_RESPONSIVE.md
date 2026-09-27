@@ -2,6 +2,17 @@
 
 Implemented September 24–25, 2026 in Pet Roll Test, place 96683186622050.
 
+**Army follow-up, September 25:** the user requested the approved Figma window
+proportions and larger chickens. Army now fits a 1474:976 window on desktop,
+uses a single toolbar row and inline inspector, and places the name/DPS labels
+one pixel apart. Phones keep the compact reflow below. Army's desktop header
+and controls scale with that window, so the earlier fixed-52-pixel close claim
+does not apply to this later Army design. Its Edit-only layout checks and
+31 uploaded, verified outlined portraits are recorded in
+[the Army change record](../assets/army-figma-20260925/README.md). The older
+56-snapshot Play results below are historical evidence for the preceding
+responsive pass, not proof of the later Army changes.
+
 The screen shell is no longer uniformly shrunk to a desktop canvas. HUD anchors
 and popup outer bounds use scale within the device-safe area. Pixel padding,
 text sizes, thumbnail authoring details, and minimum hit sizes are intentional;
@@ -9,6 +20,8 @@ converting those blindly to percentages would make phone controls too small.
 
 - Shop/Index share a vertically centered screen anchor on desktop. Touch layouts
   reserve space for native movement controls. Cash/egg counters also avoid them.
+- Top HUD navigation now contains only the centered My Army button. Base and
+  Upgrades shortcuts were removed at the user's request on September 25.
 - Army, Shop, Index, Upgrades, Settings and Odds use bounded popup placement and
   readable fixed headers. Close stays at 52 pixels. Contents scroll independently.
 - Army and Index reflow their grids. Narrow Army screens open the flock first;
@@ -25,7 +38,7 @@ converting those blindly to percentages would make phone controls too small.
 The existing UITheme fonts, colors, artwork and approved full-sheet stud image
 remain in use. Prices, purchases, rankings, progression and server rules were
 not changed. World-projected dialogue/labels and SurfaceGui layouts are outside
-this screen-layout change. Dormant Merge UI remains disabled.
+this screen-layout change. Merge was disabled during that responsive pass. A subsequent user-authorized purple merge implementation is documented in [MERGING.md](MERGING.md), including its own layout evidence.
 
 ## Ownership
 

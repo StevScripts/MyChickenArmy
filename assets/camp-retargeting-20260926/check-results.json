@@ -1,0 +1,76 @@
+{
+  "placeId": 96683186622050,
+  "context": "Studio Edit, fresh source loader, isolated sessions/world; no Play or saved-player access",
+  "passed": 17,
+  "total": 17,
+  "results": [
+    {
+      "name": "Redirect from Travel preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Fight preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Capture preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Holding preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Duplicate target and invalid orders leave the current fight untouched",
+      "passed": true
+    },
+    {
+      "name": "Switching repeatedly does not duplicate chickens or pay a kill twice",
+      "passed": true
+    },
+    {
+      "name": "All cleared camps remain empty through the full forward route",
+      "passed": true
+    },
+    {
+      "name": "Retreat from camp 3 to camp 1 respawns 2 and 3 only after arrival plus grace",
+      "passed": true
+    },
+    {
+      "name": "Returning to camp 2 retains camp 1 and releases only camp 3",
+      "passed": true
+    },
+    {
+      "name": "Changing a retreat mid-march waits for the replacement destination",
+      "passed": true
+    },
+    {
+      "name": "A new forward order cancels a pending abandoned-camp respawn",
+      "passed": true
+    },
+    {
+      "name": "A living straggler prevents enemies spawning on its old camp",
+      "passed": true
+    },
+    {
+      "name": "Abandoned unfinished camps recover without granting cleared-route protection",
+      "passed": true
+    },
+    {
+      "name": "Returning and shared-defender armies cannot create a second outgoing battle",
+      "passed": true
+    },
+    {
+      "name": "Leaving the server releases retained camps without erasing earned wins",
+      "passed": true
+    },
+    {
+      "name": "Camp commands remain usable while traveling/fighting and disable the current target",
+      "passed": true
+    },
+    {
+      "name": "Physical actor handoff reuses player models and immediately clears attack flags",
+      "passed": true
+    }
+  ]
+}

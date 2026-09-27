@@ -1,0 +1,75 @@
+{
+  "disk": [
+    {
+      "path": "src/server/CommerceService.luau",
+      "bytes": 12018,
+      "hash": 3959752505
+    },
+    {
+      "path": "src/server/DebugService.luau",
+      "bytes": 7564,
+      "hash": 2831437683
+    },
+    {
+      "path": "src/server/GameServer.luau",
+      "bytes": 19091,
+      "hash": 2754139072
+    },
+    {
+      "path": "src/server/EggService.luau",
+      "bytes": 17062,
+      "hash": 720929719
+    },
+    {
+      "path": "src/client/AppController.luau",
+      "bytes": 40381,
+      "hash": 835835677
+    }
+  ],
+  "studio": {
+    "sources": [
+      {
+        "bytes": 12018,
+        "path": "src/server/CommerceService.luau",
+        "compiled": true,
+        "copies": 1,
+        "hash": 3959752505
+      },
+      {
+        "bytes": 7564,
+        "path": "src/server/DebugService.luau",
+        "compiled": true,
+        "copies": 1,
+        "hash": 2831437683
+      },
+      {
+        "bytes": 19091,
+        "path": "src/server/GameServer.luau",
+        "compiled": true,
+        "copies": 1,
+        "hash": 2754139072
+      },
+      {
+        "bytes": 17062,
+        "path": "src/server/EggService.luau",
+        "compiled": true,
+        "copies": 1,
+        "hash": 720929719
+      },
+      {
+        "bytes": 40381,
+        "path": "src/client/AppController.luau",
+        "compiled": true,
+        "copies": 1,
+        "hash": 835835677
+      }
+    ],
+    "simulationCount": 56,
+    "placeId": 96683186622050,
+    "simulationRunning": false,
+    "running": false
+  },
+  "matched": true,
+  "build": "python3 tools/rojo.py build passed",
+  "whitespace": "git diff --check passed"
+}

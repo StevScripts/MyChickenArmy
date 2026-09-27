@@ -42,9 +42,7 @@ function WorldService.new()
 end
 
 function WorldService:Position(index: number): Vector3
-	local p = Config.PlotPositions[index]
-	assert(p, "Unknown plot index")
-	return Vector3.new(p[1], MapLayout.HomeHeight(index), p[2])
+	return self:PlotFrame(index).Position
 end
 
 function WorldService:PlotFrame(index: number): CFrame
@@ -206,6 +204,10 @@ function WorldService:PetPosition(index: number, petId: string): Vector3?
 end
 
 function WorldService:SpawnFrame(index: number): CFrame
+	local record=self.plots[index]
+	local anchors=record and record.folder:FindFirstChild("Anchors",true)
+	local spawn=anchors and anchors:FindFirstChild("Spawn")
+	if spawn and spawn:IsA("BasePart") then return spawn.CFrame end
 	local plot = self:PlotFrame(index)
 	local at = (plot * HomePlot.ForPlot(index).Spawn).Position
 	return CFrame.lookAt(at, at+plot.LookVector*20)
@@ -289,6 +291,16 @@ function WorldService:Build()
 	end
 	self.kingArena = KingArena.new(root)
 	local starterCamps=Progression.Camps(1)
+	-- The standalone machine was authored against Plot 1. Keep it intact in
+	-- ServerStorage during Play and clone that same placement into each home.
+	local mergeTemplate=workspace:FindFirstChild("Fuse_Machine")
+	local firstPlot=root:FindFirstChild("Plot1")
+	if not mergeTemplate and firstPlot then mergeTemplate=firstPlot:FindFirstChild("Fuse_Machine",true) end
+	if mergeTemplate and not mergeTemplate:IsA("Model") then mergeTemplate=nil end
+	local mergeOrigin=self:PlotFrame(1)
+	if Config.Features.Merging and mergeTemplate and mergeTemplate.Parent==workspace then
+		mergeTemplate.Parent=game:GetService("ServerStorage")
+	end
 	for index = 1, #Config.PlotPositions do
 		-- Authored homes are opt-in: removing a plot for editing must not regenerate it.
 		if not root:GetAttribute("AuthoredMap") or root:FindFirstChild("Plot"..index) then
@@ -310,9 +322,9 @@ function WorldService:Build()
 				homeOrdinals={},index=index,connections={},conquestTitle=conquestTitle}
 			plot.upgrades=PlotUpgradeService.new(folder,index,cf)
 			if Config.Features.Merging then
-				plot.mergeStand=MergeStand.new(folder,cf*HomePlot.Merge,index,function(player,action,plotIndex)
+				plot.mergeStand=MergeStand.new(folder,cf,index,function(player,action,plotIndex)
 					if self.onAction then self.onAction(player,action,plotIndex) end
-				end)
+				end,mergeTemplate,mergeOrigin)
 			else
 				-- Runtime clones only; original buildings are archived in ServerStorage.
 				-- Also suppress the stand when loading an older authored recovery template.
@@ -368,9 +380,9 @@ function WorldService:CanUseMergeStand(player,session,index)
  return Config.Features.Merging and plot~=nil and plot.mergeStand~=nil and index==session.plotIndex and plot.mergeStand:CanUse(player)
 end
 
-function WorldService:CelebrateMerge(session)
+function WorldService:CelebrateMerge(session,petId)
  local plot=self.plots[session.plotIndex]
- if plot and plot.mergeStand then plot.mergeStand:Celebrate() end
+ if plot and plot.mergeStand then plot.mergeStand:Celebrate(session.pets[petId]) end
 end
 
 function WorldService:PopulateCamp(record)

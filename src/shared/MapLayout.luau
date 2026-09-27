@@ -34,7 +34,7 @@ end
 
 function Layout.HomeFootY(index:number):number
  local home=authoredHome(index)
- local anchors=home and home:FindFirstChild("Anchors")
+ local anchors=home and home:FindFirstChild("Anchors",true)
  local yard=anchors and anchors:FindFirstChild("Yard")
  if yard and yard:IsA("BasePart") then return yard.Position.Y end
  return Layout.HomeHeight(index)+HomePlot.ForPlot(index).FootY

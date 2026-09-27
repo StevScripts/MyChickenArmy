@@ -120,7 +120,7 @@ local function art(parent,name,asset,size,position)
 end
 
 local function figmaStuds(parent)
- local pattern=Theme.Studs(parent,0.14,50,0)
+ local pattern=Theme.Studs(parent,0.14,24,0)
  pattern.ZIndex=parent.ZIndex+1
  return pattern
 end
@@ -558,6 +558,8 @@ function Browser:Resize()
  self.sortButton.Caption.Position,self.sortButton.Caption.Size,self.sortButton.Caption.TextSize=UDim2.fromOffset(8,0),UDim2.new(1,-36,1,0),20
  self.sortButton.Chevron.Position,self.sortButton.Chevron.Size=UDim2.new(1,-28,0.5,-8),UDim2.fromOffset(20,16)
  self.grid.Position,self.grid.Size=UDim2.fromOffset(8,inventoryTop+64),UDim2.new(if narrow then 1 else 0.61,-16,1,-inventoryTop-72)
+ self.grid.ScrollBarThickness=14
+ self.grid.UIPadding.PaddingRight=UDim.new(0,21)
  local gridWidth=inventoryWidth-52
  local columns=math.clamp(math.floor((gridWidth+12)/150),1,4)
  self.cellWidth=math.floor((gridWidth-(columns-1)*12)/columns)
@@ -611,7 +613,69 @@ function Browser:Resize()
   self.sell.Position,self.sell.Size,self.sell.TextSize=UDim2.new(0.5,0,0,128),UDim2.new(0.5,-14,0,48),20
   self.detailNotice.Position,self.detailNotice.Size=UDim2.fromOffset(8,182),UDim2.new(1,-22,0,40)
  end
- self.salePanel.Position,self.salePanel.Size=UDim2.fromOffset(8,if short then 76 else 260),UDim2.new(1,-22,0,266)
+ if width>=780 and height>=500 then
+  -- Desktop follows the approved Figma proportions; phones keep the compact flow above.
+  local u=width/1474
+  local headerHeight=83*u
+  bodyHeight=height-headerHeight-10*u
+  contentWidth=width
+  self.header.Size=UDim2.new(1,0,0,headerHeight)
+  place(self.header.PageIcon,21*u,7*u,96*u,70*u)
+  self.title.Position,self.title.Size,self.title.TextSize=UDim2.fromOffset(128*u,u),UDim2.new(1,-230*u,1,0),64*u
+  place(self.closeButton,width-86*u,u,86*u,82*u);self.closeButton.TextSize=62*u
+  self.body.Position,self.body.Size=UDim2.fromOffset(0,headerHeight+5*u),UDim2.new(1,0,1,-headerHeight-10*u)
+  place(self.toolbar,0,0,width,85*u)
+  place(self.flockLabel,27*u,10*u,110*u,64*u);self.flockLabel.TextSize=33*u
+  place(self.summary,143*u,10*u,137*u,64*u);self.summary.TextSize=36*u
+  place(self.flockPlus,278*u,13*u,66*u,62*u);self.flockPlus.TextSize=46*u
+  self.toolbar.Divider.Visible=true;place(self.toolbar.Divider,406*u,21*u,2*u,43*u)
+  place(self.capacityLabel,454*u,10*u,108*u,64*u);self.capacityLabel.TextSize=33*u
+  place(self.capacity,569*u,10*u,102*u,64*u);self.capacity.TextSize=36*u
+  place(self.capacityPlus,676*u,13*u,66*u,62*u);self.capacityPlus.TextSize=46*u
+  place(self.best,975*u,13*u,294*u,64*u);self.best.TextSize=32*u
+  place(self.infoButton,1280*u,13*u,180*u,64*u);self.infoButton.TextSize=32*u
+  inventoryWidth=903*u
+  inventoryTop=92*u
+  place(self.inventoryPanel,6*u,inventoryTop,inventoryWidth,bodyHeight-inventoryTop)
+  place(self.searchShell,22*u,inventoryTop+12*u,584*u,60*u)
+  place(self.searchShell.SearchIcon,16*u,12*u,38*u,38*u)
+  place(self.search,75*u,0,480*u,60*u);self.search.TextSize=27*u
+  place(self.sortButton,620*u,inventoryTop+12*u,270*u,60*u)
+  place(self.sortButton.Caption,18*u,0,195*u,60*u);self.sortButton.Caption.TextSize=27*u
+  place(self.sortButton.Chevron,221*u,18*u,34*u,24*u)
+  place(self.grid,19*u,inventoryTop+87*u,897*u,bodyHeight-inventoryTop-99*u)
+  self.grid.ScrollBarThickness=14*u
+  self.grid.UIPadding.PaddingRight=UDim.new(0,8*u)
+  self.cellWidth=math.floor((897*u-22*u-36*u)/4)
+  self.cellHeight=math.floor(self.cellWidth*220/210)
+  self.gridLayout.CellSize=UDim2.fromOffset(self.cellWidth,self.cellHeight)
+  self.gridLayout.CellPadding,self.gridLayout.FillDirectionMaxCells=UDim2.fromOffset(12*u,16*u),4
+  self.hint.Position,self.hint.Size=UDim2.new(0,19*u,1,-48),UDim2.fromOffset(887*u,44)
+  detailX,detailTop,detailWidth=931*u,95*u,535*u
+  place(self.detail,detailX,detailTop,detailWidth,bodyHeight-detailTop)
+  self.detail.CanvasSize=UDim2.fromOffset(0,780*u)
+  place(self.detailRibbon,10*u,10*u,516*u,76*u)
+  place(self.name,9*u,0,498*u,76*u);self.name.TextSize=50*u
+  place(self.metadata,18*u,92*u,499*u,44*u);self.metadata.TextSize=29*u
+  local portraitSize=326*u/0.78 -- Compensate for transparent padding in the captured PNGs.
+  self.previewSize=UDim2.fromOffset(portraitSize,portraitSize)
+  self.previewPosition=UDim2.fromOffset((detailWidth-portraitSize)/2,299*u-portraitSize/2)
+  place(self.detailHalo,105*u,136*u,326*u,326*u)
+  place(self.stats,20*u,466*u,496*u,86*u)
+  for index,tileName in {"DamageTile","HealthTile"} do
+   local tile=self.stats[tileName]
+   place(tile,(index-1)*255*u,0,241*u,86*u)
+   local icon=tile:FindFirstChild(if index==1 then "DamageIcon" else "HealthIcon")
+   place(icon,12*u,8*u,74*u,70*u)
+   local value=if index==1 then self.damageValue else self.healthValue
+   place(value,96*u,0,140*u,84*u);value.TextSize=35*u
+  end
+  place(self.assign,20*u,570*u,496*u,100*u);self.assign.TextSize=49*u
+  place(self.sell,100*u,684*u,340*u,76*u);self.sell.TextSize=40*u
+  place(self.detailNotice,18*u,759*u,499*u,28*u);self.detailNotice.TextSize=19*u
+ end
+ self.salePanel.Position,self.salePanel.Size=UDim2.fromOffset(8,self.stats.Position.Y.Offset),UDim2.new(1,-22,0,266)
+ self.detailContentHeight=self.detail.CanvasSize.Y.Offset
  self.salePrompt.Position,self.salePrompt.Size,self.salePrompt.TextSize=UDim2.fromOffset(8,8),UDim2.new(1,-16,0,120),20
  self.saleConfirm.Position,self.saleConfirm.Size,self.saleConfirm.TextSize=UDim2.fromOffset(8,140),UDim2.new(1,-16,0,52),22
  self.saleCancel.Position,self.saleCancel.Size,self.saleCancel.TextSize=UDim2.fromOffset(8,204),UDim2.new(1,-16,0,48),22
@@ -708,7 +772,11 @@ function Browser:UpdateAction()
 	self.sell.Text=if self.pending and self.pending.action=="Sell" then "Selling..." else "Sell"
 	local reviewing=self.saleQuote~=nil
 	self.salePanel.Visible=reviewing
- if self.hideDetailPreview then self.detail.CanvasSize=UDim2.fromOffset(0,if reviewing then 350 else 224) end
+ local detailHeight=self.detailContentHeight or self.detail.CanvasSize.Y.Offset
+ if reviewing then
+  detailHeight=math.max(detailHeight,self.salePanel.Position.Y.Offset+self.salePanel.Size.Y.Offset+12)
+ end
+ self.detail.CanvasSize=UDim2.fromOffset(0,detailHeight)
 	self.stats.Visible,self.assign.Visible,self.sell.Visible=not reviewing,not reviewing,not reviewing
 	self.detailNotice.Visible=not reviewing
 	enabled(self.saleConfirm,canSell and reviewing)
@@ -950,15 +1018,19 @@ function Browser:Card(parent,pet,slot,width,height,order)
  surface(ribbon,color,color:Lerp(Color3.new(0,0,0),0.22),Color3.fromRGB(7,16,22),1.5,1)
  local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),18,UDim2.new(),UDim2.fromScale(1,1),WHITE)
  rarityLabel.TextXAlignment=Enum.TextXAlignment.Center
- local portrait=Preview.Create(card,pet,UDim2.fromOffset(math.min(width*0.63,height-86),height-86),UDim2.new(0.5,-math.min(width*0.63,height-86)/2,0,32))
+ -- Let the actual chicken fill the card; its PNG already includes transparent padding.
+ local portraitSize=math.min(width*1.12,height*1.02)
+ local portrait=Preview.Create(card,pet,UDim2.fromOffset(portraitSize,portraitSize),UDim2.new(0.5,-portraitSize/2,0,32-portraitSize*0.16))
  portrait.ZIndex=card.ZIndex+3
  if portrait:IsA("ViewportFrame") then
   portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
  end
- local name=label(card,"Name",definition.name:gsub(" Chicken$",""),math.clamp(width*0.128,18,27),UDim2.new(0,5,1,-54),UDim2.new(1,-10,0,28),WHITE)
+ local nameSize=math.clamp(width*0.128,18,27)
+ local lineHeight=math.floor(nameSize*0.8)
+ local name=label(card,"Name",definition.name:gsub(" Chicken$",""),nameSize,UDim2.new(0,5,1,-lineHeight*2-4),UDim2.new(1,-10,0,lineHeight),WHITE)
  name.TextXAlignment=Enum.TextXAlignment.Center
  local stats=Rules.Stats(pet.species,pet.stars,pet.level)
- local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",math.clamp(width*0.119,18,25),UDim2.new(0,5,1,-26),UDim2.new(1,-10,0,24),GOLD,true)
+ local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",math.clamp(width*0.119,18,25),UDim2.new(0,5,1,-lineHeight-3),UDim2.new(1,-10,0,lineHeight),GOLD,true)
  strength.TextXAlignment=Enum.TextXAlignment.Center
  local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
  outline.ZIndex=card.ZIndex+7
@@ -987,9 +1059,9 @@ end
 
 function Browser:RenderArmyInfo(pets,ids)
 	clear(self.infoRoster)
-	local dps,hp,homeIncome,homeCount=0,0,0,0
+	local dps,hp,homeCount=0,0,0
 	for _,pet in pets do
-		if pet.home then homeCount+=1;homeIncome+=self.app:PetIncome(pet) end
+		if pet.home then homeCount+=1 end
 	end
 	for index,id in ids do
 		local pet=pets[id]
@@ -1027,7 +1099,7 @@ function Browser:RenderArmyInfo(pets,ids)
 	self.statTiles.Flock.value.Text=tostring(#(state.pets or {}))
 	self.statTiles.Flock.note.Text="owned chickens"
 	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual lineup is selected." else "Best chickens selected automatically."
-	self.infoFooter.Text="Equipped stats only. Best uses damage, health and splash.\nHome flock: "..homeCount.." chickens / $"..Theme.Money(homeIncome).."/s egg income"
+	self.infoFooter.Text="Equipped stats only. Best uses damage, health and splash.\nHome flock: "..homeCount.." chickens / "..Theme.Number(state.homeEggsPerSecond or 0).." eggs/s"
 	if #ids==0 then
 		label(self.infoRoster,"Empty","No chickens selected. Return to your flock and equip a team.",18,
 			UDim2.fromOffset(10,10),UDim2.new(1,-20,0,52),MUTED)

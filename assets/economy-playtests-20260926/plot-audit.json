@@ -1,0 +1,57 @@
+[
+  {
+    "plot": 1,
+    "boardPath": "Workspace.PetRollWorld.EggCollectionBoard",
+    "rollPodiums": 6,
+    "sellerBoard": true,
+    "upgradeBoardDistance": 29.154422760009766,
+    "plotExpansion": true,
+    "depositPath": "Workspace.PetRollWorld.Plot1.Shops.EggDeposit.sellpart",
+    "deposit": true
+  },
+  {
+    "plot": 2,
+    "rollPodiums": 1,
+    "sellerBoard": false,
+    "upgradeBoardDistance": 375.94256591796875,
+    "plotExpansion": true,
+    "depositPath": "Workspace.PetRollWorld.Plot2.Shops.EggDeposit.sellpart",
+    "deposit": true
+  },
+  {
+    "plot": 3,
+    "rollPodiums": 1,
+    "sellerBoard": false,
+    "upgradeBoardDistance": 627.4788208007812,
+    "plotExpansion": true,
+    "depositPath": "Workspace.PetRollWorld.Plot3.Shops.EggDeposit.sellpart",
+    "deposit": true
+  },
+  {
+    "plot": 4,
+    "rollPodiums": 1,
+    "sellerBoard": false,
+    "upgradeBoardDistance": 711.498046875,
+    "plotExpansion": true,
+    "depositPath": "Workspace.PetRollWorld.Plot4.Shops.EggDeposit.sellpart",
+    "deposit": true
+  },
+  {
+    "plot": 5,
+    "rollPodiums": 1,
+    "sellerBoard": false,
+    "upgradeBoardDistance": 604.80029296875,
+    "plotExpansion": true,
+    "depositPath": "Workspace.PetRollWorld.Plot5.Shops.EggDeposit.sellpart",
+    "deposit": true
+  },
+  {
+    "plot": 6,
+    "rollPodiums": 1,
+    "sellerBoard": false,
+    "upgradeBoardDistance": 336.40155029296875,
+    "plotExpansion": true,
+    "depositPath": "Workspace.PetRollWorld.Plot6.Shops.EggDeposit.sellpart",
+    "deposit": true
+  }
+]

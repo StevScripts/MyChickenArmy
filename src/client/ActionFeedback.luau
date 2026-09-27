@@ -13,7 +13,6 @@ local Feedback = {}
 Feedback.__index = Feedback
 local GOLD = Theme.Colors.gold
 local GREEN = Theme.Arcade.green
-local random = Random.new()
 
 function Feedback.new(app)
 	return setmetatable({app = app, alive = false, flights = {}, cashEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
@@ -111,83 +110,38 @@ function Feedback:Fly(image, start, goal, delay, duration, size, seed, arrive)
 	Debris:AddItem(anchor, delay + duration + 0.2)
 end
 
--- User's CashDrop sequence: curved burst, then tween back and fade.
+-- Emit the authored Money attachment at the collecting player's root.
 function Feedback:Cash(_position, confirm)
 	if not self.alive then return end
 	if confirm then confirm() end
 	if self.app.reducedMotion then return end
 	local root = self:Root()
-	if not root then return end
+	if not root or not root:IsA("BasePart") then return end
 	local assets = Shared.Parent:FindFirstChild("Assets")
-	local template = assets and assets:FindFirstChild("CashDrop")
-	if not template or not template:IsA("BasePart") then
-		warn("Cash effect needs ReplicatedStorage.PetRoll.Assets.CashDrop")
+	local template = assets and assets:FindFirstChild("Money")
+	if not template or not template:IsA("Attachment") then
+		warn("Cash effect needs ReplicatedStorage.PetRoll.Assets.Money")
 		return
 	end
 	if #self.cashEffects >= 3 then table.remove(self.cashEffects, 1):Destroy() end
-	local group = Instance.new("Folder")
-	group.Name, group.Parent = "CashPickup", self.folder
-	local origin = root.Position
-	local parts, tweens, outwardTweens, connections = {}, {}, {}, {}
-	local returning = false
-	local rootGone = root.Destroying:Once(function() group:Destroy() end)
-	table.insert(self.cashEffects, group)
-	group.Destroying:Once(function()
-		rootGone:Disconnect()
-		for _, connection in connections do connection:Disconnect() end
-		for _, tween in tweens do tween:Cancel(); tween:Destroy() end
-		local index = table.find(self.cashEffects, group)
+	local effect = template:Clone()
+	-- Imported attachment coordinates must not offset the burst from the player.
+	effect.CFrame = CFrame.identity
+	local emitters = {}
+	for _, child in effect:GetDescendants() do
+		if child:IsA("ParticleEmitter") then
+			child.Enabled = false
+			table.insert(emitters, child)
+		end
+	end
+	effect.Parent = root
+	table.insert(self.cashEffects, effect)
+	effect.Destroying:Once(function()
+		local index = table.find(self.cashEffects, effect)
 		if index then table.remove(self.cashEffects, index) end
 	end)
-
-	for _ = 1, Feel.Cash.Count do
-		local cashDrop = template:Clone()
-		cashDrop.Anchored = true
-		cashDrop.CanCollide, cashDrop.CanTouch, cashDrop.CanQuery = false, false, false
-		cashDrop.Position = origin
-		cashDrop.Parent = group
-		table.insert(parts, cashDrop)
-
-		local randomUnitVector = random:NextUnitVector() * Vector3.new(1, 0, 1)
-		local middle = origin + randomUnitVector * 3 + Vector3.new(0, 1, 0)
-		local finish = origin + randomUnitVector * 6 - Vector3.new(0, 2.5, 0)
-		-- BezierTween isn't installed: tween a scalar along the same three waypoints.
-		local progress = Instance.new("NumberValue")
-		progress.Name, progress.Parent = "CurveProgress", cashDrop
-		table.insert(connections, progress.Changed:Connect(function(t)
-			if returning or not group.Parent then return end
-			cashDrop.Position = origin:Lerp(middle, t):Lerp(middle:Lerp(finish, t), t)
-		end))
-		local outward = TweenService:Create(progress,
-			TweenInfo.new(Feel.Cash.OutSeconds, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
-			{Value = 1})
-		table.insert(tweens, outward)
-		table.insert(outwardTweens, outward)
-		outward:Play()
-	end
-
-	task.delay(Feel.Cash.ReturnDelay, function()
-		if not group.Parent then return end
-		if not root.Parent then group:Destroy(); return end
-		-- Stop the curve before returning so two animations never fight over Position.
-		returning = true
-		for _, tween in outwardTweens do tween:Cancel() end
-		for _, connection in connections do connection:Disconnect() end
-		for _, part in parts do
-			local imageLabel = (part :: any).BillboardGui.ImageLabel
-			local fade = TweenService:Create(imageLabel,
-				TweenInfo.new(Feel.Cash.InSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-				{ImageTransparency = 1})
-			local inward = TweenService:Create(part,
-				TweenInfo.new(Feel.Cash.InSeconds, Enum.EasingStyle.Exponential, Enum.EasingDirection.In),
-				{Position = root.Position})
-			table.insert(tweens, fade); table.insert(tweens, inward)
-			fade:Play()
-			inward:Play()
-		end
-		task.delay(Feel.Cash.InSeconds + 0.05, function() group:Destroy() end)
-	end)
-	Debris:AddItem(group, Feel.Cash.ReturnDelay + Feel.Cash.InSeconds + 0.15)
+	Debris:AddItem(effect, Feel.Cash.Lifetime)
+	for _, emitter in emitters do emitter:Emit(Feel.Cash.Count) end
 end
 
 function Feedback:ClearCash()
@@ -206,7 +160,7 @@ function Feedback:ShowCash(position,value)
 	local serial=self.collectionSerial
 	self:Cash(position,function()
 		if not self.alive or serial~=self.collectionSerial then return end
-		self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,maxDuration=0.7,voiceKey="CashPayoff",maxVoices=3,cooldown=0.08})
+		self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,voiceKey="CashPayoff",maxVoices=3,cooldown=0.08})
 		local root=self:Root()
 		if self.app.reducedMotion then
 			self:Amount(if root then root.Position+Vector3.new(0,3.8,0) else position+Vector3.new(0,2,0),value)
@@ -262,15 +216,19 @@ function Feedback:Action(kind)
 	local root = self:Root()
 	if kind == "Sell" then
 		local function arrive()
-			self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,maxDuration=0.7,voiceKey="Sale",maxVoices=3})
+			self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,voiceKey="Sale",maxVoices=3})
 		end
 		if root then self:Cash(root.Position + root.CFrame.LookVector * 2 + Vector3.new(0, 1, 0),arrive) else arrive() end
 		return
 	end
 	local color = if kind == "Buy" then GOLD elseif kind == "Expand" then GREEN else Theme.Arcade.blue
 	if root then self:Burst(root.Position - Vector3.new(0, 2.5, 0), color, kind == "Promote") end
-	self.app.audio:Play(if kind == "Buy" then "Pop" else "RollReveal", if kind == "Buy" then 1.08 else 1.12,
-		{volume = 0.35, maxDuration = 0.85, voiceKey = "ActionSuccess"})
+	if kind == "Buy" then
+		self.app.audio:Play("ChickenPurchase", nil, {voiceKey = "ChickenPurchase", maxVoices = 3})
+	else
+		self.app.audio:Play("RollReveal", 1.12,
+			{volume = 0.35, maxDuration = 0.85, voiceKey = "ActionSuccess"})
+	end
 end
 
 function Feedback:Conquer(position)

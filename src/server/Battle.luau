@@ -326,6 +326,7 @@ function Battle:StepSimulation(dt: number, now: number)
    if (self.actors and self.actors:Blocked()) or now-self.phaseAt>=Config.TravelTimeout then return "Blocked" end
    return nil
   end
+  self.arrivedAt=now
   -- Classify each bird before a territory join can transfer this encounter.
   -- The first arrival must never make road stragglers combat-ready on side B.
   for _,u in self.units do

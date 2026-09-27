@@ -1,0 +1,27 @@
+[
+  {
+    "path": "src/server/CommerceService.luau",
+    "bytes": 12018,
+    "hash": 1618923558
+  },
+  {
+    "path": "src/server/DebugService.luau",
+    "bytes": 7564,
+    "hash": 1081010374
+  },
+  {
+    "path": "src/server/GameServer.luau",
+    "bytes": 19091,
+    "hash": 3732067185
+  },
+  {
+    "path": "src/server/EggService.luau",
+    "bytes": 17062,
+    "hash": 2411812100
+  },
+  {
+    "path": "src/client/AppController.luau",
+    "bytes": 40381,
+    "hash": 2929757430
+  }
+]

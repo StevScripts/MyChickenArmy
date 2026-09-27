@@ -48,6 +48,29 @@ function BattleService:TerritoryKey(session,target)
  return if target:sub(1,5)=="camp:" then campKey(session.plotIndex,tonumber(target:sub(6))) else target
 end
 
+-- Only this player's outgoing NPC encounter can be redirected. Shared income
+-- contests retain their separate participant/withdrawal rules.
+function BattleService:CanRedirect(session,battle)
+ return battle~=nil and battle.attacker==session.userId and not battle.defender
+  and (not battle.incomeSite or battle.phase=="Holding")
+  and (battle.phase=="Travel" or battle.phase=="Fight" or battle.phase=="Capture" or battle.phase=="Holding")
+end
+
+function BattleService:TerritoryBlocked(key,previous)
+ local reserved=self.campBusy[key]
+ return reserved~=nil and not (previous and reserved==previous.id
+  and self.departingCamps[key]==previous.id and key~=previous.campKey)
+end
+
+function BattleService:PlanOrder(session,target,camps,outposts,keepRoute)
+ local route=CampaignRoute.Plan(target,camps,outposts)
+ -- A manual camp redirect replaces the current encounter immediately. Orders
+ -- from home, automatic route steps and the King's prerequisites stay ordered.
+ if route and not keepRoute and target:sub(1,5)=="camp:"
+  and self:CanRedirect(session,self.battles[session.outgoing]) then return {target} end
+ return route
+end
+
 -- Current occupancy and this forward main-route push grant passage. Saved wins
 -- never bypass a newly restored garrison, and side trips discard route passage.
 function BattleService:RouteProgress(session)
@@ -95,6 +118,8 @@ end
 
 function BattleService:Targets(session,now)
 	local targets={}
+ local previous=self.battles[session.outgoing]
+ local canMove=self:CanRedirect(session,previous) or (not session:IsArmyLocked() and not session.outgoing)
  local routeCamps,routeOutposts=self:RouteProgress(session)
  local camps=Progression.Camps(session.promotion)
 	for i,camp in camps do
@@ -133,14 +158,16 @@ function BattleService:Targets(session,now)
    elseif self.campBusy[KingEncounter.Target] then "Wait for the previous army to clear the arena"
    else "Challenge the Chicken King"})
  for _,entry in targets do
-  local route=CampaignRoute.Plan(entry.id,routeCamps,routeOutposts)
+  local route=self:PlanOrder(session,entry.id,routeCamps,routeOutposts)
   if route then
    local first=route[1]
    local firstKey=if first:sub(1,5)=="camp:" then campKey(session.plotIndex,tonumber(first:sub(6))) else first
    local finalKey=if entry.kind=="Camp" then campKey(session.plotIndex,tonumber(entry.id:sub(6))) else entry.id
-   entry.available=self.campBusy[firstKey]==nil and self.campBusy[finalKey]==nil
+   entry.available=canMove and not self:TerritoryBlocked(firstKey,previous) and not self:TerritoryBlocked(finalKey,previous)
    entry.via=if #route>1 then CampaignRoute.Name(first) else nil
-   entry.reason=if not entry.available then "Occupied by an army" elseif entry.via then "Via "..entry.via else "Ready"
+   entry.reason=if previous and previous.target==entry.id then "Your army is already attacking or stationed here"
+    elseif not canMove then "Your army is returning or defending"
+    elseif not entry.available then "Occupied by an army" elseif entry.via then "Via "..entry.via else "Ready"
    local owner=self.campOwners[finalKey]
    entry.owned=owner~=nil and owner.userId==session.userId
    entry.ownerId=owner and owner.userId
@@ -223,7 +250,7 @@ function BattleService:IncomeSummary(session,now)
  elseif not contest and not holder and self.campBusy["income:1"] then available,reason=false,"Wait for the previous army to clear" end
  if available and session then
   local previous=self.battles[session.outgoing]
-  local canMove=previous and previous.phase=="Holding" or (not session:IsArmyLocked() and not session.outgoing)
+  local canMove=self:CanRedirect(session,previous) or (not session:IsArmyLocked() and not session.outgoing)
   if not canMove then available,reason=false,"Your army is busy · finish the current attack" end
  end
  return {targetId="income:1",name=config.Name,ownerId=owner and owner.userId,ownerName=owner and owner.name,
@@ -385,20 +412,21 @@ function BattleService:AttackIncome(session,now)
  local summary=self:IncomeSummary(session,now)
  if not summary.available then return false,summary.reason end
  local previous=self.battles[session.outgoing]
- local holding=previous and previous.phase=="Holding"
+ local moving=self:CanRedirect(session,previous)
  if #session:Lineup()==0 then return false,"Add at least one chicken first." end
  local owner=self.campOwners["income:1"]
  local owned=owner and owner.userId==session.userId
  local joining=owned and self.battles[self.income.contestId]
  if not owned then self:CancelIncomeApproach(now);self.income.eligibleTime=0 end
- local origin=if holding then previous.destination else self.world:Position(session.plotIndex)
+ local origin=if moving then previous.destination else self.world:Position(session.plotIndex)
  local battle=self:NewIncomeBattle(session.userId,origin,now)
  battle.plotIndex,battle.promotion=session.plotIndex,session.promotion or 1
  battle.incumbent=owner and owner.userId
  battle.friendlyTerritory=owned and not joining
  if battle.friendlyTerritory then battle.captureElapsed=Config.CaptureSeconds end
- TerritoryContest.AddPlayer(battle,session,self.world,now,"A",if holding then previous else nil,false)
- if holding then self:Remove(previous,battle) end
+ if moving then self:RewardKills(previous,now) end
+ TerritoryContest.AddPlayer(battle,session,self.world,now,"A",if moving then previous else nil,false)
+ if moving then self:Remove(previous,battle) end
  if joining then
   joining.committedUsers[session.userId]=true
   battle.incomeJoin=joining.id
@@ -422,23 +450,24 @@ function BattleService:AttackIncome(session,now)
   self.world:UpdateSession(session)
   if battle.defender and self.sessions[battle.defender] then self.world:UpdateSession(self.sessions[battle.defender]) end
   battle.actors:Sync(now)
+  battle.actors:Publish(now)
  end
  return true,if joining then "Army returning to defend the outpost." elseif owned then "Army marching to your outpost." else "Army sent to the Supply Outpost."
 end
 
-function BattleService:Attack(session,targetId,now)
+function BattleService:Attack(session,targetId,now,keepRoute)
 	if type(targetId)~="string" or #targetId>60 then return false,"Invalid target." end
 	if targetId:sub(1,5)=="base:" then return false,"Home bases are safe. Challenge a camp instead." end
 	if targetId=="income:1" then return self:AttackIncome(session,now) end
 	local requestedTarget=targetId
  local routeCamps,routeOutposts=self:RouteProgress(session)
-	local route=CampaignRoute.Plan(targetId,routeCamps,routeOutposts)
+ local route=self:PlanOrder(session,targetId,routeCamps,routeOutposts,keepRoute)
 	if not route then return false,"Target does not exist." end
 	targetId=route[1]
 	local previous=self.battles[session.outgoing]
-	local holding=session.armyState=="Deployed" and previous and previous.phase=="Holding"
-	if not holding and (session:IsArmyLocked() or session.outgoing) then return false,"Your army is busy. Wait for the current attack to finish." end
-	if holding and previous.target==targetId then return false,"Your army is already at this camp. Approach another camp or change your lineup in My Army." end
+	local moving=self:CanRedirect(session,previous)
+	if not moving and (session:IsArmyLocked() or session.outgoing) then return false,"Your army is returning or defending. Wait until it is ready." end
+	if previous and (previous.target==requestedTarget or previous.target==targetId) then return false,"Your army is already attacking or stationed at this camp." end
 	local roster=session:Lineup()
 	if #roster==0 then return false,"Add at least one animal to your army first." end
 	local kind,id=string.match(targetId,"^(%a+):([%-]?%d+)$")
@@ -451,17 +480,17 @@ function BattleService:Attack(session,targetId,now)
   if not Progression.KingUnlocked(routeCamps,routeOutposts,false) then
    return false,"Conquer all "..#camps.." home camps before challenging the Chicken King."
   end
-  if self.campBusy[KingEncounter.Target] then return false,"The center is occupied. Wait for that army to leave." end
+  if self:TerritoryBlocked(KingEncounter.Target,previous) then return false,"The center is occupied. Wait for that army to leave." end
   local king=KingEncounter.Definition(session.promotion or 1)
   defenders,destination,name=king.roster,Vector3.new(0,1.05,0),king.name
  elseif outpostIndex then
   local camp=Progression.Outposts()[outpostIndex]
-  if self.campBusy[targetId] then return false,"This outpost is occupied. Wait for the army to leave." end
+  if self:TerritoryBlocked(targetId,previous) then return false,"This outpost is occupied. Wait for the army to leave." end
   defenders=Progression.OutpostRoster(outpostIndex)
   destination=self.world:OutpostFrame(outpostIndex).Position
   name=camp.name
  elseif kind=="camp" and index and camps[index] then
-		if self.campBusy[campKey(session.plotIndex,index)] then return false,camps[index].name.." is occupied." end
+		if self:TerritoryBlocked(campKey(session.plotIndex,index),previous) then return false,camps[index].name.." is occupied." end
 		local camp=camps[index]
 		campIndex=index
 		defenders=Progression.Roster(session.promotion,index)
@@ -473,9 +502,7 @@ function BattleService:Attack(session,targetId,now)
 	local territoryOwner=self.campOwners[self:TerritoryKey(session,targetId)]
 	if territoryOwner then defenders={} end
 	local battleId=HttpService:GenerateGUID(false)
-	local origin=if holding then previous.destination else self.world:Position(session.plotIndex)
-	local positions,previousUnits={},{}
-	if holding then for _,u in previous.units do if u.petId then positions[u.petId]=Vector3.new(u.x,1,u.z);previousUnits[u.petId]=u end end end
+	local origin=if moving then previous.destination else self.world:Position(session.plotIndex)
 	local battle=Battle.new(battleId,session.userId,targetId,origin,destination,now)
 	battle.name,battle.campIndex=name,campIndex
  battle.routeCamps,battle.routeOutposts=table.clone(routeCamps),table.clone(routeOutposts)
@@ -501,7 +528,7 @@ function BattleService:Attack(session,targetId,now)
 	battle.routeGoal=if #route>1 then requestedTarget else nil
  battle.routeGoalName=if battle.routeGoal then CampaignRoute.Name(battle.routeGoal) else nil
 	battle.defender=if defender then defender.userId else nil
-	if holding then
+	if moving then
 		-- Carry the same lives and every incoming/relieved bird across encounter boundaries.
 		battle.serial=previous.serial
 		for _,old in previous.units do if old.side=="A" then
@@ -514,21 +541,16 @@ function BattleService:Attack(session,targetId,now)
 	else battle:AddArmy("A",roster,origin) end
 	battle.marchDestination=((battle.frame or CFrame.new(destination))*CFrame.new(0,0,if isKing then MapLayout.King.Radius*(20/29) else Config.CampHalfSize-2)).Position
 	for i,u in battle.units do
-		if holding then continue end
+		if moving then continue end
 		local slot=roster[i].slot
 		local hx,hz=FlockLayout.Home(slot)
 		local home=if self.world.ReturnPosition then self.world:ReturnPosition(session,u.petId,slot)
 			elseif self.world.HomePosition then self.world:HomePosition(session.plotIndex,slot)
 			else self.world:Position(session.plotIndex)+Vector3.new(hx,0,hz)
 
-		local start=positions[u.petId] or (if self.world.PetPosition then self.world:PetPosition(session.plotIndex,u.petId) else nil) or home
+		local start=(if self.world.PetPosition then self.world:PetPosition(session.plotIndex,u.petId) else nil) or home
 		u.x,u.z,u.startX,u.startZ=start.X,start.Z,start.X,start.Z
 		u.homeX,u.homeZ=home.X,home.Z
-		local old=previousUnits[u.petId]
-		if old then
-			u.hp,u.respawnAt,u.reinforcing=old.hp,old.respawnAt,old.reinforcing
-			u.attackSerial,u.nextAttack=old.attackSerial,old.nextAttack
-		end
 	end
 
 	battle:AddArmy("B",defenders,destination)
@@ -539,21 +561,24 @@ function BattleService:Attack(session,targetId,now)
 		for _,u in battle.units do
 			local actor=nil
 			if u.side=="A" then
-				if holding and previous.actors then actor=previous.actors:TakePet(u.petId,"A")
+				if moving and previous.actors then actor=previous.actors:TakePet(u.petId,"A")
 				elseif self.world.TakeActor then actor=self.world:TakeActor(session.plotIndex,u.petId) end
 			elseif defender and self.world.TakeActor then actor=self.world:TakeActor(defender.plotIndex,u.petId) end
 			if actor then battle.actors:Adopt(u,actor) end
 		end
 	end
 	-- All adopted rigs receive the same departure time and source gate.
-	local departure=if holding then previous:DepartureSite() else nil
+	local departure=if moving then previous:DepartureSite() else nil
 	for _,u in battle.units do if u.side=="A" and not u.retiring then
 		March.Approach(u,battle.destination,now,departure)
 	end end
-	if holding then self:Remove(previous,battle) end
+	if moving then
+  self:RewardKills(previous,now)
+  self:Remove(previous,battle)
+ end
 	self.battles[battleId]=battle
 	session.outgoing,session.armyState=battleId,"Traveling"
-	session.stationedAt=nil
+	session.stationedAt=nil;session.returnAt=0
 	session.awayPets={};for _,u in battle.units do if u.side=="A" and u.petId then session.awayPets[u.petId]=true end end
 	session:Touch()
 	if campIndex then
@@ -568,6 +593,9 @@ function BattleService:Attack(session,targetId,now)
   self.campLocations[battle.campKey]={position=destination,frame=battle.frame,king=true,halfSize=MapLayout.King.Radius}
   if self.world.kingArena then self.world.kingArena:SetBusy(true,session.name) end
  end
+ if battle.campKey then
+  self.departingCamps[battle.campKey],self.departingSides[battle.campKey],self.campClearedAt[battle.campKey]=nil,nil,nil
+ end
 	if defender then
 		defender.incoming=battleId
 		defender.banner=session.name.." is attacking your base!"
@@ -579,6 +607,7 @@ function BattleService:Attack(session,targetId,now)
   self.world:UpdateSession(session)
   if defender then self.world:UpdateSession(defender) end
   battle.actors:Sync(now)
+  battle.actors:Publish(now)
  end
 	return true,if battle.routeGoal then "Marching to "..name..", then onward to "..battle.routeGoalName.."."
 		else "Army sent to "..name.."."
@@ -800,9 +829,14 @@ end
 function BattleService:ReleaseCamp(key)
  -- Ownership must clear before busy=false asks the world to restore its NPCs.
  -- The Supply Outpost intentionally retains its separate persistent-income rule.
- if key~="income:1" then self:SetTerritoryOwner(key,nil,self.campLocations[key]) end
- self.campBusy[key],self.departingCamps[key],self.departingSides[key],self.campClearedAt[key]=nil,nil,nil,nil
  local location=self.campLocations[key]
+ if key~="income:1" then self:SetTerritoryOwner(key,nil,location) end
+ if location and location.index then
+  for _,battle in self.battles do
+   if battle.plotIndex==location.plot and battle.routeCamps then battle.routeCamps[location.index]=nil end
+  end
+ end
+ self.campBusy[key],self.departingCamps[key],self.departingSides[key],self.campClearedAt[key]=nil,nil,nil,nil
  if location then
   if location.income then if self.world.SetIncomeBusy then self.world:SetIncomeBusy(false) end
   elseif location.king then if self.world.kingArena then self.world.kingArena:SetBusy(false) end
@@ -842,6 +876,14 @@ function BattleService:ReleaseClearedCamps(now)
  for key,id in self.departingCamps do
   local battle=self.battles[id]
   local location=self.campLocations[key]
+  -- A new order alone cannot release ground. Its army must first physically
+  -- arrive; redirecting again while en route restarts this arrival boundary.
+  local awaitingArrival=battle and battle.phase=="Travel" and not battle.arrivedAt
+  local owner=self.campOwners[key]
+  local retained=battle and battle.phase~="Returning" and location and location.index
+   and location.plot==battle.plotIndex and owner and owner.userId==battle.attacker
+   and (battle.isKing or (battle.campIndex and location.index<battle.campIndex))
+  if awaitingArrival or retained then self.campClearedAt[key]=nil;continue end
   local clear=true
   if key=="income:1" then
    local occupants={}
@@ -941,7 +983,7 @@ function BattleService:Step(dt,now)
 		if session and session.outgoing==battle.id then
 			local goal=battle.routeGoal
 			battle.routeGoal=nil
-			local ok,why=self:Attack(session,goal,now)
+   local ok,why=self:Attack(session,goal,now,true)
 			if not ok then session.lastResult="Route stopped. "..why.." Your army is staying here.";session:Touch() end
 		end
 	end

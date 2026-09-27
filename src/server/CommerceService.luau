@@ -3,6 +3,7 @@
 -- client refresh requests and purchase-finished booleans never grant ownership.
 local MarketplaceService = game:GetService("MarketplaceService")
 local PolicyService = game:GetService("PolicyService")
+local RunService = game:GetService("RunService")
 local Rules = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Rules)
 local ShopCatalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
 local CommerceService = {}
@@ -90,6 +91,41 @@ function CommerceService:Refresh(player, session)
 	return self:_Refresh(player, session, true)
 end
 
+function CommerceService:TestAllowed(session)
+	return RunService:IsStudio() and session.saveStatus == "studio-session"
+		and session.loaded == true and not session.closing and not session.saveLost
+end
+
+-- Overrides never alter verified ownership or serialize into a player profile.
+-- Reapply after every yielding marketplace refresh so it cannot restore paid perks.
+function CommerceService:_ApplyBenefits(record)
+	local session = record.session
+	local preset = if self:TestAllowed(session) then record.testPreset else nil
+	session.commerceTestPreset = preset
+	local owned = table.clone(record.owned)
+	if preset then
+		for _, key in self.catalog.Order do
+			owned[key] = preset == "AllPasses" or (preset == "EggSpawn" and key == "DoubleEggSpawn")
+		end
+	end
+	session.entitlements = owned
+	record.player:SetAttribute("PetRollCommanderBanner", owned.CommanderBanner == true)
+	session:RefreshArmy()
+	session:Touch()
+end
+
+function CommerceService:SetTestPreset(player, session, preset)
+	if not self:TestAllowed(session) then return false, "Use a disposable Studio session for purchase testing." end
+	if preset ~= "Account" and preset ~= "NoPasses" and preset ~= "EggSpawn" and preset ~= "AllPasses" then
+		return false, "Choose a valid purchase test preset."
+	end
+	local record = self.records[player.UserId]
+	if not record or record.session ~= session or not self:_Active(record) then return false, "Wait for the shop to load." end
+	record.testPreset = if preset == "Account" then nil else preset
+	self:_ApplyBenefits(record)
+	return true, "TEST: " .. preset .. " benefits. Real purchases are unchanged."
+end
+
 function CommerceService:_Refresh(player, session, freshCycle)
 	local record = self.records[player.UserId]
 	if not record or record.player ~= player or record.session ~= session or not self:_Active(record) then
@@ -135,10 +171,7 @@ function CommerceService:_Refresh(player, session, freshCycle)
 	end
 	if not self:_Active(record) then record.busy = false; return false, "Shop unavailable." end
 	record.busy, record.ready = false, allChecked
-	session.entitlements = record.owned
-	player:SetAttribute("PetRollCommanderBanner", record.owned.CommanderBanner == true)
-	session:RefreshArmy()
-	session:Touch()
+	self:_ApplyBenefits(record)
 	local fullyChecked=allChecked and record.policyReady==true
 	if fullyChecked then
 		record.retriesLeft, record.retryPending = 0, false
@@ -154,8 +187,10 @@ function CommerceService:Snapshot(session)
 	local record = self.records[session.userId]
 	local owned = {}
 	local active = record and record.session == session and self:_Active(record)
-	for _, key in self.catalog.Order do owned[key] = active and record.owned[key] == true or false end
-	return {owned = owned, ready = active and record.ready == true or false,
+	for _, key in self.catalog.Order do owned[key] = active and session.entitlements[key] == true or false end
+	local testing = active and self:TestAllowed(session)
+	return {owned = owned, ready = active and (record.ready == true or record.testPreset ~= nil) or false,
+		testAllowed = testing == true, testPreset = if testing then record.testPreset or "Account" else nil,
 		checking = active and (record.busy or record.scheduled) == true or false,
 		automatic=table.clone(session.commerceAutomatic),crateCredits=session.crateCredits,
 		policyReady=active and record.policyReady==true or false,
@@ -175,6 +210,7 @@ function CommerceService:SetAutomatic(session,key,enabled)
 end
 
 function CommerceService:PreparePurchase(player,session,key,productReady)
+ if self:TestAllowed(session) then return false,"Studio session: use F8 purchase presets; checkout is disabled." end
  if type(key)~="string" or #key>48 then return false,"Unknown shop item." end
  local definition=self.catalog.Definitions[key] or self.catalog.Products[key]
  local record=self.records[player.UserId]
@@ -184,7 +220,6 @@ function CommerceService:PreparePurchase(player,session,key,productReady)
   if record.owned[key] then return false,"You already own this pass." end
  elseif not productReady then return false,"Purchases need a safely loaded, saved profile." end
  if definition.coins and session.coins>1e12-definition.coins then return false,"Spend some coins before buying this pack." end
- if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
  if definition.crates and session.crateCredits>1e9-definition.crates then return false,"Open some crates before buying more." end
  if definition.crates and not self.catalog.Crate.enabled then return false,"Crate rewards are being prepared." end
  if definition.paidRandom then
@@ -200,6 +235,7 @@ function CommerceService:Release(player)
 	if not record or record.player ~= player then return end
 	self.records[player.UserId] = nil
 	record.session.entitlements = {}
+	record.session.commerceTestPreset = nil
 	record.session.paidRandomAllowed=false
 	record.session.paidRandomRestricted=false
 	player:SetAttribute("PetRollCommanderBanner", false)

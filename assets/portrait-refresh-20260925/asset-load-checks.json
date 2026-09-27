@@ -1,0 +1,86 @@
+{
+  "sourceBytes": 2095,
+  "replacementCount": 10,
+  "images": [
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken1.ChickenPreview",
+      "image": "rbxassetid://134363557302070",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken8.ChickenPreview",
+      "image": "rbxassetid://124844189793202",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken9.ChickenPreview",
+      "image": "rbxassetid://91160912073032",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken7.ChickenPreview",
+      "image": "rbxassetid://109806565135978",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken6.ChickenPreview",
+      "image": "rbxassetid://89716773845281",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken10.ChickenPreview",
+      "image": "rbxassetid://102334801314825",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken4.ChickenPreview",
+      "image": "rbxassetid://76680087756853",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken5.ChickenPreview",
+      "image": "rbxassetid://124151116106402",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken2.ChickenPreview",
+      "image": "rbxassetid://84613043986207",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.Inventory.ChickenInventory.Chicken_PreviewChicken3.ChickenPreview",
+      "image": "rbxassetid://107848317551069",
+      "size": "133.867691, 133.867691"
+    },
+    {
+      "loaded": true,
+      "path": "StarterGui.MCA_PortraitRefreshReview_Army_Desktop.Canvas.Window.ChickenBrowser.ArmyContent.SelectedChicken.ChickenPreview",
+      "image": "rbxassetid://134363557302070",
+      "size": "251.363083, 251.363083"
+    }
+  ],
+  "editQuality": "Enum.QualityLevel.Automatic",
+  "sourceHash": 1341926167,
+  "fetch": {
+    "rbxassetid://109806565135978": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://124844189793202": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://124151116106402": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://91160912073032": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://76680087756853": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://107848317551069": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://134363557302070": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://89716773845281": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://84613043986207": "Enum.AssetFetchStatus.Success",
+    "rbxassetid://102334801314825": "Enum.AssetFetchStatus.Success"
+  }
+}

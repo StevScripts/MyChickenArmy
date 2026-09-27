@@ -1,0 +1,62 @@
+[
+  {
+    "species": "StormDuck",
+    "opaquePixelsPreserved": 67284,
+    "addedBorderPixels": 9179,
+    "unclipped": true
+  },
+  {
+    "species": "Camo",
+    "opaquePixelsPreserved": 67257,
+    "addedBorderPixels": 9750,
+    "unclipped": true
+  },
+  {
+    "species": "Sailor",
+    "opaquePixelsPreserved": 67259,
+    "addedBorderPixels": 9636,
+    "unclipped": true
+  },
+  {
+    "species": "Tiger",
+    "opaquePixelsPreserved": 67278,
+    "addedBorderPixels": 9700,
+    "unclipped": true
+  },
+  {
+    "species": "Zombie",
+    "opaquePixelsPreserved": 67240,
+    "addedBorderPixels": 9741,
+    "unclipped": true
+  },
+  {
+    "species": "Slime",
+    "opaquePixelsPreserved": 22655,
+    "addedBorderPixels": 10729,
+    "unclipped": true
+  },
+  {
+    "species": "Frost",
+    "opaquePixelsPreserved": 37401,
+    "addedBorderPixels": 10236,
+    "unclipped": true
+  },
+  {
+    "species": "Dragon",
+    "opaquePixelsPreserved": 60317,
+    "addedBorderPixels": 9228,
+    "unclipped": true
+  },
+  {
+    "species": "Diamond",
+    "opaquePixelsPreserved": 67364,
+    "addedBorderPixels": 5905,
+    "unclipped": true
+  },
+  {
+    "species": "Jockey",
+    "opaquePixelsPreserved": 55317,
+    "addedBorderPixels": 8359,
+    "unclipped": true
+  }
+]

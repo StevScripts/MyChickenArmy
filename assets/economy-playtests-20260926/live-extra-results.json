@@ -1,0 +1,454 @@
+{
+  "vacuum": {
+    "passed": true
+  },
+  "idle": [
+    {
+      "groundDrops": 15,
+      "seconds": 60.006822499999544,
+      "groundValue": 960,
+      "readyCash": 0,
+      "walletChange": 0,
+      "preset": "Free",
+      "bag": 0,
+      "roverEnabled": false
+    },
+    {
+      "groundDrops": 15,
+      "seconds": 60.01368258333332,
+      "groundValue": 496,
+      "readyCash": 1680,
+      "walletChange": 0,
+      "preset": "AllPasses",
+      "bag": 1232,
+      "roverEnabled": true
+    }
+  ],
+  "live": [
+    {
+      "seconds": 180,
+      "elapsed": 182.18907866666632,
+      "samples": [
+        {
+          "cashPerSecond": 20,
+          "bag": 0,
+          "drops": 19,
+          "eggsPerSecond": 5,
+          "t": 12.412984916666574,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 4,
+          "eggValue": 0,
+          "earned": 100,
+          "ready": 0,
+          "ground": 132,
+          "cash": 11900
+        },
+        {
+          "cashPerSecond": 40,
+          "bag": 61,
+          "drops": 32,
+          "eggsPerSecond": 8,
+          "t": 35.343930250000085,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 7,
+          "eggValue": 1,
+          "earned": 100,
+          "ready": 0,
+          "ground": 756,
+          "cash": 1820
+        },
+        {
+          "cashPerSecond": 40,
+          "bag": 45,
+          "drops": 35,
+          "eggsPerSecond": 8,
+          "t": 57.596389666666255,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 7,
+          "eggValue": 1,
+          "earned": 1092,
+          "ready": 0,
+          "ground": 665,
+          "cash": 2812
+        },
+        {
+          "cashPerSecond": 45,
+          "bag": 60,
+          "drops": 40,
+          "eggsPerSecond": 9,
+          "t": 75.09153304166648,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 8,
+          "eggValue": 1,
+          "earned": 1092,
+          "ready": 0,
+          "ground": 1440,
+          "cash": 412
+        },
+        {
+          "cashPerSecond": 45,
+          "bag": 0,
+          "drops": 40,
+          "eggsPerSecond": 9,
+          "t": 93.55777862499963,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 8,
+          "eggValue": 1,
+          "earned": 2762,
+          "ready": 0,
+          "ground": 650,
+          "cash": 2082
+        },
+        {
+          "cashPerSecond": 45,
+          "bag": 0,
+          "drops": 40,
+          "eggsPerSecond": 9,
+          "t": 109.90749437500017,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 8,
+          "eggValue": 1,
+          "earned": 2762,
+          "ready": 0,
+          "ground": 1390,
+          "cash": 2082
+        },
+        {
+          "cashPerSecond": 45,
+          "bag": 0,
+          "drops": 40,
+          "eggsPerSecond": 9,
+          "t": 128.39211816666648,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 8,
+          "eggValue": 1,
+          "earned": 4347,
+          "ready": 0,
+          "ground": 635,
+          "cash": 3667
+        },
+        {
+          "cashPerSecond": 50,
+          "bag": 45,
+          "drops": 42,
+          "eggsPerSecond": 10,
+          "t": 145.241613541667,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 9,
+          "eggValue": 1,
+          "earned": 4347,
+          "ready": 0,
+          "ground": 1365,
+          "cash": 1267
+        },
+        {
+          "cashPerSecond": 50,
+          "bag": 0,
+          "drops": 45,
+          "eggsPerSecond": 10,
+          "t": 167.7713684583332,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 9,
+          "eggValue": 1,
+          "earned": 5972,
+          "ready": 0,
+          "ground": 905,
+          "cash": 2892
+        },
+        {
+          "cashPerSecond": 55,
+          "bag": 0,
+          "drops": 50,
+          "eggsPerSecond": 11,
+          "t": 182.1889182916666,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 10,
+          "eggValue": 1,
+          "earned": 5972,
+          "ready": 0,
+          "ground": 1660,
+          "cash": 492
+        },
+        {
+          "cashPerSecond": 55,
+          "bag": 0,
+          "drops": 50,
+          "eggsPerSecond": 11,
+          "t": 182.18907799999943,
+          "eggSpeed": 0,
+          "rollSlots": 1,
+          "capacity": 3,
+          "count": 10,
+          "eggValue": 1,
+          "earned": 5972,
+          "ready": 0,
+          "ground": 1660,
+          "cash": 492
+        }
+      ],
+      "instanceCount": 11050,
+      "walkFailures": [
+        {
+          "target": "335.6412048339844, 2.600600242614746, -158.46632385253906",
+          "t": 46.194985833332794,
+          "actual": "335.419189453125, 5.601647853851318, -159.26805114746094"
+        },
+        {
+          "target": "346.88543701171875, 2.72861909866333, -166.87159729003906",
+          "t": 52.175746875000186,
+          "actual": "346.4662170410156, 6.187594413757324, -166.58848571777344"
+        },
+        {
+          "target": "343.42132568359375, 2.72861909866333, -168.87159729003906",
+          "t": 57.326974916666586,
+          "actual": "344.1224365234375, 6.453223705291748, -168.3463134765625"
+        },
+        {
+          "target": "346.88543701171875, 2.72861909866333, -166.87159729003906",
+          "t": 88.29108091666694,
+          "actual": "346.5521545410156, 6.062592506408691, -166.62754821777344"
+        },
+        {
+          "target": "343.42132568359375, 2.72861909866333, -168.87159729003906",
+          "t": 93.29397845833319,
+          "actual": "343.7552490234375, 6.234470367431641, -168.62757873535156"
+        },
+        {
+          "target": "346.88543701171875, 2.72861909866333, -166.87159729003906",
+          "t": 123.10669208333366,
+          "actual": "346.2240295410156, 6.234470367431641, -166.39315795898438"
+        },
+        {
+          "target": "343.42132568359375, 2.72861909866333, -168.87159729003906",
+          "t": 128.140075958333,
+          "actual": "344.0364990234375, 6.453223705291748, -168.3306884765625"
+        },
+        {
+          "target": "335.6412048339844, 2.600600242614746, -158.46632385253906",
+          "t": 156.456799208333,
+          "actual": "335.419189453125, 5.601647853851318, -159.26805114746094"
+        },
+        {
+          "target": "346.88543701171875, 2.72861909866333, -166.87159729003906",
+          "t": 162.37109862499983,
+          "actual": "346.4584045410156, 6.187594413757324, -166.58848571777344"
+        },
+        {
+          "target": "343.42132568359375, 2.72861909866333, -168.87159729003906",
+          "t": 167.50523116666682,
+          "actual": "344.1224365234375, 6.453223705291748, -168.3463134765625"
+        }
+      ],
+      "startCash": 12400,
+      "events": [
+        {
+          "count": 4,
+          "spent": 600,
+          "t": 1.8969077916663082,
+          "kind": "recruit:Duck",
+          "cash": 11800
+        },
+        {
+          "count": 4,
+          "spent": 2880,
+          "t": 14.17901191666624,
+          "kind": "upgrade:EggValue",
+          "cash": 9020
+        },
+        {
+          "count": 5,
+          "spent": 2400,
+          "t": 20.74567391666642,
+          "kind": "recruit:Noob",
+          "cash": 6620
+        },
+        {
+          "count": 6,
+          "spent": 2400,
+          "t": 26.85057070833318,
+          "kind": "recruit:Duck",
+          "cash": 4220
+        },
+        {
+          "count": 7,
+          "spent": 2400,
+          "t": 32.78103224999995,
+          "kind": "recruit:Duck",
+          "cash": 1820
+        },
+        {
+          "count": 8,
+          "spent": 2400,
+          "t": 59.21301737500016,
+          "kind": "recruit:Duck",
+          "cash": 412
+        },
+        {
+          "count": 9,
+          "spent": 2400,
+          "t": 142.6747134999996,
+          "kind": "recruit:Noob",
+          "cash": 1267
+        },
+        {
+          "count": 10,
+          "spent": 2400,
+          "t": 177.05714312500004,
+          "kind": "recruit:Noob",
+          "cash": 492
+        }
+      ],
+      "walkTimeouts": 10,
+      "memoryMb": 6515.17529296875,
+      "entitlements": {
+        "DoubleEggSpawn": false,
+        "DoubleCash": false,
+        "EggMagnet": false,
+        "DoubleBounty": false,
+        "CommanderBanner": false,
+        "BiggerArmy": false,
+        "DoubleLuck": false,
+        "AutoCollectEggs": false
+      },
+      "finished": true,
+      "name": "CashPackRepeat"
+    }
+  ],
+  "combatPrior": [
+    {
+      "deployed": 3,
+      "started": true,
+      "owned": 6,
+      "phases": [
+        {
+          "phase": "Travel",
+          "seconds": 0.011521708333020797
+        },
+        {
+          "phase": "Fight",
+          "seconds": 6.674387083333386
+        },
+        {
+          "phase": "Capture",
+          "seconds": 19.32568858333343
+        },
+        {
+          "phase": "Fight",
+          "seconds": 22.957846375000372
+        },
+        {
+          "phase": "Capture",
+          "seconds": 29.090430458333685
+        },
+        {
+          "phase": "Fight",
+          "seconds": 33.506831708333266
+        },
+        {
+          "phase": "Capture",
+          "seconds": 36.22567658333355
+        },
+        {
+          "phase": "Holding",
+          "seconds": 36.440444083333205
+        }
+      ],
+      "enemyKills": 6,
+      "won": true,
+      "homeIncome": 12,
+      "earned": 600,
+      "elapsed": 36.44044508333354,
+      "preset": "Free",
+      "winSeconds": 36.44044500000018
+    },
+    {
+      "deployed": 6,
+      "started": false,
+      "elapsed": 3.141997958333377,
+      "phases": [
+        {
+          "phase": "Home",
+          "seconds": 0.0005685416663254728
+        }
+      ],
+      "enemyKills": 0,
+      "homeIncome": 112,
+      "earned": 0,
+      "won": false,
+      "owned": 6,
+      "preset": "AllPasses"
+    },
+    {
+      "deployed": 6,
+      "note": "Accepted attack after normal camp reset grace; elapsed excludes waiting before command.",
+      "started": true,
+      "owned": 6,
+      "phases": [
+        {
+          "phase": "Holding",
+          "seconds": 29.669372083333656
+        }
+      ],
+      "enemyKills": 3,
+      "won": true,
+      "homeIncome": 0,
+      "earned": 1200,
+      "elapsed": 29.669373083333085,
+      "preset": "AllPassesRepeat",
+      "winSeconds": 29.669372833333
+    }
+  ],
+  "dataEntries": 0,
+  "combatFinal": [
+    {
+      "deployed": 6,
+      "started": true,
+      "owned": 6,
+      "phases": [
+        {
+          "phase": "Travel",
+          "seconds": 0.0028764583339579985
+        },
+        {
+          "phase": "Fight",
+          "seconds": 6.045478958333661
+        },
+        {
+          "phase": "Capture",
+          "seconds": 12.579349708333211
+        },
+        {
+          "phase": "Holding",
+          "seconds": 20.66272900000058
+        }
+      ],
+      "enemyKills": 3,
+      "won": true,
+      "homeIncome": 0,
+      "earned": 1200,
+      "elapsed": 20.66273050000018,
+      "preset": "AllPasses",
+      "winSeconds": 20.66273000000001
+    }
+  ]
+}

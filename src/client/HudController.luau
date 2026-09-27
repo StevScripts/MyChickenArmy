@@ -15,14 +15,9 @@ function Hud.new(app,shell)
 	top.AnchorPoint,top.Position,top.BackgroundTransparency=Vector2.new(0.5,0),UDim2.new(0.5,0,0,6),1
 	local list=Instance.new("UIListLayout")
 	list.FillDirection,list.Padding,list.SortOrder,list.Parent=Enum.FillDirection.Horizontal,UDim.new(0,12),Enum.SortOrder.LayoutOrder,top
-	local base=Theme.ActionButton(top,"Base","Base",function() app:Request("GoBase") end,Theme.PageColors.Base)
-	base.Size,base.LayoutOrder,base.TextSize=UDim2.new(1/3,-8,0,60),1,30
+	list.HorizontalAlignment=Enum.HorizontalAlignment.Center
 	self.army=Theme.ActionButton(top,"Army","My Army",function() app:TogglePage("Army") end,Theme.PageColors.Army)
-	self.army.Size,self.army.LayoutOrder,self.army.TextSize=UDim2.new(1/3,-8,0,64),2,26
-	local upgrades=Theme.ActionButton(top,"Upgrades","Upgrades",function() app:TogglePage("Upgrades") end,Theme.PageColors.Upgrades)
-	upgrades.TextSize=30
-	upgrades.Size,upgrades.LayoutOrder=UDim2.new(1/3,-8,0,60),3
-	self.upgrades=upgrades
+	self.army.Size,self.army.LayoutOrder,self.army.TextSize=UDim2.new(1/3,-8,0,64),1,26
 	self.status=Theme.Display(shell,"ArmyStatus","",21)
 	self.status.AnchorPoint,self.status.Position,self.status.Size,self.status.TextXAlignment=Vector2.new(0.5,0),UDim2.new(0.5,0,0,86),UDim2.fromOffset(520,30),Enum.TextXAlignment.Center
 	self.status.Visible=false
@@ -144,7 +139,6 @@ function Hud:Resize(width, height, scale)
 		end
 	end
 	local navHeight=math.max(56,math.floor(94*reference+0.5))
-	local sideHeight=math.max(48,math.floor(72*reference+0.5))
 	local gap=math.max(8,math.floor(32*reference+0.5))
 	local navWidth=math.min(math.max(924*reference,520),right-left)
 	local navLeft=math.clamp((width-navWidth)/2,left,right-navWidth)
@@ -155,14 +149,8 @@ function Hud:Resize(width, height, scale)
 	list.Padding,list.VerticalAlignment=UDim.new(gap/navWidth,0),Enum.VerticalAlignment.Center
 	local armyFraction=if width<600 then 0.36 else 400/860
 	local armyWidth=(navWidth-gap*2)*armyFraction
-	local sideWidth=(navWidth-gap*2-armyWidth)/2
-	for _,button in self.navigation:GetChildren() do
-		if button:IsA("TextButton") then
-			local army=button.Name=="Army"
-			button.Size=UDim2.fromScale((if army then armyWidth else sideWidth)/navWidth,(if army then navHeight else sideHeight)/navHeight)
-			button.TextSize=if army then math.clamp(34*reference,20,42) else math.clamp(sideWidth/4.6,18,42)
-		end
-	end
+	self.army.Size=UDim2.fromScale(armyWidth/navWidth,1)
+	self.army.TextSize=math.clamp(34*reference,20,42)
 	local statusTop=top+navHeight+6
 	for _,label in {self.status,self.objective} do
 		label.Position=UDim2.fromScale((navLeft+navWidth/2)/width,statusTop/height)
@@ -276,15 +264,6 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 		Theme.Motion:Burst(self.app.gui.Shell,UDim2.new(1,-155,1,-65),A.gold)
 	end
 	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,state.routeCampsWon or 0
-	local slot=state.nextSlot
-	local incomeUpgrade,luckUpgrade=state.incomeUpgrade,state.luckUpgrade
-	local prices={if incomeUpgrade and incomeUpgrade.unlocked then incomeUpgrade.price else math.huge,
-		if luckUpgrade and luckUpgrade.unlocked then luckUpgrade.price else math.huge,
-		if slot and slot.unlocked then slot.price else math.huge}
-	local affordable=false
-	for _,price in prices do if state.coins>=price then affordable=true;break end end
-	if affordable and self.lastAffordable==false then Theme.Motion:Pop(self.upgrades.Visual,1.09) end
-	self.lastAffordable=affordable
 end
 
 return Hud
