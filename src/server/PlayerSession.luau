@@ -7,8 +7,8 @@ local Catalog = require(Shared.PetCatalog)
 local Progression = require(Shared.Progression)
 local ShopCatalog = require(Shared.ShopCatalog)
 local UpgradeCatalog = require(Shared.UpgradeCatalog)
+local Currency = require(Shared.CurrencyLimits)
 local EggProcessor = require(script.Parent.EggProcessor)
-local EggProcessorConfig = require(Shared.EggProcessorConfig)
 local OfflineCash = require(script.Parent.OfflineCash)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
@@ -243,24 +243,6 @@ function PlayerSession:PetEggRate(species: string, stars: number, level: number?
  return Rules.EggRate(species,stars,level)*self:EggProductionMultiplier()
 end
 
-function PlayerSession:RetireEggSeller()
- local state=self.eggProcessor
- local finished=EggProcessor.Finish(state)>0
- local refund=0
- -- The remaining saved level represents exactly the purchases not refunded yet.
- while state.level>0 do
-  local price=EggProcessorConfig.Prices[state.level]
-  if self.coins+refund+price>EggProcessorConfig.MaxValue then break end
-  refund+=price;state.level-=1
- end
- local compensation=ShopCatalog.Products.FinishEggs.retirementCoins
- local credits=math.min(state.finishCredits,math.floor(math.max(0,EggProcessorConfig.MaxValue-self.coins-refund)/compensation))
- state.finishCredits-=credits;refund+=credits*compensation
- -- Refunds and paid replacements are exact cash, never multiplied by 2x Cash.
- if refund>0 then self:Credit(refund,"refund") elseif finished then self:Touch() end
- return refund
-end
-
 function PlayerSession:Income(): number
 	local income=0
 	for id in self.pets do if self:IsPetHome(id) then income+=self:PetIncome(id) end end
@@ -271,13 +253,20 @@ function PlayerSession:IsArmyLocked(): boolean
 	return self.armyState ~= "Home"
 end
 
+function PlayerSession:CanCredit(amount: number, source: string): boolean
+	return self:EarnedAmount(amount,source) <= Currency.MaxCoins-self.coins
+end
+
 function PlayerSession:Credit(amount: number, source: string)
 	assert(type(amount)=="number" and amount==amount and amount>=0 and amount<math.huge and amount%1==0,"Coin credits must be nonnegative whole numbers")
 	if amount==0 then return 0 end
+	if not self:CanCredit(amount,source) then return 0 end
 	amount=self:EarnedAmount(amount,source)
 	self.coins += amount
-	if source == "eggs" then self.passiveEarned += amount end
-	if source == "battle" then self.battleEarned += amount end
+	-- Lifetime display counters may outgrow a repeatedly spent wallet. Saturate
+	-- only those counters at the numeric boundary; never make a save unreadable.
+	if source == "eggs" then self.passiveEarned = math.min(Currency.MaxCoins,self.passiveEarned+amount) end
+	if source == "battle" then self.battleEarned = math.min(Currency.MaxCoins,self.battleEarned+amount) end
 	-- Session-only observation totals; never serialized or used to authorize a purchase.
 	self.sessionIncome=self.sessionIncome or {eggs=0,battle=0,territory=0}
 	if self.sessionIncome[source]~=nil then self.sessionIncome[source]+=amount end
@@ -513,11 +502,15 @@ function PlayerSession:LoadData(data)
 	local eggSpeedLevel = if data.eggSpeedLevel == nil then 0 else data.eggSpeedLevel
 	local plotSizeLevel = if data.plotSizeLevel == nil then 0 else data.plotSizeLevel
 	local rollSlotsUnlocked = if data.rollSlotsUnlocked == nil then Config.RollSlotsUnlocked else data.rollSlotsUnlocked
+	-- Revision 11 prepends three plot purchases. Validate the old domain before
+	-- converting, and commit/stamp only after the complete profile validates.
+	local oldPlotProgress = revision < 11
 	if not numberIn(eggSpeedLevel,0,#UpgradeCatalog.EggSpeedPrices,true)
-		or not numberIn(plotSizeLevel,0,#UpgradeCatalog.PlotPrices,true)
+		or not numberIn(plotSizeLevel,0,if oldPlotProgress then 4 else #UpgradeCatalog.PlotPrices,true)
 		or not numberIn(rollSlotsUnlocked,1,Config.RollSlotsUnlocked,true) then
 		return false,"Invalid saved board upgrades."
 	end
+	if oldPlotProgress then plotSizeLevel += 3 end
 	local legacy=revision==1
 	-- New carried eggs are distinct from the already-converted revision-1 egg bag.
 	local carry=data.eggCarry or {count=0,value=0}
@@ -546,7 +539,7 @@ function PlayerSession:LoadData(data)
 	-- Preserve the collection and balance; only deployed capacity is capped at ten.
 	if revision<3 then capacity=math.min(capacity,Config.MaxSlots);grant=capacity end
 	if not numberIn(grant,0,Config.MaxSlots,true) then return false,"Invalid capacity grant." end
-	if not numberIn(data.coins,0,1e12) or not numberIn(capacity,Config.StartingSlots,Config.MaxSlots,true)
+	if not numberIn(data.coins,0,Currency.MaxCoins) or not numberIn(capacity,Config.StartingSlots,Config.MaxSlots,true)
 		or not table.find(Config.SlotLevels,capacity) or grant>capacity or not numberIn(data.luck,0,#Config.LuckPrices,true)
 		or not numberIn(data.incomeLevel,0,#Config.IncomePrices,true) or type(data.pets)~="table" or #data.pets>Config.LegacyCollectionLimit
 		or type(data.tutorial)~="table" then return false,"Invalid saved profile." end
@@ -604,7 +597,7 @@ function PlayerSession:LoadData(data)
 		end
 	end
 	for _, pet in pets do discovered[pet.species] = true end
-	if not numberIn(data.coins+converted,0,1e12) then return false,"Saved coin balance exceeds the supported limit." end
+	if converted>Currency.MaxCoins-data.coins then return false,"Saved coin balance exceeds the supported limit." end
 	local wins=readProgress(data,revision)
 	if not wins then return false,"Invalid saved camp progress." end
  local frontier,king={},false
@@ -633,7 +626,7 @@ function PlayerSession:LoadData(data)
  end
 	local tutorial={}
 	for _,key in {"rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded"} do tutorial[key]=data.tutorial[key]==true end
-	if not numberIn(data.passiveEarned or 0,0,1e12) or not numberIn(data.battleEarned or 0,0,1e12) then return false,"Invalid saved earnings." end
+	if not numberIn(data.passiveEarned or 0,0,Currency.MaxCoins) or not numberIn(data.battleEarned or 0,0,Currency.MaxCoins) then return false,"Invalid saved earnings." end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.
 	self.purchaseReceipts,self.crateCredits,self.commerceAutomatic=receipts,data.crateCredits or 0,automatic
@@ -657,7 +650,6 @@ function PlayerSession:LoadData(data)
 	self.campUnlocked=1
 	while self.firstWins[self.campUnlocked] and self.campUnlocked<#Progression.Camps(1) do self.campUnlocked+=1 end
 	self.offer,self.offers=nil,{}
-	self:RetireEggSeller()
 	self:UnlockProgress();self:RefreshArmy();self:Touch()
 	return true,if legacy then "Loaded and converted stored egg value to coins." else "Loaded."
 end

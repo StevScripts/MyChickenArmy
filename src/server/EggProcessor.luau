@@ -1,5 +1,5 @@
 --!strict
--- Ready-cash ledger, retaining old queue/upgrade fields for save compatibility.
+-- Saved quantity/value ledger. No world, GUI, clock, receipt or wallet ownership.
 local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.EggProcessorConfig)
 local Processor = {}
 
@@ -25,7 +25,7 @@ function Processor.Read(data)
 	local function valid(n, max)
 		return type(n) == "number" and n == n and n >= 0 and n <= max and n % 1 == 0
 	end
-	if type(data) ~= "table" or not valid(data.level, #Config.Prices)
+	if type(data) ~= "table" or not Config.ValidLevel(data.level)
 		or not valid(data.readyValue, Config.MaxValue) or not valid(data.finishCredits, 1e9)
 		or type(data.progress) ~= "number" or data.progress ~= data.progress or data.progress < 0 or data.progress >= 1
 		or type(data.batches) ~= "table" or #data.batches > Config.MaxBatches then return nil end
@@ -43,6 +43,10 @@ function Processor.Read(data)
 	return state
 end
 
+function Processor.Rate(state, doubleSpawn)
+	return Config.Rate(state.level) * (if doubleSpawn then 2 else 1)
+end
+
 function Processor.Finish(state)
 	local count, value = Processor.Totals(state)
 	state.readyValue += value
@@ -53,21 +57,48 @@ end
 
 function Processor.Deposit(state, count, value)
 	local oldCount, oldValue = Processor.Totals(state)
-	if type(count) ~= "number" or count ~= count or count % 1 ~= 0
-		or type(value) ~= "number" or value ~= value or value % 1 ~= 0
-		or count < 1 or value < 1 or oldCount + count > Config.MaxValue
+	if count < 1 or value < 1 or oldCount + count > Config.MaxValue
 		or oldValue + state.readyValue + value > Config.MaxValue then return false end
-	-- Convert the entire batch at deposit, including any legacy queued balance.
-	Processor.Finish(state)
-	state.readyValue += value
+	local last = state.batches[#state.batches]
+	if #state.batches >= Config.MaxBatches then
+		-- Bound profile size without dropping any remaining quantity or value.
+		last.count += count; last.value += value
+	else table.insert(state.batches, {count = count, value = value}) end
+	if state.finishCredits > 0 then
+		state.finishCredits -= 1
+		Processor.Finish(state)
+	end
+	return true
+end
+
+function Processor.Step(state, dt, rate)
+	if #state.batches == 0 then state.progress = 0; return false end
+	local elapsed = state.progress + dt * rate
+	local remaining = math.floor(elapsed + 1e-9)
+	state.progress = math.max(0, elapsed - remaining)
+	while remaining > 0 and #state.batches > 0 do
+		local batch = state.batches[1]
+		local take = math.min(remaining, batch.count)
+		-- Pay the whole unit value exactly: multiplying a fractional share first
+		-- can turn 128 eggs worth $4 each into $511 through floating-point rounding.
+		-- Legacy/mixed batches retain any fractional-value remainder until the end.
+		local unit = math.floor(batch.value / batch.count)
+		local value = if take == batch.count then batch.value
+			else unit * take + math.floor((batch.value - unit * batch.count) * (take / batch.count))
+		batch.count -= take; batch.value -= value
+		state.readyValue += value; remaining -= take
+		if batch.count == 0 then table.remove(state.batches, 1) end
+	end
+	if #state.batches == 0 then state.progress = 0 end
 	return true
 end
 
 function Processor.GrantFinish(state)
-	-- Old receipts create a durable compensation credit. PlayerSession owns its
-	-- exact cash settlement; retaining the counter also handles a full wallet.
-	if state.finishCredits >= 1e9 then return false end
-	state.finishCredits += 1
+	if #state.batches > 0 then Processor.Finish(state)
+	elseif state.finishCredits < 1e9 then
+		-- A delayed receipt may arrive after the queue empties. Preserve the paid benefit.
+		state.finishCredits += 1
+	else return false end
 	return true
 end
 

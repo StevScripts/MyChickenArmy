@@ -1,0 +1,85 @@
+{
+  "creatorId": 778575811,
+  "recoveryModel": 133147408408338,
+  "traits": [
+    {
+      "mesh": "rbxassetid://103646701819541",
+      "image": "rbxassetid://111307561780340",
+      "name": "Lollipop",
+      "effects": 2
+    },
+    {
+      "mesh": "rbxassetid://102693455581039",
+      "image": "rbxassetid://74199887409795",
+      "name": "Honeycomb",
+      "effects": 2
+    },
+    {
+      "mesh": "rbxassetid://110710628865144",
+      "image": "rbxassetid://121639095740968",
+      "name": "Toxic",
+      "effects": 2
+    },
+    {
+      "mesh": "rbxassetid://117343992134835",
+      "image": "rbxassetid://132600122305398",
+      "name": "Water",
+      "effects": 3
+    },
+    {
+      "mesh": "rbxassetid://76574335968223",
+      "image": "rbxassetid://97836897939994",
+      "name": "SolarFlare",
+      "effects": 4
+    },
+    {
+      "mesh": "rbxassetid://90287940176504",
+      "image": "rbxassetid://70881175772804",
+      "name": "Heavenly",
+      "effects": 4
+    },
+    {
+      "mesh": "rbxassetid://108700261017020",
+      "image": "rbxassetid://94233646318996",
+      "name": "Devil",
+      "effects": 3
+    },
+    {
+      "mesh": "rbxassetid://82806945640424",
+      "image": "rbxassetid://105899791207654",
+      "name": "Jungle",
+      "effects": 3
+    }
+  ],
+  "clientBootstrapDisabled": false,
+  "placeId": 96683186622050,
+  "receipts": {
+    "image_Lollipop": 111307561780340,
+    "model_SolarFlare": true,
+    "mesh_Lollipop": 103646701819541,
+    "model_Toxic": true,
+    "model_Lollipop": true,
+    "image_Honeycomb": 74199887409795,
+    "mesh_Water": 117343992134835,
+    "image_Water": 132600122305398,
+    "mesh_Heavenly_FirstImport": 114863114404448,
+    "image_Heavenly": 70881175772804,
+    "image_SolarFlare": 97836897939994,
+    "RecoveryModelAssetId": 133147408408338,
+    "mesh_SolarFlare": 76574335968223,
+    "model_Jungle": true,
+    "image_Toxic": 121639095740968,
+    "mesh_Devil": 108700261017020,
+    "mesh_Toxic": 110710628865144,
+    "model_Honeycomb": true,
+    "image_Jungle": 105899791207654,
+    "model_Devil": true,
+    "image_Devil": 94233646318996,
+    "model_Heavenly": true,
+    "mesh_Honeycomb": 102693455581039,
+    "model_Water": true,
+    "mesh_Heavenly": 90287940176504,
+    "mesh_Jungle": 82806945640424
+  },
+  "serverBootstrapDisabled": false
+}

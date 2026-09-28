@@ -410,8 +410,8 @@ function AppController:FitPanel()
 		height=math.min(660,height)
 	elseif self.page=="Merge" then
 		if available.X>=900 and available.Y>=550 then
-			local fit=math.min(1.1,available.X*0.94/1318,available.Y*0.88/838)
-			width,height=1318*fit,838*fit
+			local fit=math.min(1.1,available.X*0.94/900,available.Y*0.92/850)
+			width,height=900*fit,850*fit
 		end
 	elseif self.page~="Index" then
 		width=math.min(760,width)
@@ -597,7 +597,7 @@ function AppController:RenderPanel(force)
 		self.panelTitle.Text="Chicken Index!";self:FitPanel();self.indexBrowser:Render(force);return
 	end
 	if merging then
-		self.panelTitle.Text="Merge Chickens!"
+		self.panelTitle.Text="Fuse Chickens"
 		self:FitPanel();self.mergeBrowser:Render(force)
 		return
 	end

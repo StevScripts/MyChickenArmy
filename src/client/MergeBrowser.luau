@@ -1,185 +1,281 @@
 --!strict
--- Approved purple Figma 408:818. Selection previews one exact server-issued triple.
+-- Image-led fuse UI, Figma 437:2024. Server-owned exact triple; reversible local slots.
 local Players=game:GetService("Players")
-local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
-local Catalog=require(Shared.PetCatalog)
+local GuiService=game:GetService("GuiService")
+local UserInputService=game:GetService("UserInputService")
+local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local Theme=require(script.Parent.UITheme)
+local Selection=require(script.Parent.MergeSelection)
 local Presentation=require(script.Parent.MergePresentation)
 local Browser={}
 Browser.__index=Browser
-local PURPLE=Color3.fromRGB(185,63,241)
+local PURPLE=Color3.fromRGB(186,67,239)
 local INK=Color3.fromRGB(13,9,19)
-local WHITE=Color3.fromRGB(255,255,255)
+local WHITE=Color3.new(1,1,1)
 local MUTED=Color3.fromRGB(185,182,199)
-local ACCENT=ColorSequence.new(Color3.fromRGB(177,52,246),Color3.fromRGB(112,23,222))
-local function frame(parent,name,size,position,color)
- local item=Theme.Frame(parent,name,size,color)
- item.Position,item.BackgroundTransparency,item.ZIndex=position or UDim2.new(),if color then 0 else 1,parent.ZIndex+1
+local LINE=Color3.fromRGB(99,92,113)
+local PIPE_IDLE=Color3.fromRGB(67,38,83)
+local ACCENT=ColorSequence.new(Color3.fromRGB(207,72,255),Color3.fromRGB(138,20,219))
+local function place(item,x,y,w,h)
+ item.Position,item.Size=UDim2.fromOffset(x,y),UDim2.fromOffset(w,h)
+end
+local function frame(parent,name,color)
+ local item=Theme.Frame(parent,name,UDim2.new(),color)
+ item.BackgroundTransparency,item.ZIndex=if color then 0 else 1,parent.ZIndex+1
  return item
 end
 local function label(parent,name,text,size,color)
  local item=Theme.Label(parent,name,text,size,color or WHITE)
- item.ZIndex,item.TextWrapped=parent.ZIndex+4,false
+ item.ZIndex,item.TextWrapped,item.TextXAlignment=parent.ZIndex+4,false,Enum.TextXAlignment.Center
  item.TextOutline.Color=Color3.new()
  return item
 end
-local function button(parent,name,text,callback,color)
- local item=Theme.ActionButton(parent,name,text,callback,color)
- item.ZIndex=parent.ZIndex+5;item.TextColor3=WHITE
+local function fitText(item,maxSize,minSize)
+ item.TextScaled=true
+ local constraint=Instance.new("UITextSizeConstraint",item)
+ constraint.MinTextSize,constraint.MaxTextSize=minSize or 12,maxSize
+ return constraint
+end
+local function button(parent,name,text,callback,secondary)
+ local item=Theme.ActionButton(parent,name,text,callback,if secondary=="close" then Theme.Arcade.red else PURPLE)
+ item.ZIndex,item.TextColor3=parent.ZIndex+5,WHITE
  local visual=item.Visual
  visual.ZIndex,visual.Face.ZIndex,visual.LowerLip.ZIndex=item.ZIndex,item.ZIndex+1,item.ZIndex
  visual.Caption.ZIndex=item.ZIndex+4
- Theme.ApplyReferenceAccent(item,if color==PURPLE then ACCENT else ColorSequence.new(Color3.fromRGB(255,101,79),Color3.fromRGB(246,43,65)))
+ Theme.ApplyReferenceAccent(item,if secondary=="close" then ColorSequence.new(Color3.fromRGB(255,101,79),Color3.fromRGB(246,43,65)) else ACCENT)
  for _,node in {item,visual,visual.Face,visual.LowerLip} do Theme.Round(node).CornerRadius=UDim.new(0,0) end
  visual.Face.InsetHighlight.ZIndex=item.ZIndex+2
- visual.Face.InsetHighlight.UIStroke.Color=if color==PURPLE then Color3.fromRGB(224,167,255) else Color3.fromRGB(255,193,190)
+ visual.Face.InsetHighlight.UIStroke.Color=if secondary=="close" then Color3.fromRGB(255,193,190) else Color3.fromRGB(224,167,255)
  visual.Face.InsetHighlight.UIStroke.Transparency=0.15
+ if secondary==true then
+  visual.Face.BackgroundColor3=INK;visual.Face.UIGradient.Enabled=false
+  for _,node in visual.Face:GetDescendants() do
+   if node:IsA("ImageLabel") and node.Name=="StudTexture" then node.Visible=false end
+  end
+ end
  return item
 end
-local function place(item,x,y,w,h)
- item.Position,item.Size=UDim2.fromOffset(x,y),UDim2.fromOffset(w,h)
+local function scroll(parent,name)
+ local item=Instance.new("ScrollingFrame")
+ item.Name,item.BackgroundTransparency,item.BorderSizePixel=name,1,0
+ item.ScrollBarThickness,item.ScrollBarImageColor3=4,PURPLE
+ item.ScrollingDirection,item.CanvasSize=Enum.ScrollingDirection.Y,UDim2.new()
+ item.ZIndex,item.Parent=parent.ZIndex+2,parent
+ return item
 end
-local function number(value)
- return Theme.Number(value or 0)
+local function preview(app,parent,pet)
+ local item=app:Preview(parent,pet,UDim2.fromScale(1,1))
+ item.ZIndex=parent.ZIndex+2
+ return item
+end
+local function line(parent,name)
+ local item=frame(parent,name,PIPE_IDLE)
+ item.AnchorPoint=Vector2.new(0.5,0.5)
+ Theme.Stroke(item,Color3.new(),3)
+ return item
+end
+local function segment(item,from,to,thickness)
+ local delta=to-from
+ item.Position,item.Size=UDim2.fromOffset((from.X+to.X)/2,(from.Y+to.Y)/2),UDim2.fromOffset(delta.Magnitude,thickness)
+ item.Rotation=math.deg(math.atan2(delta.Y,delta.X))
 end
 
 function Browser.new(app,parent)
- local self=setmetatable({app=app,alive=true,viewSerial=0,key="",query="",cards={},connections={}},Browser)
- local root=frame(parent,"MergeBrowser",UDim2.fromScale(1,1),nil,INK)
- root:SetAttribute("OwnsPopupStyle",true)
- root.Visible,root.ClipsDescendants=false,true
- Theme.Stroke(root,Color3.new(),6)
- self.root=root
- local header,title=Theme.Header(root,"Header","Merge Chickens",PURPLE)
- header.ZIndex=root.ZIndex+2;title.ZIndex=header.ZIndex+4;title.TextColor3=WHITE
- Theme.ApplyReferenceAccent(header,ACCENT)
- header.UIStroke.Color,header.UIStroke.Thickness=PURPLE,2
- header.PageIcon.Image,header.PageIcon.Visible,header.PageIcon.ZIndex=Theme.Assets.Merge,true,header.ZIndex+3
- self.header,self.title=header,title
- self.closeButton=button(root,"Close","X",function() app.audio:Play("Click");app:ClosePanel() end,Theme.Arcade.red)
- self.result=frame(root,"Result",UDim2.new())
- self.resultTitle=label(self.result,"Title","Result",46)
- self.stage=frame(self.result,"Preview",UDim2.new())
- self.level=label(self.result,"Level","",22,MUTED)
- self.level.TextXAlignment=Enum.TextXAlignment.Center
- self.dpsName=label(self.result,"DPS","DPS",30)
- self.cashName=label(self.result,"Cash","Eggs/s",30)
- self.dps=label(self.result,"DPSValue","— → —",32)
- self.cash=label(self.result,"CashValue","— → —",32)
- self.dps.TextXAlignment,self.cash.TextXAlignment=Enum.TextXAlignment.Right,Enum.TextXAlignment.Right
- self.action=button(self.result,"Merge","Merge 3 → 1",function() self:Merge() end,PURPLE)
- self.divider=frame(root,"Divider",UDim2.new(),nil,PURPLE)
- local searchShell=frame(root,"Search",UDim2.new())
- Theme.Stroke(searchShell,Color3.fromRGB(159,98,192),1.5)
- self.searchIcon=Theme.Image(searchShell,"Icon","rbxassetid://111902627409710",UDim2.fromOffset(40,40))
- self.searchIcon.ImageColor3,self.searchIcon.ZIndex=MUTED,searchShell.ZIndex+2
+ local self=setmetatable({app=app,alive=true,viewSerial=0,selection=Selection.new(),mode="Main",query="",cards={},connections={},slots={},key=""},Browser)
+ local root=frame(parent,"MergeBrowser",INK)
+ root.Size,root.Visible,root.ClipsDescendants=UDim2.fromScale(1,1),false,true
+ root:SetAttribute("OwnsPopupStyle",true);Theme.Stroke(root,Color3.new(),6);self.root=root
+ local rim=frame(root,"PurpleRim")
+ rim.Position,rim.Size=UDim2.fromOffset(3,3),UDim2.new(1,-6,1,-6)
+ Theme.Stroke(rim,PURPLE,2)
+ self.header,self.title=Theme.Header(root,"Header","Fuse Chickens",PURPLE)
+ self.header.ZIndex,self.title.ZIndex=root.ZIndex+2,root.ZIndex+6
+ self.title.TextColor3=WHITE;Theme.ApplyReferenceAccent(self.header,ACCENT)
+ self.header.UIStroke.Color,self.header.UIStroke.Thickness=PURPLE,2
+ self.header.PageIcon.Image,self.header.PageIcon.Visible,self.header.PageIcon.ZIndex=Theme.Assets.Merge,true,self.header.ZIndex+3
+ self.closeButton=button(root,"Close","X",function() app.audio:Play("Click");app:ClosePanel() end,"close")
+ self.main=scroll(root,"ThreeChickenFlow")
+ self.mainContent=frame(self.main,"Content")
+ self.rule=label(self.mainContent,"Rule","3 matching chickens",29)
+ self.rule.TextXAlignment=Enum.TextXAlignment.Center
+ self.count=label(self.mainContent,"SelectedCount","0/3",30,MUTED)
+ self.count.TextXAlignment=Enum.TextXAlignment.Right
+ for i=1,3 do
+  local box=frame(self.mainContent,"Input"..i,INK);local outline=Theme.Stroke(box,LINE,3)
+  box.ZIndex=self.mainContent.ZIndex+3
+  local title=label(box,"ChickenName","",28);fitText(title,28,12)
+  local art=frame(box,"Portrait")
+  local empty=label(art,"Empty","?",80,MUTED);empty.Size=UDim2.fromScale(1,1)
+  local level=label(box,"Level","",24);fitText(level,24,16)
+  local action=button(box,"AddRemove","+\nAdd",function() self:Slot(i) end)
+  action.TextWrapped=true
+  self.slots[i]={box=box,title=title,level=level,art=art,empty=empty,action=action,outline=outline,
+   stem=line(self.mainContent,"PathStem"..i),path=line(self.mainContent,"Path"..i),
+   socket=line(self.mainContent,"InputSocket"..i),outputSocket=line(self.mainContent,"OutputSocket"..i)}
+ end
+ self.result=frame(self.mainContent,"Result",INK);self.result.ZIndex=self.mainContent.ZIndex+3
+ self.resultOutline=Theme.Stroke(self.result,LINE,3)
+ self.resultTitle=label(self.result,"Title","",28);fitText(self.resultTitle,28,16)
+ self.resultArt=frame(self.result,"Portrait")
+ self.resultEmpty=label(self.resultArt,"Empty","?",90,MUTED);self.resultEmpty.Size=UDim2.fromScale(1,1)
+ self.resultName=label(self.result,"ChickenLevel","",32,PURPLE);fitText(self.resultName,32,20)
+ self.action=button(root,"Fuse","Fuse",function() self:Merge() end)
+ self.message=label(root,"Status","",20,MUTED);self.message.TextWrapped=true
+ self.tradeoff=label(root,"Tradeoff","3 chickens become 1",23,MUTED)
+ self.picker=frame(root,"ChickenPicker")
+ self.searchShell=frame(self.picker,"Search",Color3.new());Theme.Stroke(self.searchShell,LINE,1.5)
  local search=Instance.new("TextBox")
- search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search..."
+ search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search…"
  search.BackgroundTransparency,search.BorderSizePixel,search.ClearTextOnFocus=1,0,false
  search.Font,search.TextColor3,search.PlaceholderColor3=Theme.Font,WHITE,MUTED
- search.TextXAlignment,search.ZIndex,search.Parent=Enum.TextXAlignment.Left,searchShell.ZIndex+3,searchShell
- self.searchShell,self.search=searchShell,search
- local grid=Instance.new("ScrollingFrame")
- grid.Name,grid.BackgroundTransparency,grid.BorderSizePixel="MatchingChickens",1,0
- grid.ScrollBarThickness,grid.ScrollBarImageColor3=6,PURPLE
- grid.ScrollingDirection,grid.AutomaticCanvasSize=Enum.ScrollingDirection.Y,Enum.AutomaticSize.Y
- grid.CanvasSize,grid.ZIndex,grid.Parent=UDim2.new(),root.ZIndex+2,root
- local padding=Instance.new("UIPadding",grid)
- padding.PaddingLeft,padding.PaddingTop,padding.PaddingBottom,padding.PaddingRight=UDim.new(0,4),UDim.new(0,4),UDim.new(0,8),UDim.new(0,8)
- local layout=Instance.new("UIGridLayout",grid)
- layout.SortOrder,layout.FillDirectionMaxCells=Enum.SortOrder.LayoutOrder,4
- self.grid,self.layout=grid,layout
- self.empty=label(root,"Empty","Collect 3 matching chickens to merge.",26,MUTED)
- self.empty.TextWrapped,self.empty.TextXAlignment=true,Enum.TextXAlignment.Center
+ search.TextXAlignment,search.ZIndex,search.Parent=Enum.TextXAlignment.Left,self.searchShell.ZIndex+2,self.searchShell
+ self.search=search
+ self.grid=scroll(self.picker,"EligibleChickens");self.grid.AutomaticCanvasSize=Enum.AutomaticSize.Y
+ local padding=Instance.new("UIPadding",self.grid)
+ padding.PaddingLeft,padding.PaddingRight,padding.PaddingTop,padding.PaddingBottom=UDim.new(0,4),UDim.new(0,8),UDim.new(0,4),UDim.new(0,8)
+ self.layout=Instance.new("UIGridLayout",self.grid);self.layout.SortOrder=Enum.SortOrder.LayoutOrder
+ self.emptyIcon=Theme.Image(self.picker,"EmptyIcon",Theme.Assets.Merge,UDim2.new());self.emptyIcon.ZIndex=self.picker.ZIndex+3
+ self.empty=label(self.picker,"Empty","No matching trio yet",30);self.empty.TextWrapped=true
+ self.hint=label(self.picker,"Hint","Keep collecting chickens.",23,MUTED);self.hint.TextWrapped=true
+ self.back=button(self.picker,"Back","Back",function()
+  if self.query~="" and #self.cards==0 then self.search.Text="" else self.mode="Main";self:Render(true);self:Focus(self.slots[self.activeSlot or 1].action) end
+ end)
+ self.summary=scroll(root,"FusionResult")
+ self.summaryRays=Theme.Image(self.summary,"ResultRays",Theme.Assets.Rays,UDim2.new())
+ self.summaryRays.ImageColor3,self.summaryRays.ImageTransparency,self.summaryRays.ZIndex=PURPLE,0.55,self.summary.ZIndex+1
+ self.summaryArt=frame(self.summary,"Portrait")
+ self.summaryName=label(self.summary,"Name","",44);fitText(self.summaryName,44,22)
+ self.summaryLevel=label(self.summary,"Level","",30,Color3.fromRGB(224,167,255))
+ self.eggChip=frame(self.summary,"EggOutputChip",INK);Theme.Stroke(self.eggChip,LINE,2)
+ self.dpsChip=frame(self.summary,"CombatChip",INK);Theme.Stroke(self.dpsChip,LINE,2)
+ self.summaryEggs=label(self.eggChip,"EggOutput","",30);self.summaryEggs.Size=UDim2.fromScale(1,1);fitText(self.summaryEggs,30,16)
+ self.summaryDps=label(self.dpsChip,"Combat","",30);self.summaryDps.Size=UDim2.fromScale(1,1);fitText(self.summaryDps,30,16)
+ self.done=button(root,"Done","Done",function()
+  if self.pending or self.animating then return end
+  self.completed=nil;self.mode="Main";self.selection:Clear();self:Render(true);self:Focus(self.slots[1].action)
+ end)
+ self.processing=frame(root,"Processing")
+ self.processingArt=frame(self.processing,"ChickenAnimation")
+ self.processingText=label(self.processing,"Status","Fusing…",38)
+ self.processingHint=label(self.processing,"Hint","",23,MUTED);self.processingHint.TextWrapped=true
  table.insert(self.connections,search:GetPropertyChangedSignal("Text"):Connect(function()
   self.query=string.lower(search.Text):match("^%s*(.-)%s*$") or ""
-  self.grid.CanvasPosition=Vector2.zero;self:Render(true)
+  self.grid.CanvasPosition=Vector2.zero;self.key=""
+  if self.mode=="Picker" then self:Render(true) end
  end))
  return self
 end
 
+function Browser:Focus(item)
+ if UserInputService.GamepadEnabled and self.root.Visible then GuiService.SelectedObject=item end
+end
+
 function Browser:Resize()
  local w,h=self.app.panelWidth,self.app.panelHeight
+ local k=math.min(1.1,w/900)
+ local compact=w<600
+ local hh=math.max(56,96*k)
+ local margin=if compact then 12 else 24*k
+ local gap=if compact then 12 else 18*k
+ local inner=w-margin*2
+ local flowW=inner-8
+ local bh=math.max(56,80*k)
+ local top=hh+20*k
+ local footer=h-bh-math.max(32,32*k)
+ local actionW=if compact then inner else 632*k
  self.root.Size=UDim2.fromScale(1,1)
- local desktop=w>=780 and h>=490
- local sideBySide=w>=650 or (w>=540 and h<480)
- local k=if desktop then w/1318 else 1
- local hh=if desktop then 84*k else 56
- local margin=if desktop then 24*k else 12
  place(self.header,4,4,w-hh-12,hh)
- place(self.header.PageIcon,14*k,4*k,80*k,hh-8*k)
- if not desktop then place(self.header.PageIcon,6,4,48,48) end
- self.title.TextSize=if desktop then 68*k else 31
- self.title.TextFace.TextOutline.Thickness=if desktop then 5*k else 2
- place(self.title,if desktop then 108*k else 60,0,w-hh-(if desktop then 130*k else 72),hh)
- place(self.closeButton,w-hh-4,4,hh,hh);self.closeButton.TextSize=hh*0.78
- local top=hh+24*k
- if desktop then
-  place(self.result,margin,top,376*k,h-top-24*k)
-  place(self.divider,416*k,top,2*k,h-top-18*k)
-  place(self.searchShell,w-392*k,top,370*k,62*k)
-  place(self.grid,434*k,top+76*k,w-454*k,h-top-94*k)
-  local cellWidth=math.floor((self.grid.Size.X.Offset-24-45*k)/4)
-  self.layout.CellSize,self.layout.CellPadding=UDim2.fromOffset(cellWidth,268*k),UDim2.fromOffset(15*k,10*k)
-  self.layout.FillDirectionMaxCells=4
- elseif sideBySide then
-  place(self.result,margin,top,230,h-top-12)
-  place(self.divider,252,top,1,h-top-12)
-  place(self.searchShell,w-250,top,236,42)
-  place(self.grid,263,top+54,w-275,h-top-66)
-  local cols=math.max(2,math.floor((w-275)/140))
-  self.layout.CellSize,self.layout.CellPadding=UDim2.new(1/cols,-10,0,165),UDim2.fromOffset(7,8)
-  self.layout.FillDirectionMaxCells=cols
- else
-  -- Narrow screens keep tap targets readable: result summary above a two-column grid.
-  place(self.result,margin,top,w-margin*2,188)
-  place(self.divider,margin,top+198,w-margin*2,1)
-  place(self.searchShell,margin,top+210,w-margin*2,42)
-  place(self.grid,margin,top+262,w-margin*2,h-top-274)
-  self.layout.CellSize,self.layout.CellPadding=UDim2.new(0.5,-10,0,168),UDim2.fromOffset(8,10)
-  self.layout.FillDirectionMaxCells=2
+ place(self.header.PageIcon,6,3,hh-6,hh-6)
+ place(self.title,hh+4,0,w-hh*2-24,hh)
+ self.title.TextSize=if compact then 28 else 58*k
+ self.title.TextFace.TextOutline.Thickness=if compact then 2 else 3
+ place(self.closeButton,w-hh-4,4,hh,hh);self.closeButton.TextSize=hh*0.75
+ place(self.action,(w-actionW)/2,footer,actionW,bh);self.action.TextSize=math.max(26,46*k)
+ place(self.done,margin,footer,inner,bh);self.done.TextSize=self.action.TextSize
+ place(self.tradeoff,margin,footer+bh+2,inner,26);self.tradeoff.TextSize=math.max(17,23*k)
+ local noticeH=if self.notice then 38 else 0
+ place(self.message,margin,footer-noticeH-5,inner,noticeH)
+ place(self.main,margin,top,inner,math.max(60,footer-top-18-noticeH))
+ local empty=self.selection:Count()==0
+ local rowH=if compact then 30 else 44*k
+ place(self.rule,0,0,flowW,rowH);self.rule.TextSize=if compact then 21 else 34*k
+ self.rule.Visible=empty;self.count.Visible=false
+ local slotW=(flowW-gap*2)/3
+ local slotH=if compact then (if empty then 142 else 176) else (if empty then 194 else 244)*k
+ local slotY=if empty then rowH+12*k else 4*k
+ local sw=math.max(44,52*k)
+ for i,slot in self.slots do
+  local x=(i-1)*(slotW+gap)
+  place(slot.box,x,slotY,slotW,slotH)
+  place(slot.title,4,2,slotW-8,math.max(24,34*k))
+  place(slot.level,3,slotH-sw-math.max(24,28*k)-7,slotW-6,math.max(24,28*k))
+  local artSide=if compact then slotW+16 else math.min(slotW+12,slotH-sw-20*k)
+  place(slot.art,(slotW-artSide)/2,if compact then 12 else 14*k,artSide,artSide)
+  if self.selection.slots[i] then
+   place(slot.action,6,slotH-sw-4,slotW-12,sw)
+   slot.action.TextSize=if compact then 19 else 30*k
+  else
+   local addW=math.min(slotW-20,184*k)
+   local addH=math.max(72,94*k)
+   place(slot.action,(slotW-addW)/2,(slotH-addH)/2,addW,addH)
+   slot.action.TextSize=if compact then 24 else 36*k
+  end
  end
- local rw,rh=self.result.Size.X.Offset,self.result.Size.Y.Offset
- if not desktop and not sideBySide then
-  place(self.resultTitle,0,0,rw,30);self.resultTitle.TextSize=28
-  place(self.stage,0,30,math.min(130,rw*0.36),130)
-  place(self.level,0,163,math.min(130,rw*0.36),22);self.level.TextSize=16
-  local x=math.min(134,rw*0.38);local sw=rw-x
-  place(self.dpsName,x,30,72,28);place(self.cashName,x,58,90,28)
-  place(self.dps,x+72,30,sw-72,28);place(self.cash,x+90,58,sw-90,28)
-  place(self.action,x,102,sw,68);self.action.TextSize=math.min(32,sw*0.17)
-  self.dpsName.TextSize,self.cashName.TextSize,self.dps.TextSize,self.cash.TextSize=18,18,18,18
- elseif not desktop then
-  local ph=math.max(52,rh-174)
-  place(self.resultTitle,8,0,rw-16,30);self.resultTitle.TextSize=28
-  place(self.stage,0,30,rw,ph)
-  place(self.level,0,30+ph,rw,20);self.level.TextSize=16
-  place(self.dpsName,5,52+ph,70,24);place(self.cashName,5,76+ph,86,24)
-  place(self.dps,78,52+ph,rw-83,24);place(self.cash,94,76+ph,rw-99,24)
-  self.dpsName.TextSize,self.cashName.TextSize,self.dps.TextSize,self.cash.TextSize=18,18,18,18
-  place(self.action,0,rh-60,rw,60);self.action.TextSize=32
- else
-  local scale=k
-  place(self.resultTitle,14*scale,0,rw-28*scale,58*scale);self.resultTitle.TextSize=46*scale
-  local footer=if desktop then 246*k else 161
-  place(self.stage,0,58*scale,rw,rh-footer-88*scale)
-  place(self.level,0,rh-footer-28*scale,rw,26*scale);self.level.TextSize=22*scale
-  local by=rh-(if desktop then 244*k else 151)
-  place(self.dpsName,12*scale,by,110*scale,42*scale)
-  place(self.cashName,12*scale,by+42*scale,128*scale,42*scale)
-  place(self.dps,132*scale,by,rw-144*scale,42*scale)
-  place(self.cash,132*scale,by+42*scale,rw-144*scale,42*scale)
-  self.dpsName.TextSize,self.cashName.TextSize=30*scale,30*scale
-  self.dps.TextSize,self.cash.TextSize=32*scale,32*scale
-  local bh=if desktop then 120*k else 64
-  place(self.action,0,rh-bh,rw,bh);self.action.TextSize=if desktop then 58*k else 34
+ local resultW=if compact then 176 else 256*k
+ local resultH=if compact then 182 else 250*k
+ local pathGap=if compact then 42 else 66*k
+ local resultY=slotY+slotH+pathGap
+ place(self.result,(flowW-resultW)/2,resultY,resultW,resultH)
+ place(self.resultTitle,4,2,resultW-8,math.max(28,36*k))
+ local resultArt=if compact then 166 else resultH-16*k
+ place(self.resultArt,(resultW-resultArt)/2,if compact then 4 else 14*k,resultArt,resultArt)
+ place(self.resultName,4,resultH-math.max(32,38*k),resultW-8,math.max(32,38*k))
+ for i,slot in self.slots do
+  local start=Vector2.new((i-1)*(slotW+gap)+slotW/2,slotY+slotH)
+  local bend=start+Vector2.new(0,if i==2 then pathGap/2 else pathGap)
+  local finish=Vector2.new(flowW/2+(i-2)*resultW/2,resultY+(if i==2 then 0 else resultH/2))
+  local thickness=math.max(12,26*k)
+  segment(slot.stem,start,bend,thickness);segment(slot.path,bend,finish,thickness)
+  slot.socket.Position,slot.socket.Size=UDim2.fromOffset(start.X,start.Y+6*k),UDim2.fromOffset(math.max(26,48*k),math.max(8,14*k))
+  slot.outputSocket.Position=UDim2.fromOffset(finish.X,finish.Y)
+  slot.outputSocket.Size=if i==2 then UDim2.fromOffset(math.max(26,48*k),math.max(8,14*k)) else UDim2.fromOffset(math.max(8,14*k),math.max(26,48*k))
  end
- local sh=self.searchShell.Size.Y.Offset
- place(self.searchIcon,14*k,sh*0.2,sh*0.6,sh*0.6)
- place(self.search,sh+8*k,0,self.searchShell.Size.X.Offset-sh-20*k,sh)
- self.search.TextSize=if desktop then 32*k else 23
- self.empty.Position,self.empty.Size=self.grid.Position,self.grid.Size
- self.cardScale=if desktop then k else 0.68
+ local canvasH=resultY+resultH+6
+ place(self.mainContent,4,0,flowW,canvasH);self.main.CanvasSize=UDim2.fromOffset(0,canvasH)
+ place(self.picker,margin,top,inner,h-top-20)
+ place(self.searchShell,0,0,inner,math.max(44,60*k))
+ place(self.search,12,0,inner-24,self.searchShell.Size.Y.Offset);self.search.TextSize=math.max(23,29*k)
+ local gridY=self.searchShell.Size.Y.Offset+16*k
+ local gridH=math.max(56,self.picker.Size.Y.Offset-gridY-bh-18)
+ place(self.grid,0,gridY,inner,gridH)
+ local cols=if compact then 2 else 3
+ local cellGap=if compact then 12 else 18*k
+ local cellW=math.floor((inner-16-(cols-1)*cellGap)/cols)
+ self.layout.CellSize,self.layout.CellPadding=UDim2.fromOffset(cellW,math.max(168,cellW*0.94)),UDim2.fromOffset(cellGap,cellGap)
+ self.layout.FillDirectionMaxCells=cols
+ place(self.back,0,self.picker.Size.Y.Offset-bh,inner,bh);self.back.TextSize=math.max(28,46*k)
+ local iconH=math.min(270*k,gridH*0.5)
+ place(self.emptyIcon,(inner-iconH)/2,gridY+math.max(0,gridH/2-iconH),iconH,iconH)
+ place(self.empty,0,gridY+gridH/2+12,inner,50);self.empty.TextSize=if compact then 26 else 40*k
+ place(self.hint,0,gridY+gridH/2+62,inner,48);self.hint.TextSize=if compact then 20 else 28*k
+ place(self.summary,margin,top,inner,math.max(100,footer-top-16))
+ local sh=self.summary.Size.Y.Offset
+ local artH=math.min(inner,414*k,math.max(80,sh-184))
+ local blockH=artH+184;local sy=math.max(0,(sh-blockH)/2)
+ self.summary.CanvasSize=UDim2.fromOffset(0,blockH)
+ place(self.summaryRays,(inner-artH)/2,sy,artH,artH)
+ place(self.summaryArt,(inner-artH)/2,sy,artH,artH)
+ place(self.summaryName,0,sy+artH-10,inner,54)
+ place(self.summaryLevel,0,sy+artH+44,inner,40)
+ local chipGap=if compact then 12 else 20*k
+ local chipW=(inner-chipGap)/2
+ place(self.eggChip,0,sy+artH+102,chipW,60)
+ place(self.dpsChip,chipW+chipGap,sy+artH+102,chipW,60)
+ place(self.processing,margin,top,inner,h-top-24)
+ local ph=self.processing.Size.Y.Offset
+ place(self.processingArt,inner*0.04,math.max(0,ph/2-210*k),inner*0.92,math.min(340*k,ph*0.6))
+ place(self.processingText,0,ph*0.69,inner,64);self.processingText.TextSize=if compact then 36 else 62*k
+ place(self.processingHint,12,ph*0.69+66,inner-24,60)
 end
 
 function Browser:NearStand()
@@ -191,141 +287,216 @@ function Browser:NearStand()
  return counter~=nil and body~=nil and (counter.Position-body.Position).Magnitude<=14
 end
 
-function Browser:UpdateAction()
- local busy=self.pending~=nil or self.animating
- local ready=self.recipe~=nil and not busy and self:NearStand()
- self.action.Active,self.action.Selectable=ready==true,ready==true
- self.action.Text=if busy then "Merging…" else "Merge 3 → 1"
- self.action.Visual.Face.UIGradient.Transparency=NumberSequence.new(if ready then 0 else 0.55)
+function Browser:Slot(index)
+ if self.pending or self.animating or self.mode~="Main" then return end
+ self.app.audio:Play("Click");self.notice=nil
+ if self.selection.slots[index] then
+  self.selection:Remove(index);self:Render(true)
+ else
+  self.activeSlot=index;self.mode="Picker";self.search.Text="";self.query="";self.grid.CanvasPosition=Vector2.zero
+  self:Render(true);self:Focus(self.cards[1] or self.back)
+ end
 end
 
-function Browser:RenderDetail(recipe)
- if self.presentation then self.presentation:Destroy();self.presentation=nil end
- for _,item in self.stage:GetChildren() do if item:IsA("GuiObject") then item:Destroy() end end
+function Browser:Choose(key)
+ if self.pending or self.animating or self.mode~="Picker" then return end
+ self.selection:Reconcile(self.app.state.mergeOptions)
+ if not self.selection:Add(self.app.state.mergeOptions,key,self.activeSlot or 1) then self:Render(true);return end
+ self.app.audio:Play("Click");self.mode="Main";self.notice=nil;self.main.CanvasPosition=Vector2.zero
+ self:Render(true)
+ Theme.Motion:Pop(self.slots[self.activeSlot].art,1.08)
+ local focus=self.action
+ for i=1,3 do if not self.selection.slots[i] then focus=self.slots[i].action;break end end
+ self:Focus(focus)
+end
+
+function Browser:RenderSlots()
+ local recipe=self.selection:Recipe(self.app.state.mergeOptions)
  self.recipe=recipe
- if recipe then
-  self.presentation=Presentation.new(self.app,self.stage,recipe)
-  self.level.Text="Lv. "..recipe.level.." → "..(recipe.level+1)
-  self.dps.Text=number(recipe.beforeDps).." → "..number(recipe.afterDps)
-  self.cash.Text=number(recipe.inputEggRate).." → "..number(recipe.afterEggRate)
- else
-  self.level.Text=""
-  self.dps.Text,self.cash.Text="— → —","— → —"
+ for i,slot in self.slots do
+  local filled=self.selection.slots[i]~=nil and recipe~=nil
+  local artKey=if filled then recipe.species else ""
+  if slot.artKey~=artKey then
+   if slot.portrait then slot.portrait:Destroy();slot.portrait=nil end
+   if filled then slot.portrait=preview(self.app,slot.art,recipe) end
+   slot.artKey=artKey
+  end
+  slot.title.Text=if filled then Catalog[recipe.species].name else ""
+  slot.empty.Visible=false;slot.action.Text=if filled then "Remove" else "+\nAdd"
+  slot.level.Text=if filled then "Lv. "..recipe.level else ""
+  slot.outline.Color=LINE
+  local tint=if filled then PURPLE else PIPE_IDLE
+  Theme.Motion:Tween(slot.stem,"fusePath",{BackgroundColor3=tint},0.18)
+  Theme.Motion:Tween(slot.path,"fusePath",{BackgroundColor3=tint},0.18)
+  Theme.Motion:Tween(slot.socket,"fusePath",{BackgroundColor3=tint},0.18)
+  Theme.Motion:Tween(slot.outputSocket,"fusePath",{BackgroundColor3=tint},0.18)
  end
+ local artKey=if recipe then recipe.species else ""
+ if self.resultArtKey~=artKey then
+  if self.resultPortrait then self.resultPortrait:Destroy();self.resultPortrait=nil end
+  if recipe then self.resultPortrait=preview(self.app,self.resultArt,recipe) end
+  self.resultArtKey=artKey
+ end
+ self.resultEmpty.Visible=recipe==nil
+ self.resultOutline.Color=LINE
+ self.resultTitle.Text=if recipe then Catalog[recipe.species].name else ""
+ self.resultName.Text=if recipe then "Lv. "..(recipe.level+1) else ""
+ self.count.Text=self.selection:Count().."/3"
+ self:UpdateAction()
+end
+
+function Browser:UpdateAction()
+ local ready=not self.pending and not self.animating and self.selection:Count()==3 and self:NearStand()
+ local remaining=3-self.selection:Count()
+ self.action.Text=if remaining>0 then remaining.." more chicken"..(if remaining==1 then "" else "s") else (if self:NearStand() then "Fuse" else "Move closer")
+ self.action.Active,self.action.Selectable=ready==true,ready==true
+ Theme.ApplyReferenceAccent(self.action,if ready then ACCENT else ColorSequence.new(Color3.fromRGB(50,24,66),Color3.fromRGB(37,17,49)))
+ self.action.Visual.Face.InsetHighlight.UIStroke.Color=if ready then Color3.fromRGB(224,167,255) else LINE
+ self.action.Visual.Caption.TextColor3=if ready then WHITE else MUTED
+end
+
+function Browser:RenderPicker()
+ local available={}
+ local parts={self.query,tostring(self.app.panelWidth),tostring(self.selection.key)}
+ for _,recipe in self.app.state.mergeOptions or {} do
+  local ids=self.selection:Available(recipe)
+  if #ids>0 and string.find(string.lower(Catalog[recipe.species].name),self.query,1,true) then
+   table.insert(available,{recipe=recipe,count=#ids})
+   table.insert(parts,recipe.key..":"..table.concat(ids,","))
+  end
+ end
+ local key=table.concat(parts,"|")
+ if key~=self.key then
+  self.key=key
+  for _,card in self.cards do card:Destroy() end;table.clear(self.cards)
+  for index,entry in available do
+   local recipe=entry.recipe
+   local card=Instance.new("TextButton")
+   card.Name,card.Text,card.BackgroundTransparency,card.BorderSizePixel="Chicken_"..recipe.key,"",0,0
+   card.AutoButtonColor,card.LayoutOrder,card.ZIndex,card.Parent=false,index,self.grid.ZIndex+1,self.grid
+   card.BackgroundColor3=INK
+   local rarity=Catalog[recipe.species].rarity
+   local tint=Theme.Rarities[rarity] or Theme.Rarities.Common
+   Theme.Stroke(card,tint,2)
+   local ribbon=frame(card,"RarityRibbon",tint)
+   ribbon.Position,ribbon.Size=UDim2.fromOffset(6,6),UDim2.new(1,-58,0,28)
+   local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),20)
+   rarityLabel.Size=UDim2.fromScale(1,1);fitText(rarityLabel,20,12)
+   local art=self.app:Preview(card,recipe,UDim2.new(1,12,1,-40),UDim2.fromOffset(-6,18));art.ZIndex=card.ZIndex+1
+   local count=label(card,"Count","×"..entry.count,28);count.TextXAlignment=Enum.TextXAlignment.Right
+   count.Position,count.Size=UDim2.new(1,-50,0,4),UDim2.fromOffset(44,30)
+   local title=label(card,"Name",Catalog[recipe.species].name,24);fitText(title,24,14)
+   title.Position,title.Size=UDim2.new(0,2,1,-56),UDim2.new(1,-4,0,30)
+   local level=label(card,"Level","Lv. "..recipe.level..(if recipe.stars>1 then " · "..recipe.stars.."★" else ""),20)
+   level.Position,level.Size=UDim2.new(0,2,1,-26),UDim2.new(1,-4,0,24)
+   card.Activated:Connect(function() self:Choose(recipe.key) end)
+   table.insert(self.cards,card)
+  end
+ end
+ local empty=#available==0
+ self.empty.Visible,self.hint.Visible,self.emptyIcon.Visible=empty,empty,empty
+ self.empty.Text=if self.query~="" then "No matches" else "No matching trio yet"
+ self.hint.Text=if self.query~="" then "Try another name." else "Collect 3 matching chickens."
+ self.back.Text=if empty and self.query~="" then "Clear search" else "Back"
 end
 
 function Browser:Render(force)
  if not self.app.state then return end
+ if not self.pending and not self.animating and self.selection:Reconcile(self.app.state.mergeOptions) then
+  self.notice="Your flock changed. Choose available chickens.";self.key=""
+ end
+ if self.pending then self.mode="Processing" end
  self:Resize()
- if self.pending or self.animating then self:UpdateAction();return end
- local recipes=self.app.state.mergeOptions or {}
- local keyParts={self.query,tostring(self.selected),tostring(self.app.panelWidth),tostring(self.app.panelHeight)}
- local visible={}
- for _,r in recipes do
-  if (r.count or 0)>=3 and string.find(string.lower(Catalog[r.species].name),self.query,1,true) then
-   table.insert(visible,r)
-   table.insert(keyParts,table.concat({r.key,r.firstId,r.secondId,r.thirdId,r.count,r.inputEggRate,r.afterEggRate,r.beforeDps,r.afterDps},":"))
-  end
+ self.main.Visible,self.action.Visible=self.mode=="Main",self.mode=="Main"
+ self.tradeoff.Visible=self.mode=="Main" and self.selection:Count()==3
+ self.picker.Visible=self.mode=="Picker"
+ self.summary.Visible,self.done.Visible=self.mode=="Result",self.mode=="Result"
+ self.processing.Visible=self.mode=="Processing"
+ self.message.Text=self.notice or "";self.message.Visible=self.mode=="Main" and self.notice~=nil
+ self.title.Text=if self.mode=="Picker" then "Choose Chicken" elseif self.mode=="Result" then "Fusion Complete!"
+  else "Fuse Chickens"
+ if self.mode=="Main" then self:RenderSlots()
+ elseif self.mode=="Picker" then self:RenderPicker()
+ elseif self.mode=="Processing" then
+  self.processingText.Text=if self.pending and self.pending.checking then "Checking your flock…" else "Fusing…"
+  self.processingHint.Text=if self.pending and self.pending.checking then "You can close this while we check." else ""
  end
- local signature=table.concat(keyParts,"|")
- if not force and self.key==signature then self:UpdateAction();return end
- self.key=signature
- local selected=nil
- for _,r in visible do if r.key==self.selected then selected=r;break end end
- selected=selected or visible[1];self.selected=selected and selected.key or nil
- self:RenderDetail(selected)
- for _,card in self.cards do card:Destroy() end;table.clear(self.cards)
- for index,r in visible do
-  local card=Instance.new("TextButton")
-  card.Name,card.Text,card.BackgroundTransparency,card.BorderSizePixel="Group_"..r.key,"",1,0
-  card.AutoButtonColor,card.LayoutOrder,card.ZIndex,card.Parent=false,index,self.grid.ZIndex+1,self.grid
-  local outline=Theme.Stroke(card,PURPLE,4*self.cardScale)
-  outline.Enabled,outline.BorderStrokePosition=r.key==self.selected,Enum.BorderStrokePosition.Inner
-  local portrait=self.app:Preview(card,r,UDim2.new(1.2,0,1,-30*self.cardScale),UDim2.new(0.5,0,0,-10*self.cardScale))
-  portrait.ZIndex=card.ZIndex+1;portrait.AnchorPoint=Vector2.new(0.5,0)
-  local title=label(card,"Name",Catalog[r.species].name,28*self.cardScale)
-  title.TextXAlignment,title.TextScaled=Enum.TextXAlignment.Center,true
-  title.Position,title.Size=UDim2.new(0,4,1,-44*self.cardScale),UDim2.new(1,-8,0,40*self.cardScale)
-  local constraint=Instance.new("UITextSizeConstraint",title);constraint.MaxTextSize=28*self.cardScale;constraint.MinTextSize=12
-  local count=label(card,"Count","×"..r.count,34*self.cardScale)
-  count.TextXAlignment=Enum.TextXAlignment.Right
-  count.Position,count.Size=UDim2.new(1,-90*self.cardScale,0,4),UDim2.fromOffset(84*self.cardScale,40*self.cardScale)
-  if r.level>1 then
-   local level=label(card,"Level","Lv. "..r.level,18*self.cardScale,MUTED)
-   level.Position,level.Size=UDim2.fromOffset(5,50*self.cardScale),UDim2.fromOffset(65*self.cardScale,24*self.cardScale)
-  end
-  if r.key==self.selected then
-   local check=frame(card,"Selected",UDim2.fromOffset(48*self.cardScale,48*self.cardScale),UDim2.fromOffset(5,5),PURPLE)
-   check.ZIndex=card.ZIndex+6;Theme.ApplyReferenceAccent(check,ACCENT)
-   local icon=Theme.Image(check,"Check","rbxassetid://102978514196695",UDim2.new(1,-6,1,-6),UDim2.fromOffset(3,3));icon.ZIndex=check.ZIndex+1
-  end
-  card.Activated:Connect(function()
-   if self.pending or self.animating then return end
-   self.app.audio:Play("Click");self.selected=r.key;self:Render(true)
-  end)
-  table.insert(self.cards,card)
- end
- self.empty.Visible=#visible==0
- local capped=false
- local counts={}
- for _,pet in self.app.state.pets or {} do
-  if (pet.level or 1)>=(pet.levelCap or math.huge) then
-   local key=pet.species..":"..(pet.level or 1)
-   counts[key]=(counts[key] or 0)+1
-   if counts[key]>=3 then capped=true end
-  end
- end
- self.empty.Text=if self.query~="" then "No matching chickens."
-  elseif capped then "These chickens have reached your current merge level cap."
-  else "Collect 3 matching chickens to merge.\nFavorites and away chickens stay protected."
- self:UpdateAction()
+ self.root:SetAttribute("FusePhase",self.mode)
 end
 
 function Browser:Merge()
- if self.pending or self.animating or not self.recipe or not self:NearStand() then return end
- local recipe=self.recipe
- local found=false
- for _,r in self.app.state.mergeOptions or {} do
-  if r.key==recipe.key and r.firstId==recipe.firstId and r.secondId==recipe.secondId and r.thirdId==recipe.thirdId then found=true;break end
- end
- if not found then self:Render(true);return end
+ if self.pending or self.animating or self.mode~="Main" or not self:NearStand() then return end
+ local payload=self.selection:Payload(self.app.state.mergeOptions,self.app.state.plotIndex)
+ local recipe=self.selection:Recipe(self.app.state.mergeOptions)
+ if not payload or not recipe then self:Render(true);return end
  self.app.audio:Play("Click")
- local pending={id=self.app:Request("Merge",{firstId=recipe.firstId,secondId=recipe.secondId,thirdId=recipe.thirdId,
-  level=recipe.level,stationIndex=self.app.state.plotIndex}),viewSerial=self.viewSerial}
- self.pending=pending;self:UpdateAction()
+ self.pending={id=self.app:Request("Merge",payload),payload=payload,recipe=table.clone(recipe),viewSerial=self.viewSerial}
+ local pending=self.pending
+ self.mode="Processing";self.notice=nil
+ if self.presentation then self.presentation:Destroy() end
+ self.presentation=Presentation.new(self.app,self.processingArt,recipe)
+ self.presentation:Waiting()
+ self:Render(true)
  task.delay(12,function()
   if not self.alive or self.pending~=pending then return end
-  self.pending=nil;self.key="";self.app:Request("Sync")
-  if self.app.page=="Merge" and self.app.panel.Visible then
-   self.app:Notify("Refreshing your flock. Check the result before trying again.",false);self:Render(true)
-  end
+  pending.checking=true;pending.syncId=self.app:Request("Sync")
+  if self.root.Visible then self:Render(true) end
  end)
 end
 
+function Browser:ShowResult(chicken,recipe)
+ self.completed=chicken;self.selection:Clear();self.notice=nil
+ if self.summaryPortrait then self.summaryPortrait:Destroy() end
+ self.summaryPortrait=preview(self.app,self.summaryArt,chicken)
+ self.summaryName.Text=Catalog[chicken.species].name;self.summaryLevel.Text="Lv. "..chicken.level
+ self.summaryEggs.Text=Theme.Number(chicken.eggsPerSecond or recipe.afterEggRate).." eggs/s"
+ self.summaryDps.Text=Theme.Number(recipe.afterDps).." DPS"
+ self.mode="Result";self.animating=false;self:Render(true)
+ Theme.Motion:Pop(self.summaryArt,1.08);self:Focus(self.done)
+end
+
 function Browser:Receive(result)
- if not result or not self.pending or result.id~=self.pending.id then return end
- local pending=self.pending;self.pending=nil;self.key=""
+ local pending=self.pending
+ if not pending or not result or (result.id~=pending.id and result.id~=pending.syncId) then return end
+ local chicken=nil
+ if result.ok then chicken=Selection.Result(self.app.state.pets,pending.payload,pending.recipe.species) end
+ if result.id==pending.syncId and not result.ok then return end
+ self.pending=nil;self.key="";self.selection:Clear()
  local visible=self.alive and pending.viewSerial==self.viewSerial and self.app.panel.Visible
-  and not self.app.panelClosing and self.app.page=="Merge" and self:NearStand()
- if not visible then self:UpdateAction();return end
- if result.ok and self.presentation then
-  self.animating=true
-  self.presentation:Play(function() self.level.Text="Lv. "..(self.recipe.level+1).." ↑" end,function()
-   self.animating=false
-   -- Keep the reveal briefly, then the remaining eligible group is ready for another deliberate tap.
-   local serial=self.viewSerial
-   task.delay(0.6,function() if self.alive and serial==self.viewSerial and not self.pending then self:Render(true) end end)
-  end)
- else self:Render(true) end
- self:UpdateAction()
+  and not self.app.panelClosing and self.app.page=="Merge"
+ if not visible then
+  if self.presentation then self.presentation:Destroy();self.presentation=nil end
+  self.mode="Main";return
+ end
+ if chicken then
+  self.animating=true;self.mode="Processing"
+  local serial=self.viewSerial
+  local function done()
+   if self.alive and serial==self.viewSerial then self:ShowResult(chicken,pending.recipe) end
+  end
+  if self.presentation then self.presentation:Play(function() end,done) else done() end
+ else
+  if self.presentation then self.presentation:Destroy();self.presentation=nil end
+  self.notice=if result.ok then "Fusion was not completed. Choose your chickens again." else (result.message or "Your flock changed. Choose available chickens.")
+  self.mode="Main"
+ end
+ self:Render(true)
 end
 
 function Browser:Close()
- self.viewSerial+=1;self.animating=false;self.recipe=nil;self.selected=nil;self.key=""
+ self.viewSerial+=1;self.animating=false;self.selection:Clear();self.recipe=nil;self.key="";self.notice=nil
  if self.presentation then self.presentation:Destroy();self.presentation=nil end
+ self.mode="Main";self.completed=nil
 end
 function Browser:Reset()
- self:Close();self.search.Text="";self.query="";self.grid.CanvasPosition=Vector2.zero
+ self:Close();self.search.Text="";self.query="";self.main.CanvasPosition=Vector2.zero
+ self.grid.CanvasPosition=Vector2.zero
+ -- Closing a popup never cancels its request. A reopened popup follows that request.
+ if self.pending then
+  self.pending.viewSerial=self.viewSerial;self.mode="Processing"
+  if self.pending.checking then self.pending.syncId=self.app:Request("Sync") end
+  self.presentation=Presentation.new(self.app,self.processingArt,self.pending.recipe);self.presentation:Waiting()
+ end
 end
 function Browser:Destroy()
  self.alive=false;self:Close()

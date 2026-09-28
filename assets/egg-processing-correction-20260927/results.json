@@ -1,0 +1,76 @@
+{
+  "total": 17,
+  "compiled": 26,
+  "realDataStoreCalls": 0,
+  "passed": 17,
+  "results": [
+    {
+      "name": "All 32 species and 10 levels retain cash potential at all five egg values",
+      "passed": true
+    },
+    {
+      "name": "Production counts whole eggs and gives every species the same unit value",
+      "passed": true
+    },
+    {
+      "name": "Slow frames catch up in one batch without per-egg work",
+      "passed": true
+    },
+    {
+      "name": "60 maximum-level birds retain exact millions of eggs with at most 80 visuals",
+      "passed": true
+    },
+    {
+      "name": "Away time creates no eggs; fractional progress and speed changes are retained",
+      "passed": true
+    },
+    {
+      "name": "Value upgrades affect only new eggs; Double Cash never changes egg counts",
+      "passed": true
+    },
+    {
+      "name": "Full in-flight yard retains production without changing claimed stacks",
+      "passed": true
+    },
+    {
+      "name": "Manual and vacuum pickup each transfer exact stack count/value once",
+      "passed": true
+    },
+    {
+      "name": "Seller conserves quantity/value through mixed old/new batches, compaction and Finish",
+      "passed": true
+    },
+    {
+      "name": "Cash claim applies Double Cash once and cannot replay an emptied balance",
+      "passed": true
+    },
+    {
+      "name": "Existing bags, seller batches, cash and paid credits roundtrip without repricing",
+      "passed": true
+    },
+    {
+      "name": "Offline rate uses real species/level production and seller capacity exactly once",
+      "passed": true
+    },
+    {
+      "name": "Snapshot rates and merge preview use quantity while retaining 3-to-1 level tradeoff",
+      "passed": true
+    },
+    {
+      "name": "Upgrade previews show one shared unit value and speed multiplier without camp gates",
+      "passed": true
+    },
+    {
+      "name": "All six plots queue deposits instead of instant cash",
+      "passed": true
+    },
+    {
+      "name": "Whole-second processing and upgraded rate convert only the allotted eggs",
+      "passed": true
+    },
+    {
+      "name": "Processing restoration preserves the newer movement-only cash-pad rule",
+      "passed": true
+    }
+  ]
+}

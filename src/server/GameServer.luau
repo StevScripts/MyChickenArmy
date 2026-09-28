@@ -88,7 +88,7 @@ function GameServer:Handle(player,request)
 	local balanceBefore=session.coins
 	local receipt,purchase,crate
 	local selectedBefore=#session:BestPetIds()
-	if action=="Sync" then self:Send(player);return
+	if action=="Sync" then self:Send(player,{id=request.id,action="Sync",ok=true});return
 	elseif action=="EggCashCollect" then
 		-- Old clients cannot bypass server-owned movement/one-second collection.
 		return
@@ -97,7 +97,9 @@ function GameServer:Handle(player,request)
 		ok,message=self.commerce:Refresh(player,session)
 		if self.sessions[player.UserId]~=session or session.closing or session.saveLost then return end
 	elseif action=="PreparePurchase" then
-		ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session))
+		if request.key=="FinishEggs" and not self.eggs:CanUseBoard(player,session) then
+			message="Walk up to your egg selling board."
+		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session)) end
 	elseif action=="OpenCrate" then
 		if not self.products:CanPurchase(session) then message="Crates need a safely loaded, saved profile."
 		else

@@ -1,0 +1,113 @@
+{
+  "date": "2026-09-27",
+  "placeId": 96683186622050,
+  "context": "Studio Edit, isolated source-loaded modules with fake sessions/services; no live profiles",
+  "board": [
+    {
+      "name": "Finite tracks have complete prices/benefits and unchanged physical maxima",
+      "passed": true
+    },
+    {
+      "name": "First four Speed/Value/Luck prices and benefits remain exact",
+      "passed": true
+    },
+    {
+      "name": "Roll Slot opening prices stay fixed and later growth ratios increase",
+      "passed": true
+    },
+    {
+      "name": "Every board track purchases fully without camps, then MAX rejects",
+      "passed": true
+    },
+    {
+      "name": "All board tracks reject unready state, stale quotes, replay, access and insufficient funds",
+      "passed": true
+    },
+    {
+      "name": "Plot capacity previews and physical limits remain authoritative",
+      "passed": true
+    },
+    {
+      "name": "Legacy menu owners reach identical Income/Luck/Army maxima without camps",
+      "passed": true
+    },
+    {
+      "name": "Luck helper, display, normalized odds and actual rolls agree at curve boundaries",
+      "passed": true
+    },
+    {
+      "name": "Paid benefits retain verified Luck policy and existing multipliers/army bonus",
+      "passed": true
+    },
+    {
+      "name": "Maximum levels roundtrip; MAX+1 and malformed levels reject without partial load",
+      "passed": true
+    },
+    {
+      "name": "Earned carried/queued value and owned purchases survive all upgrades and roundtrip",
+      "passed": true
+    },
+    {
+      "name": "Stat continuation quotes follow the reviewed growth and rounding exactly",
+      "passed": true
+    },
+    {
+      "name": "Existing opening levels and legacy missing board fields retain earned capacity/slots",
+      "passed": true
+    }
+  ],
+  "processor": [
+    {
+      "name": "Opening rates/prices unchanged; later rates and gains increase",
+      "passed": true
+    },
+    {
+      "name": "Approved pricing compounds against capacity, with no trillion plateau",
+      "passed": true
+    },
+    {
+      "name": "Large wallets save/reload and purchase beyond the old trillion ceiling",
+      "passed": true
+    },
+    {
+      "name": "Cash pad pays above one trillion and preserves ready money at numeric limit",
+      "passed": true
+    },
+    {
+      "name": "Offline credits use expanded wallet headroom without changing time/efficiency",
+      "passed": true
+    },
+    {
+      "name": "Paid cash stays exact above one trillion, replays once, and defers overflow",
+      "passed": true
+    },
+    {
+      "name": "Full-wallet chicken sale preserves owned chickens and money",
+      "passed": true
+    },
+    {
+      "name": "Current catalog retains equal egg values and prior cash potential",
+      "passed": true
+    },
+    {
+      "name": "Past former cap, repeated paid upgrades remain available with next offer",
+      "passed": true
+    },
+    {
+      "name": "Stale quotes, insufficient cash and board access still reject without mutation",
+      "passed": true
+    },
+    {
+      "name": "Saved high levels roundtrip; corrupt/nonfinite levels reject",
+      "passed": true
+    },
+    {
+      "name": "High-speed processing conserves value, queue bounds and Finish credits",
+      "passed": true
+    },
+    {
+      "name": "Offline uses extended capacity and existing production ceiling",
+      "passed": true
+    }
+  ]
+}

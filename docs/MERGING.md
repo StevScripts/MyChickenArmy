@@ -4,7 +4,33 @@ Implemented September 25, 2026 at the user's explicit request. This supersedes o
 
 ## Player flow
 
-Approach your own Fuse Machine's button and press E. The purple menu shows one group per species, star tier and level, only when at least three eligible copies exist. Search filters names. Select a group to preview its next level, per-chicken DPS and eggs per second, then press **Merge 3 → 1**. Exactly three original IDs are used: the first survives one level higher; two are removed; other copies remain. No cash fee or separate confirmation dialog. The left preview shows per-chicken values, not the three inputs' combined production. The September 26 [quantity economy](EGG_ECONOMY.md) moves the existing income multiplier into egg quantity, retaining the merge tradeoff below.
+September 27 replaces the old two-column merge browser with the chicken-specific
+[image-led Figma fuse flow](https://www.figma.com/design/4lJjZOqNhR8K7rfMbVIjaK/my-chicken-army?node-id=437-2024).
+Approach your own Fuse Machine's button and press E. Fill three Add slots; each
+tap in **Choose Chicken** stages one actual owned chicken. The initial picker
+shows only species/star/level groups with at least three eligible copies. Once
+one is staged, only the same group remains. Counts exclude staged copies, so a
+three-copy group remains selectable as ×2 then ×1. Search filters chicken names.
+Remove reverses staging. It does not consume or change inventory.
+
+The result card previews the same chicken at its next level. **Fuse** submits
+exactly the three staged IDs, retaining server priority for an equipped survivor.
+The server consumes two IDs and advances the survivor one level (three inputs,
+one output); other copies remain. No cash fee or mandatory confirmation dialog.
+After server success, the authored machine charges with its door closed, then
+opens to reveal one upgraded chicken coming out onto the platform. No input
+chickens enter from outside. The UI result remains until Done or Close and shows the actual chicken,
+new level, per-chicken eggs/sec and DPS. These are not the three
+inputs' combined output. The [quantity economy](EGG_ECONOMY.md) retains the saved
+merge tradeoff below.
+
+Pending requests cannot submit again. A 12-second timeout keeps the UI in a
+checking state and requests Sync; only its acknowledged response resolves the
+inventory outcome. An uncorrelated snapshot cannot clear the request. Reopening
+a checking request asks for Sync again. Closing cancels presentation, not an
+accepted server transaction. Reopening while a request is still pending follows
+that same request. Stale eligibility clears unavailable inputs and requires a new
+deliberate selection. No speculative rewards or automatic resubmission.
 
 The user explicitly chose to keep the saved balance: income follows the existing 2^(level−1) formula, and combat gains 25% of base HP/damage per level. Three level-1 inputs therefore become one chicken with 2× individual income and 1.25× individual combat stats. Total flock income and total combined DPS decrease; power per occupied slot increases. This implementation does not claim the feature is economy-neutral or newly balanced.
 
@@ -16,15 +42,34 @@ Favorites, away/deployed chickens, selected defenders during an incoming battle 
 
 - `ArmyService`: server grouping, exact triple validation and non-yielding consumption. Same species, stars and level required. Validates the whole optional batch before any mutations; old pair payloads cannot consume chickens.
 - `GameServer`: loaded/save ownership checks, rate limit, same-plot and distance validation, result snapshots. Uses `firstId`, `secondId`, `thirdId`, `level` and `stationIndex`; legacy internal batch route takes `triples`.
-- `MergeStand` / `WorldService`: the builder-owned standalone `Workspace.Fuse_Machine` remains unchanged in Edit. During Play it is retained in ServerStorage and cloned at its Plot 1-relative placement into each runtime plot. A machine already nested in an authored plot takes precedence. Existing Button/ProximityPrompt is reused; Gate parts tween vertically. Obsolete merge stalls are removed only from runtime copies. Missing machine/anchor has a safe prompt fallback.
-- `MergeBrowser`: approved Figma dialog, server-issued options, selected triple, request tracking, search, mobile reflow, close/reopen cancellation. Only server success begins the reveal; timeout refreshes state without automatically resubmitting.
-- `MergePresentation`: three-input UI reveal using existing TweenService-backed motion and reduced-motion behavior. World input birds are temporary cosmetic models, not inventory instances.
+- `MergeStand` / `WorldService`: the builder-owned standalone `Workspace.Fuse_Machine` remains unchanged in Edit. During Play it is retained in ServerStorage and cloned at its Plot 1-relative placement into each runtime plot. A machine already nested in an authored plot takes precedence. Existing Button/ProximityPrompt is reused; `MergeGate` retracts sectional door copies inward beneath the header. Obsolete merge stalls are removed only from runtime copies. Missing machine/anchor has a safe prompt fallback.
+- `MergeBrowser`: three input slots, chicken picker, result/recovery states, pending request lifecycle and responsive layout. `MergeSelection` owns reversible local staging against server-issued eligible IDs. Neither determines inventory or rewards.
+- `MergePresentation`: three-input UI reveal using existing TweenService-backed motion and reduced-motion behavior. The world's single output chicken is a temporary cosmetic copy of the confirmed upgraded species, stars and level, not another inventory instance.
 
-Gate animation uses ordinary TweenService tweens: open, three cosmetic birds enter, close, short purple sparkle. The gate and temporary birds reset when interrupted, cleared or destroyed. No custom per-frame interpolation or changed chicken walking physics.
+Gate animation uses ordinary TweenService tweens: four sections rise, bend inward through a quarter-turn and disappear beneath the roof. Runtime copies split only the tall plain backing panel; authored trim and hinges ride their nearest section. No whole-door lift above the machine. The closed machine charges first; opening runs from 0.65–1.2 seconds. One cosmetic upgraded chicken moves from inside the chamber onto the outside platform from 1.2–1.8 seconds, facing outward. A purple burst accompanies its exit. The door closes behind it from 2–2.5 seconds; the output holds outside, fades from 3.5–3.8 seconds, and resets at 3.85 seconds. Large output variants fit the doorway for this presentation. Original visibility and collision/query/touch settings restore exactly after completion, interruption, clearing or destruction. No per-frame interpolation or changed chicken walking physics. The accepted UI and its reveal timing remain unchanged.
 
 ## Visual contract
 
-Approved Figma [408:818](https://www.figma.com/design/4lJjZOqNhR8K7rfMbVIjaK/my-chicken-army?node-id=408-818), dialog 410:839. Purple studded header, generated merge icon, red close, square geometry, opaque black-purple `#0D0913`, unboxed portraits, selected purple outline/check and a single purple Merge button. Desktop uses four columns; narrow screens reflow. No Merge All control or repetitive selection summaries.
+Current Figma page **434:885**, ready **437:2024**, picker **437:2135**, result **437:2481**.
+The user rejected the earlier September 27 page 419:885/ready 421:1194 visual design.
+The September 25 two-column dialog is also historical. Purple studded header, generated
+three-chicken icon, red close, square geometry, opaque black-purple `#0D0913`,
+three Add/Remove cards with purple connections to one centered result, and Fuse.
+The picker replaces the content in the same popup: three desktop columns, two
+compact columns, rarity strip, remaining count plus name/level. Native chicken portraits throughout.
+Primary action stays pinned; short screens scroll content without shrinking touch
+targets below 44 px. Sparse copy, no Merge All, no extra confirmation chain.
+
+The 13 current editable Figma frames include empty, one/two/three selected, initial
+and compatible-only pickers, no eligible trio, no search result, fusing, completion,
+changed inventory and delayed status. Main actions are linked as a prototype.
+The generated six-state sheet is included on the page as the visual target; controls
+and text in the implementation frames are separately editable. Actual Steal an Egg
+screenshots informed the compact three-input/pipe/result structure. Its full picker
+and every recovery state were not available as direct references, so those use the
+game's existing inventory and request contract. No borrowed creature artwork,
+random eggs, reference-game fee or luck formula is used. The image generator's
+sample names/rarities were corrected to the real catalog in Figma and code.
 
 Use `UITheme.Studs` and the approved full-sheet image `rbxassetid://93331178043153`. Never rebuild individual studs. Merge icon `rbxassetid://122096168414414`; source, prompt, upload receipt and Studio screenshot are under `assets/merge-ui-20260925/`. Runtime portraits use the current shared ChickenPreview/ChickenPortraits assets rather than invented mockup chickens.
 
@@ -33,3 +78,60 @@ Use `UITheme.Studs` and the approved full-sheet image `rbxassetid://933311780431
 The eight checks in `tests/MergeStandChecks.luau` pass in an isolated Studio runtime: exact triple and investment/save roundtrip, replay/legacy rejection, malformed/mismatched inputs, protected/away/capped birds, deployed-squad reserves, eligible grouping/extra copies/preview stats, atomic batch failure and disabled automation. Additional actual client/server checks verified same-plot/proximity enforcement, a 27→25 flock transaction retaining the upgraded ID, search and empty states, duplicate-click suppression, eight visible desktop cards in a 4×2 grid, and gate motion (21 parts, 3 cosmetic birds, full reset).
 
 Five layout fixtures covered desktop, narrow portrait and short landscape sizes; grid sizes remained positive and the action stayed inside its panel. These are focused Studio checks, not a physical-device or multiplayer-network soak test. No publish, purchase, or saved-profile mutation. Local session-only test progress is discarded on Stop.
+
+
+## September 27 verification
+
+Six selection checks and all eight existing server transaction checks pass.
+Seven disposable Roblox UI fixture checks cover remaining counts, search,
+Remove, stale eligibility, duplicate taps, authoritative result values,
+close/reopen, rejection, a real 12-second timeout followed by acknowledged Sync,
+and five layout sizes (1000×870, 723×629, 390×720, 320×568, 700×320).
+Fixtures create temporary UI under ServerStorage and remove it afterward; they
+are not physical-device or network-soak tests.
+
+An actual Studio session used the existing session-only test flag. The authored
+prompt opened Fuse Chickens. Live server fusion consumed the exact staged trio,
+retained the expected level-2 ID and reduced inventory by two. A second full flow
+reached the result screen with Camo Chick, Lv. 2, 8→16 eggs/s and 10→12.5 DPS.
+Search/ready/result screens were inspected; medium-window clipping was corrected.
+Native gate animation is retained. Play stopped; Studio is back in Edit.
+
+Source edits use Rojo. A duplicate, byte-identical MergeSelection created during
+sync was preserved in ServerStorage.FuseFlowDuplicateRecovery20260927; one active
+module remains. Six changed runtime modules compile and match local source.
+Evidence: `assets/fuse-flow-20260927/`. No publish, purchase, real profile change,
+egg-economy rebalance, camp gate or save schema change.
+
+## Image-led visual revision verification
+
+The final September 27 revision changes only `MergeBrowser` presentation and
+Merge-specific `AppController` panel proportions. The saved transaction, selection
+module, world gate and `MergePresentation` timing remain unchanged. Result labels
+now show the resulting chicken's values, without repeating the before/after copy.
+
+Six disposable UI checks pass: filtered counts/search/removal, stale eligibility,
+duplicate taps and actual result values, close/reopen/rejection, plus layouts at
+900×850, 746×705, 390×720, 320×568 and 700×320. Primary and slot controls retain
+44-pixel minimum targets, with scrolling for short content. Both changed sources
+compile and match Rojo's Studio Edit copy. Packaging build passes. Figma ready,
+picker and result screenshots were inspected against the generated sheet.
+
+Evidence: `assets/fuse-ui-image-first-20260927/`. The initial visual pass left the
+user's separate Play session running. The follow-up implementation check started
+fresh disposable sessions from Edit and exercised the actual authored prompt,
+eligible picker, three staged inputs and authoritative fusion. Inventory went
+6→4; the first staged Camo ID survived at level 2, the other two were consumed,
+and the result showed 16 eggs/s and 12.5 DPS. Immediate repeat submission was
+suppressed. `studio-result.jpg` records the completed flow; `studio-ready.jpg`
+records the final portrait-spacing correction in a subsequent fresh session.
+Final MergeBrowser source compiles and matches Studio through Rojo (26,976 bytes,
+polynomial hash 4233590291). Test sessions were stopped; Studio is back in Edit.
+No physical-device/network-soak test, persistent profile change, publication,
+purchase or new Roblox asset upload was performed.
+
+## Sectional garage animation verification
+
+September 27 follow-up: `MergeGate` and `MergeStand` compile and match Studio through Rojo. The actual runtime machine has four moving sections (24 temporary pieces from 21 original parts); live samples confirm inward travel, 90-degree rotation and full concealment. Three cosmetic chickens entered, and the completion glow pulsed. Full-cycle, interrupted and repeated-celebration checks restored all original CFrames, transparency, collision, query and touch settings and removed temporary pieces/birds. Studio screenshots show the turn, fully open doorway and chickens entering. Evidence: `assets/fuse-garage-animation-20260927/`. The turning screenshot uses a slower diagnostic playback; the full cycle was checked at production timing. No new inventory transaction was needed for this presentation change. Play stopped; Studio is in Edit. Authored geometry and saved merge mechanics are unchanged.
+
+The user then corrected the world sequence: the three inputs are already inside; only the resulting chicken should emerge. That correction supersedes the incoming-bird sequence above. Live checks confirm closed-door charging, one correctly leveled output, inward-to-outward travel (local Z 1.65→−1.75), level-10 doorway fit, full reset, interruption and repeated-fusion cleanup. `result-exiting.jpg` and `result-exit-checks.json` record this revision. MergeStand is 8,305 bytes, polynomial hash 3089724103, compiled and matched to Studio. The session was stopped; Studio is in Edit.

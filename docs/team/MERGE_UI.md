@@ -1,5 +1,7 @@
 # Merge UI — September 25, 2026
 
+Historical implementation. The September 27 three-slot fuse flow supersedes this layout; see `FUSE_FLOW.md` and `docs/MERGING.md`. Saved merge stats and server rules remain.
+
 Active owner: this task. User explicitly requested enabling their saved merge mechanic with the approved Figma UI and exactly three matching chickens. Own MergeBrowser, MergePresentation, MergeStand, ArmyService merge functions, and narrow integrations in Config, ShopCatalog, GameServer, WorldService, AppController and UITheme. Preserve existing dirty AppController/other task work. Previous relevant task ownership is released.
 
 Canonical Studio Pet Roll Test 96683186622050, instance:69i-u8j. Before editing, all ten relevant mapped scripts matched local bytes/hash; no duplicate active modules were found. Studio Flow reads/assets only; Rojo owns script changes. No publishing, purchases, or real profile mutations. Any session checks use PetRollPlaytestSessionOnly.

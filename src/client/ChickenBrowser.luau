@@ -1168,7 +1168,7 @@ function Browser:Render(force)
 	self.sortButton.Text=if self.placing then "Cancel" elseif self.sort=="Name" then "Name A-Z" else "Best first"
 	local keys={dimensions,self.app.selected or "",table.concat(ids,","),tostring(state.capacity),mode,
 		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
-		self.query,self.sort,self.placing or ""}
+		tostring(state.homeEggsPerSecond),self.query,self.sort,self.placing or ""}
 	for _,pet in state.pets or {} do
 		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap))
 	end

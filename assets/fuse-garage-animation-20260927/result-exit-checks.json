@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "bridge": "ok",
+  "result": "{\"highLevelFits\":true,\"closedCharge\":true,\"interruptReset\":true,\"correctLevel\":true,\"completeReset\":true,\"onlyOneResult\":true,\"outsideZ\":-1.75,\"insideZ\":1.649993896484375,\"repeatedFusionReset\":true}",
+  "output": []
+}

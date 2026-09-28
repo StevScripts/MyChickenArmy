@@ -1,0 +1,716 @@
+[
+  {
+    "previous": [],
+    "templateScale": 1,
+    "name": "Magma Chicken",
+    "bodySize": "1.9249216318130493, 3.251146078109741, 2.7585482597351074",
+    "scale": 1.130833387374878,
+    "species": "Knight",
+    "templateBodySize": "1.7022150754928589, 2.875, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 7,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 7,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 25,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 15,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 15,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 15,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 15,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 25,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.ParticleEmitter"
+      },
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.ParticleEmitter"
+      }
+    ],
+    "templateScale": 0.6701631546020508,
+    "name": "Frost Feather",
+    "bodySize": "1.924920916557312, 3.2511463165283203, 2.25079345703125",
+    "scale": 0.7578428983688354,
+    "species": "Frost",
+    "templateBodySize": "1.7022143602371216, 2.875000238418579, 1.9903846979141235",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 140,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 15,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Beam",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Beam",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 10,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [
+      {
+        "class": "ParticleEmitter",
+        "path": "Surface6.ParticleEmitter"
+      }
+    ],
+    "templateScale": 0.6701631546020508,
+    "name": "Bonsai Bantam",
+    "bodySize": "1.5567371845245361, 1.4317659139633179, 0.4632490873336792",
+    "scale": 0.7578428983688354,
+    "species": "Bonsai",
+    "templateBodySize": "1.3766281604766846, 1.266115665435791, 0.40965279936790466",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Surface6.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [],
+    "templateScale": 1,
+    "name": "Shadow Stalker",
+    "bodySize": "1.990173101425171, 3.361354112625122, 2.852058172225952",
+    "scale": 1.1691666841506958,
+    "species": "Wizard",
+    "templateBodySize": "1.7022150754928589, 2.875, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 6,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [],
+    "templateScale": 0.6701631546020508,
+    "name": "Diamond Defender",
+    "bodySize": "1.9901723861694336, 3.3613545894622803, 2.852058172225952",
+    "scale": 0.783532440662384,
+    "species": "Diamond",
+    "templateBodySize": "1.7022143602371216, 2.875000238418579, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 2,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 10,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 0.5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [],
+    "templateScale": 1,
+    "name": "Golden Emperor",
+    "bodySize": "2.2838053703308105, 4.293372631072998, 3.2728536128997803",
+    "scale": 1.3416666984558105,
+    "species": "Dragon",
+    "templateBodySize": "1.7022150754928589, 3.200029134750366, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 2,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 10,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 0.5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [],
+    "templateScale": 1,
+    "name": "Glitch Chicken",
+    "bodySize": "2.055424690246582, 3.471562385559082, 2.945568323135376",
+    "scale": 1.2074999809265137,
+    "species": "IceDuck",
+    "templateBodySize": "1.7022150754928589, 2.875, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.3",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.arrow",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.3",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.3",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.3",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.3",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 15,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [],
+    "templateScale": 1,
+    "name": "Galaxy Overlord",
+    "bodySize": "2.2838053703308105, 3.8572916984558105, 3.2728536128997803",
+    "scale": 1.3416666984558105,
+    "species": "StormDuck",
+    "templateBodySize": "1.7022150754928589, 2.875, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 10,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 10,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 10,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 4,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 4,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.2",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.Central.Attachment.1",
+        "class": "Beam"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 0.5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 3,
+        "class": "ParticleEmitter"
+      }
+    ]
+  },
+  {
+    "previous": [
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.Attachment.ParticleEmitter"
+      },
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.Attachment.ParticleEmitter"
+      },
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.Attachment.ParticleEmitter"
+      },
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.Attachment.ParticleEmitter"
+      },
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.Attachment.ParticleEmitter"
+      },
+      {
+        "class": "ParticleEmitter",
+        "path": "Body.ParticleEmitter"
+      }
+    ],
+    "templateScale": 0.6701631546020508,
+    "name": "Storm Wing",
+    "bodySize": "2.283804416656494, 3.8572921752929688, 3.2728536128997803",
+    "scale": 0.8991355895996094,
+    "species": "Storm",
+    "templateBodySize": "1.7022143602371216, 2.875000238418579, 2.439393997192383",
+    "effects": [
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 500,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.Attachment.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 50,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      },
+      {
+        "enabled": true,
+        "path": "Body.ParticleEmitter",
+        "rate": 5,
+        "class": "ParticleEmitter"
+      }
+    ]
+  }
+]

@@ -87,6 +87,14 @@ end
 
 -- One full roster at every rank. Keep the optional tier argument for older callers;
 -- conquest changes combat progression, never species eligibility or roll odds.
+-- One owner for the displayed weight multiplier and normalized roll odds.
+-- Preserve purchased opening bonuses; later levels add smaller gains.
+function Rules.LuckMultiplier(luckLevel: number): number
+	local opening = math.min(luckLevel, Config.LuckOpeningLevels)
+	local later = math.max(0, luckLevel - Config.LuckOpeningLevels)
+	return 1 + opening * Config.LuckWeightPerLevel + later * Config.LuckContinuationWeightPerLevel
+end
+
 function Rules.Odds(luckLevel: number, _tier: number?, paidMultiplier: number?)
 	local weights, total = {}, 0
 	-- Server-verified paid luck doubles Rare+ weights, not normalized percentages.
@@ -95,7 +103,7 @@ function Rules.Odds(luckLevel: number, _tier: number?, paidMultiplier: number?)
 		local definition = Catalog[id]
 		local lucky = definition.rarity == "Rare" or definition.rarity == "Epic" or definition.rarity == "Legendary" or definition.rarity == "Mythic"
 		local boost = if lucky
-			then (1 + Config.LuckWeightPerLevel * luckLevel) * paid else 1
+			then Rules.LuckMultiplier(luckLevel) * paid else 1
 		weights[id] = definition.weight * boost
 		total += weights[id]
 	end

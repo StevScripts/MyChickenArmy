@@ -48,14 +48,18 @@ function Board:Bind(source)
 	if root then
 		view.content=root.Content
 		view.queuedTextSize=view.content.QueuedCount.TextSize
+		view.inlinePrice=root:GetAttribute("InlineUpgradePrice")==true
 		for _,name in {"Upgrade","FinishNow"} do
-			local button=view.content:FindFirstChild(name)
-			if button then button.Visible=false;button.Active=false;button.Selectable=false end
+			local button=view.content[name]
+			table.insert(view.connections,button.Activated:Connect(function() self:Activate(name) end))
+			local visual=button:FindFirstChild("Visual")
+			if visual then
+				local highlight=visual.Face:FindFirstChild("InsetHighlight")
+				Theme.Motion:BindButton(button,visual,visual.Face,highlight and highlight:FindFirstChildWhichIsA("UIStroke"))
+			end
 		end
-		local cost=view.content:FindFirstChild("UpgradeCost")
-		if cost then cost.Visible=false end
-		view.content.QueueLabel.Text="READY CASH"
-		view.content.RateLabel.Text="SELLING"
+		view.upgradeGradient=view.content.Upgrade.Visual.Face:FindFirstChildWhichIsA("UIGradient")
+		view.affordableGradient=view.upgradeGradient and view.upgradeGradient.Color
 	else
 		view.cash=gui:FindFirstChild("ReadyCash",true)
 		if view.cash then
@@ -94,7 +98,7 @@ function Board:Render()
 		if view.cash then view.cash.Text="$"..Theme.Money(offer.readyCash) end
 		if view.content then
 			local c=view.content
-			c.QueuedCount.Text="$"..Theme.Money(offer.readyCash)
+			c.QueuedCount.Text=Theme.Money(offer.queuedCount)
 			if not c.QueuedCount.TextScaled then
 				-- Keep the Studio-authored headline size; shrink only if the full count cannot fit.
 				local label=c.QueuedCount
@@ -110,7 +114,27 @@ function Board:Render()
 					label.TextSize=size
 				end
 			end
-			c.Rate.Text="Instant"
+			c.Rate.Text=tostring(offer.rate).." eggs/sec"
+			local upgradeCost=c:FindFirstChild("UpgradeCost")
+			if view.inlinePrice or not upgradeCost then
+				c.Upgrade.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Upgrade • $"..Theme.Money(offer.upgradePrice) else "Currency limit"
+				-- Authored GUI clones do not retain UITheme's caption-sync connections.
+				local caption=c.Upgrade.Visual.Caption
+				caption.Text=c.Upgrade.Text
+				for _,label in caption:GetChildren() do
+					if label:IsA("TextLabel") then label.Text=c.Upgrade.Text end
+				end
+			else
+				upgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: $"..Theme.Money(offer.upgradePrice) else "Currency limit"
+			end
+			local status=self.app.commerce:State("FinishEggs")
+			if view.upgradeGradient then
+				local unaffordable=offer.upgradePrice~=nil and state.coins<offer.upgradePrice
+				view.upgradeGradient.Color=if unaffordable then Theme.UnaffordableGradient else view.affordableGradient
+			end
+			c.Upgrade.Active=self.pending==nil and offer.upgradePrice~=nil
+			c.FinishNow.Active=offer.queuedCount>0 and status~="pending" and status~="preparing"
+			c.Upgrade.Selectable,c.FinishNow.Selectable=c.Upgrade.Active,c.FinishNow.Active
 		end
 	end
 end
@@ -152,12 +176,37 @@ function Board:UpdatePad(view, root, humanoid)
 	view.reduced=reduced
 end
 
-function Board:Receive(_result)
+function Board:Activate(name)
+	local state=self.app.state
+	local offer=state and state.eggs and state.eggs.processor
+	if not offer or not offer.enabled then return end
+	self.app.audio:Play("Click")
+	if name=="FinishNow" then
+		if offer.queuedCount<=0 then return end
+		local status=self.app.commerce:State("FinishEggs")
+		if status=="loading" or status=="error" then
+			self.app.commerce:Load("FinishEggs",true)
+			self.app:Notify("Checking Finish Now price...",false)
+		elseif status=="offsale" or status=="unconfigured" then
+			self.app:Notify("Finish Now is currently unavailable.",false)
+		else self.app.commerce:Buy("FinishEggs") end
+	elseif not self.pending and offer.upgradePrice then
+		if state.coins<offer.upgradePrice then self.app:Notify("Not enough cash for this upgrade.",false);return end
+		local id=self.app:Request("EggSellerUpgrade",{expectedLevel=offer.level,expectedPrice=offer.upgradePrice})
+		self.pending=id
+		task.delay(8,function() if self.alive and self.pending==id then self.pending=nil;self:Render() end end)
+	end
+	self:Render()
+end
+
+function Board:Receive(result)
+	if result and result.id==self.pending then self.pending=nil end
 	self:Render()
 end
 
 function Board:Start()
 	self.playerGui=Players.LocalPlayer:WaitForChild("PlayerGui")
+	self.app.commerce:Load("FinishEggs")
 	table.insert(self.connections,RunService.Heartbeat:Connect(function()
 		local character=Players.LocalPlayer.Character
 		local root=character and character:FindFirstChild("HumanoidRootPart")

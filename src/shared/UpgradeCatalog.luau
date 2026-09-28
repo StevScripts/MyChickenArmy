@@ -7,14 +7,16 @@ local UpgradeCatalog = {
 	BoardDistance = 24,
 	EggSpeedRates = {1, 1.15, 1.30, 1.45, 1.60},
 	EggSpeedPrices = table.clone(Config.IncomePrices),
-	PlotScales = {1, 1.05, 1.10, 1.15, 1.20},
-	PlotPrices = table.clone(Config.IncomePrices),
+	-- Prepend smaller yards; revision-10 levels shift +3 with identical old sizes.
+	PlotScales = {0.80, 0.87, 0.94, 1, 1.05, 1.10, 1.15, 1.20},
+	-- Physical expansion is independent of the longer stat tracks.
+	PlotPrices = {480, 1200, 2400, 2880, 63000, 725760, 3628800},
 	ExtraChickensPerPlotLevel = 5,
 	RollSlotPrices = {
-		1200, 4800,
-		math.floor(Config.Economy.ReferenceIncome[2] * 120),
-		math.floor(Config.Economy.ReferenceIncome[3] * 120),
-		math.floor(Config.Economy.ReferenceIncome[4] * 120),
+		1200, 4800, 120000, 6000000, 600000000,
 	},
 }
+for level = #UpgradeCatalog.EggSpeedRates, #UpgradeCatalog.EggSpeedPrices do
+	UpgradeCatalog.EggSpeedRates[level + 1] = 1 + 0.15 * level
+end
 return UpgradeCatalog

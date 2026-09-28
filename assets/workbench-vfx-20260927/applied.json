@@ -1,0 +1,296 @@
+{
+  "application": {
+    "recovery": "ServerStorage.ChickenWorkbenchVFXRecovery20260927",
+    "models": [
+      {
+        "sourceScale": 1.130833387374878,
+        "after": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 10
+        },
+        "missingEndpoints": [],
+        "displayName": "Magma Chicken",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 0
+        },
+        "templateScale": 1,
+        "roots": 4,
+        "species": "Knight",
+        "convertedCarriers": [],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Knight"
+      },
+      {
+        "sourceScale": 0.7578428983688354,
+        "after": {
+          "Trail": 0,
+          "Beam": 2,
+          "ParticleEmitter": 5
+        },
+        "missingEndpoints": [
+          {
+            "property": "Attachment1",
+            "effect": "Beam"
+          },
+          {
+            "property": "Attachment1",
+            "effect": "Beam"
+          }
+        ],
+        "displayName": "Frost Feather",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 2
+        },
+        "templateScale": 0.6701631546020508,
+        "roots": 3,
+        "species": "Frost",
+        "convertedCarriers": [],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Frost"
+      },
+      {
+        "sourceScale": 1.1691666841506958,
+        "after": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 8
+        },
+        "missingEndpoints": [],
+        "displayName": "Shadow Stalker",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 0
+        },
+        "templateScale": 1,
+        "roots": 1,
+        "species": "Wizard",
+        "convertedCarriers": [],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Wizard"
+      },
+      {
+        "sourceScale": 0.783532440662384,
+        "after": {
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 4
+        },
+        "missingEndpoints": [],
+        "displayName": "Diamond Defender",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 0
+        },
+        "templateScale": 0.6701631546020508,
+        "roots": 2,
+        "species": "Diamond",
+        "convertedCarriers": [
+          {
+            "newOffset": "0, 0, 0",
+            "name": "Central",
+            "oldOffset": "-238.65072631835938, -7.951600074768066, -483.5555114746094"
+          }
+        ],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Diamond"
+      },
+      {
+        "sourceScale": 1.3416666984558105,
+        "after": {
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 4
+        },
+        "missingEndpoints": [],
+        "displayName": "Golden Emperor",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 0
+        },
+        "templateScale": 1,
+        "roots": 2,
+        "species": "Dragon",
+        "convertedCarriers": [
+          {
+            "newOffset": "0, 0, 0",
+            "name": "Central",
+            "oldOffset": "252.6506805419922, -8.417610168457031, 483.5971374511719"
+          }
+        ],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Dragon"
+      },
+      {
+        "sourceScale": 1.2074999809265137,
+        "after": {
+          "Trail": 0,
+          "Beam": 16,
+          "ParticleEmitter": 4
+        },
+        "missingEndpoints": [],
+        "displayName": "Glitch Chicken",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 0
+        },
+        "templateScale": 1,
+        "roots": 13,
+        "species": "IceDuck",
+        "convertedCarriers": [],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.IceDuck"
+      },
+      {
+        "sourceScale": 1.3416666984558105,
+        "after": {
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 8
+        },
+        "missingEndpoints": [],
+        "displayName": "Galaxy Overlord",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 0
+        },
+        "templateScale": 1,
+        "roots": 2,
+        "species": "StormDuck",
+        "convertedCarriers": [
+          {
+            "newOffset": "0, 0, 0",
+            "name": "Central",
+            "oldOffset": "293.185546875, -8.199568748474121, 622.6290893554688"
+          }
+        ],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.StormDuck"
+      },
+      {
+        "sourceScale": 0.8991355895996094,
+        "after": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 12
+        },
+        "missingEndpoints": [],
+        "displayName": "Storm Wing",
+        "before": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 6
+        },
+        "templateScale": 0.6701631546020508,
+        "roots": 8,
+        "species": "Storm",
+        "convertedCarriers": [],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Storm"
+      }
+    ]
+  },
+  "readback": {
+    "models": [
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "Knight",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 10
+        }
+      },
+      {
+        "parts": 2,
+        "missingEndpoints": 2,
+        "geometryUnchanged": true,
+        "species": "Frost",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 2,
+          "ParticleEmitter": 5
+        }
+      },
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "Wizard",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 8
+        }
+      },
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "Diamond",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 4
+        }
+      },
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "Dragon",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 4
+        }
+      },
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "IceDuck",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 16,
+          "ParticleEmitter": 4
+        }
+      },
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "StormDuck",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 8
+        }
+      },
+      {
+        "parts": 1,
+        "missingEndpoints": 0,
+        "geometryUnchanged": true,
+        "species": "Storm",
+        "externalEndpoints": 0,
+        "effects": {
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 12
+        }
+      }
+    ],
+    "placeId": 96683186622050,
+    "running": false
+  }
+}

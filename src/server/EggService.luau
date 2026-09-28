@@ -11,6 +11,7 @@ local ShopCatalog=require(Shared.ShopCatalog)
 local EggRover=require(script.Parent.EggRover)
 local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
+local Currency=require(Shared.CurrencyLimits)
 local EggService={}
 EggService.__index=EggService
 local CASH_COLLECT_SECONDS=1
@@ -36,22 +37,48 @@ function EggService:Board(session)
  return plot and plot.folder:FindFirstChild("EggCollectionBoard",true)
 end
 
-function EggService:Upgrade(_player,_session,_level,_price)
- -- Stale clients must never spend cash on the retired track.
- return false,"Eggs now sell instantly. Selling Speed is no longer needed."
+function EggService:CanUseBoard(player,session)
+ local board=self:Board(session)
+ local screen=board and board:FindFirstChild("Screen")
+ local character=player.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+ if not screen or not screen:IsA("BasePart") or not root or not humanoid or humanoid.Health<=0 then return false end
+ return (root.Position-screen.Position).Magnitude<=ProcessorConfig.BoardDistance
+end
+
+function EggService:Upgrade(player,session,level,price)
+ if not self:CanUseBoard(player,session) then return false,"Walk up to your egg selling board." end
+ local state=session.eggProcessor
+ if not ProcessorConfig.ValidLevel(state.level+1) then return false,"Invalid selling upgrade level." end
+ local cost=ProcessorConfig.Price(state.level)
+ if not cost then return false,"This price exceeds the supported currency range." end
+ if level~=state.level or price~=cost then return false,"The upgrade changed. Try again." end
+ if session.coins<cost then return false,"Not enough cash for this upgrade." end
+ session.coins-=cost;state.level+=1;session:Touch()
+ return true,"Eggs sell at "..Processor.Rate(state,session.entitlements.DoubleEggSpawn).." eggs/sec."
 end
 
 function EggService:AcceptDeposit(session,count,value)
  if not Processor.Deposit(session.eggProcessor,count,value) then return false end
  session:Touch()
- -- The old queued receipt flag means transferred to the collector rather than
- -- paid to the wallet. Conversion itself is immediate on every plot.
+ -- Every plot uses the same saved queue; deposits never bypass processing.
  return true,0,true
 end
 
-function EggService:ProcessAndClaim(session,position,_dt,now,grounded,velocity)
- -- Also retries any legacy compensation held while the wallet was full.
- session:RetireEggSeller()
+function EggService:ProcessAndClaim(session,position,dt,now,grounded,velocity)
+ local state=session.eggProcessor
+ local yard=self:Yard(session)
+ -- Only visit the queue/value ledger on whole-second ticks.
+ if #state.batches>0 then
+  yard.processorSeconds=(yard.processorSeconds or 0)+dt
+  local seconds=math.floor(yard.processorSeconds+1e-9)
+  if seconds>0 then
+   yard.processorSeconds=math.max(0,yard.processorSeconds-seconds)
+   if Processor.Step(state,seconds,Processor.Rate(state,session.entitlements.DoubleEggSpawn)) then session:Touch() end
+  end
+ else yard.processorSeconds=0 end
+ if #state.batches==0 then yard.processorSeconds=0 end
  local board=self:Board(session)
  local collection=board and board:FindFirstChild("CollectionPart")
  local pad=collection and collection:FindFirstChild("TouchPart")
@@ -73,7 +100,7 @@ function EggService:ClaimReady(session,pad,now)
  -- Only the server's current ready balance can be paid; repeated requests cannot duplicate it.
  if state.readyValue<=0 or now-(yard.lastCashClaimAt or -math.huge)+1e-9<CASH_COLLECT_SECONDS then return false end
  local amount=session:EarnedAmount(state.readyValue,"eggs")
- if session.coins+amount>ProcessorConfig.MaxValue then return false end
+ if amount>Currency.MaxCoins-session.coins then return false end
  local raw=state.readyValue;state.readyValue=0
  local credited=session:Credit(raw,"eggs")
  yard.lastCashClaimAt=now
@@ -375,11 +402,15 @@ function EggService:Snapshot(session,now)
  local deposit=if yard.deposit and now-yard.deposit.at<3 then table.clone(yard.deposit) else nil
  if deposit then deposit.at=nil end
  local processor=session.eggProcessor
+ local queued=Processor.Totals(processor)
  local cashClaim=if yard.cashClaim and now-yard.cashClaim.at<3 then table.clone(yard.cashClaim) else nil
  if cashClaim then cashClaim.at=nil end
  return {revision=yard.revision,generation=yard.generation,drops=drops,receipts=receipts,value=value,count=count,
-  processor={enabled=true,instant=true,queuedCount=0,
-   readyCash=session:EarnedAmount(processor.readyValue,"eggs")},cashClaim=cashClaim,
+  processor={enabled=true,queuedCount=queued,
+   rate=Processor.Rate(processor,session.entitlements.DoubleEggSpawn),level=processor.level,
+   nextRate=ProcessorConfig.Rate(processor.level+1)*(if session.entitlements.DoubleEggSpawn then 2 else 1),
+   upgradePrice=ProcessorConfig.Price(processor.level),readyCash=session:EarnedAmount(processor.readyValue,"eggs"),
+   finishCredits=processor.finishCredits},cashClaim=cashClaim,
   requiresDeposit=true,carriedCount=session.eggCarry.count,
   carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit,
   rover=if yard.rover then yard.rover:Snapshot(session) else {enabled=false}}

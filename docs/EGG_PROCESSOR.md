@@ -1,5 +1,16 @@
 # Egg selling board
 
+**Current direction, September 27:** keep queued egg processing, Selling Speed
+and Finish Now. The instant-sales experiment was rejected and reverted. All six
+authored plots now have the same processor board; deposits never bypass the
+queue. Selling Speed now has **no designed maximum**: opening rates remain
+4 / 16 / 64 / 256 / 1,024 eggs/sec, followed by 4,096 / 9,216 / 16,384 / ... .
+Prices and continuation formulas are in
+[the continuation contract](team/UNBOUNDED_SELLING_SPEED.md). The current cash collector still requires horizontal movement, as in the
+latest pre-correction code. Earlier descriptions of standing collection or
+instant sales on other plots below are historical. See
+[the correction record](team/EGG_PROCESSING_CORRECTION.md).
+
 Implemented September 24, 2026; compact revision from Figma
 `4lJjZOqNhR8K7rfMbVIjaK / 328:844`.
 

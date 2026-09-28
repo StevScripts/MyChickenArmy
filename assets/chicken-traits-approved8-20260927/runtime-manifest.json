@@ -1,0 +1,82 @@
+{
+  "Lollipop": {
+    "id": "lollipop",
+    "vertices": 3138,
+    "triangles": 5902,
+    "bones": 18,
+    "bonePrefix": "Lollipop_",
+    "rig": "Lollipop_Rig.002",
+    "mesh": "Lollipop_Body.002",
+    "paletteColors": 7
+  },
+  "Honeycomb": {
+    "id": "honeycomb",
+    "vertices": 4742,
+    "triangles": 7700,
+    "bones": 18,
+    "bonePrefix": "Honeycomb_",
+    "rig": "Honeycomb_Rig.002",
+    "mesh": "Honeycomb_Body.002",
+    "paletteColors": 7
+  },
+  "Toxic": {
+    "id": "toxic",
+    "vertices": 3110,
+    "triangles": 6024,
+    "bones": 18,
+    "bonePrefix": "Toxic_",
+    "rig": "Toxic_Rig.002",
+    "mesh": "Toxic_Body.002",
+    "paletteColors": 7
+  },
+  "Water": {
+    "id": "water",
+    "vertices": 2832,
+    "triangles": 5504,
+    "bones": 18,
+    "bonePrefix": "Water_",
+    "rig": "Water_Rig.002",
+    "mesh": "Water_Body.002",
+    "paletteColors": 7
+  },
+  "SolarFlare": {
+    "id": "solar-flare",
+    "vertices": 2128,
+    "triangles": 4116,
+    "bones": 18,
+    "bonePrefix": "SolarFlare_",
+    "rig": "SolarFlare_Rig.002",
+    "mesh": "SolarFlare_Body.002",
+    "paletteColors": 6
+  },
+  "Heavenly": {
+    "id": "heavenly",
+    "vertices": 1132,
+    "triangles": 2112,
+    "bones": 18,
+    "bonePrefix": "Heavenly_",
+    "rig": "Heavenly_Rig.002",
+    "mesh": "Heavenly_Body.002",
+    "paletteColors": 6
+  },
+  "Devil": {
+    "id": "devil",
+    "vertices": 796,
+    "triangles": 1464,
+    "bones": 18,
+    "bonePrefix": "Devil_",
+    "rig": "Devil_Rig.002",
+    "mesh": "Devil_Body.002",
+    "paletteColors": 8
+  },
+  "Jungle": {
+    "id": "jungle",
+    "vertices": 1678,
+    "triangles": 3108,
+    "bones": 18,
+    "bonePrefix": "Jungle_",
+    "rig": "Jungle_Rig.002",
+    "mesh": "Jungle_Body.002",
+    "paletteColors": 10
+  }
+}

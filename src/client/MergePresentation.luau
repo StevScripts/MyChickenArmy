@@ -80,6 +80,14 @@ function Presentation:Feathers()
  self:Later(0.5,function() puff:Destroy();self.puff=nil end)
 end
 
+function Presentation:Waiting()
+ self:Cancel()
+ self:SetPhase("Waiting")
+ self.output.Visible=false
+ for _,bird in self.inputs do bird.Visible=true end
+ self.plus.Visible=false
+end
+
 function Presentation:Play(onReveal,onComplete)
  self:Cancel()
  self:SetPhase("Prepare")
@@ -116,7 +124,7 @@ function Presentation:Play(onReveal,onComplete)
   self:Feathers()
   self.app.audio:Play("Pop",0.88,{volume=0.4,maxDuration=0.35,voiceKey="MergeImpact"})
  end)
- self:Later(0.58,function()
+ self:Later(1.6,function()
   self:SetPhase("Reveal")
   local bird=self.output
   bird.Visible,bird.ImageTransparency=true,0.18
@@ -125,7 +133,7 @@ function Presentation:Play(onReveal,onComplete)
   onReveal()
   self.app.audio:Play("RollReveal",1.1,{volume=0.3,maxDuration=0.7,voiceKey="MergeReveal"})
  end)
- self:Later(1.1,function() self:ShowResult();onComplete() end)
+ self:Later(1.95,function() self:ShowResult();onComplete() end)
 end
 
 function Presentation:Cancel()

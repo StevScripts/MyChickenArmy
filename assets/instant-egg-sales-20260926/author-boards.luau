@@ -1,3 +1,5 @@
+-- CANCELLED September 27: user explicitly requires queued processing.
+assert(false, "Instant sales were rejected; use the processing-correction recipe instead.")
 -- Re-runnable Edit recipe. Keeps original geometry, fonts, textures and input pads.
 assert(game.PlaceId == 96683186622050 and not game:GetService("RunService"):IsRunning())
 local home = workspace.MyChickenArmyMap["03_HomePlots"]

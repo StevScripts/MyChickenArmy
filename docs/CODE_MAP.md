@@ -32,6 +32,7 @@ Paths below are relative to `src/`. Search for the named symbol in VS Code with 
 | Menu hover, press, open and pop animations | `client/UIMotion.luau` | Reusable tweens; start with `BindButton`, `Pop` and `Tween` |
 | Sound asset IDs and audio playback | `SoundService.MyChickenArmyAudio`, `client/AudioController.luau` | Edit native SoundId properties in Studio; [audio folders and editing guide](AUDIO.md). Client handles playback, mute, spatial parents and cleanup. |
 | UI palette and shared controls | `shared/UIColors.luau`, `client/UITheme.luau` | Colors, typography and reusable component styling |
+| Chicken fusion | `client/MergeBrowser.luau`, `client/MergeSelection.luau` | Three-slot staging, chicken picker and result; `server/ArmyService.luau` validates exact triples, `server/MergeStand.luau` binds the authored machine and `server/MergeGate.luau` owns its sectional garage animation. [Current fuse contract](MERGING.md) |
 | Army inventory and chicken selling | `client/ChickenBrowser.luau` | Cards, selection and confirmation; `server/ArmyService.luau` validates transactions |
 | HUD and menu navigation | `client/HudController.luau`, `client/AppController.luau` | HUD rendering and page/controller coordination; [responsive layout and device checks](UI_RESPONSIVE.md) |
 | Upgrades menu | `client/ProgressionBrowser.luau` | Presentation of server-provided upgrade prices and eligibility |

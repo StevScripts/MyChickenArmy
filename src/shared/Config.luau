@@ -5,6 +5,12 @@ local Economy = {
 	StarterRecruitPrice = 600,
 	IncomeUpgradeSeconds = 180,
 	LuckUpgradeSeconds = 120,
+	-- Capped board continuation. Preserve the opening four benchmark prices.
+	IncomeUpgradeMax = 25,
+	IncomePriceGrowth = 1.35,
+	LuckUpgradeMax = 20,
+	LuckPriceGrowth = 1.25,
+	UpgradePriceStep = 1000,
 	ReferenceIncome = {
 		16, -- Rookie: the three starting chickens, no egg-value upgrades.
 		5 * 28 * 2 * 1.25, -- Iron: five level-2 Bucket chickens, egg value 1.
@@ -30,8 +36,8 @@ local Config = {
   NeutralRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1}},
   RaidRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Mallard",stars=1,level=1}},
  },
- StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=40,LegacyCollectionLimit=60,
- DataRevision=10,StarterFlock={"Duck","Duck","Mallard"},
+ StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=60,
+ DataRevision=11,StarterFlock={"Duck","Duck","Mallard"},
  CommandDistance=14,
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.
@@ -53,6 +59,7 @@ local Config = {
  SplashDamageFraction=0.5,
  AttackerRespawnSeconds=5,EnemyReclaimSeconds=4,
  LuckPrices={pacedPrice(1,Economy.LuckUpgradeSeconds),pacedPrice(2,Economy.LuckUpgradeSeconds),pacedPrice(3,Economy.LuckUpgradeSeconds),pacedPrice(4,Economy.LuckUpgradeSeconds)},LuckWeightPerLevel=0.35,
+ LuckOpeningLevels=4,LuckContinuationWeightPerLevel=0.10,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,
  MaxStars=1,StarHP={1},StarSize={1},SellFraction=0.5,
  -- All chickens lay the same egg. Species/levels change quantity, not unit value.
@@ -85,4 +92,14 @@ local Config = {
   {name="Ironbeak HQ",position={0,-109},roster={{species="Bucket",level=2},{species="Bucket",level=2},{species="Sailor",level=2},{species="Viking",level=1}}},
  },
 }
+-- Quote fixed prices, never prices based on a player's coins or live income.
+local function extendPrices(prices, maximum, growth)
+	local openingCount, anchor = #prices, prices[#prices]
+	for purchase = openingCount + 1, maximum do
+		prices[purchase] = math.ceil(anchor * growth ^ (purchase - openingCount)
+			/ Economy.UpgradePriceStep) * Economy.UpgradePriceStep
+	end
+end
+extendPrices(Config.IncomePrices, Economy.IncomeUpgradeMax, Economy.IncomePriceGrowth)
+extendPrices(Config.LuckPrices, Economy.LuckUpgradeMax, Economy.LuckPriceGrowth)
 return Config

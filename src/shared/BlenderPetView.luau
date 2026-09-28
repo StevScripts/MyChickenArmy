@@ -70,7 +70,7 @@ function BlenderPetView.Create(parent, id, species, stars, foot, physical)
 	-- Effects already present in the imported art are controlled by the existing
 	-- client visual lifecycle, including hiding, defeat and reduced motion.
 	for _, effect in model:GetDescendants() do
-		if effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Trail") then
+		if effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Trail") or effect:IsA("Light") then
 			effect:SetAttribute("ImportedEffectEnabled", effect.Enabled)
 			effect.Enabled = false
 		end

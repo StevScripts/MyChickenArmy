@@ -1,0 +1,145 @@
+{
+  "application": {
+    "recovery": "ServerStorage.ChickenWorkbenchVFXRecovery20260927_Revision2",
+    "models": [
+      {
+        "sourceScale": 1.130833387374878,
+        "after": {
+          "SurfaceLight": 0,
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 8,
+          "SpotLight": 0,
+          "PointLight": 1
+        },
+        "missingEndpoints": [],
+        "displayName": "Magma Chicken",
+        "before": {
+          "SurfaceLight": 0,
+          "Trail": 0,
+          "Beam": 0,
+          "ParticleEmitter": 10,
+          "SpotLight": 0,
+          "PointLight": 0
+        },
+        "templateScale": 1,
+        "roots": 3,
+        "species": "Knight",
+        "convertedCarriers": [],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Knight"
+      },
+      {
+        "sourceScale": 1.3416666984558105,
+        "after": {
+          "SurfaceLight": 0,
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 5,
+          "SpotLight": 0,
+          "PointLight": 1
+        },
+        "missingEndpoints": [],
+        "displayName": "Galaxy Overlord",
+        "before": {
+          "SurfaceLight": 0,
+          "Trail": 0,
+          "Beam": 10,
+          "ParticleEmitter": 8,
+          "SpotLight": 0,
+          "PointLight": 0
+        },
+        "templateScale": 1,
+        "roots": 2,
+        "species": "StormDuck",
+        "convertedCarriers": [
+          {
+            "newOffset": "0, 0, 0",
+            "name": "Central",
+            "oldOffset": "293.185546875, -8.199568748474121, 622.6290893554688"
+          }
+        ],
+        "destination": "ReplicatedStorage.PetRoll.ChickenAssets.StormDuck"
+      }
+    ]
+  },
+  "before": {
+    "disk": [
+      {
+        "name": "BlenderPetView",
+        "path": "src/shared/BlenderPetView.luau",
+        "bytes": 7685,
+        "hash": 3028168241
+      },
+      {
+        "name": "SpecialChickenVFX",
+        "path": "src/client/SpecialChickenVFX.luau",
+        "bytes": 12380,
+        "hash": 496441518
+      }
+    ],
+    "studio": [
+      {
+        "bytes": 7685,
+        "copies": 1,
+        "name": "BlenderPetView",
+        "hash": 3028168241
+      },
+      {
+        "bytes": 12380,
+        "copies": 1,
+        "name": "SpecialChickenVFX",
+        "hash": 496441518
+      }
+    ]
+  },
+  "disk": [
+    {
+      "name": "BlenderPetView",
+      "path": "src/shared/BlenderPetView.luau",
+      "bytes": 7708,
+      "hash": 667496835
+    },
+    {
+      "name": "SpecialChickenVFX",
+      "path": "src/client/SpecialChickenVFX.luau",
+      "bytes": 12403,
+      "hash": 1236276160
+    }
+  ],
+  "studio": {
+    "models": [
+      {
+        "beams": 0,
+        "geometryUnchanged": true,
+        "externalReferences": 0,
+        "species": "Knight",
+        "particles": 8,
+        "lights": 1
+      },
+      {
+        "beams": 10,
+        "geometryUnchanged": true,
+        "externalReferences": 0,
+        "species": "StormDuck",
+        "particles": 5,
+        "lights": 1
+      }
+    ],
+    "sources": [
+      {
+        "bytes": 7708,
+        "copies": 1,
+        "name": "BlenderPetView",
+        "hash": 667496835
+      },
+      {
+        "bytes": 12403,
+        "copies": 1,
+        "name": "SpecialChickenVFX",
+        "hash": 1236276160
+      }
+    ],
+    "running": false
+  },
+  "matched": true
+}

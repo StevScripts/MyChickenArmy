@@ -1,5 +1,10 @@
 # Immediate egg sales — September 26, 2026
 
+**REJECTED by the user September 27. Do not implement or rerun this plan.**
+Processing and purchase behavior have been restored; no retirement payouts should
+run. Current record: [EGG_PROCESSING_CORRECTION.md](EGG_PROCESSING_CORRECTION.md).
+The remainder records the abandoned work, not the approved economy.
+
 Owner: Balance egg quantity and value, `01a0dc10-c6bd-7662-8fe8-6a2bf3ea0710`.
 User approved quantity production, shared egg value and immediate batch selling
 on every plot, retiring Selling Speed and Finish Now while preserving purchases.

@@ -1,0 +1,6 @@
+{
+  "returnValue": "[{\"name\":\"Picker search, remaining counts, sparse slots and Remove\",\"passed\":true},{\"name\":\"Stale server eligibility clears slots and cannot submit\",\"passed\":true},{\"name\":\"Success shows the actual chicken, level and egg/combat values; ignores repeat taps\",\"passed\":true},{\"name\":\"Closing preserves the request and prevents a late result from reopening\",\"passed\":true},{\"name\":\"Reopen an in-flight request; server rejection returns to safe empty selection\",\"passed\":true},{\"name\":\"Desktop and compact layouts preserve action targets and scroll short content\",\"passed\":true}]",
+  "message": "Code executed successfully",
+  "success": true,
+  "output": []
+}

@@ -3,6 +3,8 @@
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Rules = require(Shared.Rules)
 local Tuning = require(Shared.OfflineCashConfig)
+local Currency = require(Shared.CurrencyLimits)
+local Processor = require(script.Parent.EggProcessor)
 local OfflineCash = {}
 
 function OfflineCash.Read(value)
@@ -11,7 +13,7 @@ function OfflineCash.Read(value)
 		return type(n) == "number" and n == n and n >= 0 and n <= maximum
 	end
 	if type(value) ~= "table" or not finite(value.at, 2^53 - 1) or value.at % 1 ~= 0
-		or not finite(value.rate, Tuning.MaxCoins) then return nil end
+		or not finite(value.rate, Currency.MaxCoins) then return nil end
 	return {at = value.at, rate = value.rate}
 end
 
@@ -24,7 +26,8 @@ function OfflineCash.Rate(session)
 	end
 	eggsPerSecond *= session:EggProductionMultiplier()
 	-- Use the existing income and pass owners. No extra multiplier at award time.
-	local raw = eggsPerSecond * Rules.EggUnitValue(session.incomeLevel)
+	local sellerRate = Processor.Rate(session.eggProcessor, session.entitlements.DoubleEggSpawn)
+	local raw = math.min(eggsPerSecond, sellerRate) * Rules.EggUnitValue(session.incomeLevel)
 	return session:EarnedAmount(raw, "eggs") * Tuning.Efficiency
 end
 
@@ -32,7 +35,7 @@ function OfflineCash.Reward(checkpoint, now, coins)
 	local away = if checkpoint.at > 0 then math.max(0, now - checkpoint.at) else 0
 	local counted = math.min(away, Tuning.MaxSeconds)
 	local amount = if away >= Tuning.MinSeconds then math.floor(counted * checkpoint.rate + 1e-7) else 0
-	amount = math.max(0, math.min(amount, math.floor(Tuning.MaxCoins - coins)))
+	amount = math.max(0, math.min(amount, math.floor(Currency.MaxCoins - coins)))
 	return {amount = amount, awaySeconds = away, countedSeconds = counted,
 		rate = checkpoint.rate, efficiency = Tuning.Efficiency, maxSeconds = Tuning.MaxSeconds,
 		capped = away > Tuning.MaxSeconds}

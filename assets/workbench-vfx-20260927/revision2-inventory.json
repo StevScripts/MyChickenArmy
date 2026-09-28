@@ -1,0 +1,186 @@
+{
+  "models": [
+    {
+      "carriers": [],
+      "current": {
+        "ParticleEmitter": 10
+      },
+      "name": "Magma Chicken",
+      "missing": [],
+      "species": "Knight",
+      "previousWorkbench": {
+        "ParticleEmitter": 10
+      },
+      "source": {
+        "PointLight": 1,
+        "ParticleEmitter": 8
+      }
+    },
+    {
+      "carriers": [],
+      "current": {
+        "Beam": 2,
+        "ParticleEmitter": 5
+      },
+      "name": "Frost Feather",
+      "missing": [
+        {
+          "name": "Beam",
+          "property": "Attachment1"
+        },
+        {
+          "name": "Beam",
+          "property": "Attachment1"
+        }
+      ],
+      "species": "Frost",
+      "previousWorkbench": {
+        "Beam": 2,
+        "ParticleEmitter": 5
+      },
+      "source": {
+        "Beam": 2,
+        "ParticleEmitter": 5
+      }
+    },
+    {
+      "carriers": [],
+      "current": {
+        "ParticleEmitter": 1
+      },
+      "name": "Bonsai Bantam",
+      "missing": [],
+      "species": "Bonsai",
+      "previousWorkbench": [],
+      "source": {
+        "ParticleEmitter": 1
+      }
+    },
+    {
+      "carriers": [],
+      "current": {
+        "ParticleEmitter": 8
+      },
+      "name": "Shadow Stalker",
+      "missing": [],
+      "species": "Wizard",
+      "previousWorkbench": {
+        "ParticleEmitter": 8
+      },
+      "source": {
+        "ParticleEmitter": 8
+      }
+    },
+    {
+      "carriers": [
+        {
+          "offset": "-238.65072631835938, -7.951600074768066, -483.5555114746094",
+          "path": "Workspace.ChickenVFX_Workbench.Chickens.Diamond Defender.Body.Attachment.Central",
+          "transparency": 1,
+          "class": "Part"
+        }
+      ],
+      "current": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      },
+      "name": "Diamond Defender",
+      "missing": [],
+      "species": "Diamond",
+      "previousWorkbench": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      },
+      "source": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      }
+    },
+    {
+      "carriers": [
+        {
+          "offset": "252.6506805419922, -8.417610168457031, 483.5971374511719",
+          "path": "Workspace.ChickenVFX_Workbench.Chickens.Golden Emperor.Body.Attachment.Central",
+          "transparency": 1,
+          "class": "Part"
+        }
+      ],
+      "current": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      },
+      "name": "Golden Emperor",
+      "missing": [],
+      "species": "Dragon",
+      "previousWorkbench": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      },
+      "source": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      }
+    },
+    {
+      "carriers": [],
+      "current": {
+        "Beam": 16,
+        "ParticleEmitter": 4
+      },
+      "name": "Glitch Chicken",
+      "missing": [],
+      "species": "IceDuck",
+      "previousWorkbench": {
+        "Beam": 16,
+        "ParticleEmitter": 4
+      },
+      "source": {
+        "Beam": 16,
+        "ParticleEmitter": 4
+      }
+    },
+    {
+      "carriers": [
+        {
+          "offset": "293.185546875, -8.199568748474121, 622.6290893554688",
+          "path": "Workspace.ChickenVFX_Workbench.Chickens.Galaxy Overlord.Body.Attachment.Central",
+          "transparency": 1,
+          "class": "Part"
+        }
+      ],
+      "current": {
+        "Beam": 10,
+        "ParticleEmitter": 8
+      },
+      "name": "Galaxy Overlord",
+      "missing": [],
+      "species": "StormDuck",
+      "previousWorkbench": {
+        "Beam": 10,
+        "ParticleEmitter": 8
+      },
+      "source": {
+        "PointLight": 1,
+        "Beam": 10,
+        "ParticleEmitter": 5
+      }
+    },
+    {
+      "carriers": [],
+      "current": {
+        "ParticleEmitter": 12
+      },
+      "name": "Storm Wing",
+      "missing": [],
+      "species": "Storm",
+      "previousWorkbench": {
+        "ParticleEmitter": 12
+      },
+      "source": {
+        "ParticleEmitter": 12
+      }
+    }
+  ],
+  "placeId": 96683186622050,
+  "running": false
+}

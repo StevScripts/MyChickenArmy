@@ -5,7 +5,16 @@ Current user direction, 25 September 2026: **Players can keep buying available u
 The September 26 [egg quantity economy](EGG_ECONOMY.md) preserves this rule, all
 upgrade counts and prices. Egg Value now sets one shared unit value and rarity
 changes egg quantity. Selling Speed's throughput curve was retuned for those
-larger quantities; its four purchases and prices remain unchanged.
+larger quantities; its four purchases and prices remain unchanged. September 27
+clarification explicitly retains this track and rejects instant sales. The later
+September 27 instruction removes Selling Speed's maximum: its first four purchases
+remain unchanged and subsequent purchases continue with increasing capacity.
+No rebirth requirement or camp prerequisite is introduced.
+
+The later approved price curve uses capacity-adjusted costs plus a 10% exponential
+premium; it no longer flattens at $1 trillion. CurrencyLimits defines the expanded
+exact-integer wallet boundary. This remaining representation limit is explicit,
+not a designed Selling Speed MAX tier; see the continuation contract.
 
 This supersedes older documents, research proposals, screenshots, fixtures and code that attach upgrade availability to `promotion`, `firstWins`, `frontierWins`, rank capacity caps or `RollSlotRanks`. Do not restore those restrictions when updating UI, balancing the economy, rebuilding a board, or implementing feedback.
 
@@ -13,15 +22,25 @@ This supersedes older documents, research proposals, screenshots, fixtures and c
 
 The following existing cash tracks are independent of camp progress from the start:
 
-- Egg Speed: all four purchases, up to the current 1.60× production-speed factor before paid benefits.
-- Egg Value: all four purchases, up to the current 2× value factor before paid benefits.
-- Plot Size: all four purchases where the authored plot supports expansion, up to its current 120% width / 60-chicken capacity.
+- Egg Speed: 25 purchases, up to 4.75× production before paid benefits. The first four prices and benefits are unchanged.
+- Egg Value: 25 purchases, setting each newly earned egg to $4 + level (maximum $29). Already-earned eggs keep their value.
+- Plot Size: seven purchases where the authored plot supports expansion. New players start at 25 capacity / 80% horizontal scale; each purchase adds five capacity, ending at 60 / 120% scale.
 - Army Size: every configured purchase from three to ten base deployment slots. Bigger Army remains an additional five slots.
-- Luck: all four existing purchases at their current prices.
+- Luck: 20 purchases. The first four prices/bonuses are unchanged; later levels add 0.10 to Rare+ weights, reaching 4× weights (not 4× normalized probability).
 - Roll Slots: all configured purchases up to six active podiums, capped by the number physically authored for the assigned plot.
-- Selling Speed: retains its existing cash-only purchases and seller-board ownership/proximity rules.
+- Selling Speed: cash-only, with no designed maximum level or processing speed; retains seller-board ownership/proximity rules. See [the continuation contract](team/UNBOUNDED_SELLING_SPEED.md).
 
-The user removed **camp prerequisites**, not the configured maximum level of each track. This change does not invent infinite levels, new benefit curves, additional map space or more podiums. Future additions can extend a track without adding a conquest requirement.
+The September 25 change removed **camp prerequisites**, not track maxima. Later
+September 27 requests separately removed Selling Speed's maximum and authorized
+the reviewed capped board extension. Speed/Value extension prices grow 1.35× per
+purchase, Luck 1.25×, rounded upward to whole thousands after the opening four.
+Roll Slot purchases now cost $1,200 / $4,800 / $120,000 / $6,000,000 / $600,000,000;
+already-owned slots are retained. Army prices and paid benefits are unchanged.
+See [the review and implementation record](team/UPGRADE_BOARD_PROGRESSION.md).
+The smaller 25-capacity starting plot and one-time save conversion were subsequently
+approved. Revision 11 maps old plot levels 0–4 to 3–7, preserving their capacity,
+footprint and next price. New profiles start at level zero. The first three prices
+are $480 / $1,200 / $2,400, followed by the four unchanged existing prices.
 
 ## Checks that remain
 
@@ -29,7 +48,7 @@ Keep server authority over loaded/closing/save-lost state, sufficient cash, exis
 
 Camp-route prerequisites, King access, rank milestones, existing combat encounters and rewards remain separate progression systems. The no-camp-upgrade change did not itself enable merging. The user subsequently authorized manual three-chicken merging on September 25; its separate existing progression rules are documented in `MERGING.md`. Historical rank metadata in Progression is not an instruction to gate cash upgrades.
 
-Existing levels, balances, chicken ownership, investments, entitlements and save schema are preserved. There is no migration or refund/reset requirement for removing these gates. High upgrade levels in a rank-one profile are valid.
+Removing camp gates did not require a migration or refund/reset. The separately approved revision-11 plot conversion changes plot level numbers only; earned capacity, footprint, next price, balances, chickens and entitlements remain intact. The saved field layout and outer schemaVersion=1 remain unchanged. High upgrade levels in a rank-one profile are valid.
 
 ## Runtime owners
 

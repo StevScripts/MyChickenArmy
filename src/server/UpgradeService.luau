@@ -68,7 +68,7 @@ function UpgradeService:Offers(session)
 	local production = session:EggProductionMultiplier()
 	add("EggSpeed", session.eggSpeedLevel, decimal(production) .. "x",
 		Definitions.EggSpeedPrices[session.eggSpeedLevel + 1])
-	add("PlotSize", session.plotSizeLevel, "Lv " .. (session.plotSizeLevel + 1),
+	add("PlotSize", session.plotSizeLevel, tostring(session:CollectionLimit()),
 		Definitions.PlotPrices[session.plotSizeLevel + 1], session.plotExpansionAvailable)
 	local income = session:GlobalUpgrade("Income")
 	add("EggValue", session.incomeLevel,
@@ -78,7 +78,7 @@ function UpgradeService:Offers(session)
 	add("ArmySize", session.capacity, tostring(session:Capacity()), army and army.price)
 	if army then offers.ArmySize.unlocked = army.unlocked; offers.ArmySize.requirement = army.requirement end
 	local luck = session:GlobalUpgrade("Luck")
-	add("Luck", session.luck, decimal((1 + session.luck * Config.LuckWeightPerLevel)
+	add("Luck", session.luck, decimal(Rules.LuckMultiplier(session.luck)
 		* session:PaidLuckMultiplier()) .. "x", luck and luck.price)
 	local slots = session.rollSlotsUnlocked
 	local physicalLimit = session.rollSlotLimit or 1
@@ -94,10 +94,11 @@ function UpgradeService:Offers(session)
 		local nextProduction = nextRate * (if session.entitlements.DoubleEggSpawn then 2 else 1)
 		preview("EggSpeed", decimal(nextProduction) .. "x")
 	end
-	preview("PlotSize", "Lv " .. (session.plotSizeLevel + 2))
+	preview("PlotSize", tostring(math.min(Config.LegacyCollectionLimit,
+		session:CollectionLimit() + Definitions.ExtraChickensPerPlotLevel)))
 	preview("EggValue", "$" .. decimal(Rules.EggUnitValue(session.incomeLevel + 1)))
 	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
-	preview("Luck", decimal((1 + (session.luck + 1) * Config.LuckWeightPerLevel)
+	preview("Luck", decimal(Rules.LuckMultiplier(session.luck + 1)
 		* session:PaidLuckMultiplier()) .. "x")
 	preview("RollSlots", tostring(math.min(slots + 1, physicalLimit)))
 	return offers

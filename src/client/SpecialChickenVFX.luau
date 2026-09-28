@@ -133,7 +133,7 @@ end
 function Special._attach(self: any, body: MeshPart, root: BasePart, appearance: string)
 	self.body, self.root, self.appearance = body, root, appearance
 	for _, effect in self.model:GetDescendants() do
-		if (effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Trail"))
+		if (effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Trail") or effect:IsA("Light"))
 			and effect:GetAttribute("ImportedEffectEnabled") == true then
 			table.insert(self.imported, effect)
 		end

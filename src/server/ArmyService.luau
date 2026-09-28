@@ -213,6 +213,7 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	end
 	if count~=#petIds then return false,"Invalid chicken selection." end
 	if type(expectedTotal)~="number" or expectedTotal~=total then return false,"Your sale value changed. Choose again." end
+	if not session:CanCredit(total,"sale") then return false,"Spend some cash before selling these chickens." end
 	-- Validate the whole batch before mutation; this transaction never yields.
 	for id in seen do session.pets[id]=nil end
 	session:RefreshArmy()

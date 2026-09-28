@@ -4,6 +4,13 @@ Current user direction, September 26, 2026: stronger chickens produce **more
 eggs**, never a more valuable species of egg. This supersedes the earlier
 equal-cadence, variable-value economy and its rarity-colored egg feedback.
 
+September 27 correction: **keep queued processing and Selling Speed upgrades**.
+The user explicitly rejected instant egg sales. Rarity increases quantity; larger
+processor upgrades remain part of the intended progression. Rebirth is not required
+by this mechanic and has not been added. The restored four-upgrade curve below is
+a baseline. A later September 27 instruction explicitly removes the Selling
+Speed maximum; the opening tiers are now followed by repeatable upgrades.
+
 ## Production
 
 `Rules.EggRate` converts the established catalog cash/sec balance into eggs/sec
@@ -21,11 +28,13 @@ does not. Only physically home chickens produce eggs.
 | Galaxy Overlord | 120 | $4 |
 
 A level-2 Galaxy produces 240 eggs/sec before speed benefits. Egg Value levels
-0–4 set every newly completed egg to $4/$5/$6/$7/$8. The existing Double Cash
-pass remains a separate payout multiplier applied once, not a species-specific
-egg value. Current cash production potential is unchanged across all 32 species,
-ten levels and five Egg Value levels. Actual wallet earnings remain limited by
-collection, selling and cash collection.
+0–4 still set every newly completed egg to $4/$5/$6/$7/$8. The later September 27
+board extension adds levels through 25, with $4 + level unit value (maximum $29)
+and 25 Egg Speed purchases through 4.75×. The existing Double Cash pass remains
+a separate payout multiplier applied once, not a species-specific egg value.
+The original quantity conversion preserved cash production potential; the board
+extension deliberately adds higher potential beyond the old maxima. Actual
+wallet earnings remain limited by collection, selling and cash collection.
 
 The approved merge rule remains three matching inputs into one next-level bird.
 The output produces twice one input's eggs, so the combined flock loses one-third
@@ -62,16 +71,23 @@ The four existing prices remain **480 / 2,400 / 9,600 / 28,800**. Double Egg Spa
 continues doubling seller throughput. No cash upgrade requires camp progress.
 The starter flock produces 4/sec; one unupgraded Galaxy fits tier 3 (256/sec).
 
-Large merged flocks can still exceed the final seller tier. For example, ten
-level-1 Galaxies produce 1,200/sec before speed upgrades. This is an explicit
-remaining balance constraint, not lost production: excess eggs queue. A final
-seller progression curve needs gameplay observation rather than being inferred
-from the old egg counts. Plots without an authored seller board retain their
-existing instant-sale behavior, another existing economy asymmetry.
+There is no final seller tier. After level 4, rate is `1024 * (level - 3)^2`:
+4,096 / 9,216 / 16,384 / ... eggs/sec. The approved next-price equation is
+`ceil(86400 * (n + 1)^2 * 1.10^n)`, where `n = current level - 4` after the opening
+four purchases. Prices do not flatten. Wallet support is expanded to the exact
+integer representation boundary, about $9.007 quadrillion. A quote beyond that
+boundary is unavailable as `Currency limit`; arbitrary-precision money is not
+implemented. See [the continuation contract](team/UNBOUNDED_SELLING_SPEED.md).
+These parameters still need pacing observation; no authored final tier does not
+imply infinite content. Excess production queues without being repriced or discarded.
+Every plot now deposits into the same saved processing
+queue. The canonical authored map has a seller board on each of its six plots;
+there is no per-plot instant-sale bypass.
 
 Offline cash now uses `min(total owned eggs/sec, seller eggs/sec) × unit value`,
-then the existing payout benefit and 2% efficiency. Eight-hour and wallet caps
-are unchanged. Offline state does not create eggs or process saved queues.
+then the existing payout benefit and 2% efficiency. The eight-hour cap is unchanged;
+offline wallet headroom now follows shared CurrencyLimits. Offline state does not
+create eggs or process saved queues.
 
 ## Earned balances and compatibility
 
@@ -100,3 +116,12 @@ All 22 fixture dependencies/changed sources compiled; Rojo packaging and Git
 whitespace checks passed. This is not a visual gameplay or device performance
 test. Source, fixtures and results: `assets/egg-quantity-20260926/`.
 Studio source integration and duplicate recovery: [task record](team/EGG_QUANTITY.md).
+
+## Processing restoration — September 27
+
+Instant-sale conversion, automatic Selling Speed refunds and Finish Now cash
+compensation were removed before any task-driven live-profile use. Queues, saved
+selling levels, ready cash and Finish Now credits retain their original roles.
+The current cash-pad movement rule and unrelated purchase-test/merge changes
+were preserved. Seventeen focused checks pass; see
+[the correction record](team/EGG_PROCESSING_CORRECTION.md).

@@ -1,0 +1,111 @@
+--- a/src/client/HudController.luau
++++ b/src/client/HudController.luau
+@@ -10,14 +10,15 @@
+ 
+ function Hud.new(app,shell)
+ 	local self=setmetatable({app=app},Hud)
+-	local top=Theme.Frame(shell,"Navigation",UDim2.fromOffset(660,66))
+-	self.navigation=top
+-	top.AnchorPoint,top.Position,top.BackgroundTransparency=Vector2.new(0.5,0),UDim2.new(0.5,0,0,6),1
+-	local list=Instance.new("UIListLayout")
+-	list.FillDirection,list.Padding,list.SortOrder,list.Parent=Enum.FillDirection.Horizontal,UDim.new(0,12),Enum.SortOrder.LayoutOrder,top
+-	list.HorizontalAlignment=Enum.HorizontalAlignment.Center
+-	self.army=Theme.ActionButton(top,"Army","My Army",function() app:TogglePage("Army") end,Theme.PageColors.Army)
+-	self.army.Size,self.army.LayoutOrder,self.army.TextSize=UDim2.new(1/3,-8,0,64),1,26
++	local navigation=Theme.Frame(shell,"Navigation",UDim2.fromOffset(180,236))
++	self.navigation=navigation
++	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-18),1
++	self.army=Theme.IconButton(navigation,"Army","My Army",Theme.Assets.ArmyHud or Theme.Assets.Army,function() app:TogglePage("Army") end)
++	self.army.Size,self.army.TextSize=UDim2.fromScale(1,1),32
++	self.armyIcon=self.army.Visual.Icon
++	self.armyLabel=self.army.Visual.Label
++	self.armyCount=Theme.Display(self.army.Visual,"ArmyCount","",20,Theme.PageColors.Army)
++	self.armyCount.TextXAlignment=Enum.TextXAlignment.Center
+ 	self.status=Theme.Display(shell,"ArmyStatus","",21)
+ 	self.status.AnchorPoint,self.status.Position,self.status.Size,self.status.TextXAlignment=Vector2.new(0.5,0),UDim2.new(0.5,0,0,86),UDim2.fromOffset(520,30),Enum.TextXAlignment.Center
+ 	self.status.Visible=false
+@@ -126,34 +127,27 @@
+ 	local compact=touch or width<1280 or height<600
+ 	local shell=self.navigation.Parent
+ 	local reference=math.min(width/1920,height/1080,1.25)
+-	local top=6
+-	local left,right=12,width-12
+ 	local inset=GuiService.TopbarInset
+-	if compact then
+-		local freeLeft=math.max(left,inset.Min.X-shell.AbsolutePosition.X+8)
+-		local freeRight=math.min(right,inset.Max.X-shell.AbsolutePosition.X-64)
+-		if inset.Width>0 and freeRight-freeLeft>=380 then
+-			left,right=freeLeft,freeRight
+-		else
+-			top=math.max(6,inset.Max.Y-shell.AbsolutePosition.Y+6)
+-		end
+-	end
+-	local navHeight=math.max(56,math.floor(94*reference+0.5))
+-	local gap=math.max(8,math.floor(32*reference+0.5))
+-	local navWidth=math.min(math.max(924*reference,520),right-left)
+-	local navLeft=math.clamp((width-navWidth)/2,left,right-navWidth)
+-	self.navigation.AnchorPoint=Vector2.zero
+-	self.navigation.Position=UDim2.fromScale(navLeft/width,top/height)
+-	self.navigation.Size=UDim2.fromScale(navWidth/width,navHeight/height)
+-	local list=self.navigation:FindFirstChildWhichIsA("UIListLayout")
+-	list.Padding,list.VerticalAlignment=UDim.new(gap/navWidth,0),Enum.VerticalAlignment.Center
+-	local armyFraction=if width<600 then 0.36 else 400/860
+-	local armyWidth=(navWidth-gap*2)*armyFraction
+-	self.army.Size=UDim2.fromScale(armyWidth/navWidth,1)
+-	self.army.TextSize=math.clamp(34*reference,20,42)
+-	local statusTop=top+navHeight+6
++	local statusTop=math.max(12,inset.Max.Y-shell.AbsolutePosition.Y+8)
++	-- One standalone shortcut centered inside the device-safe area.
++	local iconSize=if width<600 or height<500 then 96 else math.clamp(math.floor(180*reference+0.5),120,216)
++	local labelHeight=if compact then 28 else 36
++	local countHeight=if compact then 20 else 24
++	local navWidth=math.max(120,iconSize)
++	local navHeight=iconSize+labelHeight+countHeight
++	local bottom=if compact then 12 else 18
++	self.navigation.AnchorPoint=Vector2.new(0.5,1)
++	self.navigation.Position=UDim2.new(0.5,0,1,-bottom)
++	self.navigation.Size=UDim2.fromOffset(navWidth,navHeight)
++	self.army.Size=UDim2.fromScale(1,1)
++	self.army.TextSize=if compact then 26 else 34
++	self.armyIcon.AnchorPoint=Vector2.new(0.5,0)
++	self.armyIcon.Position,self.armyIcon.Size=UDim2.fromScale(0.5,0),UDim2.fromOffset(iconSize,iconSize)
++	self.armyLabel.Position,self.armyLabel.Size=UDim2.fromOffset(0,iconSize-4),UDim2.fromOffset(navWidth,labelHeight)
++	self.armyCount.Position,self.armyCount.Size=UDim2.fromOffset(0,iconSize+labelHeight-6),UDim2.fromOffset(navWidth,countHeight)
++	self.armyCount.TextSize=if compact then 18 else 22
+ 	for _,label in {self.status,self.objective} do
+-		label.Position=UDim2.fromScale((navLeft+navWidth/2)/width,statusTop/height)
++		label.Position=UDim2.new(0.5,0,0,statusTop)
+ 		label.Size=UDim2.fromScale(math.min(570,width-24)/width,28/height)
+ 		label.TextSize=if compact then 18 else 22
+ 	end
+@@ -175,9 +169,10 @@
+ 		button.Position=UDim2.fromScale(0,(i-1)*(0.5+4/utilityHeight))
+ 		button.TextSize=math.clamp(utilityWidth*0.23,18,32)
+ 	end
+-	self.save.Position,self.save.Size=UDim2.fromScale(0.988,(top+navHeight+8)/height),UDim2.fromScale(math.min(200,width*0.4)/width,28/height)
++	self.save.Position,self.save.Size=UDim2.fromScale(0.988,statusTop/height),UDim2.fromScale(math.min(200,width*0.4)/width,28/height)
+ 	local small=width<850
+-	local moneyY=if touch then math.min(0.73,1-124/height) else 0.925
++	local lowerSides=touch or width<600
++	local moneyY=if lowerSides then math.min(0.73,1-124/height) else 0.925
+ 	self.cashIcon.AnchorPoint=Vector2.new(0,0.5)
+ 	self.cashIcon.Position,self.cashIcon.Size=UDim2.fromScale(0.012,moneyY),UDim2.fromScale((if small then 48 else 88)/width,(if small then 46 else 80)/height)
+ 	self.money.AnchorPoint=Vector2.new(0,0.5)
+@@ -194,7 +189,7 @@
+ 	end
+ 	self:UpdateEggLine(self.app.state and self.app.state.eggs or {})
+ 	self.territory.Position,self.territory.Size=UDim2.fromScale(0.012,moneyY-48/height),UDim2.fromScale(0.48,24/height)
+-	self.conquered.Position,self.flock.Position=UDim2.fromScale(0.988,if touch then 0.76 else 0.95),UDim2.fromScale(0.988,if touch then 0.76+26/height else 0.98)
++	self.conquered.Position,self.flock.Position=UDim2.fromScale(0.988,if lowerSides then 0.76 else 0.95),UDim2.fromScale(0.988,if lowerSides then 0.76+26/height else 0.98)
+ 	self.conquered.Size,self.flock.Size=UDim2.fromScale(0.48,28/height),UDim2.fromScale(0.48,28/height)
+ 	self.conquered.TextSize,self.flock.TextSize=if small then 18 else 27,if small then 18 else 25
+ end
+@@ -240,7 +235,7 @@
+ 	self:UpdateEggLine(state.eggs or {})
+ 	self.flock.Text="Chickens "..count.."/"..limit
+ 	local atHome=state.armyState=="Home"
+-	self.army.Text="My Army\n"..(if atHome then selected else deployed).."/"..capacity
++	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
+ 	self.status.Visible=not atHome
+ 	self.status.Text=if atHome then ""
+ 		elseif state.armyState=="Returning" then "Returning home"
