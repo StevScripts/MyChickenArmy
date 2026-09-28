@@ -46,6 +46,7 @@ Theme.Assets = {
 	Cash="rbxassetid://101788696120931", Studs="rbxassetid://93331178043153",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",
+	ArmyHud="rbxassetid://107457338807219", CallArmy="rbxassetid://125964672530167", MyBase="rbxassetid://76117843071069",
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
 }
 Theme.Rarities = Palette.Rarities

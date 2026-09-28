@@ -79,7 +79,7 @@ function Selection:Payload(options,stationIndex)
  local ids={}
  for _,id in recipe.petIds do if self:Contains(id) then table.insert(ids,id) end end
  if #ids~=3 then return nil end
- return {firstId=ids[1],secondId=ids[2],thirdId=ids[3],level=recipe.level,stationIndex=stationIndex}
+ return {firstId=ids[1],secondId=ids[2],thirdId=ids[3],level=recipe.level,stationIndex=stationIndex,expectedPrice=recipe.price}
 end
 
 -- Called only after an acknowledged Sync, never from an uncorrelated snapshot.

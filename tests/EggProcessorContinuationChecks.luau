@@ -52,43 +52,43 @@ return function(sources)
 		e.CanUseBoard = function() return true end
 		return e
 	end
-	check("Opening rates/prices unchanged; later rates and gains increase", function()
-		for level = 0, 4 do assert(Config.Rate(level) == Config.Rates[level + 1]) end
-		for level = 0, 3 do assert(Config.Price(level) == Config.Prices[level + 1]) end
-		assert(Config.Rate(5) == 4096 and Config.Rate(6) == 9216 and Config.Price(4) == 86400)
+	check("Small opening purchases; whole-egg gains grow gradually without doubling", function()
+		for i, rate in {4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19} do
+			assert(Config.Rate(i - 1) == rate)
+		end
 		local previousGain = 0
-		for level = 5, 1000 do
+		for level = 1, 1000 do
 			local gain = Config.Rate(level) - Config.Rate(level - 1)
-			assert(gain > previousGain); previousGain = gain
+			assert(gain >= previousGain and gain >= 1 and gain % 1 == 0)
+			assert(Config.Rate(level) < 2 * Config.Rate(level - 1))
+			previousGain = gain
 			local price = Config.Price(level)
 			assert(price == nil or (price <= Currency.MaxCoins and price > 0 and price % 1 == 0))
 		end
 	end)
-	check("Approved pricing compounds against capacity, with no trillion plateau", function()
-		assert(Config.Price(4) == 86400 and Config.Price(5) == 380160 and Config.Price(6) == 940896)
-		local previous = Config.Price(4)
-		for n = 1, 100 do
-			local price = assert(Config.Price(n + 4))
-			local expected = 86400 * (n + 1)^2 * 1.10^n
-			assert(math.abs(price - expected) <= 1 and price > previous)
-			local normalized = price / Config.Rate(n + 4)
-			local prior = previous / Config.Rate(n + 3)
-			assert(math.abs(normalized / prior - 1.10) < 0.00001)
+	check("Prices compound smoothly, cross a trillion, then refuse numeric overflow", function()
+		for i, price in {40, 48, 58, 70, 83, 100, 120} do assert(Config.Price(i - 1) == price) end
+		local previous = Config.Price(0)
+		for level = 1, 181 do
+			local price = assert(Config.Price(level))
+			assert(price > previous and price % 1 == 0 and price <= Currency.MaxCoins)
+			assert(math.abs(price / previous - 1.20) < 0.021)
 			previous = price
 		end
-		assert(Config.Price(83) > 1e12 and Config.Price(84) > Config.Price(83))
+		assert(Config.Price(132) > 1e12 and Config.Price(133) > Config.Price(132))
+		assert(Config.Price(182) == nil)
 		assert(Config.Price(2^53 - 1) == nil)
 		local s, e = fresh(2^53 - 2), engine(); s.coins = Currency.MaxCoins
 		assert(not e:Upgrade({}, s, s.eggProcessor.level, math.huge))
 		assert(s.coins == Currency.MaxCoins and e:Snapshot(s, 0).processor.upgradePrice == nil)
 	end)
 	check("Large wallets save/reload and purchase beyond the old trillion ceiling", function()
-		local s, e = fresh(83), engine()
-		s.coins = Config.Price(83) + 123; s.passiveEarned = 3e12; s.battleEarned = 2e12
+		local s, e = fresh(132), engine()
+		s.coins = Config.Price(132) + 123; s.passiveEarned = 3e12; s.battleEarned = 2e12
 		local restored = fresh(0); assert(restored:LoadData(s:ToData()))
 		assert(restored.coins == s.coins and restored.passiveEarned == 3e12 and restored.battleEarned == 2e12)
-		assert(e:Upgrade({}, restored, 83, Config.Price(83)))
-		assert(restored.coins == 123 and restored.eggProcessor.level == 84)
+		assert(e:Upgrade({}, restored, 132, Config.Price(132)))
+		assert(restored.coins == 123 and restored.eggProcessor.level == 133)
 		for _, coins in {math.huge, 0/0, Currency.MaxCoins + 1, -1} do
 			local data = s:ToData(); data.coins = coins; assert(not restored:LoadData(data))
 		end
@@ -191,21 +191,24 @@ return function(sources)
 		local p = Processor.New(); p.level = 5
 		assert(Processor.Deposit(p, 10000, 40000))
 		Processor.Step(p, 1, Processor.Rate(p, false))
-		assert(Processor.Totals(p) == 5904 and p.readyValue == 16384)
+		assert(Processor.Totals(p) == 9991 and p.readyValue == 36)
 		p.level = 1000000; Processor.Step(p, 1, Processor.Rate(p, true))
 		assert(Processor.Totals(p) == 0 and p.readyValue == 40000 and p.progress == 0)
 		assert(Processor.GrantFinish(p) and p.finishCredits == 1)
 		assert(Processor.Deposit(p, 10, 40) and p.readyValue == 40040 and p.finishCredits == 0)
 		assert(not Processor.Deposit(p, Config.MaxValue + 1, 1))
 	end)
-	check("Offline uses extended capacity and existing production ceiling", function()
+	check("Offline follows gradual capacity, paid multiplier and production ceiling", function()
 		local s = fresh(4); s.pets = {}; s.slots = {}
 		for _ = 1, 10 do local p = s:AddPet("StormDuck", 1); p.level = 3 end
 		local old = Offline.Rate(s)
-		s.eggProcessor.level = 5; assert(Offline.Rate(s) == old * 4)
-		s.eggProcessor.level = 6; local productionLimited = Offline.Rate(s)
-		assert(productionLimited > old * 4)
-		s.eggProcessor.level = 100; assert(Offline.Rate(s) == productionLimited)
+		assert(old == 8 * 4 * 0.02)
+		s.eggProcessor.level = 5; assert(Offline.Rate(s) == 9 * 4 * 0.02)
+		s.entitlements.DoubleEggSpawn = true; assert(Offline.Rate(s) == 18 * 4 * 0.02)
+		s.entitlements.DoubleEggSpawn = false
+		s.eggProcessor.level = 100; local productionLimited = Offline.Rate(s)
+		assert(productionLimited > old and productionLimited < Config.Rate(100) * 4 * 0.02)
+		s.eggProcessor.level = 1000; assert(Offline.Rate(s) == productionLimited)
 	end)
 	return results
 end

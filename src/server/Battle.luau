@@ -35,6 +35,7 @@ function Battle:AddArmy(side: string, roster, home: Vector3)
 		local spawn=(self.frame or CFrame.new(self.destination))*CFrame.new(ex,0,-Config.DefenderSpawnDepth-math.max(0,-ez-3))
 		local x,z=at.X,at.Z
 		table.insert(self.units,{id=tostring(self.serial),petId=pet.id,slot=slot,side=side,species=pet.species,stars=pet.stars,level=pet.level or 1,
+			giantSize=pet.giantSize,
 			boss=pet.boss==true,noRespawn=pet.noRespawn==true,
 			hp=stats.hp,maxHp=stats.hp,damage=stats.damage,interval=stats.interval,size=stats.size,splash=stats.splash,
 			x=if side=="A" then homeX else x,z=if side=="A" then homeZ else z,
@@ -524,6 +525,7 @@ function Battle:Snapshot(now: number)
 	local units={}
 	for _,u in self.units do
 		table.insert(units,{id=u.id,petId=u.petId,side=u.side,boss=u.boss,species=u.species,stars=u.stars,level=u.level,retiring=u.retiring==true,reinforcing=u.reinforcing==true,respawnRemaining=if u.respawnAt then math.max(0,u.respawnAt-now) else 0,x=u.x,z=u.z,
+			giantSize=u.giantSize,
 			hp=u.hp,maxHp=u.maxHp,attackSerial=u.attackSerial,impactSerial=u.impactSerial,impactX=u.impactX,impactZ=u.impactZ,
 			spawnSerial=u.spawnSerial,faceX=u.faceX,faceZ=u.faceZ})
 	end

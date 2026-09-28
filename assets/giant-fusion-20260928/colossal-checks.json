@@ -1,0 +1,158 @@
+{
+  "date": "2026-09-28",
+  "description": "Focused disposable Studio runtime fixtures; no persistent profiles or real requests used by UI fixtures.",
+  "results": {
+    "colossalColossalArmyChecks": [
+      {
+        "passed": true,
+        "name": "Fresh Colossal odds are 1% Legendary and 3% Mythic; near-max is rarer"
+      },
+      {
+        "passed": true,
+        "name": "Select Best keeps one highest-power Colossal and fills ordinary Giant slots"
+      },
+      {
+        "passed": true,
+        "name": "Manual second Colossal rejects atomically; explicit replacement and stale protection work"
+      },
+      {
+        "passed": true,
+        "name": "Older saved multi-Colossal selections normalize without deleting or shrinking birds"
+      },
+      {
+        "passed": true,
+        "name": "Fusion cannot leave two Colossals equipped; retained size and price are unchanged"
+      },
+      {
+        "passed": true,
+        "name": "Buying a slot skips a conflicting Colossal and adds an ordinary reserve"
+      },
+      {
+        "passed": true,
+        "name": "Battle swaps wait for old Colossal to return on either side; rapid reversals reuse it"
+      },
+      {
+        "passed": true,
+        "name": "A dead retiring Colossal returns through respawn before replacement; finite lives stay spent"
+      }
+    ],
+    "colossalGiantFusionChecks": [
+      {
+        "passed": true,
+        "name": "Every rarity guarantees a Giant; inventory, stats, lineup and saves retain it"
+      },
+      {
+        "passed": true,
+        "name": "Rarity bands keep Common Giants small and quantiles ordered"
+      },
+      {
+        "passed": true,
+        "name": "Fusing Giants retains the largest input regardless of survivor order"
+      },
+      {
+        "passed": true,
+        "name": "Old profiles stay normal; invalid optional sizes reject without loading"
+      },
+      {
+        "passed": true,
+        "name": "Rejected batch does not change size or consume any input"
+      },
+      {
+        "passed": true,
+        "name": "Every catalog appearance respects the maximum body extent"
+      },
+      {
+        "passed": true,
+        "name": "Growth stays grounded, keeps small collider, and is idempotent"
+      },
+      {
+        "passed": true,
+        "name": "Battle lineup, new rig, respawn and snapshot retain Giant size"
+      }
+    ],
+    "colossalFusionPriceChecks": [
+      {
+        "passed": true,
+        "name": "Fee follows species and level; upgrades and wallet cannot change the quote"
+      },
+      {
+        "passed": true,
+        "name": "Insufficient, missing, stale and malformed quotes never spend or consume"
+      },
+      {
+        "passed": true,
+        "name": "Exact balance succeeds once; service fee is not refunded or duplicated"
+      },
+      {
+        "passed": true,
+        "name": "Batch affordability and stale last quote reject the entire transaction"
+      },
+      {
+        "passed": true,
+        "name": "Saved large Commons survive retuning; advertised range honors actual inputs"
+      }
+    ],
+    "colossalMergeStandChecks": [
+      {
+        "passed": true,
+        "name": "Exactly three become one; retained ID, investment, coins and save roundtrip"
+      },
+      {
+        "passed": true,
+        "name": "Replay and old two-ID payload cannot consume more chickens"
+      },
+      {
+        "passed": true,
+        "name": "Duplicate, foreign, malformed, mismatched species/stars/levels fail atomically"
+      },
+      {
+        "passed": true,
+        "name": "Favorites, away, defending and capped chickens are excluded"
+      },
+      {
+        "passed": true,
+        "name": "Three home reserves can merge while their squad is away"
+      },
+      {
+        "passed": true,
+        "name": "Only 3+ copies shown, extra copies remain; preview uses actual stats"
+      },
+      {
+        "passed": true,
+        "name": "Whole batch rejects shared IDs or invalid final triple without partial mutation"
+      },
+      {
+        "passed": true,
+        "name": "Sparse batches and legacy pairs rejected; paid automation stays disabled"
+      }
+    ],
+    "colossalClientUI": [
+      {
+        "passed": true,
+        "name": "Colossal inspector labels actual size and offers an explicit replacement"
+      },
+      {
+        "passed": true,
+        "name": "Dragging a second Colossal into a different slot or empty slot cannot submit"
+      },
+      {
+        "passed": true,
+        "name": "Smaller Giants can equip normally; an equipped Colossal can unequip"
+      },
+      {
+        "passed": true,
+        "name": "Desktop and compact Colossal controls fit and retain accessible target sizes"
+      }
+    ],
+    "colossalFuseUI": [
+      {
+        "passed": true,
+        "name": "Fresh fuse preview displays exact Legendary and Mythic Colossal odds"
+      },
+      {
+        "passed": true,
+        "name": "Inherited Colossal preview shows guaranteed result and fixed low-rarity size"
+      }
+    ]
+  }
+}

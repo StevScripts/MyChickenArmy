@@ -8,7 +8,7 @@ function Checks.Run()
   local ok,why=pcall(fn);table.insert(results,{name=name,passed=ok,error=if not ok then tostring(why) else nil})
  end
  local function recipe(ids,key)
-  return {key=key or "Camo:1:1",species="Camo",stars=1,level=1,count=#ids,petIds=ids}
+  return {key=key or "Camo:1:1",species="Camo",stars=1,level=1,count=#ids,petIds=ids,price=2400}
  end
  check("Three-copy group stays available as 2 then 1; exact staged IDs",function()
   local s=Selection.new();local r=recipe({"a","b","c"});local options={r}
@@ -16,7 +16,7 @@ function Checks.Run()
   assert(s:Add(options,r.key,2) and #s:Available(r)==1)
   assert(s:Add(options,r.key,3) and #s:Available(r)==0)
   local p=s:Payload(options,2)
-  assert(p.firstId=="a" and p.secondId=="b" and p.thirdId=="c" and p.stationIndex==2)
+  assert(p.firstId=="a" and p.secondId=="b" and p.thirdId=="c" and p.stationIndex==2 and p.expectedPrice==2400)
  end)
  check("Sparse slot order cannot stage a duplicate; survivor keeps server priority",function()
   local s=Selection.new();local r=recipe({"equipped","b","c","d"})

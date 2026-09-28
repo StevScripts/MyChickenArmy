@@ -32,6 +32,12 @@ function Rules.RecruitPrice(species: string, level: number?): number
 	return Catalog[species].price * 2 ^ (rank - 1)
 end
 
+-- Three copies are already committed; the additional cash sink scales with
+-- species and input level, never the player's wallet or earnings upgrades.
+function Rules.MergePrice(species: string, level: number): number
+	return math.max(1,math.ceil(Rules.RecruitPrice(species,level)*Config.Economy.FusionRecruitFraction))
+end
+
 -- Develop a species by merging; later offers supply copies one level behind it.
 -- Never sell the rank's top merge level directly. Selling a species can lower future offers.
 function Rules.RecruitLevel(pets, species: string, promotion: number): number

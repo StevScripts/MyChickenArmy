@@ -1,0 +1,186 @@
+{
+  "checkedAt": "2026-09-28",
+  "placeId": 96683186622050,
+  "sessionOnly": true,
+  "giantChecks": [
+    {
+      "passed": true,
+      "name": "Every rarity guarantees a Giant; inventory, stats, lineup and saves retain it"
+    },
+    {
+      "passed": true,
+      "name": "6–27.5 endpoints; every quantile is monotonic by rarity"
+    },
+    {
+      "passed": true,
+      "name": "Fusing Giants retains the largest input regardless of survivor order"
+    },
+    {
+      "passed": true,
+      "name": "Old profiles stay normal; invalid optional sizes reject without loading"
+    },
+    {
+      "passed": true,
+      "name": "Rejected batch does not change size or consume any input"
+    },
+    {
+      "passed": true,
+      "name": "Every catalog appearance respects the maximum body extent"
+    },
+    {
+      "passed": true,
+      "name": "Growth stays grounded, keeps small collider, and is idempotent"
+    },
+    {
+      "passed": true,
+      "name": "Battle lineup, new rig, respawn and snapshot retain Giant size"
+    }
+  ],
+  "mergeRegressions": [
+    {
+      "passed": true,
+      "name": "Exactly three become one; retained ID, investment, coins and save roundtrip"
+    },
+    {
+      "passed": true,
+      "name": "Replay and old two-ID payload cannot consume more chickens"
+    },
+    {
+      "passed": true,
+      "name": "Duplicate, foreign, malformed, mismatched species/stars/levels fail atomically"
+    },
+    {
+      "passed": true,
+      "name": "Favorites, away, defending and capped chickens are excluded"
+    },
+    {
+      "passed": true,
+      "name": "Three home reserves can merge while their squad is away"
+    },
+    {
+      "passed": true,
+      "name": "Only 3+ copies shown, extra copies remain; preview uses actual stats"
+    },
+    {
+      "passed": true,
+      "name": "Whole batch rejects shared IDs or invalid final triple without partial mutation"
+    },
+    {
+      "passed": true,
+      "name": "Sparse batches and legacy pairs rejected; paid automation stays disabled"
+    }
+  ],
+  "maxReveal": [
+    {
+      "foot": 0.7171566486358643,
+      "fullScale": 9.565218925476074,
+      "scale": 1.06583833694458,
+      "phase": "fit",
+      "entry": 0.7171570062637329,
+      "size": [
+        1.8142856359481812,
+        3.0642852783203125,
+        2.5999999046325684
+      ]
+    },
+    {
+      "foot": 0.7171554565429688,
+      "fullScale": 9.565218925476074,
+      "scale": 9.565218925476074,
+      "phase": "full",
+      "entry": 0.7171570062637329,
+      "size": [
+        16.282054901123047,
+        27.500003814697266,
+        23.33333969116211
+      ]
+    },
+    {
+      "phase": "reset",
+      "clean": true
+    }
+  ],
+  "liveFusion": {
+    "samples": [
+      {
+        "bird": true,
+        "fullScale": 7.095653057098389,
+        "scale": 1.06583833694458,
+        "giant": 20.4,
+        "at": 1790599043.608271
+      },
+      {
+        "bird": true,
+        "fullScale": 7.095653057098389,
+        "scale": 7.095653057098389,
+        "giant": 20.4,
+        "at": 1790599045.321388
+      },
+      {
+        "bird": false,
+        "at": 1790599046.840879
+      }
+    ],
+    "giant": {
+      "canSell": false,
+      "giantSize": 20.4,
+      "stars": 1,
+      "income": 32,
+      "selected": true,
+      "deployed": false,
+      "nextIncome": 64,
+      "slot": 1,
+      "id": "995a2c8f-10d2-4d17-94b5-f6d7c11bfc1d",
+      "investment": 2400,
+      "levelCap": 3,
+      "home": true,
+      "level": 2,
+      "refund": 1200,
+      "upgradeLocked": false,
+      "saleReason": "Selected for your army. Remove this chicken from the army before selling.",
+      "species": "Duck",
+      "favorite": false,
+      "eggsPerSecond": 4
+    },
+    "count": 2,
+    "model": {
+      "BaseRootSize": null,
+      "VisualHeight": 20.399999999999995,
+      "InArmy": true,
+      "DuckRig": true,
+      "Stars": 1,
+      "NavigationHeight": 2.4796870350837708,
+      "Species": "Duck",
+      "OwnerUserId": 146710616,
+      "RigVersion": 3,
+      "HitSerial": 0,
+      "AppliedBaseVisualScale": 0.75,
+      "AppliedChickenScale": 6.170133481979157,
+      "ChickenVisualV3": true,
+      "GiantSize": 20.4,
+      "AtHome": true,
+      "FootOffset": 1.265625,
+      "VisualStyle": "VoxelChickenV3",
+      "BaseNavigationHeight": 3.3062493801116943,
+      "PetId": "995a2c8f-10d2-4d17-94b5-f6d7c11bfc1d",
+      "VictorySerial": 0,
+      "Recruiting": false,
+      "ClipUnitScale": 0.67016317,
+      "MovementBlocked": false,
+      "Appearance": "Original",
+      "Level": 2,
+      "BaseVisualExtent": 3.3062493801116943,
+      "Moving": false,
+      "Size": 13.882800334453101,
+      "MergeVisualScale": 1.18,
+      "OwnerId": 146710616,
+      "ServerNetworkOwned": true,
+      "BonePrefix": "Original_",
+      "VisualWidth": 12.078156801393769,
+      "ClipScale": 7.095653504276029,
+      "VisualDepth": 17.309062200849976,
+      "BaseFootOffset": 1.6875,
+      "SkinnedChicken": true
+    }
+  }
+}

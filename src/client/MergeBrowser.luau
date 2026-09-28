@@ -3,9 +3,11 @@
 local Players=game:GetService("Players")
 local GuiService=game:GetService("GuiService")
 local UserInputService=game:GetService("UserInputService")
-local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
+local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
+local Catalog=require(Shared.PetCatalog)
 local Theme=require(script.Parent.UITheme)
 local Selection=require(script.Parent.MergeSelection)
+local Giant=require(Shared.GiantChicken)
 local Presentation=require(script.Parent.MergePresentation)
 local Browser={}
 Browser.__index=Browser
@@ -120,8 +122,9 @@ function Browser.new(app,parent)
  self.resultEmpty=label(self.resultArt,"Empty","?",90,MUTED);self.resultEmpty.Size=UDim2.fromScale(1,1)
  self.resultName=label(self.result,"ChickenLevel","",32,PURPLE);fitText(self.resultName,32,20)
  self.action=button(root,"Fuse","Fuse",function() self:Merge() end)
+ fitText(self.action.Visual.Caption,46,14);self.action.Visual.Caption.TextWrapped=false
  self.message=label(root,"Status","",20,MUTED);self.message.TextWrapped=true
- self.tradeoff=label(root,"Tradeoff","3 chickens become 1",23,MUTED)
+ self.tradeoff=label(root,"Tradeoff","3 chickens → 1 Giant",23,MUTED)
  self.picker=frame(root,"ChickenPicker")
  self.searchShell=frame(self.picker,"Search",Color3.new());Theme.Stroke(self.searchShell,LINE,1.5)
  local search=Instance.new("TextBox")
@@ -146,6 +149,7 @@ function Browser.new(app,parent)
  self.summaryArt=frame(self.summary,"Portrait")
  self.summaryName=label(self.summary,"Name","",44);fitText(self.summaryName,44,22)
  self.summaryLevel=label(self.summary,"Level","",30,Color3.fromRGB(224,167,255))
+ fitText(self.summaryLevel,30,16)
  self.eggChip=frame(self.summary,"EggOutputChip",INK);Theme.Stroke(self.eggChip,LINE,2)
  self.dpsChip=frame(self.summary,"CombatChip",INK);Theme.Stroke(self.dpsChip,LINE,2)
  self.summaryEggs=label(self.eggChip,"EggOutput","",30);self.summaryEggs.Size=UDim2.fromScale(1,1);fitText(self.summaryEggs,30,16)
@@ -193,7 +197,7 @@ function Browser:Resize()
  place(self.action,(w-actionW)/2,footer,actionW,bh);self.action.TextSize=math.max(26,46*k)
  place(self.done,margin,footer,inner,bh);self.done.TextSize=self.action.TextSize
  place(self.tradeoff,margin,footer+bh+2,inner,26);self.tradeoff.TextSize=math.max(17,23*k)
- local noticeH=if self.notice then 38 else 0
+ local noticeH=if self.notice or self.costNotice then 38 else 0
  place(self.message,margin,footer-noticeH-5,inner,noticeH)
  place(self.main,margin,top,inner,math.max(60,footer-top-18-noticeH))
  local empty=self.selection:Count()==0
@@ -323,7 +327,8 @@ function Browser:RenderSlots()
   end
   slot.title.Text=if filled then Catalog[recipe.species].name else ""
   slot.empty.Visible=false;slot.action.Text=if filled then "Remove" else "+\nAdd"
-  slot.level.Text=if filled then "Lv. "..recipe.level else ""
+  local pet=if filled then self.app:Pet(self.selection.slots[i]) else nil
+  slot.level.Text=if pet and pet.giantSize then string.format("Lv. %d · %.1f studs",pet.level,pet.giantSize) elseif filled then "Lv. "..recipe.level else ""
   slot.outline.Color=LINE
   local tint=if filled then PURPLE else PIPE_IDLE
   Theme.Motion:Tween(slot.stem,"fusePath",{BackgroundColor3=tint},0.18)
@@ -340,15 +345,30 @@ function Browser:RenderSlots()
  self.resultEmpty.Visible=recipe==nil
  self.resultOutline.Color=LINE
  self.resultTitle.Text=if recipe then Catalog[recipe.species].name else ""
- self.resultName.Text=if recipe then "Lv. "..(recipe.level+1) else ""
+ self.resultName.Text=if recipe then "Giant · Lv. "..(recipe.level+1) else ""
+ local inherited=0
+ for _,id in self.selection.slots do local pet=self.app:Pet(id);inherited=math.max(inherited,pet and pet.giantSize or 0) end
+ local minimum,maximum=Giant.Range(if recipe then Catalog[recipe.species].rarity else "Common",inherited)
+ self.tradeoff.Text=if recipe then (if minimum==maximum then Giant.Label(minimum)
+  else string.format("%s size luck · %g–%g studs",Catalog[recipe.species].rarity,minimum,maximum)) else "3 chickens → 1 Giant"
+ if recipe then
+  local chance=Giant.ColossalChance(Catalog[recipe.species].rarity,inherited)
+  if chance>0 and minimum~=maximum then self.tradeoff.Text=string.format("%g–%g studs · %g%% Colossal",minimum,maximum,chance*100) end
+ end
  self.count.Text=self.selection:Count().."/3"
  self:UpdateAction()
 end
 
 function Browser:UpdateAction()
- local ready=not self.pending and not self.animating and self.selection:Count()==3 and self:NearStand()
+ local price=self.recipe and self.recipe.price
+ local affordable=type(price)=="number" and (self.app.state.coins or 0)>=price
+ local ready=not self.pending and not self.animating and self.selection:Count()==3 and self:NearStand() and affordable
  local remaining=3-self.selection:Count()
- self.action.Text=if remaining>0 then remaining.." more chicken"..(if remaining==1 then "" else "s") else (if self:NearStand() then "Fuse" else "Move closer")
+ self.action.Text=if remaining>0 then remaining.." more chicken"..(if remaining==1 then "" else "s")
+  elseif not self:NearStand() then "Move closer"
+  elseif type(price)~="number" then "Updating price…"
+  elseif not affordable then "Need $"..Theme.Money(price-(self.app.state.coins or 0)).." more"
+  else "Fuse · $"..Theme.Money(price)
  self.action.Active,self.action.Selectable=ready==true,ready==true
  Theme.ApplyReferenceAccent(self.action,if ready then ACCENT else ColorSequence.new(Color3.fromRGB(50,24,66),Color3.fromRGB(37,17,49)))
  self.action.Visual.Face.InsetHighlight.UIStroke.Color=if ready then Color3.fromRGB(224,167,255) else LINE
@@ -406,13 +426,16 @@ function Browser:Render(force)
   self.notice="Your flock changed. Choose available chickens.";self.key=""
  end
  if self.pending then self.mode="Processing" end
+ local recipe=self.selection:Recipe(self.app.state.mergeOptions)
+ self.costNotice=if recipe and recipe.price and self.selection:Count()==3 and (self.app.state.coins or 0)<recipe.price
+  then "Fusion cost: $"..Theme.Money(recipe.price) else nil
  self:Resize()
  self.main.Visible,self.action.Visible=self.mode=="Main",self.mode=="Main"
  self.tradeoff.Visible=self.mode=="Main" and self.selection:Count()==3
  self.picker.Visible=self.mode=="Picker"
  self.summary.Visible,self.done.Visible=self.mode=="Result",self.mode=="Result"
  self.processing.Visible=self.mode=="Processing"
- self.message.Text=self.notice or "";self.message.Visible=self.mode=="Main" and self.notice~=nil
+ self.message.Text=self.notice or self.costNotice or "";self.message.Visible=self.mode=="Main" and self.message.Text~=""
  self.title.Text=if self.mode=="Picker" then "Choose Chicken" elseif self.mode=="Result" then "Fusion Complete!"
   else "Fuse Chickens"
  if self.mode=="Main" then self:RenderSlots()
@@ -429,6 +452,7 @@ function Browser:Merge()
  local payload=self.selection:Payload(self.app.state.mergeOptions,self.app.state.plotIndex)
  local recipe=self.selection:Recipe(self.app.state.mergeOptions)
  if not payload or not recipe then self:Render(true);return end
+ if type(recipe.price)~="number" or (self.app.state.coins or 0)<recipe.price then self:Render(true);return end
  self.app.audio:Play("Click")
  self.pending={id=self.app:Request("Merge",payload),payload=payload,recipe=table.clone(recipe),viewSerial=self.viewSerial}
  local pending=self.pending
@@ -448,7 +472,8 @@ function Browser:ShowResult(chicken,recipe)
  self.completed=chicken;self.selection:Clear();self.notice=nil
  if self.summaryPortrait then self.summaryPortrait:Destroy() end
  self.summaryPortrait=preview(self.app,self.summaryArt,chicken)
- self.summaryName.Text=Catalog[chicken.species].name;self.summaryLevel.Text="Lv. "..chicken.level
+ self.summaryName.Text=Catalog[chicken.species].name
+ self.summaryLevel.Text=(if chicken.giantSize then Giant.Label(chicken.giantSize).." · " else "").."Lv. "..chicken.level
  self.summaryEggs.Text=Theme.Number(chicken.eggsPerSecond or recipe.afterEggRate).." eggs/s"
  self.summaryDps.Text=Theme.Number(recipe.afterDps).." DPS"
  self.mode="Result";self.animating=false;self:Render(true)
@@ -469,12 +494,10 @@ function Browser:Receive(result)
   self.mode="Main";return
  end
  if chicken then
-  self.animating=true;self.mode="Processing"
-  local serial=self.viewSerial
-  local function done()
-   if self.alive and serial==self.viewSerial then self:ShowResult(chicken,pending.recipe) end
-  end
-  if self.presentation then self.presentation:Play(function() end,done) else done() end
+  -- The confirmed result is revealed by the world machine. Clear the popup and
+  -- its waiting presentation through the normal close/focus cleanup path.
+  self.app:ClosePanel()
+  return
  else
   if self.presentation then self.presentation:Destroy();self.presentation=nil end
   self.notice=if result.ok then "Fusion was not completed. Choose your chickens again." else (result.message or "Your flock changed. Choose available chickens.")

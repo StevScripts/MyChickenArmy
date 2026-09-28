@@ -4,17 +4,19 @@ Current user direction, 25 September 2026: **Players can keep buying available u
 
 The September 26 [egg quantity economy](EGG_ECONOMY.md) preserves this rule, all
 upgrade counts and prices. Egg Value now sets one shared unit value and rarity
-changes egg quantity. Selling Speed's throughput curve was retuned for those
-larger quantities; its four purchases and prices remain unchanged. September 27
+changes egg quantity. Selling Speed's throughput curve was initially retuned for
+larger quantities. September 27
 clarification explicitly retains this track and rejects instant sales. The later
-September 27 instruction removes Selling Speed's maximum: its first four purchases
-remain unchanged and subsequent purchases continue with increasing capacity.
+September 27 instruction removes Selling Speed's maximum. September 28 replaces
+the large opening purchases with gradual additions at every level: 4 / 5 / 6 /
+7 / 8 / 9 / 11 / ... eggs/sec, with exponentially growing prices from $40.
 No rebirth requirement or camp prerequisite is introduced.
 
-The later approved price curve uses capacity-adjusted costs plus a 10% exponential
-premium; it no longer flattens at $1 trillion. CurrencyLimits defines the expanded
+The current price is ceil(40 * 1.20^level), and the added throughput is rounded
+1.10^level. This supersedes the September 27 capacity-adjusted price curve.
+Prices do not flatten at $1 trillion. CurrencyLimits defines the expanded
 exact-integer wallet boundary. This remaining representation limit is explicit,
-not a designed Selling Speed MAX tier; see the continuation contract.
+not a designed Selling Speed MAX tier; see the [current progression contract](team/GRADUAL_SELLING_SPEED.md).
 
 This supersedes older documents, research proposals, screenshots, fixtures and code that attach upgrade availability to `promotion`, `firstWins`, `frontierWins`, rank capacity caps or `RollSlotRanks`. Do not restore those restrictions when updating UI, balancing the economy, rebuilding a board, or implementing feedback.
 
@@ -28,7 +30,7 @@ The following existing cash tracks are independent of camp progress from the sta
 - Army Size: every configured purchase from three to ten base deployment slots. Bigger Army remains an additional five slots.
 - Luck: 20 purchases. The first four prices/bonuses are unchanged; later levels add 0.10 to Rare+ weights, reaching 4× weights (not 4× normalized probability).
 - Roll Slots: all configured purchases up to six active podiums, capped by the number physically authored for the assigned plot.
-- Selling Speed: cash-only, with no designed maximum level or processing speed; retains seller-board ownership/proximity rules. See [the continuation contract](team/UNBOUNDED_SELLING_SPEED.md).
+- Selling Speed: cash-only, with no designed maximum level or processing speed; retains seller-board ownership/proximity rules. See [the gradual progression contract](team/GRADUAL_SELLING_SPEED.md).
 
 The September 25 change removed **camp prerequisites**, not track maxima. Later
 September 27 requests separately removed Selling Speed's maximum and authorized

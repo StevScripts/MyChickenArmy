@@ -1,5 +1,11 @@
 # Selling Speed continuation — September 27, 2026
 
+**Superseded tuning:** September 28 replaces both the opening and continuation
+rates/prices with small additive gains and smoothly compounding prices. See
+[GRADUAL_SELLING_SPEED.md](GRADUAL_SELLING_SPEED.md). The wallet boundary, saved
+level shape, queue preservation and no-designed-maximum rule remain. Numbers
+and verification below describe the historical September 27 implementation.
+
 User direction: there should be no maximum egg-processing speed. The previous
 processing-restoration task is complete/idle. Initial continuation owned
 EggProcessorConfig, EggProcessor, EggService and the related policy/tests.

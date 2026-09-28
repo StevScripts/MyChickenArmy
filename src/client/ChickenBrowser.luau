@@ -9,6 +9,7 @@ local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Rules=require(Shared.Rules)
 local Catalog=require(Shared.PetCatalog)
+local Giant=require(Shared.GiantChicken)
 -- Approved Figma 221:2294, 1536 x 1024. Only this browser owns these local tokens.
 local WHITE=Color3.fromRGB(249,251,242)
 local MUTED=Color3.fromRGB(181,205,223)
@@ -397,6 +398,8 @@ function Browser.new(app,parent)
  fitSingleLine(self.name,50,24)
  self.metadata=label(self.detail,"LevelRarity","",29,UDim2.fromOffset(18,92),UDim2.fromOffset(499,44),WHITE)
  self.metadata.TextXAlignment,self.metadata.RichText=Enum.TextXAlignment.Center,true
+ self.metadata.TextScaled,self.metadata.TextWrapped=true,false
+ local metadataSize=Instance.new("UITextSizeConstraint");metadataSize.MinTextSize,metadataSize.MaxTextSize=10,29;metadataSize.Parent=self.metadata
  self.detailNotice=label(self.detail,"Status","",19,UDim2.fromOffset(18,759),UDim2.fromOffset(499,20),MUTED)
  self.detailNotice.TextXAlignment=Enum.TextXAlignment.Center
  self.detailHalo=art(self.detail,"RarityGlow",Art.Glow.Rare,UDim2.fromOffset(326,326),UDim2.fromOffset(105,136))
@@ -462,6 +465,16 @@ function Browser:CanEdit()
 	local state=self.app.state
 	if not state or self.pending then return false end
 	return true
+end
+
+function Browser:ColossalSlot(id)
+	local pet=self.app:Pet(id)
+	if not pet or not Giant.IsColossal(pet.giantSize) then return nil end
+	for slot,otherId in self.app.state.selectedIds or {} do
+		local other=self.app:Pet(otherId)
+		if otherId~=id and other and Giant.IsColossal(other.giantSize) then return slot end
+	end
+	return nil
 end
 
 
@@ -760,11 +773,13 @@ function Browser:UpdateAction()
 	self.hint.TextColor3=if self.notice then Color3.fromRGB(255,120,132) else MUTED
 	self.detailNotice.Text=if self.notice then self.notice
 		elseif self.pending then "Updating..."
+		elseif pet and self:ColossalSlot(pet.id) then "Only 1 Colossal per army."
 		elseif pet and not self:SaleEligible(pet) then pet.saleReason or "This chicken is protected."
 		else ""
 	self.detailNotice.TextColor3=self.hint.TextColor3
 	enabled(self.assign,canEdit and pet~=nil)
 	self.assign.Text=if pet and pet.selected then "Unequip"
+		elseif pet and self:ColossalSlot(pet.id) then "Replace Colossal"
 		elseif #(state.selectedIds or {})>=state.capacity then "Replace..." else "Equip"
 	-- A home reserve can be sold even while the rest of the squad is away.
 	local canSell=self.pending==nil and self:SaleEligible(pet)
@@ -861,6 +876,7 @@ function Browser:TogglePet(id)
 	if self.placing then
 		if slot then self:Drop(self.placing,slot,false,self.placingExpected or ids) end
 	elseif slot then self:Drop(id,nil,true,ids)
+	elseif self:ColossalSlot(id) then self:Drop(id,self:ColossalSlot(id),false,ids)
 	elseif #ids<self.app.state.capacity then self:Drop(id,#ids+1,false,ids)
 	else
 		self.app.audio:Play("Click")
@@ -887,6 +903,12 @@ function Browser:Drop(id,slot,toFlock,expected)
 		else ids[math.min(slot,#ids+1)]=id end
 	elseif toFlock and old then table.remove(ids,old)
 	else return end
+	local colossals=0
+	for _,petId in ids do local pet=self.app:Pet(petId);if pet and Giant.IsColossal(pet.giantSize) then colossals+=1 end end
+	if colossals>Giant.MaxArmyColossals then
+		self.notice,self.noticeUntil="Only 1 Colossal per army. Replace your equipped Colossal.",os.clock()+4
+		self:UpdateAction();return
+	end
 	self.placing,self.placingExpected=nil,nil
 	self:Send("SetArmy",{petIds=ids,expectedIds=table.clone(expected)})
 end
@@ -1027,7 +1049,7 @@ function Browser:Card(parent,pet,slot,width,height,order)
  end
  local nameSize=math.clamp(width*0.128,18,27)
  local lineHeight=math.floor(nameSize*0.8)
- local name=label(card,"Name",definition.name:gsub(" Chicken$",""),nameSize,UDim2.new(0,5,1,-lineHeight*2-4),UDim2.new(1,-10,0,lineHeight),WHITE)
+ local name=label(card,"Name",(if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..definition.name:gsub(" Chicken$",""),nameSize,UDim2.new(0,5,1,-lineHeight*2-4),UDim2.new(1,-10,0,lineHeight),WHITE)
  name.TextXAlignment=Enum.TextXAlignment.Center
  local stats=Rules.Stats(pet.species,pet.stars,pet.level)
  local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",math.clamp(width*0.119,18,25),UDim2.new(0,5,1,-lineHeight-3),UDim2.new(1,-10,0,lineHeight),GOLD,true)
@@ -1120,6 +1142,7 @@ function Browser:RenderDetail(pet)
  self.name.Text=definition.name
  local rarity=RARITIES[definition.rarity] or RARITIES.Common
  self.metadata.Text=string.format('<font color="#%s">%s</font> / Lv. %d',rarity:ToHex(),definition.rarity,pet.level)
+  ..(if pet.giantSize then " · "..Giant.Label(pet.giantSize) else "")
  self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or Art.Glow.Common,not self.hideDetailPreview
  self.damageValue.Text=Theme.Number(stats.damage/stats.interval).." DPS"
  self.healthValue.Text=Theme.Number(stats.hp).." HP"
@@ -1170,7 +1193,7 @@ function Browser:Render(force)
 		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
 		tostring(state.homeEggsPerSecond),self.query,self.sort,self.placing or ""}
 	for _,pet in state.pets or {} do
-		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap))
+		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap))
 	end
 	local key=table.concat(keys,"|")
 	if key==self.key and not force then self:UpdateAction();return end

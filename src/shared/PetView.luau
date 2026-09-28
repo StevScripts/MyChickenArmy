@@ -6,6 +6,7 @@ local Catalog = require(script.Parent.PetCatalog)
 local Rules = require(script.Parent.Rules)
 local BlenderPetView = require(script.Parent.BlenderPetView)
 local ChickenGrowth = require(script.Parent.ChickenGrowth)
+local Giant = require(script.Parent.GiantChicken)
 local UIColors = require(script.Parent.UIColors)
 local PetView = {}
 local CollectionService = game:GetService("CollectionService")
@@ -447,18 +448,19 @@ function PetView.Move(model: Model, foot: Vector3, direction: Vector3?, hop: num
 	pose.foot, pose.lastAt = foot, now
 end
 
-function PetView.Level(model, level)
+function PetView.Level(model, level, giantSize)
 	if model:GetAttribute("Level")==level and model:GetAttribute("MergeVisualScale")
+		and model:GetAttribute("GiantSize")==giantSize
 		and model:GetAttribute("AppliedBaseVisualScale")==ChickenGrowth.BaseScale
 		and model:GetAttribute("FieldVisualScale")==nil
 		and model:GetAttribute("AppliedFieldVisualScale")==nil then return end
-	local ratio = ChickenGrowth.Apply(model, level)
+	local ratio = ChickenGrowth.Apply(model, level, giantSize)
 	local pose = poses[model]
 	if pose and ratio ~= 1 then pose.rootHeight *= ratio; pose.size *= ratio end
 	model:SetAttribute("Level",level)
 	local label=model:FindFirstChild("NameLabel",true)
 	local species=model:GetAttribute("Species")
-	if label and species and Catalog[species] then label.Text=if model:GetAttribute("ChickenKing") then "CHICKEN KING" else Catalog[species].name.." · Lv. "..level end
+	if label and species and Catalog[species] then label.Text=if model:GetAttribute("ChickenKing") then "CHICKEN KING" else (if giantSize then Giant.Kind(giantSize).." " else "")..Catalog[species].name.." · Lv. "..level end
 end
 
 function PetView.Health(model: Model, ratio: number)

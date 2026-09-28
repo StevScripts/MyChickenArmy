@@ -2,6 +2,7 @@
 -- Reconciles selected intent with real walking chickens on either player side.
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
+local Giant=require(Shared.GiantChicken)
 local Layout=require(Shared.FlockLayout)
 local March=require(Shared.ArmyMarch)
 local Reinforcements={}
@@ -39,9 +40,18 @@ function Reinforcements.Sync(session,battle,world,now)
   local record=finite and history[id]
   if record and record.hp<=0 then continue end
   local pet=session.pets[id]
+  -- A replaced Colossal walks home before the next one leaves. This also covers
+  -- rapid selection changes and dead/respawning units still owned by the battle.
+  if Giant.IsColossal(pet.giantSize) then
+   local occupied=false
+   for _,other in battle.units do
+    if other.side==side and other.petId~=id and Giant.IsColossal(other.giantSize) then occupied=true;break end
+   end
+   if occupied then continue end
+  end
   local home=world:ReturnPosition(session,id,slot)
   local start=world:PetPosition(session.plotIndex,id) or home
-  battle:AddArmy(side,{{id=id,species=pet.species,stars=pet.stars,level=pet.level,slot=slot}},start)
+  battle:AddArmy(side,{{id=id,species=pet.species,stars=pet.stars,level=pet.level,giantSize=pet.giantSize,slot=slot}},start)
   local u=battle.units[#battle.units]
   u.x,u.z,u.startX,u.startZ=start.X,start.Z,start.X,start.Z
   u.homeX,u.homeZ=home.X,home.Z;u.reinforcing=true

@@ -1,0 +1,144 @@
+{
+  "studio": {
+    "placeId": 96683186622050,
+    "instanceId": "instance:9wo-7nm",
+    "mode": "Edit",
+    "integration": "Rojo"
+  },
+  "checks": [
+    {
+      "name": "Small opening purchases; whole-egg gains grow gradually without doubling",
+      "passed": true
+    },
+    {
+      "name": "Prices compound smoothly, cross a trillion, then refuse numeric overflow",
+      "passed": true
+    },
+    {
+      "name": "Large wallets save/reload and purchase beyond the old trillion ceiling",
+      "passed": true
+    },
+    {
+      "name": "Cash pad pays above one trillion and preserves ready money at numeric limit",
+      "passed": true
+    },
+    {
+      "name": "Offline credits use expanded wallet headroom without changing time/efficiency",
+      "passed": true
+    },
+    {
+      "name": "Paid cash stays exact above one trillion, replays once, and defers overflow",
+      "passed": true
+    },
+    {
+      "name": "Full-wallet chicken sale preserves owned chickens and money",
+      "passed": true
+    },
+    {
+      "name": "Current catalog retains equal egg values and prior cash potential",
+      "passed": true
+    },
+    {
+      "name": "Past former cap, repeated paid upgrades remain available with next offer",
+      "passed": true
+    },
+    {
+      "name": "Stale quotes, insufficient cash and board access still reject without mutation",
+      "passed": true
+    },
+    {
+      "name": "Saved high levels roundtrip; corrupt/nonfinite levels reject",
+      "passed": true
+    },
+    {
+      "name": "High-speed processing conserves value, queue bounds and Finish credits",
+      "passed": true
+    },
+    {
+      "name": "Offline follows gradual capacity, paid multiplier and production ceiling",
+      "passed": true
+    }
+  ],
+  "sourceComparisons": [
+    {
+      "path": "src/server/ArmyService.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/EggProcessor.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/Progression.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/VacuumConfig.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/EggService.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/OfflineCash.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/UpgradeCatalog.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/EggRover.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/EggProcessorConfig.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/ProductService.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/HomePlotLayout.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/OfflineCashConfig.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/Config.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/CommerceService.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/CurrencyLimits.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/Rules.luau",
+      "match": true
+    },
+    {
+      "path": "src/server/PlayerSession.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/PetCatalog.luau",
+      "match": true
+    },
+    {
+      "path": "src/shared/ShopCatalog.luau",
+      "match": true
+    }
+  ],
+  "notes": [
+    "In-memory fixture; no real profiles, receipts, Play session, Roblox save or publish.",
+    "Rojo packaging and git diff --check passed. Gameplay pacing has not been playtested."
+  ]
+}

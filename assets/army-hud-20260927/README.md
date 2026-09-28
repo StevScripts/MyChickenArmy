@@ -2,7 +2,9 @@
 
 User direction: replace the top My Army button with one standalone chicken icon at the bottom center, using the chunky-simulator-icons style and the supplied bottom-navigation screenshot as inspiration.
 
-## Implemented and synced; new image upload blocked
+## Implemented, imported and verified in Play
+
+September 28 completion: the user completed the soldier image import. `Theme.Assets.ArmyHud` now uses `rbxassetid://107457338807219`, verified through MarketplaceService as the `my-army-soldiers` Image owned by Kiru Experiences. A fresh Play session confirmed `IsLoaded=true` and visibly rendered the three helmet chickens centered between Call Army and My Base. Screenshot: `../army-commands-20260928/command-hud-in-studio.jpg`. Earlier upload failures below are historical; do not re-upload the successful asset. Companion icon IDs and behavior are recorded in `docs/team/ARMY_COMMANDS.md`.
 
 - `my-army-chickens.png`: initial generated squad of three boxy white chickens.
 - `my-army-soldiers.png`: final artwork, edited with the built-in image-generation tool so all three chickens wear green soldier helmets. Transparent RGBA PNG, 1254 × 1254, visible black silhouette outlines, no baked label or count.

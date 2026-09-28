@@ -1,0 +1,58 @@
+[
+  {
+    "bytes": 5972,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/shared/Config.luau",
+    "hash": 2103815277,
+    "matched": true
+  },
+  {
+    "bytes": 6859,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/shared/Rules.luau",
+    "hash": 3169625718,
+    "matched": true
+  },
+  {
+    "bytes": 1769,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/shared/GiantChicken.luau",
+    "hash": 456340221,
+    "matched": true
+  },
+  {
+    "bytes": 12680,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/server/ArmyService.luau",
+    "hash": 4072959085,
+    "matched": true
+  },
+  {
+    "bytes": 19290,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/server/GameServer.luau",
+    "hash": 2222282444,
+    "matched": true
+  },
+  {
+    "bytes": 28624,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/client/MergeBrowser.luau",
+    "hash": 1525462442,
+    "matched": true
+  },
+  {
+    "bytes": 2806,
+    "compiled": true,
+    "activeCopies": 1,
+    "file": "src/client/MergeSelection.luau",
+    "hash": 2778725369,
+    "matched": true
+  }
+]

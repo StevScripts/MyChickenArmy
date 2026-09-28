@@ -3,10 +3,11 @@
 **Current direction, September 27:** keep queued egg processing, Selling Speed
 and Finish Now. The instant-sales experiment was rejected and reverted. All six
 authored plots now have the same processor board; deposits never bypass the
-queue. Selling Speed now has **no designed maximum**: opening rates remain
-4 / 16 / 64 / 256 / 1,024 eggs/sec, followed by 4,096 / 9,216 / 16,384 / ... .
-Prices and continuation formulas are in
-[the continuation contract](team/UNBOUNDED_SELLING_SPEED.md). The current cash collector still requires horizontal movement, as in the
+queue. Selling Speed has **no designed maximum**. The September 28 correction
+replaces the large tiers with 4 / 5 / 6 / 7 / 8 / 9 / 11 / ... eggs/sec; each
+purchase adds a rounded 1.10^level and costs ceil(40 * 1.20^level).
+Current formulas, compatibility and reference evidence are in
+[the gradual progression contract](team/GRADUAL_SELLING_SPEED.md). The current cash collector still requires horizontal movement, as in the
 latest pre-correction code. Earlier descriptions of standing collection or
 instant sales on other plots below are historical. See
 [the correction record](team/EGG_PROCESSING_CORRECTION.md).
@@ -138,7 +139,7 @@ If a rejoining player is assigned an older plot, saved queued eggs still process
 and its owned sellpart permits claiming the saved proceeds.
 
 Under the September 26 [quantity economy](EGG_ECONOMY.md), selling starts at
-4 eggs/sec. Rates are 4 / 16 / 64 / 256 / 1,024; upgrade costs remain
+4 eggs/sec. Historical September 27 rates were 4 / 16 / 64 / 256 / 1,024; costs were
 480 / 2,400 / 9,600 / 28,800 coins. Configure these in
 `src/shared/EggProcessorConfig.luau`. Double Egg Spawn doubles seller throughput;
 Double Cash applies once, when ready cash is claimed. Board purchases check

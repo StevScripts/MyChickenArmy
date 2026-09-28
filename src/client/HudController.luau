@@ -3,8 +3,10 @@
 local Theme=require(script.Parent.UITheme)
 local EggFeedback=require(script.Parent.EggFeedback)
 local GuiService=game:GetService("GuiService")
+local Players=game:GetService("Players")
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
+local ARMY_HOME_SCALE=0.82
 local Hud={}
 Hud.__index=Hud
 
@@ -14,11 +16,25 @@ function Hud.new(app,shell)
 	self.navigation=navigation
 	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-18),1
 	self.army=Theme.IconButton(navigation,"Army","My Army",Theme.Assets.ArmyHud or Theme.Assets.Army,function() app:TogglePage("Army") end)
+	local function command(action)
+		app.audio:Play("Click")
+		app:Request(action)
+	end
+	self.callArmy=Theme.IconButton(navigation,"CallArmy","Call Army",Theme.Assets.CallArmy or "",function() command("CallArmy") end)
+	self.myBase=Theme.IconButton(navigation,"MyBase","My Base",Theme.Assets.MyBase or "",function() command("GoBase") end)
+	self.army.ZIndex=2
+	self.commandsExpanded=false
+	for _,button in {self.callArmy,self.myBase} do
+		button.Visible,button.Interactable,button.Selectable=false,false,false
+		-- Separate from Visual.MotionScale, which owns hover and press feedback.
+		Theme.Motion:Scale(button).Scale=0
+	end
 	self.army.Size,self.army.TextSize=UDim2.fromScale(1,1),32
 	self.armyIcon=self.army.Visual.Icon
 	self.armyLabel=self.army.Visual.Label
 	self.armyCount=Theme.Display(self.army.Visual,"ArmyCount","",20,Theme.PageColors.Army)
 	self.armyCount.TextXAlignment=Enum.TextXAlignment.Center
+	self.armyCount.ZIndex=4
 	self.status=Theme.Display(shell,"ArmyStatus","",21)
 	self.status.AnchorPoint,self.status.Position,self.status.Size,self.status.TextXAlignment=Vector2.new(0.5,0),UDim2.new(0.5,0,0,86),UDim2.fromOffset(520,30),Enum.TextXAlignment.Center
 	self.status.Visible=false
@@ -49,7 +65,62 @@ function Hud.new(app,shell)
 	end
 	self.save=Theme.Display(shell,"SaveStatus","",12)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(1,0),UDim2.new(1,-18,0,52),UDim2.fromOffset(165,30),Enum.TextXAlignment.Right
+	self:BindBasePresence()
 	return self
+end
+
+function Hud:BindBasePresence()
+	local player=Players.LocalPlayer
+	local alive=true
+	local presenceConnection
+	local function reset()
+		if presenceConnection then presenceConnection:Disconnect();presenceConnection=nil end
+		self.commandsExpanded=false
+		self:UpdateArmyCommands(true)
+	end
+	local function bind(character)
+		reset()
+		local humanoid=character:WaitForChild("Humanoid",10)
+		if not alive or character~=player.Character or not humanoid then return end
+		local function update()
+			-- Reuse the server's whole-base boundary, including its edge hysteresis.
+			local expanded=humanoid:GetAttribute("OutsideHomeBase")==true
+			if expanded==self.commandsExpanded then return end
+			self.commandsExpanded=expanded
+			self:UpdateArmyCommands(false)
+		end
+		presenceConnection=humanoid:GetAttributeChangedSignal("OutsideHomeBase"):Connect(update)
+		update()
+	end
+	local added=player.CharacterAdded:Connect(bind)
+	local removing=player.CharacterRemoving:Connect(reset)
+	self.navigation.Destroying:Once(function()
+		alive=false
+		added:Disconnect();removing:Disconnect()
+		if presenceConnection then presenceConnection:Disconnect() end
+	end)
+	if player.Character then task.spawn(bind,player.Character) end
+end
+
+function Hud:UpdateArmyCommands(immediate)
+	if not self.commandOffset then return end
+	local expanded=self.commandsExpanded
+	local seconds=if immediate then 0 else 0.32
+	Theme.Motion:Tween(Theme.Motion:Scale(self.army),"baseScale",{Scale=if expanded then 1 else ARMY_HOME_SCALE},
+		seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
+	for index,button in {self.callArmy,self.myBase} do
+		local offset=if index==1 then -self.commandOffset else self.commandOffset
+		button.Visible=true
+		button.Interactable,button.Selectable=false,false
+		if GuiService.SelectedObject==button then GuiService.SelectedObject=self.army end
+		Theme.Motion:Tween(button,"basePosition",{Position=UDim2.new(0.5,if expanded then offset else 0,
+			0,if expanded then self.commandY else self.commandCenterY)},seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
+		Theme.Motion:Tween(Theme.Motion:Scale(button),"baseScale",{Scale=if expanded then 1 else 0},
+			seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut,function()
+				button.Visible=expanded
+				button.Interactable,button.Selectable=expanded,expanded
+			end)
+	end
 end
 
 function Hud:BuildSettingsTopbar()
@@ -129,22 +200,44 @@ function Hud:Resize(width, height, scale)
 	local reference=math.min(width/1920,height/1080,1.25)
 	local inset=GuiService.TopbarInset
 	local statusTop=math.max(12,inset.Max.Y-shell.AbsolutePosition.Y+8)
-	-- One standalone shortcut centered inside the device-safe area.
-	local iconSize=if width<600 or height<500 then 96 else math.clamp(math.floor(180*reference+0.5),120,216)
+	-- Keep My Army exactly centered; phone portraits lift the row above movement controls.
+	local iconSize=if width<600 then math.clamp(math.floor((width-48)/3)-16,64,96)
+		elseif height<500 then 96 else math.clamp(math.floor(180*reference+0.5),120,216)
+	local armyIconSize=math.floor(iconSize*1.18+0.5)
+	local sideIconSize=math.floor(iconSize*0.85+0.5)
 	local labelHeight=if compact then 28 else 36
 	local countHeight=if compact then 20 else 24
-	local navWidth=math.max(120,iconSize)
-	local navHeight=iconSize+labelHeight+countHeight
-	local bottom=if compact then 12 else 18
+	local iconDown=if compact then 6 else 8
+	local labelLift=if compact then 8 else 12
+	local armyWidth=math.max(if width<600 then 90 else 120,armyIconSize)
+	local sideWidth=math.max(if width<600 then 86 else 110,sideIconSize)
+	local gap=if compact then 8 else 20
+	local navWidth=armyWidth+sideWidth*2+gap*2
+	local navHeight=armyIconSize+labelHeight+countHeight
+	local bottom=if touch and width<600 then 108 elseif compact then 12 else 18
 	self.navigation.AnchorPoint=Vector2.new(0.5,1)
 	self.navigation.Position=UDim2.new(0.5,0,1,-bottom)
 	self.navigation.Size=UDim2.fromOffset(navWidth,navHeight)
-	self.army.Size=UDim2.fromScale(1,1)
-	self.army.TextSize=if compact then 26 else 34
-	self.armyIcon.AnchorPoint=Vector2.new(0.5,0)
-	self.armyIcon.Position,self.armyIcon.Size=UDim2.fromScale(0.5,0),UDim2.fromOffset(iconSize,iconSize)
-	self.armyLabel.Position,self.armyLabel.Size=UDim2.fromOffset(0,iconSize-4),UDim2.fromOffset(navWidth,labelHeight)
-	self.armyCount.Position,self.armyCount.Size=UDim2.fromOffset(0,iconSize+labelHeight-6),UDim2.fromOffset(navWidth,countHeight)
+	self.army.AnchorPoint,self.army.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,1)
+	for _,button in {self.callArmy,self.army,self.myBase} do
+		local primary=button==self.army
+		local size=if primary then armyIconSize else sideIconSize
+		local buttonWidth=if primary then armyWidth else sideWidth
+		button.Size=UDim2.fromOffset(buttonWidth,if primary then navHeight else sideIconSize+labelHeight)
+		button.TextSize=if primary then (if width<600 then 22 elseif compact then 28 else 36)
+			else (if width<600 then 20 elseif compact then 24 else 30)
+		if not primary then button.AnchorPoint=Vector2.new(0.5,0.5) end
+		local icon,label=button.Visual.Icon,button.Visual.Label
+		icon.AnchorPoint=Vector2.new(0.5,0)
+		icon.Position,icon.Size=UDim2.new(0.5,0,0,iconDown),UDim2.fromOffset(size,size)
+		label.Position,label.Size=UDim2.fromOffset(0,size-4-labelLift),UDim2.fromOffset(buttonWidth,labelHeight)
+		label.ZIndex=4
+	end
+	self.commandOffset=(armyWidth+sideWidth)/2+gap
+	self.commandY=armyIconSize-sideIconSize/2+labelHeight/2
+	self.commandCenterY=navHeight*(1-ARMY_HOME_SCALE)+(armyIconSize/2+iconDown)*ARMY_HOME_SCALE
+	self:UpdateArmyCommands(true)
+	self.armyCount.Position,self.armyCount.Size=UDim2.fromOffset(0,armyIconSize+labelHeight-6-labelLift),UDim2.fromOffset(armyWidth,countHeight)
 	self.armyCount.TextSize=if compact then 18 else 22
 	for _,label in {self.status,self.objective} do
 		label.Position=UDim2.new(0.5,0,0,statusTop)
@@ -173,6 +266,7 @@ function Hud:Resize(width, height, scale)
 	local small=width<850
 	local lowerSides=touch or width<600
 	local moneyY=if lowerSides then math.min(0.73,1-124/height) else 0.925
+	if touch and width<600 then moneyY=math.min(moneyY,(height-bottom-navHeight-82)/height) end
 	self.cashIcon.AnchorPoint=Vector2.new(0,0.5)
 	self.cashIcon.Position,self.cashIcon.Size=UDim2.fromScale(0.012,moneyY),UDim2.fromScale((if small then 48 else 88)/width,(if small then 46 else 80)/height)
 	self.money.AnchorPoint=Vector2.new(0,0.5)
@@ -190,6 +284,9 @@ function Hud:Resize(width, height, scale)
 	self:UpdateEggLine(self.app.state and self.app.state.eggs or {})
 	self.territory.Position,self.territory.Size=UDim2.fromScale(0.012,moneyY-48/height),UDim2.fromScale(0.48,24/height)
 	self.conquered.Position,self.flock.Position=UDim2.fromScale(0.988,if lowerSides then 0.76 else 0.95),UDim2.fromScale(0.988,if lowerSides then 0.76+26/height else 0.98)
+	if touch and width<600 then
+		self.conquered.Position,self.flock.Position=UDim2.fromScale(0.988,moneyY+6/height),UDim2.fromScale(0.988,moneyY+32/height)
+	end
 	self.conquered.Size,self.flock.Size=UDim2.fromScale(0.48,28/height),UDim2.fromScale(0.48,28/height)
 	self.conquered.TextSize,self.flock.TextSize=if small then 18 else 27,if small then 18 else 25
 end
@@ -238,10 +335,12 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
 	self.status.Visible=not atHome
 	self.status.Text=if atHome then ""
+		elseif state.armyState=="Following" then "Army following you"
 		elseif state.armyState=="Returning" then "Returning home"
 		elseif state.stationedAt then "Holding "..state.stationedAt
 		elseif state.marchingTo then "Marching to "..state.marchingTo
 		else "Army deployed"
+	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
 	if state.armyState~="Returning" and (state.recoveringCount or 0)+(state.reinforcingCount or 0)>0 then
 		self.status.Text=(state.recoveringCount or 0)+(state.reinforcingCount or 0).." reinforcing"
 	end

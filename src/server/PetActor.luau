@@ -104,6 +104,18 @@ function PetActor:SetParent(parent: Instance)
 	self.model.Parent = parent
 end
 
+-- Explicit server commands can relocate a rig without cloning it or leaving a path active.
+function PetActor:Teleport(foot: Vector3): boolean
+	if self.destroyed or not finiteVector(foot) then return false end
+	self:Stop()
+	local offset = self.model:GetAttribute("FootOffset") or self.footOffset
+	self.model:PivotTo(CFrame.new(foot + Vector3.new(0, offset, 0)) * self.root.CFrame.Rotation)
+	self.root.AssemblyLinearVelocity, self.root.AssemblyAngularVelocity = Vector3.zero, Vector3.zero
+	self.safeFoot, self.healthPosition, self.progressPosition = foot, foot, foot
+	self.healthAt, self.progressAt = os.clock(), os.clock()
+	return true
+end
+
 function PetActor:_clearPath()
 	if self.pathBlocked then self.pathBlocked:Disconnect(); self.pathBlocked = nil end
 	if self.path then self.path:Destroy(); self.path = nil end
@@ -172,7 +184,7 @@ function PetActor:Recover(foot: Vector3?, reason: string, now: number?): boolean
 	self:Stop()
 	local facing = self.root.CFrame.LookVector
 	local replacement = PetActor.new(self.parent, old.Name, self.species, self.stars, safe, if finiteVector(facing) then facing else nil)
-	PetView.Level(replacement.model, attributes.Level or 1)
+	PetView.Level(replacement.model, attributes.Level or 1, attributes.GiantSize)
 	if attributes.ChickenKing then KingVisual.Apply(replacement.model, scale / replacement.model:GetScale()) end
 	for name, value in attributes do replacement.model:SetAttribute(name, value) end
 	self.model, self.root, self.humanoid = replacement.model, replacement.root, replacement.humanoid
@@ -299,7 +311,7 @@ function PetActor:_recover(now: number)
 	self.requestGeneration += 1
 	local generation, target, origin = self.requestGeneration, self.goal, self:Position()
 	local radius = math.max(self.root.Size.X, self.root.Size.Z) / 2 + 0.15
-	local height = math.max(2, self.model:GetAttribute("VisualHeight") or 4)
+	local height = math.max(2, self.model:GetAttribute("NavigationHeight") or self.model:GetAttribute("VisualHeight") or 4)
 	self.progressAt, self.progressPosition = now, origin
 	local request = {done = false, startedAt = now}
 	self.pathRequest = request

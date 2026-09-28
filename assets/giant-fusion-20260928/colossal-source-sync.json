@@ -1,0 +1,65 @@
+{
+  "place": 96683186622050,
+  "date": "2026-09-28",
+  "mode": "Edit",
+  "scriptsOnlyBuild": "passed",
+  "diffCheck": "passed",
+  "sources": [
+    {
+      "bytes": 2714,
+      "copies": 1,
+      "name": "GiantChicken",
+      "hash": 2253102460,
+      "compiled": true,
+      "matched": true
+    },
+    {
+      "bytes": 33189,
+      "copies": 1,
+      "name": "PlayerSession",
+      "hash": 1696316231,
+      "compiled": true,
+      "matched": true
+    },
+    {
+      "bytes": 12972,
+      "copies": 1,
+      "name": "ArmyService",
+      "hash": 3196890631,
+      "compiled": true,
+      "matched": true
+    },
+    {
+      "bytes": 4616,
+      "copies": 1,
+      "name": "ArmyReinforcements",
+      "hash": 1895611079,
+      "compiled": true,
+      "matched": true
+    },
+    {
+      "bytes": 63984,
+      "copies": 1,
+      "name": "ChickenBrowser",
+      "hash": 1818817329,
+      "compiled": true,
+      "matched": true
+    },
+    {
+      "bytes": 28839,
+      "copies": 1,
+      "name": "MergeBrowser",
+      "hash": 2101341104,
+      "compiled": true,
+      "matched": true
+    },
+    {
+      "bytes": 25832,
+      "copies": 1,
+      "name": "PetView",
+      "hash": 58639026,
+      "compiled": true,
+      "matched": true
+    }
+  ]
+}

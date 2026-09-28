@@ -4,6 +4,7 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
 local Catalog = require(Shared.PetCatalog)
+local Giant = require(Shared.GiantChicken)
 local Progression = require(Shared.Progression)
 local ShopCatalog = require(Shared.ShopCatalog)
 local UpgradeCatalog = require(Shared.UpgradeCatalog)
@@ -133,6 +134,21 @@ function PlayerSession:FindSlot(id: string): number?
 	return nil
 end
 
+-- One Colossal may be selected; extra owned Colossals remain reserves.
+-- Shared by auto/manual selection, save normalization and deployment lineups.
+function PlayerSession:FilterArmyIds(values, capacity: number?)
+	local ids,seen,colossals={},{},0
+	for _,id in values do
+		local pet=self.pets[id]
+		if not pet or seen[id] or #ids>=(capacity or self:Capacity()) then continue end
+		local colossal=Giant.IsColossal(pet.giantSize)
+		if colossal and colossals>=Giant.MaxArmyColossals then continue end
+		seen[id]=true;table.insert(ids,id)
+		if colossal then colossals+=1 end
+	end
+	return ids
+end
+
 -- Automatic combat-power ranking. Equal-power purchases preserve the existing squad.
 function PlayerSession:AutoBestPetIds()
 	local ranked={}
@@ -146,20 +162,14 @@ function PlayerSession:AutoBestPetIds()
 		return a.id<b.id
 	end)
 	local ids={}
-	for i=1,math.min(self:Capacity(),#ranked) do table.insert(ids,ranked[i].id) end
-	return ids
+	for _,entry in ranked do table.insert(ids,entry.id) end
+	return self:FilterArmyIds(ids)
 end
 
 -- Existing deployment/reinforcement consumers use this desired roster contract.
 function PlayerSession:BestPetIds()
 	if self.armySelection==nil then return self:AutoBestPetIds() end
-	local ids,seen={},{}
-	for _,id in self.armySelection do
-		if self.pets[id] and not seen[id] and #ids<self:Capacity() then
-			seen[id]=true;table.insert(ids,id)
-		end
-	end
-	return ids
+	return self:FilterArmyIds(self.armySelection)
 end
 
 function PlayerSession:RefreshArmy(): boolean
@@ -206,10 +216,13 @@ function PlayerSession:SaleEligibility(id): (boolean,string)
 end
 
 function PlayerSession:Lineup()
-	local result = {}
+	local result,ids = {},{}
 	for slot=1, self:Capacity() do
-		local pet = self.pets[self.slots[slot]]
-		if pet then table.insert(result, {id=pet.id, species=pet.species, stars=pet.stars, level=pet.level, slot=slot}) end
+		local id=self.slots[slot];if id then table.insert(ids,id) end
+	end
+	for _,id in self:FilterArmyIds(ids) do
+		local pet=self.pets[id]
+		table.insert(result, {id=pet.id, species=pet.species, stars=pet.stars, level=pet.level, giantSize=pet.giantSize, slot=self:FindSlot(id)})
 	end
 	return result
 end
@@ -334,6 +347,7 @@ function PlayerSession:Snapshot(now: number)
 	for _,pet in self.pets do
 		local canSell,reason=saleEligibility(self,pet.id,selected)
 		table.insert(pets,{id=pet.id,species=pet.species,stars=pet.stars,level=pet.level,favorite=pet.favorite,
+			giantSize=pet.giantSize,
 			slot=self:FindSlot(pet.id),selected=selected[pet.id]==true,deployed=deployed[pet.id]==true,
 			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level),home=self:IsPetHome(pet.id),
 			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level),
@@ -391,16 +405,11 @@ end
 function PlayerSession:ToData()
  local armySelection
  if self.armySelection~=nil then
-  armySelection={}
-  local seen={}
-  for _,id in self.armySelection do
-   if self.pets[id] and not seen[id] and #armySelection<self.capacity+ShopCatalog.ArmyBonus then
-    seen[id]=true;table.insert(armySelection,id)
-   end
-  end
+  armySelection=self:FilterArmyIds(self.armySelection,self.capacity+ShopCatalog.ArmyBonus)
  end
 	local pets={}
 	for _,pet in self.pets do table.insert(pets,{id=pet.id,species=pet.species,level=pet.level,favorite=pet.favorite,collected=pet.collected or 0,
+		giantSize=pet.giantSize,
 		investment=pet.investment or Rules.Investment(pet.species,pet.level)}) end
 	table.sort(pets,function(a,b) return a.id<b.id end)
 	local wins={}
@@ -561,9 +570,10 @@ function PlayerSession:LoadData(data)
 		end
 		local level=if revision<3 then 1 else pet.level
 		if not numberIn(level,1,Config.MaxPetLevel,true) then return false,"Invalid saved chicken level." end
+		if pet.giantSize~=nil and not Giant.IsValidSize(pet.giantSize) then return false,"Invalid saved Giant size." end
 		local investment=if revision<5 then Rules.Investment(pet.species,level,true) else pet.investment
 		if not numberIn(investment,0,1e12) then return false,"Invalid saved chicken investment." end
-		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,favorite=pet.favorite,collected=math.ceil(pet.collected or 0),investment=math.ceil(investment)}
+		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,giantSize=pet.giantSize,favorite=pet.favorite,collected=math.ceil(pet.collected or 0),investment=math.ceil(investment)}
 	end
 	if count~=#data.pets then return false,"Invalid saved collection." end
 	-- Optional additive field; existing profiles continue selecting their best chickens.
@@ -642,7 +652,7 @@ function PlayerSession:LoadData(data)
 	-- Preserve old saves: round any historical cents up once, never reset progress.
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.ceil(data.coins+converted),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial
-	self.armySelection=armySelection
+	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered
 	self.passiveEarned,self.battleEarned=math.ceil(data.passiveEarned or 0),math.ceil(data.battleEarned or 0)
 	self.armyState,self.outgoing,self.incoming,self.defending="Home",nil,nil,nil

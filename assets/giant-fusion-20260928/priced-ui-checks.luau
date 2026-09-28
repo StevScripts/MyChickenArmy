@@ -1,0 +1,87 @@
+-- Disposable UI fixture. Run in Studio runtime; no real profile or purchases.
+local Client=game.StarterPlayer.StarterPlayerScripts.PetRoll:Clone();Client.Name='FuseVisualChecks';Client.Parent=game.ServerStorage
+local Browser=require(Client.MergeBrowser)
+local Preview=require(Client.ChickenPreview)
+local gui=Instance.new('ScreenGui');gui.Name='FuseFlowChecks';gui.Enabled=false;gui.Parent=game.ServerStorage
+local panel=Instance.new('Frame');panel.Size=UDim2.fromOffset(1000,870);panel.Parent=gui
+local recipe={price=2400,key='Camo:1:1',species='Camo',stars=1,level=1,count=3,petIds={'a','b','c'},inputEggRate=8,afterEggRate=16,beforeDps=10,afterDps=12.5}
+local app={state={coins=2400,mergeOptions={recipe},pets={},plotIndex=1},panel=panel,panelWidth=1000,panelHeight=870,page='Merge',reducedMotion=true,
+ audio={Play=function() end},requests={}}
+function app:Pet(id) for _,pet in self.state.pets do if pet.id==id then return pet end end end
+function app:Preview(...) return Preview.Create(...) end
+function app:Request(action,payload) table.insert(self.requests,{action=action,payload=payload});return #self.requests end
+function app:ClosePanel() self.panel.Visible=false end
+local b=Browser.new(app,panel);b.root.Visible=true
+function b:NearStand() return true end
+local results={}
+local function fresh()
+ b.pending=nil;b.animating=false;b:Reset();app.panel.Visible=true
+ app.state={coins=2400,mergeOptions={recipe},pets={},plotIndex=1};b:Render(true)
+end
+local function stage()
+ for _,i in {3,1,2} do b:Slot(i);b:Choose(recipe.key) end
+end
+local function check(name,fn)
+ local ok,why=pcall(fn);table.insert(results,{name=name,passed=ok,error=if not ok then tostring(why) else nil})
+end
+check('Picker search, remaining counts, sparse slots and Remove',function()
+ fresh();b:Slot(3);assert(#b.cards==1 and b.cards[1].Count.Text=='×3')
+ b:Choose(recipe.key);b:Slot(1);assert(b.cards[1].Count.Text=='×2')
+ b.search.Text='unmatched';task.wait();assert(#b.cards==0 and b.empty.Visible and b.back.Text=='Clear search')
+ b.search.Text='Camo';task.wait();assert(#b.cards==1)
+ b:Choose(recipe.key);b:Slot(2);assert(b.cards[1].Count.Text=='×1');b:Choose(recipe.key)
+ assert(b.action.Active and b.selection:Count()==3)
+ b:Slot(1);assert(not b.action.Active and b.selection:Count()==2)
+end)
+check('Stale server eligibility clears slots and cannot submit',function()
+ fresh();stage();app.state.mergeOptions={};b:Render(true)
+ assert(b.selection:Count()==0 and not b.action.Active and b.notice)
+ local before=#app.requests;b:Merge();assert(#app.requests==before)
+end)
+check('Success shows the actual chicken, level and egg/combat values; ignores repeat taps',function()
+ fresh();stage();b:Merge();local p=b.pending;local n=#app.requests;b:Merge();assert(#app.requests==n)
+ local survivor={id=p.payload.firstId,species='Camo',level=2,eggsPerSecond=16}
+ app.state.pets={survivor};app.state.mergeOptions={}
+ b:Receive({id=p.id,ok=true});assert(b.mode=='Result' and b.summaryName.Text=='Camo Chick')
+ assert(b.summaryEggs.Text=='16 eggs/s' and b.summaryDps.Text=='12.5 DPS')
+ b:Receive({id=p.id,ok=true});assert(b.mode=='Result')
+end)
+check('Closing preserves the request and prevents a late result from reopening',function()
+ fresh();stage();b:Merge();local p=b.pending;b:Close();app.panel.Visible=false
+ assert(b.pending==p)
+ app.state.pets={{id=p.payload.firstId,species='Camo',level=2,eggsPerSecond=16}}
+ b:Receive({id=p.id,ok=true});assert(not b.pending and b.mode=='Main' and not app.panel.Visible)
+end)
+check('Reopen an in-flight request; server rejection returns to safe empty selection',function()
+ fresh();stage();b:Merge();local p=b.pending;b:Close();b:Reset();b:Render(true)
+ assert(b.pending==p and b.mode=='Processing' and b.presentation)
+ b:Receive({id=p.id,ok=false,message='That chicken is no longer available.'})
+ assert(b.mode=='Main' and b.selection:Count()==0 and b.notice)
+end)
+check('Desktop and compact layouts preserve action targets and scroll short content',function()
+ fresh();stage()
+ for _,size in {{900,850},{746,705},{390,720},{320,568},{700,320}} do
+  app.panelWidth,app.panelHeight=size[1],size[2];panel.Size=UDim2.fromOffset(size[1],size[2]);b:Render(true)
+  assert(b.action.Position.Y.Offset+b.action.Size.Y.Offset<=size[2])
+  assert(b.action.Size.Y.Offset>=44 and b.closeButton.Size.Y.Offset>=44)
+  for _,slot in b.slots do assert(slot.action.Size.Y.Offset>=44 and slot.box.Size.X.Offset>0) end
+  assert(b.main.Size.Y.Offset>0 and b.main.CanvasSize.Y.Offset>0)
+  if size[1]==900 or size[1]==746 or size[1]==390 then assert(b.main.CanvasSize.Y.Offset<=b.main.Size.Y.Offset+2) end
+ end
+end)
+check('Price displayed, shortage disabled, exact cash enables; quote is submitted',function()
+ fresh();stage();assert(b.action.Text=='Fuse · $2,400' and b.action.Active)
+ app.state.coins=2399;b:Render(true)
+ assert(not b.action.Active and b.action.Text=='Need $1 more')
+ assert(b.message.Text=='Fusion cost: $2,400' and b.message.Visible and b.message.Size.Y.Offset>=38)
+ local before=#app.requests;b:Merge();assert(#app.requests==before and not b.pending)
+ app.state.coins=2400;b:Render(true);assert(b.action.Active);b:Merge()
+ assert(b.pending.payload.expectedPrice==2400)
+end)
+check('Preview shows rarity band and honors a previously saved large input',function()
+ fresh();stage();assert(b.tradeoff.Text=='Uncommon size luck · 4.5–8 studs')
+ app.state.pets={{id='b',giantSize=20.4,level=1}}
+ b:Render(true);assert(b.tradeoff.Text=='Giant · 20.4 studs')
+end)
+b:Destroy();gui:Destroy();Client:Destroy()
+return results

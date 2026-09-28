@@ -1,0 +1,181 @@
+{
+  "checkedAt": "2026-09-28",
+  "placeId": 96683186622050,
+  "sessionOnly": true,
+  "fee": [
+    {
+      "passed": true,
+      "name": "Fee follows species and level; upgrades and wallet cannot change the quote"
+    },
+    {
+      "passed": true,
+      "name": "Insufficient, missing, stale and malformed quotes never spend or consume"
+    },
+    {
+      "passed": true,
+      "name": "Exact balance succeeds once; service fee is not refunded or duplicated"
+    },
+    {
+      "passed": true,
+      "name": "Batch affordability and stale last quote reject the entire transaction"
+    },
+    {
+      "passed": true,
+      "name": "Saved large Commons survive retuning; advertised range honors actual inputs"
+    }
+  ],
+  "giants": [
+    {
+      "passed": true,
+      "name": "Every rarity guarantees a Giant; inventory, stats, lineup and saves retain it"
+    },
+    {
+      "passed": true,
+      "name": "Rarity bands keep Common Giants small and quantiles ordered"
+    },
+    {
+      "passed": true,
+      "name": "Fusing Giants retains the largest input regardless of survivor order"
+    },
+    {
+      "passed": true,
+      "name": "Old profiles stay normal; invalid optional sizes reject without loading"
+    },
+    {
+      "passed": true,
+      "name": "Rejected batch does not change size or consume any input"
+    },
+    {
+      "passed": true,
+      "name": "Every catalog appearance respects the maximum body extent"
+    },
+    {
+      "passed": true,
+      "name": "Growth stays grounded, keeps small collider, and is idempotent"
+    },
+    {
+      "passed": true,
+      "name": "Battle lineup, new rig, respawn and snapshot retain Giant size"
+    }
+  ],
+  "transactions": [
+    {
+      "passed": true,
+      "name": "Exactly three become one; retained ID, investment, coins and save roundtrip"
+    },
+    {
+      "passed": true,
+      "name": "Replay and old two-ID payload cannot consume more chickens"
+    },
+    {
+      "passed": true,
+      "name": "Duplicate, foreign, malformed, mismatched species/stars/levels fail atomically"
+    },
+    {
+      "passed": true,
+      "name": "Favorites, away, defending and capped chickens are excluded"
+    },
+    {
+      "passed": true,
+      "name": "Three home reserves can merge while their squad is away"
+    },
+    {
+      "passed": true,
+      "name": "Only 3+ copies shown, extra copies remain; preview uses actual stats"
+    },
+    {
+      "passed": true,
+      "name": "Whole batch rejects shared IDs or invalid final triple without partial mutation"
+    },
+    {
+      "passed": true,
+      "name": "Sparse batches and legacy pairs rejected; paid automation stays disabled"
+    }
+  ],
+  "staging": [
+    {
+      "passed": true,
+      "name": "Three-copy group stays available as 2 then 1; exact staged IDs"
+    },
+    {
+      "passed": true,
+      "name": "Sparse slot order cannot stage a duplicate; survivor keeps server priority"
+    },
+    {
+      "passed": true,
+      "name": "Species/level group locks until all inputs removed"
+    },
+    {
+      "passed": true,
+      "name": "Stale ID removed without replacing remaining choices; replacement allowed"
+    },
+    {
+      "passed": true,
+      "name": "Unavailable trio clears; incomplete and occupied slots cannot submit"
+    },
+    {
+      "passed": true,
+      "name": "Recovery accepts only the actual leveled survivor with both inputs gone"
+    }
+  ],
+  "ui": [
+    {
+      "passed": true,
+      "name": "Picker search, remaining counts, sparse slots and Remove"
+    },
+    {
+      "passed": true,
+      "name": "Stale server eligibility clears slots and cannot submit"
+    },
+    {
+      "passed": true,
+      "name": "Success shows the actual chicken, level and egg/combat values; ignores repeat taps"
+    },
+    {
+      "passed": true,
+      "name": "Closing preserves the request and prevents a late result from reopening"
+    },
+    {
+      "passed": true,
+      "name": "Reopen an in-flight request; server rejection returns to safe empty selection"
+    },
+    {
+      "passed": true,
+      "name": "Desktop and compact layouts preserve action targets and scroll short content"
+    },
+    {
+      "passed": true,
+      "name": "Price displayed, shortage disabled, exact cash enables; quote is submitted"
+    },
+    {
+      "passed": true,
+      "name": "Preview shows rarity band and honors a previously saved large input"
+    }
+  ],
+  "live": {
+    "saveStatus": "studio-session",
+    "giant": {
+      "canSell": false,
+      "giantSize": 4.5,
+      "stars": 1,
+      "income": 32,
+      "selected": true,
+      "deployed": false,
+      "nextIncome": 64,
+      "slot": 1,
+      "id": "ee1bcc61-aa39-4742-83d1-b82eef2064a7",
+      "investment": 2400,
+      "levelCap": 3,
+      "home": true,
+      "level": 2,
+      "refund": 1200,
+      "upgradeLocked": false,
+      "saleReason": "Selected for your army. Remove this chicken from the army before selling.",
+      "species": "Duck",
+      "favorite": false,
+      "eggsPerSecond": 4
+    },
+    "count": 2,
+    "coins": 1800
+  }
+}

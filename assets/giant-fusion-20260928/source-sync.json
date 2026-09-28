@@ -1,0 +1,112 @@
+{
+  "sources": [
+    {
+      "bytes": 1203,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 3254148850,
+      "file": "src/shared/GiantChicken.luau",
+      "match": true
+    },
+    {
+      "bytes": 3702,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 2043774253,
+      "file": "src/shared/ChickenGrowth.luau",
+      "match": true
+    },
+    {
+      "bytes": 25764,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 592623963,
+      "file": "src/shared/PetView.luau",
+      "match": true
+    },
+    {
+      "bytes": 12048,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 4283194021,
+      "file": "src/server/ArmyService.luau",
+      "match": true
+    },
+    {
+      "bytes": 32696,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 2589321711,
+      "file": "src/server/PlayerSession.luau",
+      "match": true
+    },
+    {
+      "bytes": 31622,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 25459396,
+      "file": "src/server/WorldService.luau",
+      "match": true
+    },
+    {
+      "bytes": 19096,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 3932704223,
+      "file": "src/server/PetActor.luau",
+      "match": true
+    },
+    {
+      "bytes": 25798,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 3917320836,
+      "file": "src/server/Battle.luau",
+      "match": true
+    },
+    {
+      "bytes": 5200,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 2259897914,
+      "file": "src/server/LiveBattleActors.luau",
+      "match": true
+    },
+    {
+      "bytes": 4155,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 2366437535,
+      "file": "src/server/ArmyReinforcements.luau",
+      "match": true
+    },
+    {
+      "bytes": 10496,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 593888671,
+      "file": "src/server/MergeStand.luau",
+      "match": true
+    },
+    {
+      "bytes": 27501,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 3929673985,
+      "file": "src/client/MergeBrowser.luau",
+      "match": true
+    },
+    {
+      "bytes": 63059,
+      "compiled": true,
+      "activeCopies": 1,
+      "hash": 1203831662,
+      "file": "src/client/ChickenBrowser.luau",
+      "match": true
+    }
+  ],
+  "qa": true,
+  "isRunning": false,
+  "placeId": 96683186622050,
+  "sessionOnly": true
+}

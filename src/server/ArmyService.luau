@@ -3,6 +3,8 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
 local Catalog = require(Shared.PetCatalog)
+local Giant = require(Shared.GiantChicken)
+local sizeRandom = Random.new()
 local Progression = require(Shared.Progression)
 local ArmyService = {}
 
@@ -26,6 +28,7 @@ end
 function ArmyService.SetSelection(session,petIds,expectedIds)
 	local ids,expected=ownedIds(session,petIds),ownedIds(session,expectedIds)
 	if not ids or not expected then return false,"Choose different chickens from your own flock." end
+	if #session:FilterArmyIds(ids)<#ids then return false,"Only one Colossal (20+ studs) can be in your army." end
 	local current=session:BestPetIds()
 	if #expected~=#current then return false,"Your army changed. Choose again." end
 	for index,id in current do
@@ -84,6 +87,7 @@ function ArmyService.MergeOptions(session, automatic: boolean?)
 		local income=session:DisplayedPetIncome(a.species,stars,level)
 		table.insert(options,{key=key,firstId=a.id,secondId=b.id,thirdId=c.id,
 			species=a.species,stars=stars,level=level,count=#pets,merges=math.floor(#pets/3),petIds=ids,
+			price=Rules.MergePrice(a.species,level),
 			inputIncome=income,beforeIncome=income*3,
 			inputEggRate=session:PetEggRate(a.species,stars,level),
 			afterEggRate=session:PetEggRate(a.species,stars,level+1),
@@ -99,7 +103,7 @@ function ArmyService.MergeOptions(session, automatic: boolean?)
 	return options
 end
 
-local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel)
+local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if type(firstId)~="string" or type(secondId)~="string" or type(thirdId)~="string"
 		or #firstId>64 or #secondId>64 or #thirdId>64
 		or firstId==secondId or firstId==thirdId or secondId==thirdId then
@@ -116,16 +120,20 @@ local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel)
 		or level~=(b.level or 1) or level~=(c.level or 1) or level~=expectedLevel then
 		return nil,"Those chickens changed. Match the same chicken and level."
 	end
+	local price=Rules.MergePrice(a.species,level)
+	if expectedPrice~=price then return nil,"The fusion price changed. Choose again." end
 	local investment=(a.investment or Rules.Investment(a.species,level))
 		+(b.investment or Rules.Investment(b.species,level))+(c.investment or Rules.Investment(c.species,level))
 	if investment~=investment or investment<0 or investment>1e12 then
 		return nil,"This merge exceeds the saved investment limit."
 	end
-	return {first=a,second=b,third=c,level=level,investment=investment}
+	return {first=a,second=b,third=c,level=level,investment=investment,price=price}
 end
 
 local function consumeTriple(session,triple)
 	local a,b,c,level=triple.first,triple.second,triple.third,triple.level
+	local giantSize=Giant.SizeFromRoll(Catalog[a.species].rarity,sizeRandom:NextNumber(),
+		math.max(a.giantSize or 0,b.giantSize or 0,c.giantSize or 0))
 	-- Validate everything before mutation, without yielding. Existing saves already
 	-- store the retained ID, level and investment; no new progression currency.
 	a.investment=triple.investment
@@ -137,45 +145,52 @@ local function consumeTriple(session,triple)
 		end
 	end
 	a.level=level+1
+	a.giantSize=giantSize
 end
 
-function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel)
+function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if not Config.Features.Merging then return false,"Merging is unavailable." end
-	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel)
+	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if not triple then return false,reason end
+	if session.coins<triple.price then return false,"Not enough cash to fuse these chickens." end
+	-- The fee is a service cost, not refundable chicken purchase investment.
+	session.coins-=triple.price
 	consumeTriple(session,triple)
 	local a=triple.first
 	session.tutorial.upgraded=true
 	session:RefreshArmy();session:Touch()
-	return true,Catalog[a.species].name.." merged to level "..a.level.."!",a.id
+	return true,Giant.Label(a.giantSize).." · "..Catalog[a.species].name.."!",a.id
 end
 
 function ArmyService.MergeAll(session,triples)
 	if not Config.Features.Merging then return false,"Merging is unavailable." end
 	local limit=math.floor(Config.LegacyCollectionLimit/3)
 	if type(triples)~="table" or #triples<1 or #triples>limit then return false,"Choose matching groups to merge." end
-	local validated,seen,count={},{},0
+	local validated,seen,count,total={},{},0,0
 	for index,request in triples do
 		count+=1
 		if count>limit or type(index)~="number" or index%1~=0 or index<1 or index>#triples or type(request)~="table" then
 			return false,"Invalid merge selection."
 		end
-		local triple,reason=mergeTriple(session,request.firstId,request.secondId,request.thirdId,request.level)
+		local triple,reason=mergeTriple(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
 		if not triple then return false,reason end
 		for _,pet in {triple.first,triple.second,triple.third} do
 			if seen[pet.id] then return false,"Each chicken can only merge once." end
 			seen[pet.id]=true
 		end
 		validated[index]=triple
+		total+=triple.price
 	end
 	if count~=#triples then return false,"Invalid merge selection." end
+	if session.coins<total then return false,"Not enough cash to fuse these chickens." end
+	session.coins-=total
 	local results={}
 	for _,triple in validated do
 		consumeTriple(session,triple)
-		table.insert(results,{petId=triple.first.id,species=triple.first.species,level=triple.first.level})
+		table.insert(results,{petId=triple.first.id,species=triple.first.species,level=triple.first.level,giantSize=triple.first.giantSize})
 	end
 	session.tutorial.upgraded=true;session:RefreshArmy();session:Touch()
-	return true,"Merged "..count.." groups!",{count=count,results=results}
+	return true,"Merged "..count.." groups!",{count=count,results=results,price=total}
 end
 
 function ArmyService.AutoMerge(session)
@@ -189,7 +204,7 @@ function ArmyService.AutoMerge(session)
 		for index=1,#option.petIds-2,3 do
 			if #triples>=limit then break end
 			table.insert(triples,{firstId=option.petIds[index],secondId=option.petIds[index+1],
-				thirdId=option.petIds[index+2],level=option.level})
+				thirdId=option.petIds[index+2],level=option.level,expectedPrice=option.price})
 		end
 		if #triples>=limit then break end
 	end
@@ -229,8 +244,12 @@ function ArmyService.Expand(session)
  session.coins-=nextSlot.price;session.capacity=nextSlot.capacity;session.tutorial.upgraded=true
  -- A bought slot adds one best reserve without replacing the manual lineup.
  if session.armySelection~=nil then
+  session.armySelection=session:BestPetIds()
   for _,id in session:AutoBestPetIds() do
-   if not table.find(session.armySelection,id) then table.insert(session.armySelection,id);break end
+   if not table.find(session.armySelection,id) then
+    local proposed=table.clone(session.armySelection);table.insert(proposed,id)
+    if #session:FilterArmyIds(proposed)==#proposed then session.armySelection=proposed;break end
+   end
   end
  end
  session:RefreshArmy();session:Touch()

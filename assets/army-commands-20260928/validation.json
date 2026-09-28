@@ -1,0 +1,34 @@
+{
+  "unit": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"returnValue\":\"[{\\\"name\\\":\\\"Call transfers only selected actors; repeats preserve identity and one Colossal\\\",\\\"passed\\\":true},{\\\"name\\\":\\\"Selection swaps return old Colossal and transfer its replacement once\\\",\\\"passed\\\":true},{\\\"name\\\":\\\"Base returns player, following squad and reserves without replacing their actors\\\",\\\"passed\\\":true},{\\\"name\\\":\\\"Invalid attack keeps following; valid attack starts from existing actor positions\\\",\\\"passed\\\":true},{\\\"name\\\":\\\"Dead character and empty selection reject safely; death returns followers home\\\",\\\"passed\\\":true},{\\\"name\\\":\\\"Recall cancels only the outgoing encounter, transfers its actors and awards no conquest\\\",\\\"passed\\\":true},{\\\"name\\\":\\\"Territory defender recall leaves the challenger and capture progress intact\\\",\\\"passed\\\":true}]\",\"message\":\"Code executed successfully\",\"success\":true,\"output\":[]}"
+      }
+    ],
+    "structuredContent": {
+      "returnValue": "[{\"name\":\"Call transfers only selected actors; repeats preserve identity and one Colossal\",\"passed\":true},{\"name\":\"Selection swaps return old Colossal and transfer its replacement once\",\"passed\":true},{\"name\":\"Base returns player, following squad and reserves without replacing their actors\",\"passed\":true},{\"name\":\"Invalid attack keeps following; valid attack starts from existing actor positions\",\"passed\":true},{\"name\":\"Dead character and empty selection reject safely; death returns followers home\",\"passed\":true},{\"name\":\"Recall cancels only the outgoing encounter, transfers its actors and awards no conquest\",\"passed\":true},{\"name\":\"Territory defender recall leaves the challenger and capture progress intact\",\"passed\":true}]",
+      "message": "Code executed successfully",
+      "success": true,
+      "output": []
+    }
+  },
+  "follow": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "{\"actors\":[{\"recovery\":\"Following route blocked\",\"distance\":10.087616920471192,\"id\":\"db083be1-e7a8-46af-ae84-5fad7f5dd037\",\"recoveryCount\":1},{\"id\":\"6c70043a-ef42-4995-a10d-12daa9248983\",\"distance\":7.881988048553467},{\"id\":\"70360433-b01f-40f2-a1ae-fca878a60785\",\"distance\":10.052629470825196}],\"player\":\"266.8946838378906, 4.586007595062256, -148.45538330078125\"}",
+    "output": []
+  },
+  "buttons": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "{\"state\":\"Home\",\"allHome\":true,\"results\":[{\"id\":900001,\"ok\":true,\"action\":\"CallArmy\",\"message\":\"Army called! Your selected chickens will follow you.\"},{\"id\":900002,\"ok\":true,\"action\":\"GoBase\",\"message\":\"You and your chickens are back at your base.\"},{\"id\":2,\"ok\":true,\"action\":\"CallArmy\",\"message\":\"Army called! Your selected chickens will follow you.\"},{\"id\":3,\"ok\":true,\"action\":\"GoBase\",\"message\":\"You and your chickens are back at your base.\"}]}",
+    "output": []
+  },
+  "notes": [
+    "Session-only Play; no saved profile writes.",
+    "Mouse input scale corrected using observed UserInputService coordinates: 2 screenshot pixels per logical pixel.",
+    "Call Army click -> request id 2 accepted; My Army click -> existing ChickenBrowser visible; My Base click -> request id 3 accepted and all three chickens home.",
+    "A blocked Mallard used existing PetActor recovery; same inventory ID retained. All three followed within 7.9–10.1 studs after walking."
+  ]
+}

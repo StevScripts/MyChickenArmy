@@ -38,8 +38,9 @@ wallet earnings remain limited by collection, selling and cash collection.
 
 The approved merge rule remains three matching inputs into one next-level bird.
 The output produces twice one input's eggs, so the combined flock loses one-third
-of those three birds' production. Combat, merge caps, prices and investments are
-unchanged. Merge comparisons show **per-chicken Eggs/s**, not flock totals.
+of those three birds' production. Combat, merge caps and existing investments are unchanged. September 28
+adds a separate fusion cash fee: 25% of one matching input's normal recruit price,
+rounded up. It is not added to refundable chicken investment; see [MERGING.md](MERGING.md). Merge comparisons show **per-chicken Eggs/s**, not flock totals.
 
 ## Quantity and visuals
 
@@ -66,19 +67,20 @@ is an implementation bound, not a measured mobile frame-rate guarantee.
 
 ## Selling and offline cash
 
-Initial quantity-economy seller tiers: **4 / 16 / 64 / 256 / 1,024 eggs/sec**.
-The four existing prices remain **480 / 2,400 / 9,600 / 28,800**. Double Egg Spawn
-continues doubling seller throughput. No cash upgrade requires camp progress.
-The starter flock produces 4/sec; one unupgraded Galaxy fits tier 3 (256/sec).
+September 28 replaces the large seller tiers with **4 / 5 / 6 / 7 / 8 / 9 / 11 /
+... eggs/sec**. At current level L, each purchase adds `round(1.10^L)` eggs/sec
+and costs `ceil(40 * 1.20^L)`. Initial prices are **40 / 48 / 58 / 70 / 83 / 100**.
+These are our gradual-growth tuning, not a verified Chicken Farm formula.
+Double Egg Spawn continues doubling seller throughput. No cash upgrade requires
+camp progress. The starter flock still produces 4/sec.
 
-There is no final seller tier. After level 4, rate is `1024 * (level - 3)^2`:
-4,096 / 9,216 / 16,384 / ... eggs/sec. The approved next-price equation is
-`ceil(86400 * (n + 1)^2 * 1.10^n)`, where `n = current level - 4` after the opening
-four purchases. Prices do not flatten. Wallet support is expanded to the exact
+There is no authored final seller tier. Prices do not flatten. Wallet support
+remains at the exact
 integer representation boundary, about $9.007 quadrillion. A quote beyond that
 boundary is unavailable as `Currency limit`; arbitrary-precision money is not
-implemented. See [the continuation contract](team/UNBOUNDED_SELLING_SPEED.md).
-These parameters still need pacing observation; no authored final tier does not
+implemented. See [the current progression contract](team/GRADUAL_SELLING_SPEED.md).
+Saved level numbers now use the revised throughput, while earned counts/values
+are preserved. These parameters still need pacing observation; no authored final tier does not
 imply infinite content. Excess production queues without being repriced or discarded.
 Every plot now deposits into the same saved processing
 queue. The canonical authored map has a seller board on each of its six plots;

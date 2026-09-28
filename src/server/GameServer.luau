@@ -8,6 +8,7 @@ local Progression=require(Shared.Progression)
 local PlayerSession=require(script.Parent.PlayerSession)
 local RollService=require(script.Parent.RollService)
 local ArmyService=require(script.Parent.ArmyService)
+local ArmyCommandService=require(script.Parent.ArmyCommandService)
 local BattleService=require(script.Parent.BattleService)
 local WorldService=require(script.Parent.WorldService)
 local DebugService=require(script.Parent.DebugService)
@@ -32,6 +33,7 @@ function GameServer.new()
 	self.rolls=RollService.new()
 	self.upgrades=UpgradeService.new(self.world,self.rolls)
 	self.battles=BattleService.new(self.sessions,self.world)
+	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
 	self.telemetry=LoopTelemetry.new()
 	self.battles.telemetry=self.telemetry
 	self.debug=DebugService.new(self.sessions,self.battles,self.commerce)
@@ -137,7 +139,7 @@ function GameServer:Handle(player,request)
    ok,message,receipt=ArmyService.MergeAll(session,request.triples)
    if ok then petId=receipt.results[1].petId;self.world:CelebrateMerge(session,petId) end
   else
-   ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level)
+   ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
    if ok then self.world:CelebrateMerge(session,petId) end
   end
 	elseif action=="BoardUpgrade" then
@@ -150,14 +152,11 @@ function GameServer:Handle(player,request)
  elseif action=="Luck" then ok,message=self.rolls:UpgradeLuck(session)
  elseif action=="Attack" then
   if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Approach the camp and press E to send your army."
-  else ok,message=self.battles:Attack(session,request.targetId,now) end
+  else ok,message=self.armyCommands:Attack(session,request.targetId,now) end
+ elseif action=="CallArmy" then
+  ok,message=self.armyCommands:CallArmy(player,session,now)
  elseif action=="GoBase" then
-  local character=player.Character
-  local humanoid=character and character:FindFirstChildOfClass("Humanoid")
-  if humanoid and humanoid.Health>0 and now-(session.lastGoBase or -math.huge)>=2 then
-   session.lastGoBase=now;character:PivotTo(self.world:SpawnFrame(session.plotIndex))
-   ok,message=true,"Back at your base."
-  else message="Your character will be ready in a moment." end
+  ok,message=self.armyCommands:GoBase(player,session,now)
 	elseif action=="Retreat" or action=="ReturnHome" then message="Manage your lineup in My Army. Chickens walk to and from the fight."
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
 	end
@@ -186,6 +185,7 @@ function GameServer:Handle(player,request)
     kind=if battle.incomeSite then "Income" else "Conquest",version=Config.Version},"deploy:"..battle.id..":"..session.userId)
   end
  end
+	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
 	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate})
 end
@@ -243,6 +243,7 @@ function GameServer:RemovePlayer(player)
  local session=self.sessions[player.UserId]
  if not session or session.closing then return end
  session.closing=true
+ self.armyCommands:Remove(player.UserId)
  self.commerce:Release(player)
  self.battles:CancelPlayer(player.UserId,os.clock())
  self.eggs:Release(session)
@@ -295,6 +296,7 @@ function GameServer:Step(dt)
 			if session.loaded and not session.closing and not session.saveLost then ArmyService.AutoMerge(session) end
 		end
 	end
+	self.armyCommands:Step(now)
 	self.world:Step(now)
  self.leaderboards:Step(now)
  self.data:Step()

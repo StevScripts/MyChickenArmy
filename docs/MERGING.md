@@ -2,6 +2,23 @@
 
 Implemented September 25, 2026 at the user's explicit request. This supersedes older statements that merging is disabled. `Config.Features.Merging = true`; `AutoMerging = false`. Enabling the manual feature does not enable the paid Auto Merge listing or automatic consumption.
 
+September 28: every successful fusion now guarantees a **Giant**, sized **4–27.5
+studs**, with fresh Common Giants limited to 4–6 studs and larger rarity bands
+up to Mythic 15–27.5 studs. Fusion costs 25% of one matching input's normal
+recruit price, rounded up. Input catalog rarity weights the size roll; re-fusion preserves at least
+the largest input's size. The optional saved `giantSize` field follows the chicken
+through home, army, battle and recovery. Giant size adds no stat bonus beyond the
+existing next-level reward. See [the current Giant contract](team/GIANT_CHICKEN_DESIGN.md)
+for distribution, bounds, persistence and validation.
+
+Latest September 28 clarification: **Colossal = 20+ saved studs**, with only one
+selected/deployed per player's army. Smaller Giants have no special army limit.
+Fresh Legendary inputs have a 1% Colossal chance; Mythic inputs have 3%, biased
+toward 20 studs within that rare tail. Lower rarities cannot freshly roll 20+.
+Existing sizes remain valid and inherited, even on older low-rarity birds.
+Inventory offers **Replace Colossal**; server validation, Select Best, saved
+lineups and battle handoffs enforce the same rule. Owning multiple is allowed.
+
 ## Player flow
 
 September 27 replaces the old two-column merge browser with the chicken-specific
@@ -13,16 +30,21 @@ one is staged, only the same group remains. Counts exclude staged copies, so a
 three-copy group remains selectable as ×2 then ×1. Search filters chicken names.
 Remove reverses staging. It does not consume or change inventory.
 
-The result card previews the same chicken at its next level. **Fuse** submits
+The result card previews the same chicken as a Giant at its next level. **Fuse** submits
 exactly the three staged IDs, retaining server priority for an equipped survivor.
 The server consumes two IDs and advances the survivor one level (three inputs,
-one output); other copies remain. No cash fee or mandatory confirmation dialog.
-After server success, the authored machine charges with its door closed, then
-opens to reveal one upgraded chicken coming out onto the platform. No input
-chickens enter from outside. The UI result remains until Done or Close and shows the actual chicken,
-new level, per-chicken eggs/sec and DPS. These are not the three
-inputs' combined output. The [quantity economy](EGG_ECONOMY.md) retains the saved
-merge tradeoff below.
+one output); other copies remain. The Fuse button shows the cash fee. The server requires a matching price quote
+and sufficient cash before charging and consuming together. No mandatory
+confirmation dialog.
+September 28 popup behavior: after server-confirmed success, the fuse GUI closes
+through the normal popup exit/focus cleanup. It does not play the popup fusion
+animation or automatically open a result screen. The authored machine charges
+with its door closed, then opens to reveal one upgraded chicken coming out onto
+the platform. No input chickens enter from outside. The resulting chicken's
+level, size and stats remain available in inventory. Rejected requests keep the
+popup open with the error; closing or switching pages before a late result does
+not reopen Fuse or close another page. The [quantity economy](EGG_ECONOMY.md)
+retains the saved merge tradeoff below.
 
 Pending requests cannot submit again. A 12-second timeout keeps the UI in a
 checking state and requests Sync; only its acknowledged response resolves the
@@ -34,19 +56,20 @@ deliberate selection. No speculative rewards or automatic resubmission.
 
 The user explicitly chose to keep the saved balance: income follows the existing 2^(level−1) formula, and combat gains 25% of base HP/damage per level. Three level-1 inputs therefore become one chicken with 2× individual income and 1.25× individual combat stats. Total flock income and total combined DPS decrease; power per occupied slot increases. This implementation does not claim the feature is economy-neutral or newly balanced.
 
-Existing merge progression caps are retained from `Progression.Get(session.promotion).levelCap` (3/5/7/10). This is the old merge-specific rule, separate from cash upgrades. Cash upgrades remain available from the start whenever affordable; never introduce camp gates for them. No alternate star tier, output species lottery, currency, price rebalance, or save schema migration was added.
+Existing merge progression caps are retained from `Progression.Get(session.promotion).levelCap` (3/5/7/10). This is the old merge-specific rule, separate from cash upgrades. Cash upgrades remain available from the start whenever affordable; never introduce camp gates for them. No alternate star tier, output species lottery or new currency was added. The September 28 fusion fee is separate from other shop prices. Giant fusion adds an optional saved size field; old profiles remain compatible without a revision migration.
 
 Favorites, away/deployed chickens, selected defenders during an incoming battle and chickens at the merge cap are excluded. Home reserves can merge while the army is away. Manual merging may include selected home chickens, retaining an existing squad ID first. Consumed IDs are removed from manual selection, their investment values accumulate on the survivor, and refresh/save uses existing ownership paths.
 
 ## Ownership and integration
 
 - `ArmyService`: server grouping, exact triple validation and non-yielding consumption. Same species, stars and level required. Validates the whole optional batch before any mutations; old pair payloads cannot consume chickens.
-- `GameServer`: loaded/save ownership checks, rate limit, same-plot and distance validation, result snapshots. Uses `firstId`, `secondId`, `thirdId`, `level` and `stationIndex`; legacy internal batch route takes `triples`.
+- `GiantChicken` / `ChickenGrowth`: size distribution and validation; uniform Giant art scaling with ordinary walking collision/navigation dimensions. `PlayerSession` owns the optional saved size.
+- `GameServer`: loaded/save ownership checks, rate limit, same-plot and distance validation, result snapshots. Uses `firstId`, `secondId`, `thirdId`, `level`, `expectedPrice` and `stationIndex`; legacy internal batch route takes `triples`.
 - `MergeStand` / `WorldService`: the builder-owned standalone `Workspace.Fuse_Machine` remains unchanged in Edit. During Play it is retained in ServerStorage and cloned at its Plot 1-relative placement into each runtime plot. A machine already nested in an authored plot takes precedence. Existing Button/ProximityPrompt is reused; `MergeGate` retracts sectional door copies inward beneath the header. Obsolete merge stalls are removed only from runtime copies. Missing machine/anchor has a safe prompt fallback.
 - `MergeBrowser`: three input slots, chicken picker, result/recovery states, pending request lifecycle and responsive layout. `MergeSelection` owns reversible local staging against server-issued eligible IDs. Neither determines inventory or rewards.
-- `MergePresentation`: three-input UI reveal using existing TweenService-backed motion and reduced-motion behavior. The world's single output chicken is a temporary cosmetic copy of the confirmed upgraded species, stars and level, not another inventory instance.
+- `MergePresentation`: pending-request UI presentation; the old popup success reveal is retained but no longer invoked. Confirmed success closes the GUI so the world's single output chicken is visible. The world reveal is a temporary cosmetic copy of the confirmed upgraded chicken, not another inventory instance.
 
-Gate animation uses ordinary TweenService tweens: four sections rise, bend inward through a quarter-turn and disappear beneath the roof. Runtime copies split only the tall plain backing panel; authored trim and hinges ride their nearest section. No whole-door lift above the machine. The closed machine charges first; opening runs from 0.65–1.2 seconds. One cosmetic upgraded chicken moves from inside the chamber onto the outside platform from 1.2–1.8 seconds, facing outward. A purple burst accompanies its exit. The door closes behind it from 2–2.5 seconds; the output holds outside, fades from 3.5–3.8 seconds, and resets at 3.85 seconds. Large output variants fit the doorway for this presentation. Original visibility and collision/query/touch settings restore exactly after completion, interruption, clearing or destruction. No per-frame interpolation or changed chicken walking physics. The accepted UI and its reveal timing remain unchanged.
+Gate animation uses ordinary TweenService tweens: four sections rise, bend inward through a quarter-turn and disappear beneath the roof. Runtime copies split only the tall plain backing panel; authored trim and hinges ride their nearest section. No whole-door lift above the machine. The closed machine charges first; opening runs from 0.65–1.2 seconds. One cosmetic upgraded chicken moves from inside the chamber onto the outside platform from 1.2–1.8 seconds, facing outward. A purple burst accompanies its exit. It fits the doorway during exit and grows to its saved Giant size outside from 1.85–2.4 seconds. The door closes behind it from 2–2.5 seconds; the output holds outside, fades from 3.5–3.8 seconds, and resets at 3.85 seconds. Original door visibility and collision/query/touch settings restore exactly after completion, interruption, clearing or destruction. TweenService owns all easing; no custom frame-by-frame interpolation. The accepted UI and its reveal timing remain unchanged.
 
 ## Visual contract
 

@@ -32,6 +32,7 @@ function LiveBattleActors:Adopt(unit,actor)
  actor.model:SetAttribute("OwnerUserId",if unit.side=="A" then self.battle.attacker else self.battle.defender)
  actor.model:SetAttribute("OwnerId",if unit.side=="A" then self.battle.attacker else self.battle.defender)
  self.actors[unit.id]=actor
+ PetView.Level(actor.model,unit.level or 1,unit.giantSize)
  local at=actor:Position();unit.x,unit.z=at.X,at.Z
 end
 
@@ -86,7 +87,7 @@ function LiveBattleActors:Publish(now)
   actor.model:SetAttribute("Defeated",u.hp<=0)
   actor.model:SetAttribute("Reinforcing",u.reinforcing==true)
   actor.model:SetAttribute("SpawnSerial",u.spawnSerial)
-  PetView.Level(actor.model,u.level or 1)
+  PetView.Level(actor.model,u.level or 1,u.giantSize)
   PetView.Health(actor.model,u.hp/u.maxHp)
  end
 end

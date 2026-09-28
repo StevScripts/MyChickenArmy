@@ -119,7 +119,7 @@ end
 function BattleService:Targets(session,now)
 	local targets={}
  local previous=self.battles[session.outgoing]
- local canMove=self:CanRedirect(session,previous) or (not session:IsArmyLocked() and not session.outgoing)
+ local canMove=self:CanRedirect(session,previous) or ((not session:IsArmyLocked() or session.armyState=="Following") and not session.outgoing)
  local routeCamps,routeOutposts=self:RouteProgress(session)
  local camps=Progression.Camps(session.promotion)
 	for i,camp in camps do
@@ -250,7 +250,7 @@ function BattleService:IncomeSummary(session,now)
  elseif not contest and not holder and self.campBusy["income:1"] then available,reason=false,"Wait for the previous army to clear" end
  if available and session then
   local previous=self.battles[session.outgoing]
-  local canMove=self:CanRedirect(session,previous) or (not session:IsArmyLocked() and not session.outgoing)
+  local canMove=self:CanRedirect(session,previous) or ((not session:IsArmyLocked() or session.armyState=="Following") and not session.outgoing)
   if not canMove then available,reason=false,"Your army is busy · finish the current attack" end
  end
  return {targetId="income:1",name=config.Name,ownerId=owner and owner.userId,ownerName=owner and owner.name,
@@ -1016,6 +1016,38 @@ function BattleService:ReturnHome(session,now)
 		session:Touch()
 	else self:Finish(battle,"Retreat",now) end
 	return true,"Army returning home."
+end
+
+-- A HUD recall withdraws only this army through the existing encounter rules.
+-- Transfer its real actors before destroying its returning encounter; rivals stay intact.
+function BattleService:RecallForCommand(session,now,keepSelectedPositions)
+	local battle=self.battles[session.outgoing]
+	if session.defending and not battle then return false,"Your army is defending. Try again when it is ready." end
+	if battle and battle.phase~="Returning" then
+		local ok,why=self:ReturnHome(session,now)
+		if not ok then return false,why end
+		battle=self.battles[session.outgoing] -- Territory defense can create a separate return encounter.
+	end
+	if battle and (battle.attacker~=session.userId or battle.phase~="Returning") then
+		return false,"Your army is still resolving its battle."
+	end
+	local selected={}
+	if keepSelectedPositions then for _,id in session:BestPetIds() do selected[id]=true end end
+	if battle then
+		if battle.actors then for _,unit in battle.units do
+			if unit.side~="A" or not unit.petId then continue end
+			local actor=battle.actors:TakeUnit(unit.id)
+			if actor then
+				if not selected[unit.petId] then actor:Teleport(self.world:ReturnPosition(session,unit.petId)) end
+				self.world:RestoreActor(session,unit.petId,actor)
+			end
+		end end
+		self:Remove(battle)
+	end
+	session.outgoing,session.stationedAt,session.returnAt,session.armyState=nil,nil,0,"Home"
+	session.awayPets={}
+	session:RefreshArmy();session:Touch()
+	return true
 end
 
 function BattleService:CancelPlayer(userId,now)

@@ -138,6 +138,7 @@ function WorldService:TakeActor(index: number, petId: string)
 	local plot = self.plots[index]
 	if not plot then return nil end
 	local actor = plot.actors[petId]
+	if plot.mergeStand and plot.mergeStand:IsRevealing(petId) then plot.mergeStand:ResetAnimation() end
 	plot.actors[petId], plot.roaming[petId] = nil, nil
 	if actor then actor:Stop(); attribute(actor.model, "AtHome", false) end
 	return actor
@@ -174,6 +175,7 @@ function WorldService:RestoreActor(session, petId: string, actor)
 	actor.model:SetAttribute("OwnerId", session.userId)
 	actor.model:SetAttribute("PetId", petId)
 	actor.model:SetAttribute("Recruiting", false)
+	PetView.Level(actor.model,pet.level or 1,pet.giantSize)
 	if PetView.Flash then PetView.Flash(actor.model, false) end
 	if PetView.Cash then PetView.Cash(actor.model, 0, false) end
 	local at = actor:Position()
@@ -382,7 +384,25 @@ end
 
 function WorldService:CelebrateMerge(session,petId)
  local plot=self.plots[session.plotIndex]
- if plot and plot.mergeStand then plot.mergeStand:Celebrate(session.pets[petId]) end
+ local pet=session.pets[petId]
+ if not plot or not plot.mergeStand or not pet or not session:IsPetHome(petId) then return end
+ local actor=plot.actors[petId]
+ if not actor then
+  actor=PetActor.new(plot.pets,petId,pet.species,pet.stars,self:ReturnPosition(session,petId),self:PlotFrame(session.plotIndex).LookVector)
+  if not self:RestoreActor(session,petId,actor) then return end
+ end
+ plot.mergeStand:Celebrate(pet,actor,function(released)
+  if self.plots[session.plotIndex]~=plot or plot.actors[petId]~=released
+   or not session.pets[petId] or not session:IsPetHome(petId) or session.closing then return end
+  local home=plot.roaming[petId]
+  if not home then return end
+  home.position=released:Position()
+  home.target,home.recoveryFoot=self:ReturnPosition(session,petId),released:Position()
+  home.moving,home.recruiting,home.startedAt=true,true,os.clock()
+  home.travelTimeout=math.max(14,(home.target-home.position).Magnitude/math.max(5,Config.RoamSpeed)+4)
+  released.model:SetAttribute("Recruiting",true)
+  released:MoveTo(home.target,math.max(5,Config.RoamSpeed))
+ end)
 end
 
 function WorldService:PopulateCamp(record)
@@ -491,6 +511,7 @@ function WorldService:UpdateSession(session)
 		if ordinal > MAX_VISIBLE then break end
 		visibleCount += 1
 		local actor = plot.actors[pet.id]
+		if actor and plot.mergeStand and plot.mergeStand:IsRevealing(pet.id) then continue end
 		if actor and actor.model:GetAttribute("Species") ~= pet.species then actor:Destroy(); plot.actors[pet.id] = nil; actor = nil end
 		if not actor then
 			local position = self:ReturnPosition(session, pet.id, ordinal)
@@ -499,7 +520,7 @@ function WorldService:UpdateSession(session)
 		end
 		for name, value in {PetId = pet.id, OwnerId = session.userId, OwnerUserId = session.userId, AtHome = true,
 			InArmy = best[pet.id] == true} do attribute(actor.model, name, value) end
-		PetView.Level(actor.model, pet.level or 1)
+		PetView.Level(actor.model, pet.level or 1, pet.giantSize)
 		actor.model:SetAttribute("DeploymentSlot", nil)
 		actor.model:SetAttribute("StoredCash", nil)
 		if PetView.Cash then PetView.Cash(actor.model, 0, false) end
@@ -531,6 +552,7 @@ function WorldService:Step(now)
 		for id, home in plot.roaming do
 			local actor = plot.actors[id]
 			if not actor then plot.roaming[id] = nil; continue end
+			if plot.mergeStand and plot.mergeStand:IsRevealing(id) then continue end
 			local state = actor:Step(now)
 			home.position = actor:Position()
 			if home.moving then
