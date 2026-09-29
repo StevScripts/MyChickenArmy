@@ -1,0 +1,291 @@
+{
+  "models": [
+    {
+      "sourceScale": 0.7578428983688354,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam",
+      "before": {
+        "ParticleEmitter": 1
+      },
+      "name": "Bonsai Bantam",
+      "roots": 1,
+      "after": {
+        "ParticleEmitter": 1
+      },
+      "species": "Bonsai",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Bonsai"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Devil Chicken",
+      "before": {
+        "PointLight": 1,
+        "ParticleEmitter": 2
+      },
+      "name": "Devil Chicken",
+      "roots": 7,
+      "after": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "species": "Devil",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Devil"
+    },
+    {
+      "sourceScale": 0.783532440662384,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Diamond Defender",
+      "before": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      },
+      "name": "Diamond Defender",
+      "roots": 3,
+      "after": {
+        "ParticleEmitter": 4
+      },
+      "species": "Diamond",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Diamond"
+    },
+    {
+      "sourceScale": 1.3416666984558105,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Golden Emperor",
+      "before": {
+        "Beam": 10,
+        "ParticleEmitter": 4
+      },
+      "name": "Golden Emperor",
+      "roots": 3,
+      "after": {
+        "ParticleEmitter": 4
+      },
+      "species": "Dragon",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Dragon"
+    },
+    {
+      "sourceScale": 0.7578428983688354,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Frost Feather",
+      "before": {
+        "Beam": 2,
+        "ParticleEmitter": 5
+      },
+      "name": "Frost Feather",
+      "roots": 4,
+      "after": {
+        "ParticleEmitter": 5
+      },
+      "species": "Frost",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Frost"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Heavenly Chicken",
+      "before": {
+        "PointLight": 1,
+        "ParticleEmitter": 3
+      },
+      "name": "Heavenly Chicken",
+      "roots": 4,
+      "after": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "species": "Heavenly",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Heavenly"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Honeycomb Chicken",
+      "before": {
+        "ParticleEmitter": 2
+      },
+      "name": "Honeycomb Chicken",
+      "roots": 2,
+      "after": {
+        "ParticleEmitter": 2
+      },
+      "species": "Honeycomb",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Honeycomb"
+    },
+    {
+      "sourceScale": 1.2074999809265137,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Glitch Chicken",
+      "before": {
+        "Beam": 16,
+        "ParticleEmitter": 4
+      },
+      "name": "Glitch Chicken",
+      "roots": 14,
+      "after": {
+        "Beam": 16,
+        "ParticleEmitter": 8
+      },
+      "species": "IceDuck",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.IceDuck"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Jungle Chicken",
+      "before": {
+        "ParticleEmitter": 3
+      },
+      "name": "Jungle Chicken",
+      "roots": 3,
+      "after": {
+        "ParticleEmitter": 3
+      },
+      "species": "Jungle",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Jungle"
+    },
+    {
+      "sourceScale": 1.130833387374878,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Magma Chicken",
+      "before": {
+        "PointLight": 1,
+        "ParticleEmitter": 8
+      },
+      "name": "Magma Chicken",
+      "roots": 3,
+      "after": {
+        "PointLight": 1,
+        "ParticleEmitter": 9
+      },
+      "species": "Knight",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Knight"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Lollipop Chicken",
+      "before": {
+        "ParticleEmitter": 2
+      },
+      "name": "Lollipop Chicken",
+      "roots": 10,
+      "after": {
+        "ParticleEmitter": 10
+      },
+      "species": "Lollipop",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Lollipop"
+    },
+    {
+      "sourceScale": 0.8991355895996094,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Rainbow Rider",
+      "before": [],
+      "name": "Rainbow Rider",
+      "roots": 3,
+      "after": {
+        "ParticleEmitter": 4
+      },
+      "species": "Rainbow",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Rainbow"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Solar Flare Chicken",
+      "before": {
+        "PointLight": 1,
+        "ParticleEmitter": 3
+      },
+      "name": "Solar Flare Chicken",
+      "roots": 4,
+      "after": {
+        "PointLight": 1,
+        "ParticleEmitter": 8
+      },
+      "species": "SolarFlare",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.SolarFlare"
+    },
+    {
+      "sourceScale": 0.8991355895996094,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Storm Wing",
+      "before": {
+        "ParticleEmitter": 12
+      },
+      "name": "Storm Wing",
+      "roots": 8,
+      "after": {
+        "ParticleEmitter": 12
+      },
+      "species": "Storm",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Storm"
+    },
+    {
+      "sourceScale": 1.3416666984558105,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Galaxy Overlord",
+      "before": {
+        "PointLight": 1,
+        "Beam": 10,
+        "ParticleEmitter": 5
+      },
+      "name": "Galaxy Overlord",
+      "roots": 2,
+      "after": {
+        "ParticleEmitter": 6
+      },
+      "species": "StormDuck",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.StormDuck"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Toxic Chicken",
+      "before": {
+        "ParticleEmitter": 2
+      },
+      "name": "Toxic Chicken",
+      "roots": 4,
+      "after": {
+        "ParticleEmitter": 6
+      },
+      "species": "Toxic",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Toxic"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Water Chicken",
+      "before": {
+        "ParticleEmitter": 3
+      },
+      "name": "Water Chicken",
+      "roots": 6,
+      "after": {
+        "ParticleEmitter": 6
+      },
+      "species": "Water",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Water"
+    },
+    {
+      "sourceScale": 1.1691666841506958,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Shadow Stalker",
+      "before": {
+        "ParticleEmitter": 8
+      },
+      "name": "Shadow Stalker",
+      "roots": 1,
+      "after": {
+        "ParticleEmitter": 8
+      },
+      "species": "Wizard",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Wizard"
+    }
+  ],
+  "geometryPreserved": true,
+  "playtest": false,
+  "recovery": "ServerStorage.ChickenWorkbenchVFXRecovery20260928",
+  "published": false
+}

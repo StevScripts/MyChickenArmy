@@ -1,5 +1,10 @@
 # Upgrade eligibility — no camp prerequisites
 
+**September 29 direction:** egg deposits now pay immediately with the existing Money
+effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
+balances, seller levels and paid finish credits remain compatible. This supersedes
+the September 27–28 processing requirements. See [instant sales and restoration](team/INSTANT_EGG_SALES.md).
+
 Current user direction, 25 September 2026: **Players can keep buying available upgrades whenever they can afford them. No upgrade requires visiting, attacking, conquering or unlocking a camp, earning a conquest rank, or progressing toward the King.**
 
 The September 26 [egg quantity economy](EGG_ECONOMY.md) preserves this rule, all
@@ -26,22 +31,24 @@ The following existing cash tracks are independent of camp progress from the sta
 
 - Egg Speed: 25 purchases, up to 4.75× production before paid benefits. The first four prices and benefits are unchanged.
 - Egg Value: 25 purchases, setting each newly earned egg to $4 + level (maximum $29). Already-earned eggs keep their value.
-- Plot Size: seven purchases where the authored plot supports expansion. New players start at 25 capacity / 80% horizontal scale; each purchase adds five capacity, ending at 60 / 120% scale.
+- Plot Size: seven purchases where the authored plot supports expansion, with capacities 25/30/35/40/45/50/75/100. Latest September 29 correction: Plot1 starts as a 30×30 square, extends its center, then widens behind the machines into a T (30×49 stem plus 84×45 back section). Only the final two stages gain depth after the user's deck enlargement; the authored square anchors all stages. Its outer fence also expands; the editor shows the square starter. Other plots retain 80–120% uniform scaling but share the new capacities. Prices and saved levels are unchanged; see [square-to-T expansion](team/SQUARE_TO_T_PLOT_EXPANSION.md).
 - Army Size: every configured purchase from three to ten base deployment slots. Bigger Army remains an additional five slots.
 - Luck: 20 purchases. The first four prices/bonuses are unchanged; later levels add 0.10 to Rare+ weights, reaching 4× weights (not 4× normalized probability).
-- Roll Slots: all configured purchases up to six active podiums, capped by the number physically authored for the assigned plot.
-- Selling Speed: cash-only, with no designed maximum level or processing speed; retains seller-board ownership/proximity rules. See [the gradual progression contract](team/GRADUAL_SELLING_SPEED.md).
+- Roll Slots: seven cash purchases unlock one through eight podiums as of September 29, capped by the number physically authored for the assigned plot. The user's target is all eight in roughly 8–9 active F2P hours; initial tuning models 8.47 hours for its reference policy, not a guaranteed or measured player duration. Plot1 has eight stands, while Plots2–6 currently have one each. See [eight podiums](team/EIGHT_ROLL_PODIUMS.md).
+- Selling Speed: archived September 29. Its saved levels and former unlimited curve are preserved for restoration; there is no current purchase offer.
 
 The September 25 change removed **camp prerequisites**, not track maxima. Later
 September 27 requests separately removed Selling Speed's maximum and authorized
 the reviewed capped board extension. Speed/Value extension prices grow 1.35× per
 purchase, Luck 1.25×, rounded upward to whole thousands after the opening four.
-Roll Slot purchases now cost $1,200 / $4,800 / $120,000 / $6,000,000 / $600,000,000;
+September 29 Roll Slot purchases cost $1,200 / $4,800 / $120,000 / $6,000,000 /
+$150,000,000 / $300,000,000 / $500,000,000. The former $600M sixth slot is superseded;
 already-owned slots are retained. Army prices and paid benefits are unchanged.
 See [the review and implementation record](team/UPGRADE_BOARD_PROGRESSION.md).
 The smaller 25-capacity starting plot and one-time save conversion were subsequently
-approved. Revision 11 maps old plot levels 0–4 to 3–7, preserving their capacity,
-footprint and next price. New profiles start at level zero. The first three prices
+approved. Revision 11 maps old plot levels 0–4 to 3–7, preserving owned chickens
+and next price. The later September 29 change increases the last two levels to
+75/100 without another conversion. New profiles start at level zero. The first three prices
 are $480 / $1,200 / $2,400, followed by the four unchanged existing prices.
 
 ## Checks that remain

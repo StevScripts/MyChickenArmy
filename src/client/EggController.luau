@@ -203,16 +203,20 @@ function Eggs:Receive(snapshot)
   table.clear(self.views);table.clear(self.feedback);table.clear(self.finishedFlights)
   self.generation=snapshot.generation;self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
   self.nextCaptionAt=nil;self.popupDeposit=nil
-  self.lastDeposit=nil;self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
+  self.seenDeposits={};self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
   self.app.feedback:ResetCollections()
   self.vacuum:Clear()
  end
  self.vacuum:Receive(snapshot.rover,now)
- if snapshot.deposit and snapshot.deposit.id~=self.lastDeposit then
-  self.lastDeposit=snapshot.deposit.id
-  if snapshot.deposit.collector=="rover" then self.vacuum:Deposit(snapshot.deposit,now) end
-  self.app.feedback:Deposit(snapshot.deposit)
+ local seenDeposits={}
+ for _,deposit in snapshot.deposits or (if snapshot.deposit then {snapshot.deposit} else {}) do
+  if not (self.seenDeposits and self.seenDeposits[deposit.id]) then
+   if deposit.collector=="rover" then self.vacuum:Deposit(deposit,now) end
+   self.app.feedback:Deposit(deposit)
+  end
+  seenDeposits[deposit.id]=true
  end
+ self.seenDeposits=seenDeposits
  if snapshot.cashClaim and snapshot.cashClaim.id~=self.lastCashClaim then
   self.lastCashClaim=snapshot.cashClaim.id
   self.app.feedback:CashReward(snapshot.cashClaim)

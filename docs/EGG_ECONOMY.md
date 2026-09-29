@@ -1,5 +1,10 @@
 # Egg quantity and shared value
 
+**September 29 direction:** egg deposits now pay immediately with the existing Money
+effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
+balances, seller levels and paid finish credits remain compatible. This supersedes
+the September 27–28 processing requirements. See [instant sales and restoration](team/INSTANT_EGG_SALES.md).
+
 Current user direction, September 26, 2026: stronger chickens produce **more
 eggs**, never a more valuable species of egg. This supersedes the earlier
 equal-cadence, variable-value economy and its rarity-colored egg feedback.

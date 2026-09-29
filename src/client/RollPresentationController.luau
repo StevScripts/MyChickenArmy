@@ -140,7 +140,6 @@ function RollPresentationController:Preview(record, species, mystery: boolean?)
  local model = record.cache[species]
  if not model then
   model = PetView.Create(self.folder, "RollPreview_"..species, species, 1, record.foot)
-  model:SetAttribute("ReducedMotion",true)
   local appearance={parts={}, surfaces={}}
   for _, item in model:GetDescendants() do
    if item:IsA("BillboardGui") then item.Enabled=false end
@@ -157,6 +156,9 @@ function RollPresentationController:Preview(record, species, mystery: boolean?)
   record.cache[species] = model
   record.appearances[species] = appearance
  end
+ -- Suppress species effects during the mystery shuffle, then restore them for
+ -- the revealed offer, including when it reuses the last cached shuffle bird.
+ model:SetAttribute("ReducedMotion",mystery == true)
  -- Highlights do not fully cover translucent art. Change only these local
  -- previews; restore on every reveal, even when it reuses the last shuffle bird.
  local appearance=record.appearances[species]

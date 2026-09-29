@@ -1,5 +1,13 @@
 # Upgrade board progression — independent design review
 
+**September 29 supersedes the Roll Slot and seller portions of this historical
+review:** seven purchases now unlock eight slots, with slot 6/7/8 at
+$150M/$300M/$500M. The target is roughly 8–9 active F2P hours; see the
+[current eight-podium contract](EIGHT_ROLL_PODIUMS.md). There are now 91 capped
+cash purchases across these tracks. Timed processing and Selling Speed are
+[archived](INSTANT_EGG_SALES.md). Prices, counts, luxury-goal advice and seller
+assumptions below describe the September 27 review, not the current contract.
+
 Date: September 27, 2026. Status: reviewed stat/slot changes and the subsequently
 approved smaller starter plot/save conversion implemented locally and synced to
 Studio; 31 focused isolated checks passed. No live-data conversion or publishing.

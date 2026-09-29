@@ -38,6 +38,7 @@ function EggService:Board(session)
 end
 
 function EggService:CanUseBoard(player,session)
+ if not ProcessorConfig.Enabled then return false end
  local board=self:Board(session)
  local screen=board and board:FindFirstChild("Screen")
  local character=player.Character
@@ -48,6 +49,7 @@ function EggService:CanUseBoard(player,session)
 end
 
 function EggService:Upgrade(player,session,level,price)
+ if not ProcessorConfig.Enabled then return false,"Eggs now sell instantly." end
  if not self:CanUseBoard(player,session) then return false,"Walk up to your egg selling board." end
  local state=session.eggProcessor
  if not ProcessorConfig.ValidLevel(state.level+1) then return false,"Invalid selling upgrade level." end
@@ -60,6 +62,10 @@ function EggService:Upgrade(player,session,level,price)
 end
 
 function EggService:AcceptDeposit(session,count,value)
+ if not ProcessorConfig.Enabled then
+  if count<1 or value<1 or not session:CanCredit(value,"eggs") then return false end
+  return true,session:Credit(value,"eggs"),false
+ end
  if not Processor.Deposit(session.eggProcessor,count,value) then return false end
  session:Touch()
  -- Every plot uses the same saved queue; deposits never bypass processing.
@@ -69,6 +75,14 @@ end
 function EggService:ProcessAndClaim(session,position,dt,now,grounded,velocity)
  local state=session.eggProcessor
  local yard=self:Yard(session)
+ if not ProcessorConfig.Enabled then
+  -- Retain earned legacy balances and pay them at the existing deposit pad.
+  -- No timer, movement requirement, or consumption of saved Finish Now credits.
+  if #state.batches>0 then Processor.Finish(state);session:Touch() end
+  local pad,owner=self.world:EggDeposit(session.plotIndex)
+  if owner==session.userId and onCashPad(pad,position) then self:ClaimReady(session,pad,now) end
+  return
+ end
  -- Only visit the queue/value ledger on whole-second ticks.
  if #state.batches>0 then
   yard.processorSeconds=(yard.processorSeconds or 0)+dt
@@ -149,9 +163,8 @@ function EggService:Lay(session,yard,petId,layer,now)
  local layout=Layout.ForPlot(session.plotIndex)
  self.serial+=1
  local angle=self.serial*2.399963
- local position=(frame*CFrame.new(
-  math.clamp(localAt.X+math.cos(angle)*2.2,layout.YardMinX,layout.YardMaxX),
-  layout.FootY,math.clamp(localAt.Z+math.sin(angle)*2.2,layout.YardMinZ,layout.YardMaxZ))).Position
+ local x,z=Layout.Clamp(layout,localAt.X+math.cos(angle)*2.2,localAt.Z+math.sin(angle)*2.2)
+ local position=(frame*CFrame.new(x,layout.FootY,z)).Position
  table.insert(yard.drops,{id=tostring(self.serial),petId=petId,species=pet.species,
   x=position.X,y=position.Y,z=position.Z,originX=origin.X,originY=origin.Y+0.8,originZ=origin.Z,
   value=value,stack=quantity,born=now,readyAt=now+Config.EggSettleSeconds})
@@ -217,6 +230,9 @@ function EggService:RecordDeposit(yard,count,credited,now,collector,position,que
  yard.depositSerial=(yard.depositSerial or 0)+1
  yard.deposit={id=yard.generation..":"..yard.depositSerial,count=count,value=credited,at=now,
   collector=collector,queued=queued,targetX=position and position.X,targetY=position and position.Y,targetZ=position and position.Z}
+ -- Keep both player and vacuum payouts when they occur between snapshots.
+ yard.deposits=yard.deposits or {}
+ table.insert(yard.deposits,yard.deposit)
  yard.revision+=1
 end
 
@@ -362,6 +378,7 @@ function EggService:Collect(session,position,now)
   end
  end
  for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end
+ for i=#(yard.deposits or {}),1,-1 do if now-yard.deposits[i].at>3 then table.remove(yard.deposits,i) end end
 end
 
 function EggService:Step(sessions,dt,now)
@@ -401,18 +418,22 @@ function EggService:Snapshot(session,now)
  end
  local deposit=if yard.deposit and now-yard.deposit.at<3 then table.clone(yard.deposit) else nil
  if deposit then deposit.at=nil end
+ local deposits={}
+ for _,receipt in yard.deposits or {} do
+  if now-receipt.at<3 then local copy=table.clone(receipt);copy.at=nil;table.insert(deposits,copy) end
+ end
  local processor=session.eggProcessor
  local queued=Processor.Totals(processor)
  local cashClaim=if yard.cashClaim and now-yard.cashClaim.at<3 then table.clone(yard.cashClaim) else nil
  if cashClaim then cashClaim.at=nil end
  return {revision=yard.revision,generation=yard.generation,drops=drops,receipts=receipts,value=value,count=count,
-  processor={enabled=true,queuedCount=queued,
+  processor={enabled=ProcessorConfig.Enabled,queuedCount=queued,
    rate=Processor.Rate(processor,session.entitlements.DoubleEggSpawn),level=processor.level,
    nextRate=ProcessorConfig.Rate(processor.level+1)*(if session.entitlements.DoubleEggSpawn then 2 else 1),
-   upgradePrice=ProcessorConfig.Price(processor.level),readyCash=session:EarnedAmount(processor.readyValue,"eggs"),
+   upgradePrice=if ProcessorConfig.Enabled then ProcessorConfig.Price(processor.level) else nil,readyCash=session:EarnedAmount(processor.readyValue,"eggs"),
    finishCredits=processor.finishCredits},cashClaim=cashClaim,
   requiresDeposit=true,carriedCount=session.eggCarry.count,
-  carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit,
+  carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit,deposits=deposits,
   rover=if yard.rover then yard.rover:Snapshot(session) else {enabled=false}}
 end
 

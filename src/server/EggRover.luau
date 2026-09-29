@@ -21,26 +21,55 @@ function EggRover.new(id, frame, plotIndex, pad, now)
 	local floorY = layout.FootY
 	local stripWidth = (maxX - minX) / Config.PassCount
 	local firstLaneX = minX + stripWidth / 2
+	local approachX = firstLaneX
+	if layout.YardRegions then
+		local stem = layout.YardRegions[1]
+		approachX = math.clamp(firstLaneX, stem.minX, stem.maxX)
+	end
 	local localDock = frame:PointToObjectSpace(pad.Position)
+	local corridorZ = Config.DockCorridorZ + (layout.YardOffsetZ or 0)
+	local dockApproachX = Config.DockApproachX + (layout.YardOffsetX or 0)
 	-- The stand input pad is outside the central lawn. Approach along the same
 	-- side as the pad, rather than taking a diagonal through the shop building.
-	local approach = Vector3.new(firstLaneX, floorY, Config.DockCorridorZ)
-	local corridor = Vector3.new(Config.DockApproachX, floorY, Config.DockCorridorZ)
-	local dockApproach = Vector3.new(Config.DockApproachX, floorY, localDock.Z)
+	local approach = Vector3.new(approachX, floorY, corridorZ)
+	local corridor = Vector3.new(dockApproachX, floorY, corridorZ)
+	local dockApproach = Vector3.new(dockApproachX, floorY, localDock.Z)
 	local dock = Vector3.new(localDock.X + Config.DockPadOffsetX, floorY, localDock.Z)
 	local rows = {}
+	local previous = approach
+	local function appendRow(x, z)
+		if layout.YardRegions and #layout.YardRegions > 1
+			and not Layout.CanWalkDirect(layout, previous.X, previous.Z, x, z) then
+			-- Cross the central neck instead of cutting through a T-shaped corner.
+			local neck = layout.YardRegions[2].minZ
+			local stem = layout.YardRegions[1]
+			table.insert(rows, frame:PointToWorldSpace(Vector3.new((stem.minX + stem.maxX) / 2, floorY, neck)))
+		end
+		previous = Vector3.new(x, floorY, z)
+		table.insert(rows, frame:PointToWorldSpace(previous))
+	end
 	-- Four equal strips, one straight pass per strip. Start at the nearer end
 	-- of the first strip, then alternate direction; this is the same route each trip.
 	local firstStartZ, firstFinishZ = minZ, maxZ
-	if math.abs(Config.DockCorridorZ - maxZ) < math.abs(Config.DockCorridorZ - minZ) then
+	if math.abs(corridorZ - maxZ) < math.abs(corridorZ - minZ) then
 		firstStartZ, firstFinishZ = maxZ, minZ
 	end
 	for lane = 0, Config.PassCount - 1 do
 		local x = minX + (lane + 0.5) * stripWidth
 		local startZ, finishZ = firstStartZ, firstFinishZ
 		if lane % 2 == 1 then startZ, finishZ = firstFinishZ, firstStartZ end
-		table.insert(rows, frame:PointToWorldSpace(Vector3.new(x, floorY, startZ)))
-		table.insert(rows, frame:PointToWorldSpace(Vector3.new(x, floorY, finishZ)))
+		if layout.YardRegions then
+			local laneMin, laneMax = math.huge, -math.huge
+			for _, region in layout.YardRegions do
+				if x >= region.minX and x <= region.maxX then
+					laneMin, laneMax = math.min(laneMin, region.minZ), math.max(laneMax, region.maxZ)
+				end
+			end
+			startZ = math.clamp(startZ, laneMin + Config.PassEndInset, laneMax - Config.PassEndInset)
+			finishZ = math.clamp(finishZ, laneMin + Config.PassEndInset, laneMax - Config.PassEndInset)
+		end
+		appendRow(x, startZ)
+		appendRow(x, finishZ)
 	end
 	local position = frame:PointToWorldSpace(dock)
 	local direction = frame:VectorToWorldSpace(Vector3.new(-1, 0, 0))
@@ -54,7 +83,7 @@ function EggRover.new(id, frame, plotIndex, pad, now)
 		direction = Vector3.new(direction.X, 0, direction.Z).Unit,
 		dock = position, approach = frame:PointToWorldSpace(approach), rows = rows,
 		corridor = frame:PointToWorldSpace(corridor), dockApproach = frame:PointToWorldSpace(dockApproach),
-		frame = frame, minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ, floorY = floorY,
+		frame = frame, layout = layout, minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ, floorY = floorY,
 		route = {}, waypoint = 1, suctionRadius = suctionRadius,
 		nextSweepAt = now, unloadAt = 0,
 		cargoCount = 0, cargoValue = 0, pendingCount = 0,
@@ -79,6 +108,17 @@ end
 function EggRover:BeginReturn()
 	local at = self.frame:PointToObjectSpace(self.position)
 	local approach = self.frame:PointToObjectSpace(self.approach)
+	if self.layout.YardRegions then
+		local route = {}
+		if #self.layout.YardRegions > 1
+			and not Layout.CanWalkDirect(self.layout, at.X, at.Z, approach.X, approach.Z) then
+			local stem = self.layout.YardRegions[1]
+			table.insert(route, self.frame:PointToWorldSpace(Vector3.new((stem.minX + stem.maxX) / 2, self.floorY, self.layout.YardRegions[2].minZ)))
+		end
+		for _, point in {self.approach, self.corridor, self.dockApproach, self.dock} do table.insert(route, point) end
+		self:SetRoute("Returning", route)
+		return
+	end
 	self:SetRoute("Returning", {
 		self.frame:PointToWorldSpace(Vector3.new(at.X, self.floorY, approach.Z)),
 		self.approach, self.corridor, self.dockApproach, self.dock,

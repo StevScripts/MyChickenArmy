@@ -5,6 +5,7 @@ local Rules = require(Shared.Rules)
 local Tuning = require(Shared.OfflineCashConfig)
 local Currency = require(Shared.CurrencyLimits)
 local Processor = require(script.Parent.EggProcessor)
+local ProcessorConfig = require(Shared.EggProcessorConfig)
 local OfflineCash = {}
 
 function OfflineCash.Read(value)
@@ -27,7 +28,8 @@ function OfflineCash.Rate(session)
 	eggsPerSecond *= session:EggProductionMultiplier()
 	-- Use the existing income and pass owners. No extra multiplier at award time.
 	local sellerRate = Processor.Rate(session.eggProcessor, session.entitlements.DoubleEggSpawn)
-	local raw = math.min(eggsPerSecond, sellerRate) * Rules.EggUnitValue(session.incomeLevel)
+	local sellingRate = if ProcessorConfig.Enabled then math.min(eggsPerSecond, sellerRate) else eggsPerSecond
+	local raw = sellingRate * Rules.EggUnitValue(session.incomeLevel)
 	return session:EarnedAmount(raw, "eggs") * Tuning.Efficiency
 end
 

@@ -28,6 +28,14 @@
     "ServerStorage": {
       "$className": "ServerStorage",
       "$ignoreUnknownInstances": true,
+      "EggProcessingArchive20260929": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "Code": {
+          "$path": "archive/egg-processing-20260929/src",
+          "$ignoreUnknownInstances": true
+        }
+      },
       "PetRoll": {
         "$path": "src/server",
         "$ignoreUnknownInstances": true

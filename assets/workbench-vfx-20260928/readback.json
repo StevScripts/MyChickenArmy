@@ -1,0 +1,153 @@
+{
+  "models": [
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Bonsai",
+      "geometryNodes": 114,
+      "effects": 1
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Devil",
+      "geometryNodes": 19,
+      "effects": 7
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Diamond",
+      "geometryNodes": 19,
+      "effects": 4
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Dragon",
+      "geometryNodes": 19,
+      "effects": 4
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Frost",
+      "geometryNodes": 38,
+      "effects": 5
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Heavenly",
+      "geometryNodes": 19,
+      "effects": 7
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Honeycomb",
+      "geometryNodes": 19,
+      "effects": 2
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "IceDuck",
+      "geometryNodes": 19,
+      "effects": 24
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Jungle",
+      "geometryNodes": 19,
+      "effects": 3
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Knight",
+      "geometryNodes": 19,
+      "effects": 10
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Lollipop",
+      "geometryNodes": 19,
+      "effects": 10
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Rainbow",
+      "geometryNodes": 19,
+      "effects": 4
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "SolarFlare",
+      "geometryNodes": 19,
+      "effects": 9
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Storm",
+      "geometryNodes": 19,
+      "effects": 12
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "StormDuck",
+      "geometryNodes": 19,
+      "effects": 6
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Toxic",
+      "geometryNodes": 19,
+      "effects": 6
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Water",
+      "geometryNodes": 19,
+      "effects": 6
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Wizard",
+      "geometryNodes": 19,
+      "effects": 8
+    }
+  ],
+  "totalEffects": 128,
+  "place": 96683186622050,
+  "recovery": "ServerStorage.ChickenWorkbenchVFXRecovery20260928",
+  "editOnly": true,
+  "templates": 18
+}

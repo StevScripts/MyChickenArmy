@@ -1,11 +1,69 @@
 --!strict
--- Resizes only disposable runtime chicken-yard art. Never edits the source plot,
--- board, shops, roller or deck; movement and egg bounds share the resulting lawn.
+-- Resizes runtime yard bounds and fences; all stations/scenery stay authored.
+-- Square-to-T yards share their real usable shape with roaming, eggs and vacuum.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Definitions = require(Shared.UpgradeCatalog)
 local Layout = require(Shared.HomePlotLayout)
 local PlotUpgradeService = {}
 PlotUpgradeService.__index = PlotUpgradeService
+
+local function bindFence(folder, frame)
+	local fence = folder:FindFirstChild("BoundaryFence", true)
+	if not fence or not fence:GetAttribute("ExpansionMaxBack") then return nil end
+	local data = {frame = frame, parts = {}, maxBack = fence:GetAttribute("ExpansionMaxBack"),
+		lateDepth = fence:GetAttribute("ExpansionLateDepth") or 0,
+		maxHalfWidth = fence:GetAttribute("ExpansionMaxHalfWidth"), gateLeft = -math.huge, gateRight = math.huge}
+	for _, side in {"Left", "Right", "Front", "Back"} do
+		local group = fence:FindFirstChild(side)
+		if not group then return nil end
+		for _, part in group:GetChildren() do
+			-- Nested rocks/footings are stationary scenery, not fence components.
+			if not part:IsA("BasePart") then continue end
+			local relative = frame:ToObjectSpace(part.CFrame)
+			table.insert(data.parts, {part = part, side = side, localFrame = relative, size = part.Size, rail = part.Size.Y > 10})
+			if side == "Left" then data.left = relative.X
+			elseif side == "Right" then data.right = relative.X
+			elseif side == "Back" then data.back = relative.Z
+			else
+				data.front = relative.Z
+				if relative.X < 0 then data.gateLeft = math.max(data.gateLeft, relative.X)
+				else data.gateRight = math.min(data.gateRight, relative.X) end
+			end
+		end
+	end
+	return data
+end
+
+local function resizeFence(fence, level)
+	if not fence then return end
+	local progress = math.clamp(level / #Definitions.PlotPrices, 0, 1)
+	local lateProgress = math.clamp((level - (#Definitions.PlotPrices - 2)) / 2, 0, 1)
+	local left = fence.left + (-fence.maxHalfWidth - fence.left) * progress
+	local right = fence.right + (fence.maxHalfWidth - fence.right) * progress
+	local back = fence.back + (fence.maxBack - fence.lateDepth - fence.back) * progress + fence.lateDepth * lateProgress
+	for _, item in fence.parts do
+		if not item.part.Parent then continue end
+		local at = item.localFrame.Position
+		local x, z, lengthScale = at.X, at.Z, 1
+		if item.side == "Left" or item.side == "Right" then
+			lengthScale = (back - fence.front) / (fence.back - fence.front)
+			x = if item.side == "Left" then left else right
+			z = fence.front + (at.Z - fence.front) * lengthScale
+		elseif item.side == "Back" then
+			lengthScale = (right - left) / (fence.right - fence.left)
+			x, z = left + (at.X - fence.left) * lengthScale, back
+		elseif at.X < 0 then
+			lengthScale = (fence.gateLeft - left) / (fence.gateLeft - fence.left)
+			x = fence.gateLeft + (at.X - fence.gateLeft) * lengthScale
+		else
+			lengthScale = (right - fence.gateRight) / (fence.right - fence.gateRight)
+			x = fence.gateRight + (at.X - fence.gateRight) * lengthScale
+		end
+		item.part.CFrame = fence.frame * CFrame.new(x, at.Y, z) * item.localFrame.Rotation
+		-- Stretch the long rail axis only; posts retain their authored dimensions.
+		if item.rail then item.part.Size = Vector3.new(item.size.X, item.size.Y * lengthScale, item.size.Z) end
+	end
+end
 
 function PlotUpgradeService.new(folder, index, frame)
 	local yard = folder:FindFirstChild("ChickenYard", true)
@@ -20,6 +78,16 @@ function PlotUpgradeService.new(folder, index, frame)
 	self.center = anchor.CFrame
 	self.floorSize = anchor.Size
 	self.floorY = frame:PointToObjectSpace((anchor.CFrame * CFrame.new(0, if floor then anchor.Size.Y / 2 else 0, 0)).Position).Y
+	if yard:GetAttribute("ExpansionShape") == "T" and edge then
+		self.teeEdge = edge
+		-- The deck can be resized from one end; keep the authored starter square fixed.
+		local starter = frame:PointToObjectSpace(edge.Position)
+		self.teeOrigin = Vector2.new(starter.X, starter.Z + 8.5)
+		self.yardAnchor = anchors and anchors:FindFirstChild("Yard")
+		self.fence = bindFence(folder, frame)
+		self:SetLevel(0)
+		return self
+	end
 	if not floor and anchor == edge then
 		for _, name in {"TopLeft", "TopRight", "BottomLeft", "BottomRight"} do
 			local corner = edge:FindFirstChild(name)
@@ -47,6 +115,43 @@ function PlotUpgradeService:SetLevel(level)
 	if not self.available or self.level == level then return end
 	self.level = level
 	local scale = Definitions.PlotScales[level + 1] or 1
+	if self.teeEdge then
+		local bounds, outline = Layout.TeeYard(level, self.teeOrigin)
+		local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+		for _, at in outline do
+			minX, maxX = math.min(minX, at.X), math.max(maxX, at.X)
+			minZ, maxZ = math.min(minZ, at.Y), math.max(maxZ, at.Y)
+		end
+		local edge = self.teeEdge
+		edge.CFrame = self.frame * CFrame.new((minX + maxX) / 2, self.floorY, (minZ + maxZ) / 2)
+		edge.Size = Vector3.new(maxX - minX, edge.Size.Y, maxZ - minZ)
+		for i, at in outline do
+			local beam = edge:FindFirstChild("YardEdge" .. i)
+			if beam and beam:IsA("Beam") and beam.Attachment0 and beam.Attachment1 then
+				local nextAt = outline[i % #outline + 1]
+				local a = edge.CFrame:PointToObjectSpace(self.frame:PointToWorldSpace(Vector3.new(at.X, self.floorY, at.Y)))
+				local b = edge.CFrame:PointToObjectSpace(self.frame:PointToWorldSpace(Vector3.new(nextAt.X, self.floorY, nextAt.Y)))
+				beam.Enabled = (b - a).Magnitude > 0.01
+				local direction = if beam.Enabled then (b - a).Unit else Vector3.zAxis
+				local across = Vector3.new(-direction.Z, 0, direction.X)
+				beam.Attachment0.CFrame = CFrame.fromMatrix(a, Vector3.yAxis, across)
+				beam.Attachment1.CFrame = CFrame.fromMatrix(b, Vector3.yAxis, across)
+			end
+		end
+		local yardAnchor = self.yardAnchor
+		if yardAnchor and yardAnchor:IsA("BasePart") then
+			yardAnchor.CFrame = edge.CFrame
+			yardAnchor.Size = Vector3.new(edge.Size.X, yardAnchor.Size.Y, edge.Size.Z)
+		end
+		bounds.FootY = self.floorY
+		Layout.SetYard(self.index, bounds)
+		resizeFence(self.fence, level)
+		self.folder:SetAttribute("PlotSizeLevel", level)
+		self.folder:SetAttribute("YardScale", scale)
+		self.folder:SetAttribute("YardDepth", maxZ - minZ)
+		self.folder:SetAttribute("YardShape", if #bounds.YardRegions > 1 then "T" else "Rectangle")
+		return
+	end
 	local stretch = Vector3.new(scale, 1, scale)
 	for _, item in self.parts do
 		if item.part.Parent then
@@ -80,6 +185,7 @@ function PlotUpgradeService:Destroy()
 	Layout.SetYard(self.index, nil)
 	table.clear(self.parts)
 	table.clear(self.attachments)
+	if self.fence then table.clear(self.fence.parts) end
 end
 
 return PlotUpgradeService

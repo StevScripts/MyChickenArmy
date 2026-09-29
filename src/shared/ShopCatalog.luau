@@ -2,6 +2,7 @@
 -- Catalog IDs and recorded launch base prices; never a checkout quote.
 -- The client reads each buyer's current Marketplace price.
 local Config = require(script.Parent.Config)
+local ProcessorConfig = require(script.Parent.EggProcessorConfig)
 local ShopCatalog = {
 	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
 	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs"},
@@ -15,7 +16,7 @@ local ShopCatalog = {
 		"Knight","Frost","Bonsai","Ninja","Wizard","Diamond","Dragon","Rainbow","IceDuck","StormDuck","Storm",
 	}},
 	Products = {
-		FinishEggs = {productId=3714566216, name="Finish Processing Now", finishEggs=true, boardOnly=true},
+		FinishEggs = {enabled=ProcessorConfig.Enabled, productId=3714566216, name="Finish Processing Now", finishEggs=true, boardOnly=true},
 		PocketCoins = {productId=3712929487, name="Pocket Cash", coins=10000, proposedPrice=49},
 		CoopStash = {productId=3712929549, name="Coop Stash", coins=100000, proposedPrice=199},
 		ArmyChest = {productId=3712929607, name="Cash Sack", coins=1000000, proposedPrice=799},
@@ -29,7 +30,7 @@ local ShopCatalog = {
 	Definitions = {
 		AutoCollectEggs = {passId=1978713718, name="Auto Collect Eggs", proposedPrice=199, automatic=true, description="A vacuum collects eggs around your yard.", scope="Sweeps the yard and delivers eggs to your sell stand."},
 		DoubleCash = {passId=1980764263, name="2x Cash", proposedPrice=399, description="2x coins from eggs and combat.", scope="Earned coins only; excludes cash packs and chicken sales."},
-		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Home chickens produce twice as many eggs.", scope="2x egg production and selling speed; stacks with 2x Cash."},
+		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Home chickens produce twice as many eggs.", scope=if ProcessorConfig.Enabled then "2x egg production and selling speed; stacks with 2x Cash." else "2x egg production; stacks with 2x Cash."},
 		AutoMerge = {enabled=Config.Features.Merging and Config.Features.AutoMerging, passId=1975401932, name="Auto Merge", proposedPrice=249, automatic=true, description="Merge matching home chickens automatically.", scope="Protects favorites, deployed and manually selected chickens."},
 		BiggerArmy = {passId=1980638268, name="Bigger Army", proposedPrice=499, description="Add 5 deployment slots.", scope="Starts at 8; upgrade your base capacity to field 15."},
 		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double the roll weight of Rare+ chickens.", scope="Actual chances are shown in Details. Crates unaffected."},

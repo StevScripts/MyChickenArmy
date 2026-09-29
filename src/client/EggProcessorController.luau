@@ -5,6 +5,7 @@ local TextService = game:GetService("TextService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.UITheme)
+local ProcessorConfig = require(game:GetService("ReplicatedStorage").PetRoll.Shared.EggProcessorConfig)
 local Board = {}
 Board.__index = Board
 local EMPTY_PAD_COLOR = Color3.fromRGB(128, 128, 128)
@@ -32,6 +33,7 @@ function Board.new(app)
 end
 
 function Board:Bind(source)
+	if not ProcessorConfig.Enabled then return end
 	if not self.alive or self.views[source] or not source:IsA("SurfaceGui") then return end
 	local world=workspace:FindFirstChild("PetRollWorld")
 	if not world or not source:IsDescendantOf(world) then return end
@@ -205,6 +207,7 @@ function Board:Receive(result)
 end
 
 function Board:Start()
+	if not ProcessorConfig.Enabled then return end
 	self.playerGui=Players.LocalPlayer:WaitForChild("PlayerGui")
 	self.app.commerce:Load("FinishEggs")
 	table.insert(self.connections,RunService.Heartbeat:Connect(function()

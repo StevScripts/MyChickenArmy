@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Finite tracks have complete prices/benefits and the eight-slot maximum",
+    "passed": true
+  },
+  {
+    "name": "First four Speed/Value/Luck prices and benefits remain exact",
+    "passed": true
+  },
+  {
+    "name": "Roll Slot opening prices stay fixed, all eight are purchasable, and the sixth is reduced",
+    "passed": true
+  },
+  {
+    "name": "Every board track purchases fully without camps, then MAX rejects",
+    "passed": true
+  },
+  {
+    "name": "All board tracks reject unready state, stale quotes, replay, access and insufficient funds",
+    "passed": true
+  },
+  {
+    "name": "Plot capacity previews and physical limits remain authoritative",
+    "passed": true
+  },
+  {
+    "name": "Legacy menu owners reach identical Income/Luck/Army maxima without camps",
+    "passed": true
+  },
+  {
+    "name": "Luck helper, display, normalized odds and actual rolls agree at curve boundaries",
+    "passed": true
+  },
+  {
+    "name": "Paid benefits retain verified Luck policy and existing multipliers/army bonus",
+    "passed": true
+  },
+  {
+    "name": "Maximum levels roundtrip; MAX+1 and malformed levels reject without partial load",
+    "passed": true
+  },
+  {
+    "name": "Earned carried/queued value and owned purchases survive all upgrades and roundtrip",
+    "passed": true
+  },
+  {
+    "name": "Stat continuation quotes follow the reviewed growth and rounding exactly",
+    "passed": true
+  },
+  {
+    "name": "Existing opening levels and legacy missing board fields retain earned capacity/slots",
+    "passed": true
+  },
+  {
+    "name": "New profiles start at 25 and buy seven expansions through 100",
+    "passed": true
+  },
+  {
+    "name": "Every flock limit accepts its last recruit, rejects overflow without charging, and saves 100",
+    "passed": true
+  },
+  {
+    "name": "Old plot levels migrate once, retain inventory/prices and gain the final capacities",
+    "passed": true
+  },
+  {
+    "name": "Migration validates old levels and complete payload before committing",
+    "passed": true
+  },
+  {
+    "name": "DataService commits revision 11 through its existing isolated store path",
+    "passed": true
+  },
+  {
+    "name": "Smaller runtime yard bounds scale from original geometry without cumulative shrink",
+    "passed": true
+  },
+  {
+    "name": "Longer deck keeps the square and early stages fixed, fits the final T, and has 100 unique homes",
+    "passed": true
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "models": [
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Devil",
+      "geometryNodes": 19,
+      "effects": 7
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "IceDuck",
+      "geometryNodes": 19,
+      "effects": 24
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "Jungle",
+      "geometryNodes": 19,
+      "effects": 7
+    },
+    {
+      "rigUnchanged": true,
+      "propertiesMatch": true,
+      "workbenchUnchanged": true,
+      "species": "StormDuck",
+      "geometryNodes": 19,
+      "effects": 6
+    }
+  ],
+  "totalEffects": 44,
+  "place": 96683186622050,
+  "recovery": "ServerStorage.ChickenWorkbenchVFXRecovery20260929",
+  "editOnly": true,
+  "templates": 4
+}

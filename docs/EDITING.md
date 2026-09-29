@@ -98,3 +98,12 @@ git push -u origin HEAD
 If `origin` already exists, inspect `git remote -v` instead of adding or replacing it. GitHub stores the committed code; it does not publish the Roblox game or upload its Studio-only map and models.
 
 **These are separate saves:** saving a file changes local code; committing records code history; pushing uploads commits; saving in Studio stores the place; publishing updates the Roblox experience. Player progress is a separate DataStore concern.
+
+## Restoring egg processing
+
+The September 29 seller archive is an explicit exception to the normally unmapped
+`archive/` folder: its 13 inert ModuleScript source backups map to
+`ServerStorage.EggProcessingArchive20260929.Code`. The six original boards are
+Studio-owned siblings under `Boards`, protected by `$ignoreUnknownInstances`.
+The active implementations remain gated for save compatibility and simple
+restoration. See [the restore steps](team/INSTANT_EGG_SALES.md).

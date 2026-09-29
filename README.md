@@ -20,7 +20,7 @@ Rojo 7.7.0 is pinned and installed into `.tools/`; the Python wrapper installs t
 | `src/bootstraps/` | The existing server and client startup scripts |
 | `src/animations/` | Exported chicken animation clip data |
 | `tests/` | Existing optional checks; mapped only by `tests.project.json` |
-| `archive/` | Backup/library/plugin scripts and preserved previous-local differences; never synced automatically |
+| `archive/` | Backup/library/plugin scripts and preserved previous-local differences; normally outside sync; the explicit September 29 seller source backup is mapped into ServerStorage only |
 
 Start with [where to edit each feature](docs/CODE_MAP.md), then [the editing and GitHub workflow](docs/EDITING.md).
 

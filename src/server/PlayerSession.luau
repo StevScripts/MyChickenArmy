@@ -86,8 +86,7 @@ function PlayerSession:Capacity(): number
 end
 
 function PlayerSession:CollectionLimit(): number
- return math.min(Config.LegacyCollectionLimit,
-  Config.CollectionLimit + self.plotSizeLevel * UpgradeCatalog.ExtraChickensPerPlotLevel)
+ return UpgradeCatalog.PlotCapacity(self.plotSizeLevel)
 end
 
 function PlayerSession:EggProductionMultiplier(): number
@@ -510,7 +509,7 @@ function PlayerSession:LoadData(data)
 	-- Additive fields: never reduce the six slots an existing profile already had.
 	local eggSpeedLevel = if data.eggSpeedLevel == nil then 0 else data.eggSpeedLevel
 	local plotSizeLevel = if data.plotSizeLevel == nil then 0 else data.plotSizeLevel
-	local rollSlotsUnlocked = if data.rollSlotsUnlocked == nil then Config.RollSlotsUnlocked else data.rollSlotsUnlocked
+	local rollSlotsUnlocked = if data.rollSlotsUnlocked == nil then 6 else data.rollSlotsUnlocked
 	-- Revision 11 prepends three plot purchases. Validate the old domain before
 	-- converting, and commit/stamp only after the complete profile validates.
 	local oldPlotProgress = revision < 11

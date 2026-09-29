@@ -2,6 +2,16 @@
 
 Implemented September 24–25, 2026 in Pet Roll Test, place 96683186622050.
 
+**Menu focus, September 29:** AppController now owns a client-only world blur
+for Army, Shop, Index, Upgrades, Settings, Odds, Fuse and other main-panel pages,
+plus the separate offline receipt. Blur size tweens between 0 and 18 over
+0.24 seconds through UIMotion, reverses from its current value, and stays active
+across menu handoffs. Full-screen input shields are transparent. The offline
+receipt also removes its charcoal body, reflows without text-scale multipliers,
+keeps Continue pinned, and uses fade/slide/scale entrance and exit tweens.
+Reduced motion remains supported. No Play or visual validation was run for
+this styling update; the device results below describe earlier implementations.
+
 **Popup spacing, September 28:** main popup bounds use 87.3% of their original
 desktop size when the available safe area is at least 900 × 550. Army and Fuse
 retain their proportions; each browser retains its content reflow. Smaller

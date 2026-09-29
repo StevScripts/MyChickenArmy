@@ -1,12 +1,17 @@
 # Offline cash
 
+**September 29 direction:** egg deposits now pay immediately with the existing Money
+effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
+balances, seller levels and paid finish credits remain compatible. This supersedes
+the September 27–28 processing requirements. See [instant sales and restoration](team/INSTANT_EGG_SALES.md).
+
 Implemented September 24, 2026. Cash only: no offline eggs, hatching, battles,
 queue processing, purchases or new spawn rates.
 
 - `src/shared/OfflineCashConfig.luau`: 2% efficiency, eight-hour cap, one-minute
   minimum, existing one-trillion-coin wallet ceiling.
 - `src/server/OfflineCash.luau`: validated checkpoint, steady-state rate bounded
-  by saved seller throughput, whole-coin reward calculation.
+  by production (with the archived seller cap only when re-enabled), whole-coin reward calculation.
 - `src/server/PlayerSession.luau`: revision-10 checkpoint roundtrip; transient
   already-paid `state.offlineCash` receipt. Missing old checkpoints default to zero.
 - `src/server/DataService.luau`: frozen rate/time capture on save/release; award
@@ -24,7 +29,11 @@ not a new purchase after returning. Seller/bag/vacuum balances are unchanged.
 No claim remote or client-submitted timestamp/amount exists. Currency is already
 saved before the UI says it was added.
 
-September 26 quantity-economy correction: the rate sums each species/level's actual
+September 29: new checkpoints use total owned eggs/sec × shared unit value ×
+verified cash benefit × 2% efficiency. Selling Speed no longer caps this rate.
+The eight-hour cap and recorded rates of existing checkpoints are unchanged.
+
+Historical September 26 quantity-economy correction: the rate sums each species/level's actual
 eggs/sec, caps that total by seller eggs/sec and multiplies by the shared egg unit
 value before the existing paid benefit and efficiency. It no longer estimates
 egg quantity from the number of chickens. Existing frozen checkpoints retain their
@@ -41,7 +50,28 @@ explain why eight hours pays only 9.6 minutes of sustainable active income.
 [Approved compact Figma receipt](https://www.figma.com/design/4lJjZOqNhR8K7rfMbVIjaK/my-chicken-army?node-id=359-3508)
 is editable on page “03 • Game screens”.
 
-## Compact receipt follow-up
+## September 29 responsive receipt and blur
+
+The receipt now has a transparent body and input shield over the shared world
+blur, replacing the old black backdrop and inset charcoal panel. It retains the
+green studded header and Continue button. A bounded 560 × 440 composition (plus
+eight pixels around the fading canvas) reflows to the safe viewport. The reward
+amount fits its own text bounds without a separate 1.25× text scale. Short
+screens keep Continue at least 52 pixels tall and scroll only the content above
+it. A native check glyph replaces the unimported saved-check image.
+
+UIMotion's ordinary TweenService tracks fade the canvas in over 0.22 seconds,
+slide it up 18 pixels and scale it from 0.94 to 1 over 0.28 seconds. Dismissal
+fades/scales/slides out over 0.16 seconds, then destroys the receipt. Repeated
+clicks do not restart dismissal; replacing a receipt and teardown remove it
+immediately. Reduced motion applies the final state without travel or scaling.
+
+AppController owns one client BlurEffect for both main pages and this separate
+receipt. Opening the next menu keeps blur active; closing the last one tweens
+it out. Continue still only dismisses already-saved cash. This styling change
+has not been playtested or visually validated; older evidence below predates it.
+
+## Historical compact receipt follow-up
 
 The approved 448×394 composition is implemented in the receipt controller:
 green Offline Earnings header, centered exact cash amount, saved-status text,

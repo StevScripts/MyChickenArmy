@@ -1,0 +1,207 @@
+{
+  "checks": [
+    {
+      "name": "All six plots pay exact earned bag value immediately, once, including Double Cash",
+      "passed": true
+    },
+    {
+      "name": "Ownership, proximity, loading/closing/save-loss and wallet headroom preserve unpaid bags",
+      "passed": true
+    },
+    {
+      "name": "Vacuum unload pays immediately, clears once, and preserves cargo at wallet limit",
+      "passed": true
+    },
+    {
+      "name": "Saved queued and ready value settles at deposit pad without delay or movement; levels/credits survive",
+      "passed": true
+    },
+    {
+      "name": "Saved balances are retained when owner is away or wallet is full",
+      "passed": true
+    },
+    {
+      "name": "Seller upgrades and Finish Now checkout are disabled; receipt handler still recognizes paid product",
+      "passed": true
+    },
+    {
+      "name": "Offline rate no longer depends on seller level; old checkpoint pays its recorded rate",
+      "passed": true
+    },
+    {
+      "name": "Player and vacuum receipt history survives snapshot batching without duplicate effects",
+      "passed": true
+    },
+    {
+      "name": "Archived board controller starts no listeners or checkout loads",
+      "passed": true
+    },
+    {
+      "name": "Paid deposit routes to Money effect; queued legacy display remains available for restoration",
+      "passed": true
+    },
+    {
+      "name": "Enable switch restores timed queue, seller offer, Finish Now availability and offline cap",
+      "passed": true
+    }
+  ],
+  "studio": {
+    "modules": [
+      {
+        "bytes": 20152,
+        "path": "ServerStorage.PetRoll.EggService",
+        "name": "EggService",
+        "compiled": true,
+        "hash": 845107658
+      },
+      {
+        "bytes": 2178,
+        "path": "ServerStorage.PetRoll.OfflineCash",
+        "name": "OfflineCash",
+        "compiled": true,
+        "hash": 3530874861
+      },
+      {
+        "bytes": 4659,
+        "path": "ReplicatedStorage.PetRoll.Shared.ShopCatalog",
+        "name": "ShopCatalog",
+        "compiled": true,
+        "hash": 2720242264
+      },
+      {
+        "bytes": 2162,
+        "path": "ReplicatedStorage.PetRoll.Shared.EggProcessorConfig",
+        "name": "EggProcessorConfig",
+        "compiled": true,
+        "hash": 2316166065
+      },
+      {
+        "bytes": 24810,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BaseController",
+        "name": "BaseController",
+        "compiled": true,
+        "hash": 92518576
+      },
+      {
+        "bytes": 16792,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggController",
+        "name": "EggController",
+        "compiled": true,
+        "hash": 3758922295
+      },
+      {
+        "bytes": 10986,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.EggProcessorController",
+        "name": "EggProcessorController",
+        "compiled": true,
+        "hash": 2216490123
+      }
+    ],
+    "archives": [
+      {
+        "code": [
+          {
+            "bytes": 11053,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.client.ActionFeedback",
+            "hash": 1034684498
+          },
+          {
+            "bytes": 24612,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.client.BaseController",
+            "hash": 1289689015
+          },
+          {
+            "bytes": 16667,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.client.EggController",
+            "hash": 2446600161
+          },
+          {
+            "bytes": 10786,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.client.EggProcessorController",
+            "hash": 2967905073
+          },
+          {
+            "bytes": 12246,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.CommerceService",
+            "hash": 3834821133
+          },
+          {
+            "bytes": 4210,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.EggProcessor",
+            "hash": 276651666
+          },
+          {
+            "bytes": 18897,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.EggService",
+            "hash": 2102521141
+          },
+          {
+            "bytes": 19310,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.GameServer",
+            "hash": 1657066680
+          },
+          {
+            "bytes": 2035,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.OfflineCash",
+            "hash": 707133741
+          },
+          {
+            "bytes": 33189,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.PlayerSession",
+            "hash": 1696316231
+          },
+          {
+            "bytes": 5409,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.server.ProductService",
+            "hash": 2110398240
+          },
+          {
+            "bytes": 2056,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.shared.EggProcessorConfig",
+            "hash": 2033116573
+          },
+          {
+            "bytes": 4481,
+            "path": "ServerStorage.EggProcessingArchive20260929.Code.shared.ShopCatalog",
+            "hash": 2914509228
+          }
+        ],
+        "boards": [
+          {
+            "plot": "Plot6",
+            "originalParent": "Workspace.MyChickenArmyMap.03_HomePlots.Plot6",
+            "present": true
+          },
+          {
+            "plot": "Plot5",
+            "originalParent": "Workspace.MyChickenArmyMap.03_HomePlots.Plot5",
+            "present": true
+          },
+          {
+            "plot": "Plot4",
+            "originalParent": "Workspace.MyChickenArmyMap.03_HomePlots.Plot4",
+            "present": true
+          },
+          {
+            "plot": "Plot3",
+            "originalParent": "Workspace.MyChickenArmyMap.03_HomePlots.Plot3",
+            "present": true
+          },
+          {
+            "plot": "Plot2",
+            "originalParent": "Workspace.MyChickenArmyMap.03_HomePlots.Plot2",
+            "present": true
+          },
+          {
+            "plot": "Plot1",
+            "originalParent": "Workspace.MyChickenArmyMap.03_HomePlots",
+            "present": true
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "liveBoards": 0,
+    "depositPads": 6
+  }
+}

@@ -114,12 +114,12 @@ return function(sources)
 		return tonumber(string.match(text or "", "[%d%.]+"))
 	end
 
-	check("Finite tracks have complete prices/benefits and unchanged physical maxima", function()
+	check("Finite tracks have complete prices/benefits and the eight-slot maximum", function()
 		assert(#Definitions.EggSpeedPrices == 25 and #Definitions.EggSpeedRates == 26)
 		assert(#Config.IncomePrices == 25 and #Config.LuckPrices == 20)
 		assert(#Definitions.PlotScales == #Definitions.PlotPrices + 1)
-		assert(Config.LegacyCollectionLimit == 60 and Config.MaxSlots == 10 and Config.RollSlotsUnlocked == 6)
-		assert(#Definitions.RollSlotPrices == 5 and Definitions.ExtraChickensPerPlotLevel == 5)
+		assert(Config.LegacyCollectionLimit == 100 and Config.MaxSlots == 10 and Config.RollSlotsUnlocked == 8)
+		assert(#Definitions.RollSlotPrices == Config.RollSlotsUnlocked - 1 and #Definitions.PlotCapacities == #Definitions.PlotPrices + 1)
 		for _, prices in {Definitions.EggSpeedPrices, Config.IncomePrices, Config.LuckPrices,
 			Definitions.PlotPrices, Definitions.RollSlotPrices} do
 			for index = 1, #prices do priceValid(prices[index]) end
@@ -128,7 +128,7 @@ return function(sources)
 		close(Definitions.EggSpeedRates[26], 4.75)
 		close(Rules.EggUnitValue(25), 29)
 		local s = fresh(); s.plotSizeLevel = #Definitions.PlotPrices
-		assert(s:CollectionLimit() == 60)
+		assert(s:CollectionLimit() == 100)
 		for index = 1, #Definitions.PlotScales do
 			assert(Definitions.PlotScales[index] > 0 and Definitions.PlotScales[index] <= 1.2)
 			if index > 1 then assert(Definitions.PlotScales[index] >= Definitions.PlotScales[index - 1]) end
@@ -154,16 +154,13 @@ return function(sources)
 		end
 	end)
 
-	check("Roll Slot opening prices stay fixed and later growth ratios increase", function()
+	check("Roll Slot opening prices stay fixed, all eight are purchasable, and the sixth is reduced", function()
 		local prices = Definitions.RollSlotPrices
-		assert(#prices == 5 and prices[1] == 1200 and prices[2] == 4800)
-		-- 120k/6m/600m satisfies this contract; deliberately avoid locking later exact prices.
-		local previousRatio = prices[2] / prices[1]
-		for index = 3, 5 do
+		assert(#prices == 7 and prices[1] == 1200 and prices[2] == 4800)
+		assert(prices[3] == 120000 and prices[4] == 6000000 and prices[5] < 600000000)
+		for index = 2, #prices do
 			priceValid(prices[index])
-			local ratio = prices[index] / prices[index - 1]
-			assert(ratio > previousRatio, "Roll Slot price ratios must become steeper")
-			previousRatio = ratio
+			assert(prices[index] > prices[index - 1], "Later Roll Slots must cost more")
 		end
 	end)
 
@@ -186,7 +183,7 @@ return function(sources)
 			local final = b:Offers(s)[key]
 			assert(final.price == nil and final.nextText == nil, key .. " has an extra purchase/preview")
 			rejected(b, s, key, final.level, 0)
-			assert(s:CollectionLimit() <= 60 and s:Capacity() <= 10 and s.rollSlotsUnlocked <= 6)
+			assert(s:CollectionLimit() <= 100 and s:Capacity() <= 10 and s.rollSlotsUnlocked <= 8)
 		end
 	end)
 
@@ -216,29 +213,30 @@ return function(sources)
 		for level = 0, #Definitions.PlotPrices do
 			s.plotSizeLevel = level
 			local offer = b:Offers(s).PlotSize
-			local capacity = math.min(60, Config.CollectionLimit + level * 5)
+			local capacities = {25, 30, 35, 40, 45, 50, 75, 100}
+			local capacity = capacities[level + 1]
 			assert(s:CollectionLimit() == capacity)
 			close(displayNumber(offer.currentText), capacity)
 			if level < #Definitions.PlotPrices then
-				close(displayNumber(offer.nextText), math.min(60, capacity + 5))
+				close(displayNumber(offer.nextText), capacities[level + 2])
 			else assert(offer.nextText == nil and offer.price == nil) end
 		end
 		s.plotSizeLevel = 0; s.plotExpansionAvailable = false
 		local offer = b:Offers(s).PlotSize; s.coins = offer.price
 		assert(not offer.unlocked); rejected(b, s, "PlotSize", offer.level, offer.price)
-		for _, physical in {1, 3, 6} do
+		for _, physical in {1, 3, 6, 8} do
 			local p = fresh(); p.rollSlotLimit = physical
 			for _ = 2, physical do buy(b, p, "RollSlots") end
 			assert(p.rollSlotsUnlocked == physical and b:Offers(p).RollSlots.price == nil)
 			rejected(b, p, "RollSlots", physical, 1)
-			-- Retain an owned six-slot entitlement on a smaller authored plot.
-			p.rollSlotsUnlocked = 6; p.rollSlotCount = physical
+			-- Retain an owned eight-slot entitlement on a smaller authored plot.
+			p.rollSlotsUnlocked = 8; p.rollSlotCount = physical
 			assert(b:Offers(p).RollSlots.price == nil)
 			assert(Roll.new():Roll(p, 100))
-			assert(#p.offers == physical and p.rollSlotsUnlocked == 6)
+			assert(#p.offers == physical and p.rollSlotsUnlocked == 8)
 		end
 		local p = fresh(); p.rollSlotCount = 99
-		assert(Roll.new():Roll(p, 100)); assert(#p.offers == 6)
+		assert(Roll.new():Roll(p, 100)); assert(#p.offers == 8)
 	end)
 
 	check("Legacy menu owners reach identical Income/Luck/Army maxima without camps", function()
@@ -314,15 +312,15 @@ return function(sources)
 	check("Maximum levels roundtrip; MAX+1 and malformed levels reject without partial load", function()
 		local s = fresh()
 		s.eggSpeedLevel, s.incomeLevel, s.luck = 25, 25, 20
-		s.plotSizeLevel, s.rollSlotsUnlocked, s.capacity = #Definitions.PlotPrices, 6, 10
+		s.plotSizeLevel, s.rollSlotsUnlocked, s.capacity = #Definitions.PlotPrices, 8, 10
 		s.coins = 12345
 		local data, restored = s:ToData(), fresh()
 		assert(restored:LoadData(data))
 		for _, field in fields do assert(restored[field] == s[field], field .. " did not roundtrip") end
-		assert(restored.coins == 12345 and restored:CollectionLimit() == 60 and restored.promotion == 1)
+		assert(restored.coins == 12345 and restored:CollectionLimit() == 100 and restored.promotion == 1)
 		assert(restored:Count() == s:Count())
 		for field, maximum in {eggSpeedLevel = 25, incomeLevel = 25, luck = 20,
-			plotSizeLevel = #Definitions.PlotPrices, rollSlotsUnlocked = 6, capacity = 10} do
+			plotSizeLevel = #Definitions.PlotPrices, rollSlotsUnlocked = 8, capacity = 10} do
 			for _, bad in {maximum + 1, -1, 0.5, math.huge, 0/0, "1"} do
 				local invalid = s:ToData(); invalid[field] = bad
 				local before, revision = restored:ToData(), restored.revision
@@ -349,7 +347,7 @@ return function(sources)
 		assert(same(s.eggCarry, earned.eggCarry) and same(s.eggProcessor, earned.eggProcessor))
 		local restored = fresh(); assert(restored:LoadData(s:ToData()))
 		assert(same(restored.eggCarry, earned.eggCarry) and same(restored.eggProcessor, earned.eggProcessor))
-		assert(restored.rollSlotsUnlocked == 6 and restored.plotSizeLevel == #Definitions.PlotPrices)
+		assert(restored.rollSlotsUnlocked == 8 and restored.plotSizeLevel == #Definitions.PlotPrices)
 		assert(same(restored:ToData().pets, earned.pets))
 	end)
 
@@ -384,7 +382,7 @@ return function(sources)
 		assert(restored.eggSpeedLevel == 0 and restored.plotSizeLevel == 0 and restored.rollSlotsUnlocked == 6)
 	end)
 
-	check("New profiles start at 25 and buy seven expansions through 60", function()
+	check("New profiles start at 25 and buy seven expansions through 100", function()
 		local s, b = fresh(), board()
 		assert(Config.DataRevision == 11 and s.dataRevision == 11 and s:CollectionLimit() == 25)
 		assert(s.plotSizeLevel == 0 and Definitions.PlotScales[1] == 0.8)
@@ -393,14 +391,39 @@ return function(sources)
 		for level = 1, 7 do
 			assert(b:Offers(s).PlotSize.price == prices[level])
 			buy(b, s, "PlotSize")
-			assert(s:CollectionLimit() == 25 + 5 * level)
+			assert(s:CollectionLimit() == ({25, 30, 35, 40, 45, 50, 75, 100})[level + 1])
 		end
 		assert(b:Offers(s).PlotSize.price == nil)
 		local restored = fresh(); assert(restored:LoadData(fresh():ToData()))
 		assert(restored.plotSizeLevel == 0 and restored:CollectionLimit() == 25)
 	end)
 
-	check("Old plot levels migrate once with exact capacity, footprint, next price and inventory", function()
+	check("Every flock limit accepts its last recruit, rejects overflow without charging, and saves 100", function()
+		for level, capacity in {25, 30, 35, 40, 45, 50, 75, 100} do
+			local s, rolls = fresh(), Roll.new()
+			s.plotSizeLevel = level - 1
+			while s:Count() < capacity - 1 do s:AddPet("Duck", 1) end
+			s.coins = 1000; s.rollRevealAt = 0
+			s.offers = {{id = "last-slot", species = "Duck", level = 1, price = 100}}
+			assert(rolls:Buy(s, "last-slot", 100))
+			assert(s:Count() == capacity and s.coins == 900)
+			s.offers = {{id = "overflow", species = "Duck", level = 1, price = 100}}
+			local before = s:ToData()
+			assert(not rolls:Buy(s, "overflow", 100))
+			assert(same(s:ToData(), before) and s.offers[1].id == "overflow")
+			local restored = fresh(); assert(restored:LoadData(before))
+			assert(restored:Count() == capacity and restored:CollectionLimit() == capacity)
+			assert(same(restored:ToData().pets, before.pets))
+			if capacity == 100 then
+				s:AddPet("Duck", 1)
+				local valid = restored:ToData()
+				assert(not restored:LoadData(s:ToData()))
+				assert(same(restored:ToData(), valid), "101-bird save partially loaded")
+			end
+		end
+	end)
+
+	check("Old plot levels migrate once, retain inventory/prices and gain the final capacities", function()
 		local oldScales = {1, 1.05, 1.10, 1.15, 1.20}
 		local oldPrices = {2880, 63000, 725760, 3628800}
 		for revision = 6, 10 do for level = 0, 4 do
@@ -411,7 +434,7 @@ return function(sources)
 			data.rollSlotsUnlocked = 6
 			local restored = fresh(); assert(restored:LoadData(data))
 			assert(data.dataRevision == revision and data.plotSizeLevel == level, "Input save was mutated")
-			assert(restored.plotSizeLevel == level + 3 and restored:CollectionLimit() == 40 + 5 * level)
+			assert(restored.plotSizeLevel == level + 3 and restored:CollectionLimit() == ({40, 45, 50, 75, 100})[level + 1])
 			close(Definitions.PlotScales[restored.plotSizeLevel + 1], oldScales[level + 1])
 			assert(board():Offers(restored).PlotSize.price == oldPrices[level + 1])
 			assert(restored.rollSlotsUnlocked == 6 and same(restored:ToData().pets, data.pets))
@@ -488,6 +511,78 @@ return function(sources)
 			plot:Destroy()
 		end)
 		model:Destroy(); Layout.SetYard(700, nil)
+		assert(ok, err)
+	end)
+	check("Longer deck keeps the square and early stages fixed, fits the final T, and has 100 unique homes", function()
+		local Plot = loadModule(server.PlotUpgradeService)
+		local Layout = loadModule(shared.HomePlotLayout)
+		local Rover = loadModule(server.EggRover)
+		local model = Instance.new("Model")
+		local ok, err = pcall(function()
+			local frame = CFrame.new(346.48, -2.39, -195) * CFrame.Angles(0, math.rad(120), 0)
+			local yard = Instance.new("Folder"); yard.Name = "ChickenYard"; yard.Parent = model
+			yard:SetAttribute("ExpansionShape", "T")
+			local boundary = Instance.new("Folder"); boundary.Name = "Boundary"; boundary.Parent = yard
+			local edge = Instance.new("Part"); edge.Name = "Beam"; edge.Size = Vector3.new(30, 0.01, 30)
+			edge.CFrame = frame * CFrame.new(0, 5.05, -18.5); edge.Parent = boundary
+			for i = 1, 8 do
+				local a, b, beam = Instance.new("Attachment"), Instance.new("Attachment"), Instance.new("Beam")
+				a.Parent, b.Parent = edge, edge
+				beam.Name = "YardEdge" .. i; beam.Attachment0, beam.Attachment1 = a, b; beam.Parent = edge
+			end
+			local fence = Instance.new("Folder"); fence.Name = "BoundaryFence"; fence.Parent = model
+			fence:SetAttribute("ExpansionMaxBack", 62.5); fence:SetAttribute("ExpansionMaxHalfWidth", 44)
+			fence:SetAttribute("ExpansionLateDepth", 20)
+			local positions = {Left = {{-38, -58.18}, {-38, 13.5}}, Right = {{38, -58.18}, {38, 13.5}},
+				Front = {{-38, -58.18}, {-10, -58.18}, {9, -58.18}, {38, -58.18}}, Back = {{-38, 13.5}, {38, 13.5}}}
+			for side, points in positions do
+				local group = Instance.new("Folder"); group.Name = side; group.Parent = fence
+				for _, point in points do
+					local post = Instance.new("Part"); post.Size = Vector3.new(1, 3, 1)
+					post.CFrame = frame * CFrame.new(point[1], 6, point[2]); post.Parent = group
+				end
+			end
+			local machine = Instance.new("Part"); machine.CFrame = frame * CFrame.new(-29, 7, -19); machine.Parent = model
+			local originalMachine = machine.CFrame
+			local plot = Plot.new(model, 701, frame)
+			local depths = {30, 36, 42, 49, 57, 63, 79, 94}
+			local widths = {30, 30, 30, 30, 48, 60, 72, 84}
+			local capacities = {25, 30, 35, 40, 45, 50, 75, 100}
+			for _, level in {0, 1, 2, 3, 4, 5, 6, 7, 0, 7} do
+				plot:SetLevel(level)
+				assert((machine.CFrame.Position - originalMachine.Position).Magnitude == 0)
+				local at = frame:PointToObjectSpace(edge.Position)
+				assert(math.abs(at.Z - edge.Size.Z / 2 + 33.5) < 0.001, "Starter front moved")
+				assert(math.abs(edge.Size.Z - depths[level + 1]) < 0.001)
+				assert(math.abs(edge.Size.X - widths[level + 1]) < 0.001)
+				local expectedBack = 13.5 + 29 * level / 7 + math.max(0, level - 5) * 10
+				for _, post in fence.Back:GetChildren() do
+					local back = frame:PointToObjectSpace(post.Position).Z
+					assert(math.abs(back - expectedBack) < 0.001, "Fence stage drifted")
+					assert(back < 131.853668 / 2 - 3, "Fence exceeds enlarged deck")
+					assert(back > at.Z + edge.Size.Z / 2, "Yard crosses fence")
+				end
+				local bounds, occupied = Layout.ForPlot(701), {}
+				for index = 1, capacities[level + 1] do
+					local x, z = Layout.Home(index, 701)
+					local cx, cz = Layout.Clamp(bounds, x, z)
+					close(x, cx); close(z, cz)
+					local key = string.format("%.4f,%.4f", x, z)
+					assert(not occupied[key], "Home positions repeated before capacity"); occupied[key] = true
+				end
+				local rover = Rover.new("fixture", frame, 701, machine, 0)
+				local previous = frame:PointToObjectSpace(rover.approach)
+				for _, point in rover.rows do
+					local current = frame:PointToObjectSpace(point)
+					assert(Layout.CanWalkDirect(bounds, previous.X, previous.Z, current.X, current.Z), "Rover crosses T cutout")
+					previous = current
+				end
+				local corridor = frame:PointToObjectSpace(rover.corridor)
+				assert(math.abs(corridor.Z + 15) < 0.001, "Deck resizing shifted the rover approach")
+			end
+			plot:Destroy()
+		end)
+		model:Destroy(); Layout.SetYard(701, nil)
 		assert(ok, err)
 	end)
 	return results

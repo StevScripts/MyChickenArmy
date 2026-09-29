@@ -116,11 +116,19 @@ function WorldService:RoamTarget(index: number, from: Vector3, petId: string?): 
 	local plot = self.plots[index]
 	local actor = plot and petId and plot.actors[petId]
 	local best, bestScore = from, -math.huge
+	local localFrom = cf:PointToObjectSpace(from)
+	if layout.YardRegions then
+		local x, z = HomePlot.Clamp(layout, localFrom.X, localFrom.Z)
+		if math.abs(x - localFrom.X) + math.abs(z - localFrom.Z) > 0.05 then
+			return (cf * CFrame.new(x, layout.FootY, z)).Position
+		end
+	end
 	-- Sample the whole walkable yard and favor space not occupied or reserved by
 	-- another chicken. Small random steps kept the flock near its starting row.
 	for _ = 1, 12 do
-		local candidate = (cf * CFrame.new(self.random:NextNumber(layout.YardMinX, layout.YardMaxX),
-			layout.FootY, self.random:NextNumber(layout.YardMinZ, layout.YardMaxZ))).Position
+		local x, z = HomePlot.Sample(layout, self.random:NextNumber(), self.random:NextNumber())
+		if not HomePlot.CanWalkDirect(layout, localFrom.X, localFrom.Z, x, z) then continue end
+		local candidate = (cf * CFrame.new(x, layout.FootY, z)).Position
 		if actor and not actor:CanStandAt(candidate) then continue end
 		local travel = (candidate - from).Magnitude
 		local clearance = 24

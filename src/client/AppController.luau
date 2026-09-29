@@ -6,6 +6,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
+local Lighting = game:GetService("Lighting")
 local Shared = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
@@ -38,7 +39,7 @@ local DESKTOP_POPUP_SIZE = 0.873
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
 		confirm = nil, panelKey = "", reducedMotion = false, toastSerial = 0, alive = true,
-		recruitIntents = {}, recruitReceipts = {}, productionRequests = {}, productionReceipts = {}}, AppController)
+		recruitIntents = {}, recruitReceipts = {}, productionRequests = {}, productionReceipts = {}, menuBlurOwners = {}}, AppController)
 	self.audio = AudioController.new()
 	self.feedback = ActionFeedback.new(self)
 	self.eggs = EggController.new(self)
@@ -266,10 +267,32 @@ function AppController:SelectPet(id)
 	self:OpenPage("Army")
 end
 
+-- One client-owned blur shared by main pages and the separate offline receipt.
+function AppController:SetMenuBlur(owner, visible)
+	self.menuBlurOwners[owner] = if visible then true else nil
+	if not self.alive then return end
+	local target = if next(self.menuBlurOwners) then 18 else 0
+	if not self.menuBlur then
+		if target == 0 then return end
+		local blur = Instance.new("BlurEffect")
+		blur.Name, blur.Size, blur.Parent = "PetRollMenuBlur", 0, Lighting
+		self.menuBlur = blur
+	end
+	if self.menuBlurTarget == target then return end
+	self.menuBlurTarget = target
+	local blur = self.menuBlur
+	blur.Enabled = true
+	Theme.Motion:Tween(blur,"menu-blur",{Size=target},0.24,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function()
+		if self.menuBlurTarget == 0 then blur.Enabled = false end
+	end)
+end
+
 function AppController:OpenPage(page)
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
 	if page=="Merge" and not self.mergeBrowser then return end
+	self:SetMenuBlur("main",true)
+	self.offlineCash:Dismiss(true)
 	if self.mergeBrowser and self.page=="Merge" and page~="Merge" then self.mergeBrowser:Close() end
 	local switching=self.panel.Visible and not self.panelClosing
 	self.panelClosing=false
@@ -302,6 +325,7 @@ end
 function AppController:ClosePanel()
 	if not self.panel.Visible or self.panelClosing then return end
 	self.panelClosing=true
+	self:SetMenuBlur("main",false)
 	if self.page=="Merge" and self.mergeBrowser then self.mergeBrowser:Close() end
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(self.panel) then
@@ -338,7 +362,7 @@ function AppController:BuildUI()
 	-- Keep screen coordinates in rendered pixels; each menu owns its content layout.
 	self.hud=HudController.new(self,shell)
 	local backdrop=Theme.Frame(shell,"Backdrop",UDim2.fromScale(1,1),C.dark)
-	backdrop.BackgroundTransparency,backdrop.Visible,backdrop.Active=0.44,false,true
+	backdrop.BackgroundTransparency,backdrop.Visible,backdrop.Active=1,false,true
 	backdrop.ZIndex,self.backdrop=10,backdrop
 	Theme.Round(backdrop,0)
 	local panel=Theme.Frame(shell,"Panel",UDim2.fromOffset(1120,660))
@@ -747,6 +771,8 @@ function AppController:Destroy()
 	self.upgradeBoard:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
+	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
+	table.clear(self.menuBlurOwners)
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
 	self.productionRequests,self.productionReceipts={},{}

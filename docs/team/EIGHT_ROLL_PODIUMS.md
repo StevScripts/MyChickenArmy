@@ -1,0 +1,56 @@
+# Eight roll podiums — September 29, 2026
+
+The user added eight authored stands to Plot1. Support now accepts up to eight
+simultaneous offers through `Config.RollSlotsUnlocked=8`. Stored ownership still
+limits active displays, and physical stands still limit each plot. New profiles
+start with one; old profiles lacking the saved field retain the historical six,
+instead of accidentally receiving the new maximum. Existing one-through-six
+ownership is preserved; seven and eight serialize normally.
+
+The two new stands were both named DisplayPodium7. The one nearest podium six,
+at the inspected RollDisplay position (299.3721, 4.4920, -175.3151), was renamed
+DisplayPodium8 in the Edit source. Geometry and placement were untouched.
+Plot1 now orders DisplayPodium, DisplayPodium2 through DisplayPodium8 uniquely.
+Plots2–6 currently each have one RollDisplay and were left intact.
+
+The user's follow-up replaces the $600M sixth-slot luxury goal with a target of
+all eight slots in roughly 8–9 total active F2P hours from a fresh profile.
+The implemented prices are:
+
+| Slot unlocked | Cash price | Reference modeled total hours |
+| --- | ---: | ---: |
+| 1 | Included | 0 |
+| 2 | $1,200 | 0.08 |
+| 3 | $4,800 | 0.25 |
+| 4 | $120,000 | 0.83 |
+| 5 | $6,000,000 | 1.90 |
+| 6 | $150,000,000 | 4.41 |
+| 7 | $300,000,000 | 6.41 |
+| 8 | $500,000,000 | 8.47 |
+
+The sixth price is reduced by 75%; slots 2–5 retain their prices. Seven purchases
+total $956,126,000. These are ordinary fixed cash prices, with no timer, camp,
+rank, conquest, King, paid or rebirth prerequisite. Existing ownership is retained.
+
+This is initial model-based tuning, not measured player pacing. The 48-seed
+reference policy reserves 25% of deposits for slots and reinvests the rest in
+recruiting, plot capacity, Luck, Egg Speed and Egg Value. It assumes rolls every
+20 seconds, deposits every minute and 80% home production. Its median is 8.47
+hours (10th–90th percentile 8.07–8.78). Focused and relaxed policies reach medians
+of 5.75 and 10.90 hours. No passes, cash packs, offline income or combat rewards
+are included. Fusion, army-upgrade spending and physical travel/collection are
+not simulated. See the [tuning report](../../tuning/my-chicken-army-roll-slots/tuning-report.md)
+for assumptions, reproduction and the follow-up measurement plan.
+
+Source scope: Config, UpgradeCatalog and the legacy missing-field default in PlayerSession.
+Authored scope: the single duplicate podium name. All pre-existing changes,
+including instant egg sales and other client/workbench edits, are preserved.
+Isolated checks: four podium checks in `assets/eight-roll-podiums-20260929/checks.luau`
+and 18 current upgrade progression checks in `tests/UpgradeBoardProgressionChecks.luau`
+passed. Results are saved alongside the podium fixture. The latter used fresh
+sources matching local hashes, with in-memory player/store/world boundaries;
+no real profile was loaded. A pre-existing divergent duplicate PlotUpgradeService
+in Studio was excluded by exact-source matching and left untouched. Rojo build
+passed; that verifies packaging, not a human playtest.
+No Play/Stop, player-data change, Roblox save/publish or Git commit/push.
+The authored rename needs a Studio place save; code is saved locally and Rojo-synced.

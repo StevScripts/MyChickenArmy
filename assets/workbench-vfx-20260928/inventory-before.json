@@ -1,0 +1,2144 @@
+{
+  "models": [
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Bee Chicken",
+      "name": "Bee Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Bee",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Bee",
+      "source": {
+        "missing": [],
+        "scale": 0.6422396898269653,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Bee Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.631288766860962, 2.7552084922790527, 2.3377525806427"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Bee Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.350000023841858, 1.350000023841858, 1.5937498807907104"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam",
+      "name": "Bonsai Bantam",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Surface6 [MeshPart]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Bonsai",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.3766281604766846, 1.266115665435791, 0.40965279936790466"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Bonsai",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.483625888824463, 0.7608307600021362, 0.33143913745880127"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Bonsai",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7674548625946045, 0.9503753781318665, 0.28163614869117737"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Bonsai",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.554627776145935, 0.8548771739006042, 0.2720527648925781"
+          },
+          {
+            "name": "Surface5",
+            "parent": "Bonsai",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.4553096294403076, 0.8867098689079285, 0.28163614869117737"
+          },
+          {
+            "name": "Surface6",
+            "parent": "Bonsai",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 1
+        }
+      },
+      "species": "Bonsai",
+      "source": {
+        "missing": [],
+        "scale": 0.7578428983688354,
+        "roots": [
+          "Surface6 [MeshPart]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Bonsai Bantam",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.5567371845245361, 1.4317659139633179, 0.4632490873336792"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Bonsai Bantam",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.6777336597442627, 0.8603728413581848, 0.37480244040489197"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Bonsai Bantam",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.99869704246521, 1.0747162103652954, 0.3184835612773895"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Bonsai Bantam",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.758025050163269, 0.9667236804962158, 0.30764636397361755"
+          },
+          {
+            "name": "Surface5",
+            "parent": "Bonsai Bantam",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.6457127332687378, 1.0027211904525757, 0.3184835612773895"
+          },
+          {
+            "name": "Surface6",
+            "parent": "Bonsai Bantam",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.924920916557312, 3.2511463165283203, 2.7585482597351074"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Bonsai Bantam",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5930001735687256, 1.5930001735687256, 1.8806252479553223"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 1
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Brown Chicken",
+      "name": "Brown Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Mallard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Mallard",
+      "source": {
+        "missing": [],
+        "scale": 0.9200000166893005,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Brown Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.5660372972488403, 2.6449999809265137, 2.2442424297332764"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Brown Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.2960001230239868, 1.2960001230239868, 1.5300002098083496"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Cactus Clucker",
+      "name": "Cactus Clucker",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Cactus",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.04801869392395, 2.0389716625213623, 1.7008742094039917"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Cactus",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Cactus",
+      "source": {
+        "missing": [],
+        "scale": 0.6807740926742554,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Cactus Clucker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.0804455280303955, 2.0712554454803467, 1.7278046607971191"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Cactus Clucker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7291661500930786, 2.9205212593078613, 2.478017807006836"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Cactus Clucker",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.4310001134872437, 1.4310001134872437, 1.6893750429153442"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Camo Chick",
+      "name": "Camo Chick",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Camo",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Camo",
+      "source": {
+        "missing": [],
+        "scale": 0.6422396898269653,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Camo Chick",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.631288766860962, 2.7552084922790527, 2.3377525806427"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Camo Chick",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.350000023841858, 1.350000023841858, 1.5937498807907104"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando",
+      "name": "Cardboard Commando",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Cardboard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8590327501296997, 2.184731960296631, 1.8627142906188965"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Cardboard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8402682542800903, 2.175349712371826, 1.8534746170043945"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Cardboard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.879137396812439, 2.195119619369507, 1.2789589166641235"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Cardboard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8602445125579834, 2.0480103492736816, 0.5448427200317383"
+          },
+          {
+            "name": "Surface5",
+            "parent": "Cardboard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Cardboard",
+      "source": {
+        "missing": [],
+        "scale": 0.6807740926742554,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Cardboard Commando",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8884674310684204, 2.2193236351013184, 1.8922072649002075"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Cardboard Commando",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8694058656692505, 2.2097928524017334, 1.8828213214874268"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Cardboard Commando",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.9088904857635498, 2.2298758029937744, 1.2992091178894043"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Cardboard Commando",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8896983861923218, 2.080437183380127, 0.5534694194793701"
+          },
+          {
+            "name": "Surface5",
+            "parent": "Cardboard Commando",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7291661500930786, 2.9205212593078613, 2.478017807006836"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Cardboard Commando",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.4310001134872437, 1.4310001134872437, 1.6893750429153442"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Cheesy Chicken",
+      "name": "Cheesy Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Cheesy",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Cheesy",
+      "source": {
+        "missing": [],
+        "scale": 0.6422396898269653,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Cheesy Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.631288766860962, 2.7552084922790527, 2.3377525806427"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Cheesy Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.350000023841858, 1.350000023841858, 1.5937498807907104"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Chicken",
+      "name": "Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Duck",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022145986557007, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Duck",
+      "source": {
+        "missing": [],
+        "scale": 0.8624999523162842,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.4681600332260132, 2.479687452316284, 2.1039772033691406"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.215000033378601, 1.215000033378601, 1.4343749284744263"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Chicken Jockey",
+      "name": "Chicken Jockey",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Jockey",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.0394251346588135, 4.222027778625488, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Jockey",
+      "source": {
+        "missing": [],
+        "scale": 1.0158333778381348,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Chicken Jockey",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.071716070175171, 4.288877010345459, 2.478017807006836"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Chicken Jockey",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.430999994277954, 1.430999994277954, 1.6893749237060547"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Chunky Chicken",
+      "name": "Chunky Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Chunky",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.1240155696868896, 3.3062498569488525, 2.8053033351898193"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Chunky",
+      "source": {
+        "missing": [],
+        "scale": 0.9583333730697632,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Chunky Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.035515069961548, 3.168489694595337, 2.688415765762329"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Chunky Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.3500001430511475, 1.3500001430511475, 1.5937501192092896"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Crystal Chicken",
+      "name": "Crystal Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Viking",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8483096361160278, 2.9554193019866943, 2.5184731483459473"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Viking",
+      "source": {
+        "missing": [],
+        "scale": 1.0733332633972168,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Crystal Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.9838522672653198, 3.172149896621704, 2.7031610012054443"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Crystal Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5119999647140503, 1.5119999647140503, 1.7850000858306885"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Devil Chicken",
+      "name": "Devil Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Devil_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Devil",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "3.4222238063812256, 3.3012404441833496, 3.0960869789123535"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 2
+        }
+      },
+      "species": "Devil",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Devil_Root [Bone]",
+          "Pixel Fog Overlay [ParticleEmitter]",
+          "Pixeled Smoke 54 [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Devil Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "3.4222238063812256, 3.3012404441833496, 3.0960869789123535"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 6
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Diamond Defender",
+      "name": "Diamond Defender",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Diamond",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "Beam": 10,
+          "ParticleEmitter": 4
+        }
+      },
+      "species": "Diamond",
+      "source": {
+        "missing": [],
+        "scale": 0.783532440662384,
+        "roots": [
+          "Attachment [Attachment]",
+          "Shrinking Star [ParticleEmitter]",
+          "Star20 [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Diamond Defender",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.9901723861694336, 3.3613545894622803, 2.852058172225952"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Diamond Defender",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.6470000743865967, 1.6470000743865967, 1.944374918937683"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 4
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Frost Feather",
+      "name": "Frost Feather",
+      "target": {
+        "missing": [
+          "Beam.Attachment1",
+          "Beam.Attachment1"
+        ],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Frost",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 1.9903846979141235"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Frost",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.9516316652297974, 1.1727855205535889, 0.5059732794761658"
+          }
+        ],
+        "effects": {
+          "Beam": 2,
+          "ParticleEmitter": 5
+        }
+      },
+      "species": "Frost",
+      "source": {
+        "missing": [],
+        "scale": 0.7578428983688354,
+        "roots": [
+          "Attachment [Attachment]",
+          "Grey Galaxy Smoke [ParticleEmitter]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Frost Feather",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.924920916557312, 3.2511463165283203, 2.25079345703125"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Frost Feather",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.076136827468872, 1.3262250423431396, 0.5721714496612549"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Frost Feather",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5930001735687256, 1.5930001735687256, 1.8806252479553223"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 5
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Galaxy Overlord",
+      "name": "Galaxy Overlord",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [
+          "Attachment [Attachment]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "StormDuck",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022150754928589, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "Beam": 10,
+          "ParticleEmitter": 5
+        }
+      },
+      "species": "StormDuck",
+      "source": {
+        "missing": [],
+        "scale": 1.3416666984558105,
+        "roots": [
+          "Attachment [Attachment]",
+          "Galaxy Burst [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Galaxy Overlord",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.2838053703308105, 3.8572916984558105, 3.2728536128997803"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Galaxy Overlord",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.8900001049041748, 1.8900001049041748, 2.231250286102295"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 6
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Glitch Chicken",
+      "name": "Glitch Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "IceDuck",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022150754928589, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "Beam": 16,
+          "ParticleEmitter": 4
+        }
+      },
+      "species": "IceDuck",
+      "source": {
+        "missing": [],
+        "scale": 1.2074999809265137,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Glitch Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.055424690246582, 3.471562385559082, 2.945568323135376"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Glitch Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.7009999752044678, 1.7009999752044678, 2.008125066757202"
+          }
+        ],
+        "effects": {
+          "Beam": 16,
+          "ParticleEmitter": 8
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Golden Emperor",
+      "name": "Golden Emperor",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Dragon",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022150754928589, 3.200029134750366, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "Beam": 10,
+          "ParticleEmitter": 4
+        }
+      },
+      "species": "Dragon",
+      "source": {
+        "missing": [],
+        "scale": 1.3416666984558105,
+        "roots": [
+          "Attachment [Attachment]",
+          "Shrinking Star [ParticleEmitter]",
+          "Star20 [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Golden Emperor",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.2838053703308105, 4.293372631072998, 3.2728536128997803"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Golden Emperor",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.8900001049041748, 1.8900001049041748, 2.231250286102295"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 4
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Heavenly Chicken",
+      "name": "Heavenly Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Heavenly_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Heavenly",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "3.6581931114196777, 3.2268357276916504, 2.6739425659179688"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 3
+        }
+      },
+      "species": "Heavenly",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "Heavenly_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Heavenly Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "3.6581931114196777, 3.2268357276916504, 2.6739425659179688"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 6
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Honeycomb Chicken",
+      "name": "Honeycomb Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Honeycomb_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Honeycomb",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8698967695236206, 3.2435898780822754, 2.8301427364349365"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 2
+        }
+      },
+      "species": "Honeycomb",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Honeycomb_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Honeycomb Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8698967695236206, 3.2435898780822754, 2.8301427364349365"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 2
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Jungle Chicken",
+      "name": "Jungle Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Jungle_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Jungle",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.2080905437469482, 3.499344825744629, 2.724193811416626"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 3
+        }
+      },
+      "species": "Jungle",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Jungle_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Jungle Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.2080905437469482, 3.499344825744629, 2.724193811416626"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 3
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Lollipop Chicken",
+      "name": "Lollipop Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Lollipop_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Lollipop",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8295453786849976, 3.349384069442749, 2.5734267234802246"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 2
+        }
+      },
+      "species": "Lollipop",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "3D Debris Rotation [ParticleEmitter]",
+          "Cartoony Skull 4x4 [ParticleEmitter]",
+          "Fading Smoke Hole [ParticleEmitter]",
+          "Fancy Bubble [ParticleEmitter]",
+          "Lollipop_Root [Bone]",
+          "Stylized Smoke57 [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Lollipop Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8295453786849976, 3.349384069442749, 2.5734267234802246"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 10
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Magma Chicken",
+      "name": "Magma Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Knight",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022150754928589, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 8
+        }
+      },
+      "species": "Knight",
+      "source": {
+        "missing": [],
+        "scale": 1.130833387374878,
+        "roots": [
+          "Attachment [Attachment]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Magma Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.9249216318130493, 3.251146078109741, 2.7585482597351074"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Magma Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5929999351501465, 1.5929999351501465, 1.8806251287460327"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 9
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Mushroom Chicken",
+      "name": "Mushroom Chicken",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Sailor",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022150754928589, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Sailor",
+      "source": {
+        "missing": [],
+        "scale": 0.9583333730697632,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Mushroom Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.6312894821166992, 2.7552084922790527, 2.3377525806427"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Mushroom Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.3500001430511475, 1.3500001430511475, 1.5937501192092896"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Ninja Chicken",
+      "name": "Ninja Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Ninja",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          },
+          {
+            "name": "Surface1",
+            "parent": "Ninja",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.20104894042015076, 0.22785574197769165, 0.44230765104293823"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Ninja",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.10722612589597702, 0.11392810940742493, 0.26806527376174927"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Ninja",
+      "source": {
+        "missing": [],
+        "scale": 0.7578428983688354,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Ninja Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.924920916557312, 3.2511463165283203, 2.7585482597351074"
+          },
+          {
+            "name": "Surface1",
+            "parent": "Ninja Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.22735285758972168, 0.2576668858528137, 0.5001763105392456"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Ninja Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.12125488370656967, 0.12883371114730835, 0.3031371533870697"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Ninja Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5930001735687256, 1.5930001735687256, 1.8806252479553223"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Noob Chick",
+      "name": "Noob Chick",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Noob",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Noob",
+      "source": {
+        "missing": [],
+        "scale": 0.5780157446861267,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Noob Chick",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.4681599140167236, 2.4796876907348633, 2.1039774417877197"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Noob Chick",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.2150001525878906, 1.2150001525878906, 1.4343750476837158"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Penguin Chicken",
+      "name": "Penguin Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Penguin",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Penguin",
+      "source": {
+        "missing": [],
+        "scale": 0.616550087928772,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Penguin Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.5660371780395508, 2.6450002193450928, 2.2442424297332764"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Penguin Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.2960000038146973, 1.2960000038146973, 1.5300002098083496"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Pirate Chicken",
+      "name": "Pirate Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Pirate",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          },
+          {
+            "name": "Surface1",
+            "parent": "Pirate",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.20104894042015076, 0.22785574197769165, 0.44230765104293823"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Pirate",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.10722612589597702, 0.11392810940742493, 0.26806527376174927"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Pirate",
+      "source": {
+        "missing": [],
+        "scale": 0.7193084955215454,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Pirate Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8270435333251953, 3.085833787918091, 2.6182830333709717"
+          },
+          {
+            "name": "Surface1",
+            "parent": "Pirate Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.21579253673553467, 0.2445651739835739, 0.4747435748577118"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Pirate Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.11508937925100327, 0.12228284031152725, 0.2877233922481537"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Pirate Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5119999647140503, 1.5119999647140503, 1.785000205039978"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Rainbow Rider",
+      "name": "Rainbow Rider",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Rainbow",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Rainbow",
+      "source": {
+        "missing": [],
+        "scale": 0.8991355895996094,
+        "roots": [
+          "Attachment [Attachment]",
+          "Shrinking Star [ParticleEmitter]",
+          "Star20 [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Rainbow Rider",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.283804416656494, 3.8572921752929688, 3.2728536128997803"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Rainbow Rider",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.8900001049041748, 1.8900001049041748, 2.231250047683716"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 4
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Robo-Cluck",
+      "name": "Robo-Cluck",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Bucket",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8154717683792114, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Bucket",
+      "source": {
+        "missing": [],
+        "scale": 1.0158333778381348,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Robo-Cluck",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8442168235778809, 2.9205210208892822, 2.478017807006836"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Robo-Cluck",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.430999994277954, 1.430999994277954, 1.6893749237060547"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Rubber Ducky",
+      "name": "Rubber Ducky",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "RubberDucky",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "RubberDucky",
+      "source": {
+        "missing": [],
+        "scale": 0.616550087928772,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Rubber Ducky",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.5660371780395508, 2.6450002193450928, 2.2442424297332764"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Rubber Ducky",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.2960000038146973, 1.2960000038146973, 1.5300002098083496"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Shadow Stalker",
+      "name": "Shadow Stalker",
+      "target": {
+        "missing": [],
+        "scale": 1,
+        "roots": [
+          "Attachment [Attachment]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Wizard",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022150754928589, 2.875, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 8
+        }
+      },
+      "species": "Wizard",
+      "source": {
+        "missing": [],
+        "scale": 1.1691666841506958,
+        "roots": [
+          "Attachment [Attachment]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Shadow Stalker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.990173101425171, 3.361354112625122, 2.852058172225952"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Shadow Stalker",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.6470000743865967, 1.6470000743865967, 1.9443750381469727"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 8
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Sir Clucks-a-Lot",
+      "name": "Sir Clucks-a-Lot",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Gentleman",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Gentleman",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.2465035915374756, 2.3187649250030518, 1.2062938213348389"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Gentleman",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.6299535036087036, 0.8413901925086975, 0.2094259113073349"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Gentleman",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.8779137134552002, 0.12733103334903717, 0.8846154808998108"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Gentleman",
+      "source": {
+        "missing": [],
+        "scale": 0.7193084955215454,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Sir Clucks-a-Lot",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8270435333251953, 3.085833787918091, 2.6182830333709717"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Sir Clucks-a-Lot",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.3379138708114624, 2.4888076782226562, 1.294755458831787"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Sir Clucks-a-Lot",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.6761500835418701, 0.9030921459197998, 0.22478382289409637"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Sir Clucks-a-Lot",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.9422940611839294, 0.1366686373949051, 0.9494873285293579"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Sir Clucks-a-Lot",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5119999647140503, 1.5119999647140503, 1.785000205039978"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Skeleton Chicken",
+      "name": "Skeleton Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Skeleton",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Skeleton",
+      "source": {
+        "missing": [],
+        "scale": 0.7193084955215454,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Skeleton Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8270435333251953, 3.085833787918091, 2.6182830333709717"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Skeleton Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5119999647140503, 1.5119999647140503, 1.785000205039978"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker",
+      "name": "Slime Squawker",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Slime",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 1.9903846979141235"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Slime",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.9516316652297974, 1.1727855205535889, 0.5059732794761658"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Slime",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.3484848141670227, 0.3484848141670227, 0.3484848141670227"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Slime",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.19166667759418488, 0.05897391960024834, 0.015413833782076836"
+          },
+          {
+            "name": "Surface5",
+            "parent": "Slime",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.07639859616756439, 0.0770692452788353, 0.19233694672584534"
+          },
+          {
+            "name": "Surface6",
+            "parent": "Slime",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.054953381419181824, 0.060314785689115524, 0.004691121634095907"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Slime",
+      "source": {
+        "missing": [],
+        "scale": 0.7193084955215454,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Slime Squawker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8270435333251953, 3.085833787918091, 2.1363463401794434"
+          },
+          {
+            "name": "Surface2",
+            "parent": "Slime Squawker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.0214179754257202, 1.2587898969650269, 0.5430780053138733"
+          },
+          {
+            "name": "Surface3",
+            "parent": "Slime Squawker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.3740403652191162, 0.3740403652191162, 0.3740403652191162"
+          },
+          {
+            "name": "Surface4",
+            "parent": "Slime Squawker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.20572224259376526, 0.06329867243766785, 0.01654418185353279"
+          },
+          {
+            "name": "Surface5",
+            "parent": "Slime Squawker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.08200116455554962, 0.08272099494934082, 0.20644167065620422"
+          },
+          {
+            "name": "Surface6",
+            "parent": "Slime Squawker",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "0.058983299881219864, 0.06473787128925323, 0.005035137291997671"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Slime Squawker",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.5119999647140503, 1.5119999647140503, 1.785000205039978"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Solar Flare Chicken",
+      "name": "Solar Flare Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "SolarFlare_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "SolarFlare",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "3.1809699535369873, 3.377622365951538, 2.7805070877075195"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 3
+        }
+      },
+      "species": "SolarFlare",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "SolarFlare_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Solar Flare Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "3.1809699535369873, 3.377622365951538, 2.7805070877075195"
+          }
+        ],
+        "effects": {
+          "PointLight": 1,
+          "ParticleEmitter": 8
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Storm Wing",
+      "name": "Storm Wing",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Storm",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 12
+        }
+      },
+      "species": "Storm",
+      "source": {
+        "missing": [],
+        "scale": 0.8991355895996094,
+        "roots": [
+          "Attachment [Attachment]",
+          "ParticleEmitter [ParticleEmitter]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Storm Wing",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.283804416656494, 3.8572921752929688, 3.2728536128997803"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Storm Wing",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.8900001049041748, 1.8900001049041748, 2.231250047683716"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 12
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Tiger Chicken",
+      "name": "Tiger Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Tiger",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Tiger",
+      "source": {
+        "missing": [],
+        "scale": 0.6807740926742554,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Tiger Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7291661500930786, 2.9205212593078613, 2.478017807006836"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Tiger Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.4310001134872437, 1.4310001134872437, 1.6893750429153442"
+          }
+        ],
+        "effects": []
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Toxic Chicken",
+      "name": "Toxic Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Toxic_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Toxic",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8628671169281006, 3.292846441268921, 2.553321599960327"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 2
+        }
+      },
+      "species": "Toxic",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "Fading Smoke Hole [ParticleEmitter]",
+          "Stylized Smoke57 [ParticleEmitter]",
+          "Toxic_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Toxic Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.8628671169281006, 3.292846441268921, 2.553321599960327"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 6
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Water Chicken",
+      "name": "Water Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Water_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Water",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.12749981880188, 3.404980421066284, 2.5480945110321045"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 3
+        }
+      },
+      "species": "Water",
+      "source": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [
+          "Attachment [Attachment]",
+          "Evaporating Water [ParticleEmitter]",
+          "Water10 [ParticleEmitter]",
+          "Water_Root [Bone]"
+        ],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Water Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "2.12749981880188, 3.404980421066284, 2.5480945110321045"
+          }
+        ],
+        "effects": {
+          "ParticleEmitter": 6
+        }
+      }
+    },
+    {
+      "path": "Workspace.ChickenVFX_Workbench.Chickens.Zombie Chicken",
+      "name": "Zombie Chicken",
+      "target": {
+        "missing": [],
+        "scale": 0.6701631546020508,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Zombie",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7022143602371216, 2.875000238418579, 2.439393997192383"
+          }
+        ],
+        "effects": []
+      },
+      "species": "Zombie",
+      "source": {
+        "missing": [],
+        "scale": 0.6807740926742554,
+        "roots": [],
+        "parts": [
+          {
+            "name": "Body",
+            "parent": "Zombie Chicken",
+            "class": "MeshPart",
+            "anchored": true,
+            "size": "1.7291661500930786, 2.9205212593078613, 2.478017807006836"
+          },
+          {
+            "name": "HumanoidRootPart",
+            "parent": "Zombie Chicken",
+            "class": "Part",
+            "anchored": true,
+            "size": "1.4310001134872437, 1.4310001134872437, 1.6893750429153442"
+          }
+        ],
+        "effects": []
+      }
+    }
+  ],
+  "running": false,
+  "workbench": "Workspace.ChickenVFX_Workbench",
+  "templates": 40,
+  "place": 96683186622050
+}

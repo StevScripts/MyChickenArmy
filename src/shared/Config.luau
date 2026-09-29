@@ -37,12 +37,12 @@ local Config = {
   NeutralRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1}},
   RaidRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Mallard",stars=1,level=1}},
  },
- StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=60,
+ StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
  DataRevision=11,StarterFlock={"Duck","Duck","Mallard"},
  CommandDistance=14,
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.
- RollSlotsUnlocked=6,
+ RollSlotsUnlocked=8,
  RollRevealSeconds=2.4,RollInteractDistance=14,
  SlotLevels={3,4,5,6,7,8,9,10},
  SlotUnlocks={

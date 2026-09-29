@@ -1,0 +1,54 @@
+{
+  "src/server/EggService.luau": {
+    "bytes": 18897,
+    "sha256": "fa1fd83c9f5144a7534e05a1d5ec47e7a3d50cebee45a867d89d393846b26962"
+  },
+  "src/server/EggProcessor.luau": {
+    "bytes": 4210,
+    "sha256": "58b349b644d9d43c5e986f6a5c1304d27e5f0550e3c8e4daeb4221462b1893b9"
+  },
+  "src/server/OfflineCash.luau": {
+    "bytes": 2035,
+    "sha256": "84a5dfb084b34289f92042541f2cea23567d0865106c378c8ca313b7e2b1b412"
+  },
+  "src/server/ProductService.luau": {
+    "bytes": 5409,
+    "sha256": "ea4b54b6ef9011898de3988fffd3d4dd7f2d36a653c0d3502d6ca323237084e5"
+  },
+  "src/server/CommerceService.luau": {
+    "bytes": 12246,
+    "sha256": "67858b65df34ed2e3d5d5f8aae29fe6db7ad3aab8db6bc8e5b4f734e7722e697"
+  },
+  "src/server/GameServer.luau": {
+    "bytes": 19310,
+    "sha256": "124aa428d3487009f8beed732e021b5d1437d9245ac2ad59fc20797c63f657e3"
+  },
+  "src/server/PlayerSession.luau": {
+    "bytes": 33189,
+    "sha256": "380d9606cf11c2a7e779d61badf04eae1501cc0fdc93c6725c0f4df05a02834b"
+  },
+  "src/shared/EggProcessorConfig.luau": {
+    "bytes": 2056,
+    "sha256": "510ef258e864496f21e055a0128cd8a71f09e2851de8738cac3c583e148ef975"
+  },
+  "src/shared/ShopCatalog.luau": {
+    "bytes": 4481,
+    "sha256": "7a2a48522c5f7314b6dc8f79644f8daf961c518b1ae9c749758176b2a2470c3d"
+  },
+  "src/client/EggProcessorController.luau": {
+    "bytes": 10786,
+    "sha256": "993afe2846ad88ae410e63a29c01848850b8d93c602c217fddb4d521ad32c78f"
+  },
+  "src/client/EggController.luau": {
+    "bytes": 16667,
+    "sha256": "24a5ede5d5145e2b273f6047bb732e9fc2229af4c8983ba6f174c0e8a618b1e5"
+  },
+  "src/client/ActionFeedback.luau": {
+    "bytes": 11053,
+    "sha256": "a9f2fb2b4ac14f6156e1e72b72d64d5b5114067748ea909ce574455cf8faa7f3"
+  },
+  "src/client/BaseController.luau": {
+    "bytes": 24612,
+    "sha256": "274abe3b0536a08960b900dc06cec60093fa61dc2deeb5203e9fd2046f08e459"
+  }
+}

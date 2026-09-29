@@ -1,0 +1,138 @@
+{
+  "models": [
+    {
+      "sourceEffects": 1,
+      "name": "Bonsai Bantam",
+      "targetEffects": 1,
+      "species": "Bonsai",
+      "changed": false
+    },
+    {
+      "sourceEffects": 7,
+      "name": "Devil Chicken",
+      "targetEffects": 7,
+      "species": "Devil",
+      "changed": true
+    },
+    {
+      "sourceEffects": 4,
+      "name": "Diamond Defender",
+      "targetEffects": 4,
+      "species": "Diamond",
+      "changed": false
+    },
+    {
+      "sourceEffects": 4,
+      "name": "Golden Emperor",
+      "targetEffects": 4,
+      "species": "Dragon",
+      "changed": false
+    },
+    {
+      "sourceEffects": 5,
+      "name": "Frost Feather",
+      "targetEffects": 5,
+      "species": "Frost",
+      "changed": false
+    },
+    {
+      "sourceEffects": 7,
+      "name": "Heavenly Chicken",
+      "targetEffects": 7,
+      "species": "Heavenly",
+      "changed": false
+    },
+    {
+      "sourceEffects": 2,
+      "name": "Honeycomb Chicken",
+      "targetEffects": 2,
+      "species": "Honeycomb",
+      "changed": false
+    },
+    {
+      "sourceEffects": 24,
+      "name": "Glitch Chicken",
+      "targetEffects": 24,
+      "species": "IceDuck",
+      "changed": true
+    },
+    {
+      "sourceEffects": 7,
+      "name": "Jungle Chicken",
+      "targetEffects": 3,
+      "species": "Jungle",
+      "changed": true
+    },
+    {
+      "sourceEffects": 10,
+      "name": "Magma Chicken",
+      "targetEffects": 10,
+      "species": "Knight",
+      "changed": false
+    },
+    {
+      "sourceEffects": 10,
+      "name": "Lollipop Chicken",
+      "targetEffects": 10,
+      "species": "Lollipop",
+      "changed": false
+    },
+    {
+      "sourceEffects": 4,
+      "name": "Rainbow Rider",
+      "targetEffects": 4,
+      "species": "Rainbow",
+      "changed": false
+    },
+    {
+      "sourceEffects": 9,
+      "name": "Solar Flare Chicken",
+      "targetEffects": 9,
+      "species": "SolarFlare",
+      "changed": false
+    },
+    {
+      "sourceEffects": 12,
+      "name": "Storm Wing",
+      "targetEffects": 12,
+      "species": "Storm",
+      "changed": false
+    },
+    {
+      "sourceEffects": 6,
+      "name": "Galaxy Overlord",
+      "targetEffects": 6,
+      "species": "StormDuck",
+      "changed": true
+    },
+    {
+      "sourceEffects": 6,
+      "name": "Toxic Chicken",
+      "targetEffects": 6,
+      "species": "Toxic",
+      "changed": false
+    },
+    {
+      "sourceEffects": 6,
+      "name": "Water Chicken",
+      "targetEffects": 6,
+      "species": "Water",
+      "changed": false
+    },
+    {
+      "sourceEffects": 8,
+      "name": "Shadow Stalker",
+      "targetEffects": 8,
+      "species": "Wizard",
+      "changed": false
+    }
+  ],
+  "changed": [
+    "Devil",
+    "IceDuck",
+    "Jungle",
+    "StormDuck"
+  ],
+  "place": 96683186622050,
+  "scanned": 40
+}

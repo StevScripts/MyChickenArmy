@@ -1,6 +1,8 @@
 --!strict
 local Currency = require(script.Parent.CurrencyLimits)
 local Config = {
+	-- September 29: deposits pay instantly. Restore the archived boards with this switch.
+	Enabled = false,
 	BaseRate = 4,
 	FirstRateGain = 1,
 	RateGainGrowth = 1.10,

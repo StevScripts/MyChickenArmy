@@ -48,6 +48,7 @@ Paths below are relative to `src/`. Search for the named symbol in VS Code with 
 | Camp ownership and prerequisite routing | `server/BattleService.luau`, `shared/CampaignRoute.luau` | Which objective can be reached, occupied or released |
 | Marching and reinforcements | `shared/ArmyMarch.luau`, `server/ArmyReinforcements.luau` | Routes and lineup changes; `server/PetActor.luau` owns physical actor movement |
 | Idle guards and Chicken King | `server/WorldService.luau`, `server/KingArena.luau` | Patrol lifecycle; `server/IdlePatrol.luau` is the movement helper, `server/KingEncounter.luau` defines the encounter |
+| Instant egg selling / archived processor | `server/EggService.luau`, `shared/EggProcessorConfig.luau` | Deposits pay immediately; `Enabled=false` suspends timed selling, board UI and new Finish Now purchases. [Archive and restoration](team/INSTANT_EGG_SALES.md) |
 | Eggs: production, collection and deposits | `server/EggService.luau` | Authoritative egg state; frequency/radius in `shared/Config.luau`; collection visuals in `client/EggController.luau`, `client/EggView.luau`, `shared/EggMotion.luau` |
 | Egg vacuum: sweep, cargo and animation | `server/EggRover.luau`, `shared/VacuumConfig.luau`, `client/VacuumController.luau` | [Vacuum tuning and Blender workflow](VACUUM.md); exported motion in `shared/VacuumClips.luau` |
 | Kill rewards | `shared/CombatRewards.luau`, `server/BattleService.luau` | Reward calculation and server award boundary |

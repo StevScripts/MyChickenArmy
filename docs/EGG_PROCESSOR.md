@@ -1,6 +1,13 @@
 # Egg selling board
 
-**Current direction, September 27:** keep queued egg processing, Selling Speed
+**September 29 direction:** egg deposits now pay immediately with the existing Money
+effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
+balances, seller levels and paid finish credits remain compatible. This supersedes
+the September 27–28 processing requirements. See [instant sales and restoration](team/INSTANT_EGG_SALES.md).
+
+## Historical processor contract (inactive)
+
+**Previous direction, September 27:** keep queued egg processing, Selling Speed
 and Finish Now. The instant-sales experiment was rejected and reverted. All six
 authored plots now have the same processor board; deposits never bypass the
 queue. Selling Speed has **no designed maximum**. The September 28 correction

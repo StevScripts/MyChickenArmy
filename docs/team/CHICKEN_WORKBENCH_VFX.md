@@ -79,3 +79,70 @@ left running. Changes are in the Edit DataModel. No playtest was started or stop
 and no local place save, Roblox save/publish or Git commit/push was performed for
 this workbench addition. The preceding ApprovedEight RBXL snapshot predates it.
 Workbench ownership released.
+
+## September 28 — expanded workbench sync
+
+Completed in canonical Pet Roll Test `96683186622050`, Edit instance `l70-su4`.
+Synced all 18 VFX-bearing workbench species into their existing ChickenAssets
+templates: Bonsai, Devil, Diamond, Dragon, Frost, Heavenly, Honeycomb, IceDuck,
+Jungle, Knight, Lollipop, Rainbow, SolarFlare, Storm, StormDuck, Toxic, Water
+and Wizard. The 22 effect-free species were untouched.
+
+The transfer copies full effect subtrees at their existing mesh or bone anchors,
+normalizes workbench scale with native ScaleTo, preserves cross-root beam
+endpoints and replaces old VFX rather than accumulating duplicates. This includes
+the user's removed beams/lights as well as newly added particles. The former
+Frost beams with missing endpoints are absent from the latest workbench and were
+removed from its template. No rig, geometry, animation or runtime source changes.
+
+Separate Edit readback confirms all 128 effects match normalized authored
+properties, beam endpoints stay inside their template, and every original mesh,
+bone, size, transform and template scale is retained. The workbench is unchanged.
+This is structural/property readback, not a visual gameplay test.
+
+Recovery contains complete before-templates and authored snapshots at
+`ServerStorage.ChickenWorkbenchVFXRecovery20260928`. Transfer script, before
+inventory, result and repeatable readback are in `assets/workbench-vfx-20260928/`.
+Changes are in the current open Studio Edit place; no Play/Stop, local place save,
+Roblox Save/Publish, asset upload, Git commit/push or player-data change occurred.
+Template and workbench ownership released.
+
+## September 29 — revealed roll offers show chicken effects
+
+`RollPresentationController.Preview` now sets its model's `ReducedMotion` override
+only during the mystery shuffle. Revealing an offer clears that override, including
+when the last shuffle bird is reused from the cache, so the existing client VFX
+lifecycle shows authored effects while the chicken waits to be purchased. The
+player's global reduced-motion setting still applies.
+
+The single Studio controller matched the local source before editing and after
+Rojo sync. An isolated Edit-mode check using the actual preview and VFX modules
+passed for Lollipop (10 emitters) and Magma/Knight (9 emitters and one light):
+hidden mystery, visible cached reveal and waiting offer, reduced-motion suppression,
+reroll hiding and removal cleanup. Temporary objects were destroyed. No full Play
+session, player-data change, place save/publish or Git commit/push was performed.
+
+## September 29 — repeat workbench import
+
+Completed in Pet Roll Test `96683186622050`, Edit peer of instance `l70-su4`.
+Compared all 40 workbench chickens against their scale-normalized game templates.
+Four species had changes: Devil, Glitch/IceDuck, Jungle and Galaxy/StormDuck.
+Transferred their updated effect subtrees at the existing mesh/bone anchors,
+replacing their prior effects rather than adding duplicates. Jungle now has seven
+emitters, up from three; the other three retain their effect counts with updated
+authored properties. All four comprise 44 effects after transfer.
+
+Separate readback confirms authored properties and attachment/beam endpoints
+match, all original mesh/texture/bone/transform/scale data is unchanged, and the
+workbench is untouched. A second comparison across all 40 species reports no
+remaining VFX differences. Existing BlenderPetView/SpecialChickenVFX lifecycle
+already covers these effects; no runtime source edit was needed. The separate
+roll-offer VFX source change and other local work were preserved.
+
+Complete before-templates and source snapshots are preserved in
+`ServerStorage.ChickenWorkbenchVFXRecovery20260929`. Local scripts, inventories
+and readback receipts are in `assets/workbench-vfx-20260929/`. The existing Play
+session was left alone; changes were applied to the Edit DataModel and appear
+in newly instantiated chickens after restarting Play. No gameplay test, asset
+upload, place save/publish, Git commit/push or player-data operation was performed.
+Workbench/template ownership released.

@@ -49,8 +49,9 @@ and unchanged. `CollectionFeel.Deposit.Count` and `Lifetime` hold these settings
 The old deposit egg-sprite flights are removed; there is no fallback to them.
 
 The existing receipt grouping, sound and deposit confirmation remain. Player and
-rover deposits both use this attachment; processor cash is celebrated only when
-the server confirms a separate cash claim. Reset/teardown clears active deposit
+rover deposits both use this attachment; September 29 instant sales mark these deposits paid, so the same receipt also
+plays the authored Money burst and sound. Saved legacy processor cash uses its
+separate confirmed recovery receipt at the deposit pad. Reset/teardown clears active deposit
 clones, and reduced motion retains confirmation while suppressing the burst.
 
 Edit EggPickup, EggDeposit and Money SoundIds in

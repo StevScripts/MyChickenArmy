@@ -1,5 +1,8 @@
 # Gradual Selling Speed — September 28, 2026
 
+**Archived September 29:** deposits now sell instantly. Preserve this curve only for
+restoration; see [the current contract](INSTANT_EGG_SALES.md).
+
 The user rejected upgrades that repeatedly multiply total processing speed by
 two or four. They requested Chicken Farm's small early additions that become
 larger over time, while retaining exponential value/price growth. This task

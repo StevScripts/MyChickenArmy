@@ -94,8 +94,7 @@ function UpgradeService:Offers(session)
 		local nextProduction = nextRate * (if session.entitlements.DoubleEggSpawn then 2 else 1)
 		preview("EggSpeed", decimal(nextProduction) .. "x")
 	end
-	preview("PlotSize", tostring(math.min(Config.LegacyCollectionLimit,
-		session:CollectionLimit() + Definitions.ExtraChickensPerPlotLevel)))
+	preview("PlotSize", tostring(Definitions.PlotCapacity(session.plotSizeLevel + 1)))
 	preview("EggValue", "$" .. decimal(Rules.EggUnitValue(session.incomeLevel + 1)))
 	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
 	preview("Luck", decimal(Rules.LuckMultiplier(session.luck + 1)

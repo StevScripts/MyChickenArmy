@@ -1,0 +1,909 @@
+{
+  "place": 96683186622050,
+  "destination": "ReplicatedStorage.PetRoll.ChickenAssets",
+  "source": "Workspace.ChickenVFX_Workbench",
+  "models": [
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6422396898269653,
+      "name": "Bee Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Bee",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bee Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bee Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 1
+      },
+      "sourceScale": 0.7578428983688354,
+      "name": "Bonsai Bantam",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 1
+      },
+      "species": "Bonsai",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.Surface3",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.Surface4",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.Surface5",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.Surface6",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Bonsai Bantam.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.9200000166893005,
+      "name": "Brown Chicken",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Mallard",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Brown Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Brown Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6807740926742554,
+      "name": "Cactus Clucker",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Cactus",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cactus Clucker.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cactus Clucker.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cactus Clucker.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6422396898269653,
+      "name": "Camo Chick",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Camo",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Camo Chick.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Camo Chick.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6807740926742554,
+      "name": "Cardboard Commando",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Cardboard",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando.Surface3",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando.Surface4",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando.Surface5",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cardboard Commando.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6422396898269653,
+      "name": "Cheesy Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Cheesy",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cheesy Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Cheesy Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.8624999523162842,
+      "name": "Chicken",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Duck",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 1.0158333778381348,
+      "name": "Chicken Jockey",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Jockey",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Chicken Jockey.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Chicken Jockey.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.9583333730697632,
+      "name": "Chunky Chicken",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Chunky",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Chunky Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Chunky Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 1.0733332633972168,
+      "name": "Crystal Chicken",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Viking",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Crystal Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Crystal Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Devil Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "species": "Devil",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Devil Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 4
+      },
+      "sourceScale": 0.783532440662384,
+      "name": "Diamond Defender",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 4
+      },
+      "species": "Diamond",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Diamond Defender.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Diamond Defender.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 5
+      },
+      "sourceScale": 0.7578428983688354,
+      "name": "Frost Feather",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 5
+      },
+      "species": "Frost",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Frost Feather.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Frost Feather.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Frost Feather.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 6
+      },
+      "sourceScale": 1.3416666984558105,
+      "name": "Galaxy Overlord",
+      "targetScale": 1,
+      "targetEffects": {
+        "ParticleEmitter": 6
+      },
+      "species": "StormDuck",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Galaxy Overlord.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Galaxy Overlord.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "Beam": 16,
+        "ParticleEmitter": 8
+      },
+      "sourceScale": 1.2074999809265137,
+      "name": "Glitch Chicken",
+      "targetScale": 1,
+      "targetEffects": {
+        "Beam": 16,
+        "ParticleEmitter": 8
+      },
+      "species": "IceDuck",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Glitch Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Glitch Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 4
+      },
+      "sourceScale": 1.3416666984558105,
+      "name": "Golden Emperor",
+      "targetScale": 1,
+      "targetEffects": {
+        "ParticleEmitter": 4
+      },
+      "species": "Dragon",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Golden Emperor.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Golden Emperor.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Heavenly Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "species": "Heavenly",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Heavenly Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 2
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Honeycomb Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 2
+      },
+      "species": "Honeycomb",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Honeycomb Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 7
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Jungle Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 3
+      },
+      "species": "Jungle",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Jungle Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 10
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Lollipop Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 10
+      },
+      "species": "Lollipop",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Lollipop Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 9
+      },
+      "sourceScale": 1.130833387374878,
+      "name": "Magma Chicken",
+      "targetScale": 1,
+      "targetEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 9
+      },
+      "species": "Knight",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Magma Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Magma Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.9583333730697632,
+      "name": "Mushroom Chicken",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Sailor",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Mushroom Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Mushroom Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.7578428983688354,
+      "name": "Ninja Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Ninja",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Ninja Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Ninja Chicken.Surface1",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Ninja Chicken.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Ninja Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.5780157446861267,
+      "name": "Noob Chick",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Noob",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Noob Chick.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Noob Chick.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.616550087928772,
+      "name": "Penguin Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Penguin",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Penguin Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Penguin Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.7193084955215454,
+      "name": "Pirate Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Pirate",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Pirate Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Pirate Chicken.Surface1",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Pirate Chicken.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Pirate Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 4
+      },
+      "sourceScale": 0.8991355895996094,
+      "name": "Rainbow Rider",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 4
+      },
+      "species": "Rainbow",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Rainbow Rider.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Rainbow Rider.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 1.0158333778381348,
+      "name": "Robo-Cluck",
+      "targetScale": 1,
+      "targetEffects": [],
+      "species": "Bucket",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Robo-Cluck.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Robo-Cluck.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.616550087928772,
+      "name": "Rubber Ducky",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "RubberDucky",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Rubber Ducky.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Rubber Ducky.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 8
+      },
+      "sourceScale": 1.1691666841506958,
+      "name": "Shadow Stalker",
+      "targetScale": 1,
+      "targetEffects": {
+        "ParticleEmitter": 8
+      },
+      "species": "Wizard",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Shadow Stalker.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Shadow Stalker.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.7193084955215454,
+      "name": "Sir Clucks-a-Lot",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Gentleman",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Sir Clucks-a-Lot.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Sir Clucks-a-Lot.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Sir Clucks-a-Lot.Surface3",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Sir Clucks-a-Lot.Surface4",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Sir Clucks-a-Lot.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.7193084955215454,
+      "name": "Skeleton Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Skeleton",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Skeleton Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Skeleton Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.7193084955215454,
+      "name": "Slime Squawker",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Slime",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.Surface2",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.Surface3",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.Surface4",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.Surface5",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.Surface6",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Slime Squawker.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 8
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Solar Flare Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "PointLight": 1,
+        "ParticleEmitter": 8
+      },
+      "species": "SolarFlare",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Solar Flare Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 12
+      },
+      "sourceScale": 0.8991355895996094,
+      "name": "Storm Wing",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 12
+      },
+      "species": "Storm",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Storm Wing.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Storm Wing.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6807740926742554,
+      "name": "Tiger Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Tiger",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Tiger Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Tiger Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 6
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Toxic Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 6
+      },
+      "species": "Toxic",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Toxic Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": {
+        "ParticleEmitter": 6
+      },
+      "sourceScale": 0.6701631546020508,
+      "name": "Water Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": {
+        "ParticleEmitter": 6
+      },
+      "species": "Water",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Water Chicken.Body",
+          "class": "MeshPart"
+        }
+      ]
+    },
+    {
+      "sourceEffects": [],
+      "sourceScale": 0.6807740926742554,
+      "name": "Zombie Chicken",
+      "targetScale": 0.6701631546020508,
+      "targetEffects": [],
+      "species": "Zombie",
+      "invalidEndpoints": [],
+      "parts": [
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Zombie Chicken.Body",
+          "class": "MeshPart"
+        },
+        {
+          "name": "Workspace.ChickenVFX_Workbench.Chickens.Zombie Chicken.HumanoidRootPart",
+          "class": "Part"
+        }
+      ]
+    }
+  ]
+}

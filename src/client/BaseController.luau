@@ -100,6 +100,9 @@ function BaseController.OpeningGuidance(state)
 	if processor and processor.enabled and processor.readyCash>0 then
 		return {target="EggCash",text="Collect your cash from the pad in front of the egg board"}
 	end
+	if processor and not processor.enabled and (processor.readyCash>0 or processor.queuedCount>0) then
+		return {target="EggDeposit",text="Walk onto the green pad to collect your saved egg cash"}
+	end
 	if state.eggs and state.eggs.requiresDeposit and (state.eggs.carriedValue or 0)>0 then
 		return {target="EggDeposit",text=if processor and processor.enabled then "Deposit eggs at your stand to start selling" else "Walk onto the green pad to sell eggs"}
 	end

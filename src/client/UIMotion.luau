@@ -198,10 +198,9 @@ function Motion:OpenPanel(panel,backdrop,switching)
 	panel.Visible,backdrop.Visible=true,true
 	scale.Scale=if self.reduced then 1 elseif switching then 0.975 else 0.92
 	panel.Position=UDim2.new(0.5,0,0.5,if self.reduced then 0 else 14)
-	if not switching then backdrop.BackgroundTransparency=1 end
+	backdrop.BackgroundTransparency=1 -- Input shield only; AppController owns the world blur.
 	self:Tween(scale,"scale",{Scale=1},if switching then 0.16 else 0.24,Enum.EasingStyle.Back)
 	self:Tween(panel,"position",{Position=UDim2.fromScale(0.5,0.5)},0.2)
-	self:Tween(backdrop,"fade",{BackgroundTransparency=0.44},0.15)
 end
 
 function Motion:ClosePanel(panel,backdrop,complete)

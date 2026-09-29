@@ -1,0 +1,72 @@
+{
+  "models": [
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Devil Chicken",
+      "before": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "name": "Devil Chicken",
+      "roots": 7,
+      "after": {
+        "PointLight": 1,
+        "ParticleEmitter": 6
+      },
+      "species": "Devil",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Devil"
+    },
+    {
+      "sourceScale": 1.2074999809265137,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Glitch Chicken",
+      "before": {
+        "Beam": 16,
+        "ParticleEmitter": 8
+      },
+      "name": "Glitch Chicken",
+      "roots": 14,
+      "after": {
+        "Beam": 16,
+        "ParticleEmitter": 8
+      },
+      "species": "IceDuck",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.IceDuck"
+    },
+    {
+      "sourceScale": 0.6701631546020508,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Jungle Chicken",
+      "before": {
+        "ParticleEmitter": 3
+      },
+      "name": "Jungle Chicken",
+      "roots": 4,
+      "after": {
+        "ParticleEmitter": 7
+      },
+      "species": "Jungle",
+      "templateScale": 0.6701631546020508,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.Jungle"
+    },
+    {
+      "sourceScale": 1.3416666984558105,
+      "source": "Workspace.ChickenVFX_Workbench.Chickens.Galaxy Overlord",
+      "before": {
+        "ParticleEmitter": 6
+      },
+      "name": "Galaxy Overlord",
+      "roots": 2,
+      "after": {
+        "ParticleEmitter": 6
+      },
+      "species": "StormDuck",
+      "templateScale": 1,
+      "destination": "ReplicatedStorage.PetRoll.ChickenAssets.StormDuck"
+    }
+  ],
+  "geometryPreserved": true,
+  "playtest": false,
+  "recovery": "ServerStorage.ChickenWorkbenchVFXRecovery20260929",
+  "published": false
+}
