@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-28",
+  "place": 96683186622050,
+  "fixture": "tests/FusionWalkChecks.luau",
+  "scope": "Disposable actors and session on unused plot 2; same actor model and root throughout; no recovery teleport; no player profile writes.",
+  "results": [
+    {
+      "name": "4.5-stud result keeps the same rig and walks from garage toward yard",
+      "passed": true,
+      "distanceBefore": 21.43067741394043,
+      "distanceAfter": 1.0135276317596436,
+      "walked": 20.417192459106445
+    },
+    {
+      "name": "27.5-stud result keeps the same rig and walks from garage toward yard",
+      "passed": true,
+      "distanceBefore": 13.075881958007812,
+      "distanceAfter": 0.9874131679534912,
+      "walked": 12.088583946228027
+    },
+    {
+      "name": "Taking an army actor mid-reveal releases its anchor and keeps its identity",
+      "passed": true
+    },
+    {
+      "name": "Home teleport cancels reveal without moving back to garage",
+      "passed": true
+    },
+    {
+      "name": "Deleting a revealed chicken cancels without resurrecting it",
+      "passed": true
+    }
+  ],
+  "cleanup": "Fixture removed; Play stopped; original session-only flag preserved true."
+}

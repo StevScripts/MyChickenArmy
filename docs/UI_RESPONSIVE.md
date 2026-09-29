@@ -2,6 +2,19 @@
 
 Implemented September 24–25, 2026 in Pet Roll Test, place 96683186622050.
 
+**Popup spacing, September 28:** main popup bounds use 87.3% of their original
+desktop size when the available safe area is at least 900 × 550. Army and Fuse
+retain their proportions; each browser retains its content reflow. Smaller
+screens keep their existing bounds. `AppController.DESKTOP_POPUP_SIZE` is the
+local sizing constant; no whole-screen UIScale is introduced. This styling
+adjustment has not been playtested or visually verified.
+
+The follow-up reduces the prior 90% popup setting by another 3%. On touch
+devices, the bottom Call Army / My Army / My Base row uses 80% icon sizing,
+widths and spacing, with smaller label/count rows and readable text floors.
+Portrait movement-control clearance and the existing home-collapse tween remain.
+This mobile styling adjustment has not been playtested or visually verified.
+
 **Army follow-up, September 25:** the user requested the approved Figma window
 proportions and larger chickens. Army now fits a 1474:976 window on desktop,
 uses a single toolbar row and inline inspector, and places the name/DPS labels

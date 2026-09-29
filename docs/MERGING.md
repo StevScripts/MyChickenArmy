@@ -40,7 +40,9 @@ September 28 popup behavior: after server-confirmed success, the fuse GUI closes
 through the normal popup exit/focus cleanup. It does not play the popup fusion
 animation or automatically open a result screen. The authored machine charges
 with its door closed, then opens to reveal one upgraded chicken coming out onto
-the platform. No input chickens enter from outside. The resulting chicken's
+the platform. The actual owned result then walks into its yard; there is no
+fade-out copy or replacement spawning at home. No input chickens enter from
+outside. The resulting chicken's
 level, size and stats remain available in inventory. Rejected requests keep the
 popup open with the error; closing or switching pages before a late result does
 not reopen Fuse or close another page. The [quantity economy](EGG_ECONOMY.md)
@@ -67,11 +69,28 @@ Favorites, away/deployed chickens, selected defenders during an incoming battle 
 - `GameServer`: loaded/save ownership checks, rate limit, same-plot and distance validation, result snapshots. Uses `firstId`, `secondId`, `thirdId`, `level`, `expectedPrice` and `stationIndex`; legacy internal batch route takes `triples`.
 - `MergeStand` / `WorldService`: the builder-owned standalone `Workspace.Fuse_Machine` remains unchanged in Edit. During Play it is retained in ServerStorage and cloned at its Plot 1-relative placement into each runtime plot. A machine already nested in an authored plot takes precedence. Existing Button/ProximityPrompt is reused; `MergeGate` retracts sectional door copies inward beneath the header. Obsolete merge stalls are removed only from runtime copies. Missing machine/anchor has a safe prompt fallback.
 - `MergeBrowser`: three input slots, chicken picker, result/recovery states, pending request lifecycle and responsive layout. `MergeSelection` owns reversible local staging against server-issued eligible IDs. Neither determines inventory or rewards.
-- `MergePresentation`: pending-request UI presentation; the old popup success reveal is retained but no longer invoked. Confirmed success closes the GUI so the world's single output chicken is visible. The world reveal is a temporary cosmetic copy of the confirmed upgraded chicken, not another inventory instance.
+- `MergePresentation`: pending-request UI presentation; the old popup success reveal is retained but no longer invoked. Confirmed success closes the GUI so the world's single output chicken is visible. `MergeStand` temporarily controls the actual owned actor during the reveal; `WorldService` resumes its home walk with the same rig.
 
-Gate animation uses ordinary TweenService tweens: four sections rise, bend inward through a quarter-turn and disappear beneath the roof. Runtime copies split only the tall plain backing panel; authored trim and hinges ride their nearest section. No whole-door lift above the machine. The closed machine charges first; opening runs from 0.65–1.2 seconds. One cosmetic upgraded chicken moves from inside the chamber onto the outside platform from 1.2–1.8 seconds, facing outward. A purple burst accompanies its exit. It fits the doorway during exit and grows to its saved Giant size outside from 1.85–2.4 seconds. The door closes behind it from 2–2.5 seconds; the output holds outside, fades from 3.5–3.8 seconds, and resets at 3.85 seconds. Original door visibility and collision/query/touch settings restore exactly after completion, interruption, clearing or destruction. TweenService owns all easing; no custom frame-by-frame interpolation. The accepted UI and its reveal timing remain unchanged.
+Gate animation uses ordinary TweenService tweens: four sections rise, bend inward through a quarter-turn and disappear beneath the roof. Runtime copies split only the tall plain backing panel; authored trim and hinges ride their nearest section. No whole-door lift above the machine. The closed machine charges first; opening runs from 0.65–1.2 seconds. The actual upgraded chicken moves from inside the chamber onto the outside platform from 1.2–1.8 seconds, facing outward. A purple burst accompanies its exit. It fits the doorway during exit and grows to its saved Giant size outside from 1.85–2.4 seconds. The door closes behind it from 2–2.5 seconds. At 2.6 seconds its temporary anchor and size controls are released and the same actor walks to its home position using the existing Humanoid/pathfinding owner. It does not fade, get destroyed or respawn in the yard. Original door settings restore after completion or interruption. TweenService owns the reveal's easing; normal chicken walking owns the route home.
+
+During the reveal, `WorldService` pauses that actor's roaming and snapshot visual
+updates; the machine temporarily rejects another fuse. `TakeActor` releases the
+reveal before an army handoff, and `RestoreActor` releases it while preserving an
+explicit home teleport destination. Destroyed/sold birds are not recreated by a
+delayed reveal callback. Existing home navigation handles blocked routes and
+physical recovery; this change does not alter fusion rewards, charges or saves.
 
 ## Visual contract
+
+September 28 walk-out verification: all five focused checks in
+`tests/FusionWalkChecks.luau` passed using disposable actors on the unused second
+plot. A 4.5-stud Giant walked 20.42 studs and a 27.5-stud Colossal walked 12.09
+studs toward their home targets, retaining the same model and root with no
+recovery teleport. Mid-reveal army handoff, home teleport and deletion also
+passed. Evidence: `assets/giant-fusion-20260928/walk-out-checks.json`. Both changed
+sources compile and match their single Studio copy. Fixtures were removed;
+Play stopped and the original session-only flag stayed true. No profile edits
+or publication. This is a focused physical movement check, not a multiplayer soak.
 
 Current Figma page **434:885**, ready **437:2024**, picker **437:2135**, result **437:2481**.
 The user rejected the earlier September 27 page 419:885/ready 421:1194 visual design.

@@ -33,6 +33,7 @@ local DuckAnimator = require(script.Parent.DuckAnimator)
 local AppController = {}
 AppController.__index = AppController
 local C = Theme.Colors
+local DESKTOP_POPUP_SIZE = 0.873
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -394,27 +395,29 @@ function AppController:FitPanel()
 	if not self.contentLayout or not self.panelMaxHeight then return end
 	local available=self.gui.AbsoluteSize
 	if available.X<=0 or available.Y<=0 then return end
-	local width=math.min(self.panelMaxWidth,available.X*0.94)
-	local height=math.min(self.panelMaxHeight,available.Y*0.92)
+	-- Leave more world visible around menus; small screens keep their readable reflow.
+	local popupSize=if available.X>=900 and available.Y>=550 then DESKTOP_POPUP_SIZE else 1
+	local width=math.min(self.panelMaxWidth,available.X*0.94)*popupSize
+	local height=math.min(self.panelMaxHeight,available.Y*0.92)*popupSize
 	if self.page=="Army" then
 		-- Keep the Figma window's proportions so the inspector footer fits on desktop.
 		self.armyCompact=available.X<900 or available.Y<550
 		if not self.armyCompact then
 			local fit=math.min(1.1,(available.X-24)/1474,available.X*0.96/1474,
-				(available.Y-24)/976,available.Y*0.94/976)
+				(available.Y-24)/976,available.Y*0.94/976)*popupSize
 			width,height=1474*fit,976*fit
 		end
 	elseif self.page=="Shop" then
-		width=math.min(1080,width)
+		width=math.min(1080*popupSize,width)
 	elseif self.page=="Upgrades" then
-		height=math.min(660,height)
+		height=math.min(660*popupSize,height)
 	elseif self.page=="Merge" then
 		if available.X>=900 and available.Y>=550 then
-			local fit=math.min(1.1,available.X*0.94/900,available.Y*0.92/850)
+			local fit=math.min(1.1,available.X*0.94/900,available.Y*0.92/850)*popupSize
 			width,height=900*fit,850*fit
 		end
 	elseif self.page~="Index" then
-		width=math.min(760,width)
+		width=math.min(760*popupSize,width)
 		local motion=math.max(self.panelMotionScale.Scale,0.01)
 		local contentHeight=self.contentLayout.AbsoluteContentSize.Y/motion
 		height=math.min(height,math.max(300,math.ceil(contentHeight)+94))

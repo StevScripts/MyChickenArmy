@@ -1,0 +1,21 @@
+{
+  "math": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "[{\"passed\":true,\"name\":\"Steady motion has no arrival stop at 30, 60 or 144 Hz\"},{\"passed\":true,\"name\":\"Arrival settles without oscillating or waking inside the rest band\"},{\"passed\":true,\"name\":\"At the slot a moving leader still produces motion\"},{\"passed\":true,\"name\":\"Vertical jumps cannot make chickens fly or increase their walking speed\"},{\"passed\":true,\"name\":\"Formation does not orbit at rest; turns have a bounded yaw\"},{\"passed\":true,\"name\":\"Formation centers partial rows and retains Giant spacing\"},{\"passed\":true,\"name\":\"Long frames and large target jumps remain bounded and finite\"},{\"passed\":true,\"name\":\"Waypoint crossings preserve speed before final approach\"}]",
+    "output": []
+  },
+  "commands": {
+    "returnValue": "[{\"name\":\"Call transfers only selected actors; repeats preserve identity and one Colossal\",\"passed\":true},{\"name\":\"Selection swaps return old Colossal and transfer its replacement once\",\"passed\":true},{\"name\":\"Following retargets on consecutive frames between membership refreshes\",\"passed\":true},{\"name\":\"Base returns player, following squad and reserves without replacing their actors\",\"passed\":true},{\"name\":\"Invalid attack keeps following; valid attack starts from existing actor positions\",\"passed\":true},{\"name\":\"Dead character and empty selection reject safely; death returns followers home\",\"passed\":true},{\"name\":\"Recall cancels only the outgoing encounter, transfers its actors and awards no conquest\",\"passed\":true},{\"name\":\"Territory defender recall leaves the challenger and capture progress intact\",\"passed\":true}]",
+    "message": "Code executed successfully",
+    "success": true,
+    "output": []
+  },
+  "physics": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "{\"ok\":true,\"result\":{\"metrics\":{\"ordinary\":{\"endSpeed\":0,\"meanSpeed\":16.000508515040079,\"endError\":0.49609375,\"recovery\":0,\"samples\":240,\"stopSamples\":0,\"speedDeviation\":0.0022013439965371144},\"baseline\":{\"endSpeed\":0,\"meanSpeed\":15.908543121981773,\"endError\":0.7861328125,\"recovery\":0,\"samples\":240,\"stopSamples\":46,\"speedDeviation\":8.890497139802939},\"colossal\":{\"endSpeed\":0,\"meanSpeed\":16.000508507092794,\"endError\":0.49609375,\"recovery\":0,\"samples\":240,\"stopSamples\":0,\"speedDeviation\":0.002201345202301771}},\"checks\":[{\"passed\":true,\"name\":\"Following ordinary and Colossal rigs sustain walking without stop cycles\"},{\"passed\":true,\"name\":\"Followers settle near their slots without recovery or replacing rigs\"},{\"passed\":true,\"name\":\"Props are crossed while the floor still supports both follower sizes\"},{\"passed\":true,\"name\":\"Invalid follow input cannot corrupt the live goal\"},{\"passed\":true,\"name\":\"Stop and ordinary movement immediately release follow steering\"},{\"passed\":true,\"name\":\"A normal walking command works after the follow handoff\"},{\"passed\":true,\"name\":\"Physical recovery preserves following and its current destination\"}]},\"status\":\"done\"}",
+    "output": []
+  },
+  "notes": "Controlled physical comparison against pre-change PetActor/0.2s commands. Client flow observation interrupted by external Studio interaction; no multiplayer network claim. Final PetActor also resets recovery budget on entering Follow and requires matching height before treating a slot as settled; final sources parse and Rojo build succeeds."
+}

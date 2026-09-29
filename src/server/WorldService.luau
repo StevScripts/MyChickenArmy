@@ -147,6 +147,12 @@ end
 function WorldService:RestoreActor(session, petId: string, actor)
 	local plot, pet = self.plots[session.plotIndex], session.pets[petId]
 	if not plot or not pet then actor:Destroy(); return end
+	-- Explicit home/teleport commands can reclaim a rig during the reveal.
+	-- Release the temporary scale/anchor while retaining the commanded position.
+	if plot.mergeStand and plot.mergeStand:IsRevealing(petId) and plot.mergeStand.reveal.actor==actor then
+		local at=actor:Position()
+		plot.mergeStand:ResetAnimation();actor:Teleport(at)
+	end
 	local previous = plot.actors[petId]
 	if not previous then
 		local count = 0

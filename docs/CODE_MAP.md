@@ -38,6 +38,7 @@ Paths below are relative to `src/`. Search for the named symbol in VS Code with 
 | Army inventory and chicken selling | `client/ChickenBrowser.luau` | Cards, selection and confirmation; `server/ArmyService.luau` validates transactions |
 | HUD and menu navigation | `client/HudController.luau`, `client/AppController.luau` | HUD rendering and page/controller coordination; [responsive layout and device checks](UI_RESPONSIVE.md) |
 | Call Army / My Base commands | `server/ArmyCommandService.luau`, `server/BattleService.luau`, `server/PetActor.luau` | Selected squad following, encounter withdrawal and full home teleport; HUD sends server-validated commands. [Contract](team/ARMY_COMMANDS.md) |
+| Smooth following motion | `shared/FollowMotion.luau`, `server/PetActor.luau` | Continuous server-owned steering, velocity matching, formation turns and arrival; [research, tuning and checks](team/SMOOTH_FOLLOWING.md). |
 | Upgrades menu | `client/ProgressionBrowser.luau` | Presentation of server-provided upgrade prices and eligibility |
 | Shop and Index | `client/ShopBrowser.luau`, `client/IndexBrowser.luau` | Shop cards and collection discovery; `shared/ShopCatalog.luau` defines commerce catalog |
 | Starting coins, squad limits, upgrade prices | `shared/Config.luau` | `StartingCoins`, `StartingSlots`, `SlotUnlocks`, `IncomePrices`, `LuckPrices` |

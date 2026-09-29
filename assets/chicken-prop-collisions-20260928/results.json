@@ -1,0 +1,19 @@
+{
+  "originalMapPreserved": true,
+  "runtimePropClonePassed": true,
+  "chickenRay": "Deck",
+  "clearanceQueriesPassed": true,
+  "playerCollisionPreserved": true,
+  "counts": {
+    "solidGround": 77,
+    "solidScenery": 5357,
+    "scenery": 6013,
+    "walkSurfaces": 61,
+    "parts": 6090
+  },
+  "passed": true,
+  "playerRay": "FenceSection3",
+  "recruitGround": "PetRollWorld.Plot1.Deck",
+  "recruitGroundY": 2.36002254486084,
+  "recruitPlayerObstacle": "PetRollWorld.Plot1.Model.Spin.Level.LeverHousing.Part"
+}

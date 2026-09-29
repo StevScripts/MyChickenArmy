@@ -38,7 +38,7 @@ end
 
 function BaseController:CommandFor(part)
 	local state = self.app.state
-	if not state or (state.armyState ~= "Home" and state.armyState ~= "Deployed"
+	if not state or (state.armyState ~= "Home" and state.armyState ~= "Following" and state.armyState ~= "Deployed"
 		and state.armyState ~= "Traveling" and state.armyState ~= "Fighting") then return nil end
 	local target = part
 	while target and target ~= workspace and not target:GetAttribute("CommandTarget") do target = target.Parent end
@@ -52,7 +52,7 @@ function BaseController:CommandFor(part)
 		local income = if id == "income:1" then state.incomeOutpost else nil
 		if id == "income:1" and not income then return nil end
 		local _, _, _, selectedCount, deployedCount = self.app:Counts()
-		local armyCount = if state.armyState == "Home" then selectedCount else deployedCount
+		local armyCount = if state.armyState == "Home" or state.armyState == "Following" then selectedCount else deployedCount
 		local available = if income then income.available else entry.available
 		local allowed = available and armyCount > 0
 		local reason = if not available then (if income then income.reason else entry.reason) elseif armyCount == 0 then "Buy a chicken at your podium first"

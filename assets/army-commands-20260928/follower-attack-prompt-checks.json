@@ -1,0 +1,30 @@
+{
+  "date": "2026-09-28",
+  "placeId": 96683186622050,
+  "scope": "Client attack prompt eligibility while Following",
+  "sessionOnly": true,
+  "checks": [
+    {
+      "passed": true,
+      "name": "Following can attack every eligible destination using selected count without deployed count"
+    },
+    {
+      "passed": true,
+      "name": "Following respects empty selection, blocked targets, foreign lanes and protected bases"
+    },
+    {
+      "passed": true,
+      "name": "Returning, Recovering and Defending still cannot issue an attack"
+    },
+    {
+      "passed": true,
+      "name": "Existing Home and deployed attack/redirect counts remain unchanged"
+    }
+  ],
+  "sourceReadback": {
+    "bytes": 24612,
+    "hash": 1289689015,
+    "compiled": true
+  },
+  "limitations": "Focused client fixture; no new live combat encounter initiated."
+}

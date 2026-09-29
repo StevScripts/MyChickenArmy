@@ -12,11 +12,21 @@ These follow-ups change HUD presentation only. The earlier functional and image 
 
 ## Ownership and transitions
 
+September 28 following refinement: continuous server-owned steering now replaces
+the five-Hz catch-up/stop loop while Following. Membership still refreshes at
+five Hz. See [smooth-following research and checks](SMOOTH_FOLLOWING.md).
+
 `ArmyCommandService` owns physical actors only during Following. It transfers the existing selected actors from `WorldService`, and selection changes swap actors without cloning them. `BestPetIds` remains authoritative, including the one-Colossal selection rule. Existing Humanoid/path movement drives a three-column formation with Giant-aware spacing; distant or blocked followers use the existing actor recovery support. Death returns the following squad home, and departure destroys its transient actors.
 
 Call Army withdraws an active outgoing encounter through `BattleService:ReturnHome`, then transfers its actors before removing its return encounter. Shared territory defense can create a separate return encounter; only that owner's actors transfer. Earned kill rewards retain the existing rule, and recall grants no conquest. A currently defending home army cannot be withdrawn. Starting a camp attack releases the follower actors at their current positions for battle ownership; rejected attacks resume following.
 
 My Base cancels the player's outgoing encounter, restores all their actors, positions them at server-owned home destinations, then moves their character to their own spawn. Commands require a living character and the existing loaded/writable session guard. Call Army uses a 0.75-second cooldown, My Base 2 seconds, plus the existing remote request limit. Clients never choose destinations or ownership IDs. No new saved fields, prices, upgrades or paid features.
+
+### Following attack prompt correction — September 28
+
+`BaseController:CommandFor` now accepts Following and uses the selected chicken count, as it does at Home. Previously the client omitted Following from its allowed states, so eligible targets never showed the attack prompt even though the server already supported the transition. Traveling, Fighting and Deployed still use the deployed count. Returning, Recovering and Defending remain blocked; target availability, lane ownership and server proximity validation are unchanged.
+
+Four focused client checks passed in a fresh session-only Studio Play using `tests/FollowerAttackPromptChecks.luau`: Following attacks at eligible camp/outpost/King/income targets with zero deployed chickens; empty selections, unavailable targets, foreign lanes and protected bases; blocked army states; and existing Home/deployed counts. The fixture used disposable snapshots and a temporary unparented target, sent no requests and changed no player data. The two-line client change was read back from Studio and compiled successfully. The test Play was stopped afterward.
 
 ## Source and assets
 

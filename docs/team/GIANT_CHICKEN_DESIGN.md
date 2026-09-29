@@ -158,13 +158,16 @@ reveal remains visible, with no automatic result popup. Inventory
 cards and world nameplates identify Giants or Colossals, and their detail line
 shows the saved size.
 
-The garage reveals only the output chicken. Its cosmetic copy fits the doorway,
+The garage reveals only the actual owned output chicken. It fits the doorway,
 exits far enough to clear the machine, then grows to its saved size outside from
-1.85–2.4 seconds. TweenService owns position, scaling, glow and fade timing,
-through temporary value objects where Model properties cannot be tweened
-directly. The static reveal copy is excluded from normal walking-clip playback.
-Reset, interruption and destruction remove drivers and cosmetic copies.
-Authored machine geometry remains unchanged.
+1.85–2.4 seconds. TweenService owns position, scaling and glow, through temporary
+value objects where Model properties cannot be tweened directly. At 2.6 seconds
+the same actor resumes normal Humanoid walking toward its yard. There is no
+fade-out copy or home respawn. Normal animation is paused during the scale reveal
+and resumes for walking. World roaming/snapshot updates defer while MergeStand
+temporarily owns its pose; army handoffs and home commands release that control.
+Reset, interruption and destruction remove tween drivers without destroying a
+surviving owned chicken. Authored machine geometry remains unchanged.
 
 ## Validation and evidence
 

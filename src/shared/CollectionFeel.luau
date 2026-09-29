@@ -15,7 +15,8 @@ return {
 	},
 	Deposit = {
 		GroupWindow = 0.08, GroupGap = 0.38,
-		FlightSeconds = 0.28, Stagger = 0.025, MaxSprites = 5,
+		Count = 3, -- Particles per emitter in ReplicatedStorage.EggDepositEffects.
+		Lifetime = 1, -- Destroy the cloned attachment after one second.
 		Volume = 0.24,
 	},
 	Cash = {

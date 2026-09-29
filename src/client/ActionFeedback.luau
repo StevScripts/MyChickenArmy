@@ -4,10 +4,9 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
-local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
-local Config = require(Shared.Config)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage.PetRoll.Shared
 local Feel = require(Shared.CollectionFeel)
-local Motion = require(Shared.EggMotion)
 local Theme = require(script.Parent.UITheme)
 local Feedback = {}
 Feedback.__index = Feedback
@@ -15,7 +14,7 @@ local GOLD = Theme.Colors.gold
 local GREEN = Theme.Arcade.green
 
 function Feedback.new(app)
-	return setmetatable({app = app, alive = false, flights = {}, cashEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
+	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
 end
 
 function Feedback:Root()
@@ -95,21 +94,6 @@ function Feedback:Amount(position, value)
 	Debris:AddItem(anchor, 1.1)
 end
 
-function Feedback:Fly(image, start, goal, delay, duration, size, seed, arrive)
-	if self.app.reducedMotion or #self.flights >= 24 then if arrive then arrive() end;return end
-	local anchor = self:Anchor("ActionSprite", start)
-	local gui = Instance.new("BillboardGui")
-	gui.Size, gui.Adornee, gui.MaxDistance = UDim2.fromScale(size, size), anchor, 80
-	gui.AlwaysOnTop, gui.LightInfluence, gui.Parent = false, 0, anchor
-	gui.Enabled = false
-	local icon = Instance.new("ImageLabel")
-	icon.Size, icon.BackgroundTransparency, icon.Image = UDim2.fromScale(1, 1), 1, image
-	icon.Parent = gui
-	table.insert(self.flights, {anchor = anchor, gui = gui, icon = icon, start = start, goal = goal,
-		at = os.clock() + delay, duration = duration, size = size, seed = seed, arrive = arrive})
-	Debris:AddItem(anchor, delay + duration + 0.2)
-end
-
 -- Emit the authored Money attachment at the collecting player's root.
 function Feedback:Cash(_position, confirm)
 	if not self.alive then return end
@@ -176,38 +160,50 @@ function Feedback:Deposit(receipt)
 	local pending = self.depositPending[key] or {value = 0, count = 0, queued=receipt.queued,collector=receipt.collector}
 	pending.value += receipt.value
 	pending.count += receipt.count
-	pending.targetX,pending.targetY,pending.targetZ=receipt.targetX,receipt.targetY,receipt.targetZ
 	self.depositPending[key] = pending
 end
 
+function Feedback:DepositBurst(root)
+	if not self.alive or self.app.reducedMotion then return end
+	local template = ReplicatedStorage:FindFirstChild("EggDepositEffects")
+	if not template or not template:IsA("Attachment") then
+		warn("Egg deposit effect needs ReplicatedStorage.EggDepositEffects")
+		return
+	end
+	local effect = template:Clone()
+	effect.CFrame = CFrame.identity
+	local emitters = {}
+	for _, child in effect:GetDescendants() do
+		if child:IsA("ParticleEmitter") then
+			child.Enabled = false
+			table.insert(emitters, child)
+		end
+	end
+	effect.Parent = root
+	table.insert(self.depositEffects, effect)
+	effect.Destroying:Once(function()
+		local index = table.find(self.depositEffects, effect)
+		if index then table.remove(self.depositEffects, index) end
+	end)
+	Debris:AddItem(effect, Feel.Deposit.Lifetime)
+	for _, emitter in emitters do emitter:Emit(Feel.Deposit.Count) end
+end
+
+function Feedback:ClearDeposits()
+	while #self.depositEffects > 0 do table.remove(self.depositEffects):Destroy() end
+end
+
 function Feedback:ShowDeposit(receipt)
+	if not self.alive then return end
 	local root = self:Root()
-	if not root then
+	if not root or not root:IsA("BasePart") then
 		self.app:Notify(if receipt.queued then "Deposited "..Theme.Money(receipt.count).." eggs" else "+$"..Theme.Money(receipt.value),true)
 		return
 	end
-	local state = self.app.state
-	local world = workspace:FindFirstChild("PetRollWorld")
-	local plot = world and state and state.plotIndex and world:FindFirstChild("Plot" .. state.plotIndex)
-	local pad = plot and plot:FindFirstChild("sellpart", true)
-	local position = if receipt.targetX then Vector3.new(receipt.targetX,receipt.targetY,receipt.targetZ)
-		elseif pad and pad:IsA("BasePart") then pad.Position + Vector3.new(0, pad.Size.Y / 2 + 0.15, 0)
-		else root.Position - Vector3.new(0, 2.5, 0)
-	local basket = position + Vector3.new(0, 1.6, 0)
-	local serial=self.collectionSerial
-	local function contact()
-		if not self.alive or serial~=self.collectionSerial then return end
-		self.app.audio:Play("EggDeposit",1.12,{volume=Feel.Deposit.Volume,maxDuration=0.35,voiceKey="EggDeposit",maxVoices=3,cooldown=0.1})
-		if receipt.queued then self.app:Notify("Deposited "..Theme.Money(receipt.count).." eggs",true)
-		else self:ShowCash(basket,receipt.value) end
-	end
-	if receipt.collector=="rover" then contact();return end
-	local count=math.clamp(receipt.count,1,Feel.Deposit.MaxSprites)
-	for i=1,count do
-		self:Fly(Config.EggSpriteImage,root.Position+Vector3.new((i%3-1)*0.35,0.5,0),
-			function() return basket end,(i-1)*Feel.Deposit.Stagger,Feel.Deposit.FlightSeconds,0.9,i,
-			if i==count then contact else nil)
-	end
+	self:DepositBurst(root)
+	self.app.audio:Play("EggDeposit",1.12,{volume=Feel.Deposit.Volume,maxDuration=0.35,voiceKey="EggDeposit",maxVoices=3,cooldown=0.1})
+	if receipt.queued then self.app:Notify("Deposited "..Theme.Money(receipt.count).." eggs",true)
+	else self:ShowCash(root.Position,receipt.value) end
 end
 
 function Feedback:Action(kind)
@@ -246,30 +242,15 @@ function Feedback:Step(now)
 		self.depositPending, self.nextDeposit = nil, now + Feel.Deposit.GroupGap
 		for _,receipt in pending do self:ShowDeposit(receipt) end
 	end
-	for i = #self.flights, 1, -1 do
-		local flight = self.flights[i]
-		local alpha = (now - flight.at) / flight.duration
-		if not flight.anchor.Parent or alpha >= 1 or self.app.reducedMotion then
-			flight.anchor:Destroy();table.remove(self.flights, i)
-			if flight.arrive then flight.arrive() end
-		elseif alpha >= 0 then
-			flight.gui.Enabled = true
-			flight.anchor.Position = Motion.Flight(flight.start, flight.goal(), alpha, flight.seed, false)
-			local scale = 1 - math.clamp((alpha - 0.7) / 0.3, 0, 1) * 0.75
-			flight.gui.Size = UDim2.fromScale(flight.size * scale, flight.size * scale)
-			flight.icon.Rotation = math.sin(alpha * math.pi) * (if flight.seed % 2 == 0 then 18 else -18)
-		end
-	end
-	if self.app.reducedMotion then self:ClearCash() end
+	if self.app.reducedMotion then self:ClearCash(); self:ClearDeposits() end
 end
 
 function Feedback:ResetCollections()
 	self.collectionSerial+=1
 	self.depositPending,self.cashPending=nil,nil
 	self.nextDeposit=0
-	for _,flight in self.flights do flight.anchor:Destroy() end
 	self:ClearCash()
-	table.clear(self.flights)
+	self:ClearDeposits()
 end
 
 function Feedback:Destroy()
@@ -277,7 +258,6 @@ function Feedback:Destroy()
 	if self.connection then self.connection:Disconnect() end
 	self:ResetCollections()
 	if self.folder then self.folder:Destroy() end
-	table.clear(self.flights)
 	self.depositPending = nil
 end
 

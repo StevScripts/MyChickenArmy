@@ -1,0 +1,6 @@
+{
+  "returnValue": "[{\"bytes\":22555,\"path\":\"ServerStorage.PetRoll.PetActor\",\"name\":\"PetActor\",\"parses\":true,\"hash\":1538645401},{\"bytes\":6488,\"path\":\"ServerStorage.PetRoll.ArmyCommandService\",\"name\":\"ArmyCommandService\",\"parses\":true,\"hash\":2327550824},{\"bytes\":2743,\"path\":\"ReplicatedStorage.PetRoll.Shared.FollowMotion\",\"name\":\"FollowMotion\",\"parses\":true,\"hash\":1377302788}]",
+  "message": "Code executed successfully",
+  "success": true,
+  "output": []
+}

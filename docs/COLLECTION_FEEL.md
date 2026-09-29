@@ -40,9 +40,18 @@ presentation does not credit cash or change processing.
 ## Eggs and deposits
 
 Egg pickups retain their existing curved flight and moving-player/nozzle tracking.
-`CollectionFeel.Egg` contains those settings. `Deposit` controls grouped egg
-flights into the seller. Deposits confirm eggs; processor cash is celebrated only
-when the server confirms a separate cash claim.
+`CollectionFeel.Egg` contains those settings. Deposits use the user's
+`ReplicatedStorage.EggDepositEffects` Attachment, cloned at the local player's
+HumanoidRootPart with an identity local CFrame. Each of its 12 descendant
+ParticleEmitters is disabled for continuous emission, then receives `Emit(3)`.
+Debris destroys the clone after one second. The authored template stays in place
+and unchanged. `CollectionFeel.Deposit.Count` and `Lifetime` hold these settings.
+The old deposit egg-sprite flights are removed; there is no fallback to them.
+
+The existing receipt grouping, sound and deposit confirmation remain. Player and
+rover deposits both use this attachment; processor cash is celebrated only when
+the server confirms a separate cash claim. Reset/teardown clears active deposit
+clones, and reduced motion retains confirmation while suppressing the burst.
 
 Edit EggPickup, EggDeposit and Money SoundIds in
 `SoundService.MyChickenArmyAudio.Collection`. AudioController owns preloading,
@@ -57,6 +66,15 @@ cutoff was removed. AudioController retains Effects mute, overlap limits,
 background preloading and Ended cleanup. Save the place to persist the asset move.
 
 ## Verification
+
+The September 28 egg-deposit replacement passed an isolated Edit check through
+the synced ActionFeedback source and actual EggDepositEffects attachment:
+all 12 emitters execute the three-particle burst on the root, the clone is present
+at 0.2 seconds and destroyed by 1.2 seconds with a one-second Debris lifetime,
+and no old egg-sprite visual is created. Player/rover receipt routing, reset,
+reduced motion and character-removal cleanup passed. The original attachment
+remained unchanged. Both runtime modules compile and match disk through Rojo.
+No Play/Stop or player-data operations were performed by this change.
 
 The Money revision passed isolated Edit checks using the current ActionFeedback
 source, the actual authored attachment, native ParticleEmitter emission and

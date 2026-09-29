@@ -1,6 +1,7 @@
 --!strict
 -- Owns the selected squad while following; World and Battle retain their actor owners otherwise.
 local MapLayout=require(game:GetService("ReplicatedStorage").PetRoll.Shared.MapLayout)
+local FollowMotion=require(game:GetService("ReplicatedStorage").PetRoll.Shared.FollowMotion)
 local Commands={}
 Commands.__index=Commands
 
@@ -13,7 +14,7 @@ local function characterRoot(player)
 end
 
 function Commands.new(world,battles,sessions)
-	return setmetatable({world=world,battles=battles,sessions=sessions,following={},nextStep=0},Commands)
+	return setmetatable({world=world,battles=battles,sessions=sessions,following={},nextSync=0,lastStep=nil},Commands)
 end
 
 function Commands:Restore(session,id,actor,teleport)
@@ -41,6 +42,7 @@ function Commands:Sync(session)
 	for _,id in ids do desired[id]=true end
 	for id,actor in record.actors do if not desired[id] then
 		record.actors[id]=nil
+		record.heights[id]=nil
 		self:Restore(session,id,actor,true)
 	end end
 	if #ids==0 then self:Release(session,true);return end
@@ -58,6 +60,8 @@ function Commands:Sync(session)
 	session.awayPets=desired
 	session.armyState="Following"
 	record.ids=ids
+	record.spacing=5.5
+	for _,id in ids do record.spacing=math.max(record.spacing,(session.pets[id].giantSize or 0)*0.7) end
 end
 
 function Commands:StartFollowing(session,player)
@@ -65,7 +69,7 @@ function Commands:StartFollowing(session,player)
 	local folder=Instance.new("Folder")
 	folder.Name="FollowingArmy_"..session.userId
 	folder.Parent=self.world.root
-	self.following[session.userId]={folder=folder,actors={},ids={},player=player}
+	self.following[session.userId]={folder=folder,actors={},ids={},player=player,heights={},nextGround=0}
 	self:Sync(session)
 	session:Touch()
 end
@@ -111,8 +115,10 @@ function Commands:Attack(session,targetId,now)
 end
 
 function Commands:Step(now)
-	if now<self.nextStep then return end
-	self.nextStep=now+0.2
+	local dt=math.clamp(if self.lastStep then now-self.lastStep else 1/60,0,0.1)
+	self.lastStep=now
+	local sync=now>=self.nextSync
+	if sync then self.nextSync=now+0.2 end
 	for userId,record in self.following do
 		local session=self.sessions[userId]
 		local root,humanoid=characterRoot(record.player)
@@ -120,27 +126,26 @@ function Commands:Step(now)
 			self:Remove(userId);continue
 		end
 		if not root then self:Release(session,true);self.world:UpdateSession(session);continue end
-		self:Sync(session)
+		if sync then self:Sync(session) end
 		if not self.following[userId] then continue end
-		local direction=Vector3.new(root.CFrame.LookVector.X,0,root.CFrame.LookVector.Z)
-		if direction.Magnitude<0.01 then direction=Vector3.new(0,0,-1) end
-		local frame=CFrame.lookAt(root.Position,root.Position+direction)
-		local spacing=5.5
-		for _,id in record.ids do spacing=math.max(spacing,(session.pets[id].giantSize or 0)*0.7) end
+		local maximum=math.min(FollowMotion.MaxSpeed,humanoid.WalkSpeed+8)
+		local velocity=FollowMotion.Limit(FollowMotion.Flat(root.AssemblyLinearVelocity),maximum)
+		record.frame=FollowMotion.Frame(record.frame,root.CFrame,velocity,dt)
+		local ground=now>=record.nextGround
+		if ground then record.nextGround=now+0.1 end
 		for ordinal,id in record.ids do
 			local actor=record.actors[id]
 			if not actor then continue end
-			local row=math.floor((ordinal-1)/3)
-			local columns=math.min(3,#record.ids-row*3)
-			local column=(ordinal-1)%3-(columns-1)/2
-			local target=frame:PointToWorldSpace(Vector3.new(column*spacing,0,7+spacing*row))
-			local foot=MapLayout.FootPosition(target.X,target.Z)
-			local state=actor:Step(now)
-			local distance=(actor:Position()-foot).Magnitude
+			local target=record.frame:PointToWorldSpace(FollowMotion.Offset(ordinal,#record.ids,record.spacing))
+			if ground or not record.heights[id] then record.heights[id]=MapLayout.FootPosition(target.X,target.Z).Y end
+			local foot=Vector3.new(target.X,record.heights[id],target.Z)
+			local distance=FollowMotion.Flat(actor:Position()-foot).Magnitude
 			if distance>120 and actor:CanStandAt(foot) then actor:Teleport(foot)
-			elseif state=="blocked" and now-actor.progressAt>4 then actor:Recover(foot,"Following route blocked",now)
-			elseif distance>2 then actor:MoveTo(foot,math.min(48,humanoid.WalkSpeed+6))
-			else actor:Stop() end
+			else
+				actor:Follow(foot,velocity,maximum)
+				local state=actor:Step(now)
+				if state=="blocked" and now-actor.progressAt>4 then actor:Recover(foot,"Following route blocked",now) end
+			end
 		end
 	end
 end

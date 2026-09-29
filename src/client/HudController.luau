@@ -7,6 +7,7 @@ local Players=game:GetService("Players")
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
+local MOBILE_COMMAND_SIZE=0.8
 local Hud={}
 Hud.__index=Hud
 
@@ -200,18 +201,22 @@ function Hud:Resize(width, height, scale)
 	local reference=math.min(width/1920,height/1080,1.25)
 	local inset=GuiService.TopbarInset
 	local statusTop=math.max(12,inset.Max.Y-shell.AbsolutePosition.Y+8)
+	local function commandPixels(pixels)
+		return math.floor(pixels*(if touch then MOBILE_COMMAND_SIZE else 1)+0.5)
+	end
 	-- Keep My Army exactly centered; phone portraits lift the row above movement controls.
 	local iconSize=if width<600 then math.clamp(math.floor((width-48)/3)-16,64,96)
 		elseif height<500 then 96 else math.clamp(math.floor(180*reference+0.5),120,216)
+	iconSize=commandPixels(iconSize)
 	local armyIconSize=math.floor(iconSize*1.18+0.5)
 	local sideIconSize=math.floor(iconSize*0.85+0.5)
-	local labelHeight=if compact then 28 else 36
-	local countHeight=if compact then 20 else 24
-	local iconDown=if compact then 6 else 8
-	local labelLift=if compact then 8 else 12
-	local armyWidth=math.max(if width<600 then 90 else 120,armyIconSize)
-	local sideWidth=math.max(if width<600 then 86 else 110,sideIconSize)
-	local gap=if compact then 8 else 20
+	local labelHeight=if touch then 24 elseif compact then 28 else 36
+	local countHeight=if touch then 18 elseif compact then 20 else 24
+	local iconDown=commandPixels(if compact then 6 else 8)
+	local labelLift=commandPixels(if compact then 8 else 12)
+	local armyWidth=math.max(commandPixels(if width<600 then 90 else 120),armyIconSize)
+	local sideWidth=math.max(commandPixels(if width<600 then 86 else 110),sideIconSize)
+	local gap=commandPixels(if compact then 8 else 20)
 	local navWidth=armyWidth+sideWidth*2+gap*2
 	local navHeight=armyIconSize+labelHeight+countHeight
 	local bottom=if touch and width<600 then 108 elseif compact then 12 else 18
@@ -224,8 +229,9 @@ function Hud:Resize(width, height, scale)
 		local size=if primary then armyIconSize else sideIconSize
 		local buttonWidth=if primary then armyWidth else sideWidth
 		button.Size=UDim2.fromOffset(buttonWidth,if primary then navHeight else sideIconSize+labelHeight)
-		button.TextSize=if primary then (if width<600 then 22 elseif compact then 28 else 36)
+		local textSize=if primary then (if width<600 then 22 elseif compact then 28 else 36)
 			else (if width<600 then 20 elseif compact then 24 else 30)
+		button.TextSize=if touch then math.max(if primary then 20 else 18,commandPixels(textSize)) else textSize
 		if not primary then button.AnchorPoint=Vector2.new(0.5,0.5) end
 		local icon,label=button.Visual.Icon,button.Visual.Label
 		icon.AnchorPoint=Vector2.new(0.5,0)
@@ -238,7 +244,7 @@ function Hud:Resize(width, height, scale)
 	self.commandCenterY=navHeight*(1-ARMY_HOME_SCALE)+(armyIconSize/2+iconDown)*ARMY_HOME_SCALE
 	self:UpdateArmyCommands(true)
 	self.armyCount.Position,self.armyCount.Size=UDim2.fromOffset(0,armyIconSize+labelHeight-6-labelLift),UDim2.fromOffset(armyWidth,countHeight)
-	self.armyCount.TextSize=if compact then 18 else 22
+	self.armyCount.TextSize=if touch then 16 elseif compact then 18 else 22
 	for _,label in {self.status,self.objective} do
 		label.Position=UDim2.new(0.5,0,0,statusTop)
 		label.Size=UDim2.fromScale(math.min(570,width-24)/width,28/height)

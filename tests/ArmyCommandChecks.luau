@@ -47,6 +47,9 @@ local function setup()
 			function actor:Step() return "ready" end
 			function actor:CanStandAt() return true end
 			function actor:MoveTo(foot,speed) self.target=foot;self.speed=speed end
+			function actor:Follow(foot,velocity,speed)
+				self.target=foot;self.velocity=velocity;self.speed=speed;self.followCalls=(self.followCalls or 0)+1
+			end
 			function actor:Destroy() self.destroyed=true;self.model:Destroy() end
 			self.plots[1].actors[id]=actor
 		end end
@@ -89,6 +92,15 @@ function Checks.Run()
 		assert(w.created==5)
 		s.armySelection={};c:Sync(s)
 		assert(not c.following[s.userId] and s.armyState=="Home" and not next(s.awayPets))
+	end)
+	check("Following retargets on consecutive frames between membership refreshes",function()
+		local s,ids,w,b,c,p=setup();assert(c:CallArmy(p,s,1))
+		c:Step(10)
+		local actor=c.following[s.userId].actors[ids[1]];local before=actor.target
+		p.Character:PivotTo(p.Character:GetPivot()+Vector3.new(1,0,0))
+		c:Step(10+1/60)
+		assert(actor.followCalls==2 and actor.target.X==before.X+1,"Steering retained the 0.2-second throttle")
+		assert(w.created==5 and s.armyState=="Following")
 	end)
 	check("Base returns player, following squad and reserves without replacing their actors",function()
 		local s,ids,w,b,c,p=setup();local original=table.clone(w.plots[1].actors)

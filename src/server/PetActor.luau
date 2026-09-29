@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Shared")
 local PetView = require(Shared:WaitForChild("PetView"))
 local Config = require(Shared:WaitForChild("Config"))
 local KingVisual = require(Shared:WaitForChild("KingVisual"))
+local FollowMotion = require(Shared:WaitForChild("FollowMotion"))
 local PetActor = {}
 PetActor.__index = PetActor
 
@@ -179,7 +180,7 @@ function PetActor:Recover(foot: Vector3?, reason: string, now: number?): boolean
 	if not self.parent:IsDescendantOf(workspace) then return false end
 	local safe = (foot and self:_safeGround(foot)) or self:_safeGround(self.safeFoot) or self:_safeGround(self.spawnFoot)
 	if not safe then return false end
-	local old, goal, speed = self.model, self.goal, self.speed
+	local old, goal, speed, follow = self.model, self.goal, self.speed, self.followMotion
 	local attributes, scale = old:GetAttributes(), old:GetScale()
 	self:Stop()
 	local facing = self.root.CFrame.LookVector
@@ -200,12 +201,29 @@ function PetActor:Recover(foot: Vector3?, reason: string, now: number?): boolean
 	old:Destroy()
 	self.safeFoot, self.healthPosition, self.healthAt = safe, safe, now
 	self.progressPosition, self.progressAt, self.recoveries = safe, now, 0
-	if goal and not attributes.Defeated then self:MoveTo(goal, math.max(speed, 0.1)) end
+	if goal and not attributes.Defeated then
+		if follow then self:Follow(goal, follow.targetVelocity, follow.maxSpeed)
+		else self:MoveTo(goal, math.max(speed, 0.1)) end
+	end
 	return true
 end
 
 function PetActor:_command(target: Vector3, now: number, force: boolean?)
 	if self.destroyed then return end
+	local follow = self.followMotion
+	if follow then
+		if not self.waypoints then target = self.goal or target end
+		local dt = if follow.commandAt then math.clamp(now - follow.commandAt, 0, 0.1) else 1/60
+		follow.commandAt = now
+		follow.velocity = FollowMotion.Velocity(follow.velocity, target - self:Position(),
+			follow.targetVelocity, follow.maxSpeed, dt, self.waypoints ~= nil)
+		self.speed = follow.velocity.Magnitude
+		self.humanoid.WalkSpeed = self.speed
+		self.humanoid:Move(if self.speed > 0 then follow.velocity / self.speed else Vector3.zero, false)
+		local moving = self.speed > 0.15
+		if self.model:GetAttribute("Moving") ~= moving then self.model:SetAttribute("Moving", moving) end
+		return
+	end
 	local changed = not self.commandTarget or flatDistance(target, self.commandTarget) > 0.45
 	if force or now - self.lastCommand >= 2 or (changed and now - self.lastCommand >= 0.18) then
 		self.humanoid.WalkSpeed = self.speed
@@ -214,8 +232,39 @@ function PetActor:_command(target: Vector3, now: number, force: boolean?)
 	end
 end
 
+-- Continuously moving formation target. Physics remains server owned; no root
+-- CFrame writes, MoveTo arrival stops, or client/server movement competition.
+function PetActor:Follow(foot: Vector3, velocity: Vector3, maximum: number): boolean
+	if self.destroyed or not finiteVector(foot) or not finiteVector(velocity)
+		or maximum ~= maximum or math.abs(maximum) == math.huge then return false end
+	local now = os.clock()
+	if not self.followMotion then
+		self:Stop()
+		self.followMotion = {velocity = Vector3.zero, targetVelocity = Vector3.zero, maxSpeed = 0}
+		self.progressPosition, self.progressAt = self:Position(), now
+		self.recoveries = 0
+	end
+	if self.goal and flatDistance(self.goal, foot) > 5 then
+		self.requestGeneration += 1
+		self:_cancelRequest()
+		self:_clearPath()
+		self.progressPosition, self.progressAt, self.recoveries = self:Position(), now, 0
+		self.state = "moving"
+		self.model:SetAttribute("MovementBlocked", false)
+		self.model:SetAttribute("MovementBlockReason", nil)
+	end
+	self.goal = foot
+	self.followMotion.targetVelocity = FollowMotion.Flat(velocity)
+	self.followMotion.maxSpeed = math.clamp(maximum, 0.1, FollowMotion.MaxSpeed)
+	if self.facing then self.facing.Enabled = false end
+	self.humanoid.AutoRotate = true
+	if self.state ~= "blocked" then self.state = "moving" end
+	return true
+end
+
 function PetActor:MoveTo(foot: Vector3, speed: number): boolean
 	if self.destroyed or not finiteVector(foot) or speed ~= speed or math.abs(speed) == math.huge then return false end
+	if self.followMotion then self:Stop() end
 	local now = os.clock()
 	local at = self:Position()
 	if flatDistance(at, foot) <= ARRIVAL and math.abs(at.Y - foot.Y) < 3 then
@@ -247,6 +296,7 @@ end
 
 function PetActor:Stop(keepFacing: boolean?)
 	if self.destroyed then return end
+	self.followMotion = nil
 	if not keepFacing then
 		if self.facing then self.facing.Enabled=false end
 		self.humanoid.AutoRotate=true
@@ -291,8 +341,10 @@ function PetActor:Face(target: Vector3)
 end
 
 function PetActor:_block(reason: string, now: number?)
-	local goal, speed = self.goal, self.speed
+	local goal, speed, follow = self.goal, self.speed, self.followMotion
 	self:Stop()
+	self.followMotion = follow
+	if follow then follow.velocity, follow.commandAt = Vector3.zero, nil end
 	self.state, self.goal, self.speed = "blocked", goal, speed
 	self.blockedUntil = (now or os.clock()) + BLOCK_RETRY_SECONDS
 	self.model:SetAttribute("MovementBlocked", true)
@@ -388,12 +440,13 @@ function PetActor:Step(now: number): string
 	end
 	if self.state == "blocked" then
 		if now < self.blockedUntil or not self.goal then return "blocked" end
-		local goal, speed = self.goal, self.speed
+		local goal, speed, follow = self.goal, self.speed, self.followMotion
 		self:Stop()
-		self:MoveTo(goal, speed)
+		if follow then self:Follow(goal, follow.targetVelocity, follow.maxSpeed)
+		else self:MoveTo(goal, speed) end
 	end
 	if not self.goal then return self.state end
-	if flatDistance(position, self.goal) <= ARRIVAL and math.abs(position.Y - self.goal.Y) < 3 then
+	if not self.followMotion and flatDistance(position, self.goal) <= ARRIVAL and math.abs(position.Y - self.goal.Y) < 3 then
 		self:Stop()
 		self.state = "arrived"
 		return "arrived"
@@ -409,7 +462,11 @@ function PetActor:Step(now: number): string
 	end
 	local target = if self.waypoints then self.waypoints[self.waypointIndex] else self.goal
 	-- Sideways jitter/turning in circles is not progress toward the current leg.
-	if target and flatDistance(position, target) < flatDistance(self.progressPosition, target) - 0.3 then
+	local settled = self.followMotion and not self.waypoints
+		and flatDistance(position, self.goal) <= FollowMotion.RestRadius + 0.25
+		and math.abs(position.Y - self.goal.Y) < 3
+		and self.followMotion.targetVelocity.Magnitude < FollowMotion.LeaderDeadband
+	if settled or (target and flatDistance(position, target) < flatDistance(self.progressPosition, target) - 0.3) then
 		self.progressAt, self.progressPosition = now, position
 		self.recoveries = 0
 	elseif now - self.progressAt >= STUCK_SECONDS then
