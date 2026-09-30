@@ -1,6 +1,31 @@
 # Responsive HUD and menus
 
+**September 30 supersedes the sizing rules below:** current UI uses native Scale
+geometry, UIAspectRatioConstraint and TextScaled, following the restored
+`StarterGui.GUI.FRAMES`. UIScale canvases, CompactSize/SizeLimits and device
+breakpoints were removed. See [current editing controls](UI_EDITING.md) and
+[the reference audit and layout evidence](../assets/ui-aspect-layout-20260930/README.md).
+Older implementation/check records below describe earlier versions.
+
 Implemented September 24–25, 2026 in Pet Roll Test, place 96683186622050.
+
+**Single ScreenGui correction, September 29:** StarterGui now contains only
+`PetRollGui`; seven old authoring previews are in
+`ServerStorage.UIAuthoringArchive20260929`. AppController reuses the native
+PlayerGui clone. Settings, offline earnings, dialogue and drag previews now use
+Frame overlays inside it, with their original safe-area coordinate regions.
+This supersedes the separate offline/topbar ScreenGui references below.
+No Play or device validation was run for this correction.
+
+**Example hierarchy, September 29:** after studying all 14 menus under
+`StarterGui.Example.GUI.FRAMES`, the screen shell now separates HUD, FRAMES and
+OTHER. Menu bodies own their content; Army and Shop action rows use native
+lists; Fuse and Offline Earnings have explicit body/footer parents. Desktop
+Army/Fuse retain their existing proportions with aspect constraints. Sizes,
+content, art and mobile breakpoints are retained. See the [complete study and
+recovery sources](../assets/ui-layout-example-20260929/README.md). No Play,
+device or visual validation was run for this layout pass; older results below
+apply only to their recorded versions.
 
 **Menu focus, September 29:** AppController now owns a client-only world blur
 for Army, Shop, Index, Upgrades, Settings, Odds, Fuse and other main-panel pages,

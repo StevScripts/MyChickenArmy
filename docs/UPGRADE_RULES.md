@@ -29,6 +29,7 @@ This supersedes older documents, research proposals, screenshots, fixtures and c
 
 The following existing cash tracks are independent of camp progress from the start:
 
+- Individual chickens: cash purchases in My Army through level 10, when the owned chicken is home and affordable. Preserve existing egg/combat level rewards. Current triple fusion remains separate; see [chicken cash upgrades](team/CHICKEN_CASH_UPGRADES.md).
 - Egg Speed: 25 purchases, up to 4.75× production before paid benefits. The first four prices and benefits are unchanged.
 - Egg Value: 25 purchases, setting each newly earned egg to $4 + level (maximum $29). Already-earned eggs keep their value.
 - Plot Size: seven purchases where the authored plot supports expansion, with capacities 25/30/35/40/45/50/75/100. Latest September 29 correction: Plot1 starts as a 30×30 square, extends its center, then widens behind the machines into a T (30×49 stem plus 84×45 back section). Only the final two stages gain depth after the user's deck enlargement; the authored square anchors all stages. Its outer fence also expands; the editor shows the square starter. Other plots retain 80–120% uniform scaling but share the new capacities. Prices and saved levels are unchanged; see [square-to-T expansion](team/SQUARE_TO_T_PLOT_EXPANSION.md).

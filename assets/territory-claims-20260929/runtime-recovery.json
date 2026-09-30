@@ -1,0 +1,284 @@
+{
+  "samples": [
+    {
+      "time": 31929.74132995834,
+      "enemy": 0.02499999999999991
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 2%",
+      "time": 31929.95814604167,
+      "fill": 0.02500000037252903,
+      "enemy": 0.04999999999999982
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 5%",
+      "time": 31930.174214375005,
+      "fill": 0.05000000074505806,
+      "enemy": 0.07499999999999973
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 7%",
+      "time": 31930.37593929167,
+      "fill": 0.07500000298023224,
+      "enemy": 0.09999999999999964
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 10%",
+      "time": 31930.591795583336,
+      "fill": 0.10000000149011612,
+      "enemy": 0.1374999999999995
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 13%",
+      "time": 31930.791311250003,
+      "fill": 0.13750000298023224,
+      "enemy": 0.16249999999999942
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 16%",
+      "time": 31931.54118241667,
+      "fill": 0.16249999403953552,
+      "enemy": 0.2499999999999991
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 25%",
+      "time": 31931.757519250004,
+      "fill": 0.25,
+      "enemy": 0.274999999999999
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 27%",
+      "time": 31931.95821641667,
+      "fill": 0.2750000059604645,
+      "enemy": 0.29999999999999893
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 30%",
+      "time": 31932.173884375003,
+      "fill": 0.30000001192092896,
+      "enemy": 0.32499999999999885
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 32%",
+      "time": 31932.37411708334,
+      "fill": 0.32499998807907104,
+      "enemy": 0.34999999999999876
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 35%",
+      "time": 31932.591515250002,
+      "fill": 0.3499999940395355,
+      "enemy": 0.3874999999999986
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 38%",
+      "time": 31932.808057250004,
+      "fill": 0.38749998807907104,
+      "enemy": 0.41249999999999853
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 41%",
+      "time": 31933.02421804167,
+      "fill": 0.4124999940395355,
+      "enemy": 0.43749999999999845
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 43%",
+      "time": 31933.22416216667,
+      "fill": 0.4375,
+      "enemy": 0.46249999999999836
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 46%",
+      "time": 31933.424365583338,
+      "fill": 0.4625000059604645,
+      "enemy": 0.48749999999999827
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 48%",
+      "time": 31933.64100729167,
+      "fill": 0.48750001192092896,
+      "enemy": 0.5124999999999982
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 51%",
+      "time": 31933.841780958337,
+      "fill": 0.512499988079071,
+      "enemy": 0.5374999999999983
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 53%",
+      "time": 31934.058053708337,
+      "fill": 0.5375000238418579,
+      "enemy": 0.5624999999999982
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 56%",
+      "time": 31934.257080375002,
+      "fill": 0.5625,
+      "enemy": 0.5874999999999984
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 58%",
+      "time": 31934.47455466667,
+      "fill": 0.5874999761581421,
+      "enemy": 0.6124999999999983
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 61%",
+      "time": 31934.692125875004,
+      "fill": 0.612500011920929,
+      "enemy": 0.6499999999999984
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 65%",
+      "time": 31934.908183833337,
+      "fill": 0.6499999761581421,
+      "enemy": 0.6749999999999984
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 67%",
+      "time": 31935.10835641667,
+      "fill": 0.675000011920929,
+      "enemy": 0.6999999999999984
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 70%",
+      "time": 31935.30752170834,
+      "fill": 0.699999988079071,
+      "enemy": 0.7249999999999984
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 72%",
+      "time": 31935.525141625003,
+      "fill": 0.7250000238418579,
+      "enemy": 0.7499999999999984
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 75%",
+      "time": 31935.724867083336,
+      "fill": 0.75,
+      "enemy": 0.7749999999999985
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 77%",
+      "time": 31935.940587750003,
+      "fill": 0.7749999761581421,
+      "enemy": 0.7999999999999985
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 80%",
+      "time": 31936.14139116667,
+      "fill": 0.800000011920929,
+      "enemy": 0.8249999999999985
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 82%",
+      "time": 31936.35675779167,
+      "fill": 0.824999988079071,
+      "enemy": 0.8499999999999985
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 85%",
+      "time": 31936.55751829167,
+      "fill": 0.8500000238418579,
+      "enemy": 0.8749999999999986
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 87%",
+      "time": 31936.773862083337,
+      "fill": 0.875,
+      "enemy": 0.8999999999999986
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 90%",
+      "time": 31936.990813333337,
+      "fill": 0.8999999761581421,
+      "enemy": 0.9374999999999986
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 93%",
+      "time": 31937.19109570834,
+      "fill": 0.9375,
+      "enemy": 0.9624999999999986
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 96%",
+      "time": 31937.408510958336,
+      "fill": 0.9624999761581421,
+      "enemy": 0.9874999999999985
+    },
+    {
+      "visible": true,
+      "title": "Enemy control · 98%",
+      "time": 31937.625091750004,
+      "fill": 0.987500011920929,
+      "enemy": 1
+    },
+    {
+      "visible": true,
+      "title": "Enemy control restored",
+      "time": 31937.82458670834,
+      "fill": 1,
+      "enemy": 1
+    },
+    {
+      "visible": true,
+      "title": "Enemy control restored",
+      "time": 31938.025178750002,
+      "fill": 1,
+      "enemy": 1
+    },
+    {
+      "visible": true,
+      "title": "Enemy control restored",
+      "time": 31938.224705708337,
+      "fill": 1,
+      "enemy": 1
+    },
+    {
+      "visible": true,
+      "title": "Enemy control restored",
+      "time": 31938.440890250004,
+      "fill": 1,
+      "enemy": 1
+    }
+  ],
+  "duration": 8.699560291664966,
+  "passed": true,
+  "partialSamples": 35
+}

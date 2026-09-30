@@ -3,12 +3,12 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local TextService = game:GetService("TextService")
 local Theme = require(script.Parent.UITheme)
 local Dialogue = {}
 Dialogue.__index = Dialogue
 
-local WIDTH, ROW, RESPONSE_X, HOVER = 520, 36, 48, 22
+local WIDTH, ROW, RESPONSE_X, HOVER = 520, 520 / 12.953773498535156, 48, 22
+local QUESTION_WIDTH, QUESTION_HEIGHT = 0.26350462436676025, 0.03614457696676254
 local RESPONSE_SIZE, SPEECH_SIZE = 38, 31
 local WHITE, CREAM = Color3.new(1, 1, 1), Color3.fromRGB(255, 255, 190)
 local OUTLINE = Color3.fromRGB(37, 37, 37)
@@ -18,26 +18,27 @@ local function label(parent, name, text, size, color)
  item.Name, item.Text, item.Font = name, text, Theme.Font
  item.BackgroundTransparency, item.TextColor3, item.TextSize = 1, color or WHITE, size
  item.TextXAlignment, item.TextYAlignment = Enum.TextXAlignment.Left, Enum.TextYAlignment.Center
- item.TextStrokeTransparency, item.ZIndex = 1, 2
+ item.TextStrokeTransparency, item.ZIndex, item.TextScaled = 1, 2, true
  local stroke = Instance.new("UIStroke")
  stroke.Name, stroke.Color, stroke.Thickness, stroke.Parent = "TextOutline", OUTLINE, 2, item
  item.Parent = parent
+ Theme.ScaleText(item)
  return item
 end
 
 function Dialogue.new(app)
  local self = setmetatable({app = app, serial = 0, tweens = {}}, Dialogue)
- local gui = Instance.new("ScreenGui")
- gui.Name, gui.ResetOnSpawn, gui.IgnoreGuiInset = "MerchantDialogue", false, true
- gui.ScreenInsets, gui.DisplayOrder = Enum.ScreenInsets.None, 25
- gui.ZIndexBehavior, gui.Parent = Enum.ZIndexBehavior.Sibling, Players.LocalPlayer:WaitForChild("PlayerGui")
+ local gui=Theme.InsetContainer(app.other,"MerchantDialogue",Enum.ScreenInsets.None)
+ gui.ZIndex=50
  self.gui = gui
  local root = Instance.new("Frame")
- root.Name, root.BackgroundTransparency, root.Size = "Responses", 1, UDim2.fromOffset(WIDTH, ROW * 4)
+ root.Name, root.BackgroundTransparency, root.Size = "Responses", 1, UDim2.fromScale(QUESTION_WIDTH, QUESTION_HEIGHT * 4)
  root.Visible, root.Parent = false, gui
- self.root, self.scale = root, Instance.new("UIScale", root)
+ self.root = root
+ Theme.Aspect(root, WIDTH / (ROW * 4))
  local speech = label(gui, "MerchantSpeech", "", SPEECH_SIZE)
- speech.AnchorPoint, speech.Size = Vector2.new(0.5, 1), UDim2.fromOffset(520, 70)
+ speech.AnchorPoint, speech.Size = Vector2.new(0.5, 1), UDim2.fromScale(0.4, 0.104)
+ Theme.Aspect(speech, 6.5)
  speech.TextXAlignment, speech.TextYAlignment = Enum.TextXAlignment.Center, Enum.TextYAlignment.Bottom
  speech.TextWrapped, speech.RichText, speech.Visible = true, true, false
  self.speech = speech
@@ -103,28 +104,27 @@ function Dialogue:Show(text, choices, note)
   self:After(entrance - 0.12, function() self:Tween(self.speech, 0.16, {TextTransparency = 1}) end)
  end
  local noteHeight = if note and note ~= "" then 30 else 0
+ local totalHeight = math.max(1, #choices) * ROW + noteHeight + 8
  if noteHeight > 0 then
   local line = label(self.root, "Consequence", note, 18, CREAM)
-  line.Size, line.Position = UDim2.fromOffset(WIDTH, noteHeight), UDim2.fromOffset(0, #choices * ROW + 8)
+  line.Size, line.Position = UDim2.fromScale(1, noteHeight / totalHeight), UDim2.fromScale(0, (#choices * ROW + 8) / totalHeight)
   line.TextTransparency, line.TextOutline.Transparency = 1, 1
   self:After(entrance, function() self:Tween(line, 0.16, {TextTransparency = 0}) end)
  end
  for i, choice in choices do
   local row = Instance.new("TextButton")
-  row.Name, row.Size, row.Position = "Choice" .. i, UDim2.fromOffset(WIDTH, ROW), UDim2.fromOffset(0, (i - 1) * ROW)
+  row.Name, row.Size, row.Position = "Choice" .. i, UDim2.fromScale(1, ROW / totalHeight), UDim2.fromScale(0, (i - 1) * ROW / totalHeight)
   row.Text, row.AutoButtonColor, row.BackgroundTransparency = "", false, 1
   row.Active, row.Selectable, row.Parent = true, true, self.root
   local number = label(row, "Number", "#" .. i, RESPONSE_SIZE, CREAM)
-  number.Size = UDim2.fromOffset(RESPONSE_X, ROW)
+  number.Size = UDim2.fromScale(RESPONSE_X / WIDTH, 1)
   local responseText = '["' .. choice.text .. '"]'
-  local measured = TextService:GetTextSize(responseText, RESPONSE_SIZE, Theme.Font, Vector2.new(10000, 100)).X
-  local textSize = math.min(RESPONSE_SIZE, RESPONSE_SIZE * (WIDTH - RESPONSE_X - HOVER) / math.max(1, measured))
-  local response = label(row, "Response", responseText, textSize)
-  response.Position, response.Size = UDim2.fromOffset(RESPONSE_X, 0), UDim2.fromOffset(WIDTH - RESPONSE_X, ROW)
+  local response = label(row, "Response", responseText, RESPONSE_SIZE)
+  response.Position, response.Size = UDim2.fromScale(RESPONSE_X / WIDTH, 0), UDim2.fromScale((WIDTH - RESPONSE_X - HOVER) / WIDTH, 1)
   local ready, chosen, hovering = false, false, false
   local function hover(on)
    hovering = on
-   if ready and not chosen then self:Tween(response, 0.12, {Position = UDim2.fromOffset(RESPONSE_X + (if on then HOVER else 0), 0)}) end
+   if ready and not chosen then self:Tween(response, 0.12, {Position = UDim2.fromScale((RESPONSE_X + (if on then HOVER else 0)) / WIDTH, 0)}) end
   end
   row.MouseEnter:Connect(function() hover(true) end)
   row.MouseLeave:Connect(function() hover(false) end)
@@ -143,14 +143,15 @@ function Dialogue:Show(text, choices, note)
   end)
   number.TextTransparency, response.TextTransparency = 1, 1
   number.TextOutline.Transparency, response.TextOutline.Transparency = 1, 1
-  response.Position = UDim2.fromOffset(RESPONSE_X + (if self.app.reducedMotion then 0 else HOVER), 0)
+  response.Position = UDim2.fromScale((RESPONSE_X + (if self.app.reducedMotion then 0 else HOVER)) / WIDTH, 0)
   self:After(entrance + (if self.app.reducedMotion then 0 else (i - 1) * 0.085), function()
    self:Tween(number, 0.16, {TextTransparency = 0})
-   self:Tween(response, 0.16, {TextTransparency = 0, Position = UDim2.fromOffset(RESPONSE_X + (if hovering then HOVER else 0), 0)})
+   self:Tween(response, 0.16, {TextTransparency = 0, Position = UDim2.fromScale((RESPONSE_X + (if hovering then HOVER else 0)) / WIDTH, 0)})
    ready = true
   end)
  end
- self.root.Size = UDim2.fromOffset(WIDTH, math.max(1, #choices) * ROW + noteHeight + 8)
+ self.root.Size = UDim2.fromScale(QUESTION_WIDTH, QUESTION_HEIGHT * totalHeight / ROW)
+ Theme.Aspect(self.root, WIDTH / totalHeight)
  self:Step()
 end
 
@@ -175,20 +176,19 @@ function Dialogue:Step()
  self.root.Visible, self.speech.Visible = onScreen, onScreen
  if not onScreen then return end
  local viewport = camera.ViewportSize
- local factor = math.min(viewport.X / 1264, viewport.Y / 768, 1.2)
- self.scale.Scale = factor
- local width, height, gap = WIDTH * factor, self.root.Size.Y.Offset * factor, 96 * factor
+ -- Projection follows the moving merchant; native constraints own all sizing.
+ local width, height = self.root.AbsoluteSize.X, self.root.AbsoluteSize.Y
+ local gap, margin = width * (96 / WIDTH), viewport.X * 0.012
  local playerPoint, playerVisible = camera:WorldToViewportPoint(root.Position + Vector3.new(0, 2, 0))
  local right = if playerVisible then math.max(point.X, playerPoint.X) else point.X
  local left = if playerVisible then math.min(point.X, playerPoint.X) else point.X
- -- Use the right side even when the generous reference gap needs to contract.
- local rightGap = math.min(gap, viewport.X - 16 - width - right)
- local x = if rightGap >= 24 * factor then right + rightGap else left - width - gap
- self.root.Position = UDim2.fromOffset(math.clamp(x, 16, math.max(16, viewport.X - width - 16)),
-  math.clamp(point.Y + 76 * factor, 100, math.max(100, viewport.Y - height - 24)))
- self.speech.Position = UDim2.fromOffset(math.clamp(point.X, 260 * factor, math.max(260 * factor, viewport.X - 260 * factor)), math.max(100, point.Y - 8 * factor))
- self.speech.Size, self.speech.TextSize = UDim2.fromOffset(520 * factor, 80 * factor), SPEECH_SIZE * factor
- self.speech.TextOutline.Thickness = 2 * factor
+ local rightGap = math.min(gap, viewport.X - margin - width - right)
+ local x = if rightGap >= width * (24 / WIDTH) then right + rightGap else left - width - gap
+ self.root.Position = UDim2.fromScale(math.clamp(x, margin, math.max(margin, viewport.X - width - margin)) / viewport.X,
+  math.clamp(point.Y + width * (76 / WIDTH), viewport.Y * 0.13, math.max(viewport.Y * 0.13, viewport.Y - height - viewport.Y * 0.03)) / viewport.Y)
+ local halfSpeech = self.speech.AbsoluteSize.X / 2
+ self.speech.Position = UDim2.fromScale(math.clamp(point.X, halfSpeech, math.max(halfSpeech, viewport.X - halfSpeech)) / viewport.X,
+  math.max(viewport.Y * 0.13, point.Y - self.speech.AbsoluteSize.Y * 0.1) / viewport.Y)
 end
 
 function Dialogue:Destroy()

@@ -102,6 +102,68 @@ function Theme.Frame(parent, name, size, color)
 	return frame
 end
 
+-- Structural containers are transparent and fill their parent. They do not own
+-- a surface, stroke or animation scale (StarterGui.Example uses the same layers).
+function Theme.Container(parent, name)
+	local container=Instance.new("Frame")
+	container.Name,container.Size=name,UDim2.fromScale(1,1)
+	container.BackgroundTransparency,container.BorderSizePixel=1,0
+	container.Parent=parent
+	return container
+end
+
+-- Keep inset-specific overlays inside the one game ScreenGui. GetInsetArea
+-- rectangles and AbsolutePosition share the Core UI origin.
+function Theme.InsetContainer(parent, name, screenInsets)
+	local guiService=game:GetService("GuiService")
+	local container=Theme.Container(parent,name)
+	local function resize()
+		local area=guiService:GetInsetArea(screenInsets)
+		local position=area.Min-parent.AbsolutePosition
+		local size=area.Max-area.Min
+		container.Position,container.Size=UDim2.fromOffset(position.X,position.Y),UDim2.fromOffset(size.X,size.Y)
+	end
+	local connections={
+		parent:GetPropertyChangedSignal("AbsolutePosition"):Connect(resize),
+		parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize),
+		guiService:GetPropertyChangedSignal("TopbarInset"):Connect(resize),
+	}
+	container.Destroying:Once(function()
+		for _,connection in connections do connection:Disconnect() end
+	end)
+	resize()
+	return container
+end
+
+function Theme.Aspect(item, ratio)
+	local constraint=item:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+	if not ratio then if constraint then constraint:Destroy() end;return end
+	constraint=constraint or Instance.new("UIAspectRatioConstraint")
+	constraint.Name,constraint.AspectRatio="UIAspectRatioConstraint",ratio
+	constraint.AspectType,constraint.DominantAxis=Enum.AspectType.FitWithinMaxSize,Enum.DominantAxis.Width
+	constraint.Parent=item
+end
+
+-- The restored GUI uses native text fitting inside proportionally sized boxes.
+function Theme.ScaleText(root)
+	local function apply(item)
+		if item:IsA("TextLabel") or item:IsA("TextButton") or item:IsA("TextBox") then
+			item.TextScaled=true
+			item.TextTruncate=Enum.TextTruncate.None
+			for _,child in item:GetChildren() do if child:IsA("UITextSizeConstraint") then child:Destroy() end end
+		end
+	end
+	apply(root)
+	for _,item in root:GetDescendants() do apply(item) end
+end
+
+-- Express a designed rectangle in its own parent's coordinate space. Insets and
+-- touch targets may remain pixels; artwork/composition must follow the parent.
+function Theme.RelativeRect(item,x,y,width,height,parentWidth,parentHeight)
+	item.Position=UDim2.fromScale(x/math.max(1,parentWidth),y/math.max(1,parentHeight))
+	item.Size=UDim2.fromScale(width/math.max(1,parentWidth),height/math.max(1,parentHeight))
+end
+
 function Theme.Image(parent, name, asset, size, position)
 	local image = Instance.new("ImageLabel")
 	image.Name, image.Image = name, asset
@@ -131,43 +193,23 @@ function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
 		clip.Parent=parent
 		pattern.Parent=clip
 	end
-	local pixels=spacing or pattern:GetAttribute("StudSpacing") or pattern.TileSize.X.Offset
-	pattern:SetAttribute("StudSpacing",if type(pixels)=="number" and pixels>0 then pixels else 28)
 	pattern.Image,pattern.ScaleType=Theme.Assets.Studs,Enum.ScaleType.Stretch
 	pattern.ImageRectOffset,pattern.ImageRectSize=Vector2.zero,Vector2.zero
 	pattern.Position,pattern.AnchorPoint,pattern.Rotation=UDim2.new(),Vector2.zero,0
 	pattern.BackgroundTransparency,pattern.BorderSizePixel,pattern.Active=1,0,false
+	-- A square native image extends beyond its clipping container. Headers show
+	-- one sheet; smaller buttons crop a wider sheet, like the authored reference.
+	local aspect=pattern:FindFirstChildWhichIsA("UIAspectRatioConstraint") or Instance.new("UIAspectRatioConstraint")
+	aspect.Name,aspect.AspectRatio="UIAspectRatioConstraint",1
+	aspect.AspectType,aspect.DominantAxis=Enum.AspectType.FitWithinMaxSize,Enum.DominantAxis.Width
+	aspect.Parent=pattern
 	if studBindings[pattern] then return pattern end
 	local function resize()
-		-- AbsoluteSize includes ancestor UIScales; offset sizes must use local pixels.
-		local scale=1
-		local ancestor: Instance?=clip
-		while ancestor do
-			if ancestor:IsA("GuiObject") then
-				for _,child in ancestor:GetChildren() do
-					if child:IsA("UIScale") then scale*=child.Scale end
-				end
-			end
-			ancestor=ancestor.Parent
-		end
-		local size=clip.AbsoluteSize/math.max(scale,0.001)
-		local relativeWidth=pattern:GetAttribute("StudScaleWidth")
-		if type(relativeWidth)=="number" and relativeWidth>0 then
-			-- Opt-in for fully scale-authored surfaces; keep the cropped sheet square.
-			local side=math.max(size.X*relativeWidth,size.X,size.Y)
-			pattern.Size=UDim2.fromScale(side/math.max(size.X,0.001),side/math.max(size.Y,0.001))
-			return
-		end
-		local side=math.max((pattern:GetAttribute("StudSpacing") or 28)*24,size.X,size.Y)
-		pattern.Size=UDim2.fromOffset(side,side)
+		local width=pattern:GetAttribute("StudScaleWidth") or 3
+		pattern.Size=UDim2.fromScale(width,1000)
 	end
-	local function layer()
-		clip.ZIndex,clip.Visible=pattern.ZIndex,pattern.Visible
-	end
+	local function layer() clip.ZIndex,clip.Visible=pattern.ZIndex,pattern.Visible end
 	local connections={
-		clip:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize),
-		pattern.AncestryChanged:Connect(resize),
-		pattern:GetAttributeChangedSignal("StudSpacing"):Connect(resize),
 		pattern:GetAttributeChangedSignal("StudScaleWidth"):Connect(resize),
 		pattern:GetPropertyChangedSignal("ZIndex"):Connect(layer),
 		pattern:GetPropertyChangedSignal("Visible"):Connect(layer),
@@ -177,8 +219,7 @@ function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
 		for _,connection in connections do connection:Disconnect() end
 		studBindings[pattern]=nil
 	end))
-	resize()
-	layer()
+	resize();layer()
 	return pattern
 end
 
@@ -203,7 +244,8 @@ function Theme.Studs(parent, opacity, tilePixels, inset)
 	local padding,spacing=inset or 5,tilePixels or 28
 	Theme.BindStudTexture(pattern,spacing)
 	local bounds=pattern.Parent
-	bounds.Size,bounds.Position=UDim2.new(1,-padding*2,1,-padding*2),UDim2.fromOffset(padding,padding)
+	local insetScale=if padding==0 then 0 else 0.015
+	bounds.Size,bounds.Position=UDim2.fromScale(1-insetScale*2,1-insetScale*2),UDim2.fromScale(insetScale,insetScale)
 	pattern.ImageTransparency, pattern.ZIndex = 1-(opacity or 0.14), 2
 	return pattern
 end
@@ -213,8 +255,8 @@ function Theme.Surface(item, tint)
 	item.BackgroundColor3, item.BackgroundTransparency = Color3.new(1,1,1), 0
 	Theme.Gradient(item,tint:Lerp(Palette.Text,0.035),tint)
 	Theme.Stroke(item,Theme.Arcade.border,3)
-	local inset=item:FindFirstChild("InnerRim") or Theme.Frame(item,"InnerRim",UDim2.new(1,-10,1,-10))
-	inset.Position,inset.BackgroundTransparency=UDim2.fromOffset(5,5),1
+	local inset=item:FindFirstChild("InnerRim") or Theme.Frame(item,"InnerRim",UDim2.fromScale(0.98,0.98))
+	inset.Position,inset.BackgroundTransparency=UDim2.fromScale(0.01,0.01),1
 	Theme.Stroke(inset,Theme.Colors.line,1.5)
 	return item
 end
@@ -223,7 +265,7 @@ function Theme.Label(parent, name, text, size, color)
 	local lightSurface = parent:GetAttribute("LightSurface") == true
 	local label = Instance.new("TextLabel")
 	label.Name, label.Text = name, text
-	label.Size, label.BackgroundTransparency = UDim2.new(1,0,0,28), 1
+	label.Size, label.BackgroundTransparency = UDim2.fromScale(1,0.1), 1
 	label.Font, label.TextSize = Theme.Font, size or 20
 	label.TextColor3 = color or (if lightSurface then Theme.Colors.cardInk else Theme.Colors.ink)
 	label.TextXAlignment, label.TextYAlignment = Enum.TextXAlignment.Left, Enum.TextYAlignment.Center
@@ -241,7 +283,7 @@ end
 
 function Theme.Notification(parent)
 	local group=Instance.new("CanvasGroup")
-	group.Name,group.Size="Notification",UDim2.fromOffset(720,80)
+	group.Name,group.Size="Notification",UDim2.fromScale(0.58,0.13)
 	group.BackgroundTransparency,group.BorderSizePixel=1,0
 	group.Active,group.Visible,group.ZIndex=false,false,20
 	group.AnchorPoint,group.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.24)
@@ -249,7 +291,7 @@ function Theme.Notification(parent)
 	local label=Theme.Label(group,"Toast","",34,Theme.Colors.ink)
 	label:SetAttribute("OutlineThickness",3)
 	label.TextOutline.Thickness=3
-	label.Position,label.Size=UDim2.fromOffset(12,8),UDim2.new(1,-24,1,-16)
+	label.Position,label.Size=UDim2.fromScale(0.02,0.1),UDim2.fromScale(0.96,0.8)
 	label.RichText,label.TextXAlignment,label.TextYAlignment=true,Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
 	label.Active=false
 	return group,label
@@ -257,7 +299,7 @@ end
 
 function Theme.Button(parent, name, text, callback, color)
 	local button = Instance.new("TextButton")
-	button.Name,button.Text,button.Size=name,text,UDim2.new(1,0,0,46)
+	button.Name,button.Text,button.Size=name,text,UDim2.fromScale(1,0.15)
 	button.BackgroundColor3,button.BackgroundTransparency=color or Theme.ActionColors.navigation,1
 	button.TextColor3,button.Font,button.TextSize=Theme.Colors.ink,Theme.Font,23
 	button.TextWrapped,button.AutoButtonColor,button.TextTransparency=true,false,1
@@ -269,7 +311,7 @@ function Theme.Button(parent, name, text, callback, color)
 	Theme.Stroke(visual,Theme.Arcade.border,3)
 	local lip=Theme.Frame(visual,"LowerLip",UDim2.fromScale(1,1),Theme.Arcade.border)
 	lip.ZIndex=1
-	local face=Theme.Frame(visual,"Face",UDim2.new(1,0,1,-5),Color3.new(1,1,1))
+	local face=Theme.Frame(visual,"Face",UDim2.fromScale(1,0.93),Color3.new(1,1,1))
 	face.ZIndex=2
 	Theme.Round(face,10)
 	local function recolor()
@@ -280,20 +322,20 @@ function Theme.Button(parent, name, text, callback, color)
 	recolor()
 	button:GetPropertyChangedSignal("BackgroundColor3"):Connect(recolor)
 	Theme.Studs(face)
-	local rim=Theme.Frame(face,"InsetHighlight",UDim2.new(1,-7,1,-7))
-	rim.Position,rim.BackgroundTransparency,rim.ZIndex=UDim2.fromOffset(3.5,3.5),1,3
+	local rim=Theme.Frame(face,"InsetHighlight",UDim2.fromScale(0.96,0.90))
+	rim.Position,rim.BackgroundTransparency,rim.ZIndex=UDim2.fromScale(0.02,0.05),1,3
 	Theme.Round(rim,7)
 	Theme.Stroke(rim,Palette.Text,1.5).Transparency=0.46
 	local caption=Theme.Display(visual,"Caption",text,23)
-	caption.Position,caption.Size,caption.TextXAlignment=UDim2.fromOffset(6,-2),UDim2.new(1,-12,1,-3),Enum.TextXAlignment.Center
+	caption.Position,caption.Size,caption.TextXAlignment=UDim2.fromScale(0.025,0.075),UDim2.fromScale(0.95,0.8),Enum.TextXAlignment.Center
 	caption.ZIndex=5
 	local function syncCaption()
 		caption.Text,caption.TextSize,caption.Font=button.Text,button.TextSize,button.Font
 		caption.TextColor3=if button.Active then button.TextColor3 else Palette.Muted
-		caption.TextXAlignment,caption.TextWrapped=button.TextXAlignment,button.TextWrapped
+		caption.TextXAlignment,caption.TextWrapped,caption.TextScaled=button.TextXAlignment,button.TextWrapped,button.TextScaled
 	end
 	syncCaption()
-	for _,property in {"Text","TextSize","Font","TextColor3","TextXAlignment","TextWrapped","Active"} do
+	for _,property in {"Text","TextSize","Font","TextColor3","TextXAlignment","TextWrapped","TextScaled","Active"} do
 		button:GetPropertyChangedSignal(property):Connect(syncCaption)
 	end
 	Theme.Motion:BindButton(button,visual,face,rim.UIStroke)
@@ -309,7 +351,7 @@ function Theme.Display(parent,name,text,size,color)
 	label.TextOutline.Enabled=false
 	local shadow=Theme.Label(label,"TextShadow",text,size,Theme.Arcade.border)
 	local front=Theme.Label(label,"TextFace",text,size,color)
-	shadow.Position=UDim2.fromOffset(0,2)
+	shadow.Position=UDim2.fromScale(0,0.035)
 	shadow.Size,front.Size=UDim2.fromScale(1,1),UDim2.fromScale(1,1)
 	local function sync()
 		shadow.ZIndex,front.ZIndex=label.ZIndex,label.ZIndex+1
@@ -330,7 +372,7 @@ end
 -- Floating HUD art with a radial backdrop; no card face or decorative rim.
 function Theme.IconButton(parent,name,text,asset,callback)
 	local button=Instance.new("TextButton")
-	button.Name,button.Text,button.Size=name,text,UDim2.fromOffset(136,132)
+	button.Name,button.Text,button.Size=name,text,UDim2.fromScale(0.1,0.15)
 	button.BackgroundTransparency,button.BorderSizePixel,button.TextTransparency=1,0,1
 	button.AutoButtonColor,button.Selectable=false,true
 	button.Font,button.TextSize,button.TextColor3=Theme.Font,31,Theme.Colors.ink
@@ -378,9 +420,9 @@ end
 
 function Theme.PriceButton(parent,name,text,callback,color)
 	local button=Theme.ActionButton(parent,name,text,callback,color or Theme.ActionColors.purchase)
-	local icon=Theme.Image(button.Visual,"Currency",Theme.Assets.Cash,UDim2.fromOffset(44,42),UDim2.new(0,8,0.5,-23))
+	local icon=Theme.Image(button.Visual,"Currency",Theme.Assets.Cash,UDim2.fromScale(0.16,0.72),UDim2.fromScale(0.03,0.1))
 	icon.ZIndex=6
-	button.Visual.Caption.Position,button.Visual.Caption.Size=UDim2.fromOffset(55,-2),UDim2.new(1,-65,1,-3)
+	button.Visual.Caption.Position,button.Visual.Caption.Size=UDim2.fromScale(0.2,0.075),UDim2.fromScale(0.77,0.8)
 	return button
 end
 
@@ -389,15 +431,78 @@ function Theme.SetHeaderColor(header,color)
 	Theme.Gradient(header,highlight,color)
 end
 
+-- Every popup uses the shared, enlarged width-relative header. Native aspect
+-- constraints own resizing; there are no viewport measurements or resize loops.
+Theme.HeaderAspect = 1474/116
+
+function Theme.LayoutHeader(header)
+	header.AnchorPoint,header.Position,header.Size=Vector2.zero,UDim2.fromScale(0,0),UDim2.fromScale(1,1)
+	header.ZIndex=header.Parent.ZIndex+2
+	Theme.Aspect(header,Theme.HeaderAspect)
+	local stroke=Theme.Stroke(header,Theme.Arcade.border,3)
+	stroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	local studs=Theme.Studs(header,0.14,28,0)
+	studs.ZIndex=header.ZIndex;studs:SetAttribute("StudScaleWidth",1)
+	local rim=header:FindFirstChild("InsetHighlight") or Theme.Container(header,"InsetHighlight")
+	Theme.RelativeRect(rim,3,3,1468,109,1474,116)
+	rim.ZIndex=header.ZIndex+1
+	Theme.Stroke(rim,Palette.Text,1.5).Transparency=0.46
+	local icon=header.PageIcon
+	icon.AnchorPoint=Vector2.new(0,0.5)
+	icon.Position,icon.Size=UDim2.fromScale(21/1474,0.5),UDim2.fromScale(98/1474,98/116)
+	icon.ZIndex=header.ZIndex+2
+	Theme.Aspect(icon,1)
+	local title=header.Title
+	local left=if icon.Visible then 141 else 21
+	Theme.RelativeRect(title,left,11,1332-left,94,1474,116)
+	title.TextColor3,title.TextXAlignment,title.TextYAlignment=Palette.Text,Enum.TextXAlignment.Left,Enum.TextYAlignment.Center
+	title.TextWrapped,title.ZIndex=false,header.ZIndex+3
+	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,3
+	title.TextShadow.Visible,title.TextShadow.TextTransparency,title.TextShadow.TextOutline.Enabled=true,0.35,false
+	local close=header:FindFirstChild("Close")
+	if close then
+		close.AnchorPoint=Vector2.new(1,0)
+		close.Position,close.Size=UDim2.fromScale(1,1/116),UDim2.fromScale(120/1474,115/116)
+		Theme.Aspect(close,120/115)
+		close.ZIndex=header.ZIndex+4
+		local visual=close.Visual
+		visual.ZIndex,visual.LowerLip.ZIndex,visual.Face.ZIndex=close.ZIndex,close.ZIndex,close.ZIndex+1
+		visual.Face.InsetHighlight.ZIndex,visual.Caption.ZIndex=close.ZIndex+2,close.ZIndex+3
+	end
+	Theme.ScaleText(header)
+end
+
+function Theme.HeaderClose(header,callback)
+	local close=Theme.ActionButton(header,"Close","X",callback,Theme.ActionColors.danger)
+	Theme.ApplyReferenceAccent(close,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
+	Theme.LayoutHeader(header)
+	return close
+end
+
+-- Convert the shared header + gap into its menu's native Scale coordinates.
+-- Only authored aspect ratios are used; body contents retain their own layout.
+function Theme.BelowHeader(header,body,bottom)
+	Theme.LayoutHeader(header)
+	local parent=header.Parent
+	local aspect
+	while parent and not aspect do
+		aspect=parent:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+		parent=parent.Parent
+	end
+	assert(aspect,"A popup needs its authored UIAspectRatioConstraint")
+	local top=aspect.AspectRatio*(1/Theme.HeaderAspect+7/1474)
+	local height=(bottom or 1)-top
+	body.Position=UDim2.fromScale(body.Position.X.Scale,top+height*body.AnchorPoint.Y)
+	body.Size=UDim2.fromScale(body.Size.X.Scale,height)
+end
+
 function Theme.Header(parent,name,title,color)
-	local header=Theme.Frame(parent,name,UDim2.new(1,0,0,84),Color3.new(1,1,1))
+	local header=Theme.Frame(parent,name,UDim2.fromScale(1,1),Color3.new(1,1,1))
 	Theme.SetHeaderColor(header,color)
-	Theme.Stroke(header,Theme.Arcade.border,4)
-	Theme.Studs(header,0.14,28,0).ZIndex=header.ZIndex
 	local text=Theme.Display(header,"Title",title,50)
-	text.Position,text.Size=UDim2.fromOffset(24,0),UDim2.new(1,-132,1,0)
-	local icon=Theme.Image(header,"PageIcon",Theme.Assets.Army,UDim2.fromOffset(78,78),UDim2.fromOffset(12,1))
+	local icon=Theme.Image(header,"PageIcon",Theme.Assets.Army,UDim2.fromScale(1,1))
 	icon.Visible=false
+	Theme.LayoutHeader(header)
 	return header,text
 end
 
@@ -409,7 +514,7 @@ function Theme.Card(parent,name,size,color)
 	Theme.Gradient(card,Palette.Card:Lerp(Palette.Text,0.2),Palette.Card)
 	local rim=Theme.Stroke(card,Color3.new(1,1,1),4)
 	Theme.Gradient(rim,color:Lerp(Palette.Text,0.12),color)
-	local rays=Theme.Image(card,"IconRays",Theme.Assets.Rays,UDim2.new(1,-12,0,190),UDim2.fromOffset(6,44))
+	local rays=Theme.Image(card,"IconRays",Theme.Assets.Rays,UDim2.fromScale(0.96,0.65),UDim2.fromScale(0.02,0.15))
 	rays.ImageColor3,rays.ImageTransparency,rays.ZIndex=color,0.76,1
 	return card
 end
@@ -442,15 +547,15 @@ end
 function Theme.SegmentedBar(parent,name,size)
 	local track=Theme.Frame(parent,name,size,Theme.Arcade.border)
 	Theme.Round(track,7);Theme.Stroke(track,Theme.Arcade.border,3)
-	local inside=Theme.Frame(track,"Inside",UDim2.new(1,-8,1,-8),Theme.Colors.dark)
-	inside.Position,inside.ClipsDescendants=UDim2.fromOffset(4,4),true
+	local inside=Theme.Frame(track,"Inside",UDim2.fromScale(0.97,0.87),Theme.Colors.dark)
+	inside.Position,inside.ClipsDescendants=UDim2.fromScale(0.015,0.065),true
 	Theme.Round(inside,3)
 	local fill=Theme.Frame(inside,"Fill",UDim2.fromScale(0,1),Theme.Arcade.red)
 	Theme.Round(fill,3)
 	Theme.Gradient(fill,Color3.new(1,1,1),Color3.fromRGB(224,224,224))
 	for i=1,4 do
 		local line=Instance.new("Frame")
-		line.Name,line.Size,line.Position="Segment"..i,UDim2.new(0,3,1,0),UDim2.fromScale(i/5,0)
+		line.Name,line.Size,line.Position="Segment"..i,UDim2.fromScale(0.006,1),UDim2.fromScale(i/5,0)
 		line.BackgroundColor3,line.BorderSizePixel,line.ZIndex,line.Parent=Theme.Arcade.border,0,2,inside
 	end
 	return track,fill
@@ -465,9 +570,12 @@ Theme.HeaderColors.Upgrades = Theme.PageColors.Upgrades
 -- Popup presentation is applied after rendering so page-specific fills cannot restore old colors.
 function Theme.ApplyPopupStyle(panel)
 	if not panel then return end
-	local header=panel:FindFirstChild("Header")
+	local window=panel:FindFirstChild("StandardPage") or panel:FindFirstChild("Window") or panel
+	local header=window:FindFirstChild("Header")
+	local body=window:FindFirstChild("Main") or window:FindFirstChild("Body")
 	if header then
-		Theme.Studs(header,0.14,28,0).ZIndex=header.ZIndex
+		local studs=Theme.Studs(header,0.14,28,0)
+	studs.ZIndex=header.ZIndex;studs:SetAttribute("StudScaleWidth",1)
 		for _,name in {"Title","PageIcon","Close"} do
 			local foreground=header:FindFirstChild(name)
 			if foreground and foreground:IsA("GuiObject") then
@@ -501,13 +609,13 @@ function Theme.ApplyPopupStyle(panel)
 		Badge=true,SelectionOutline=true,InnerRim=true,
 	}
 	local function content(item)
-		if item:GetAttribute("OwnsPopupStyle")==true then return end
+		if item==header or item:GetAttribute("OwnsPopupStyle")==true then return end
 		if protected[item.Name] or item:IsA("ViewportFrame") then return end
 		-- Action-button visuals and their captions retain their authored colors.
 		if item:IsA("GuiButton") and (item:FindFirstChild("Visual") or item.Name=="Buy") then return end
 		if item:IsA("Frame") or item:IsA("GuiButton") then
 			if item.BackgroundTransparency<1 or item:FindFirstChildWhichIsA("UIGradient") then
-				darkSurface(item,item==panel:FindFirstChild("Body"))
+				darkSurface(item,item==body)
 			end
 		elseif item:IsA("TextLabel") and item.Name~="TextShadow" then
 			local _,_,value=item.TextColor3:ToHSV()

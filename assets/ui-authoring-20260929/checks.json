@@ -1,0 +1,272 @@
+{
+  "army": {
+    "ok": true,
+    "cases": [
+      {
+        "viewport": [
+          1920,
+          1080
+        ],
+        "menu": [
+          1036.8,
+          780
+        ],
+        "card": [
+          147,
+          154
+        ],
+        "firstRow": 4
+      },
+      {
+        "viewport": [
+          1291,
+          611
+        ],
+        "menu": [
+          697.14,
+          501.02
+        ],
+        "card": [
+          99,
+          103
+        ],
+        "firstRow": 4
+      },
+      {
+        "viewport": [
+          1024,
+          768
+        ],
+        "menu": [
+          552.96,
+          629.76
+        ],
+        "card": [
+          114,
+          119
+        ],
+        "firstRow": 4
+      },
+      {
+        "viewport": [
+          844,
+          390
+        ],
+        "menu": [
+          793.36,
+          358.8
+        ],
+        "card": [
+          99,
+          103
+        ],
+        "firstRow": 4
+      },
+      {
+        "viewport": [
+          390,
+          844
+        ],
+        "menu": [
+          366,
+          776.48
+        ],
+        "card": [
+          69,
+          72
+        ],
+        "firstRow": 4
+      }
+    ],
+    "method": "Edit-mode real Army renderer with simulated menu dimensions; not physical-device testing."
+  },
+  "runtime": {
+    "editedShopWidth": 748.7799682617188,
+    "expectedEditedShopWidth": 748.78,
+    "checks": {
+      "previewCopies": 0,
+      "menus": [
+        {
+          "page": "Army",
+          "passed": true
+        },
+        {
+          "page": "Shop",
+          "passed": true
+        },
+        {
+          "page": "Index",
+          "passed": true
+        },
+        {
+          "page": "Upgrades",
+          "passed": true
+        },
+        {
+          "page": "Settings",
+          "passed": true
+        },
+        {
+          "page": "Odds",
+          "passed": true
+        },
+        {
+          "page": "Merge",
+          "passed": true
+        }
+      ],
+      "previewsHidden": true
+    }
+  },
+  "receipt": {
+    "Passed": true
+  },
+  "controls": [
+    {
+      "name": "Odds",
+      "maximum": [
+        640,
+        560
+      ],
+      "previewObjects": 124,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.46000000834465027,
+        0,
+        0.699999988079071,
+        0
+      ]
+    },
+    {
+      "name": "Shop",
+      "maximum": [
+        900,
+        680
+      ],
+      "previewObjects": 912,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.6399999856948853,
+        0,
+        0.800000011920929,
+        0
+      ]
+    },
+    {
+      "name": "Index",
+      "maximum": [
+        940,
+        680
+      ],
+      "previewObjects": 1110,
+      "attributes": {
+        "CompactSize": null,
+        "PortraitScale": 1.15,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.6600000262260437,
+        0,
+        0.800000011920929,
+        0
+      ]
+    },
+    {
+      "name": "Upgrades",
+      "maximum": [
+        950,
+        660
+      ],
+      "previewObjects": 263,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.6700000166893005,
+        0,
+        0.800000011920929,
+        0
+      ]
+    },
+    {
+      "name": "Settings",
+      "maximum": [
+        640,
+        620
+      ],
+      "previewObjects": 116,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.46000000834465027,
+        0,
+        0.800000011920929,
+        0
+      ]
+    },
+    {
+      "name": "OfflineEarnings",
+      "maximum": [
+        520,
+        440
+      ],
+      "previewObjects": 56,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.3799999952316284,
+        0,
+        0.6399999856948853,
+        0
+      ]
+    },
+    {
+      "name": "MyArmy",
+      "maximum": [
+        1100,
+        780
+      ],
+      "previewObjects": 641,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.5400000214576721,
+        0,
+        0.8199999928474426,
+        0
+      ]
+    },
+    {
+      "name": "Fuse",
+      "maximum": [
+        760,
+        760
+      ],
+      "previewObjects": 319,
+      "attributes": {
+        "CompactSize": null,
+        "EditHelp": "Size.X.Scale = width; Size.Y.Scale = height. SizeLimits caps large screens. CompactSize controls phones."
+      },
+      "size": [
+        0.38999998569488525,
+        0,
+        0.8199999928474426,
+        0
+      ]
+    }
+  ],
+  "screenGuiCount": 1
+}

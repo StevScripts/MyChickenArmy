@@ -1,0 +1,114 @@
+{
+  "TerritoryClaimChecks": [
+    {
+      "name": "Recall/Go Base departure leaves the conquered mark and no enemies",
+      "passed": true
+    },
+    {
+      "name": "Empty base unclaims immediately but enemy control refills over eight seconds",
+      "passed": true
+    },
+    {
+      "name": "Unclaim is ownership-checked, repeat-safe and independent of selected chickens",
+      "passed": true
+    },
+    {
+      "name": "Unclaim while stationed keeps exact player lives and restarts defender combat",
+      "passed": true
+    },
+    {
+      "name": "An army can return mid-reclaim without resetting the meter",
+      "passed": true
+    },
+    {
+      "name": "Recall during released-base combat preserves the independent recovery",
+      "passed": true
+    },
+    {
+      "name": "Unclaiming a friendly destination during travel restores its defenders",
+      "passed": true
+    },
+    {
+      "name": "Explicitly unclaimed ground refills after vacancy without waiting for the next destination",
+      "passed": true
+    },
+    {
+      "name": "Returning/empty armies still get the owner's unclaim action",
+      "passed": true
+    },
+    {
+      "name": "Disconnect clears pending claims without touching earned wins",
+      "passed": true
+    }
+  ],
+  "CampRetargetingChecks": [
+    {
+      "name": "Redirect from Travel preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Fight preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Capture preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Holding preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Duplicate target and invalid orders leave the current fight untouched",
+      "passed": true
+    },
+    {
+      "name": "Switching repeatedly does not duplicate chickens or pay a kill twice",
+      "passed": true
+    },
+    {
+      "name": "All cleared camps remain empty through the full forward route",
+      "passed": true
+    },
+    {
+      "name": "Retreat from camp 3 to camp 1 frees reservations but preserves all claims",
+      "passed": true
+    },
+    {
+      "name": "Returning to camp 2 retains ownership of camps 1 and 3",
+      "passed": true
+    },
+    {
+      "name": "Changing a retreat mid-march waits for the replacement destination",
+      "passed": true
+    },
+    {
+      "name": "A new forward order cancels a pending abandoned-camp respawn",
+      "passed": true
+    },
+    {
+      "name": "A living straggler delays enemies after explicitly unclaiming its old camp",
+      "passed": true
+    },
+    {
+      "name": "Abandoned unfinished camps recover without granting cleared-route protection",
+      "passed": true
+    },
+    {
+      "name": "Returning and shared-defender armies cannot create a second outgoing battle",
+      "passed": true
+    },
+    {
+      "name": "Leaving the server releases retained camps without erasing earned wins",
+      "passed": true
+    },
+    {
+      "name": "Camp commands remain usable while traveling/fighting and disable the current target",
+      "passed": true
+    },
+    {
+      "name": "Physical actor handoff reuses player models and immediately clears attack flags",
+      "passed": true
+    }
+  ]
+}

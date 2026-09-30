@@ -102,6 +102,39 @@ function Checks.Run()
 		assert(actor.followCalls==2 and actor.target.X==before.X+1,"Steering retained the 0.2-second throttle")
 		assert(w.created==5 and s.armyState=="Following")
 	end)
+	check("Giant follows behind a partial regular row without changing selected slots",function()
+		local s,ids,w,b,c,p=setup();local selected=table.clone(s:BestPetIds())
+		assert(c:CallArmy(p,s,1));c:Step(10)
+		local r=c.following[s.userId]
+		assert(table.concat(s.slots,",")==table.concat(selected,","),"Following changed selected slots")
+		assert(r.ids[1]==ids[3] and r.ids[2]==ids[4] and r.ids[3]==ids[1])
+		local rear=r.frame:PointToObjectSpace(r.actors[ids[1]].target).Z
+		for _,id in {ids[3],ids[4]} do
+			local front=r.frame:PointToObjectSpace(r.actors[id].target).Z
+			assert(rear>front,"Giant shares or precedes the regular row")
+		end
+		-- A selection change while already following must rebuild the same rule.
+		s.armySelection={ids[1],ids[5]};c:Sync(s);c:Step(10.3)
+		assert(r.ids[1]==ids[5] and r.ids[2]==ids[1])
+		assert(r.offsets[ids[1]].Z>r.offsets[ids[5]].Z)
+	end)
+	check("Multiple Giant rows, all-Giant and all-regular squads keep centered stable formations",function()
+		local s,ids,w,b,c,p=setup();s.capacity=8
+		for _=1,3 do table.insert(ids,s:AddPet("Duck",1).id) end
+		s.pets[ids[2]].giantSize=4;s.pets[ids[7]].giantSize=12
+		s.armySelection={ids[1],ids[3],ids[2],ids[4],ids[5],ids[6],ids[7],ids[8]}
+		assert(c:CallArmy(p,s,1));local r=c.following[s.userId]
+		local lastRegular=math.max(r.offsets[ids[3]].Z,r.offsets[ids[8]].Z)
+		for _,id in {ids[1],ids[2],ids[7]} do assert(r.offsets[id].Z>lastRegular) end
+		assert(r.ids[6]==ids[1] and r.ids[7]==ids[2] and r.ids[8]==ids[7])
+		-- Four Giants occupy two rows, with the last row centered.
+		s.pets[ids[6]].giantSize=6;s.armySelection={ids[2],ids[7],ids[1],ids[6]};c:Sync(s)
+		assert(r.offsets[ids[2]].Z==7 and r.offsets[ids[6]].Z>7 and r.offsets[ids[6]].X==0)
+		for _,id in ids do s.pets[id].giantSize=nil end
+		s.armySelection=table.clone(ids);c:Sync(s)
+		local motion=require(game.ReplicatedStorage.PetRoll.Shared.FollowMotion)
+		for ordinal,id in ids do assert(r.ids[ordinal]==id and r.offsets[id]==motion.Offset(ordinal,#ids,5.5)) end
+	end)
 	check("Base returns player, following squad and reserves without replacing their actors",function()
 		local s,ids,w,b,c,p=setup();local original=table.clone(w.plots[1].actors)
 		assert(c:CallArmy(p,s,1));p.Character:PivotTo(CFrame.new(11000,5,100))

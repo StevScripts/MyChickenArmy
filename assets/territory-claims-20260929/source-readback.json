@@ -1,0 +1,26 @@
+[
+  {
+    "bytes": 62005,
+    "compiled": true,
+    "name": "BattleService",
+    "hash": 1361395197
+  },
+  {
+    "bytes": 19554,
+    "compiled": true,
+    "name": "GameServer",
+    "hash": 253113249
+  },
+  {
+    "bytes": 26002,
+    "compiled": true,
+    "name": "BaseController",
+    "hash": 1397077008
+  },
+  {
+    "bytes": 19710,
+    "compiled": true,
+    "name": "BattleController",
+    "hash": 411715393
+  }
+]

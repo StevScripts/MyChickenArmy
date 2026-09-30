@@ -1,0 +1,698 @@
+{
+  "forbidden": [],
+  "offsets": [],
+  "maxNormalizedDrift": 0.0000038413629503963875,
+  "cases": [
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "menus": {
+        "Fuse": {
+          "scrolls": [
+            {
+              "name": "ThreeChickenFlow",
+              "extent": 0
+            },
+            {
+              "name": "EligibleChickens",
+              "extent": 0
+            },
+            {
+              "name": "FusionResult",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            748.7999877929688,
+            748.7999877929688
+          ]
+        },
+        "Odds": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 1651.70458984375
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            790.513916015625,
+            512.0147705078125
+          ]
+        },
+        "Index": {
+          "scrolls": [
+            {
+              "name": "IndexGrid",
+              "extent": 1619.7884521484375
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            986.51513671875,
+            665.7987670898438
+          ]
+        },
+        "Upgrades": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            1267.66650390625,
+            432.6506652832031
+          ]
+        },
+        "Shop": {
+          "scrolls": [
+            {
+              "name": "ShopSections",
+              "extent": 1182.2132568359375
+            },
+            {
+              "name": "Outcomes",
+              "extent": 320.44525146484375
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            996.3992919921875,
+            672.4696044921875
+          ]
+        },
+        "OfflineEarnings": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            633.7520141601562,
+            455.4219665527344
+          ]
+        },
+        "Settings": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 36.370361328125
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            790.513916015625,
+            512.0147705078125
+          ]
+        },
+        "MyArmy": {
+          "scrolls": [
+            {
+              "name": "ChickenInventory",
+              "extent": 0
+            },
+            {
+              "name": "ArmyInfo",
+              "extent": 0
+            },
+            {
+              "name": "EquippedRoster",
+              "extent": 0
+            },
+            {
+              "name": "MoreArmySlots",
+              "extent": 0
+            },
+            {
+              "name": "SelectedChicken",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0,
+          "size": [
+            1208.4556884765625,
+            830.9318237304688
+          ]
+        }
+      }
+    },
+    {
+      "viewport": [
+        1280,
+        720
+      ],
+      "menus": {
+        "Fuse": {
+          "scrolls": [
+            {
+              "name": "ThreeChickenFlow",
+              "extent": 0
+            },
+            {
+              "name": "EligibleChickens",
+              "extent": 0
+            },
+            {
+              "name": "FusionResult",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 2.671484561345139e-7,
+          "size": [
+            499.1999816894531,
+            499.1999816894531
+          ]
+        },
+        "Odds": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 1101.1363220214844
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0.000002736187247442956,
+          "size": [
+            527.00927734375,
+            341.3431701660156
+          ]
+        },
+        "Index": {
+          "scrolls": [
+            {
+              "name": "IndexGrid",
+              "extent": 1079.859130859375
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 9.167207761784368e-7,
+          "size": [
+            657.6767578125,
+            443.8658447265625
+          ]
+        },
+        "Upgrades": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 2.1160890684157607e-7,
+          "size": [
+            845.1110229492188,
+            288.43377685546875
+          ]
+        },
+        "Shop": {
+          "scrolls": [
+            {
+              "name": "ShopSections",
+              "extent": 788.14208984375
+            },
+            {
+              "name": "Outcomes",
+              "extent": 213.63018798828125
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 6.103864271800319e-7,
+          "size": [
+            664.2662353515625,
+            448.3130798339844
+          ]
+        },
+        "OfflineEarnings": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 1.7375551486509266e-7,
+          "size": [
+            422.5013427734375,
+            303.6146545410156
+          ]
+        },
+        "Settings": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 24.2469482421875
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 3.6180742046809655e-7,
+          "size": [
+            527.00927734375,
+            341.3431701660156
+          ]
+        },
+        "MyArmy": {
+          "scrolls": [
+            {
+              "name": "ChickenInventory",
+              "extent": 0
+            },
+            {
+              "name": "ArmyInfo",
+              "extent": 0
+            },
+            {
+              "name": "EquippedRoster",
+              "extent": 0
+            },
+            {
+              "name": "MoreArmySlots",
+              "extent": 0
+            },
+            {
+              "name": "SelectedChicken",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 4.366836283686837e-7,
+          "size": [
+            805.6371459960938,
+            553.95458984375
+          ]
+        }
+      }
+    },
+    {
+      "viewport": [
+        1024,
+        768
+      ],
+      "menus": {
+        "Fuse": {
+          "scrolls": [
+            {
+              "name": "ThreeChickenFlow",
+              "extent": 0
+            },
+            {
+              "name": "EligibleChickens",
+              "extent": 0
+            },
+            {
+              "name": "FusionResult",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 2.4901707884605884e-7,
+          "size": [
+            399.3599853515625,
+            399.3599853515625
+          ]
+        },
+        "Odds": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 880.9088745117188
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0.0000015416297056702888,
+          "size": [
+            421.607421875,
+            273.07452392578125
+          ]
+        },
+        "Index": {
+          "scrolls": [
+            {
+              "name": "IndexGrid",
+              "extent": 863.8875122070312
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0.0000011087123472641736,
+          "size": [
+            526.1414184570312,
+            355.0926818847656
+          ]
+        },
+        "Upgrades": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 2.956433471368314e-7,
+          "size": [
+            676.0888061523438,
+            230.7470245361328
+          ]
+        },
+        "Shop": {
+          "scrolls": [
+            {
+              "name": "ShopSections",
+              "extent": 630.513671875
+            },
+            {
+              "name": "Outcomes",
+              "extent": 170.90411376953125
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 7.158871504486797e-7,
+          "size": [
+            531.4129638671875,
+            358.65045166015625
+          ]
+        },
+        "OfflineEarnings": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 1.4811752202525952e-7,
+          "size": [
+            338.1770324707031,
+            243.01815795898438
+          ]
+        },
+        "Settings": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 19.3975830078125
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 5.469010115888295e-7,
+          "size": [
+            421.607421875,
+            273.07452392578125
+          ]
+        },
+        "MyArmy": {
+          "scrolls": [
+            {
+              "name": "ChickenInventory",
+              "extent": 0
+            },
+            {
+              "name": "ArmyInfo",
+              "extent": 0
+            },
+            {
+              "name": "EquippedRoster",
+              "extent": 0
+            },
+            {
+              "name": "MoreArmySlots",
+              "extent": 0
+            },
+            {
+              "name": "SelectedChicken",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 3.510371691106684e-7,
+          "size": [
+            644.5097045898438,
+            443.16363525390625
+          ]
+        }
+      }
+    },
+    {
+      "viewport": [
+        844,
+        390
+      ],
+      "menus": {
+        "Fuse": {
+          "scrolls": [
+            {
+              "name": "ThreeChickenFlow",
+              "extent": 0
+            },
+            {
+              "name": "EligibleChickens",
+              "extent": 0
+            },
+            {
+              "name": "FusionResult",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 3.23016942083143e-7,
+          "size": [
+            319.79998779296875,
+            319.79998779296875
+          ]
+        },
+        "Odds": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 680.8890686035156
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 8.615729130134753e-7,
+          "size": [
+            325.8768005371094,
+            211.0699462890625
+          ]
+        },
+        "Index": {
+          "scrolls": [
+            {
+              "name": "IndexGrid",
+              "extent": 592.9161071777344
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 9.34667075291884e-7,
+          "size": [
+            361.1092834472656,
+            243.71255493164062
+          ]
+        },
+        "Upgrades": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 2.6604167402410894e-7,
+          "size": [
+            527.390380859375,
+            179.9967041015625
+          ]
+        },
+        "Shop": {
+          "scrolls": [
+            {
+              "name": "ShopSections",
+              "extent": 491.83837890625
+            },
+            {
+              "name": "Outcomes",
+              "extent": 133.3154754638672
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 7.155793562141355e-7,
+          "size": [
+            414.53399658203125,
+            279.76885986328125
+          ]
+        },
+        "OfflineEarnings": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 2.4155951605653314e-7,
+          "size": [
+            228.8549041748047,
+            164.4579315185547
+          ]
+        },
+        "Settings": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 14.993133544921875
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 5.230439059644709e-7,
+          "size": [
+            325.8768005371094,
+            211.0699462890625
+          ]
+        },
+        "MyArmy": {
+          "scrolls": [
+            {
+              "name": "ChickenInventory",
+              "extent": 0
+            },
+            {
+              "name": "ArmyInfo",
+              "extent": 0
+            },
+            {
+              "name": "EquippedRoster",
+              "extent": 0
+            },
+            {
+              "name": "MoreArmySlots",
+              "extent": 0
+            },
+            {
+              "name": "SelectedChicken",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 6.779352030861219e-7,
+          "size": [
+            465.0972900390625,
+            319.8000183105469
+          ]
+        }
+      }
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "menus": {
+        "Fuse": {
+          "scrolls": [
+            {
+              "name": "ThreeChickenFlow",
+              "extent": 0
+            },
+            {
+              "name": "EligibleChickens",
+              "extent": 0
+            },
+            {
+              "name": "FusionResult",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 3.27617273643277e-7,
+          "size": [
+            152.09999084472656,
+            152.09999084472656
+          ]
+        },
+        "Odds": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 335.5027160644531
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0.0000038413629503963875,
+          "size": [
+            160.57313537597656,
+            104.00299072265625
+          ]
+        },
+        "Index": {
+          "scrolls": [
+            {
+              "name": "IndexGrid",
+              "extent": 329.0195617675781
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 0.0000010880337129037798,
+          "size": [
+            200.38589477539062,
+            135.24038696289062
+          ]
+        },
+        "Upgrades": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 5.45002675378381e-7,
+          "size": [
+            257.4947509765625,
+            87.88216400146484
+          ]
+        },
+        "Shop": {
+          "scrolls": [
+            {
+              "name": "ShopSections",
+              "extent": 240.1370849609375
+            },
+            {
+              "name": "Outcomes",
+              "extent": 65.0904541015625
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 6.494307247528752e-7,
+          "size": [
+            202.39361572265625,
+            136.59539794921875
+          ]
+        },
+        "OfflineEarnings": {
+          "scrolls": [],
+          "offenders": [],
+          "maxNormalizedDrift": 2.508542020773774e-7,
+          "size": [
+            128.7978973388672,
+            92.55574798583984
+          ]
+        },
+        "Settings": {
+          "scrolls": [
+            {
+              "name": "Content",
+              "extent": 7.387725830078125
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 4.530365895760724e-7,
+          "size": [
+            160.57313537597656,
+            104.00299072265625
+          ]
+        },
+        "MyArmy": {
+          "scrolls": [
+            {
+              "name": "ChickenInventory",
+              "extent": 0
+            },
+            {
+              "name": "ArmyInfo",
+              "extent": 0
+            },
+            {
+              "name": "EquippedRoster",
+              "extent": 0
+            },
+            {
+              "name": "MoreArmySlots",
+              "extent": 0
+            },
+            {
+              "name": "SelectedChicken",
+              "extent": 0
+            }
+          ],
+          "offenders": [],
+          "maxNormalizedDrift": 6.646154986356123e-7,
+          "size": [
+            245.46755981445312,
+            168.78302001953125
+          ]
+        }
+      }
+    }
+  ],
+  "passed": true
+}

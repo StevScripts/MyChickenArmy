@@ -4,6 +4,7 @@ local Economy = {
 	RecruitPaybackSeconds = 600,
 	StarterRecruitPrice = 600,
 	FusionRecruitFraction = 0.25, -- Cash fee relative to one normal matching recruit.
+	ChickenUpgradeRecruitFraction = 0.75, -- One paid level; scales with the current recruit level.
 	IncomeUpgradeSeconds = 180,
 	LuckUpgradeSeconds = 120,
 	-- Capped board continuation. Preserve the opening four benchmark prices.

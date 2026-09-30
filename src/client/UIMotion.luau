@@ -1,7 +1,6 @@
 --!strict
 -- Client presentation only. Timings never gate a request or manufacture a reward.
 local TweenService=game:GetService("TweenService")
-local RunService=game:GetService("RunService")
 local Motion={}
 Motion.__index=Motion
 
@@ -9,7 +8,7 @@ function Motion.new()
 	return setmetatable({
 		reduced=false,
 		tracks={},
-		pulses={},
+		restingSizes=setmetatable({}, {__mode="k"}),
 		bindings=setmetatable({}, {__mode = "k"}),
 		spins=setmetatable({}, {__mode = "k"}),
 		panelSerial=0,
@@ -37,7 +36,6 @@ end
 
 function Motion:Tween(object,channel,goals,seconds,style,direction,complete,repeats)
 	self:Cancel(object,channel)
-	if channel=="scale" then self.pulses[object]=nil end
 	if self.reduced or seconds<=0 then
 		for property,value in goals do object[property]=value end
 		if complete then complete() end
@@ -55,54 +53,22 @@ function Motion:Tween(object,channel,goals,seconds,style,direction,complete,repe
 	tween:Play()
 end
 
-function Motion:Scale(item)
-	local scale=item:FindFirstChild("MotionScale")
-	if not scale then scale=Instance.new("UIScale");scale.Name="MotionScale";scale.Parent=item end
-	return scale
+local function multiplied(size,amount)
+	return UDim2.new(size.X.Scale*amount,size.X.Offset*amount,size.Y.Scale*amount,size.Y.Offset*amount)
 end
 
 function Motion:Pop(item,amount)
 	if not item or not item.Parent then return end
-	local scale=self:Scale(item)
-	self:Cancel(scale,"scale")
-	scale.Scale=if self.reduced then 1 else amount or 1.08
-	self:Tween(scale,"scale",{Scale=1},0.24,Enum.EasingStyle.Back)
+	local size=self.restingSizes[item] or item.Size
+	self.restingSizes[item]=size
+	self:Cancel(item,"press")
+	self:Cancel(item,"pop")
+	item.Size=if self.reduced then size else multiplied(size,amount or 1.08)
+	self:Tween(item,"pop",{Size=size},0.24,Enum.EasingStyle.Back)
 end
 
--- Reward arrivals add energy to the current motion instead of resetting scale.
 function Motion:Pulse(item,amount)
-	if not item or not item.Parent then return end
-	local scale=self:Scale(item)
-	self:Cancel(scale,"scale")
-	if self.reduced then scale.Scale=1;return end
-	local pulse=self.pulses[scale] or {x=scale.Scale-1,v=0,limit=0}
-	pulse.limit=math.max(pulse.limit,(amount or 1.06)-1)
-	pulse.v=math.min(pulse.v+pulse.limit*48,pulse.limit*65)
-	self.pulses[scale]=pulse
-	if self.pulseConnection then return end
-	self.pulseConnection=RunService.RenderStepped:Connect(function(dt)
-		for target,p in self.pulses do
-			if not target.Parent then self.pulses[target]=nil;continue end
-			-- Exact critically damped spring; consistent at different frame rates.
-			local time=math.min(dt,0.1)
-			local omega=24
-			local decay=math.exp(-omega*time)
-			local c=p.v+omega*p.x
-			p.x,p.v=(p.x+c*time)*decay,(p.v-omega*c*time)*decay
-			p.x=math.clamp(p.x,0,p.limit)
-			target.Scale=1+p.x
-			if math.abs(p.x)<0.0005 and math.abs(p.v)<0.005 then
-				target.Scale=1;self.pulses[target]=nil
-			end
-		end
-		if not next(self.pulses) then self.pulseConnection:Disconnect();self.pulseConnection=nil end
-	end)
-end
-
-function Motion:ClearPulses()
-	if self.pulseConnection then self.pulseConnection:Disconnect();self.pulseConnection=nil end
-	for scale in self.pulses do if scale.Parent then scale.Scale=1 end end
-	table.clear(self.pulses)
+	self:Pop(item,amount or 1.06)
 end
 
 function Motion:Shine(face)
@@ -129,12 +95,14 @@ function Motion:BindButton(button,visual,face,rim)
 	self:DisconnectButtonBindings(button)
 	local connections={}
 	self.bindings[button]=connections
-	local scale=self:Scale(visual)
+	local restingSize=visual.Size
+	self.restingSizes[visual]=restingSize
 	local hovering,focused,pressed=false,false,false
 	local function update()
 		local hot=button.Active and (hovering or focused)
 		local target=if self.reduced then 1 elseif pressed and button.Active then 0.955 elseif hot then 1.03 else 1
-		self:Tween(scale,"scale",{Scale=target},if pressed then 0.065 else 0.13)
+		self:Cancel(visual,"pop")
+		self:Tween(visual,"press",{Size=multiplied(restingSize,target)},if pressed then 0.065 else 0.13)
 		if rim then self:Tween(rim,"highlight",{Transparency=if button.Active then (if hot then 0.05 else 0.46) else 0.66},0.12) end
 	end
 	local function connect(fn,callback)
@@ -182,8 +150,8 @@ function Motion:BindButton(button,visual,face,rim)
 	connect(function(cb) return button.Activated:Connect(cb) end, function()
 		if not button.Active then return end
 		pressed=false
-		self:Cancel(scale,"scale")
-		scale.Scale=if self.reduced then 1 else 0.955
+		self:Cancel(visual,"press")
+		visual.Size=if self.reduced then restingSize else multiplied(restingSize,0.955)
 		update()
 	end)
 	connect(function(cb) return button.Destroying:Connect(cb) end, function()
@@ -193,39 +161,37 @@ end
 
 function Motion:OpenPanel(panel,backdrop,switching)
 	self.panelSerial+=1
-	local scale=self:Scale(panel)
-	self:Cancel(scale,"scale");self:Cancel(panel,"position")
+	self:Cancel(panel,"position")
+	local position=panel.Position
+	panel:SetAttribute("RestingPosition",position)
 	panel.Visible,backdrop.Visible=true,true
-	scale.Scale=if self.reduced then 1 elseif switching then 0.975 else 0.92
-	panel.Position=UDim2.new(0.5,0,0.5,if self.reduced then 0 else 14)
-	backdrop.BackgroundTransparency=1 -- Input shield only; AppController owns the world blur.
-	self:Tween(scale,"scale",{Scale=1},if switching then 0.16 else 0.24,Enum.EasingStyle.Back)
-	self:Tween(panel,"position",{Position=UDim2.fromScale(0.5,0.5)},0.2)
+	panel.Position=if self.reduced then position else position+UDim2.fromScale(0,0.02)
+	backdrop.BackgroundTransparency=1
+	self:Tween(panel,"position",{Position=position},if switching then 0.16 else 0.2)
 end
 
 function Motion:ClosePanel(panel,backdrop,complete)
 	self.panelSerial+=1
 	local serial=self.panelSerial
 	self:StopSpins()
-	self:Tween(self:Scale(panel),"scale",{Scale=0.96},0.12,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+	local position=panel:GetAttribute("RestingPosition") or panel.Position
 	self:Tween(backdrop,"fade",{BackgroundTransparency=1},0.12)
-	self:Tween(panel,"position",{Position=UDim2.new(0.5,0,0.5,12)},0.12,nil,nil,function()
+	self:Tween(panel,"position",{Position=position+UDim2.fromScale(0,0.02)},0.12,nil,nil,function()
 		if serial~=self.panelSerial then return end
 		panel.Visible,backdrop.Visible=false,false
-		self:Scale(panel).Scale=1
-		panel.Position=UDim2.fromScale(0.5,0.5)
+		panel.Position=position
 		complete()
 	end)
 end
 
 function Motion:Toast(frame,show,target,quiet)
-	target=target or (if show then UDim2.new(0.5,0,1,-140) else frame.Position)
+	target=target or (if show then UDim2.fromScale(0.5,0.82) else frame.Position)
 	self:Cancel(frame,"toast")
 	self:Cancel(frame,"toast-fade")
 	if show then
 		local entering=not frame.Visible
 		frame.Visible=true
-		frame.Position=if entering and not self.reduced then target+UDim2.fromOffset(0,6) else frame.Position
+		frame.Position=if entering and not self.reduced then target+UDim2.fromScale(0,0.01) else frame.Position
 		if frame:IsA("CanvasGroup") then
 			if not quiet then frame.GroupTransparency=1 end
 			self:Tween(frame,"toast-fade",{GroupTransparency=0},0.14)
@@ -274,10 +240,10 @@ function Motion:Burst(parent,position,color)
 	holder.Parent=parent
 	for i=1,10 do
 		local particle=Instance.new("Frame")
-		particle.Size,particle.Position,particle.AnchorPoint=UDim2.fromOffset(7+(i%3)*2,7+(i%3)*2),position,Vector2.new(0.5,0.5)
+		particle.Size,particle.Position,particle.AnchorPoint=UDim2.fromScale(0.01+(i%3)*0.003,0.01+(i%3)*0.003),position,Vector2.new(0.5,0.5)
 		particle.BackgroundColor3,particle.BorderSizePixel,particle.Rotation,particle.Parent=color,0,i*33,holder
 		local angle=math.pi*2*i/10
-		self:Tween(particle,"burst",{Position=position+UDim2.fromOffset(math.cos(angle)*(85+i*4),math.sin(angle)*50-22),Rotation=i*33+130,BackgroundTransparency=1,Size=UDim2.fromOffset(2,2)},0.55)
+		self:Tween(particle,"burst",{Position=position+UDim2.fromScale(math.cos(angle)*(0.12+i*0.006),math.sin(angle)*0.12-0.04),Rotation=i*33+130,BackgroundTransparency=1,Size=UDim2.fromScale(0.003,0.003)},0.55)
 	end
 	task.delay(0.6,function() holder:Destroy() end)
 end
@@ -285,21 +251,19 @@ end
 function Motion:SetReduced(value)
 	self.reduced=value
 	if not value then return end
-	self:ClearPulses()
 	self:StopSpins()
 	local pending={}
 	for object,channels in self.tracks do for channel,track in channels do table.insert(pending,{object=object,channel=channel,goals=track.goals,finish=track.finish}) end end
 	for _,entry in pending do
 		self:Cancel(entry.object,entry.channel)
 		if entry.object.Parent then
-			for property,target in entry.goals do entry.object[property]=if entry.object:IsA("UIScale") and property=="Scale" then 1 else target end
+			for property,target in entry.goals do entry.object[property]=target end
 			if entry.finish then entry.finish() end
 		end
 	end
 end
 
 function Motion:Reset()
-	self:ClearPulses()
 	self:StopSpins()
 	local pending={}
 	for object,channels in self.tracks do for channel in channels do table.insert(pending,{object,channel}) end end

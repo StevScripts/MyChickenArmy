@@ -2,6 +2,7 @@
 -- Owns the selected squad while following; World and Battle retain their actor owners otherwise.
 local MapLayout=require(game:GetService("ReplicatedStorage").PetRoll.Shared.MapLayout)
 local FollowMotion=require(game:GetService("ReplicatedStorage").PetRoll.Shared.FollowMotion)
+local Giant=require(game:GetService("ReplicatedStorage").PetRoll.Shared.GiantChicken)
 local Commands={}
 Commands.__index=Commands
 
@@ -59,9 +60,23 @@ function Commands:Sync(session)
 	session.slots=table.clone(ids)
 	session.awayPets=desired
 	session.armyState="Following"
-	record.ids=ids
 	record.spacing=5.5
 	for _,id in ids do record.spacing=math.max(record.spacing,(session.pets[id].giantSize or 0)*0.7) end
+	-- Following has its own formation order; keep the saved/selected slots intact.
+	local regular,giants={},{}
+	for _,id in ids do
+		table.insert(if Giant.IsValidSize(session.pets[id].giantSize) then giants else regular,id)
+	end
+	record.ids,record.offsets={},{}
+	local rear=Vector3.new(0,0,math.ceil(#regular/3)*record.spacing)
+	for ordinal,id in regular do
+		table.insert(record.ids,id)
+		record.offsets[id]=FollowMotion.Offset(ordinal,#regular,record.spacing)
+	end
+	for ordinal,id in giants do
+		table.insert(record.ids,id)
+		record.offsets[id]=FollowMotion.Offset(ordinal,#giants,record.spacing)+rear
+	end
 end
 
 function Commands:StartFollowing(session,player)
@@ -133,10 +148,10 @@ function Commands:Step(now)
 		record.frame=FollowMotion.Frame(record.frame,root.CFrame,velocity,dt)
 		local ground=now>=record.nextGround
 		if ground then record.nextGround=now+0.1 end
-		for ordinal,id in record.ids do
+		for _,id in record.ids do
 			local actor=record.actors[id]
 			if not actor then continue end
-			local target=record.frame:PointToWorldSpace(FollowMotion.Offset(ordinal,#record.ids,record.spacing))
+			local target=record.frame:PointToWorldSpace(record.offsets[id])
 			if ground or not record.heights[id] then record.heights[id]=MapLayout.FootPosition(target.X,target.Z).Y end
 			local foot=Vector3.new(target.X,record.heights[id],target.Z)
 			local distance=FollowMotion.Flat(actor:Position()-foot).Magnitude

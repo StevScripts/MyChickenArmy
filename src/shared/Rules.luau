@@ -38,6 +38,13 @@ function Rules.MergePrice(species: string, level: number): number
 	return math.max(1,math.ceil(Rules.RecruitPrice(species,level)*Config.Economy.FusionRecruitFraction))
 end
 
+-- Current cash-level quote. Keep the historical UpgradePrice below frozen so
+-- changing today's tuning cannot revalue investments reconstructed from old saves.
+function Rules.ChickenUpgradePrice(species: string, level: number): number?
+	if level>=Config.MaxPetLevel then return nil end
+	return math.max(1,math.ceil(Rules.RecruitPrice(species,level)*Config.Economy.ChickenUpgradeRecruitFraction))
+end
+
 -- Develop a species by merging; later offers supply copies one level behind it.
 -- Never sell the rank's top merge level directly. Selling a species can lower future offers.
 function Rules.RecruitLevel(pets, species: string, promotion: number): number
@@ -53,7 +60,7 @@ function Rules.SellValue(investment: number): number
 end
 
 -- Historical cost curve retained for investment/refund compatibility only.
--- Gameplay levels now increase through merging; this does not authorize a purchase.
+-- New cash purchases use ChickenUpgradePrice; this curve only reconstructs old saves.
 function Rules.UpgradePrice(species: string, level: number): number?
 	if level>=Config.MaxPetLevel then return nil end
 	local definition=Catalog[species]

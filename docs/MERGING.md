@@ -1,5 +1,7 @@
 # Manual chicken merging
 
+September 29: individual cash leveling is also available in My Army. The user explicitly kept this existing fusion contract for now; cash levels do not introduce a Giant-chance machine. See [cash upgrades](team/CHICKEN_CASH_UPGRADES.md).
+
 Implemented September 25, 2026 at the user's explicit request. This supersedes older statements that merging is disabled. `Config.Features.Merging = true`; `AutoMerging = false`. Enabling the manual feature does not enable the paid Auto Merge listing or automatic consumption.
 
 September 28: every successful fusion now guarantees a **Giant**, sized **4–27.5

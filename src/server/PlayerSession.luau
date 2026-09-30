@@ -214,6 +214,16 @@ function PlayerSession:SaleEligibility(id): (boolean,string)
 	return saleEligibility(self,id,selectedSet(self))
 end
 
+function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
+	local pet=if type(id)=="string" and #id<=64 then self.pets[id] else nil
+	if not pet then return false,"Choose a chicken from your own flock." end
+	if (pet.level or 1)>=Config.MaxPetLevel then return false,"Max level reached." end
+	if not self:IsPetHome(id) or (self.incoming and self:FindSlot(id)) then
+		return false,"This chicken must return home before upgrading."
+	end
+	return true,""
+end
+
 function PlayerSession:Lineup()
 	local result,ids = {},{}
 	for slot=1, self:Capacity() do
@@ -345,13 +355,15 @@ function PlayerSession:Snapshot(now: number)
 	local pets={}
 	for _,pet in self.pets do
 		local canSell,reason=saleEligibility(self,pet.id,selected)
+		local canUpgrade,upgradeReason=self:ChickenUpgradeEligibility(pet.id)
 		table.insert(pets,{id=pet.id,species=pet.species,stars=pet.stars,level=pet.level,favorite=pet.favorite,
 			giantSize=pet.giantSize,
 			slot=self:FindSlot(pet.id),selected=selected[pet.id]==true,deployed=deployed[pet.id]==true,
 			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level),home=self:IsPetHome(pet.id),
 			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level),
-			nextIncome=if (pet.level or 1)<rank.levelCap then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1) else nil,
-			levelCap=rank.levelCap,upgradeLocked=(pet.level or 1)>=rank.levelCap,
+			nextIncome=if (pet.level or 1)<Config.MaxPetLevel then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1) else nil,
+			upgradePrice=Rules.ChickenUpgradePrice(pet.species,pet.level or 1),canUpgrade=canUpgrade,upgradeReason=upgradeReason,
+			levelCap=rank.levelCap,upgradeLocked=not canUpgrade,
 			investment=pet.investment,refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))})
 	end
 	table.sort(pets,function(a,b)

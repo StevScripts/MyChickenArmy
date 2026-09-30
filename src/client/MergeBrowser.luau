@@ -18,9 +18,6 @@ local MUTED=Color3.fromRGB(185,182,199)
 local LINE=Color3.fromRGB(99,92,113)
 local PIPE_IDLE=Color3.fromRGB(67,38,83)
 local ACCENT=ColorSequence.new(Color3.fromRGB(207,72,255),Color3.fromRGB(138,20,219))
-local function place(item,x,y,w,h)
- item.Position,item.Size=UDim2.fromOffset(x,y),UDim2.fromOffset(w,h)
-end
 local function frame(parent,name,color)
  local item=Theme.Frame(parent,name,UDim2.new(),color)
  item.BackgroundTransparency,item.ZIndex=if color then 0 else 1,parent.ZIndex+1
@@ -30,13 +27,11 @@ local function label(parent,name,text,size,color)
  local item=Theme.Label(parent,name,text,size,color or WHITE)
  item.ZIndex,item.TextWrapped,item.TextXAlignment=parent.ZIndex+4,false,Enum.TextXAlignment.Center
  item.TextOutline.Color=Color3.new()
+ Theme.ScaleText(item)
  return item
 end
-local function fitText(item,maxSize,minSize)
- item.TextScaled=true
- local constraint=Instance.new("UITextSizeConstraint",item)
- constraint.MinTextSize,constraint.MaxTextSize=minSize or 12,maxSize
- return constraint
+local function fitText(item)
+ Theme.ScaleText(item)
 end
 local function button(parent,name,text,callback,secondary)
  local item=Theme.ActionButton(parent,name,text,callback,if secondary=="close" then Theme.Arcade.red else PURPLE)
@@ -76,27 +71,30 @@ local function line(parent,name)
  Theme.Stroke(item,Color3.new(),3)
  return item
 end
-local function segment(item,from,to,thickness)
+local function segment(item,from,to,thickness,width,height)
  local delta=to-from
- item.Position,item.Size=UDim2.fromOffset((from.X+to.X)/2,(from.Y+to.Y)/2),UDim2.fromOffset(delta.Magnitude,thickness)
+ Theme.RelativeRect(item,(from.X+to.X)/2,(from.Y+to.Y)/2,delta.Magnitude,thickness,width,height)
  item.Rotation=math.deg(math.atan2(delta.Y,delta.X))
 end
 
 function Browser.new(app,parent)
- local self=setmetatable({app=app,alive=true,viewSerial=0,selection=Selection.new(),mode="Main",query="",cards={},connections={},slots={},key=""},Browser)
+ local self=setmetatable({app=app,alive=true,viewSerial=0,selection=Selection.new(),mode="Main",query="",cards={},rows={},connections={},slots={},key=""},Browser)
  local root=frame(parent,"MergeBrowser",INK)
  root.Size,root.Visible,root.ClipsDescendants=UDim2.fromScale(1,1),false,true
  root:SetAttribute("OwnsPopupStyle",true);Theme.Stroke(root,Color3.new(),6);self.root=root
+ Theme.Aspect(root,1)
  local rim=frame(root,"PurpleRim")
- rim.Position,rim.Size=UDim2.fromOffset(3,3),UDim2.new(1,-6,1,-6)
+ rim.Position,rim.Size=UDim2.fromScale(3/900,3/900),UDim2.fromScale(894/900,894/900)
  Theme.Stroke(rim,PURPLE,2)
  self.header,self.title=Theme.Header(root,"Header","Fuse Chickens",PURPLE)
  self.header.ZIndex,self.title.ZIndex=root.ZIndex+2,root.ZIndex+6
  self.title.TextColor3=WHITE;Theme.ApplyReferenceAccent(self.header,ACCENT)
- self.header.UIStroke.Color,self.header.UIStroke.Thickness=PURPLE,2
  self.header.PageIcon.Image,self.header.PageIcon.Visible,self.header.PageIcon.ZIndex=Theme.Assets.Merge,true,self.header.ZIndex+3
- self.closeButton=button(root,"Close","X",function() app.audio:Play("Click");app:ClosePanel() end,"close")
- self.main=scroll(root,"ThreeChickenFlow")
+ self.closeButton=Theme.HeaderClose(self.header,function() app.audio:Play("Click");app:ClosePanel() end)
+ self.body=Theme.Container(root,"Main")
+ self.footer=Theme.Container(root,"Actions")
+ self.footer.AnchorPoint=Vector2.new(0.5,1)
+ self.main=scroll(self.body,"ThreeChickenFlow")
  self.mainContent=frame(self.main,"Content")
  self.rule=label(self.mainContent,"Rule","3 matching chickens",29)
  self.rule.TextXAlignment=Enum.TextXAlignment.Center
@@ -121,11 +119,11 @@ function Browser.new(app,parent)
  self.resultArt=frame(self.result,"Portrait")
  self.resultEmpty=label(self.resultArt,"Empty","?",90,MUTED);self.resultEmpty.Size=UDim2.fromScale(1,1)
  self.resultName=label(self.result,"ChickenLevel","",32,PURPLE);fitText(self.resultName,32,20)
- self.action=button(root,"Fuse","Fuse",function() self:Merge() end)
+ self.action=button(self.footer,"Fuse","Fuse",function() self:Merge() end)
  fitText(self.action.Visual.Caption,46,14);self.action.Visual.Caption.TextWrapped=false
- self.message=label(root,"Status","",20,MUTED);self.message.TextWrapped=true
- self.tradeoff=label(root,"Tradeoff","3 chickens → 1 Giant",23,MUTED)
- self.picker=frame(root,"ChickenPicker")
+ self.message=label(self.body,"Status","",20,MUTED);self.message.TextWrapped=true
+ self.tradeoff=label(self.footer,"Tradeoff","3 chickens → 1 Giant",23,MUTED)
+ self.picker=frame(self.body,"ChickenPicker")
  self.searchShell=frame(self.picker,"Search",Color3.new());Theme.Stroke(self.searchShell,LINE,1.5)
  local search=Instance.new("TextBox")
  search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search…"
@@ -134,16 +132,15 @@ function Browser.new(app,parent)
  search.TextXAlignment,search.ZIndex,search.Parent=Enum.TextXAlignment.Left,self.searchShell.ZIndex+2,self.searchShell
  self.search=search
  self.grid=scroll(self.picker,"EligibleChickens");self.grid.AutomaticCanvasSize=Enum.AutomaticSize.Y
- local padding=Instance.new("UIPadding",self.grid)
- padding.PaddingLeft,padding.PaddingRight,padding.PaddingTop,padding.PaddingBottom=UDim.new(0,4),UDim.new(0,8),UDim.new(0,4),UDim.new(0,8)
- self.layout=Instance.new("UIGridLayout",self.grid);self.layout.SortOrder=Enum.SortOrder.LayoutOrder
+ local layout=Instance.new("UIListLayout",self.grid)
+ layout.SortOrder,layout.FillDirection,layout.Padding=Enum.SortOrder.LayoutOrder,Enum.FillDirection.Vertical,UDim.new(0,0)
  self.emptyIcon=Theme.Image(self.picker,"EmptyIcon",Theme.Assets.Merge,UDim2.new());self.emptyIcon.ZIndex=self.picker.ZIndex+3
  self.empty=label(self.picker,"Empty","No matching trio yet",30);self.empty.TextWrapped=true
  self.hint=label(self.picker,"Hint","Keep collecting chickens.",23,MUTED);self.hint.TextWrapped=true
  self.back=button(self.picker,"Back","Back",function()
   if self.query~="" and #self.cards==0 then self.search.Text="" else self.mode="Main";self:Render(true);self:Focus(self.slots[self.activeSlot or 1].action) end
  end)
- self.summary=scroll(root,"FusionResult")
+ self.summary=scroll(self.body,"FusionResult")
  self.summaryRays=Theme.Image(self.summary,"ResultRays",Theme.Assets.Rays,UDim2.new())
  self.summaryRays.ImageColor3,self.summaryRays.ImageTransparency,self.summaryRays.ZIndex=PURPLE,0.55,self.summary.ZIndex+1
  self.summaryArt=frame(self.summary,"Portrait")
@@ -154,11 +151,11 @@ function Browser.new(app,parent)
  self.dpsChip=frame(self.summary,"CombatChip",INK);Theme.Stroke(self.dpsChip,LINE,2)
  self.summaryEggs=label(self.eggChip,"EggOutput","",30);self.summaryEggs.Size=UDim2.fromScale(1,1);fitText(self.summaryEggs,30,16)
  self.summaryDps=label(self.dpsChip,"Combat","",30);self.summaryDps.Size=UDim2.fromScale(1,1);fitText(self.summaryDps,30,16)
- self.done=button(root,"Done","Done",function()
+ self.done=button(self.footer,"Done","Done",function()
   if self.pending or self.animating then return end
   self.completed=nil;self.mode="Main";self.selection:Clear();self:Render(true);self:Focus(self.slots[1].action)
  end)
- self.processing=frame(root,"Processing")
+ self.processing=frame(self.body,"Processing")
  self.processingArt=frame(self.processing,"ChickenAnimation")
  self.processingText=label(self.processing,"Status","Fusing…",38)
  self.processingHint=label(self.processing,"Hint","",23,MUTED);self.processingHint.TextWrapped=true
@@ -167,6 +164,7 @@ function Browser.new(app,parent)
   self.grid.CanvasPosition=Vector2.zero;self.key=""
   if self.mode=="Picker" then self:Render(true) end
  end))
+ self:Resize()
  return self
 end
 
@@ -175,111 +173,81 @@ function Browser:Focus(item)
 end
 
 function Browser:Resize()
- local w,h=self.app.panelWidth,self.app.panelHeight
- local k=math.min(1.1,w/900)
- local compact=w<600
- local hh=math.max(56,96*k)
- local margin=if compact then 12 else 24*k
- local gap=if compact then 12 else 18*k
- local inner=w-margin*2
- local flowW=inner-8
- local bh=math.max(56,80*k)
- local top=hh+20*k
- local footer=h-bh-math.max(32,32*k)
- local actionW=if compact then inner else 632*k
+ -- Scale-only composition and native aspect constraints, matching GUI.FRAMES.
+ local rect=Theme.RelativeRect
  self.root.Size=UDim2.fromScale(1,1)
- place(self.header,4,4,w-hh-12,hh)
- place(self.header.PageIcon,6,3,hh-6,hh-6)
- place(self.title,hh+4,0,w-hh*2-24,hh)
- self.title.TextSize=if compact then 28 else 58*k
- self.title.TextFace.TextOutline.Thickness=if compact then 2 else 3
- place(self.closeButton,w-hh-4,4,hh,hh);self.closeButton.TextSize=hh*0.75
- place(self.action,(w-actionW)/2,footer,actionW,bh);self.action.TextSize=math.max(26,46*k)
- place(self.done,margin,footer,inner,bh);self.done.TextSize=self.action.TextSize
- place(self.tradeoff,margin,footer+bh+2,inner,26);self.tradeoff.TextSize=math.max(17,23*k)
- local noticeH=if self.notice or self.costNotice then 38 else 0
- place(self.message,margin,footer-noticeH-5,inner,noticeH)
- place(self.main,margin,top,inner,math.max(60,footer-top-18-noticeH))
- local empty=self.selection:Count()==0
- local rowH=if compact then 30 else 44*k
- place(self.rule,0,0,flowW,rowH);self.rule.TextSize=if compact then 21 else 34*k
- self.rule.Visible=empty;self.count.Visible=false
- local slotW=(flowW-gap*2)/3
- local slotH=if compact then (if empty then 142 else 176) else (if empty then 194 else 244)*k
- local slotY=if empty then rowH+12*k else 4*k
- local sw=math.max(44,52*k)
+ rect(self.body,24,116,852,764,900,900)
+ Theme.BelowHeader(self.header,self.body,880/900)
+ self.footer.Position,self.footer.Size=UDim2.fromScale(0.5,896/900),UDim2.fromScale(852/900,108/900)
+ rect(self.action,110,0,632,80,852,108)
+ rect(self.done,0,0,852,80,852,108)
+ rect(self.tradeoff,0,82,852,26,852,108)
+ rect(self.message,0,634,852,38,852,764)
+ rect(self.main,0,0,852,622,852,764)
+ self.main.CanvasSize=UDim2.new()
+ self.main.ScrollBarThickness=0
+ self.mainContent.Position,self.mainContent.Size=UDim2.fromScale(4/852,0),UDim2.fromScale(844/852,1)
+ Theme.Aspect(self.mainContent,844/622)
+ rect(self.rule,0,0,844,44,844,622)
+ self.rule.Visible=self.selection:Count()==0
+ self.count.Visible=false
+ local slotWidth=(844-36)/3
  for i,slot in self.slots do
-  local x=(i-1)*(slotW+gap)
-  place(slot.box,x,slotY,slotW,slotH)
-  place(slot.title,4,2,slotW-8,math.max(24,34*k))
-  place(slot.level,3,slotH-sw-math.max(24,28*k)-7,slotW-6,math.max(24,28*k))
-  local artSide=if compact then slotW+16 else math.min(slotW+12,slotH-sw-20*k)
-  place(slot.art,(slotW-artSide)/2,if compact then 12 else 14*k,artSide,artSide)
+  local x=(i-1)*(slotWidth+18)
+  rect(slot.box,x,56,slotWidth,244,844,622)
+  Theme.Aspect(slot.box,slotWidth/244)
+  rect(slot.title,4,2,slotWidth-8,34,slotWidth,244)
+  rect(slot.level,3,157,slotWidth-6,28,slotWidth,244)
+  rect(slot.art,(slotWidth-172)/2,14,172,172,slotWidth,244)
+  Theme.Aspect(slot.art,1)
   if self.selection.slots[i] then
-   place(slot.action,6,slotH-sw-4,slotW-12,sw)
-   slot.action.TextSize=if compact then 19 else 30*k
+   rect(slot.action,6,188,slotWidth-12,52,slotWidth,244)
   else
-   local addW=math.min(slotW-20,184*k)
-   local addH=math.max(72,94*k)
-   place(slot.action,(slotW-addW)/2,(slotH-addH)/2,addW,addH)
-   slot.action.TextSize=if compact then 24 else 36*k
+   rect(slot.action,(slotWidth-184)/2,75,184,94,slotWidth,244)
   end
  end
- local resultW=if compact then 176 else 256*k
- local resultH=if compact then 182 else 250*k
- local pathGap=if compact then 42 else 66*k
- local resultY=slotY+slotH+pathGap
- place(self.result,(flowW-resultW)/2,resultY,resultW,resultH)
- place(self.resultTitle,4,2,resultW-8,math.max(28,36*k))
- local resultArt=if compact then 166 else resultH-16*k
- place(self.resultArt,(resultW-resultArt)/2,if compact then 4 else 14*k,resultArt,resultArt)
- place(self.resultName,4,resultH-math.max(32,38*k),resultW-8,math.max(32,38*k))
+ rect(self.result,294,366,256,250,844,622)
+ Theme.Aspect(self.result,256/250)
+ rect(self.resultTitle,4,2,248,36,256,250)
+ rect(self.resultArt,11,14,234,234,256,250)
+ Theme.Aspect(self.resultArt,1)
+ rect(self.resultName,4,212,248,38,256,250)
  for i,slot in self.slots do
-  local start=Vector2.new((i-1)*(slotW+gap)+slotW/2,slotY+slotH)
-  local bend=start+Vector2.new(0,if i==2 then pathGap/2 else pathGap)
-  local finish=Vector2.new(flowW/2+(i-2)*resultW/2,resultY+(if i==2 then 0 else resultH/2))
-  local thickness=math.max(12,26*k)
-  segment(slot.stem,start,bend,thickness);segment(slot.path,bend,finish,thickness)
-  slot.socket.Position,slot.socket.Size=UDim2.fromOffset(start.X,start.Y+6*k),UDim2.fromOffset(math.max(26,48*k),math.max(8,14*k))
-  slot.outputSocket.Position=UDim2.fromOffset(finish.X,finish.Y)
-  slot.outputSocket.Size=if i==2 then UDim2.fromOffset(math.max(26,48*k),math.max(8,14*k)) else UDim2.fromOffset(math.max(8,14*k),math.max(26,48*k))
+  local start=Vector2.new((i-1)*(slotWidth+18)+slotWidth/2,300)
+  local bend=start+Vector2.new(0,if i==2 then 33 else 66)
+  local finish=Vector2.new(422+(i-2)*128,366+(if i==2 then 0 else 125))
+  segment(slot.stem,start,bend,26,844,622)
+  segment(slot.path,bend,finish,26,844,622)
+  rect(slot.socket,start.X,start.Y+6,48,14,844,622)
+  rect(slot.outputSocket,finish.X,finish.Y,if i==2 then 48 else 14,if i==2 then 14 else 48,844,622)
  end
- local canvasH=resultY+resultH+6
- place(self.mainContent,4,0,flowW,canvasH);self.main.CanvasSize=UDim2.fromOffset(0,canvasH)
- place(self.picker,margin,top,inner,h-top-20)
- place(self.searchShell,0,0,inner,math.max(44,60*k))
- place(self.search,12,0,inner-24,self.searchShell.Size.Y.Offset);self.search.TextSize=math.max(23,29*k)
- local gridY=self.searchShell.Size.Y.Offset+16*k
- local gridH=math.max(56,self.picker.Size.Y.Offset-gridY-bh-18)
- place(self.grid,0,gridY,inner,gridH)
- local cols=if compact then 2 else 3
- local cellGap=if compact then 12 else 18*k
- local cellW=math.floor((inner-16-(cols-1)*cellGap)/cols)
- self.layout.CellSize,self.layout.CellPadding=UDim2.fromOffset(cellW,math.max(168,cellW*0.94)),UDim2.fromOffset(cellGap,cellGap)
- self.layout.FillDirectionMaxCells=cols
- place(self.back,0,self.picker.Size.Y.Offset-bh,inner,bh);self.back.TextSize=math.max(28,46*k)
- local iconH=math.min(270*k,gridH*0.5)
- place(self.emptyIcon,(inner-iconH)/2,gridY+math.max(0,gridH/2-iconH),iconH,iconH)
- place(self.empty,0,gridY+gridH/2+12,inner,50);self.empty.TextSize=if compact then 26 else 40*k
- place(self.hint,0,gridY+gridH/2+62,inner,48);self.hint.TextSize=if compact then 20 else 28*k
- place(self.summary,margin,top,inner,math.max(100,footer-top-16))
- local sh=self.summary.Size.Y.Offset
- local artH=math.min(inner,414*k,math.max(80,sh-184))
- local blockH=artH+184;local sy=math.max(0,(sh-blockH)/2)
- self.summary.CanvasSize=UDim2.fromOffset(0,blockH)
- place(self.summaryRays,(inner-artH)/2,sy,artH,artH)
- place(self.summaryArt,(inner-artH)/2,sy,artH,artH)
- place(self.summaryName,0,sy+artH-10,inner,54)
- place(self.summaryLevel,0,sy+artH+44,inner,40)
- local chipGap=if compact then 12 else 20*k
- local chipW=(inner-chipGap)/2
- place(self.eggChip,0,sy+artH+102,chipW,60)
- place(self.dpsChip,chipW+chipGap,sy+artH+102,chipW,60)
- place(self.processing,margin,top,inner,h-top-24)
- local ph=self.processing.Size.Y.Offset
- place(self.processingArt,inner*0.04,math.max(0,ph/2-210*k),inner*0.92,math.min(340*k,ph*0.6))
- place(self.processingText,0,ph*0.69,inner,64);self.processingText.TextSize=if compact then 36 else 62*k
- place(self.processingHint,12,ph*0.69+66,inner-24,60)
+ self.picker.Position,self.picker.Size=UDim2.new(),UDim2.fromScale(1,1)
+ rect(self.searchShell,0,0,852,60,852,764)
+ rect(self.search,12,0,828,60,852,60)
+ Theme.ScaleText(self.search)
+ rect(self.grid,0,76,852,590,852,764)
+ self.grid.ScrollBarThickness=0
+ self.back.AnchorPoint=Vector2.new(0,1)
+ self.back.Position,self.back.Size=UDim2.fromScale(0,1),UDim2.fromScale(1,80/764)
+ rect(self.emptyIcon,291,101,270,270,852,764)
+ Theme.Aspect(self.emptyIcon,1)
+ rect(self.empty,0,383,852,50,852,764)
+ rect(self.hint,0,433,852,48,852,764)
+ rect(self.summary,0,0,852,656,852,764)
+ self.summary.CanvasSize=UDim2.new()
+ self.summary.ScrollBarThickness=0
+ rect(self.summaryRays,219,29,414,414,852,656)
+ Theme.Aspect(self.summaryRays,1)
+ rect(self.summaryArt,219,29,414,414,852,656)
+ Theme.Aspect(self.summaryArt,1)
+ rect(self.summaryName,0,433,852,54,852,656)
+ rect(self.summaryLevel,0,487,852,40,852,656)
+ rect(self.eggChip,0,545,416,60,852,656)
+ rect(self.dpsChip,436,545,416,60,852,656)
+ self.processing.Position,self.processing.Size=UDim2.new(),UDim2.fromScale(1,760/764)
+ rect(self.processingArt,34,170,784,340,852,760)
+ rect(self.processingText,0,524,852,64,852,760)
+ rect(self.processingHint,12,590,828,60,852,760)
 end
 
 function Browser:NearStand()
@@ -377,7 +345,7 @@ end
 
 function Browser:RenderPicker()
  local available={}
- local parts={self.query,tostring(self.app.panelWidth),tostring(self.selection.key)}
+ local parts={self.query,tostring(self.selection.key)}
  for _,recipe in self.app.state.mergeOptions or {} do
   local ids=self.selection:Available(recipe)
   if #ids>0 and string.find(string.lower(Catalog[recipe.species].name),self.query,1,true) then
@@ -388,27 +356,38 @@ function Browser:RenderPicker()
  local key=table.concat(parts,"|")
  if key~=self.key then
   self.key=key
-  for _,card in self.cards do card:Destroy() end;table.clear(self.cards)
+  for _,row in self.rows do row:Destroy() end
+  table.clear(self.cards);table.clear(self.rows)
+  local row
   for index,entry in available do
+   if (index-1)%3==0 then
+    row=frame(self.grid,"Row"..math.ceil(index/3))
+    row.Size,row.LayoutOrder=UDim2.fromScale(1,1),math.ceil(index/3)
+    Theme.Aspect(row,852/268)
+    table.insert(self.rows,row)
+   end
    local recipe=entry.recipe
    local card=Instance.new("TextButton")
    card.Name,card.Text,card.BackgroundTransparency,card.BorderSizePixel="Chicken_"..recipe.key,"",0,0
-   card.AutoButtonColor,card.LayoutOrder,card.ZIndex,card.Parent=false,index,self.grid.ZIndex+1,self.grid
+   card.AutoButtonColor,card.LayoutOrder,card.ZIndex,card.Parent=false,index,row.ZIndex+1,row
+   card.Position,card.Size=UDim2.fromScale((4+((index-1)%3)*284)/852,4/268),UDim2.fromScale(266/852,250/268)
    card.BackgroundColor3=INK
+   Theme.Aspect(card,266/250)
    local rarity=Catalog[recipe.species].rarity
    local tint=Theme.Rarities[rarity] or Theme.Rarities.Common
    Theme.Stroke(card,tint,2)
    local ribbon=frame(card,"RarityRibbon",tint)
-   ribbon.Position,ribbon.Size=UDim2.fromOffset(6,6),UDim2.new(1,-58,0,28)
+   ribbon.Position,ribbon.Size=UDim2.fromScale(6/266,6/250),UDim2.fromScale(208/266,28/250)
    local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),20)
    rarityLabel.Size=UDim2.fromScale(1,1);fitText(rarityLabel,20,12)
-   local art=self.app:Preview(card,recipe,UDim2.new(1,12,1,-40),UDim2.fromOffset(-6,18));art.ZIndex=card.ZIndex+1
+   local art=self.app:Preview(card,recipe,UDim2.fromScale(278/266,210/250),UDim2.fromScale(-6/266,18/250));art.ZIndex=card.ZIndex+1
+   Theme.Aspect(art,1)
    local count=label(card,"Count","×"..entry.count,28);count.TextXAlignment=Enum.TextXAlignment.Right
-   count.Position,count.Size=UDim2.new(1,-50,0,4),UDim2.fromOffset(44,30)
+   count.Position,count.Size=UDim2.fromScale(216/266,4/250),UDim2.fromScale(44/266,30/250)
    local title=label(card,"Name",Catalog[recipe.species].name,24);fitText(title,24,14)
-   title.Position,title.Size=UDim2.new(0,2,1,-56),UDim2.new(1,-4,0,30)
+   title.Position,title.Size=UDim2.fromScale(2/266,194/250),UDim2.fromScale(262/266,30/250)
    local level=label(card,"Level","Lv. "..recipe.level..(if recipe.stars>1 then " · "..recipe.stars.."★" else ""),20)
-   level.Position,level.Size=UDim2.new(0,2,1,-26),UDim2.new(1,-4,0,24)
+   level.Position,level.Size=UDim2.fromScale(2/266,224/250),UDim2.fromScale(262/266,24/250)
    card.Activated:Connect(function() self:Choose(recipe.key) end)
    table.insert(self.cards,card)
   end

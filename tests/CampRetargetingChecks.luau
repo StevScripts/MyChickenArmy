@@ -8,7 +8,7 @@ local Checks={}
 
 local function setup()
  local s=Session.new(-926,"Camp redirect fixture",1);s.loaded=true
- local world={busy={},restored={}}
+ local world={busy={},restored={},owners={}}
  function world:Position() return Vector3.new(10000,1,-100) end
  function world:CampPosition(i) return Vector3.new(10000,1,i*80) end
  function world:CampFrame(i) return CFrame.new(self:CampPosition(i)) end
@@ -16,7 +16,10 @@ local function setup()
  function world:PetPosition() return nil end
  function world:SetCampBusy(i,busy)
   self.busy[i]=busy
-  if not busy then self.restored[i]=(self.restored[i] or 0)+1 end
+  if not busy and not self.owners[i] then self.restored[i]=(self.restored[i] or 0)+1 end
+ end
+ function world:SetTerritoryOwner(location,userId)
+  if location.index then self.owners[location.index]=userId end
  end
  function world:SetOutpostBusy() end
  function world:OutpostFrame(i) return CFrame.new(10200,1,i*80) end
@@ -123,14 +126,14 @@ function Checks.Run()
    local nextBattle=current(service,s);assert(nextBattle~=b)
    service:ReleaseClearedCamps(i*10+5)
    service:ReleaseClearedCamps(i*10+9)
-   for j=1,i do assert(service.campOwners["1:"..j] and world.busy[j] and not world.restored[j]) end
+   for j=1,i do assert(service.campOwners["1:"..j] and not world.restored[j]) end
   end
   assert(current(service,s).isKing)
   arrive(service,s,40);service:ReleaseClearedCamps(100)
   for i=1,#Config.Camps do assert(service.campOwners["1:"..i] and not world.restored[i]) end
  end)
 
- test("Retreat from camp 3 to camp 1 respawns 2 and 3 only after arrival plus grace",function()
+ test("Retreat from camp 3 to camp 1 frees reservations but preserves all claims",function()
   local s,service,world=clearLane()
   assert(service:Attack(s,"camp:1",20))
   local b=current(service,s)
@@ -143,16 +146,18 @@ function Checks.Run()
   service:ReleaseClearedCamps(201+Config.CampRespawnGrace-.01)
   assert(not world.restored[2] and not world.restored[3])
   service:ReleaseClearedCamps(201+Config.CampRespawnGrace+.01)
-  assert(world.restored[2]==1 and world.restored[3]==1 and not world.restored[1])
-  assert(service.campOwners["1:1"] and not service.campOwners["1:2"] and not service.campOwners["1:3"])
-  assert(not b.routeCamps[2] and not b.routeCamps[3],"Restored camps retained stale passage")
-  service:ReleaseClearedCamps(300);assert(world.restored[2]==1 and world.restored[3]==1)
+  assert(not service.campBusy["1:2"] and not service.campBusy["1:3"])
+  assert(not world.restored[1] and not world.restored[2] and not world.restored[3])
+  assert(service.campOwners["1:1"] and service.campOwners["1:2"] and service.campOwners["1:3"])
+  assert(b.routeCamps[2] and b.routeCamps[3],"Owned camps lost route passage")
+  service:ReleaseClearedCamps(300);assert(not world.restored[2] and not world.restored[3])
  end)
 
- test("Returning to camp 2 retains camp 1 and releases only camp 3",function()
+ test("Returning to camp 2 retains ownership of camps 1 and 3",function()
   local s,service,world=clearLane();assert(service:Attack(s,"camp:2",20))
   arrive(service,s,25);service:ReleaseClearedCamps(25+Config.CampRespawnGrace+.01)
-  assert(not world.restored[1] and not world.restored[2] and world.restored[3]==1)
+  assert(not world.restored[1] and not world.restored[2] and not world.restored[3])
+  assert(service.campOwners["1:1"] and service.campOwners["1:3"] and not service.campBusy["1:3"])
  end)
 
  test("Changing a retreat mid-march waits for the replacement destination",function()
@@ -162,7 +167,7 @@ function Checks.Run()
   assert(service:Attack(s,"camp:2",30))
   service:ReleaseClearedCamps(100);assert(not world.restored[3])
   arrive(service,s,101);service:ReleaseClearedCamps(101+Config.CampRespawnGrace+.01)
-  assert(world.restored[3]==1 and not world.restored[1] and not world.restored[2])
+  assert(not service.campBusy["1:3"] and service.campOwners["1:3"] and not world.restored[3])
  end)
 
  test("A new forward order cancels a pending abandoned-camp respawn",function()
@@ -175,12 +180,13 @@ function Checks.Run()
   assert(not service.departingCamps["1:3"],"The new destination still had a departure timer")
  end)
 
- test("A living straggler prevents enemies spawning on its old camp",function()
+ test("A living straggler delays enemies after explicitly unclaiming its old camp",function()
   local s,service,world=clearLane();assert(service:Attack(s,"camp:1",20))
+  assert(service:Unclaim(s,"camp:3",21))
   local b=current(service,s);placeArmy(b)
   local straggler=b.units[2];straggler.x,straggler.z=10000,240
   service:Step(0,25);service:ReleaseClearedCamps(100)
-  assert(b.arrivedAt==25 and world.restored[2]==1 and not world.restored[3])
+  assert(b.arrivedAt==25 and not world.restored[2] and not world.restored[3])
   straggler.x,straggler.z=10000,80
   service:ReleaseClearedCamps(101);assert(not world.restored[3])
   service:ReleaseClearedCamps(101+Config.CampRespawnGrace+.01);assert(world.restored[3]==1)

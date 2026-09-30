@@ -1,0 +1,53 @@
+{
+  "placeId": 96683186622050,
+  "context": "edit",
+  "running": false,
+  "scope": "Source sync only; no runtime or visual validation",
+  "modules": [
+    {
+      "name": "AppController",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "HudController",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "ChickenBrowser",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "ShopBrowser",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "IndexBrowser",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "ProgressionBrowser",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "MergeBrowser",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "OfflineCashController",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "UITheme",
+      "copies": 1,
+      "matchesDisk": true
+    }
+  ]
+}

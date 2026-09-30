@@ -54,6 +54,28 @@ function ArmyService.Favorite(session, petId)
 	return true, if pet.favorite then "Chicken protected from selling." else "Chicken unprotected."
 end
 
+function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
+	if not session.loaded or session.closing or session.saveLost then return false,"Your flock is not ready yet." end
+	local allowed,reason=session:ChickenUpgradeEligibility(petId)
+	if not allowed then return false,reason end
+	local pet=session.pets[petId]
+	local level=pet.level or 1
+	local price=Rules.ChickenUpgradePrice(pet.species,level)
+	if expectedLevel~=level or expectedPrice~=price then return false,"The upgrade changed. Try again." end
+	if not price or session.coins<price then return false,"Not enough cash to upgrade this chicken." end
+	local investment=(pet.investment or Rules.Investment(pet.species,level))+price
+	if investment~=investment or investment<0 or investment>1e12 then
+		return false,"This upgrade exceeds the saved investment limit."
+	end
+	-- Quote, ownership and eligibility are checked before this non-yielding purchase.
+	-- Replayed requests retain the old expected level and cannot charge twice.
+	session.coins-=price
+	pet.level,pet.investment=level+1,investment
+	session.tutorial.upgraded=true
+	session:RefreshArmy();session:Touch()
+	return true,Catalog[pet.species].name.." upgraded to Lv. "..pet.level.."!",pet.id
+end
+
 local function mergeEligible(session, pet)
 	return pet and not pet.favorite and session:IsPetHome(pet.id)
 		and not (session.incoming and session:FindSlot(pet.id))

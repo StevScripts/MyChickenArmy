@@ -1,0 +1,45 @@
+{
+  "context": "Edit-mode disposable actor/session fixtures using the exact synced ArmyCommandService; no live player data or world writes.",
+  "checks": [
+    {
+      "name": "Call transfers only selected actors; repeats preserve identity and one Colossal",
+      "passed": true
+    },
+    {
+      "name": "Selection swaps return old Colossal and transfer its replacement once",
+      "passed": true
+    },
+    {
+      "name": "Following retargets on consecutive frames between membership refreshes",
+      "passed": true
+    },
+    {
+      "name": "Giant follows behind a partial regular row without changing selected slots",
+      "passed": true
+    },
+    {
+      "name": "Multiple Giant rows, all-Giant and all-regular squads keep centered stable formations",
+      "passed": true
+    },
+    {
+      "name": "Base returns player, following squad and reserves without replacing their actors",
+      "passed": true
+    },
+    {
+      "name": "Invalid attack keeps following; valid attack starts from existing actor positions",
+      "passed": true
+    },
+    {
+      "name": "Dead character and empty selection reject safely; death returns followers home",
+      "passed": true
+    },
+    {
+      "name": "Recall cancels only the outgoing encounter, transfers its actors and awards no conquest",
+      "passed": true
+    },
+    {
+      "name": "Territory defender recall leaves the challenger and capture progress intact",
+      "passed": true
+    }
+  ]
+}

@@ -5,7 +5,6 @@ local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
-local TextService = game:GetService("TextService")
 local Lighting = game:GetService("Lighting")
 local Shared = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -34,7 +33,7 @@ local DuckAnimator = require(script.Parent.DuckAnimator)
 local AppController = {}
 AppController.__index = AppController
 local C = Theme.Colors
-local DESKTOP_POPUP_SIZE = 0.873
+local MenuLayout = require(script.Parent.MenuLayout)
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -72,26 +71,13 @@ end
 
 
 function AppController:NoticePosition()
-	-- Menu feedback sits over the dimmed HUD, away from purchase controls.
-	local height=self.gui.AbsoluteSize.Y
-	local noticeHeight=self.toastFrame.Size.Y.Scale*height+self.toastFrame.Size.Y.Offset
-	local top=math.max(if self.panel.Visible then 82 else height*0.24,noticeHeight+12)
-	return UDim2.new(0.5,0,0,top)
+	return UDim2.fromScale(0.5,if self.panel.Visible then 0.14 else 0.24)
 end
 
 function AppController:SizeNotice()
-	local available=self.gui.AbsoluteSize
-	if available.X<=0 or available.Y<=0 then return end
-	local width=math.max(48,math.min(720,available.X-24))
-	local compact=available.X<700 or available.Y<500
-	local outline=if compact then 2.5 else 3
-	self.toast:SetAttribute("OutlineThickness",outline)
-	self.toast.TextSize=if compact then 28 else 34
-	self.toast.TextOutline.Thickness=outline
-	local bounds=TextService:GetTextSize(self.toast:GetAttribute("PlainText") or "",self.toast.TextSize,
-		self.toast.Font,Vector2.new(width-24,10000))
-	-- Wrap naturally instead of shrinking text or clipping two-line receipts.
-	self.toastFrame.Size=UDim2.fromScale(width/available.X,math.max(52,bounds.Y+24)/available.Y)
+	self.toastFrame.Size=UDim2.fromScale(0.58,0.13)
+	Theme.Aspect(self.toastFrame,9)
+	Theme.ScaleText(self.toast)
 end
 
 function AppController:Notify(text, ok)
@@ -303,15 +289,14 @@ function AppController:OpenPage(page)
 	if page=="Army" then self.chickenBrowser:OpenInventory() end
 	local tint=Theme.HeaderColors[page] or Theme.ActionColors.navigation
 	Theme.SetHeaderColor(self.panelHeader,tint)
-	Theme.Surface(self.panel.Body,Theme.PageSurfaces[page] or C.panel)
+	Theme.Surface(self.panelBody,Theme.PageSurfaces[page] or C.panel)
 	self.content.ScrollBarImageColor3=tint
 	local icon=self.panelHeader.PageIcon
 	icon.Visible=page=="Army" or page=="Upgrades" or page=="Odds" or page=="Merge" or page=="Shop" or page=="Index"
 	icon.Image=if page=="Shop" then Theme.Assets.Shop elseif page=="Index" then Theme.Assets.Index
 		elseif page=="Army" or page=="Merge" then Theme.Assets.Army else Theme.Assets.Luck
-	self.panelTitle.Position=UDim2.fromOffset(if icon.Visible then 104 else 24,0)
-	self.panelTitle.Size=UDim2.new(1,if icon.Visible then -204 else -132,1,0)
 	self.panel.Visible, self.backdrop.Visible = true, true
+	self:FitPanel()
 	self:RenderPanel(true)
 	Theme.Motion:OpenPanel(self.panel,self.backdrop,switching)
 	if self.toastFrame.Visible then Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition()) end
@@ -347,117 +332,86 @@ function AppController:BuildUI()
 	Theme.Motion:Reset()
 	Theme.Motion:SetReduced(self.reducedMotion)
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-	local old = playerGui:FindFirstChild("PetRollGui")
-	if old then old:Destroy() end
-	local gui = Instance.new("ScreenGui")
+	-- Reuse the sole StarterGui template instead of adding another ScreenGui.
+	local gui=playerGui:WaitForChild("PetRollGui")
+	assert(gui:IsA("ScreenGui"),"PetRollGui must be a ScreenGui")
+	-- The restored GUI is an Edit-mode reference, not a second live game HUD.
+	local reference=playerGui:FindFirstChild("GUI")
+	if reference and reference:IsA("ScreenGui") then reference.Enabled=false end
+	local oldShell=gui:FindFirstChild("Shell")
+	if oldShell then oldShell:Destroy() end
 	gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "PetRollGui", false, Enum.ZIndexBehavior.Sibling
 	-- The backdrop covers the viewport; the HUD reserves horizontal space for Roblox controls.
 	gui.IgnoreGuiInset = true
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
+	gui.ClipToDeviceSafeArea = false
 	gui.DisplayOrder, gui.Parent = 5, playerGui
 	self.gui = gui
-	local shell = Theme.Frame(gui,"Shell",UDim2.fromScale(1,1))
-	shell.BackgroundTransparency=1
+	local layouts=gui:FindFirstChild("MenuLayouts")
+	if layouts then
+		layouts.Visible=false
+		for _,control in layouts:GetChildren() do
+			local preview=control:FindFirstChild("Preview")
+			if preview then preview:Destroy() end
+		end
+	end
+	local shell = Theme.Container(gui,"Shell")
+	-- Match Example's screen-level organization. Each layer owns one coordinate
+	-- space; opening a menu cannot resize the HUD or transient notifications.
+	local hudLayer=Theme.Container(shell,"HUD")
+	local frames=Theme.Container(shell,"FRAMES");frames.ZIndex=10
+	local other=Theme.Container(shell,"OTHER");other.ZIndex=20
+	self.hudLayer,self.frames,self.other=hudLayer,frames,other
 	-- Keep screen coordinates in rendered pixels; each menu owns its content layout.
-	self.hud=HudController.new(self,shell)
-	local backdrop=Theme.Frame(shell,"Backdrop",UDim2.fromScale(1,1),C.dark)
+	self.hud=HudController.new(self,hudLayer)
+	local backdrop=Theme.Frame(frames,"Backdrop",UDim2.fromScale(1,1),C.dark)
 	backdrop.BackgroundTransparency,backdrop.Visible,backdrop.Active=1,false,true
 	backdrop.ZIndex,self.backdrop=10,backdrop
 	Theme.Round(backdrop,0)
-	local panel=Theme.Frame(shell,"Panel",UDim2.fromOffset(1120,660))
+	local panel=Theme.Frame(frames,"Panel",UDim2.fromScale(0.63,0.82))
 	panel.BackgroundTransparency=1
 	panel.AnchorPoint,panel.Position,panel.Visible=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),false
 	panel.ZIndex,panel.Active,self.panel=11,true,panel
-	self.panelMotionScale=Theme.Motion:Scale(panel)
-	local body=Theme.Frame(panel,"Body",UDim2.new(1,0,1,-96))
-	body.Position=UDim2.fromOffset(0,96)
+	local standardPage=Theme.Container(panel,"StandardPage")
+	self.standardPage=standardPage
+	local body=Theme.Frame(standardPage,"Main",UDim2.fromScale(1,0.825))
+	body.Position=UDim2.fromScale(0,0.175)
 	Theme.Surface(body)
 	self.panelBody=body
-	self.panelHeader,self.panelTitle=Theme.Header(panel,"Header","Your Chickens!",Theme.HeaderColors.Army)
-	local close=Theme.ActionButton(self.panelHeader,"Close","X",function() self.audio:Play("Click");self:ClosePanel() end,Theme.Arcade.red)
-	close.Position,close.Size,close.TextSize=UDim2.new(1,-84,0,0),UDim2.fromOffset(84,84),60
+	self.panelHeader,self.panelTitle=Theme.Header(standardPage,"Header","Your Chickens!",Theme.HeaderColors.Army)
+	local close=Theme.HeaderClose(self.panelHeader,function() self.audio:Play("Click");self:ClosePanel() end)
 	self.closeButton=close
 	local content=Instance.new("ScrollingFrame")
-	content.Name,content.Position,content.Size="Content",UDim2.fromOffset(20,114),UDim2.new(1,-40,1,-134)
+	content.Name,content.Position,content.Size="Content",UDim2.fromScale(0.02,0.025),UDim2.fromScale(0.96,0.95)
 	content.BackgroundTransparency,content.BorderSizePixel,content.ZIndex=1,0,2
-	content.ScrollBarThickness,content.ScrollBarImageColor3=6,Theme.Arcade.green
+	content.ScrollBarThickness,content.ScrollBarImageColor3=0,Theme.Arcade.green
 	content.VerticalScrollBarInset=Enum.ScrollBarInset.Always
-	content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.Y,UDim2.new(),panel
+	content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.Y,UDim2.new(),body
 	local padding=Instance.new("UIPadding")
-	padding.PaddingLeft,padding.PaddingTop,padding.PaddingBottom=UDim.new(0,6),UDim.new(0,5),UDim.new(0,10)
+	padding.PaddingLeft,padding.PaddingTop,padding.PaddingBottom=UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.02,0)
 	padding.Parent=content
 	self.content=content
 	local list=Instance.new("UIListLayout")
-	list.Padding,list.SortOrder,list.Parent=UDim.new(0,12),Enum.SortOrder.LayoutOrder,content
+	list.Padding,list.SortOrder,list.Parent=UDim.new(0.025,0),Enum.SortOrder.LayoutOrder,content
 	self.contentLayout=list
 	self.chickenBrowser=ChickenBrowser.new(self,panel)
 	self.mergeBrowser=if MergeBrowser then MergeBrowser.new(self,panel) else nil
 	self.shopBrowser=ShopBrowser.new(self,panel)
-	self.indexBrowser=IndexBrowser.new(self,panel)
+	self.indexBrowser=IndexBrowser.new(self,body)
 	self.progression:Mount(panel)
-	table.insert(self.connections,list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() self:FitPanel() end))
-	self.toastFrame,self.toast=Theme.Notification(shell)
-	local function resize()
-		local available=gui.AbsoluteSize
-		if available.X<=0 or available.Y<=0 then return end
-		local width,height=available.X,available.Y
-		self.uiScale=1
-		self.panelMaxHeight=math.min(740,height-24)
-		self.panelMaxWidth=math.min(1120,width-24)
-		self:FitPanel()
-		self.hud:Resize(width,height,1)
-		self:SizeNotice()
-		if self.toastFrame.Visible then Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),true) end
-		if self.state and self.panel.Visible then self:RenderPanel(true) end
-	end
-	table.insert(self.connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize))
-	resize()
+	self.toastFrame,self.toast=Theme.Notification(other)
+	self:FitPanel()
+	self.hud:Resize()
+	self:SizeNotice()
 end
 
 function AppController:FitPanel()
-	if not self.contentLayout or not self.panelMaxHeight then return end
-	local available=self.gui.AbsoluteSize
-	if available.X<=0 or available.Y<=0 then return end
-	-- Leave more world visible around menus; small screens keep their readable reflow.
-	local popupSize=if available.X>=900 and available.Y>=550 then DESKTOP_POPUP_SIZE else 1
-	local width=math.min(self.panelMaxWidth,available.X*0.94)*popupSize
-	local height=math.min(self.panelMaxHeight,available.Y*0.92)*popupSize
-	if self.page=="Army" then
-		-- Keep the Figma window's proportions so the inspector footer fits on desktop.
-		self.armyCompact=available.X<900 or available.Y<550
-		if not self.armyCompact then
-			local fit=math.min(1.1,(available.X-24)/1474,available.X*0.96/1474,
-				(available.Y-24)/976,available.Y*0.94/976)*popupSize
-			width,height=1474*fit,976*fit
-		end
-	elseif self.page=="Shop" then
-		width=math.min(1080*popupSize,width)
-	elseif self.page=="Upgrades" then
-		height=math.min(660*popupSize,height)
-	elseif self.page=="Merge" then
-		if available.X>=900 and available.Y>=550 then
-			local fit=math.min(1.1,available.X*0.94/900,available.Y*0.92/850)*popupSize
-			width,height=900*fit,850*fit
-		end
-	elseif self.page~="Index" then
-		width=math.min(760*popupSize,width)
-		local motion=math.max(self.panelMotionScale.Scale,0.01)
-		local contentHeight=self.contentLayout.AbsoluteContentSize.Y/motion
-		height=math.min(height,math.max(300,math.ceil(contentHeight)+94))
-	end
-	self.panelWidth,self.panelHeight=width,height
-	self.panel.Size=UDim2.fromScale(width/available.X,height/available.Y)
-	-- Shared Index/Settings/Odds shell: fixed readable header, flexible scrolling body.
-	self.panelHeader.Size=UDim2.new(1,0,0,60)
-	self.panelHeader.PageIcon.Size,self.panelHeader.PageIcon.Position=UDim2.fromOffset(48,48),UDim2.fromOffset(8,6)
-	self.panelTitle.TextSize=32
-	self.panelTitle.Position=UDim2.fromOffset(if self.panelHeader.PageIcon.Visible then 64 else 16,0)
-	self.panelTitle.Size=UDim2.new(1,if self.panelHeader.PageIcon.Visible then -128 else -80,1,0)
-	self.closeButton.Size,self.closeButton.Position,self.closeButton.TextSize=UDim2.fromOffset(52,52),UDim2.new(1,-56,0,4),32
-	self.panelBody.Position,self.panelBody.Size=UDim2.fromOffset(0,68),UDim2.new(1,0,1,-68)
-	self.content.Position,self.content.Size=UDim2.fromOffset(12,80),UDim2.new(1,-24,1,-92)
-	self.indexBrowser.root.Position,self.indexBrowser.root.Size=UDim2.fromOffset(12,80),UDim2.new(1,-24,1,-92)
+	MenuLayout.Apply(self.gui,self.page,self.panel)
+	Theme.BelowHeader(self.panelHeader,self.panelBody)
+	self.content.Position,self.content.Size=UDim2.fromScale(0.02,0.02),UDim2.fromScale(0.96,0.96)
+	self.indexBrowser.root.Position,self.indexBrowser.root.Size=UDim2.fromScale(0.02,0.02),UDim2.fromScale(0.96,0.96)
+	Theme.ScaleText(self.panelHeader)
 end
 
 function AppController:ClearPanel()
@@ -468,15 +422,21 @@ end
 function AppController:Text(name, text, size, height, color)
 	self.order += 1
 	local item = Theme.Label(self.content, name, text, math.max(18,size or 20), color)
-	item.Size, item.LayoutOrder = UDim2.new(1, -8, 0, height or 28), self.order
-	item.AutomaticSize=Enum.AutomaticSize.Y
+	item.Size, item.LayoutOrder = UDim2.fromScale(0.96,(height or 28)/400), self.order
+	item.AutomaticSize=Enum.AutomaticSize.None
+	Theme.Aspect(item,500/(height or 28))
+	item.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+	Theme.ScaleText(item)
 	return item
 end
 
 function AppController:Button(name, text, callback, color)
 	self.order += 1
 	local item = Theme.Button(self.content, name, text, function() self.audio:Play("Click");callback() end, color)
-	item.LayoutOrder, item.Size = self.order, UDim2.new(1, -8, 0, 48)
+	item.LayoutOrder, item.Size = self.order, UDim2.fromScale(0.96,0.14161)
+	Theme.Aspect(item,12.265)
+	item.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+	Theme.ScaleText(item)
 	return item
 end
 
@@ -613,24 +573,24 @@ function AppController:RenderPanel(force)
 	self.content.Visible,self.chickenBrowser.root.Visible=not browsing and not merging and not shopping and not indexing and not upgrading,browsing
 	if self.mergeBrowser then self.mergeBrowser.root.Visible=merging end
 	self.panelHeader.Visible,self.panelBody.Visible=not shopping and not browsing and not upgrading and not merging,not shopping and not browsing and not upgrading and not merging
+	self.standardPage.Visible=not shopping and not browsing and not upgrading and not merging
 	self.shopBrowser.root.Visible,self.indexBrowser.root.Visible=shopping,indexing
 	if upgrading then
-		self:FitPanel();self.progression:Render();return
+		self.progression:Render();return
 	end
 	if shopping then
-		self.panelTitle.Text="Shop!";self:FitPanel();self.shopBrowser:Render(force);return
+		self.panelTitle.Text="Shop!";self.shopBrowser:Render(force);return
 	end
 	if indexing then
-		self.panelTitle.Text="Chicken Index!";self:FitPanel();self.indexBrowser:Render(force);return
+		self.panelTitle.Text="Chicken Index!";self.indexBrowser:Render(force);return
 	end
 	if merging then
 		self.panelTitle.Text="Fuse Chickens"
-		self:FitPanel();self.mergeBrowser:Render(force)
+		self.mergeBrowser:Render(force)
 		return
 	end
 	if browsing then
 		self.panelTitle.Text="Your Chickens!"
-		self:FitPanel()
 		self.chickenBrowser:Render(force)
 		return
 	end

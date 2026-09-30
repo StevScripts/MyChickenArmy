@@ -38,8 +38,9 @@ end
 
 function BaseController:CommandFor(part)
 	local state = self.app.state
-	if not state or (state.armyState ~= "Home" and state.armyState ~= "Following" and state.armyState ~= "Deployed"
-		and state.armyState ~= "Traveling" and state.armyState ~= "Fighting") then return nil end
+	if not state then return nil end
+	local canMove=state.armyState=="Home" or state.armyState=="Following" or state.armyState=="Deployed"
+		or state.armyState=="Traveling" or state.armyState=="Fighting"
 	local target = part
 	while target and target ~= workspace and not target:GetAttribute("CommandTarget") do target = target.Parent end
 	if not target or target == workspace then return nil end
@@ -49,12 +50,13 @@ function BaseController:CommandFor(part)
 	if string.sub(id,1,5)=="base:" then return nil end
 	for _, entry in state.targets or {} do
 		if entry.id ~= id then continue end
+		if not canMove and not entry.canUnclaim then return nil end
 		local income = if id == "income:1" then state.incomeOutpost else nil
 		if id == "income:1" and not income then return nil end
 		local _, _, _, selectedCount, deployedCount = self.app:Counts()
 		local armyCount = if state.armyState == "Home" or state.armyState == "Following" then selectedCount else deployedCount
 		local available = if income then income.available else entry.available
-		local allowed = available and armyCount > 0
+		local allowed = canMove and available and armyCount > 0
 		local reason = if not available then (if income then income.reason else entry.reason) elseif armyCount == 0 then "Buy a chicken at your podium first"
 			else ""
 		local ratio = (state.power or 0) / math.max(entry.power or 1, 1)
@@ -72,6 +74,7 @@ function BaseController:CommandFor(part)
 			end
 		end
 		return {model = target, action = if allowed then "Attack" else nil, targetId = id,
+			canUnclaim=entry.canUnclaim==true,
 			title = entry.name, text = text, promptAction = income and text,
 			owned=entry.owned and not entry.via, color = if not allowed then C.line elseif entry.owned and not entry.via then C.green else C.red}
 	end
@@ -287,7 +290,7 @@ function BaseController:Start()
 	local prompt=Instance.new("ProximityPrompt")
 	prompt.Name,prompt.KeyboardKeyCode,prompt.ActionText="ArmyCommandPrompt",Enum.KeyCode.E,"Send army"
 	prompt.MaxActivationDistance,prompt.HoldDuration,prompt.RequiresLineOfSight=Config.CommandDistance,0.15,false
-	prompt.Exclusivity,prompt.Enabled=Enum.ProximityPromptExclusivity.OneGlobally,false
+	prompt.Exclusivity,prompt.Enabled=Enum.ProximityPromptExclusivity.OnePerButton,false
 	prompt.Style=Enum.ProximityPromptStyle.Default
 	self.commandPrompt=prompt
 	local highlight=Instance.new("Highlight")
@@ -299,6 +302,14 @@ function BaseController:Start()
 	self.commandAnchor=Instance.new("Attachment")
 	self.commandAnchor.Name,self.commandAnchor.Position="ArmyCommandAnchor",Vector3.new(0,2.5,0)
 	prompt.Parent=self.commandAnchor
+	local unclaim=Instance.new("ProximityPrompt")
+	unclaim.Name,unclaim.ActionText="UnclaimBasePrompt","Unclaim Base"
+	unclaim.KeyboardKeyCode,unclaim.GamepadKeyCode=Enum.KeyCode.R,Enum.KeyCode.ButtonY
+	unclaim.Exclusivity,unclaim.Style=Enum.ProximityPromptExclusivity.OnePerButton,Enum.ProximityPromptStyle.Default
+	unclaim.RequiresLineOfSight,unclaim.HoldDuration,unclaim.Enabled=false,0.15,false
+	unclaim.UIOffset=Vector2.new(0,68)
+	unclaim.Parent=self.commandAnchor
+	self.unclaimPrompt=unclaim
 	self:CreateCommandHeading()
 	table.insert(self.connections,prompt.Triggered:Connect(function()
 		local command=self.nearestCommand
@@ -306,6 +317,14 @@ function BaseController:Start()
 		if command and command.action and not self.app.panel.Visible and not self.app.dialogueActive and not UserInputService:GetFocusedTextBox() then
 			self.app.audio:Play("Click")
 			self.app:Request(command.action,{targetId=command.targetId})
+		end
+	end))
+	table.insert(self.connections,unclaim.Triggered:Connect(function()
+		local command=self.nearestCommand
+		command=command and self:CommandFor(command.model)
+		if command and command.canUnclaim and not self.app.panel.Visible and not self.app.dialogueActive and not UserInputService:GetFocusedTextBox() then
+			self.app.audio:Play("Click")
+			self.app:Request("UnclaimTerritory",{targetId=command.targetId})
 		end
 	end))
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
@@ -444,10 +463,13 @@ function BaseController:PollCommand()
 	if nearest then
 		self.commandAnchor.Parent=bestPart
 		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
-		self.commandPrompt.ActionText=if not nearest.action then nearest.text elseif nearest.owned then "Station army" else "Attack"
+		self.commandPrompt.ActionText=if not nearest.action then nearest.text else "Move Troops Here"
 		self.commandPrompt.ObjectText=nearest.title..(if nearest.action=="Attack" and nearest.text:find("Via ") then " · earlier camps first" else "")
+		self.unclaimPrompt.MaxActivationDistance=self.commandPrompt.MaxActivationDistance
+		self.unclaimPrompt.ObjectText=nearest.title
 	end
 	self.commandPrompt.Enabled=nearest~=nil
+	self.unclaimPrompt.Enabled=nearest~=nil and nearest.canUnclaim==true
 	self:UpdateCommandPresentation()
 end
 

@@ -1,0 +1,22 @@
+{
+  "backupExists": true,
+  "compileErrors": [],
+  "preview": "Menu previews ready. Select a menu, edit Size, or change MenuLayouts.PreviewMenu. Save the place to retain your settings.",
+  "previewErrors": [],
+  "hashes": {
+    "UIMotion": 565589986,
+    "HudController": 3359242328,
+    "AppController": 3784989162,
+    "UITheme": 293961557,
+    "ChickenBrowser": 907028265,
+    "ProgressionBrowser": 554514066,
+    "MerchantDialogue": 775774952,
+    "MergeBrowser": 2083892454,
+    "IndexBrowser": 441876478,
+    "MenuLayout": 3789022879,
+    "MenuLayoutEditor": 1751288562,
+    "OfflineCashController": 698976802,
+    "ShopBrowser": 3564254765
+  },
+  "mismatch": []
+}

@@ -12,6 +12,16 @@ These follow-ups change HUD presentation only. The earlier functional and image 
 
 ## Ownership and transitions
 
+September 30 following order: regular chickens occupy the front rows and Giants
+(including Colossals) occupy separate rear rows. A partial regular row stays
+centered; Giants start in the next row. Each group retains its selected order,
+and membership refreshes rebuild the formation when selection changes. This
+changes following destinations only, not saved/manual slots, combat ordering,
+actor ownership or Giant-aware spacing. All-Giant and all-regular squads retain
+centered three-column rows. Ten focused command checks passed using disposable
+Edit-mode sessions and actor stubs; no live visual walk was run for this change.
+Evidence: `assets/giant-follow-order-20260930/checks.json`.
+
 September 28 following refinement: continuous server-owned steering now replaces
 the five-Hz catch-up/stop loop while Following. Membership still refreshes at
 five Hz. See [smooth-following research and checks](SMOOTH_FOLLOWING.md).

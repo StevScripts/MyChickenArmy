@@ -1,0 +1,49 @@
+{
+  "placeId": 96683186622050,
+  "running": false,
+  "screenGuis": [
+    "StarterGui.PetRollGui"
+  ],
+  "archivedPreviews": [
+    "CountryUIStylePreview",
+    "MCA_Tune_Shop_Desktop",
+    "MCA_Tune_Shop_PhoneLandscape",
+    "MCA_Tune_Shop_PhonePortrait",
+    "MCA_Tune_Army_Desktop",
+    "MCA_Tune_Army_PhoneLandscape",
+    "MCA_Tune_Army_PhonePortrait"
+  ],
+  "scope": "Edit hierarchy and source readback only; no Play or runtime validation",
+  "modules": [
+    {
+      "name": "AppController",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "HudController",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "ChickenBrowser",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "OfflineCashController",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "MerchantDialogue",
+      "copies": 1,
+      "matchesDisk": true
+    },
+    {
+      "name": "UITheme",
+      "copies": 1,
+      "matchesDisk": true
+    }
+  ]
+}

@@ -123,8 +123,8 @@ function GameServer:Handle(player,request)
 	elseif action=="SelectBest" then ok,message=ArmyService.SelectBest(session)
 	elseif action=="Place" or action=="Equip" or action=="Unplace" then message="Choose chickens in the Army menu."
 	elseif action=="Favorite" then ok,message=ArmyService.Favorite(session,request.petId)
-	-- Reject stale clients without spending coins or changing their chickens.
-	elseif action=="UpgradeChicken" then message="Chicken leveling is unavailable."
+	elseif action=="UpgradeChicken" then
+		ok,message,petId=ArmyService.UpgradeChicken(session,request.petId,request.expectedLevel,request.expectedPrice)
 	elseif action=="Sell" then
 		-- Army-menu sales have no world-position requirement. Ownership, protection
 		-- and the exact refund are still validated atomically by ArmyService.
@@ -153,6 +153,9 @@ function GameServer:Handle(player,request)
  elseif action=="Attack" then
   if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Approach the camp and press E to send your army."
   else ok,message=self.armyCommands:Attack(session,request.targetId,now) end
+ elseif action=="UnclaimTerritory" then
+  if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Approach your conquered base to unclaim it."
+  else ok,message=self.battles:Unclaim(session,request.targetId,now) end
  elseif action=="CallArmy" then
   ok,message=self.armyCommands:CallArmy(player,session,now)
  elseif action=="GoBase" then

@@ -31,7 +31,7 @@ local function capturePresentation(battle)
 		else (if territory then "Capturing · " else "Your control · ")..math.floor(value*100+0.001).."%"
 	return {completed=completed,paused=paused,value=value,stage=if enemy then "Enemy" else "Player",title=title,
 		color=if enemy and not completed then Theme.Arcade.red else Theme.Arcade.green,
-		detail=if reclaiming then "Squad defeated · returning home" elseif paused then (if territory then "Fighting pauses capture" elseif battle.waitingForArmy then "Waiting for your chickens to return" else "Defeat defenders to resume")
+		detail=if reclaiming then battle.reclaimReason or "Squad defeated · returning home" elseif paused then (if territory then "Fighting pauses capture" elseif battle.waitingForArmy then "Waiting for your chickens to return" else "Defeat defenders to resume")
 			else battle.name or "Base",
 		active=reclaiming or battle.phase=="Capture" or (battle.captureStarted and battle.phase=="Fight")}
 end
@@ -241,6 +241,12 @@ end
 
 function BattleController:Receive(snapshots)
 	if type(snapshots) ~= "table" then return end
+	-- A recovering empty territory has a meter, but no army portrait or combat effects.
+	local reclaims,battles={},{}
+	for _,snapshot in snapshots do
+		if snapshot.territoryReclaim then table.insert(reclaims,snapshot) else table.insert(battles,snapshot) end
+	end
+	snapshots=battles
 	self.snapshots = snapshots
 	if self.markers then self.markers:Receive(snapshots) end
 	local seen, battlesSeen = {}, {}
@@ -311,6 +317,7 @@ function BattleController:Receive(snapshots)
 	end
 	for key, view in self.views do if not seen[key] then self:ReleaseView(view);self.views[key] = nil end end
 	for id in self.phases do if not battlesSeen[id] then self.phases[id] = nil;self.rewardSerials[id]=nil end end
+	for _,reclaim in reclaims do battlesSeen[reclaim.id]=true;self:UpdateCapture(reclaim) end
 	for id in self.captureViews do if not battlesSeen[id] then self:ReleaseCapture(id) end end
 	self:UpdateStatus()
 end

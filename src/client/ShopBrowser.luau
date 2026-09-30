@@ -85,6 +85,7 @@ local function text(parent,name,value,size,position,bounds,color,center)
  local label=Theme.Display(parent,name,value,size,color or P.white)
  label.Position,label.Size,label.ZIndex=position,bounds,7
  label.TextXAlignment=if center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+ label.TextScaled=true
  return label
 end
 
@@ -93,6 +94,7 @@ local function plain(parent,name,value,size,position,bounds,color,center)
  label.Font=Enum.Font.SourceSans
  label.Position,label.Size,label.ZIndex=position,bounds,7
  label.TextXAlignment=if center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+ label.TextScaled=true
  return label
 end
 
@@ -137,59 +139,60 @@ function Browser.new(app,parent)
  -- The shared popup visitor must also skip this subtree while another page is open.
  root:SetAttribute("OwnsPopupStyle",true)
  self.root=root
- local scale=Instance.new("UIScale")
- scale.Name,scale.Parent="ShopScale",root
- self.scale=scale
- local header=Theme.Header(root,"Header","Shop",P.gold)
- header.Size,header.ZIndex=UDim2.new(1,0,0,64),4
+ Theme.Aspect(root,1.4817016124725342)
+ local window=Theme.Container(root,"Window")
+ self.window=window
+ local header=Theme.Header(window,"Header","Shop",P.gold)
  header.PageIcon.Visible,header.PageIcon.Image=true,Theme.Assets.Shop
- header.PageIcon.Size,header.PageIcon.Position=UDim2.fromOffset(50,50),UDim2.fromOffset(8,7)
- header.Title.Position,header.Title.Size,header.Title.TextSize=UDim2.fromOffset(64,0),UDim2.new(1,-126,1,0),36
  self.header=header
- local close=Theme.ActionButton(header,"Close","X",function()
+ self.closeButton=Theme.HeaderClose(header,function()
   self.app.audio:Play("Click");self.app:ClosePanel()
- end,Theme.ActionColors.danger)
- close.Position,close.Size,close.TextSize=UDim2.new(1,-56,0,8),UDim2.fromOffset(48,48),28
- dress(close,Theme.ActionColors.danger)
- self.closeButton=close
- local body=frame(root,"Body",UDim2.new(1,0,1,-72),UDim2.fromOffset(0,72))
+ end)
+ local body=frame(window,"Main",UDim2.fromScale(0.9983333,0.825),UDim2.fromScale(0.50025,0.585))
+ body.AnchorPoint=Vector2.new(0.5,0.5)
+ Theme.BelowHeader(header,body)
  Theme.Surface(body)
  body.ClipsDescendants=true
  self.body=body
- self.previewStatus=plain(body,"PurchaseStatus","Prices from Roblox · purchases deliver to this account",14,UDim2.new(0,12,1,-32),UDim2.new(1,-24,0,24),P.muted,true)
+ self.previewStatus=plain(body,"PurchaseStatus","Prices from Roblox · purchases deliver to this account",14,UDim2.fromScale(0.015,0.945),UDim2.fromScale(0.97,0.045),P.muted,true)
  -- Use the main HUD's icon buttons, outside the scrolling content.
- local nav=frame(root,"SectionNavigation",UDim2.fromOffset(68,300),UDim2.fromOffset(0,72))
+ local nav=frame(root,"SectionNavigation",UDim2.fromScale(0.06580273,0.5),UDim2.fromScale(1.04,0.5))
+ nav.AnchorPoint=Vector2.new(0,0.5)
  nav.BackgroundTransparency,nav.ZIndex=1,5
  self.navigation=nav
  local navLayout=Instance.new("UIListLayout")
- navLayout.FillDirection,navLayout.Padding,navLayout.SortOrder,navLayout.Parent=Enum.FillDirection.Vertical,UDim.new(0,8),Enum.SortOrder.LayoutOrder,nav
+ navLayout.FillDirection,navLayout.Padding,navLayout.SortOrder,navLayout.Parent=Enum.FillDirection.Vertical,UDim.new(0.025,0),Enum.SortOrder.LayoutOrder,nav
+ navLayout.VerticalAlignment=Enum.VerticalAlignment.Center
  for index,key in {"Passes","Cash"} do
   local button=Theme.IconButton(nav,key,key,"",function()
    self.app.audio:Play("Click");self:ScrollTo(key)
   end)
   button.LayoutOrder,button.ZIndex=index,6
+  button.Size=UDim2.fromScale(1,0.45)
+  Theme.Aspect(button,1)
   button.TextColor3=if index==1 then P.gold else P.white
   button:SetAttribute("Selected",index==1)
   local icon=button.Visual.Icon
   if key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
   else Art.CashPile(icon,1) end
-  local indicator=frame(button.Visual,"SelectedIndicator",UDim2.new(1,-8,0,3),UDim2.new(0,4,1,-3),P.gold)
+  local indicator=frame(button.Visual,"SelectedIndicator",UDim2.fromScale(0.9,0.035),UDim2.fromScale(0.05,0.965),P.gold)
   indicator.Visible,indicator.ZIndex=index==1,7
   self.tabs[key]=button
  end
  local scroll=Instance.new("ScrollingFrame")
- scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromOffset(12,10),UDim2.new(1,-24,1,-34)
- scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,6
+ scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.01,0.02),UDim2.fromScale(0.98,0.91)
+ scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,0
  scroll.ScrollingDirection,scroll.ScrollBarImageColor3,scroll.ClipsDescendants=Enum.ScrollingDirection.Y,P.gold,true
  scroll.CanvasSize,scroll.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.Y
  scroll.VerticalScrollBarInset,scroll.ElasticBehavior=Enum.ScrollBarInset.Always,Enum.ElasticBehavior.WhenScrollable
  scroll.ZIndex,scroll.Parent=3,body
  self.scroll,self.grid=scroll,scroll
  local padding=Instance.new("UIPadding")
- padding.PaddingLeft,padding.PaddingRight,padding.PaddingTop,padding.PaddingBottom=UDim.new(0,4),UDim.new(0,4),UDim.new(0,4),UDim.new(0,12)
+ padding.PaddingLeft,padding.PaddingRight,padding.PaddingTop,padding.PaddingBottom=UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.02,0)
  padding.Parent=scroll
  local layout=Instance.new("UIListLayout")
- layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0,24),Enum.SortOrder.LayoutOrder,scroll
+ layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.05,0),Enum.SortOrder.LayoutOrder,scroll
+ layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.layout=layout
  self:CreatePasses();self:CreateCash();self:CreateDetails()
  for _,property in {"CanvasPosition","AbsoluteCanvasSize","AbsoluteWindowSize"} do
@@ -202,7 +205,6 @@ function Browser.new(app,parent)
  table.insert(self.connections,scroll.InputChanged:Connect(function(input)
   if input.UserInputType==Enum.UserInputType.MouseWheel then self:CancelScroll() end
  end))
- table.insert(self.connections,parent:GetPropertyChangedSignal("Size"):Connect(function() self:Resize() end))
  table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(function()
   if root.Visible then self:Resize();self:AnimateSection(self.activeSection) else self:CloseDetails();self:CancelScroll();self:CancelArtworkMotion() end
  end))
@@ -216,9 +218,9 @@ function Browser.new(app,parent)
 end
 
 function Browser:Section(key,title,order)
- local section=frame(self.scroll,key,UDim2.new(1,-6,0,400))
+ local section=frame(self.scroll,key,UDim2.fromScale(0.98,4))
  section.LayoutOrder,section.BackgroundTransparency=order,1
- text(section,"Heading",title,24,UDim2.new(),UDim2.new(1,0,0,32),P.white,true)
+ text(section,"Heading",title,24,UDim2.new(),UDim2.fromScale(1,0.05),P.white,true)
  self.sections[key]=section
  return section
 end
@@ -244,11 +246,12 @@ end
 
 function Browser:CreatePasses()
  local section=self:Section("Passes","Game passes",1)
- local grid=frame(section,"PassCards",UDim2.new(1,0,0,500),UDim2.fromOffset(0,42))
+ local grid=frame(section,"PassCards",UDim2.fromScale(1,0.9),UDim2.fromScale(0,0.1))
  grid.BackgroundTransparency=1
  self.passGrid=grid
  local layout=Instance.new("UIGridLayout")
- layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromOffset(14,14),Enum.SortOrder.LayoutOrder,grid
+ layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(0.075,0.04),Enum.SortOrder.LayoutOrder,grid
+ layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.passLayout=layout
  for _,definition in PASSES do
   local offer=Catalog.Definitions[definition.key]
@@ -256,15 +259,15 @@ function Browser:CreatePasses()
   self.passCount+=1
   local card=panel(grid,definition.key,definition.color)
   card.LayoutOrder=self.passCount
-  local title=text(card,"Title",definition.name,24,UDim2.fromOffset(16,12),UDim2.new(1,-32,0,44),definition.color,true)
-  local art=frame(card,"Artwork",UDim2.new(0.46,0,0,108),UDim2.fromOffset(8,61))
+  local title=text(card,"Title",definition.name,24,UDim2.fromScale(0.035,0.03),UDim2.fromScale(0.93,0.17),definition.color,true)
+  local art=frame(card,"Artwork",UDim2.fromScale(0.43,0.48),UDim2.fromScale(0.025,0.235))
   art.BackgroundTransparency,art.ZIndex=1,3
   local rays=Art.PassBackdrop(card,definition.background)
   local multiplier=Art.PassIcon(art,definition.icon,definition.double)
   -- Figma uses the display face with a dark outline and 2px hard shadow, not plain copy.
-  local description=text(card,"Description",PASS_COPY[definition.key] or Catalog.Definitions[definition.key].description,18,UDim2.new(0.48,0,0,59),UDim2.new(0.52,-16,0,116),FIGMA.text,true)
+  local description=text(card,"Description",PASS_COPY[definition.key] or Catalog.Definitions[definition.key].description,18,UDim2.fromScale(0.51,0.23),UDim2.fromScale(0.45,0.43),FIGMA.text,true)
   local buy=self:PurchaseButton(card,definition.key)
-  buy.Position,buy.Size=UDim2.new(0,14,1,-64),UDim2.new(1,-28,0,50)
+  buy.Position,buy.Size=UDim2.fromScale(0.04,0.78),UDim2.fromScale(0.92,0.18)
   card:SetAttribute("Owned",false)
   self.cards[definition.key]={root=card,title=title,art=art,rays=rays,multiplier=multiplier,description=description,buy=buy,palette=definition}
   if definition.key=="DoubleLuck" then
@@ -290,7 +293,7 @@ function Browser:CreateExistingPasses(_section)
   entry.LayoutOrder=self.passCount
   local title=text(entry,"Title",definition.name,24,UDim2.new(),UDim2.new(),palette.title,true)
   local description=text(entry,"Description",definition.description,22,UDim2.new(),UDim2.new(),FIGMA.text,true)
-  local art=frame(entry,"Artwork",UDim2.fromOffset(140,140))
+  local art=frame(entry,"Artwork",UDim2.fromScale(0.43,0.48),UDim2.fromScale(0.025,0.235))
   art.BackgroundTransparency,art.ZIndex=1,3
   Art.PassIcon(art,style.icon)
   local rays=Art.PassBackdrop(entry,style.background)
@@ -351,34 +354,35 @@ function Browser:CreateCash()
  local vault=panel(section,"CommandersVault",FIGMA.cash)
  self.cashFeatured=vault
  self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
- local art=frame(vault,"CashOverflow",UDim2.fromOffset(940,346.0764))
+ local art=frame(vault,"CashOverflow",UDim2.fromScale(1,1.3),UDim2.fromScale(0,-0.3))
  art.BackgroundTransparency,art.ZIndex=1,3
  self.cashArt=art
  self.cashOverflow=Art.CashOverflow(art)
- self.cashShade=frame(vault,"CashCopyShade",UDim2.fromOffset(651,248),UDim2.fromOffset(289,0))
+ self.cashShade=frame(vault,"CashCopyShade",UDim2.fromScale(0.68,1))
  -- The current Figma banner has no extra copy overlay; keep the cash artwork unmuted.
  self.cashShade.Visible,self.cashShade.ZIndex=false,6
- self.cashTitle=text(vault,"Title","Commander's Vault",28,UDim2.new(),UDim2.fromOffset(513.2,48))
- self.cashSubtitle=text(vault,"PackSize","Best Value",22,UDim2.new(),UDim2.fromOffset(513.2,32),Color3.fromRGB(176,255,1))
- self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.new(),UDim2.fromOffset(500,64),FIGMA.text,false)
+ self.cashTitle=text(vault,"Title","Commander's Vault",28,UDim2.fromScale(0.02,0.05),UDim2.fromScale(0.54,0.16))
+ self.cashSubtitle=text(vault,"PackSize","Best Value",22,UDim2.fromScale(0.02,0.49),UDim2.fromScale(0.54,0.2),Color3.fromRGB(176,255,1))
+ self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.fromScale(0.02,0.22),UDim2.fromScale(0.54,0.25),FIGMA.text,false)
  self.cashNote.Font=Theme.Font
  vault:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
  self.cashBuy=self:PurchaseButton(vault,"CommandersVault",P.gold)
- local shelf=frame(section,"CashTiers",UDim2.new(1,0,0,288))
+ local shelf=frame(section,"CashTiers",UDim2.fromScale(1,0.45),UDim2.fromScale(0,0.55))
  shelf.BackgroundTransparency=1
  self.cashShelf=shelf
  local layout=Instance.new("UIGridLayout")
- layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromOffset(16,16),Enum.SortOrder.LayoutOrder,shelf
+ layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(0.075,0),Enum.SortOrder.LayoutOrder,shelf
+ layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.cashLayout=layout
  for i,definition in CASH_TIERS do
   local card=panel(shelf,definition.key,FIGMA.cash)
   card.LayoutOrder=i
-  local title=text(card,"Title",definition.name,24,UDim2.fromOffset(16,12),UDim2.new(1,-32,0,32),P.white,true)
+  local title=text(card,"Title",definition.name,24,UDim2.fromScale(0.04,0.025),UDim2.fromScale(0.92,0.12),P.white,true)
   local rays=Art.ProductRays(card,Color3.new(1,1,1))
-  local icon=frame(card,"Artwork",UDim2.fromOffset(definition.art[3],definition.art[3]),UDim2.fromOffset(definition.art[1],definition.art[2]))
+  local icon=frame(card,"Artwork",UDim2.fromScale(0.66,0.5),UDim2.fromScale(0.17,0.18))
   icon.BackgroundTransparency,icon.ZIndex=1,3
   Art.CashPile(icon,definition.tier)
-  local note=text(card,"PreviewAmount",definition.amount,40,UDim2.new(),UDim2.fromOffset(269,48),FIGMA.text,true)
+  local note=text(card,"PreviewAmount",definition.amount,40,UDim2.fromScale(0.04,0.69),UDim2.fromScale(0.92,0.13),FIGMA.text,true)
   note.Font=Theme.Font
   local buy=self:PurchaseButton(card,definition.key)
   self.cashViews[i]={root=card,key=definition.key,title=title,art=icon,rays=rays,note=note,buy=buy}
@@ -391,32 +395,43 @@ function Browser:CreateDetails()
  root.BackgroundTransparency,root.Visible,root.Active,root.ZIndex=0.04,false,true,20
  root:SetAttribute("OwnsPopupStyle",true)
  self.detailsRoot=root
- self.detailsTitle=text(root,"Title","Details",30,UDim2.fromOffset(20,12),UDim2.fromOffset(948,44))
- self.detailsDescription=plain(root,"Description","",19,UDim2.fromOffset(20,62),UDim2.fromOffset(948,66),P.white)
+ self.detailsTitle=text(root,"Title","Details",30,UDim2.fromScale(0.02,0.01),UDim2.fromScale(0.96,0.075))
+ self.detailsDescription=plain(root,"Description","",19,UDim2.new(),UDim2.fromScale(0.98,0.23),P.white)
  self.detailsDescription.TextWrapped=true
  local scroll=Instance.new("ScrollingFrame")
- scroll.Name,scroll.Position,scroll.Size="Outcomes",UDim2.fromOffset(20,144),UDim2.fromOffset(948,392)
- scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,6
+ scroll.Name,scroll.Position,scroll.Size="Outcomes",UDim2.fromScale(0.02,0.1),UDim2.fromScale(0.96,0.76)
+ scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,0
  scroll.ScrollBarImageColor3,scroll.AutomaticCanvasSize,scroll.CanvasSize=P.cyan,Enum.AutomaticSize.Y,UDim2.new()
  scroll.ScrollingDirection,scroll.Parent=Enum.ScrollingDirection.Y,root
  scroll.VerticalScrollBarInset=Enum.ScrollBarInset.Always
+ local content=frame(scroll,"Content",UDim2.fromScale(0.98,4))
+ content.BackgroundTransparency=1
  local layout=Instance.new("UIListLayout")
- layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0,4),Enum.SortOrder.LayoutOrder,scroll
- self.detailsScroll=scroll
- self.detailsNote=plain(root,"Note","",16,UDim2.fromOffset(20,540),UDim2.fromOffset(948,40),P.muted)
+ layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.015,0),Enum.SortOrder.LayoutOrder,content
+ self.detailsScroll,self.detailsContent,self.detailsLayout=scroll,content,layout
+ self.detailsNote=plain(root,"Note","",16,UDim2.new(),UDim2.fromScale(0.98,0.15),P.muted)
  self.detailsNote.TextWrapped=true
- self.detailsBack=Theme.ActionButton(root,"Back","Back",function()
+ self.detailsActions=Theme.Container(root,"Actions")
+ self.detailsActions.AnchorPoint=Vector2.new(0,1)
+ local actions=Instance.new("UIListLayout")
+ actions.FillDirection,actions.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
+ actions.Padding,actions.Parent=UDim.new(0.015,0),self.detailsActions
+ self.detailsActions.Position,self.detailsActions.Size=UDim2.fromScale(0.02,0.98),UDim2.fromScale(0.96,0.09)
+ self.detailsBack=Theme.ActionButton(self.detailsActions,"Back","Back",function()
   self.app.audio:Play("Click");self:CloseDetails()
  end,P.cyan)
- self.detailsBack.Position,self.detailsBack.Size=UDim2.fromOffset(20,596),UDim2.fromOffset(190,48)
+ self.detailsBack.Size=UDim2.fromScale(0.34,1)
  dress(self.detailsBack,P.cyan)
- self.detailsBuy=Theme.ActionButton(root,"Continue","Buy",function()
+ self.detailsBuy=Theme.ActionButton(self.detailsActions,"Continue","Buy",function()
   if not self.detailsBuy.Active or not self.detailsPurchase then return end
   self.app.audio:Play("Click")
   self.app.commerce:Buy(self.detailsPurchase)
  end,P.green)
- self.detailsBuy.Position,self.detailsBuy.Size=UDim2.fromOffset(230,596),UDim2.fromOffset(738,48)
+ self.detailsBuy.Size=UDim2.fromScale(0.645,1)
  dress(self.detailsBuy,P.green)
+ self.detailsBack.LayoutOrder,self.detailsBuy.LayoutOrder=1,2
+ self.detailsDescription.Parent,self.detailsDescription.LayoutOrder=content,-1
+ self.detailsNote.Parent,self.detailsNote.LayoutOrder=content,1000
  for _,item in root:GetDescendants() do if item:IsA("GuiObject") then item.ZIndex+=20 end end
 end
 
@@ -492,15 +507,23 @@ function Browser:RenderDetails()
  for _,row in rows do signature..="|"..row.name..":"..row.value end
  if self.detailsRowsKey~=signature then
   self.detailsRowsKey=signature
-  for _,item in self.detailsScroll:GetChildren() do if item:IsA("GuiObject") and item~=self.detailsDescription and item~=self.detailsNote then item:Destroy() end end
+  for _,item in self.detailsContent:GetChildren() do if item:IsA("GuiObject") and item~=self.detailsDescription and item~=self.detailsNote then item:Destroy() end end
+  -- Width controls every row; AutomaticCanvasSize only extends the scroll range.
+  local contentHeight=0.18+0.12+#rows*0.064+(#rows+1)*0.008
+  self.detailsContent.Size=UDim2.fromScale(0.98,#rows+2)
+  Theme.Aspect(self.detailsContent,1/contentHeight)
+  self.detailsDescription.Size=UDim2.fromScale(1,0.18/contentHeight)
+  self.detailsNote.Size=UDim2.fromScale(1,0.12/contentHeight)
+  self.detailsLayout.Padding=UDim.new(0.008/contentHeight,0)
   for index,row in rows do
-   local entry=frame(self.detailsScroll,"Outcome"..index,UDim2.new(1,-12,0,60))
+   local entry=frame(self.detailsContent,"Outcome"..index,UDim2.fromScale(1,0.064/contentHeight))
    entry.BackgroundTransparency,entry.LayoutOrder,entry.ZIndex=1,index,21
-   local name=plain(entry,"Name",row.name,20,UDim2.fromOffset(0,0),UDim2.new(0.5,0,1,0),P.white)
-   local value=plain(entry,"Chance",row.value,20,UDim2.fromScale(0.5,0),UDim2.new(0.5,0,1,0),P.white)
+   local name=plain(entry,"Name",row.name,20,UDim2.new(),UDim2.fromScale(0.5,1),P.white)
+   local value=plain(entry,"Chance",row.value,20,UDim2.fromScale(0.5,0),UDim2.fromScale(0.5,1),P.white)
    name.TextWrapped,value.TextWrapped=true,true
    value.TextXAlignment=Enum.TextXAlignment.Right
    name.ZIndex,value.ZIndex=22,22
+   Theme.ScaleText(entry)
   end
  end
  self.detailsNote.Text=note
@@ -517,9 +540,10 @@ function Browser:BindOfferMotion(view,section)
  table.insert(self.motionViews,view)
  local function pose(hot)
   if not self.alive then return end
-  local scale=Theme.Motion:Scale(view.art)
   local active=hot and self.root.Visible and self.root.Parent.Visible and not self.app.reducedMotion
-  Theme.Motion:Tween(scale,"shop-art",{Scale=if active then 1.065 else 1},0.2,Enum.EasingStyle.Back)
+  local rest=view.artRestSize or view.art.Size
+  local factor=if active then 1.065 else 1
+  Theme.Motion:Tween(view.art,"shop-art",{Size=UDim2.fromScale(rest.X.Scale*factor,rest.Y.Scale*factor)},0.2,Enum.EasingStyle.Back)
   -- Keep GUI ancestors upright so scrolling still clips the hover animation.
   view.art.Rotation=0
  end
@@ -535,10 +559,8 @@ function Browser:CancelArtworkMotion()
  self.entranceSerial+=1
  for _,view in self.motionViews do
   Theme.Motion:Cancel(view.art,"shop-tilt")
-  local scale=view.art:FindFirstChild("MotionScale")
-  if scale then
-   Theme.Motion:Cancel(scale,"scale");Theme.Motion:Cancel(scale,"shop-art");scale.Scale=1
-  end
+  Theme.Motion:Cancel(view.art,"shop-art")
+  if view.artRestSize then view.art.Size=view.artRestSize end
   view.art.Rotation=0
  end
 end
@@ -554,7 +576,9 @@ function Browser:AnimateSection(section)
    index+=1
    task.delay(delay,function()
     if not self.alive or self.entranceSerial~=serial or self.app.reducedMotion or not self.root.Visible or not self.root.Parent.Visible then return end
-    Theme.Motion:Pop(view.art,0.88)
+    local rest=view.artRestSize or view.art.Size
+    view.art.Size=UDim2.fromScale(rest.X.Scale*0.88,rest.Y.Scale*0.88)
+    Theme.Motion:Tween(view.art,"shop-art",{Size=rest},0.24,Enum.EasingStyle.Back)
    end)
   end
  end
@@ -568,9 +592,6 @@ end
 function Browser:RefreshScrollMetrics()
  if not self.alive then return end
  local scroll=self.scroll
- local first=self.sections.Passes
- local authored=first.Size.Y.Offset
- self.scrollScale=if authored>0 then first.AbsoluteSize.Y/authored else 1
  self.sectionStarts={}
  for key,section in self.sections do
   self.sectionStarts[key]=section.AbsolutePosition.Y-scroll.AbsolutePosition.Y+scroll.CanvasPosition.Y
@@ -583,7 +604,7 @@ function Browser:ScrollTo(key)
  self:RefreshScrollMetrics()
  if not self.sectionStarts[key] then return end
  self:CancelScroll()
- local target=Vector2.new(0,math.clamp(self.sectionStarts[key]-4*self.scrollScale,0,self.maxScroll))
+ local target=Vector2.new(0,math.clamp(self.sectionStarts[key]-self.scroll.AbsoluteWindowSize.Y*0.005,0,self.maxScroll))
  if self.app.reducedMotion then self.scroll.CanvasPosition=target;return end
  self.scrollTween=TweenService:Create(self.scroll,TweenInfo.new(0.32,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{CanvasPosition=target})
  self.scrollFinished=self.scrollTween.Completed:Connect(function(state)
@@ -597,9 +618,9 @@ function Browser:UpdateSection()
  self:RefreshScrollMetrics()
  local y,active=self.scroll.CanvasPosition.Y,"Passes"
  for _,key in {"Passes","Cash"} do
-  if y>=self.sectionStarts[key]-28*self.scrollScale then active=key end
+  if y>=self.sectionStarts[key]-self.scroll.AbsoluteWindowSize.Y*0.04 then active=key end
  end
- if self.maxScroll>0 and y>=self.maxScroll-2*self.scrollScale then active="Cash" end
+ if self.maxScroll>0 and y>=self.maxScroll-self.scroll.AbsoluteWindowSize.Y*0.003 then active="Cash" end
  if active==self.activeSection then return end
  self.activeSection=active
  for key,button in self.tabs do
@@ -674,135 +695,61 @@ function Browser:ApplyPresentation()
  end
 end
 
--- Keep the established SourceSans fonts while matching Figma's measured metrics.
--- Fixed authored sizes prevent repeated renders from compounding the conversion.
-function Browser:ApplyTypography()
- local function apply(label,size,lineHeight)
-  local nativeSize=size*(if self.compact then 1 else 1.23)
-  local leading=(lineHeight or size*1.2)/nativeSize
-  label.TextSize,label.LineHeight,label.TextScaled=nativeSize,leading,false
-  -- Theme.Display and buttons draw their visible glyphs in child text labels.
-  for _,copy in label:GetDescendants() do
-   if copy:IsA("TextLabel") then
-    copy.TextSize,copy.LineHeight,copy.TextScaled=nativeSize,leading,false
-   end
-  end
- end
- apply(self.header.Title,36)
- apply(self.closeButton,28)
- apply(self.previewStatus,14)
- for _,button in self.tabs do apply(button,16) end
- for _,section in self.sections do apply(section.Heading,24) end
- for _,view in self.cards do
-  apply(view.title,24,32)
-  apply(view.description,22,26)
-  apply(view.buy,20)
-  if view.details then apply(view.details,17) end
-  if view.multiplier then apply(view.multiplier,53.04) end
- end
- apply(self.cashTitle,32,40)
- apply(self.cashNote,56,64)
- apply(self.cashSubtitle,24,32)
- apply(self.cashBuy,26.3214)
- for _,view in self.cashViews do
-  apply(view.title,24,30)
-  apply(view.note,40,48)
-  apply(view.buy,20)
- end
-end
-
+-- Native proportional layout mirrors GUI.FRAMES.Shop. Content count determines
+-- section length; viewport changes never choose columns, fonts, or arrangements.
 function Browser:Resize()
- if not self.alive then return end
- local width,height=self.app.panelWidth or 1080,self.app.panelHeight or 740
- local key=width..":"..height
- if self.layoutKey==key then self:ApplyTypography();self:UpdateSection();return end
- self.layoutKey=key
- self:CancelScroll()
- self.compact=width<900 or height<600
- local rail=if width<600 then 64 else 92
- local mainWidth=width-rail
- local contentWidth=mainWidth-36
- local columns=math.clamp(math.floor((contentWidth+16)/276),1,3)
- local cardWidth=(contentWidth-(columns-1)*16)/columns
- local passRows=math.ceil(self.passCount/columns)
- local passHeight=passRows*300+math.max(0,passRows-1)*16
- self.scale.Scale=1
+ if not self.alive or self.layoutReady then return end
+ self.layoutReady=true
  self.root.Size,self.root.Position,self.root.AnchorPoint=UDim2.fromScale(1,1),UDim2.new(),Vector2.zero
- self.header.Position,self.header.Size=UDim2.fromScale(rail/width,0),UDim2.new(1,-rail,0,64)
- self.header.Title.Position,self.header.Title.Size=UDim2.fromOffset(58,0),UDim2.new(1,-116,1,0)
- self.header.PageIcon.Size,self.header.PageIcon.Position=UDim2.fromOffset(48,48),UDim2.fromOffset(4,8)
- self.closeButton.Size,self.closeButton.Position=UDim2.fromOffset(52,52),UDim2.new(1,-56,0,6)
- self.body.Position,self.body.Size=UDim2.new(rail/width,0,0,72),UDim2.new(1,-rail,1,-72)
- self.navigation.AnchorPoint=Vector2.new(0,0.5)
- self.navigation.Position,self.navigation.Size=UDim2.fromScale(0,0.5),UDim2.fromOffset(rail-8,184)
- self.scroll.Position,self.scroll.Size=UDim2.fromOffset(12,8),UDim2.new(1,-24,1,-44)
- self.previewStatus.Position,self.previewStatus.Size=UDim2.new(0,8,1,-32),UDim2.new(1,-16,0,28)
- self.previewStatus.TextWrapped=true
- self.layout.Padding=UDim.new(0,24)
- for _,button in self.tabs do
-  button.Size=UDim2.new(1,0,0,88)
-  local visual=button.Visual
-  visual.Icon.Size,visual.Icon.Position=UDim2.fromScale(1,0.74),UDim2.new()
-  visual.Label.Position,visual.Label.Size=UDim2.fromScale(0,0.76),UDim2.fromScale(1,0.24)
-  visual.LabelShade.Size,visual.LabelShade.Position=UDim2.fromScale(1.2,1.2),UDim2.fromScale(0.5,0.42)
- end
- self.passGrid.Position,self.passGrid.Size=UDim2.fromOffset(0,40),UDim2.new(1,0,0,passHeight)
- self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromOffset(16,16),UDim2.new(1/columns,-math.ceil(16*(columns-1)/columns),0,300)
+ self.window.Position,self.window.Size=UDim2.new(),UDim2.fromScale(1,1)
+ local passRatio=1.7654240131378174
+ local columns=2
+ local passRows=math.ceil(self.passCount/columns)
+ local passCardHeight=0.4625/passRatio
+ local gridHeight=passRows*passCardHeight+math.max(0,passRows-1)*0.04
+ local passHeight=0.0856+gridHeight
+ self.sections.Passes.Size=UDim2.fromScale(0.98,passRows+1)
+ Theme.Aspect(self.sections.Passes,1/passHeight)
+ self.sections.Passes.Heading.Position,self.sections.Passes.Heading.Size=UDim2.new(),UDim2.fromScale(1,0.0456/passHeight)
+ self.passGrid.Position,self.passGrid.Size=UDim2.fromScale(0,0.0856/passHeight),UDim2.fromScale(1,gridHeight/passHeight)
+ self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(0.075,0.04/gridHeight),UDim2.fromScale(0.4625,passCardHeight/gridHeight)
  self.passLayout.FillDirectionMaxCells=columns
- local function layoutPass(view)
-  view.title.Position,view.title.Size=UDim2.fromOffset(8,8),UDim2.new(1,-16,0,44)
+ for _,view in self.cards do
+  Theme.Aspect(view.root,passRatio)
+  view.title.Position,view.title.Size=UDim2.fromScale(0.035,0.03),UDim2.fromScale(0.93,0.17)
   view.title.TextWrapped=true
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.26,0.46),UDim2.fromOffset(math.min(156,cardWidth*0.48),math.min(156,cardWidth*0.48))
-  view.description.Position,view.description.Size=UDim2.new(0.52,0,0,56),UDim2.new(0.48,-8,0,if view.details then 110 else 164)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.245,0.465),UDim2.fromScale(0.43,0.48)
+  Theme.Aspect(view.art,1)
+  view.artRestSize=view.art.Size
+  view.description.Position,view.description.Size=UDim2.fromScale(0.51,0.23),UDim2.fromScale(0.45,if view.details then 0.28 else 0.46)
   view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Center
   if view.details then
-   view.details.Position,view.details.Size=UDim2.new(0.52,0,0,176),UDim2.new(0.48,-8,0,48)
+   view.details.Position,view.details.Size=UDim2.fromScale(0.52,0.55),UDim2.fromScale(0.43,0.17)
   end
-  view.buy.Position,view.buy.Size=UDim2.new(0,12,1,-64),UDim2.new(1,-24,0,52)
+  view.buy.Position,view.buy.Size=UDim2.fromScale(0.04,0.78),UDim2.fromScale(0.92,0.18)
  end
- for _,view in self.cards do layoutPass(view) end
- for _,view in self.existingCards do layoutPass(view) end
- self.sections.Passes.Size=UDim2.new(1,-6,0,40+passHeight)
- local featuredHeight=if contentWidth<500 then 284 else 248
- self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromOffset(0,40),UDim2.new(1,0,0,featuredHeight)
- local copyWidth=if contentWidth<500 then 1 else 0.58
- self.cashTitle.Position,self.cashTitle.Size=UDim2.fromOffset(16,12),UDim2.new(copyWidth,-32,0,40)
- self.cashNote.Position,self.cashNote.Size=UDim2.fromOffset(16,54),UDim2.new(copyWidth,-32,0,64)
- self.cashSubtitle.Position,self.cashSubtitle.Size=UDim2.fromOffset(16,120),UDim2.new(copyWidth,-32,0,56)
+ local cashCardWidth=(1-0.075*2)/3
+ local featuredHeight=0.285
+ local cashHeight=0.0856+featuredHeight+0.04+cashCardWidth
+ Theme.Aspect(self.sections.Cash,1/cashHeight)
+ self.sections.Cash.Heading.Position,self.sections.Cash.Heading.Size=UDim2.new(),UDim2.fromScale(1,0.0456/cashHeight)
+ self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromScale(0,0.0856/cashHeight),UDim2.fromScale(1,featuredHeight/cashHeight)
+ Theme.Aspect(self.cashFeatured,1/featuredHeight)
+ self.cashRays.Visible=false
+ self.cashBuy.Position,self.cashBuy.Size=UDim2.fromScale(0.65,0.71),UDim2.fromScale(0.32,0.24)
  self.cashTitle.TextWrapped,self.cashSubtitle.TextWrapped=true,true
  self.cashTitle.TextXAlignment,self.cashNote.TextXAlignment,self.cashSubtitle.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
- self.cashRays.Visible=false
- self.cashShade.Position,self.cashShade.Size=UDim2.new(),UDim2.fromScale(copyWidth+0.1,1)
- self.cashArt.Position,self.cashArt.Size=UDim2.fromScale(0,-0.3),UDim2.fromScale(1,1.3)
- self.cashBuy.Position,self.cashBuy.Size=UDim2.new(if contentWidth<500 then 0 else 0.63,16,1,-76),UDim2.new(if contentWidth<500 then 1 else 0.37,-32,0,60)
- local cashRows=math.ceil(#self.cashViews/columns)
- local cashHeight=cashRows*348+math.max(0,cashRows-1)*16
- self.cashShelf.Position,self.cashShelf.Size=UDim2.fromOffset(0,featuredHeight+56),UDim2.new(1,0,0,cashHeight)
- self.cashLayout.CellPadding,self.cashLayout.CellSize=UDim2.fromOffset(16,16),UDim2.new(1/columns,-math.ceil(16*(columns-1)/columns),0,348)
- self.cashLayout.FillDirectionMaxCells=columns
+ self.cashShelf.Position,self.cashShelf.Size=UDim2.fromScale(0,(0.0856+featuredHeight+0.04)/cashHeight),UDim2.fromScale(1,cashCardWidth/cashHeight)
+ self.cashLayout.CellSize,self.cashLayout.FillDirectionMaxCells=UDim2.fromScale(cashCardWidth,1),3
  for _,view in self.cashViews do
-  view.title.Position,view.title.Size=UDim2.fromOffset(12,8),UDim2.new(1,-24,0,36)
+  Theme.Aspect(view.root,1)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.41),UDim2.fromOffset(math.min(200,cardWidth-24),180)
-  view.rays.Position,view.rays.Size=UDim2.fromScale(0,-0.1),UDim2.fromScale(1,1)
-  view.note.Position,view.note.Size=UDim2.fromOffset(12,230),UDim2.new(1,-24,0,48)
-  view.buy.Position,view.buy.Size=UDim2.new(0,12,1,-64),UDim2.new(1,-24,0,52)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.425),UDim2.fromScale(0.66,0.5)
+  view.artRestSize=view.art.Size
+  view.buy.Position,view.buy.Size=UDim2.fromScale(0.04,0.835),UDim2.fromScale(0.92,0.135)
  end
- self.sections.Cash.Size=UDim2.new(1,-6,0,featuredHeight+56+cashHeight)
- -- Details keep their actions fixed while explanation/outcomes scroll on short phones.
- self.detailsTitle.Position,self.detailsTitle.Size=UDim2.fromOffset(12,4),UDim2.new(1,-24,0,44)
- self.detailsTitle.TextSize=if mainWidth<400 then 22 else 30
- self.detailsScroll.Position,self.detailsScroll.Size=UDim2.fromOffset(12,52),UDim2.new(1,-24,1,-116)
- self.detailsDescription.Parent,self.detailsDescription.LayoutOrder=self.detailsScroll,-1
- self.detailsDescription.Size=UDim2.new(1,-12,0,if mainWidth<400 then 190 else 110)
- self.detailsNote.Parent,self.detailsNote.LayoutOrder=self.detailsScroll,1000
- self.detailsNote.Size=UDim2.new(1,-12,0,72)
- self.detailsBack.Position,self.detailsBack.Size=UDim2.new(0,12,1,-60),UDim2.new(0.35,-18,0,48)
- self.detailsBuy.Position,self.detailsBuy.Size=UDim2.new(0.35,0,1,-60),UDim2.new(0.65,-12,0,48)
- self:ApplyTypography()
- self.scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
- self.scroll.CanvasSize=UDim2.new()
+ Theme.ScaleText(self.root)
  self:UpdateSection()
 end
 

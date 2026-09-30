@@ -1,0 +1,18 @@
+{
+  "recapture": {
+    "capture": 8,
+    "saveStatus": "studio-session",
+    "state": "Deployed",
+    "owned": true,
+    "battleGuards": 0,
+    "phase": "Holding",
+    "guardActors": 0
+  },
+  "unclaimWhileStationed": {
+    "saveStatus": "studio-session",
+    "phase": "Fight",
+    "defenders": 3,
+    "passed": true,
+    "samePlayerActors": 3
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "starterGuiChildren": [
+    {
+      "name": "PetRollGui",
+      "class": "ScreenGui"
+    }
+  ],
+  "archive": "ServerStorage.UIAuthoringArchive20260929",
+  "moved": [
+    {
+      "descendants": 115,
+      "name": "CountryUIStylePreview",
+      "from": "StarterGui.CountryUIStylePreview"
+    },
+    {
+      "descendants": 912,
+      "name": "MCA_Tune_Shop_Desktop",
+      "from": "StarterGui.MCA_Tune_Shop_Desktop"
+    },
+    {
+      "descendants": 912,
+      "name": "MCA_Tune_Shop_PhoneLandscape",
+      "from": "StarterGui.MCA_Tune_Shop_PhoneLandscape"
+    },
+    {
+      "descendants": 912,
+      "name": "MCA_Tune_Shop_PhonePortrait",
+      "from": "StarterGui.MCA_Tune_Shop_PhonePortrait"
+    },
+    {
+      "descendants": 690,
+      "name": "MCA_Tune_Army_Desktop",
+      "from": "StarterGui.MCA_Tune_Army_Desktop"
+    },
+    {
+      "descendants": 689,
+      "name": "MCA_Tune_Army_PhoneLandscape",
+      "from": "StarterGui.MCA_Tune_Army_PhoneLandscape"
+    },
+    {
+      "descendants": 689,
+      "name": "MCA_Tune_Army_PhonePortrait",
+      "from": "StarterGui.MCA_Tune_Army_PhonePortrait"
+    }
+  ]
+}

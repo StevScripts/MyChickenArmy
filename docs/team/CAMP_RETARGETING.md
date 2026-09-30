@@ -1,5 +1,10 @@
 # Camp retargeting — September 26, 2026
 
+September 29: the automatic loss of ownership on withdrawal below is superseded
+by [persistent territory claims](TERRITORY_CLAIMS.md). Moving/recalling an army
+now preserves the flag. Explicit Unclaim Base restores enemies with gradual
+control recovery. Actor handoff and physical vacancy protection still apply.
+
 Completed; file ownership and Studio controls released. Scope: BattleService command/reservation lifecycle,
 Battle arrival signal, BaseController command eligibility, Config respawn grace,
 focused isolated checks and this record. Preserve other tasks' existing changes.

@@ -1,0 +1,375 @@
+{
+  "date": "2026-09-29",
+  "scope": "Menu opening repair following Example hierarchy and single ScreenGui changes",
+  "placeId": 96683186622050,
+  "viewport": {
+    "width": 1291,
+    "height": 611
+  },
+  "sessionOnly": true,
+  "reproduction": [
+    {
+      "message": "HttpService permission denied on domain raw.githubusercontent.com for plugin 10366079803.",
+      "ts": 1790729153.844,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "HttpService permission denied on domain raw.githubusercontent.com for plugin 10366079803.",
+      "ts": 1790729453.852,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "HttpService permission denied on domain raw.githubusercontent.com for plugin 10366079803.",
+      "ts": 1790729753.858,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "[PetRoll] My Chicken Army! 1.19.0-paced-economy ready. Yard chickens lay eggs; collect them for coins.",
+      "ts": 1790729972.082,
+      "level": "OUT"
+    },
+    {
+      "message": "[PetRoll] Ready for Stev_Scripts on plot 1",
+      "ts": 1790729972.148,
+      "level": "OUT"
+    },
+    {
+      "message": "[PetRoll] My Chicken Army! client ready",
+      "ts": 1790729974.625,
+      "level": "OUT",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790729993.95,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730014.749,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Body is not a valid member of Frame \"Players.Stev_Scripts.PlayerGui.PetRollGui.Shell.FRAMES.Panel\"",
+      "ts": 1790730033.015,
+      "level": "ERR",
+      "data": []
+    },
+    {
+      "message": "Stack Begin",
+      "ts": 1790730033.015,
+      "level": "INFO",
+      "data": []
+    },
+    {
+      "message": "Script 'Players.Stev_Scripts.PlayerScripts.PetRoll.AppController', Line 306 - function OpenPage",
+      "ts": 1790730033.015,
+      "level": "INFO",
+      "data": []
+    },
+    {
+      "message": "Script 'Players.Stev_Scripts.PlayerScripts.PetRoll.AppController', Line 343 - function TogglePage",
+      "ts": 1790730033.015,
+      "level": "INFO",
+      "data": []
+    },
+    {
+      "message": "Script 'Players.Stev_Scripts.PlayerScripts.PetRoll.AppController', Line 761",
+      "ts": 1790730033.015,
+      "level": "INFO",
+      "data": []
+    },
+    {
+      "message": "Stack End",
+      "ts": 1790730033.015,
+      "level": "INFO",
+      "data": []
+    },
+    {
+      "message": "ContextActionService: Unexpected error while invoking callback: Body is not a valid member of Frame \"Players.Stev_Scripts.PlayerGui.PetRollGui.Shell.FRAMES.Panel\"",
+      "ts": 1790730033.016,
+      "level": "ERR",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730035.682,
+      "level": "WARN",
+      "data": []
+    }
+  ],
+  "menuChecks": [
+    {
+      "opened": true,
+      "closed": true,
+      "contentObjects": 329,
+      "page": "Army",
+      "size": "757.235535, 501.398834"
+    },
+    {
+      "opened": true,
+      "closed": true,
+      "contentObjects": 431,
+      "page": "Shop",
+      "size": "942.840027, 490.730774"
+    },
+    {
+      "opened": true,
+      "closed": true,
+      "contentObjects": 321,
+      "page": "Index",
+      "size": "977.759949, 490.730774"
+    },
+    {
+      "opened": true,
+      "closed": true,
+      "contentObjects": 122,
+      "page": "Upgrades",
+      "size": "977.759949, 490.730774"
+    },
+    {
+      "opened": true,
+      "closed": true,
+      "contentObjects": 43,
+      "page": "Settings",
+      "size": "663.47998, 490.730774"
+    },
+    {
+      "opened": true,
+      "closed": true,
+      "contentObjects": 40,
+      "page": "Odds",
+      "size": "663.47998, 490.730774"
+    },
+    {
+      "page": "Merge",
+      "error": "Players.Stev_Scripts.PlayerScripts.MenuRepairRuntimeProbe:25: Window did not open\nPlayers.Stev_Scripts.PlayerScripts.MenuRepairRuntimeProbe:25\nPlayers.Stev_Scripts.PlayerScripts.MenuRepairRuntimeProbe:22\n"
+    }
+  ],
+  "mergeContext": "Initial direct Merge call away from the stand closed normally; the eligible-stand client presentation fixture passed. No fusion or server rule was changed.",
+  "extendedChecks": [
+    {
+      "name": "Fuse window and picker (presentation fixture at stand)",
+      "passed": true
+    },
+    {
+      "name": "Offline receipt under the single root (display-only fixture)",
+      "passed": true
+    },
+    {
+      "name": "Transient drag layer and topbar use their original coordinate regions",
+      "passed": true
+    }
+  ],
+  "nativeButtonChecks": [
+    {
+      "label": "Shop close",
+      "expected": "closed",
+      "state": {
+        "visible": false,
+        "shop": true,
+        "index": false,
+        "army": false,
+        "header": "Shop!"
+      }
+    },
+    {
+      "label": "Index button",
+      "expected": "Index",
+      "state": {
+        "visible": true,
+        "shop": false,
+        "index": true,
+        "army": false,
+        "header": "Chicken Index!"
+      }
+    },
+    {
+      "label": "Index close",
+      "expected": "closed",
+      "state": {
+        "visible": false,
+        "shop": false,
+        "index": true,
+        "army": false,
+        "header": "Chicken Index!"
+      }
+    },
+    {
+      "label": "Settings button",
+      "expected": "Settings",
+      "state": {
+        "visible": true,
+        "shop": false,
+        "index": false,
+        "army": false,
+        "header": "Settings"
+      }
+    },
+    {
+      "label": "Settings close",
+      "expected": "closed",
+      "state": {
+        "visible": false,
+        "shop": false,
+        "index": false,
+        "army": false,
+        "header": "Settings"
+      }
+    },
+    {
+      "label": "Army button",
+      "expected": "Army",
+      "state": {
+        "visible": true,
+        "shop": false,
+        "index": false,
+        "army": true,
+        "header": "Your Chickens!"
+      }
+    }
+  ],
+  "runtimeLogs": [
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730265.725,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730296.158,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730316.574,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730337.507,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "HttpService permission denied on domain raw.githubusercontent.com for plugin 10366079803.",
+      "ts": 1790730353.872,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730358.172,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730378.888,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730399.688,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730420.454,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730441.237,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730462.103,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Setting GuiService.SelectedObject to invalid GuiObject",
+      "ts": 1790730467.103,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730482.835,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730503.702,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730524.501,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730545.434,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730566.1,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730587.033,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730607.965,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730628.697,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "Egg deposit effect needs ReplicatedStorage.EggDepositEffects",
+      "ts": 1790730649.43,
+      "level": "WARN",
+      "data": []
+    },
+    {
+      "message": "HttpService permission denied on domain raw.githubusercontent.com for plugin 10366079803.",
+      "ts": 1790730653.88,
+      "level": "WARN",
+      "data": []
+    }
+  ],
+  "starterGui": [
+    "PetRollGui"
+  ],
+  "limitations": "PC menu/presentation checks only. No mobile/device sweep, purchase, fusion transaction, or saved-data validation."
+}
