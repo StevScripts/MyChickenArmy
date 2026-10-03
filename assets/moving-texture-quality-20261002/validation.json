@@ -1,0 +1,67 @@
+{
+  "isolated": true,
+  "performance": {
+    "cpuP95Ms": 0.11166666661210911,
+    "shared": true,
+    "frameP95Ms": 17.40037463605404,
+    "frames": 1226,
+    "cpuMedianMs": 0.1026249999540596,
+    "states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "referenceCount": 11,
+    "frameMedianMs": 16.650833189487457,
+    "quality": "Enum.SavedQualitySetting.QualityLevel10"
+  },
+  "lifecycle": {
+    "hiddenRestores": true,
+    "revealMaskReady": true,
+    "posedBonesChanged": 10,
+    "lowTierRestoresAll": true,
+    "rainbowMoves": true,
+    "mysteryHasNoMask": true,
+    "revealDisablesSharedTexture": true,
+    "releasesTween": false,
+    "distantRestores": true,
+    "rainbowStatic": true,
+    "releasesImage": true,
+    "realRoamingReady": true,
+    "reducedMotionRestores": true,
+    "revealCleansUp": true,
+    "releasesMesh": true,
+    "revealUsesOriginalMesh": true,
+    "liveBones": 18,
+    "highTierRestores": true,
+    "zeroReferences": true
+  },
+  "integrity": {
+    "uvMoved": true,
+    "positionsUnchanged": true,
+    "loopTilesIdentical": true,
+    "movingUVs": 384,
+    "facePixelsUnchanged": true,
+    "imageImmutable": true,
+    "noRoamingMask": true,
+    "protectedUVs": 120
+  },
+  "finalCleanup": {
+    "allResourcesReleased": true,
+    "originalMeshAndMaterialRestored": true,
+    "bones": 18,
+    "cancelledLoadStaysDetached": true
+  },
+  "notes": [
+    "Runtime lifecycle.releasesTween=false identified a destroyed tween reference; final patch clears it. The subsequent synced Edit cleanup check passed.",
+    "Performance measures material Step CPU on Studio, not isolated GPU cost or low-end hardware.",
+    "Only the focused low-tier lifecycle check temporarily supplied controller quality state; visuals and performance used actual graphics 10."
+  ]
+}

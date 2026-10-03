@@ -42,6 +42,8 @@ function Service.Start(session,nodeId,expectedRevision,expectedPrice,expectedDur
 	local duration=Rules.Duration(node,effects)
 	if expectedPrice~=node.price or expectedDuration~=duration then return false,"The research quote changed." end
 	if #research.jobs>=effects.slots then return false,"All researchers are busy." end
+	local canSpend,reason=session:CanSpendCash(node.price)
+	if not canSpend then return false,reason end
 	local job={id=HttpService:GenerateGUID(false),nodeId=nodeId,startedAt=now,finishAt=now+duration,paid=node.price}
 	session.coins-=node.price;table.insert(research.jobs,job);research.revision+=1;session:Touch()
 	return true,node.name.." research started.",job.id
@@ -71,7 +73,10 @@ function Service.Snapshot(session,now)
 	data.serverTime=now;data.effects=table.clone(session.researchEffects or Rules.Effects(data))
 	data.offers={}
 	for _,id in Catalog.Order do local node=Catalog.Nodes[id]
-		data.offers[id]={status=Rules.Status(data,id,session.coins),price=node.price,duration=Rules.Duration(node,data.effects)}
+		local status=Rules.Status(data,id,session.coins)
+		local canSpend,reason=session:CanSpendCash(node.price)
+		if status=="Available" and not canSpend then status="Unaffordable" end
+		data.offers[id]={status=status,price=node.price,duration=Rules.Duration(node,data.effects),spendReason=reason}
 	end
 	data.recap=table.clone(session.researchRecap or {})
 	return data

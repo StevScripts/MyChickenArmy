@@ -286,6 +286,9 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	end
 	if count~=#petIds then return false,"Invalid chicken selection." end
 	if type(expectedTotal)~="number" or expectedTotal~=total then return false,"Your sale value changed. Choose again." end
+	if session:ProtectStarterFlock() and count>=session:Count() then
+		return false,"Keep one chicken to earn eggs during your first mission."
+	end
 	if not session:CanCredit(total,"sale") then return false,"Spend some cash before selling these chickens." end
 	-- Validate the whole batch before mutation; this transaction never yields.
 	for id in seen do session.pets[id]=nil end
@@ -298,7 +301,8 @@ function ArmyService.Expand(session)
  local nextSlot=session:NextSlot()
  if not nextSlot then return false,"Your squad can already deploy "..session:Capacity().." chickens." end
  if not nextSlot.unlocked then return false,nextSlot.requirement.." first." end
- if session.coins<nextSlot.price then return false,"Not enough coins for the larger squad." end
+ local canSpend,reason=session:CanSpendCash(nextSlot.price)
+ if not canSpend then return false,reason end
  session.coins-=nextSlot.price;session.capacity=nextSlot.capacity;session.tutorial.upgraded=true
  -- A bought slot adds one best reserve without replacing the manual lineup.
  if session.armySelection~=nil then
@@ -319,7 +323,8 @@ function ArmyService.UpgradeIncome(session)
  if not upgrade then return false,"Egg value is fully upgraded." end
  if not upgrade.unlocked then return false,upgrade.requirement.." to improve egg value again." end
  local price=upgrade.price
- if session.coins<price then return false,"Not enough coins to upgrade egg value." end
+ local canSpend,reason=session:CanSpendCash(price)
+ if not canSpend then return false,reason end
  session.coins-=price;session.incomeLevel+=1;session.tutorial.upgraded=true;session:Touch()
  return true,"Every owned chicken now earns more coins, including your deployed squad!"
 end

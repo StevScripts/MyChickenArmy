@@ -1,0 +1,26 @@
+{
+  "touch": true,
+  "checks": [
+    "Recruit",
+    "Recruit help",
+    "Collect",
+    "Collect help",
+    "Sell",
+    "Sell help",
+    "Expand",
+    "Expand help",
+    "Select",
+    "Select help",
+    "Deploy",
+    "Deploy help",
+    "Battle",
+    "Battle help",
+    "Complete",
+    "Complete dismisses after eight seconds",
+    "Guide cleanup",
+    "Saved completion stays hidden"
+  ],
+  "viewport": "666, 374",
+  "passed": 18,
+  "scope": "Native UI-only fixtures in the existing game ScreenGui; all fixtures removed"
+}

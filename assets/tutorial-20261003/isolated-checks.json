@@ -1,0 +1,274 @@
+{
+  "scope": "Isolated in-memory data; no DataStore or published analytics calls",
+  "events": [
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEEntered",
+      "step": "Entry",
+      "detail": "FirstGuide"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEStepEntered",
+      "step": "Recruit",
+      "detail": "FirstGuide"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEInteraction",
+      "step": "Recruit",
+      "detail": "AttemptCashUpgrade"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEActionRejected",
+      "step": "Recruit",
+      "detail": "CashUpgrade"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.00001770833296177443,
+      "name": "FTUEFirstActionSeconds",
+      "step": "Recruit",
+      "detail": "EggPickup"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.000022750000425730832,
+      "name": "FTUEOutcome",
+      "step": "Recruit",
+      "detail": "Skipped"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.0000036250003176974133,
+      "name": "FTUEIndependentAction",
+      "step": "AfterGuide",
+      "detail": "Roll"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.00002725000013015233,
+      "name": "FTUEOutcome",
+      "step": "Skipped",
+      "detail": "Resumed"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEStepEntered",
+      "step": "Recruit",
+      "detail": "FirstGuide"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEActionRejected",
+      "step": "Recruit",
+      "detail": "Attack"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.000031958334147930145,
+      "name": "FTUEMilestone",
+      "step": "Deploy",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.00003441666740400251,
+      "name": "FTUEMilestone",
+      "step": "Win",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.00003441666740400251,
+      "name": "FTUEFirstPayoffSeconds",
+      "step": "Win",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.00003441666740400251,
+      "name": "FTUEOutcome",
+      "step": "Complete",
+      "detail": "EarlyVictory"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.00003933333391614724,
+      "name": "FTUEGuidanceEnded",
+      "step": "Complete",
+      "detail": "Shown"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEInteraction",
+      "step": "Complete",
+      "detail": "AttemptCashUpgrade"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.0000017500005924375728,
+      "name": "FTUEIndependentAction",
+      "step": "AfterGuide",
+      "detail": "CashUpgrade"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 30,
+      "name": "FTUESurvival",
+      "step": "Visit",
+      "detail": "T30"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 60,
+      "name": "FTUESurvival",
+      "step": "Visit",
+      "detail": "T60"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 180,
+      "name": "FTUESurvival",
+      "step": "Visit",
+      "detail": "T180"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 300,
+      "name": "FTUESurvival",
+      "step": "Visit",
+      "detail": "T300"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 600,
+      "name": "FTUESurvival",
+      "step": "Visit",
+      "detail": "T600"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.000011083333447459154,
+      "name": "FTUEFollowupWindow",
+      "step": "AfterGuide",
+      "detail": "Continued"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEEntered",
+      "step": "Entry",
+      "detail": "FirstGuide"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEStepEntered",
+      "step": "Recruit",
+      "detail": "FirstGuide"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.000003875000402331352,
+      "name": "FTUEMilestone",
+      "step": "Recruit",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 31.0000032500011,
+      "name": "FTUEStepCompletedSeconds",
+      "step": "Recruit",
+      "detail": "30To59"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 1,
+      "name": "FTUEStepEntered",
+      "step": "Collect",
+      "detail": "FirstGuide"
+    },
+    {
+      "version": "cluck-1",
+      "cohort": "FirstGuide",
+      "value": 0.000007541666491306387,
+      "name": "FTUEOutcome",
+      "step": "Collect",
+      "detail": "Interrupted"
+    }
+  ],
+  "passed": 34,
+  "checks": [
+    "starter points at real podium",
+    "loading profile does not show objectives",
+    "unaffordable recruit routes to eggs",
+    "recovery routes carried eggs to instant sale",
+    "purchase advances to collection",
+    "carried egg advances to sale",
+    "cash army upgrade precedes camp without a gate",
+    "unaffordable slot routes to sale",
+    "existing capacity is recognized",
+    "existing squad advances to deploy",
+    "in-progress battle replaces directions",
+    "returning army gets recovery guidance",
+    "home defense has priority",
+    "established veterans are not restarted",
+    "new guide victory can end early",
+    "skip removes instructions",
+    "first guide entry persisted once",
+    "unchanged selection is not a meaningful first action",
+    "cash-node attempts are bounded per step",
+    "repeated snapshots do not repeat entry",
+    "automatic vacuum is not a player first action",
+    "real pickup logs one first action",
+    "skip is not fake completion",
+    "independent play tracked after skip",
+    "resume clears skipped state without reset",
+    "invalid tutorial signal cannot complete",
+    "rejected attack cannot complete deployment",
+    "accepted camp command records deployment",
+    "victory completes exactly once",
+    "independent play tracked after completion",
+    "survival checkpoints have separate reportable categories",
+    "release removes visit and income callback",
+    "step duration is numerically measured and bucketed",
+    "save round trip preserves guide and gameplay facts"
+  ]
+}

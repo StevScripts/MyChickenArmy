@@ -1,5 +1,11 @@
 # Galaxy face visibility and texture smoothing
 
+**Historical:** the October 2 shared UV-scrolled material supersedes this
+24-frame implementation and its private-cache assertions. Do not run these
+checks against the replacement wrappers. Current evidence and the final cleanup
+check are in `../moving-texture-quality-20261002/` and
+`../../docs/team/MOVING_TEXTURE_QUALITY.md`. The opaque-body correction remains.
+
 September 25, 2026. Runtime edits are in the canonical codebase and synced through Rojo; no Studio-owned mesh or texture asset was modified.
 
 - `BlenderPetView` creates Galaxy with `Body.Transparency = 0` instead of `0.08`. The eyes, beak and feathers are in the same skinned mesh; the entire mesh must not be made translucent to suggest a galaxy effect.

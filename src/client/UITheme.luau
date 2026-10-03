@@ -6,6 +6,7 @@ Theme.Motion = require(script.Parent.UIMotion).new()
 Theme.Font = Enum.Font.SourceSansBold
 -- One edge hierarchy across menus; secondary surfaces never outweigh the shell.
 Theme.Border = {Shell=3, Control=2, Card=1.5, Detail=1}
+Theme.OverlayColors = {Top=Color3.fromRGB(20,22,24), Bottom=Color3.fromRGB(3,4,5)}
 Theme.Arcade = {
 	blue=Palette.Navigation, gold=Palette.Rewards, purple=Palette.Upgrade,
 	red=Palette.Danger, green=Palette.Purchase, border=Palette.Border,
@@ -44,6 +45,7 @@ Theme.ActionColors = {
 -- Opt-in cash affordability feedback for the yard and egg-collection upgrades.
 Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color3.fromRGB(92,92,92))
 Theme.Assets = {
+	Commander="rbxassetid://122076338993517",
 	Merge = "rbxassetid://122096168414414",
 	Cash="rbxassetid://101788696120931", Studs="rbxassetid://93331178043153",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
@@ -605,7 +607,7 @@ function Theme.ApplyPopupStyle(panel)
 	local function darkSurface(item,isBody)
 		item.BackgroundColor3,item.BackgroundTransparency=Color3.new(1,1,1),0
 		local gradient=item:FindFirstChildWhichIsA("UIGradient") or Instance.new("UIGradient")
-		gradient.Color=ColorSequence.new(Color3.fromRGB(20,22,24),Color3.fromRGB(3,4,5))
+		gradient.Color=ColorSequence.new(Theme.OverlayColors.Top,Theme.OverlayColors.Bottom)
 		gradient.Transparency=NumberSequence.new({
 			NumberSequenceKeypoint.new(0,if isBody then 0.24 else 0.62),
 			NumberSequenceKeypoint.new(1,if isBody then 0.48 else 0.80),

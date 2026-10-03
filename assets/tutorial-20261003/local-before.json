@@ -1,0 +1,32 @@
+[
+  {
+    "file": "client/AppController.luau",
+    "length": 41992,
+    "hash": 2527805946
+  },
+  {
+    "file": "client/HudController.luau",
+    "length": 15671,
+    "hash": 381961003
+  },
+  {
+    "file": "client/BaseController.luau",
+    "length": 26020,
+    "hash": 1447730406
+  },
+  {
+    "file": "client/UITheme.luau",
+    "length": 36657,
+    "hash": 3184899212
+  },
+  {
+    "file": "server/GameServer.luau",
+    "length": 21508,
+    "hash": 440041899
+  },
+  {
+    "file": "server/PlayerSession.luau",
+    "length": 34786,
+    "hash": 2838434121
+  }
+]

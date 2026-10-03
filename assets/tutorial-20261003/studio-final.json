@@ -1,0 +1,54 @@
+{
+  "sources": {
+    "src/client/AppController.luau": {
+      "length": 42581,
+      "adler32": 4128311166,
+      "copies": 1
+    },
+    "src/shared/TutorialGuide.luau": {
+      "length": 4463,
+      "adler32": 329567246,
+      "copies": 1
+    },
+    "src/server/GameServer.luau": {
+      "length": 22101,
+      "adler32": 3614582893,
+      "copies": 1
+    },
+    "src/server/TutorialService.luau": {
+      "length": 10049,
+      "adler32": 1084395043,
+      "copies": 1
+    },
+    "src/client/BaseController.luau": {
+      "length": 24528,
+      "adler32": 659865932,
+      "copies": 1
+    },
+    "src/client/CommanderGuide.luau": {
+      "length": 9270,
+      "adler32": 2173540005,
+      "copies": 1
+    },
+    "src/client/HudController.luau": {
+      "length": 15699,
+      "adler32": 2106930960,
+      "copies": 1
+    },
+    "src/server/PlayerSession.luau": {
+      "length": 34938,
+      "adler32": 157973716,
+      "copies": 1
+    },
+    "src/client/UITheme.luau": {
+      "length": 36787,
+      "adler32": 574493379,
+      "copies": 1
+    }
+  },
+  "qa": true,
+  "sessionOnly": true,
+  "place": 96683186622050,
+  "running": false,
+  "device": "default"
+}

@@ -14,7 +14,7 @@ local Economy = {
 	LuckPriceGrowth = 1.25,
 	UpgradePriceStep = 1000,
 	ReferenceIncome = {
-		16, -- Rookie: the three starting chickens, no egg-value upgrades.
+		16, -- Fixed opening price benchmark; independent of the initial flock.
 		5 * 28 * 2 * 1.25, -- Iron: five level-2 Bucket chickens, egg value 1.
 		7 * 96 * 4 * 1.5, -- Royal: seven level-3 Knights, egg value 2.
 		9 * 160 * 8 * 1.75, -- Storm: nine level-4 Wizards, egg value 3.
@@ -39,7 +39,7 @@ local Config = {
   RaidRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Mallard",stars=1,level=1}},
  },
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
- DataRevision=11,StarterFlock={"Duck","Duck","Mallard"},
+ DataRevision=11,StarterFlock={},
  CommandDistance=14,
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.

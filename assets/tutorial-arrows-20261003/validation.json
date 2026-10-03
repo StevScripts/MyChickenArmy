@@ -1,0 +1,146 @@
+{
+  "revision": "2026-10-03 animated tutorial arrows and spotlight",
+  "placeId": 96683186622050,
+  "spotlight": {
+    "desktop": {
+      "scope": "Temporary fixture removed; no profile changes",
+      "viewport": "1238, 587",
+      "passed": 19,
+      "checks": [
+        "Spotlight and arrow appear",
+        "Cutout contains the actual button",
+        "Mask leaves button center clear: Top",
+        "Mask does not capture input: Top",
+        "Mask leaves button center clear: Bottom",
+        "Mask does not capture input: Bottom",
+        "Mask leaves button center clear: Left",
+        "Mask does not capture input: Left",
+        "Mask leaves button center clear: Right",
+        "Mask does not capture input: Right",
+        "Background fades dark",
+        "Snapshots preserve running arrow tween",
+        "Cutout follows moving target",
+        "Hidden ancestors remove spotlight",
+        "Spotlight resumes when target reappears",
+        "Off-screen target never leaves a dark empty screen",
+        "Reduced motion is static",
+        "Spotlight fades away at handoff",
+        "Destroyed target clears overlay"
+      ]
+    },
+    "phoneLandscape": {
+      "scope": "Temporary fixture removed; no profile changes",
+      "viewport": "666, 374",
+      "passed": 19,
+      "checks": [
+        "Spotlight and arrow appear",
+        "Cutout contains the actual button",
+        "Mask leaves button center clear: Top",
+        "Mask does not capture input: Top",
+        "Mask leaves button center clear: Bottom",
+        "Mask does not capture input: Bottom",
+        "Mask leaves button center clear: Left",
+        "Mask does not capture input: Left",
+        "Mask leaves button center clear: Right",
+        "Mask does not capture input: Right",
+        "Background fades dark",
+        "Snapshots preserve running arrow tween",
+        "Cutout follows moving target",
+        "Hidden ancestors remove spotlight",
+        "Spotlight resumes when target reappears",
+        "Off-screen target never leaves a dark empty screen",
+        "Reduced motion is static",
+        "Spotlight fades away at handoff",
+        "Destroyed target clears overlay"
+      ]
+    },
+    "phonePortrait": {
+      "viewport": "373, 666",
+      "passed": 19
+    }
+  },
+  "motion": {
+    "desktop": {
+      "viewport": "1238, 587",
+      "passed": 14,
+      "note": "Before final glyph-to-native-geometry replacement"
+    },
+    "landscape": {
+      "normalBoundingAreaPercent": 6.404408606730423,
+      "card": "293.500824, 54.3520012",
+      "scope": "Temporary UI fixtures removed; no gameplay or profile changes",
+      "passed": 14,
+      "viewport": "666, 374"
+    },
+    "portrait": {
+      "viewport": "373, 666",
+      "passed": 14
+    }
+  },
+  "world": {
+    "scope": "Temporary local effects removed; gameplay untouched",
+    "passed": 15,
+    "checks": [
+      "Five ground chevrons",
+      "Destination bob runs",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Arrow arm has pulse and no physics/query input",
+      "Reduced motion cancels beacon bob",
+      "Reduced motion makes trail static",
+      "Menu or missing target hides trail and stops pulses"
+    ]
+  },
+  "interaction": {
+    "nativeRecruit": true,
+    "walkCollectedEggs": true,
+    "instantSale": true,
+    "highlightedUpgradesOpened": true,
+    "realArmySizePurchase": {
+      "capacityBefore": 3,
+      "capacityAfter": 4,
+      "cashBefore": 2028,
+      "cashAfter": 828,
+      "cost": 1200
+    },
+    "exitSpotlightHandoff": true,
+    "phoneExitScreenshot": true
+  },
+  "sourceReadback": {
+    "CommanderGuide": {
+      "length": 10976,
+      "hash": 4271924352
+    },
+    "GuideFocus": {
+      "length": 6224,
+      "hash": 4124121608
+    },
+    "GuideArrow": {
+      "length": 888,
+      "hash": 1830691090
+    },
+    "BaseController": {
+      "length": 28390,
+      "hash": 1422139880
+    },
+    "algorithm": "djb2 modulo 2^32; all match Studio Edit"
+  },
+  "checks": {
+    "rojoBuild": true,
+    "diffCheck": true
+  },
+  "limitations": [
+    "15 FPS Studio cadence in new samples; foreground and physical-phone performance not established for this revision",
+    "World trail is directional, not obstacle-aware pathfinding",
+    "Studio Flow screenshot omits destination BillboardGui; verified in native Studio screenshot"
+  ],
+  "restored": "Play stopped; default device; temporary fixtures/listener removed; pre-existing QA and session-only flags remain true",
+  "publishing": "None; no asset uploads, commits or pushes in this follow-up"
+}

@@ -1,5 +1,21 @@
 # Galaxy quality tiers and viewport masking — October 2, 2026
 
+## Current scope — shared roaming material, reveal-only mask
+
+The later multiple-Galaxy decision supersedes the one-roaming-mask rollout below.
+Every visible roaming Galaxy now shares the high-detail UV-scrolled material at
+graphics 5–10. Graphics 1–4 retain the original static texture. The expensive
+viewport is eligible only for a final Galaxy roll offer explicitly marked
+`GalaxyMaskPreview`; mystery shuffles and roaming actors are excluded. The
+one-mask cap, whole body including feet, preserved eyes/beak and aura still apply.
+
+See [moving texture quality](MOVING_TEXTURE_QUALITY.md) for current runtime owners,
+measurements, screenshots and lifecycle checks. The historical atlas animation,
+world-selection behavior and checks described below do not describe the new
+shared material implementation.
+
+## Historical rollout and fixes
+
 Implemented for Galaxy Overlord (`StormDuck` / `Galaxy`) only. The first rollout
 is intentionally one nearby advanced Galaxy per client; other variants retain
 their current effects. Shadow is the next masking candidate. Water, Magma and

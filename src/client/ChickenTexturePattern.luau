@@ -1,6 +1,6 @@
 --!strict
--- Bake one seamless, detailed field per active appearance. Animation scrolls
--- this image with native drawing; no noise/pixel loop runs on the render clock.
+-- Bake one seamless, detailed field per active appearance. Only the UVs move;
+-- the image is immutable after loading, with no pixel work on the render clock.
 local AssetService = game:GetService("AssetService")
 local Pattern = {}
 local EDGE = 512
@@ -28,7 +28,7 @@ function Pattern.Create(appearance: string, current: () -> boolean): EditableIma
 		for x=0,EDGE-1 do
 			local color: Color3
 			if appearance=="Rainbow" then
-				color=Color3.fromHSV(v,0.88,1)
+				color=Color3.fromHSV(x/EDGE,0.88,1)
 			else
 				local u=x/EDGE
 				local f=noise(u,v,4,17)*0.48+noise(u,v,8,29)*0.27
@@ -68,7 +68,8 @@ function Pattern.Create(appearance: string, current: () -> boolean): EditableIma
 	if not current() then return nil end
 	local image=AssetService:CreateEditableImage({Size=Vector2.new(EDGE,EDGE)})
 	assert(image,"Pattern image budget unavailable")
-	image:WritePixelsBuffer(Vector2.zero,image.Size,pixels)
+	local ok,problem=pcall(function() image:WritePixelsBuffer(Vector2.zero,image.Size,pixels) end)
+	if not ok then image:Destroy();error(problem,0) end
 	return image
 end
 

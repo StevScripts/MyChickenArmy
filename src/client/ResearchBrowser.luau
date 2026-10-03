@@ -33,8 +33,8 @@ local TOOLTIP_WIDTH=.218
 local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
 local MOTION={
-	OpenScale=.88,OpenSeconds=.24,OpenWaveSeconds=.20,
-	FrontierSeconds=.18,FrontierWaveSeconds=.08,FrontierScale=1.025,
+	OpenScale=0,OpenSeconds=.24,OpenStaggerSeconds=.045,OpenWaveSeconds=.80,
+	FrontierEntryScale=.88,FrontierSeconds=.18,FrontierWaveSeconds=.08,FrontierScale=1.025,
 	HoverScale=1.025,PressScale=.96,PressSeconds=.055,SettleSeconds=.13,
 	ConfirmScale=1.045,ConfirmRiseSeconds=.10,ConfirmSettleSeconds=.18,
 	TintSeconds=.20,FlashSeconds=.35,CompletionLimit=3,CompletionStaggerSeconds=.04,
@@ -44,6 +44,8 @@ local function cancelTween(owner,key)
 	if tween then owner[key]=nil;tween:Cancel();tween:Destroy() end
 end
 local function cancelSize(view)
+	view.revealing=false
+	if view.revealSoundConnection then view.revealSoundConnection:Disconnect();view.revealSoundConnection=nil end
 	if view.sizeConnection then view.sizeConnection:Disconnect();view.sizeConnection=nil end
 	cancelTween(view,"sizeTween")
 end
@@ -66,7 +68,7 @@ local function cashStatus(offer,coins)
 	if not offer or not offer.ready then return "Loading" end
 	if not offer.price then return "Unavailable" end
 	if not offer.unlocked then return "Unavailable" end
-	return if coins<offer.price then "Unaffordable" else "Available"
+	return if offer.canSpend==false or coins<offer.price then "Unaffordable" else "Available"
 end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
@@ -109,14 +111,16 @@ function Browser.new(app,parent)
 	local self=setmetatable({app=app,nodes={},links={},connections={},zoom=1,pan=Vector2.zero,alive=true,receivedAt=0,serverTime=0,cashPending={},cashRequests={}},Browser)
 	local root=Instance.new("TextButton")
 	root.Name,root.Text,root.Size="Research","",UDim2.fromScale(1,1)
+	root:SetAttribute("HoverAudioCue","SkillTreeHover")
 	root.BackgroundColor3,root.BorderSizePixel=Color3.new(0,0,0),0
 	root.Visible,root.Active,root.Modal,root.AutoButtonColor=false,true,true,false
 	root.Selectable,root.ClipsDescendants,root.ZIndex=false,true,15
 	root.Parent=parent;self.root=root
 	local map=Theme.Container(root,"Map")
 	map.AnchorPoint,map.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
+	-- Keep native height-relative geometry without capping zoom at the parent.
+	map.SizeConstraint=Enum.SizeConstraint.RelativeYY
 	Theme.Aspect(map,1440/930)
-	map.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
 	map.UIAspectRatioConstraint.DominantAxis=Enum.DominantAxis.Height
 	self.map=map
 	-- Adjacent hexes already read as a path. Bridge only longer prerequisite
@@ -306,7 +310,7 @@ end
 
 function Browser:RestNode(view,seconds)
 	if not self.root.Visible or not view.button.Visible then return end
-	if view.pulsing and not view.pressed then return end
+	if (view.pulsing or view.revealing) and not view.pressed then return end
 	view.pulsing=false
 	self:SizeNode(view,self:RestScale(view),seconds or (if view.pressed then MOTION.PressSeconds else MOTION.SettleSeconds))
 end
@@ -322,19 +326,46 @@ end
 function Browser:RevealNodes(reveals)
 	if #reveals==0 then return end
 	local opening=self.opening
+	if not opening and self.revealOrigin and self.root.Visible then
+		self.app.audio:Play("SkillTreeNodeAdded",nil,{noFallback=true,voiceKey="SkillTreeNodeAdded",cooldown=.1})
+	end
 	local origin=point(displayNodes[if opening then "Start" else self.revealOrigin or "Start"])
-	table.sort(reveals,function(a,b) return (point(displayNodes[a.id])-origin).Magnitude<(point(displayNodes[b.id])-origin).Magnitude end)
+	table.sort(reveals,function(a,b)
+		local da,db=(point(displayNodes[a.id])-origin).Magnitude,(point(displayNodes[b.id])-origin).Magnitude
+		return if da==db then a.id<b.id else da<db
+	end)
 	local far=(point(displayNodes[reveals[#reveals].id])-origin).Magnitude
-	for _,entry in reveals do
+	local stagger=math.min(MOTION.OpenStaggerSeconds,MOTION.OpenWaveSeconds/math.max(1,#reveals-1))
+	for index,entry in reveals do
 		local view=self.nodes[entry.id]
 		local distance=(point(displayNodes[entry.id])-origin).Magnitude
-		local delay=(if self.revealOrigin and not opening then MOTION.ConfirmRiseSeconds else 0)+(if far>0 then distance/far else 0)*(if opening then MOTION.OpenWaveSeconds else MOTION.FrontierWaveSeconds)
+		local delay=if opening then (index-1)*stagger else (if self.revealOrigin then MOTION.ConfirmRiseSeconds else 0)+(if far>0 then distance/far else 0)*MOTION.FrontierWaveSeconds
 		if self.app.reducedMotion then cancelSize(view);view.visual.Size=UDim2.fromScale(1,1)
 		elseif entry.new then
 			-- Only newly visible nodes receive an entry scale. Visible questions
 			-- grow from their current presentation instead of collapsing to zero.
-			cancelSize(view);view.visual.Size=UDim2.fromScale(MOTION.OpenScale,MOTION.OpenScale)
-			self:SizeNode(view,self:RestScale(view),if opening then MOTION.OpenSeconds else MOTION.FrontierSeconds,delay)
+			cancelSize(view)
+			local scale=if opening then MOTION.OpenScale else MOTION.FrontierEntryScale
+			view.visual.Size=UDim2.fromScale(scale,scale)
+			self:SizeNode(view,self:RestScale(view),if opening then MOTION.OpenSeconds else MOTION.FrontierSeconds,delay,function()
+				view.revealing=false;self:RestNode(view)
+			end)
+			-- Pointer/focus changes must not cut the stagger short. A deliberate
+			-- press can still interrupt it through the same size-tween owner.
+			view.revealing=true
+			if opening then
+				local tween=view.sizeTween
+				local function playPop()
+					if tween.PlaybackState~=Enum.PlaybackState.Playing then return end
+					if view.revealSoundConnection then view.revealSoundConnection:Disconnect();view.revealSoundConnection=nil end
+					if self.alive and self.root.Visible and view.button.Visible and not self.app.reducedMotion and view.sizeTween==tween then
+						self.app.audio:Play("SkillTreeNodePop",nil,{noFallback=true,cooldown=0,maxVoices=4,maxDuration=.35})
+					end
+				end
+				-- Follow the actual tween start, including its stagger delay.
+				view.revealSoundConnection=tween:GetPropertyChangedSignal("PlaybackState"):Connect(playPop)
+				playPop()
+			end
 		else self:PulseNode(view,MOTION.FrontierScale,delay) end
 	end
 	self.opening=false
@@ -389,7 +420,7 @@ function Browser:Feedback(text,color,id)
 	self.message.TextTransparency=0
 	self.feedbackVersion=(self.feedbackVersion or 0)+1
 	local version=self.feedbackVersion
-	if color==RED then self.app.audio:Play("Error",nil,{voiceKey="ErrorNotification",cooldown=.25}) end
+	if color==RED then self.app.audio:Play("SkillTreeError",nil,{noFallback=true,voiceKey="ErrorNotification",cooldown=.25}) end
 	if id then
 		local view=self.nodes[id]
 		cancelTween(view,"flash")
@@ -417,7 +448,11 @@ end
 
 function Browser:Receive(state,result)
 	if not state or not state.research then return end
+	local oldSlots=self.data and self.data.effects.slots
 	self.data,self.coins,self.cashOffers=state.research,state.coins,state.boardUpgrades or {}
+	if oldSlots and self.data.effects.slots>oldSlots then
+		self.app.audio:Play("SkillTreeResearchSlotAdded",nil,{noFallback=true})
+	end
 	-- Integer server snapshots must not rewind the fractional client clock.
 	self.serverTime=if self.receivedAt>0 then math.max(self:Now(),state.research.serverTime) else state.research.serverTime
 	self.receivedAt=os.clock()
@@ -425,6 +460,7 @@ function Browser:Receive(state,result)
 	local completedRecap
 	if #recap>0 and not self.acknowledging then
 		self.acknowledging=true
+		self.app.audio:Play("SkillTreeResearchCompleted",nil,{noFallback=true})
 		local names={};for _,id in recap do table.insert(names,Catalog.Nodes[id].name) end
 		if self.root.Visible then completedRecap=recap else self.app:Notify("Research complete: "..table.concat(names,", "),true) end
 		self.app:Request("AcknowledgeResearch")
@@ -434,7 +470,11 @@ function Browser:Receive(state,result)
 	local cashRequest=result and result.action=="CashUpgrade" and self.cashRequests[result.id]
 	if cashRequest then
 		self.cashRequests[result.id]=nil
+		if result.ok then self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true}) end
 		if self.cashPending[cashRequest.key]==result.id then self.cashPending[cashRequest.key]=nil end
+	end
+	if result and result.ok and result.action=="StartResearch" then
+		self.app.audio:Play("SkillTreeResearchStarted",nil,{noFallback=true})
 	end
 	if self.root.Visible then
 		self.revealOrigin=if cashRequest and result.ok then cashRequest.nodeId elseif completedRecap then completedRecap[1] else nil
@@ -663,6 +703,7 @@ function Browser:RenderTooltip()
 			effect=change..". Instant upgrade. "..node.description
 		end
 	end
+	if state=="Unaffordable" and offer and offer.spendReason and offer.spendReason~="" then effect..=" "..offer.spendReason end
 	local title,titleRows=wrap(node.name,22)
 	local description,rows=wrap(effect,23)
 	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" else job~=nil or state~="Completed"
@@ -702,7 +743,7 @@ function Browser:Activate()
 		if node.effect=="formations" then self.app:OpenPage("Formations")
 		elseif node.effect=="operations" then self.app:OpenPage("Operations") end
 	elseif offer.status=="Locked" then self:Feedback("Research "..Catalog.Nodes[node.prerequisite].name.." first!",RED,id)
-	elseif offer.status=="Unaffordable" then self:Feedback("Not enough cash!",RED,id)
+	elseif offer.status=="Unaffordable" then self:Feedback(offer.spendReason or "Not enough cash!",RED,id)
 	elseif offer.status=="Available" then
 		if #data.jobs>=data.effects.slots then self:Feedback("All researchers are busy!",RED,id);return end
 		if self.pending and self.pending.revision==data.revision and os.clock()-self.pending.at<1 then return end
@@ -721,7 +762,7 @@ function Browser:PurchaseCash(id)
 	if node.tier~=completed+1 then return end
 	local state=cashStatus(offer,self.coins or 0)
 	if state~="Available" then
-		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else "Not enough cash!"
+		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash!"
 		self:Feedback(text,RED,id);return
 	end
 	local requestId=self.app:Request("CashUpgrade",{upgradeKey=key,expectedLevel=offer.level,expectedPrice=offer.price})
@@ -775,7 +816,7 @@ function Browser:Transform()
 		local sx,sy=root.Y/root.X*1440/930*self.zoom,self.zoom
 		self.pan=Vector2.new(math.clamp(self.pan.X,-.3-(maxX-.5)*sx,.3-(minX-.5)*sx),math.clamp(self.pan.Y,-.3-(maxY-.5)*sy,.3-(minY-.5)*sy))
 	end
-	self.map.Size=UDim2.fromScale(self.zoom,self.zoom)
+	self.map.Size=UDim2.fromScale(self.zoom*1440/930,self.zoom)
 	self.map.Position=UDim2.fromScale(.5+self.pan.X,.5+self.pan.Y)
 	self:PlaceTooltip()
 end
@@ -791,7 +832,10 @@ function Browser:Center(id)
 end
 
 function Browser:Zoom(amount,at)
-	local old=self.zoom;self.zoom=math.clamp(self.zoom*amount,.65,1.8)
+	local old=self.zoom
+	local nextZoom=self.zoom*amount
+	if nextZoom~=nextZoom or nextZoom==math.huge or amount<=0 then return end
+	self.zoom=math.max(nextZoom,.65)
 	local size=self.root.AbsoluteSize
 	if at and size.X>0 and size.Y>0 then
 		local p=at-self.root.AbsolutePosition
@@ -885,6 +929,7 @@ end
 
 function Browser:Open()
 	if self.root.Visible then self:Focus();return end
+	self.app.audio:Play("SkillTreeOpen",nil,{noFallback=true})
 	self.app:ClosePanel()
 	self.app.offlineCash:Dismiss(true)
 	self.previousSelection=GuiService.SelectedObject
@@ -934,6 +979,7 @@ end
 
 function Browser:Close()
 	if not self.root.Visible then return end
+	self.app.audio:Play("SkillTreeClose",nil,{noFallback=true})
 	self.root.Visible=false;self.app.hudLayer.Visible=true;self.drag=nil
 	self.message.Visible=false;self.feedbackVersion=(self.feedbackVersion or 0)+1
 	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil

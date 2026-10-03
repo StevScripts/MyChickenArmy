@@ -1,0 +1,20 @@
+{
+  "desktop": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "{\"normalBoundingAreaPercent\":7.506778332079589,\"card\":\"542.754028, 100.510002\",\"scope\":\"Temporary UI fixtures removed; no gameplay or profile changes\",\"passed\":14,\"viewport\":\"1238, 587\"}",
+    "output": []
+  },
+  "landscape": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "{\"normalBoundingAreaPercent\":7.81500583820858,\"card\":\"324.216003, 60.0400009\",\"scope\":\"Temporary UI fixtures removed; no gameplay or profile changes\",\"passed\":14,\"viewport\":\"666, 374\"}",
+    "output": []
+  },
+  "portrait": {
+    "ok": true,
+    "bridge": "ok",
+    "result": "{\"normalBoundingAreaPercent\":8.031675586651657,\"card\":\"328.23999, 60.785183\",\"scope\":\"Temporary UI fixtures removed; no gameplay or profile changes\",\"passed\":14,\"viewport\":\"373, 666\"}",
+    "output": []
+  }
+}

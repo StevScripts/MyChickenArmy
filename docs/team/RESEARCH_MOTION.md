@@ -1,5 +1,37 @@
 # Skill-tree motion — October 2, 2026
 
+## October 3 opening and zoom correction
+
+The user requested a visible, sequential scale-in when opening the tree and no
+upper zoom stop. This supersedes the restrained 88% opening described below.
+Nodes now grow from zero over 0.24 seconds, ordered outward from Start with
+distinct delays up to 45 ms apart. The last starts within 0.8 seconds, even on a
+large earned tree. Hover/focus cannot cancel the reveal; deliberate presses can
+still respond immediately. Closing cancels the wave and reduced motion settles
+everything directly. Existing frontier and completion effects retain their timing.
+
+Two separate zoom restrictions were removed: the 1.8x code cap and the map's
+parent-bounded aspect mode. The map now uses native RelativeYY sizing with a
+FitWithinMaxSize aspect constraint, so rendered geometry follows the zoom value
+above one. Mouse-wheel, pinch and controller zoom share this transform; cursor
+anchoring, the 0.65x zoom-out floor and Home/controller-X reset remain.
+
+The focused Studio session verified 26 distinct opening delays, early nodes
+growing while later ones stayed at zero, all nodes settling, hover preservation,
+close cancellation and reduced motion. A fresh session of the final synced source
+verified actual rendered zoom at 3x, 10x and 17x, reverse zoom to 1x and 0.65x,
+and cursor anchoring (normalized error below 0.000001). No ResearchBrowser errors
+appeared. No gameplay purchase was needed; physical pinch/controller hardware was
+not exercised. Play was stopped and temporary probes cleared afterward.
+
+The later October 3 audio request adds `VFX/SkillTree/NodePop`, an empty editable
+Sound template. The tween's actual Playing transition triggers one pop per
+opening node, with no cooldown and up to four short overlapping voices. Scoped
+silent runtime checks observed 26 calls for 26 nodes over the staggered wave,
+no delayed calls after Close, no remaining callbacks and no reduced-motion pops.
+
+## Earlier motion pass
+
 The user requested cleaner animations for the current unified skill tree using
 the Roblox Game Feel skill. Scope is presentation in ResearchBrowser; node
 positions, purchases, prices, research jobs, saved progress and rewards retain

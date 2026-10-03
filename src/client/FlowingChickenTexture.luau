@@ -1,8 +1,8 @@
 --!strict
 -- One high-detail material and UV-only mesh per appearance, shared by the flock.
 -- The original small face islands stay intact in the lower half of the atlas.
--- Feather UVs use its previously empty upper-left 512-square field instead of
--- stretching 2–28 authored texels over each entire face. Skinning is unchanged.
+-- Feather UVs scroll over two identical 512-square fields in the empty upper half,
+-- instead of stretching 2–28 authored texels over a face. Skinning is unchanged.
 local AssetService=game:GetService("AssetService")
 local TweenService=game:GetService("TweenService")
 local Pattern=require(script.Parent.ChickenTexturePattern)
@@ -13,7 +13,6 @@ local CONFIG={
 	Rainbow={mesh="125504522932099",seconds=6},
 }
 local caches: {[string]: any}={}
-local FIELD=Vector2.new(512,512)
 local ATLAS=Vector2.new(1024,1024)
 
 local function apply(body: MeshPart, template: MeshPart)
@@ -30,11 +29,12 @@ end
 
 local function release(cache: any)
 	cache.generation+=1
-	if cache.tween then cache.tween:Cancel();cache.tween:Destroy() end
-	for _,name in {"phase","surface","display","mesh","image","field","pattern","emissive"} do
+	if cache.tween then cache.tween:Cancel();cache.tween:Destroy();cache.tween=nil end
+	for _,name in {"phase","surface","display","mesh","image","emissive"} do
 		if cache[name] then cache[name]:Destroy();cache[name]=nil end
 	end
 	cache.state,cache.error,cache.lastUpdate,cache.updates="idle",nil,nil,0
+	cache.uvs=nil
 end
 
 local function animateFace(appearance: string, uv: Vector2): boolean
@@ -61,7 +61,9 @@ local function remap(mesh: EditableMesh, appearance: string)
 				local p=mesh:GetPosition(vertices[index])
 				local horizontal=if math.abs(normal.X)>math.abs(normal.Z) then p.Z else p.X
 				local vertical=if math.abs(normal.Y)>math.max(math.abs(normal.X),math.abs(normal.Z)) then p.Z else p.Y
-				changes[id]=Vector2.new(0.25+horizontal*scale,0.25-vertical*scale)
+				changes[id]=if appearance=="Rainbow"
+					then Vector2.new(0.25-vertical*scale,0.25+horizontal*scale)
+					else Vector2.new(0.25+horizontal*scale,0.25-vertical*scale)
 			end
 		else for _,id in ids do protected[id]=true end end
 	end
@@ -71,22 +73,18 @@ local function remap(mesh: EditableMesh, appearance: string)
 		mesh:SetUV(id,uv)
 	end
 	assert(next(changes),"No feather UVs found")
+	return changes
 end
 
 local function update(cache: any, now: number)
 	if cache.lastUpdate==now then return end
-	local phase=cache.phase.Value
-	local x=if cache.appearance=="Galaxy" then phase*512 else 0
-	local y=if cache.appearance=="Galaxy" then (phase*2%1)*512 else phase*512
-	local options={CombineType=Enum.ImageCombineType.Overwrite,PivotPoint=Vector2.zero}
-	-- The scratch canvas clips each wrapped copy before touching the atlas.
-	-- A fractional draw offset uses native bilinear sampling for smooth motion.
-	for _,dx in (if x==0 then {0} else {0,-512}) do
-		for _,dy in (if y==0 then {0} else {0,-512}) do
-			cache.field:DrawImageTransformed(Vector2.new(x+dx,y+dy),Vector2.one,0,cache.pattern,options)
-		end
+	local offset=Vector2.new(cache.phase.Value*0.5,0)
+	-- TweenService owns the looping phase. EditableMesh UVs cannot be tweened
+	-- directly; copy that phase once per appearance, shared by every chicken.
+	-- Two identical tiles make the phase reset seamless without wrapping vertices.
+	for id,uv in cache.uvs do
+		cache.mesh:SetUV(id,uv+offset)
 	end
-	cache.image:DrawImage(Vector2.zero,cache.field,Enum.ImageCombineType.Overwrite)
 	cache.lastUpdate=now
 	cache.updates+=1
 end
@@ -111,12 +109,12 @@ local function beginLoad(cache: any, body: MeshPart, base: SurfaceAppearance)
 			local pattern=Pattern.Create(cache.appearance,current)
 			if not current() then if pattern then pattern:Destroy() end;return end
 			own(pattern)
-			local field=own(AssetService:CreateEditableImage({Size=FIELD}))
 			image:DrawImage(Vector2.zero,pattern,Enum.ImageCombineType.Overwrite)
+			image:DrawImage(Vector2.new(512,0),pattern,Enum.ImageCombineType.Overwrite)
 			local mesh=own(AssetService:CreateEditableMeshAsync(Content.fromUri("rbxassetid://"..CONFIG[cache.appearance].mesh),{FixedSize=true}))
 			if not current() then return end
 			assert(#mesh:GetVertices()==504 and #mesh:GetBones()>=18,"Unexpected chicken rig")
-			remap(mesh,cache.appearance)
+			local uvs=remap(mesh,cache.appearance)
 			local display=own(AssetService:CreateMeshPartAsync(Content.fromObject(mesh),
 				{CollisionFidelity=body.CollisionFidelity,RenderFidelity=body.RenderFidelity}))
 			if not current() then return end
@@ -125,7 +123,7 @@ local function beginLoad(cache: any, body: MeshPart, base: SurfaceAppearance)
 			if cache.appearance=="Galaxy" then
 				emissive=own(AssetService:CreateEditableImage({Size=Vector2.new(32,32)}))
 				emissive:DrawRectangle(Vector2.zero,emissive.Size,Color3.new(0,0,0),0,Enum.ImageCombineType.Overwrite)
-				emissive:DrawRectangle(Vector2.zero,Vector2.new(16,16),Color3.new(1,1,1),0,Enum.ImageCombineType.Overwrite)
+				emissive:DrawRectangle(Vector2.zero,Vector2.new(32,16),Color3.new(1,1,1),0,Enum.ImageCombineType.Overwrite)
 				material.EmissiveMask=Content.fromObject(emissive)
 			end
 			local surface=own(AssetService:CreateSurfaceAppearanceAsync(material))
@@ -137,10 +135,10 @@ local function beginLoad(cache: any, body: MeshPart, base: SurfaceAppearance)
 			local phase=own(Instance.new("NumberValue"))
 			local tween=own(TweenService:Create(phase,TweenInfo.new(CONFIG[cache.appearance].seconds,
 				Enum.EasingStyle.Linear,Enum.EasingDirection.InOut,-1),{Value=1}))
-			cache.image,cache.pattern,cache.field,cache.mesh,cache.display=image,pattern,field,mesh,display
+			cache.image,cache.mesh,cache.display,cache.uvs=image,mesh,display,uvs
 			cache.surface,cache.emissive,cache.phase,cache.tween=surface,emissive,phase,tween
 			cache.state,cache.error,cache.updates="ready",nil,0
-			input:Destroy();table.clear(owned)
+			input:Destroy();pattern:Destroy();table.clear(owned)
 			tween:Play()
 		end)
 		for _,value in owned do value:Destroy() end
@@ -192,7 +190,7 @@ function Flow.Step(self: any, now: number, reduced: boolean, camera: Camera?)
 	local cache=self.cache
 	beginLoad(cache,self.body,surface)
 	self.state,self.error=cache.state,cache.error
-	if cache.state~="ready" then return end
+	if cache.state~="ready" then self:_restore();return end
 	if not self.animatedSurface then
 		local original=self.body:Clone();assert(original)
 		original:ClearAllChildren();self.original=original

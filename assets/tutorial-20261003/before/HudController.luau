@@ -1,0 +1,300 @@
+--!strict
+-- Compact play HUD; menus and economy actions remain owned by AppController.
+local Theme=require(script.Parent.UITheme)
+local GuiService=game:GetService("GuiService")
+local Players=game:GetService("Players")
+local ResearchAssets=require(script.Parent.ResearchAssets)
+local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
+local A=Theme.Arcade
+local ARMY_HOME_SCALE=0.82
+local Hud={}
+Hud.__index=Hud
+
+function Hud.new(app,shell)
+	local self=setmetatable({app=app},Hud)
+	local navigation=Theme.Frame(shell,"Navigation",UDim2.fromScale(0.31,0.255))
+	self.navigation=navigation
+	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.985),1
+	self.army=Theme.IconButton(navigation,"Army","My Army",Theme.Assets.ArmyHud or Theme.Assets.Army,function() app:TogglePage("Army") end)
+	local function command(action)
+		app.audio:Play("Click")
+		app:Request(action)
+	end
+	self.callArmy=Theme.IconButton(navigation,"CallArmy","Call Army",Theme.Assets.CallArmy or "",function() command("CallArmy") end)
+	self.myBase=Theme.IconButton(navigation,"MyBase","My Base",Theme.Assets.MyBase or "",function() command("GoBase") end)
+	self.army.ZIndex=2
+	self.commandsExpanded=false
+	for _,button in {self.callArmy,self.myBase} do
+		button.Visible,button.Interactable,button.Selectable=false,false,false
+		button.Size=UDim2.fromScale(0,0)
+	end
+	self.army.Size,self.army.TextSize=UDim2.fromScale(1,1),32
+	self.armyIcon=self.army.Visual.Icon
+	self.armyLabel=self.army.Visual.Label
+	self.armyCount=Theme.Display(self.army.Visual,"ArmyCount","",20,Theme.PageColors.Army)
+	self.armyCount.TextXAlignment=Enum.TextXAlignment.Center
+	self.armyCount.ZIndex=4
+	self.status=Theme.Display(shell,"ArmyStatus","",21)
+	self.status.AnchorPoint,self.status.Position,self.status.Size,self.status.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
+	self.status.Visible=false
+	self.objective=Theme.Display(shell,"OpeningObjective","",21,A.gold)
+	self.objective.AnchorPoint,self.objective.Position,self.objective.Size,self.objective.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
+	self.objective.Visible=false
+	local cash=Theme.Container(shell,"CashReadout")
+	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.285,0.12)
+	Theme.Aspect(cash,3.6)
+	self.money=Theme.Display(cash,"Money","$0",46,A.gold)
+	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Cash,UDim2.fromScale(0.22,0.72),UDim2.fromScale(0,0.12))
+	Theme.Aspect(self.cashIcon,1)
+	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.27),UDim2.fromScale(0.76,0.45)
+	self.income=Theme.Display(cash,"Income","",20)
+	self.income.Position,self.income.Size=UDim2.fromScale(0,0.78),UDim2.fromScale(1,0.2)
+	self.income.TextWrapped,self.income.Visible=false,false
+	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
+	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
+	local totals=Theme.Container(shell,"ArmyTotals")
+	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.24,0.065)
+	Theme.Aspect(totals,4.8)
+	self.conquered=Theme.Display(totals,"Conquered","Conquered 0/"..#Progression.Camps(1),27,A.gold)
+	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
+	self.flock=Theme.Display(totals,"Flock","Chickens 0/40",25,A.gold)
+	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
+	self:BuildSettingsTopbar()
+	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.51))
+	shortcuts.BackgroundTransparency=1
+	shortcuts.AnchorPoint,shortcuts.Position=Vector2.new(0,0.5),UDim2.fromScale(0.012,0.5)
+	self.shortcuts=shortcuts
+	local shortcutLayout=Instance.new("UIListLayout")
+	shortcutLayout.SortOrder,shortcutLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0.03,0)
+	shortcutLayout.Parent=shortcuts
+	for i,page in {"Shop","Index","Upgrades"} do
+		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
+		button.LayoutOrder=i
+	end
+	self.save=Theme.Display(shell,"SaveStatus","",12)
+	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(1,0),UDim2.fromScale(0.988,0.035),UDim2.fromScale(0.18,0.035),Enum.TextXAlignment.Right
+	self:Layout()
+	self:BindBasePresence()
+	return self
+end
+
+function Hud:BindBasePresence()
+	local player=Players.LocalPlayer
+	local alive=true
+	local presenceConnection
+	local function reset()
+		if presenceConnection then presenceConnection:Disconnect();presenceConnection=nil end
+		self.commandsExpanded=false
+		self:UpdateArmyCommands(true)
+	end
+	local function bind(character)
+		reset()
+		local humanoid=character:WaitForChild("Humanoid",10)
+		if not alive or character~=player.Character or not humanoid then return end
+		local function update()
+			-- Reuse the server's whole-base boundary, including its edge hysteresis.
+			local expanded=humanoid:GetAttribute("OutsideHomeBase")==true
+			if expanded==self.commandsExpanded then return end
+			self.commandsExpanded=expanded
+			self:UpdateArmyCommands(false)
+		end
+		presenceConnection=humanoid:GetAttributeChangedSignal("OutsideHomeBase"):Connect(update)
+		update()
+	end
+	local added=player.CharacterAdded:Connect(bind)
+	local removing=player.CharacterRemoving:Connect(reset)
+	self.navigation.Destroying:Once(function()
+		alive=false
+		added:Disconnect();removing:Disconnect()
+		if presenceConnection then presenceConnection:Disconnect() end
+	end)
+	if player.Character then task.spawn(bind,player.Character) end
+end
+
+function Hud:UpdateArmyCommands(immediate)
+	local expanded=self.commandsExpanded
+	local seconds=if immediate then 0 else 0.32
+	local armyFactor=if expanded then 1 else ARMY_HOME_SCALE
+	Theme.Motion:Tween(self.army,"baseSize",{Size=UDim2.fromScale(0.38*armyFactor,armyFactor)},
+		seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
+	for index,button in {self.callArmy,self.myBase} do
+		button.Visible=true
+		button.Interactable,button.Selectable=false,false
+		if GuiService.SelectedObject==button then GuiService.SelectedObject=self.army end
+		local x=if index==1 then 0.14 else 0.86
+		Theme.Motion:Tween(button,"basePosition",{Position=UDim2.fromScale(if expanded then x else 0.5,
+			if expanded then 0.66 else 0.52)},seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
+		Theme.Motion:Tween(button,"baseSize",{Size=UDim2.fromScale(if expanded then 0.28 else 0,if expanded then 0.7 else 0)},
+			seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut,function()
+				button.Visible=expanded
+				button.Interactable,button.Selectable=expanded,expanded
+			end)
+	end
+end
+
+function Hud:BuildSettingsTopbar()
+	local app=self.app
+	local gui=Theme.Container(app.hudLayer,"Topbar")
+	gui.ZIndex=30
+	local button=Instance.new("TextButton")
+	button.Name,button.Text,button.AutoButtonColor="Settings","",false
+	button.Size,button.AnchorPoint,button.Position=UDim2.fromScale(0.04,0.072),Vector2.new(1,0),UDim2.fromScale(0.994,0.012)
+	button.BackgroundColor3,button.BackgroundTransparency,button.BorderSizePixel=Color3.fromRGB(18,19,22),0.1,0
+	button.Parent=gui
+	Theme.Aspect(button,1)
+	local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(1,0);corner.Parent=button
+	local icon=Instance.new("ImageLabel")
+	icon.Name,icon.BackgroundTransparency="Gear",1
+	icon.Image="rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab@2x.png"
+	icon.AnchorPoint,icon.Position,icon.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.64,0.64)
+	icon.Parent=button
+	local caption=Instance.new("TextLabel")
+	caption.Name,caption.Text,caption.Font,caption.TextSize="Caption","Settings",Theme.Font,16
+	caption.AnchorPoint,caption.Position,caption.Size=Vector2.new(1,0),UDim2.fromScale(1,1.18),UDim2.fromScale(1.9,0.64)
+	caption.TextScaled=true
+	caption.BackgroundColor3,caption.BackgroundTransparency=Color3.fromRGB(18,19,22),0.06
+	caption.TextColor3,caption.BorderSizePixel,caption.Visible=Color3.new(1,1,1),0,false
+	caption.Parent=button
+	local captionCorner=Instance.new("UICorner");captionCorner.CornerRadius=UDim.new(0.03,0);captionCorner.Parent=caption
+	self.settings,self.settingsIcon,self.settingsCaption,self.settingsGui=button,icon,caption,gui
+	Theme.Motion:BindButton(button,button)
+	local function hover(value) self.settingsHovered=value;self:UpdateSettingsTopbar() end
+	button.MouseEnter:Connect(function() hover(true) end)
+	button.MouseLeave:Connect(function() hover(false) end)
+	button.SelectionGained:Connect(function() hover(true) end)
+	button.SelectionLost:Connect(function() hover(false) end)
+	button.Activated:Connect(function() app:TogglePage("Settings");self:UpdateSettingsTopbar() end)
+	local function syncEnabled()
+		gui.Visible=app.gui.Enabled and not GuiService.MenuIsOpen
+		if not gui.Visible then hover(false) end
+	end
+	local menuConnection=GuiService:GetPropertyChangedSignal("MenuIsOpen"):Connect(syncEnabled)
+	gui.Destroying:Connect(function() menuConnection:Disconnect() end)
+	app.gui:GetPropertyChangedSignal("Enabled"):Connect(syncEnabled)
+	syncEnabled()
+end
+
+function Hud:UpdateSettingsTopbar()
+	local app=self.app
+	local selected=app.panel and app.panel.Visible and not app.panelClosing and app.page=="Settings"
+	self.settings.Visible=not (app.panel and app.panel.Visible)
+	local hot=self.settingsHovered==true
+	self.settingsCaption.Visible=hot and self.settingsGui.Visible
+	if self.settingsSelected==selected and self.settingsHot==hot then return end
+	self.settingsSelected,self.settingsHot=selected,hot
+	Theme.Motion:Tween(self.settings,"topbarColor",{BackgroundColor3=if selected then Color3.fromRGB(239,241,245)
+		elseif hot then Color3.fromRGB(48,50,55) else Color3.fromRGB(18,19,22)},0.12)
+	Theme.Motion:Tween(self.settingsIcon,"topbarColor",{ImageColor3=if selected then Color3.fromRGB(28,30,34) else Color3.new(1,1,1)},0.12)
+end
+
+-- Like GUI.HUD: scale-only regions, native aspect constraints and scaled text.
+-- The composition is authored once; viewport changes are handled by Roblox.
+function Hud:Layout()
+	Theme.Aspect(self.navigation,558/272)
+	Theme.Aspect(self.shortcuts,136/408)
+	self.army.AnchorPoint,self.army.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,1)
+	for _,button in {self.callArmy,self.army,self.myBase} do
+		local primary=button==self.army
+		if not primary then button.AnchorPoint=Vector2.new(0.5,0.5) end
+		local icon,label=button.Visual.Icon,button.Visual.Label
+		icon.AnchorPoint=Vector2.new(0.5,0)
+		icon.Position,icon.Size=UDim2.fromScale(0.5,0.03),UDim2.fromScale(1,if primary then 0.8 else 0.82)
+		Theme.Aspect(icon,1)
+		label.Position,label.Size=UDim2.fromScale(0,0.73),UDim2.fromScale(1,if primary then 0.13 else 0.2)
+		label.TextScaled,label.ZIndex=true,4
+	end
+	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.875),UDim2.fromScale(1,0.09)
+	for _,page in {"Shop","Index","Upgrades"} do
+		local button=self.shortcuts:FindFirstChild(page)
+		button.Size=UDim2.fromScale(1,0.3133)
+		Theme.Aspect(button,136/132)
+		button.Visual.Label.TextScaled=true
+	end
+	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.conquered,self.flock,self.save,self.armyCount} do
+		label.TextScaled=true
+	end
+	Theme.Aspect(self.status,19)
+	Theme.Aspect(self.objective,19)
+	Theme.Aspect(self.save,6)
+	Theme.ScaleText(self.navigation)
+	Theme.ScaleText(self.shortcuts)
+	Theme.ScaleText(self.settings)
+	self:UpdateArmyCommands(true)
+end
+
+function Hud:Resize(_width, _height, _scale)
+	if not self.settingsPanelBound then
+		self.settingsPanelBound=true
+		self.app.panel:GetPropertyChangedSignal("Visible"):Connect(function() self:UpdateSettingsTopbar() end)
+		self.app.panelTitle:GetPropertyChangedSignal("Text"):Connect(function() self:UpdateSettingsTopbar() end)
+	end
+	self:UpdateSettingsTopbar()
+end
+
+function Hud:UpdateEggLine(eggs)
+	if eggs.requiresDeposit then
+		local count=eggs.carriedCount or 0
+		self.income.Text="Bag: "..Theme.Money(count)..(if count==1 then " egg" else " eggs")
+			.." · Worth $"..Theme.Money(eggs.carriedValue or 0)
+	else self.income.Text="Yard eggs: $"..Theme.Money(eggs.value or 0) end
+end
+
+function Hud:UpdateOpening(state)
+	local guidance=self.app.base.OpeningGuidance(state)
+	self.objective.Text=if guidance then guidance.text else ""
+	self.objective.Visible=guidance~=nil and not self.app.panel.Visible
+end
+
+function Hud:UpdateTerritory(state)
+	local site = state and state.incomeOutpost
+	local owned = site and site.ownerId == state.userId
+	self.territory.Visible = owned == true and not self.app.panel.Visible
+	if not owned then self.territory.Text = "";return end
+	local rate = math.max(0, math.floor(site.effectiveRate or 0))
+	self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +$" .. Theme.Money(rate) .. "/s"
+	self.territory.TextColor3 = if site.contested then A.red else A.gold
+	if not site.contested then
+		if site.npcApproaching then self.territory.Text ..= " · raid approaching"
+		elseif site.npcWarningEndsAt then
+			local remaining = math.max(0, math.ceil(site.npcWarningEndsAt - workspace:GetServerTimeNow()))
+			if remaining > 0 then self.territory.Text ..= " · raid in " .. remaining .. "s" end
+		end
+	end
+end
+
+function Hud:Update(state,count,limit,capacity,selected,deployed)
+	self:UpdateOpening(state)
+	self:UpdateTerritory(state)
+	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.Money(value) end)
+	self:UpdateEggLine(state.eggs or {})
+	self.flock.Text="Chickens "..count.."/"..limit
+	local atHome=state.armyState=="Home"
+	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
+	self.status.Visible=not atHome
+	self.status.Text=if atHome then ""
+		elseif state.armyState=="Following" then "Army following you"
+		elseif state.armyState=="Returning" then "Returning home"
+		elseif state.stationedAt then "Holding "..state.stationedAt
+		elseif state.marchingTo then "Marching to "..state.marchingTo
+		else "Army deployed"
+	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
+	if state.armyState~="Returning" and (state.recoveringCount or 0)+(state.reinforcingCount or 0)>0 then
+		self.status.Text=(state.recoveringCount or 0)+(state.reinforcingCount or 0).." reinforcing"
+	end
+	local explored=0
+ for _,won in state.frontierWins or {} do if won then explored+=1 end end
+ local outpostCount=#Progression.Outposts()
+ self.conquered.Text="Route "..(state.routeCampsWon or 0).."/"..#Progression.Camps(1)..(if outpostCount>0 then " · Outposts "..explored.."/"..outpostCount else "")
+	self.conquered.TextColor3=if (state.routeCampsWon or 0)>0 then A.green else A.gold
+	self.save.Text=if state.saveStatus=="error" then "Save unavailable · Settings" elseif state.saveStatus=="loading" then "Loading…" else ""
+	self.save.TextColor3=A.red
+	if self.lastCount and (count~=self.lastCount or capacity~=self.lastCapacity) then Theme.Motion:Pop(self.army.Visual,1.1) end
+	if self.lastConquered and (state.routeCampsWon or 0)>self.lastConquered then
+		Theme.Motion:Pop(self.conquered,1.13)
+		Theme.Motion:Pop(self.cashIcon,1.14)
+		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,0.94),A.gold)
+	end
+	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,state.routeCampsWon or 0
+end
+
+return Hud

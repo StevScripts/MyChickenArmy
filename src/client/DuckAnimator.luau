@@ -21,14 +21,14 @@ local function phaseFor(name: string): number
 	return phase % (math.pi * 2)
 end
 
-function DuckAnimator.new()
+function DuckAnimator.new(audio)
 	local self = setmetatable({records = {}, connections = {}, reducedMotion = false, destroyed = false,
 		effectQuality = ChickenEffectQuality.new(), galaxyMask = GalaxyViewportEffect.new()}, DuckAnimator)
 	local function discover(item: Instance)
 		if item:IsA("Model") and (item:GetAttribute("DuckRig") == true or item:GetAttribute("SkinnedChicken") == true) and not self.records[item] then
 			self.records[item] = {model = item, root = nil, joints = {}, phase = phaseFor(item.Name),
 				lastPose = 0, lastScan = -1, attackSerial = item:GetAttribute("AttackSerial") or 0,
-				attackAt = -10, sleeping = false, fx = if item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item) else RareChickenVFX.new(item),
+				attackAt = -10, sleeping = false, fx = if item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
 				glitch = GlitchEditableMesh.new(item),
 				blender = if item:GetAttribute("ChickenVisualV3") then VoxelChickenAnimator.new(item) elseif item:GetAttribute("SkinnedChicken") then ChickenClipPlayer.new(item) else nil}
 		end
@@ -73,8 +73,8 @@ function DuckAnimator:_step(dt: number)
 			self.records[model] = nil continue
 		end
 		if model:GetAttribute("ChickenKing") then KingVisual.Update(model) end
-		-- The mask replaces Galaxy's animated atlas for its one active bird.
-		-- All other birds keep the existing material path for this quality tier.
+		-- Revealed offers reserve the original mesh for masking. Every roaming
+		-- Galaxy uses the same shared animated material at medium/high quality.
 		local textureTier = if tier == "static" or (tier == "masked" and model:GetAttribute("GalaxyMaskPreview") == true)
 			then "static" else "animated"
 		if record.fx then record.fx:Step(now, self.reducedMotion, camera, textureTier) end

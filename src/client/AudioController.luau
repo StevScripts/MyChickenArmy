@@ -94,6 +94,51 @@ function AudioController:FadeVoice(sound)
 	fade:Play()
 end
 
+function AudioController:BindUI(root)
+	if self.uiBindings then return end
+	self.uiBindings={}
+	local function remove(button)
+		if not self.uiBindings then return end
+		local bindings=self.uiBindings[button]
+		if bindings then for _,connection in bindings do connection:Disconnect() end;self.uiBindings[button]=nil end
+	end
+	local function bind(button)
+		if not self.uiBindings or not button:IsA("GuiButton") or self.uiBindings[button] then return end
+		local function hover()
+			if not button.Active or not button.Selectable or not button:IsDescendantOf(root) then return end
+			local cue,ancestor=nil,button
+			while ancestor do
+				if ancestor:IsA("GuiObject") and not ancestor.Visible then return end
+				if ancestor:IsA("ScreenGui") and not ancestor.Enabled then return end
+				cue=cue or ancestor:GetAttribute("HoverAudioCue")
+				if ancestor==root then break end
+				ancestor=ancestor.Parent
+			end
+			self:Play(if type(cue)=="string" then cue else "UIHover",nil,{noFallback=true,voiceKey="UIHover",cooldown=.075,maxDuration=.5})
+		end
+		self.uiBindings[button]={button.MouseEnter:Connect(hover),button.SelectionGained:Connect(hover)}
+	end
+	for _,item in root:GetDescendants() do bind(item) end
+	table.insert(self.connections,root.DescendantAdded:Connect(bind))
+	table.insert(self.connections,root.DescendantRemoving:Connect(remove))
+end
+
+-- VFX templates are optional and never fall back to UI clicks. Reuse each
+-- spatial loop; changes to its authored ID replace only that playback copy.
+function AudioController:VFXLoop(name, parent, current)
+	local template=self.templates[name]
+	local enabled=self.alive and self.sfxEnabled and template and template.SoundId~="" and parent and parent.Parent
+	if current and (not enabled or not current.Parent or current.SoundId~=template.SoundId) then
+		current:Destroy();current=nil
+	end
+	if not enabled then return nil end
+	if current then
+		current.Volume,current.PlaybackSpeed=template.Volume,template.PlaybackSpeed
+		return current
+	end
+	return self:Play(name,nil,{parent=parent,looped=true,noFallback=true})
+end
+
 function AudioController:Play(name, pitch, options)
 	if not self.alive or not self.sfxEnabled then return end
 	options = options or {}
@@ -101,9 +146,15 @@ function AudioController:Play(name, pitch, options)
 	local cooldown = options.cooldown or (if name == "Impact" then 0.12 elseif name == "Collect" then 0.08 else 0.04)
 	local key = options.voiceKey or name
 	if now - (self.last[key] or -10) < cooldown then return end
-	local template = self.templates[name] or self.templates.Pop
+	local template = self.templates[name] or (if not options.noFallback then self.templates.Pop else nil)
 	if not template or template.SoundId == "" then return end
 	if self.activeCount >= 24 then return end
+	-- Reserve voices for gameplay feedback even in a flock of noisy chickens.
+	if options.looped then
+		local loops=0
+		for sound in self.active do if sound.Looped then loops+=1 end end
+		if loops>=8 then return end
+	end
 	self.last[key] = now
 	local pool
 	if options.maxVoices then
@@ -116,7 +167,7 @@ function AudioController:Play(name, pitch, options)
 	end
 	local sound = template:Clone()
 	local fallbackUsed = false
-	if not template.IsLoaded then
+	if not template.IsLoaded and not options.noFallback then
 		local fallback = self.templates[if name == "Impact" or name == "EggDeposit" then "FallbackImpact" else "Tick"]
 		if fallback and fallback.SoundId ~= "" then
 			sound.SoundId = fallback.SoundId
@@ -125,7 +176,7 @@ function AudioController:Play(name, pitch, options)
 		end
 	end
 	sound:SetAttribute("Fallback", fallbackUsed)
-	sound.SoundGroup, sound.Looped, sound.PlayOnRemove = self.sfxGroup, false, false
+	sound.SoundGroup, sound.Looped, sound.PlayOnRemove = self.sfxGroup, options.looped==true, false
 	sound.PlaybackSpeed = pitch or template.PlaybackSpeed
 	if options.volume then sound.Volume=options.volume end
 	if options.parent then
@@ -156,7 +207,7 @@ function AudioController:Play(name, pitch, options)
 			self:FadeVoice(sound)
 		end)
 	end
-	Debris:AddItem(sound, 7)
+	if not options.looped then Debris:AddItem(sound, 7) end
 	return sound
 end
 
@@ -176,6 +227,8 @@ end
 
 function AudioController:Destroy()
 	self.alive = false
+	for _,bindings in self.uiBindings or {} do for _,connection in bindings do connection:Disconnect() end end
+	self.uiBindings=nil
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
 	for sound in self.active do sound:Destroy() end

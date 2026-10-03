@@ -220,7 +220,9 @@ function Feedback:Action(kind)
 	local color = if kind == "Buy" then GOLD elseif kind == "Expand" then GREEN else Theme.Arcade.blue
 	if root then self:Burst(root.Position - Vector3.new(0, 2.5, 0), color, kind == "Promote") end
 	if kind == "Buy" then
-		self.app.audio:Play("ChickenPurchase", nil, {voiceKey = "ChickenPurchase", maxVoices = 3})
+		self.app.audio:Play("UIPurchase", nil, {noFallback=true,voiceKey = "ChickenPurchase", maxVoices = 3})
+	elseif kind=="Expand" or kind=="Income" or kind=="Luck" then
+		self.app.audio:Play("UIPurchase",nil,{noFallback=true,voiceKey="ActionSuccess"})
 	else
 		self.app.audio:Play("RollReveal", 1.12,
 			{volume = 0.35, maxDuration = 0.85, voiceKey = "ActionSuccess"})

@@ -51,9 +51,9 @@ local function scaleSequence(sequence: NumberSequence, scale: number): NumberSeq
 	return NumberSequence.new(keys)
 end
 
-function Special.new(model: Model)
+function Special.new(model: Model, audio: any?)
 	if model:GetAttribute("ChickenVisualV3") ~= true then return nil end
-	return setmetatable({model = model, appearance = nil, body = nil, root = nil,
+	return setmetatable({model = model, audio = audio, sound = nil, appearance = nil, body = nil, root = nil,
 		anchors = {}, emitters = {}, lights = {}, imported = {}, visible = false, destroyed = false,
 		nextUpdate = 0, phase = phaseFor(model.Name), unit = 0, lastBurst = nil,
 		galaxy = nil, rainbow = nil, ownsGlitch = false}, Special)
@@ -66,6 +66,7 @@ function Special._glitch(self: any, scale: number, alpha: number, twitch: number
 end
 
 function Special._clear(self: any)
+	if self.sound then self.sound:Destroy();self.sound=nil end
 	for _, effect in self.imported do
 		if effect.Parent then
 			effect.Enabled = false
@@ -262,6 +263,11 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		and body.Transparency < 0.98 and camera ~= nil
 		and (camera.CFrame.Position - root.Position).Magnitude <= CULL_DISTANCE
 	if appearance == "Glitch" and model:GetAttribute("GlitchMeshStatus") ~= "ready" then visible = false end
+	-- Only nearby visible VFX get spatial audio. Empty authored IDs are silent.
+	if self.audio then
+		local audible=visible and (camera.CFrame.Position-root.Position).Magnitude<=42
+		self.sound=self.audio:VFXLoop("VFX_"..appearance,if audible then body else nil,self.sound)
+	end
 	self:_visible(visible)
 	if not visible then return end
 	self:_place()
@@ -274,6 +280,9 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		self:_glitch(scale, breakup * 0.78, math.sin(jitter * 5.11) * (0.045 + breakup * 0.08))
 		if breakup > 0 and self.lastBurst ~= cycle then
 			self.lastBurst = cycle
+			if self.audio and (camera.CFrame.Position-root.Position).Magnitude<=42 then
+				self.audio:Play("VFX_GlitchBurst",nil,{parent=body,noFallback=true,voiceKey="VFX_GlitchBurst",cooldown=0.2})
+			end
 			for _, record in self.emitters do if record.burst > 0 then record.instance:Emit(record.burst) end end
 		end
 	end

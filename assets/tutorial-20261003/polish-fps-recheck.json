@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-03",
+  "p95FrameMS": 69.80899721384048,
+  "focusEvents": 0,
+  "frames": 90,
+  "blurEvents": 0,
+  "renderCPUms": 5.668791942298412,
+  "medianFPS": 15.018566292337503,
+  "interpretation": "Foreground focus was not established. No focus transition occurred during this sample; this does not prove initial foreground/background state. Performance sign-off remains blocked.",
+  "restored": "Play stopped after sample; disposable session-only profile."
+}

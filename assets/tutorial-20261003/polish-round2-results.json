@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-03",
+  "iteration": 2,
+  "visualReview": {
+    "score": 8.5,
+    "previousScore": 7.8,
+    "passed": true
+  },
+  "layouts": {
+    "desktop": {
+      "normalBoundingAreaPercent": 6.151815679953641,
+      "card": "491.335236, 90.9880066",
+      "scope": "Temporary UI fixtures removed; no gameplay or profile changes",
+      "passed": 14,
+      "viewport": "1238, 587"
+    },
+    "landscape": {
+      "normalBoundingAreaPercent": 6.404408606730423,
+      "card": "293.500824, 54.3520012",
+      "scope": "Temporary UI fixtures removed; no gameplay or profile changes",
+      "passed": 14,
+      "viewport": "666, 374"
+    },
+    "portrait": {
+      "normalBoundingAreaPercent": 8.031675586651657,
+      "card": "328.23999, 60.785183",
+      "scope": "Temporary UI fixtures removed; no gameplay or profile changes",
+      "passed": 14,
+      "viewport": "373, 666"
+    },
+    "stateChecks": {
+      "touch": true,
+      "checks": [
+        "Recruit",
+        "Recruit help",
+        "Collect",
+        "Collect help",
+        "Sell",
+        "Sell help",
+        "Expand",
+        "Expand help",
+        "Select",
+        "Select help",
+        "Deploy",
+        "Deploy help",
+        "Battle",
+        "Battle help",
+        "Complete",
+        "Complete dismisses after eight seconds",
+        "Guide cleanup",
+        "Saved completion stays hidden"
+      ],
+      "viewport": "666, 374",
+      "passed": 18,
+      "scope": "Native UI-only fixtures in the existing game ScreenGui; all fixtures removed"
+    },
+    "fpsSample": {
+      "p95FrameMS": 69.48783248662949,
+      "reason": "More chickens, more eggs.",
+      "medianFPS": 14.985904057104161
+    },
+    "fpsGuiComparison": {
+      "restored": true,
+      "samples": [
+        {
+          "cpuMS": 2.9827498365193605,
+          "gui": true,
+          "medianFPS": 14.98317216829216
+        },
+        {
+          "cpuMS": 3.2637084368616343,
+          "gui": false,
+          "medianFPS": 15.015362199444349
+        }
+      ]
+    }
+  }
+}

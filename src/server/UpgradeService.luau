@@ -20,7 +20,10 @@ function UpgradeService:Offers(session)
 	-- Cash upgrades never require camp visits, victories or an earned rank.
 	local function add(key, level, current, price, available)
 		local unlocked = available ~= false
+		local canSpend,spendReason=true,""
+		if price then canSpend,spendReason=session:CanSpendCash(price) end
 		offers[key] = {level = level, currentText = current, price = price, unlocked = unlocked,
+			canSpend=canSpend,spendReason=spendReason,
 			requirement = if available == false then "This plot has no additional upgrade space." else "",
 			ready = session.loaded == true and not session.closing and not session.saveLost}
 	end
@@ -70,7 +73,8 @@ function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice)
 	if not offer.unlocked then return false, offer.requirement end
 	-- A replay or stale click never purchases another level at an unexpected price.
 	if expectedLevel ~= offer.level or expectedPrice ~= offer.price then return false, "This upgrade changed. Try again." end
-	if session.coins < offer.price then return false, "Not enough cash for this upgrade." end
+	local canSpend,reason=session:CanSpendCash(offer.price)
+	if not canSpend then return false,reason end
 	if key == "ArmySize" then return ArmyService.Expand(session) end
 	if key == "EggValue" then return ArmyService.UpgradeIncome(session) end
 	if key == "Luck" then return self.rolls:UpgradeLuck(session) end

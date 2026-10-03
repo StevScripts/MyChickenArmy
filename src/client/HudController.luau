@@ -242,7 +242,7 @@ end
 function Hud:UpdateOpening(state)
 	local guidance=self.app.base.OpeningGuidance(state)
 	self.objective.Text=if guidance then guidance.text else ""
-	self.objective.Visible=guidance~=nil and not self.app.panel.Visible
+	self.objective.Visible=guidance~=nil and not self.app.panel.Visible and self.app.commander==nil
 end
 
 function Hud:UpdateTerritory(state)

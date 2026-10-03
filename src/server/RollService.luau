@@ -13,6 +13,7 @@ end
 
 function RollService:Roll(session, now: number)
 	if now < session.rollReadyAt then return false, "Roll is cooling down." end
+	local starter = session:StarterCashReserve()>0
 	-- Rank metadata remains compatible with saved sessions; rolls use the full roster.
 	session.recruitTier=session.promotion
 	local rng = session.debugRandom or self.random
@@ -22,19 +23,19 @@ function RollService:Roll(session, now: number)
 	local debugRoll = session.debugNext ~= nil or session.debugRandom ~= nil
 	-- Only verified restricted owners advance the disclosed fixed offer schedule.
 	-- Debug rolls, cooldown failures and unverified ownership cannot consume progress.
-	local guaranteed = if not debugRoll then session:AdvanceGuaranteedLuck() else nil
+	local guaranteed = if not debugRoll and not starter then session:AdvanceGuaranteedLuck() else nil
 	local offers={}
 	local odds=Rules.Odds(session.luck,session.recruitTier,paidLuck,researchLuck)
-	local count=math.clamp(session.rollSlotCount or 1,1,Config.RollSlotsUnlocked)
+	local count=if starter then 1 else math.clamp(session.rollSlotCount or 1,1,Config.RollSlotsUnlocked)
 	for slot=1,count do
 		-- The disclosed guarantee advances once per lever pull, not once per display.
 		local forced=if slot==1 then session.debugNext or guaranteed else nil
-		local species=forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
+		local species=if starter then "Duck" else forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
 		local level=Rules.RecruitLevel(session.pets,species,session.promotion)
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
-			level=level,price=Rules.RecruitPrice(species,level),tier=session.recruitTier,
+			level=level,price=if starter then Config.Economy.StarterRecruitPrice else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
-			chance=if slot==1 and guaranteed then 1 else odds[species]}
+			chance=if starter or (slot==1 and guaranteed) then 1 else odds[species]}
 	end
 	session.offers,session.offer=offers,offers[1]
 	session.debugNext=nil
@@ -95,7 +96,8 @@ function RollService:UpgradeLuck(session)
 	if not upgrade then return false, "Luck is at its maximum." end
 	if not upgrade.unlocked then return false,upgrade.requirement.." to improve luck again." end
 	local price=upgrade.price
-	if session.coins < price then return false, "Not enough coins for luck." end
+	local canSpend,reason=session:CanSpendCash(price)
+	if not canSpend then return false,reason end
 	session.coins -= price
 	session.luck += 1
  session.tutorial.upgraded=true

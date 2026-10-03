@@ -1,0 +1,140 @@
+{
+  "army": "Deployed",
+  "outcomes": [
+    {
+      "version": "cluck-1",
+      "value": 3.6594044166668027,
+      "name": "FTUEMilestone",
+      "step": "Expand",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 5.1420225000001665,
+      "name": "FTUEMilestone",
+      "step": "Collect",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 18.88012075000006,
+      "name": "FTUEMilestone",
+      "step": "Recruit",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 28.197625333332326,
+      "name": "FTUEMilestone",
+      "step": "Collect",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 65.99419708333335,
+      "name": "FTUEMilestone",
+      "step": "Sell",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 1.7624999600229785e-05,
+      "name": "FTUEOutcome",
+      "step": "Recruit",
+      "detail": "Skipped"
+    },
+    {
+      "version": "cluck-1",
+      "value": 2.2041665943106636e-05,
+      "name": "FTUEOutcome",
+      "step": "Skipped",
+      "detail": "Resumed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 2.700000004551839e-05,
+      "name": "FTUEMilestone",
+      "step": "Deploy",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 2.991666588059161e-05,
+      "name": "FTUEMilestone",
+      "step": "Win",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 2.991666588059161e-05,
+      "name": "FTUEOutcome",
+      "step": "Complete",
+      "detail": "EarlyVictory"
+    },
+    {
+      "version": "cluck-1",
+      "value": 3.483333239273634e-05,
+      "name": "FTUEGuidanceEnded",
+      "step": "Complete",
+      "detail": "Shown"
+    },
+    {
+      "version": "cluck-1",
+      "value": 100.12600075000046,
+      "name": "FTUEMilestone",
+      "step": "Expand",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 100.12600075000046,
+      "name": "FTUEMilestone",
+      "step": "Select",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 173.13913954166674,
+      "name": "FTUEMilestone",
+      "step": "Deploy",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 208.07410725000045,
+      "name": "FTUEMilestone",
+      "step": "Win",
+      "detail": "Confirmed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 208.07410725000045,
+      "name": "FTUEOutcome",
+      "step": "Complete",
+      "detail": "Completed"
+    },
+    {
+      "version": "cluck-1",
+      "value": 216.187361041666,
+      "name": "FTUEGuidanceEnded",
+      "step": "Complete",
+      "detail": "Shown"
+    }
+  ],
+  "tutorial": {
+    "bought": true,
+    "collectedEggs": true,
+    "guideCompleted": true,
+    "upgraded": true,
+    "soldEggs": true,
+    "wonCamp": true,
+    "guideDeployed": true,
+    "guideStarted": true
+  },
+  "coins": 1800,
+  "note": "Runtime diagnostic ring also contains isolated test events; values near zero are isolated. Real Free play completed at 208.07 seconds of the instrumented visit, including tool/inspection pauses.",
+  "independentAction": {
+    "action": "CallArmy",
+    "secondsAfterGuidanceEnded": 23.533856666666907
+  }
+}

@@ -19,6 +19,7 @@ local CommerceService=require(script.Parent.CommerceService)
 local ProductService=require(script.Parent.ProductService)
 local CrateService=require(script.Parent.CrateService)
 local LoopTelemetry=require(script.Parent.LoopTelemetry)
+local TutorialService=require(script.Parent.TutorialService)
 local UpgradeService=require(script.Parent.UpgradeService)
 local ResearchService=require(script.Parent.ResearchService)
 local ArmyAbilities=require(script.Parent.ArmyAbilities)
@@ -39,6 +40,7 @@ function GameServer.new()
 	self.operations=OperationService.new(self.battles,self.world,self.sessions)
 	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
 	self.telemetry=LoopTelemetry.new()
+	self.tutorial=TutorialService.new()
 	self.battles.telemetry=self.telemetry
 	self.debug=DebugService.new(self.sessions,self.battles,self.commerce)
  self.data=DataService.new()
@@ -75,6 +77,7 @@ function GameServer:Send(player,result)
 	end end end
 	state.marchingTo=if battle and battle.phase=="Travel" then battle.name else nil
 	state.routeGoal=if battle and battle.routeGoal then battle.routeGoalName else nil
+	self.tutorial:Observe(session,state)
 	state.debugAllowed=DebugService.Allowed(player)
 	self.remotes.StateChanged:FireClient(player,{state=state,result=result})
 end
@@ -95,7 +98,11 @@ function GameServer:Handle(player,request)
 	local balanceBefore=session.coins
 	local receipt,purchase,crate
 	local selectedBefore=#session:BestPetIds()
+	local selectionBefore=if action=="SetArmy" or action=="SelectBest" then table.concat(session:BestPetIds(),":") else nil
 	if action=="Sync" then self:Send(player,{id=request.id,action="Sync",ok=true});return
+	elseif action=="TutorialSignal" then
+		self.tutorial:Signal(session,request.signal,request.input)
+		self:Send(player);return
 	elseif action=="StartResearch" then
 		ok,message=ResearchService.Start(session,request.nodeId,request.expectedRevision,request.expectedPrice,request.expectedDuration,os.time())
 	elseif action=="CancelResearch" then
@@ -188,6 +195,7 @@ function GameServer:Handle(player,request)
 	elseif action=="Retreat" or action=="ReturnHome" then message="Manage your lineup in My Army. Chickens walk to and from the fight."
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
 	end
+	self.tutorial:Action(session,action,ok,balanceBefore,request,selectionBefore)
 	if ok then session.lastResult=message;session:Touch() end
 	if ok and (action=="Buy" or action=="Expand") then
 		self.telemetry:Record("ArmyGrowth",{userId=session.userId,action=action,
@@ -231,6 +239,7 @@ function GameServer:AddPlayer(player)
 	if not index then player:Kick("All plots are full. Please join another server.");return end
 	local session=PlayerSession.new(player.UserId,player.DisplayName,index)
 	self.sessions[player.UserId]=session
+	self.tutorial:Begin(player,session)
 	local function spawn(character)
 		local root=character:WaitForChild("HumanoidRootPart",10)
 		if root and self.sessions[player.UserId]==session then
@@ -270,6 +279,7 @@ end
 function GameServer:RemovePlayer(player)
  local session=self.sessions[player.UserId]
  if not session or session.closing then return end
+ self.tutorial:Release(session)
  session.closing=true
  self.armyCommands:Remove(player.UserId)
  self.commerce:Release(player)
@@ -374,7 +384,7 @@ function GameServer:Start()
 	for _,player in Players:GetPlayers() do task.spawn(function() self:AddPlayer(player) end) end
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt) self:Step(dt) end))
 	game:BindToClose(function()
-  for _,session in self.sessions do session.closing=true;self.eggs:Release(session) end
+  for _,session in self.sessions do self.tutorial:Release(session);session.closing=true;self.eggs:Release(session) end
   for _,session in self.sessions do task.spawn(function() self.leaderboards:Write(session) end) end
   self.data:Close()
  end)
@@ -382,7 +392,7 @@ function GameServer:Start()
 end
 
 function GameServer:Destroy()
-	for _,session in self.sessions do session.closing=true;self.eggs:Release(session) end
+	for _,session in self.sessions do self.tutorial:Release(session);session.closing=true;self.eggs:Release(session) end
 	for _,connection in self.connections do connection:Disconnect() end
 	for _,connection in self.playerConnections do connection:Disconnect() end
 	self.products:Destroy();self.leaderboards:Destroy();self.commerce:Destroy();self.eggs:Destroy();self.operations:Destroy();self.battles:Destroy();self.world:Destroy()

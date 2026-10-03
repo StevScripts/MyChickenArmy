@@ -1,5 +1,10 @@
 # Upgrade eligibility — no camp prerequisites
 
+**October 3 starter protection:** new empty-yard profiles reserve $600 for their
+first chicken until it is bought. Other purchases can use the remaining cash;
+they still require no camp, rank or guide-step milestone. Existing saves are
+unaffected. See [the starter contract](team/COMMANDER_TUTORIAL.md).
+
 **September 29 direction:** egg deposits now pay immediately with the existing Money
 effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
 balances, seller levels and paid finish credits remain compatible. This supersedes

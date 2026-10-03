@@ -1,0 +1,377 @@
+{
+  "date": "2026-10-03",
+  "placeId": 96683186622050,
+  "published": false,
+  "realProfileWrites": false,
+  "fixture": {
+    "scope": "Disposable server fixtures; no DataStore",
+    "guideVersion": "cluck-2-empty-start",
+    "passed": 59,
+    "checks": [
+      {
+        "ok": true,
+        "name": "empty yard, selection and podium"
+      },
+      {
+        "ok": true,
+        "name": "starting cash retained; first recruit reserved"
+      },
+      {
+        "ok": true,
+        "name": "first objective targets free lever"
+      },
+      {
+        "ok": true,
+        "name": "skip cannot bypass cash reserve"
+      },
+      {
+        "ok": true,
+        "name": "affordable army upgrade remains available"
+      },
+      {
+        "ok": true,
+        "name": "affordable plot upgrade remains available"
+      },
+      {
+        "ok": true,
+        "name": "research cannot spend reserved cash"
+      },
+      {
+        "ok": true,
+        "name": "research UI explains reserved cash"
+      },
+      {
+        "ok": true,
+        "name": "empty rejoin retains protection and upgrades"
+      },
+      {
+        "ok": true,
+        "name": "empty rejoin still targets roll"
+      },
+      {
+        "ok": true,
+        "name": "first roll accepted"
+      },
+      {
+        "ok": true,
+        "name": "guaranteed affordable starter; free roll"
+      },
+      {
+        "ok": true,
+        "name": "starter roll preserves paid guarantee progress"
+      },
+      {
+        "ok": true,
+        "name": "first roll is measured separately"
+      },
+      {
+        "ok": true,
+        "name": "reveal cannot be purchased early"
+      },
+      {
+        "ok": true,
+        "name": "reroll cannot run during reveal"
+      },
+      {
+        "ok": true,
+        "name": "reroll remains affordable until bought"
+      },
+      {
+        "ok": true,
+        "name": "discarded offer cannot be bought"
+      },
+      {
+        "ok": true,
+        "name": "buy uses reserved cash once"
+      },
+      {
+        "ok": true,
+        "name": "duplicate purchase rejected atomically"
+      },
+      {
+        "ok": true,
+        "name": "guide advances to actual egg collection"
+      },
+      {
+        "ok": true,
+        "name": "starter refund tracks actual investment"
+      },
+      {
+        "ok": true,
+        "name": "deselection cannot bypass last chicken protection"
+      },
+      {
+        "ok": true,
+        "name": "purchased rejoin retains one real chicken"
+      },
+      {
+        "ok": true,
+        "name": "second roll uses ordinary economy"
+      },
+      {
+        "ok": true,
+        "name": "one chicken can reach first sale"
+      },
+      {
+        "ok": true,
+        "name": "grow flock before empty army-slot purchase"
+      },
+      {
+        "ok": true,
+        "name": "four birds then teach expansion"
+      },
+      {
+        "ok": true,
+        "name": "expansion works with income established"
+      },
+      {
+        "ok": true,
+        "name": "manual lineup gets Select step"
+      },
+      {
+        "ok": true,
+        "name": "Select Best leads to camp"
+      },
+      {
+        "ok": true,
+        "name": "batch sale cannot empty starter flock"
+      },
+      {
+        "ok": true,
+        "name": "partial reserve sale remains available"
+      },
+      {
+        "ok": true,
+        "name": "last-chicken protection ends with first mission"
+      },
+      {
+        "ok": true,
+        "name": "EggSpeed UI reserves first recruit"
+      },
+      {
+        "ok": true,
+        "name": "EggSpeed rejects reserve shortfall"
+      },
+      {
+        "ok": true,
+        "name": "EggSpeed accepts exact reserve boundary"
+      },
+      {
+        "ok": true,
+        "name": "PlotSize UI reserves first recruit"
+      },
+      {
+        "ok": true,
+        "name": "PlotSize rejects reserve shortfall"
+      },
+      {
+        "ok": true,
+        "name": "PlotSize accepts exact reserve boundary"
+      },
+      {
+        "ok": true,
+        "name": "EggValue UI reserves first recruit"
+      },
+      {
+        "ok": true,
+        "name": "EggValue rejects reserve shortfall"
+      },
+      {
+        "ok": true,
+        "name": "EggValue accepts exact reserve boundary"
+      },
+      {
+        "ok": true,
+        "name": "ArmySize UI reserves first recruit"
+      },
+      {
+        "ok": true,
+        "name": "ArmySize rejects reserve shortfall"
+      },
+      {
+        "ok": true,
+        "name": "ArmySize accepts exact reserve boundary"
+      },
+      {
+        "ok": true,
+        "name": "Luck UI reserves first recruit"
+      },
+      {
+        "ok": true,
+        "name": "Luck rejects reserve shortfall"
+      },
+      {
+        "ok": true,
+        "name": "Luck accepts exact reserve boundary"
+      },
+      {
+        "ok": true,
+        "name": "RollSlots UI reserves first recruit"
+      },
+      {
+        "ok": true,
+        "name": "RollSlots rejects reserve shortfall"
+      },
+      {
+        "ok": true,
+        "name": "RollSlots accepts exact reserve boundary"
+      },
+      {
+        "ok": true,
+        "name": "legacy action cannot spend nonexistent cash"
+      },
+      {
+        "ok": true,
+        "name": "legacy action cannot spend nonexistent cash"
+      },
+      {
+        "ok": true,
+        "name": "legacy action cannot spend nonexistent cash"
+      },
+      {
+        "ok": true,
+        "name": "exact reserve still buys income source"
+      },
+      {
+        "ok": true,
+        "name": "old profile loads without new onboarding policy"
+      },
+      {
+        "ok": true,
+        "name": "old flock, cash and upgrades preserved"
+      },
+      {
+        "ok": true,
+        "name": "invalid save cannot wipe existing progress"
+      }
+    ]
+  },
+  "liveOpening": {
+    "afterBuy": {
+      "tutorial": {
+        "bought": true,
+        "emptyStart": true,
+        "rolled": true,
+        "guideStarted": true
+      },
+      "reserve": 0,
+      "count": 1,
+      "coins": 1800
+    },
+    "blocked": {
+      "id": 83003003,
+      "ok": false,
+      "action": "Luck",
+      "message": "Keep $600 for your first chicken. Roll FREE at the lever!"
+    },
+    "collected": {
+      "value": 132,
+      "carried": 33,
+      "step": {
+        "help": "Walk onto your green sell pad with eggs in your bag.",
+        "target": "EggDeposit",
+        "text": "Green pad → instant cash.",
+        "title": "Sell your eggs",
+        "id": "Sell"
+      },
+      "coins": 1800
+    },
+    "initial": {
+      "offer": {
+        "improvesArmy": true,
+        "advice": "Fills an army slot",
+        "debug": false,
+        "slot": 1,
+        "id": "5fc1c7fb-c107-45d4-8987-19bec1002530",
+        "duration": 2.4,
+        "price": 600,
+        "researchLuck": 0,
+        "paidLuck": 1,
+        "level": 1,
+        "luck": 0,
+        "tier": 1,
+        "chance": 1,
+        "starter": true,
+        "guaranteed": false,
+        "species": "Duck"
+      },
+      "reserve": 600,
+      "count": 0,
+      "coins": 2400
+    },
+    "sold": {
+      "carried": 0,
+      "step": {
+        "help": "Use the lever beside your podium. Rolling is free; buying uses cash.",
+        "target": "RollStation",
+        "text": "Use the lever — rolling is FREE.",
+        "title": "Grow your flock: 1/4",
+        "id": "Grow"
+      },
+      "coins": 1932
+    }
+  },
+  "treeUI": {
+    "textFits": true,
+    "luck": 0,
+    "text": "1x → 1.35x. Instant\nupgrade. Better roll\nweights for Rare+\nchickens. Keep $600 for\nyour first chicken.\nRoll FREE at the lever!",
+    "canSpend": false,
+    "coins": 2400
+  },
+  "sourceReadback": {
+    "running": false,
+    "qa": true,
+    "sessionOnly": true,
+    "placeId": 96683186622050,
+    "scripts": [
+      {
+        "bytes": 6052,
+        "path": "ReplicatedStorage.PetRoll.Shared.Config",
+        "hash": 2686581996
+      },
+      {
+        "bytes": 4878,
+        "path": "ReplicatedStorage.PetRoll.Shared.TutorialGuide",
+        "hash": 1312533019
+      },
+      {
+        "bytes": 16436,
+        "path": "ServerStorage.PetRoll.ArmyService",
+        "hash": 279200918
+      },
+      {
+        "bytes": 35838,
+        "path": "ServerStorage.PetRoll.PlayerSession",
+        "hash": 317331459
+      },
+      {
+        "bytes": 5662,
+        "path": "ServerStorage.PetRoll.RollService",
+        "hash": 2248070153
+      },
+      {
+        "bytes": 5039,
+        "path": "ServerStorage.PetRoll.UpgradeService",
+        "hash": 1191706368
+      },
+      {
+        "bytes": 4198,
+        "path": "ServerStorage.PetRoll.ResearchService",
+        "hash": 4273902014
+      },
+      {
+        "bytes": 53203,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.ResearchBrowser",
+        "hash": 2909827857
+      }
+    ]
+  },
+  "notes": [
+    "Server fixtures use isolated PlayerSession objects, not DataStore.",
+    "Live checks used FreshEconomy Free in the pre-existing session-only Play setting.",
+    "Lever and buy used native E input after positioning the test avatar. Collection and sale used Humanoid:MoveTo with normal server proximity checks.",
+    "First fixture run failed because the expansion fixture already owned four slots; corrected the fixture to three slots before rerunning.",
+    "Studio reported plugin settings/network warnings and a delayed PetRollGui startup warning; the client subsequently initialized and completed the loop.",
+    "No new physical-device or performance testing. No commit, push, asset upload or release."
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "place": 96683186622050,
+  "running": false,
+  "fixture": false,
+  "scripts": {
+    "SpecialChickenVFX": {
+      "bytes": 13514,
+      "hash": 2198200526
+    },
+    "RollPresentationController": {
+      "bytes": 17362,
+      "hash": 2835176262
+    },
+    "GalaxyViewportEffect": {
+      "bytes": 16876,
+      "hash": 1320027395
+    },
+    "DuckAnimator": {
+      "bytes": 8160,
+      "hash": 1752310301
+    },
+    "FlowingChickenTexture": {
+      "bytes": 10143,
+      "hash": 3203738982
+    },
+    "ChickenTexturePattern": {
+      "bytes": 3070,
+      "hash": 1167806062
+    },
+    "GalaxyTextureAnimator": {
+      "bytes": 253,
+      "hash": 1929482775
+    },
+    "RainbowTextureAnimator": {
+      "bytes": 254,
+      "hash": 3676341603
+    }
+  }
+}

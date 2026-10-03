@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-03",
+  "activation": "Finder Applications > RobloxStudio > open; existing Studio session activated",
+  "desktop": {
+    "p95FrameMS": 17.656542360782623,
+    "viewport": "1238, 587",
+    "frames": 180,
+    "renderCPUms": 2.927500056102872,
+    "medianFPS": 60.044581463013095
+  },
+  "phoneEmulator": {
+    "p95FrameMS": 17.67791621387005,
+    "scope": "Studio device emulation on this Mac; not physical phone performance",
+    "viewport": "666, 374",
+    "frames": 180,
+    "renderCPUms": 3.066458273679018,
+    "medianFPS": 60.09675912151218
+  },
+  "motionChecks": {
+    "normalBoundingAreaPercent": 6.151815679953641,
+    "card": "491.335236, 90.9880066",
+    "scope": "Temporary UI fixtures removed; no gameplay or profile changes",
+    "passed": 14,
+    "viewport": "1238, 587"
+  },
+  "sourceAudit": {
+    "passed": 9,
+    "modules": [
+      {
+        "adler32": 1318496382,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.CommanderGuide"
+      },
+      {
+        "adler32": 574493379,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UITheme"
+      },
+      {
+        "adler32": 4128311166,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AppController"
+      },
+      {
+        "adler32": 659865932,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BaseController"
+      },
+      {
+        "adler32": 2106930960,
+        "path": "StarterPlayer.StarterPlayerScripts.PetRoll.HudController"
+      },
+      {
+        "adler32": 1084395043,
+        "path": "ServerStorage.PetRoll.TutorialService"
+      },
+      {
+        "adler32": 3614582893,
+        "path": "ServerStorage.PetRoll.GameServer"
+      },
+      {
+        "adler32": 157973716,
+        "path": "ServerStorage.PetRoll.PlayerSession"
+      },
+      {
+        "adler32": 1559830784,
+        "path": "ReplicatedStorage.PetRoll.Shared.TutorialGuide"
+      }
+    ]
+  },
+  "restored": "Default device; Play stopped; session-only setting preserved",
+  "limitations": "Short Studio samples on this Mac, not physical-phone performance or a production load test."
+}

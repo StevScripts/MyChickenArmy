@@ -3,6 +3,12 @@
 This repository is the code source of truth starting with the September 24, 2026 Rojo migration. Read README.md and docs/CODE_MAP.md first. The legacy pet-roll-prototype tree under Documents/ChatGPT/RobloxGameIdeas is historical; do not copy its scripts over these files without comparing changes.
 
 ## Upgrade rule — never gate upgrades behind camps
+October 3 opening: fresh profiles start with zero chickens and no offer, then
+roll the first chicken. Preserve the server's $600 first-recruit cash reserve
+and last-chicken protection during the opening mission. Other upgrades use cash
+above that reserve without camp/rank prerequisites. Existing profiles retain
+their flock and balance. Contract: `docs/team/COMMANDER_TUTORIAL.md`.
+
 All available cash upgrades are purchasable from the start when the player can afford them. Egg Speed, Egg Value, Plot Size, Army Size, Luck, Roll Slots and Selling Speed must not require visiting/conquering another camp, earning a rank, or reaching the King. This explicit September 25 user correction supersedes historical rank/camp gates in code, docs, tests and handoffs; never reintroduce them during UI work or balancing. Preserve configured track maxima, prices, server validation and physical plot/podium limits unless separately changed. Camp-route/King access and merge progression remain separate. Read `docs/UPGRADE_RULES.md` for the authoritative rule.
 
 September 29 supersedes the seller requirements below: deposits pay immediately with the existing Money effect. Timed processing, Selling Speed and Finish Now are archived behind `EggProcessorConfig.Enabled=false`. All six boards and pre-change source copies live in `ServerStorage.EggProcessingArchive20260929`; local code backups are in `archive/egg-processing-20260929`. Preserve stored levels, finish credits and earned balances. Restore only on an explicit request; see `docs/team/INSTANT_EGG_SALES.md`. Other upgrade rules are unchanged.

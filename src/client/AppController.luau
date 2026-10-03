@@ -17,6 +17,7 @@ local ActionFeedback = require(script.Parent.ActionFeedback)
 local EggController = require(script.Parent.EggController)
 local EggFeedback = require(script.Parent.EggFeedback)
 local HudController = require(script.Parent.HudController)
+local CommanderGuide = require(script.Parent.CommanderGuide)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
 local EggProcessorController = require(script.Parent.EggProcessorController)
@@ -544,6 +545,11 @@ function AppController:Groups()
 end
 
 function AppController:RenderSettings()
+	if self.state and not (self.state.tutorial or {}).guideCompleted and not (self.state.tutorial or {}).wonCamp then
+		local resume=self:Button("ResumeCommander", "Resume Commander Cluck", function() self:Request("TutorialSignal",{signal="Resume"});self:ClosePanel() end)
+		Theme.Aspect(resume,5.6)
+		resume.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+	end
 	self.panelTitle.Text = "Settings"
 	self:Button("ToggleMusic", "Music  ·  " .. (if self.audio.musicEnabled then "ON" else "OFF"), function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	self:Button("ToggleEffects", "Sound effects  ·  " .. (if self.audio.sfxEnabled then "ON" else "OFF"), function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
@@ -684,6 +690,9 @@ function AppController:Receive(packet)
 		end
 	end
 	local result = packet.result
+	if result and result.ok and (result.action=="UpgradeChicken" or result.action=="BoardUpgrade") then
+		self.audio:Play("UIPurchase",nil,{noFallback=true})
+	end
 	self.researchExtras:Receive(state,result)
 	if result and not self.mergeBrowser and (result.action=="OpenMerge" or result.action=="Merge" or result.action=="MergeAll") then result=nil end
 	local shownRecruit, newRecruit = false, false
@@ -716,6 +725,7 @@ function AppController:Receive(packet)
 	if old and state.lastResult ~= old.lastResult and not packet.result then self:Notify(state.lastResult) end
 	self:RenderPanel(old == nil)
 	self.offlineCash:Receive(state)
+	if self.commander then self.commander:Update() end
 	if result and result.ok then
 		local changed=if (result.action=="Expand" or result.action=="Income" or result.action=="Luck")
 			and (not shownProduction or newProduction) then self.progression.row else nil
@@ -732,12 +742,14 @@ end
 function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
+	self.commander=CommanderGuide.new(self)
 	self.eggBoard:Start()
 	self.audio:Start()
+	self.audio:BindUI(self.gui)
 	self.feedback:Start()
 	self.commerce:Start()
 	self.eggs:Start()
-	self.animator = DuckAnimator.new()
+	self.animator = DuckAnimator.new(self.audio)
 	self.animator:SetReducedMotion(self.reducedMotion)
 	self.prompts=PromptStyleController.new(self)
 	self.prompts:Start()
@@ -767,6 +779,7 @@ function AppController:Destroy()
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	for _, connection in self.connections do connection:Disconnect() end
 	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
+	if self.commander then self.commander:Destroy() end
 	if self.animator then self.animator:Destroy() end
 	if self.prompts then self.prompts:Destroy() end
 	self.commerce:Destroy();self.shopBrowser:Destroy();self.indexBrowser:Destroy()

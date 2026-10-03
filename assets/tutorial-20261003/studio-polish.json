@@ -1,0 +1,97 @@
+{
+  "modules": [
+    {
+      "name": "CommanderGuide",
+      "copies": [
+        {
+          "bytes": 10799,
+          "path": "StarterPlayer.StarterPlayerScripts.PetRoll.CommanderGuide",
+          "adler32": 1318496382
+        }
+      ]
+    },
+    {
+      "name": "UITheme",
+      "copies": [
+        {
+          "bytes": 36787,
+          "path": "StarterPlayer.StarterPlayerScripts.PetRoll.UITheme",
+          "adler32": 574493379
+        }
+      ]
+    },
+    {
+      "name": "AppController",
+      "copies": [
+        {
+          "bytes": 42581,
+          "path": "StarterPlayer.StarterPlayerScripts.PetRoll.AppController",
+          "adler32": 4128311166
+        }
+      ]
+    },
+    {
+      "name": "BaseController",
+      "copies": [
+        {
+          "bytes": 24528,
+          "path": "StarterPlayer.StarterPlayerScripts.PetRoll.BaseController",
+          "adler32": 659865932
+        }
+      ]
+    },
+    {
+      "name": "HudController",
+      "copies": [
+        {
+          "bytes": 15699,
+          "path": "StarterPlayer.StarterPlayerScripts.PetRoll.HudController",
+          "adler32": 2106930960
+        }
+      ]
+    },
+    {
+      "name": "TutorialService",
+      "copies": [
+        {
+          "bytes": 10049,
+          "path": "ServerStorage.PetRoll.TutorialService",
+          "adler32": 1084395043
+        }
+      ]
+    },
+    {
+      "name": "GameServer",
+      "copies": [
+        {
+          "bytes": 22101,
+          "path": "ServerStorage.PetRoll.GameServer",
+          "adler32": 3614582893
+        }
+      ]
+    },
+    {
+      "name": "PlayerSession",
+      "copies": [
+        {
+          "bytes": 34938,
+          "path": "ServerStorage.PetRoll.PlayerSession",
+          "adler32": 157973716
+        }
+      ]
+    },
+    {
+      "name": "TutorialGuide",
+      "copies": [
+        {
+          "bytes": 3992,
+          "path": "ReplicatedStorage.PetRoll.Shared.TutorialGuide",
+          "adler32": 1559830784
+        }
+      ]
+    }
+  ],
+  "device": "default",
+  "qa": true,
+  "sessionOnly": true
+}

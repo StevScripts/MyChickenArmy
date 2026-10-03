@@ -9,6 +9,7 @@ local Catalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetC
 local Progression = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Progression)
 local CampCommand=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CampCommand)
 local Theme = require(script.Parent.UITheme)
+local GuideArrow = require(script.Parent.GuideArrow)
 local RollPresentationController = require(script.Parent.RollPresentationController)
 local AutoCollectStandController = require(script.Parent.AutoCollectStandController)
 local C = Theme.Colors
@@ -92,44 +93,9 @@ end
 -- Snapshot-only guidance is shared by the small HUD line and destination beacon.
 -- It never blocks a purchase, roll or early deployment.
 function BaseController.OpeningGuidance(state)
-	if not state or state.armyState ~= "Home" or state.outgoing or state.incoming
-		or (state.capacity or 3) > 4 or (state.campsWon or 0) > 0 or state.kingCleared
-		or (state.progression and state.progression.rank or 1) > 1
-		or (state.tutorial and state.tutorial.wonCamp) then return nil end
-	for _, won in state.firstWins or {} do if won then return nil end end
-	for _, won in state.frontierWins or {} do if won then return nil end end
-	local coins, selected = state.coins or 0, state.selectedCount or #(state.selectedIds or {})
-	local processor=state.eggs and state.eggs.processor
-	if processor and processor.enabled and processor.readyCash>0 then
-		return {target="EggCash",text="Collect your cash from the pad in front of the egg board"}
-	end
-	if processor and not processor.enabled and (processor.readyCash>0 or processor.queuedCount>0) then
-		return {target="EggDeposit",text="Walk onto the green pad to collect your saved egg cash"}
-	end
-	if state.eggs and state.eggs.requiresDeposit and (state.eggs.carriedValue or 0)>0 then
-		return {target="EggDeposit",text=if processor and processor.enabled then "Deposit eggs at your stand to start selling" else "Walk onto the green pad to sell eggs"}
-	end
-	if (state.capacity or 3) < 4 then
-		local slot = state.nextSlot
-		if not slot or not slot.unlocked then return nil end
-		if coins < slot.price then return {target = "Yard", text = "Collect eggs for your fourth slot"} end
-		return {text = "Open Upgrades and buy Army Size to add a fourth chicken"}
-	end
-	if selected >= 4 then return {target = "Camp1", text = "Try your bigger army"} end
-	local offer = state.offer
-	local definition = offer and Catalog[offer.species]
-	local offerPrice = if definition then offer.price or definition.price else nil
-	if definition and offerPrice and coins < offerPrice then
-		if coins < Catalog.Duck.price then
-			return {target = "Yard", text = if offerPrice > Catalog.Duck.price
-				then "Collect eggs · keep this offer or roll FREE" else "Collect eggs for your fourth fighter"}
-		end
-		-- Keeping a rare offer is valid. Free rerolls remain a visible alternative.
-		return {target = "RollStation", text = "Save for this chicken · or roll again FREE"}
-	elseif definition then
-		return {target = "RollStation", text = "Buy your fourth fighter"}
-	end
-	return {target = "RollStation", text = "Roll a fourth fighter · FREE"}
+ local guide=require(game.ReplicatedStorage.PetRoll.Shared.TutorialGuide).Resolve(state)
+ if not guide or guide.id=="Complete" then return nil end
+ return {target=guide.target,text=guide.text,id=guide.id}
 end
 
 function BaseController:PulseModel(model, color)
@@ -378,23 +344,91 @@ function BaseController:UpdateCommandPresentation()
 	self.commandHeading.Enabled=visible and hostile==true
 end
 
--- One local destination beacon: exploration stays readable without another map menu.
+-- Local arrows point toward the live objective. Position tracking uses the
+-- existing world poll; decorative bob/pulses are ordinary repeating tweens.
+function BaseController:StopGuideMotion()
+	for _,tween in self.guideTweens or {} do tween:Cancel();tween:Destroy() end
+	self.guideTweens={}
+	if self.objective then self.objective.StudsOffsetWorldSpace=Vector3.new(0,6,0) end
+end
+
+function BaseController:UpdateGuideTrail(anchor, enabled)
+	if not self.folder then return end
+	if not self.guideTrail then
+		self.guideTrail={}
+		for i=1,5 do
+			local arms={}
+			for side=-1,1,2 do
+				local part=Instance.new("Part")
+				part.Name,part.Size="GuideChevron"..i,Vector3.new(.3,.08,1.45)
+				part.Anchored,part.CanCollide,part.CanTouch,part.CanQuery=true,false,false,false
+				part.CastShadow,part.Material,part.Color=false,Enum.Material.Neon,Theme.Arcade.gold
+				part.Transparency,part.Parent=1,self.folder
+				table.insert(arms,{part=part,side=side})
+			end
+			table.insert(self.guideTrail,arms)
+		end
+	end
+	local character=Players.LocalPlayer.Character
+	local body=character and character:FindFirstChild("HumanoidRootPart")
+	local goal=anchor and (if anchor:IsA("Attachment") then anchor.WorldPosition else anchor.Position)
+	local delta=body and goal and Vector3.new(goal.X-body.Position.X,0,goal.Z-body.Position.Z)
+	local visible=enabled and delta~=nil and delta.Magnitude>4
+	local reduced=self.app.reducedMotion
+	if self.guideMotionVisible~=visible or self.guideMotionReduced~=reduced then
+		self:StopGuideMotion()
+		self.guideMotionVisible,self.guideMotionReduced=visible,reduced
+		if visible and not reduced then
+			local bob=TweenService:Create(self.objective,TweenInfo.new(.65,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{StudsOffsetWorldSpace=Vector3.new(0,6.7,0)})
+			table.insert(self.guideTweens,bob);bob:Play()
+		end
+	end
+	local params=RaycastParams.new()
+	params.FilterType=Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances={self.folder,character or self.folder}
+	for i,arms in self.guideTrail do
+		local distance=3+i*2.8
+		local show=visible and distance<delta.Magnitude-1
+		if arms.shown~=show or arms.reduced~=reduced then
+			arms.shown,arms.reduced=show,reduced
+			for _,arm in ipairs(arms) do
+				if arm.tween then arm.tween:Cancel();arm.tween:Destroy();arm.tween=nil end
+				arm.part.Transparency=if show then .12 else 1
+				if show and not reduced then
+					arm.tween=TweenService:Create(arm.part,TweenInfo.new(.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true,(i-1)*.06),{Transparency=.65})
+					arm.tween:Play()
+				end
+			end
+		end
+		if show then
+			local at=body.Position+delta.Unit*distance
+			local ground=workspace:Raycast(at+Vector3.new(0,5,0),Vector3.new(0,-20,0),params)
+			at=Vector3.new(at.X,if ground then ground.Position.Y+.10 else body.Position.Y-2.7,at.Z)
+			local frame=CFrame.lookAt(at,at+delta.Unit)
+			for _,arm in ipairs(arms) do arm.part.CFrame=frame*CFrame.new(arm.side*.43,0,.32)*CFrame.Angles(0,arm.side*math.pi/4,0) end
+		end
+	end
+end
+
+-- A destination arrow remains visible while the small ground trail indicates direction.
 function BaseController:UpdateObjective()
  local state=self.app.state
  local world=workspace:FindFirstChild("PetRollWorld")
  if not state or not world then return end
  if not self.objective then
   local gui=Instance.new("BillboardGui")
-  gui.Name,gui.Size,gui.StudsOffsetWorldSpace="NextDestination",UDim2.fromOffset(90,46),Vector3.new(0,7,0)
+  gui.Name,gui.Size,gui.StudsOffsetWorldSpace="NextDestination",UDim2.fromOffset(140,108),Vector3.new(0,6,0)
   gui.AlwaysOnTop,gui.MaxDistance,gui.Parent=true,500,Players.LocalPlayer.PlayerGui
-  local label=Instance.new("TextLabel")
-  label.Size,label.BackgroundTransparency=UDim2.fromScale(1,1),1
-  label.Font,label.TextSize,label.Text=Enum.Font.SourceSansBold,22,"NEXT\n▼"
-  label.TextColor3,label.TextStrokeColor3,label.TextStrokeTransparency=Theme.Arcade.gold,Color3.fromRGB(25,35,20),0
-  label.Parent=gui;self.objective=gui
+  local label=Theme.Display(gui,"Destination","NEXT",22,Theme.Arcade.gold)
+  label.Size,label.TextScaled,label.TextXAlignment=UDim2.fromScale(1,.28),true,Enum.TextXAlignment.Center
+  local arrow=GuideArrow(gui,"Arrow")
+  arrow.Size,arrow.Position,arrow.AnchorPoint=UDim2.fromScale(.72,.72),UDim2.fromScale(.5,.64),Vector2.new(.5,.5)
+  arrow.Rotation=90
+  self.objective,self.objectiveCaption=gui,label
  end
  local target
  local guidance=BaseController.OpeningGuidance(state)
+ if self.app.commander then self.app.commander:Update() end
  local plot=world:FindFirstChild("Plot"..state.plotIndex)
  local lane=world:FindFirstChild("Lane"..state.plotIndex)
  if guidance then
@@ -404,9 +438,19 @@ function BaseController:UpdateObjective()
    local board=world:FindFirstChild("EggCollectionBoard") or (plot and plot:FindFirstChild("EggCollectionBoard",true))
    target=board and board:FindFirstChild("TouchPart",true)
   elseif guidance.target=="Yard" then
-   local pets=plot and plot:FindFirstChild("Pets")
-   local model=pets and pets:FindFirstChildWhichIsA("Model")
-   target=model and model.PrimaryPart
+   local drop
+   for _,egg in (state.eggs or {}).drops or {} do if not egg.flightAge then drop=egg;break end end
+   local anchor=plot and plot:FindFirstChildWhichIsA("BasePart",true)
+   if drop and anchor then
+    if not self.eggObjective then self.eggObjective=Instance.new("Attachment");self.eggObjective.Name="CommanderEggTarget" end
+    self.eggObjective.Parent=anchor
+    self.eggObjective.WorldPosition=Vector3.new(drop.x,drop.y,drop.z)
+    target=self.eggObjective
+   else
+    local pets=plot and plot:FindFirstChild("Pets")
+    local model=pets and pets:FindFirstChildWhichIsA("Model")
+    target=model and model.PrimaryPart
+   end
   elseif guidance.target then target=plot and plot:FindFirstChild(guidance.target) end
  end
  if not guidance then
@@ -420,13 +464,17 @@ function BaseController:UpdateObjective()
 	 target=arena
  end
  end
- local anchor=if target and target:IsA("BasePart") then target
-  elseif target and target.Name=="RollStation" then target:FindFirstChild("RevealPad")
+ local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
+  elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
  self.objective.Adornee=anchor
+ self.objectiveCaption.Text=if not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
+  elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  self.objective.Enabled=anchor~=nil and not self.app.panel.Visible and not self.app.dialogueActive
-  and state.armyState=="Home" and not state.incoming
+  and not (self.app.research and self.app.research.root.Visible) and not (self.app.offlineCash and self.app.offlineCash.gui)
+  and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming
   and not (self.commandHeading.Enabled and self.nearestCommand and self.nearestCommand.model==target)
+ self:UpdateGuideTrail(anchor,self.objective.Enabled and guidance~=nil)
 end
 
 function BaseController:PollCommand()
@@ -475,6 +523,8 @@ end
 
 function BaseController:Destroy()
 	self.alive = false
+	self:StopGuideMotion()
+	for _,arms in self.guideTrail or {} do for _,arm in ipairs(arms) do if arm.tween then arm.tween:Cancel();arm.tween:Destroy() end end end
 	if self.autoCollectStand then self.autoCollectStand:Destroy() end
 	if self.roller then self.roller:Destroy() end
 	for _, connection in self.connections do connection:Disconnect() end
@@ -486,6 +536,7 @@ function BaseController:Destroy()
 	if self.commandAnchor then self.commandAnchor:Destroy() end
 	if self.commandHeading then self.commandHeading:Destroy() end
  if self.objective then self.objective:Destroy() end
+ if self.eggObjective then self.eggObjective:Destroy() end
 end
 
 return BaseController
