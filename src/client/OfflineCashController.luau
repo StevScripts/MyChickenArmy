@@ -66,6 +66,7 @@ function Controller:Receive(state)
 	local main=Theme.Container(panel,"Main")
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Theme.PageSurfaces.Army)
+	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	local function label(parent,name,value,size,color)
 		local item=Theme.Label(parent,name,value,size,color)
 		item.TextXAlignment,item.TextScaled=Enum.TextXAlignment.Center,true
@@ -85,19 +86,19 @@ function Controller:Receive(state)
 	local gradient=Instance.new("UIGradient")
 	gradient.Color,gradient.Rotation,gradient.Parent=Theme.ReferenceGradients.Army,90,amount
 	local saved=label(main,"Saved","✓ Added to your cash",24,GREEN)
-	saved.Position,saved.Size=UDim2.fromScale(0.1,0.77362),UDim2.fromScale(0.8,0.055)
+	saved.Position,saved.Size=UDim2.fromScale(0.1,0.745),UDim2.fromScale(0.8,0.055)
 	local function close()
 		if not self.gui or self.closing then return end
 		self.app.audio:Play("Click")
 		self:Dismiss()
 	end
 	local actions=Theme.Container(main,"Actions")
-	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.99),UDim2.fromScale(0.4,0.1551724076271057)
+	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.965),UDim2.fromScale(0.4,0.1551724076271057)
 	Theme.Aspect(actions,4.329331874847412)
 	Theme.HeaderClose(header,close)
 	local continue=Theme.ActionButton(actions,"Continue","Continue",close,GREEN)
 	continue.Position,continue.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,1)
-	Theme.Studs(continue.Visual.Face,0.16,28,0)
+	Theme.Studs(continue.Visual.Face,0.07,28,0)
 	continue.Visual.Caption.Position,continue.Visual.Caption.Size=UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8)
 	continue.Visual.Caption.TextScaled=true
 	continue.Visual.Caption.TextShadow.Visible=false

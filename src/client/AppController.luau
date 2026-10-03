@@ -19,13 +19,14 @@ local EggFeedback = require(script.Parent.EggFeedback)
 local HudController = require(script.Parent.HudController)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
-local UpgradeBoardController = require(script.Parent.UpgradeBoardController)
 local EggProcessorController = require(script.Parent.EggProcessorController)
 local OfflineCashController = require(script.Parent.OfflineCashController)
 local ChickenBrowser = require(script.Parent.ChickenBrowser)
 local MergeBrowser = if Config.Features.Merging then require(script.Parent.MergeBrowser) else nil
 local ShopBrowser = require(script.Parent.ShopBrowser)
 local IndexBrowser = require(script.Parent.IndexBrowser)
+local ResearchBrowser = require(script.Parent.ResearchBrowser)
+local ResearchExtras = require(script.Parent.ResearchExtras)
 local CommerceController = require(script.Parent.CommerceController)
 local BaseController = require(script.Parent.BaseController)
 local BattleController = require(script.Parent.BattleController)
@@ -44,7 +45,6 @@ function AppController.new()
 	self.eggs = EggController.new(self)
 	self.commerce = CommerceController.new(self)
 	self.progression=ProgressionBrowser.new(self)
-	self.upgradeBoard=UpgradeBoardController.new(self)
 	self.eggBoard=EggProcessorController.new(self)
 	self.offlineCash=OfflineCashController.new(self)
 	self.base, self.battle = BaseController.new(self), BattleController.new(self)
@@ -56,7 +56,7 @@ function AppController:Request(action, payload)
 	self.requestId += 1
 	local request = payload or {}
 	request.action, request.id = action, self.requestId
-	local productionKey=if action=="Income" then "EggValue" elseif action=="BoardUpgrade" then request.upgradeKey else nil
+	local productionKey=if action=="Income" then "EggValue" elseif action=="BoardUpgrade" or action=="CashUpgrade" then request.upgradeKey else nil
 	if productionKey=="EggValue" or productionKey=="EggSpeed" then
 		local offer=self.state and self.state.boardUpgrades and self.state.boardUpgrades[productionKey]
 		if offer then
@@ -108,14 +108,15 @@ function AppController:Pet(id)
 	return nil
 end
 
-function AppController:TrackProductionUpgrade(result)
-	if result.action~="BoardUpgrade" and result.action~="Income" then return false end
+function AppController:TrackProductionUpgrade(result, quiet)
+	if result.action~="BoardUpgrade" and result.action~="CashUpgrade" and result.action~="Income" then return false end
 	if self.productionReceipts[result.id] then return true,false end
 	local requested=self.productionRequests[result.id]
 	if not requested then return false end
 	self.productionRequests[result.id]=nil
 	if not result.ok then return false end
 	self.productionReceipts[result.id]=os.clock()+600
+	if quiet then return true,true end
 	local offer=self.state.boardUpgrades and self.state.boardUpgrades[requested.key]
 	if not offer or offer.level~=requested.level+1 then
 		self:Notify(result.message,true)
@@ -274,6 +275,8 @@ function AppController:SetMenuBlur(owner, visible)
 end
 
 function AppController:OpenPage(page)
+	if page=="Upgrades" or page=="Research" then self.research:Open();return end
+	if self.research then self.research:Close() end
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
 	if page=="Merge" and not self.mergeBrowser then return end
@@ -308,6 +311,7 @@ function AppController:OpenPage(page)
 end
 
 function AppController:ClosePanel()
+	if self.research and self.research.root.Visible then self.research:Close();return end
 	if not self.panel.Visible or self.panelClosing then return end
 	self.panelClosing=true
 	self:SetMenuBlur("main",false)
@@ -325,6 +329,10 @@ end
 
 function AppController:TogglePage(page)
 	self.audio:Play("Click")
+	if page=="Research" or page=="Upgrades" then
+		if self.research.root.Visible then self.research:Close() else self.research:Open() end
+		return
+	end
 	if self.panel.Visible and not self.panelClosing and self.page == page then self:ClosePanel() else self:OpenPage(page) end
 end
 
@@ -336,8 +344,12 @@ function AppController:BuildUI()
 	local gui=playerGui:WaitForChild("PetRollGui")
 	assert(gui:IsA("ScreenGui"),"PetRollGui must be a ScreenGui")
 	-- The restored GUI is an Edit-mode reference, not a second live game HUD.
-	local reference=playerGui:FindFirstChild("GUI")
-	if reference and reference:IsA("ScreenGui") then reference.Enabled=false end
+	local function hideReference(child)
+		if child.Name=="GUI" and child:IsA("ScreenGui") then child.Enabled=false end
+	end
+	-- StarterGui clones can arrive after PetRollGui and this controller starts.
+	table.insert(self.connections,playerGui.ChildAdded:Connect(hideReference))
+	for _,child in playerGui:GetChildren() do hideReference(child) end
 	local oldShell=gui:FindFirstChild("Shell")
 	if oldShell then oldShell:Destroy() end
 	gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "PetRollGui", false, Enum.ZIndexBehavior.Sibling
@@ -387,7 +399,7 @@ function AppController:BuildUI()
 	content.BackgroundTransparency,content.BorderSizePixel,content.ZIndex=1,0,2
 	content.ScrollBarThickness,content.ScrollBarImageColor3=0,Theme.Arcade.green
 	content.VerticalScrollBarInset=Enum.ScrollBarInset.Always
-	content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.Y,UDim2.new(),body
+	content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.None,UDim2.new(),body
 	local padding=Instance.new("UIPadding")
 	padding.PaddingLeft,padding.PaddingTop,padding.PaddingBottom=UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.02,0)
 	padding.Parent=content
@@ -400,6 +412,8 @@ function AppController:BuildUI()
 	self.shopBrowser=ShopBrowser.new(self,panel)
 	self.indexBrowser=IndexBrowser.new(self,body)
 	self.progression:Mount(panel)
+	self.research=ResearchBrowser.new(self,frames)
+	self.researchExtras=ResearchExtras.new(self)
 	self.toastFrame,self.toast=Theme.Notification(other)
 	self:FitPanel()
 	self.hud:Resize()
@@ -419,6 +433,27 @@ function AppController:ClearPanel()
 	self.order = 0
 end
 
+function AppController:FitContentCanvas()
+	-- Sum authored row proportions: automatic canvas measurement omits part of
+	-- aspect-constrained content. Keep gaps at their original viewport proportion.
+	local rows,count=0,0
+	for _,item in self.content:GetChildren() do
+		if item:IsA("GuiObject") then
+			rows+=item.Size.X.Scale/item.UIAspectRatioConstraint.AspectRatio
+			count+=1
+		end
+	end
+	local padding=self.content.UIPadding
+	local innerWidth=1-padding.PaddingLeft.Scale-padding.PaddingRight.Scale
+	local innerHeight=1-padding.PaddingTop.Scale-padding.PaddingBottom.Scale
+	local aspect=self.panel:FindFirstChildWhichIsA("UIAspectRatioConstraint") or self.panel.Parent:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+	local bodyAspect=aspect.AspectRatio*self.panelBody.Size.X.Scale/self.panelBody.Size.Y.Scale
+	local gap=0.025*self.content.Size.Y.Scale
+	local height=math.max(self.content.Size.Y.Scale,(rows*bodyAspect*self.content.Size.X.Scale*innerWidth+math.max(0,count-1)*gap)/innerHeight)
+	self.content.CanvasSize=UDim2.fromScale(0,height)
+	self.contentLayout.Padding=UDim.new(gap/(height*innerHeight),0)
+end
+
 function AppController:Text(name, text, size, height, color)
 	self.order += 1
 	local item = Theme.Label(self.content, name, text, math.max(18,size or 20), color)
@@ -436,6 +471,7 @@ function AppController:Button(name, text, callback, color)
 	item.LayoutOrder, item.Size = self.order, UDim2.fromScale(0.96,0.14161)
 	Theme.Aspect(item,12.265)
 	item.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+	item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",1.12)
 	Theme.ScaleText(item)
 	return item
 end
@@ -512,9 +548,9 @@ function AppController:RenderSettings()
 	self:Button("ToggleMusic", "Music  ·  " .. (if self.audio.musicEnabled then "ON" else "OFF"), function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	self:Button("ToggleEffects", "Sound effects  ·  " .. (if self.audio.sfxEnabled then "ON" else "OFF"), function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
 	self:Button("ReducedMotion", "Reduced motion  ·  " .. (if self.reducedMotion then "ON" else "OFF"), function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
-	self:Text("ControlsHeading", "PC CONTROLS", 13, 30, C.green)
-	self:Text("Controls", "WASD move · Mouse look\nE interact · F buy\nB chickens · U upgrades · O settings · Esc close", 16, 76, C.muted)
-	self:Text("SaveInfo", self.state.saveMessage or "Pets, coins and upgrades are saved between visits.", 12, 50, C.muted)
+	self:Text("ControlsHeading", "PC CONTROLS", 13, 24, C.green)
+	self:Text("Controls", "WASD move · Mouse look\nE interact · F buy\nB chickens · U upgrades · O settings · Esc close", 16, 60, C.muted)
+	self:Text("SaveInfo", self.state.saveMessage or "Pets, coins and upgrades are saved between visits.", 12, 32, C.muted)
 	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
 end
 
@@ -596,6 +632,11 @@ function AppController:RenderPanel(force)
 	end
 	local state = self.state
 	local keys = {self.page, tostring(self.selected), tostring(self.confirm), tostring(state.capacity), tostring(state.luck), tostring(state.incomeLevel), state.armyState, tostring(state.campsWon),tostring(state.incoming)}
+	if self.page=="Formations" or self.page=="Operations" then
+		table.insert(keys,tostring(state.research and state.research.revision))
+		table.insert(keys,table.concat(state.selectedIds or {},","))
+		table.insert(keys,tostring(state.operations and state.operations.activeId))
+	end
 	local p=state.progression
 	if p then table.insert(keys,p.rank..":"..p.recruitTier..":"..tostring(p.goal)..":"..tostring(p.requirement)..":"..tostring(state.kingCleared)) end
 	if self.page == "Settings" then table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage)) end
@@ -617,7 +658,10 @@ function AppController:RenderPanel(force)
 			if chance and chance > 0 then self:Text("Odds"..id, Catalog[id].name.." · "..Rules.FormatOdds(chance),15,30) end
 		end
 	elseif self.page == "Settings" then self:RenderSettings()
+	elseif self.page == "Formations" then self.researchExtras:RenderFormations()
+	elseif self.page == "Operations" then self.researchExtras:RenderOperations()
 	else self:RenderTest() end
+	self:FitContentCanvas()
 	self.content.CanvasPosition = scroll
 end
 
@@ -626,6 +670,7 @@ function AppController:Receive(packet)
 	local old = self.state
 	self.state = packet.state
 	local state = self.state
+	local researchFeedback=self.research:Receive(state,packet.result)
 	self.eggs:Receive(state.eggs)
 	if not old or old.plotIndex ~= state.plotIndex then self.base:RefreshPromptOwnership() end
 	if self.selected and not self:Pet(self.selected) then
@@ -639,20 +684,20 @@ function AppController:Receive(packet)
 		end
 	end
 	local result = packet.result
+	self.researchExtras:Receive(state,result)
 	if result and not self.mergeBrowser and (result.action=="OpenMerge" or result.action=="Merge" or result.action=="MergeAll") then result=nil end
 	local shownRecruit, newRecruit = false, false
 	local shownProduction,newProduction=false,false
-	if result then shownProduction,newProduction=self:TrackProductionUpgrade(result) end
+	if result then shownProduction,newProduction=self:TrackProductionUpgrade(result,researchFeedback) end
 	self.chickenBrowser:Receive(result)
 	if self.mergeBrowser then self.mergeBrowser:Receive(result) end
 	self.commerce:Receive(result)
 	self.progression:Receive(result)
-	self.upgradeBoard:Receive(result)
 	self.eggBoard:Receive(result)
-	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" then
+	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" and result.action~="AcknowledgeResearch" then
 		local shownInMerge=result.action=="OpenMerge" or ((result.action=="Merge" or result.action=="MergeAll") and self.page=="Merge" and self.panel.Visible)
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
-  if not shownProduction and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
+  if not researchFeedback and not shownProduction and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
@@ -687,7 +732,6 @@ end
 function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
-	self.upgradeBoard:Start()
 	self.eggBoard:Start()
 	self.audio:Start()
 	self.feedback:Start()
@@ -700,7 +744,7 @@ function AppController:Start()
 	self.base:Start()
 	self.battle:Start(self.remotes:WaitForChild("BattleChanged"))
 	table.insert(self.connections, self.remotes:WaitForChild("StateChanged").OnClientEvent:Connect(function(packet) self:Receive(packet) end))
-	for _, entry in {{"Army", Enum.KeyCode.B}, {"Upgrades", Enum.KeyCode.U}, {"Settings", Enum.KeyCode.O}, {"Test", Enum.KeyCode.F8}} do
+	for _, entry in {{"Army", Enum.KeyCode.B}, {"Upgrades", Enum.KeyCode.U}, {"Research", Enum.KeyCode.R}, {"Settings", Enum.KeyCode.O}, {"Test", Enum.KeyCode.F8}} do
 		local page, key = entry[1], entry[2]
 		ContextActionService:BindAction("PetRoll" .. page, function(_, inputState)
 			if inputState ~= Enum.UserInputState.Begin or UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
@@ -710,7 +754,7 @@ function AppController:Start()
 		end, false, key)
 	end
 	table.insert(self.connections, UserInputService.InputBegan:Connect(function(input)
-		if input.KeyCode == Enum.KeyCode.Escape and self.panel.Visible then self:ClosePanel() end
+		if input.KeyCode == Enum.KeyCode.Escape and (self.panel.Visible or self.research.root.Visible) then self:ClosePanel() end
 	end))
 	self:Request("Sync")
 	print("[PetRoll] My Chicken Army! client ready")
@@ -722,13 +766,14 @@ function AppController:Destroy()
 	Theme.Motion:Reset()
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	for _, connection in self.connections do connection:Disconnect() end
-	for _, page in {"Army", "Upgrades", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
+	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
 	if self.animator then self.animator:Destroy() end
 	if self.prompts then self.prompts:Destroy() end
 	self.commerce:Destroy();self.shopBrowser:Destroy();self.indexBrowser:Destroy()
 	if self.mergeBrowser then self.mergeBrowser:Destroy() end
 	self.progression:Destroy()
-	self.upgradeBoard:Destroy()
+	self.research:Destroy()
+	self.researchExtras:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end

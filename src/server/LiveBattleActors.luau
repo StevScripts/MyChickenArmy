@@ -109,7 +109,7 @@ end
 
 function LiveBattleActors:Move(unit,x,z,speed)
  local actor=self.actors[unit.id]
- if actor then actor:MoveTo(MapLayout.FootPosition(x,z),speed) end
+ if actor then actor:MoveTo(MapLayout.FootPosition(x,z),speed*(unit.marchMultiplier or 1)) end
 end
 
 function LiveBattleActors:Stop(unit)

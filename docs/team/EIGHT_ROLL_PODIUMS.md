@@ -54,3 +54,22 @@ in Studio was excluded by exact-source matching and left untouched. Rojo build
 passed; that verifies packaging, not a human playtest.
 No Play/Stop, player-data change, Roblox save/publish or Git commit/push.
 The authored rename needs a Studio place save; code is saved locally and Rojo-synced.
+
+## Unpurchased stands hidden — October 2, 2026
+
+Only owned rolling stands are visible during play. The included first stand stays
+visible; additional authored DisplayPodium models start hidden and non-collidable.
+RollStation now applies the existing owned-slot count to their actual art, not
+only the offer's Unlocked attribute. A cash slot purchase restores the next
+stand's original transparency, collision, touch/query and shadow properties.
+Plot release hides the extra stands again for the next owner. The eight anchors,
+physical slot limit, authored geometry, prices and saved ownership are preserved.
+
+Six isolated Studio checks passed using an unparented clone of Plot1's real Spin
+assembly and an in-memory session: construction, fresh ownership, an actual
+UpgradeService slot transaction, eight-slot ownership, release and a new owner.
+The live player's world/profile was untouched. Source compiled, matched local
+readback and passed scoped whitespace checks. Evidence and the pre-change source
+are in `.dream-loop/locked-roll-stands-20261002/`. Existing Play sessions need a
+fresh start to load the updated module; Studio control is coordinated with the
+Research chat. No persistent purchase, place save/publish or Git commit/push.

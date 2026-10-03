@@ -197,7 +197,7 @@ function CommerceService:Snapshot(session)
 		policyReady=active and record.policyReady==true or false,
 		paidRandomAllowed=active and record.paidRandomAllowed==true or false,
 		restrictedTreatment=self.catalog.RestrictedTreatment,luckGuarantee=session:LuckGuarantee(),
-		luckOdds={withoutPass=Rules.Odds(session.luck,session.recruitTier,1),withPass=Rules.Odds(session.luck,session.recruitTier,2)}}
+		luckOdds={withoutPass=Rules.Odds(session.luck,session.recruitTier,1,session.researchEffects.rollingLuck),withPass=Rules.Odds(session.luck,session.recruitTier,2,session.researchEffects.rollingLuck)}}
 end
 
 function CommerceService:SetAutomatic(session,key,enabled)

@@ -1,7 +1,6 @@
 --!strict
--- Owns board offers and transactions, not authored GUI or general player input.
+-- Owns portable cash upgrade offers and transactions; Research owns timed jobs.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
-local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
 local Definitions = require(Shared.UpgradeCatalog)
 local ArmyService = require(script.Parent.ArmyService)
@@ -12,48 +11,8 @@ local function decimal(value)
 	return (string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", ""))
 end
 
-local function ownerPlot(instance, root)
-	local node = instance
-	while node and node ~= root do
-		local index = node:GetAttribute("PlotIndex")
-		if type(index) == "number" then return index end
-		node = node.Parent
-	end
-	return nil
-end
-
-function UpgradeService.new(world, rolls)
-	return setmetatable({world = world, rolls = rolls, boards = {}}, UpgradeService)
-end
-
-function UpgradeService:Start()
-	table.clear(self.boards)
-	for _, gui in self.world.root:GetDescendants() do
-		if gui:IsA("SurfaceGui") and gui:FindFirstChild("UpgradesBoard") then
-			local screen = if gui.Parent:IsA("BasePart") then gui.Parent else gui.Adornee
-			if screen and screen:IsA("BasePart") and screen:IsDescendantOf(self.world.root) then
-				table.insert(self.boards, {screen = screen, plotIndex = ownerPlot(screen, self.world.root)})
-			end
-		end
-	end
-end
-
-function UpgradeService:CanUse(player, session)
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not root or not humanoid or humanoid.Health <= 0 then return false end
-	for _, board in self.boards do
-		local screen = board.screen
-		if screen:IsDescendantOf(self.world.root) and (not board.plotIndex or board.plotIndex == session.plotIndex) then
-			local localAt = screen.CFrame:PointToObjectSpace(root.Position)
-			local half = screen.Size / 2
-			local nearest = Vector3.new(math.clamp(localAt.X, -half.X, half.X),
-				math.clamp(localAt.Y, -half.Y, half.Y), math.clamp(localAt.Z, -half.Z, half.Z))
-			if (localAt - nearest).Magnitude <= Definitions.BoardDistance then return true end
-		end
-	end
-	return false
+function UpgradeService.new(_world, rolls)
+	return setmetatable({rolls = rolls}, UpgradeService)
 end
 
 function UpgradeService:Offers(session)
@@ -79,7 +38,7 @@ function UpgradeService:Offers(session)
 	if army then offers.ArmySize.unlocked = army.unlocked; offers.ArmySize.requirement = army.requirement end
 	local luck = session:GlobalUpgrade("Luck")
 	add("Luck", session.luck, decimal(Rules.LuckMultiplier(session.luck)
-		* session:PaidLuckMultiplier()) .. "x", luck and luck.price)
+		* session:PaidLuckMultiplier() * (1 + (session.researchEffects.rollingLuck or 0))) .. "x", luck and luck.price)
 	local slots = session.rollSlotsUnlocked
 	local physicalLimit = session.rollSlotLimit or 1
 	add("RollSlots", slots, tostring(session.rollSlotCount or 1),
@@ -91,21 +50,20 @@ function UpgradeService:Offers(session)
 	end
 	local nextRate = Definitions.EggSpeedRates[session.eggSpeedLevel + 2]
 	if nextRate then
-		local nextProduction = nextRate * (if session.entitlements.DoubleEggSpawn then 2 else 1)
+		local nextProduction = production * nextRate / Definitions.EggSpeedRates[session.eggSpeedLevel + 1]
 		preview("EggSpeed", decimal(nextProduction) .. "x")
 	end
 	preview("PlotSize", tostring(Definitions.PlotCapacity(session.plotSizeLevel + 1)))
 	preview("EggValue", "$" .. decimal(Rules.EggUnitValue(session.incomeLevel + 1)))
 	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
 	preview("Luck", decimal(Rules.LuckMultiplier(session.luck + 1)
-		* session:PaidLuckMultiplier()) .. "x")
+		* session:PaidLuckMultiplier() * (1 + (session.researchEffects.rollingLuck or 0))) .. "x")
 	preview("RollSlots", tostring(math.min(slots + 1, physicalLimit)))
 	return offers
 end
 
-function UpgradeService:Buy(player, session, key, expectedLevel, expectedPrice)
-	if type(key) ~= "string" or not table.find(Definitions.Order, key) then return false, "Choose a board upgrade." end
-	if not self:CanUse(player, session) then return false, "Walk up to the upgrades board." end
+function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice)
+	if type(key) ~= "string" or not table.find(Definitions.Order, key) then return false, "Choose a cash upgrade." end
 	local offer = self:Offers(session)[key]
 	if not offer.ready then return false, "Wait for your flock to load." end
 	if not offer.price then return false, "This upgrade is at its maximum." end

@@ -73,6 +73,17 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 	self.model = model
 	if parent:GetAttribute("AuthoredPlot") then
 		local anchors={RollDisplay=display or parent:FindFirstChild("RollDisplay",true),RollLever=parent:FindFirstChild("RollLever",true)}
+		-- Additional stands are authored siblings, outside the runtime station model.
+		-- Keep their original properties so unlocking restores the builder's art exactly.
+		if slot>1 then
+			self.standParts={}
+			for _,part in anchors.RollDisplay.Parent:GetDescendants() do
+				if part:IsA("BasePart") then
+					table.insert(self.standParts,{part=part,transparency=part.Transparency,
+						canCollide=part.CanCollide,canTouch=part.CanTouch,canQuery=part.CanQuery,castShadow=part.CastShadow})
+				end
+			end
+		end
 		self.frame=anchors.RollDisplay.CFrame;self.foot=anchors.RollDisplay.Position
 		self.podium=Builder.Part(model,"Podium",Vector3.new(3,0.2,3),anchors.RollDisplay.CFrame,colors.cream,false)
 		self.podium.Transparency,self.podium.CastShadow=1,false
@@ -156,7 +167,22 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 	self.buyPrompt = prompt(self.podium, "BuyPrompt", Enum.KeyCode.E, "Buy chicken")
 	self.buyPrompt.MaxActivationDistance=6
 	table.insert(self.connections, self.buyPrompt.Triggered:Connect(function(player) onAction(player, "Buy", index, self.offer and self.offer.id) end))
+	self:SetUnlocked(slot==1)
 	return self
+end
+
+function RollStation:SetUnlocked(unlocked)
+	if self.unlocked==unlocked then return end
+	self.unlocked=unlocked
+	self.model:SetAttribute("Unlocked",unlocked)
+	for _,item in self.standParts or {} do
+		local part=item.part
+		part.Transparency=if unlocked then item.transparency else 1
+		part.CanCollide=unlocked and item.canCollide
+		part.CanTouch=unlocked and item.canTouch
+		part.CanQuery=unlocked and item.canQuery
+		part.CastShadow=unlocked and item.castShadow
+	end
 end
 
 function RollStation:SetPet(species)
@@ -172,7 +198,7 @@ end
 function RollStation:Sync(session)
 	self.ownerId = session.userId
  self.loaded = session.loaded==true and not session.closing and not session.saveLost and self.slot<=(session.rollSlotCount or 1)
- self.model:SetAttribute("Unlocked",self.slot<=(session.rollSlotCount or 1))
+ self:SetUnlocked(self.slot<=(session.rollSlotCount or 1))
 	if self.model:GetAttribute("OwnerId") ~= session.userId then
 		self.model:SetAttribute("OwnerId", session.userId)
 		self.model:SetAttribute("OwnerUserId", session.userId)
@@ -193,11 +219,15 @@ function RollStation:Sync(session)
 	if self.offerId == id then return end
 	self.offerId, self.offer = id, offer
 	self.revealAt, self.stage, self.landed = session.rollRevealAt, nil, false
-	self.rollStartedAt = self.revealAt - Config.RollRevealSeconds
+	local duration = if offer then offer.duration or Config.RollRevealSeconds else Config.RollRevealSeconds
+	self.rollStartedAt = self.revealAt - duration
 	self.model:SetAttribute("RevealedOfferId", nil)
 	self.model:SetAttribute("RevealedSpecies", nil)
 	-- Publish a shared cosmetic clock, not the hidden result. Clients animate locally.
 	self.model:SetAttribute("RollStartedAt", workspace:GetServerTimeNow() - (os.clock() - self.rollStartedAt))
+	self.model:SetAttribute("RollDuration", duration)
+	self.model:SetAttribute("RollPaidLuck", if offer then offer.paidLuck or 1 else 1)
+	self.model:SetAttribute("RollResearchLuck", if offer then offer.researchLuck or 0 else 0)
 	self.model:SetAttribute("RollSeed", self.random:NextInteger(1, 1000000))
 	self.model:SetAttribute("RollTier", if self.offer then self.offer.tier or self.recruitTier else self.recruitTier)
 	self.model:SetAttribute("RollLuck", if self.offer then self.offer.luck or self.luck else self.luck)
@@ -248,6 +278,7 @@ end
 
 function RollStation:Clear()
 	self.ownerId, self.offer, self.offerId, self.loaded = nil, nil, nil, false
+	self:SetUnlocked(self.slot==1)
 	if self.pet then self.pet:Destroy(); self.pet = nil end
 	if self.rollPrompt then self.rollPrompt.Enabled=false end
 	self.buyPrompt.Enabled,self.light.Brightness=false,0
@@ -255,7 +286,7 @@ function RollStation:Clear()
 	self.label.Text, self.rarityLabel.Text = "", ""
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
-	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RollStage", "RollId", "RollStartedAt", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
+	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
 	self.model:SetAttribute("Rolling", false)
 end
 

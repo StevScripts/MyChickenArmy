@@ -56,14 +56,16 @@ end
 -- Ground height for a walking foot, not a model pivot. PetActor adds FootOffset once.
 -- Only authored walk surfaces participate: roofs, decorations, eggs and birds cannot lift a marching chicken.
 local surfaceRoot=nil
+local surfaceRevision=nil
 local surfaces={}
 local surfaceRay=RaycastParams.new()
 surfaceRay.FilterType=Enum.RaycastFilterType.Include
 function Layout.FootPosition(x:number,z:number):Vector3
  local root=authoredRoot()
  if root and root:GetAttribute("BuilderMapVersion")=="20260922" then
-  if surfaceRoot~=root then
-   surfaceRoot=root;surfaces={}
+  local revision=root:GetAttribute("WalkSurfaceRevision")
+  if surfaceRoot~=root or surfaceRevision~=revision then
+   surfaceRoot,surfaceRevision=root,revision;surfaces={}
    for _,part in root:GetDescendants() do
     if part:IsA("BasePart") and part:GetAttribute("WalkSurface") then table.insert(surfaces,part) end
    end

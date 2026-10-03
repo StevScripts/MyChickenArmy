@@ -86,9 +86,12 @@ function Editor.Open()
 				local content=Instance.new("ScrollingFrame")
 				content.Name,content.Size,content.Position="Content",UDim2.fromScale(0.96,0.96),UDim2.fromScale(0.02,0.02)
 				content.BackgroundTransparency,content.BorderSizePixel,content.ScrollBarThickness=1,0,0
-				content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.Y,UDim2.new(),body
+				content.AutomaticCanvasSize,content.CanvasSize,content.Parent=Enum.AutomaticSize.None,UDim2.new(),body
+				local padding=Instance.new("UIPadding")
+				padding.PaddingLeft,padding.PaddingTop,padding.PaddingBottom=UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.02,0)
+				padding.Parent=content
 				local list=Instance.new("UIListLayout");list.Padding,list.SortOrder,list.Parent=UDim.new(0.025,0),Enum.SortOrder.LayoutOrder,content
-				app.content=content
+				app.content,app.contentLayout=content,list
 				render=function()
 					app:ClearPanel()
 					if page=="Settings" then app:RenderSettings()
@@ -97,6 +100,7 @@ function Editor.Open()
 						local rules=require(game.ReplicatedStorage.PetRoll.Shared.Rules)
 						for _,id in catalog.Order do local chance=app.state.odds[id];if chance and chance>0 then app:Text("Odds"..id,catalog[id].name.." · "..rules.FormatOdds(chance),15,30) end end
 					end
+					app:FitContentCanvas()
 				end
 			end
 		end

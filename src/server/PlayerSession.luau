@@ -11,6 +11,8 @@ local UpgradeCatalog = require(Shared.UpgradeCatalog)
 local Currency = require(Shared.CurrencyLimits)
 local EggProcessor = require(script.Parent.EggProcessor)
 local OfflineCash = require(script.Parent.OfflineCash)
+local ResearchRules = require(Shared.ResearchRules)
+local ResearchService = require(script.Parent.ResearchService)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 
@@ -35,6 +37,11 @@ function PlayerSession:Reset()
 	self.eggCarry={count=0,value=0}
 	self.offlineCash = {at=0,rate=0}
 	self.offlineCashReceipt = nil
+	self.research=ResearchRules.New()
+	self.researchEffects=ResearchRules.Effects(self.research)
+	self.researchRecap={}
+	self.operationResult=nil
+	self.rallyActiveUntil=0
 	local finishCredits = if self.eggProcessor then self.eggProcessor.finishCredits else 0
 	self.eggProcessor = EggProcessor.New()
 	self.eggProcessor.finishCredits = finishCredits
@@ -92,6 +99,7 @@ end
 function PlayerSession:EggProductionMultiplier(): number
  return UpgradeCatalog.EggSpeedRates[self.eggSpeedLevel + 1]
   * (if self.entitlements.DoubleEggSpawn then 2 else 1)
+  * (1+self.researchEffects.production)
 end
 
 function PlayerSession:AutomaticEnabled(key: string): boolean
@@ -253,11 +261,11 @@ end
 function PlayerSession:PetIncome(id: string): number
 	local pet=self.pets[id]
 	if not pet then return 0 end
-	return Rules.Income(pet.species,pet.stars,pet.level,self.incomeLevel)
+	return Rules.Income(pet.species,pet.stars,pet.level,self.incomeLevel)*(1+self.researchEffects.eggValue)
 end
 
 function PlayerSession:DisplayedPetIncome(species: string, stars: number, level: number?): number
- local raw=Rules.Income(species,stars,level,self.incomeLevel)
+ local raw=Rules.Income(species,stars,level,self.incomeLevel)*(1+self.researchEffects.eggValue)
  return self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs")
 end
 
@@ -288,10 +296,12 @@ function PlayerSession:Credit(amount: number, source: string)
 	-- Lifetime display counters may outgrow a repeatedly spent wallet. Saturate
 	-- only those counters at the numeric boundary; never make a save unreadable.
 	if source == "eggs" then self.passiveEarned = math.min(Currency.MaxCoins,self.passiveEarned+amount) end
-	if source == "battle" then self.battleEarned = math.min(Currency.MaxCoins,self.battleEarned+amount) end
+	-- Operation rewards already captured earned multipliers when the fight ended.
+	if source == "battle" or source == "operation" then self.battleEarned = math.min(Currency.MaxCoins,self.battleEarned+amount) end
 	-- Session-only observation totals; never serialized or used to authorize a purchase.
 	self.sessionIncome=self.sessionIncome or {eggs=0,battle=0,territory=0}
-	if self.sessionIncome[source]~=nil then self.sessionIncome[source]+=amount end
+	local incomeSource=if source=="operation" then "battle" else source
+	if self.sessionIncome[incomeSource]~=nil then self.sessionIncome[incomeSource]+=amount end
 	self:Touch()
 	return amount
 end
@@ -385,7 +395,7 @@ function PlayerSession:Snapshot(now: number)
 	for i=1,#Progression.Camps(1) do if self.firstWins[i] then campsWon+=1 end end
 	local eggProduction=self:EggProductionMultiplier()
 	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")
-	return {nextSlot=self:NextSlot(),
+	return {research=ResearchService.Snapshot(self,os.time()),nextSlot=self:NextSlot(),
 		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=Config.MaxSlots+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
 			levelCap=rank.levelCap,ready=false,
             goal=Progression.NextGoal(self.firstWins,self.frontierWins,self.kingCleared),
@@ -400,13 +410,13 @@ function PlayerSession:Snapshot(now: number)
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		campsWon=campsWon,allCampsWon=self:Completed(),
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
-		coins=self.coins,income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel),
-		homeEggsPerSecond=self:Income()/Rules.EggUnitValue(self.incomeLevel)*eggProduction,
+		coins=self.coins,income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue),
+		homeEggsPerSecond=self:Income()/(Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue))*eggProduction,
 		capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
 		selectionMode=if self.armySelection==nil then "Auto" else "Manual",
 		selectedCount=#best,deployedCount=#deployedIds,overflowCount=math.max(0,#pets-self:CollectionLimit()),
-		offer=offer,offers=offers,rollSlotCount=self.rollSlotCount or 1,rollRemaining=math.max(0,self.rollReadyAt-now),odds=Rules.Odds(self.luck,self.recruitTier,self:PaidLuckMultiplier()),luck=self.luck,
+		offer=offer,offers=offers,rollSlotCount=self.rollSlotCount or 1,rollRemaining=math.max(0,self.rollReadyAt-now),odds=Rules.Odds(self.luck,self.recruitTier,self:PaidLuckMultiplier(),self.researchEffects.rollingLuck),luck=self.luck,
 		campUnlocked=self.campUnlocked,armyState=self.armyState,outgoing=self.outgoing,incoming=self.incoming,stationedAt=self.stationedAt,
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
 		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner}
@@ -429,7 +439,7 @@ function PlayerSession:ToData()
  local frontier={}
  for i,won in self.frontierWins do if won then table.insert(frontier,i) end end
  table.sort(frontier)
-	return {dataRevision=Config.DataRevision,legacyCapacityGrant=self.legacyCapacityGrant or 0,
+	return {research=ResearchRules.Copy(self.research),dataRevision=Config.DataRevision,legacyCapacityGrant=self.legacyCapacityGrant or 0,
 		purchaseReceipts=table.clone(self.purchaseReceipts),crateCredits=self.crateCredits,commerceAutomatic=table.clone(self.commerceAutomatic),
 		guaranteedLuckRolls=self.guaranteedLuckRolls,
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,
@@ -536,6 +546,8 @@ function PlayerSession:LoadData(data)
 	local carry=data.eggCarry or {count=0,value=0}
 	local processor=EggProcessor.Read(data.eggProcessor)
 	if not processor then return false,"Invalid saved egg processor." end
+	local research=ResearchRules.Read(data.research)
+	if not research then return false,"Invalid saved research." end
 	local offlineCash=OfflineCash.Read(data.offlineCash)
 	if not offlineCash then return false,"Invalid saved offline cash." end
 	if type(carry)~="table" or not numberIn(carry.count,0,1e12,true)
@@ -657,6 +669,9 @@ function PlayerSession:LoadData(data)
 	self.eggCarry={count=carry.count,value=carry.value};self.enemyKills=data.enemyKills or 0
 	self.eggProcessor=processor
 	self.offlineCash,self.offlineCashReceipt=offlineCash,nil
+	self.research=research;self.researchEffects=ResearchRules.Effects(research)
+	self.researchRecap={};self.rallyActiveUntil=0
+	ResearchService.Complete(self,os.time())
 	-- Preserve saved ranks and validation; always use the best earned odds now.
 	self.promotion,self.recruitTier=promotion,promotion
  self.frontierWins,self.kingCleared=frontier,king

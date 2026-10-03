@@ -37,12 +37,35 @@ function Battle:AddArmy(side: string, roster, home: Vector3)
 		table.insert(self.units,{id=tostring(self.serial),petId=pet.id,slot=slot,side=side,species=pet.species,stars=pet.stars,level=pet.level or 1,
 			giantSize=pet.giantSize,
 			boss=pet.boss==true,noRespawn=pet.noRespawn==true,
+			baseHp=stats.hp,baseDamage=stats.damage,
 			hp=stats.hp,maxHp=stats.hp,damage=stats.damage,interval=stats.interval,size=stats.size,splash=stats.splash,
 			x=if side=="A" then homeX else x,z=if side=="A" then homeZ else z,
 			homeX=homeX,homeZ=homeZ,startX=homeX,startZ=homeZ,entryX=x,entryZ=z,spawnX=spawn.X,spawnZ=spawn.Z,
 			nextAttack=0,attackSerial=0,impactSerial=0,spawnSerial=0,firstAttack=true,
 			attackStagger=((i-1)%4)*Config.AttackStaggerSeconds,faceX=0,faceZ=if side=="A" then 1 else -1})
 	end
+end
+
+-- Apply from unchanged base stats, preserving health fraction through upgrades.
+function Battle:ApplyResearch(side,effects,rallyActive)
+ self.researchBySide=self.researchBySide or {};self.researchBySide[side]=effects
+ for _,unit in self.units do if unit.side==side and unit.petId then
+  unit.baseHp=unit.baseHp or unit.maxHp;unit.baseDamage=unit.baseDamage or unit.damage
+  local hp=unit.baseHp*(1+(effects and effects.health or 0))
+  if hp~=unit.maxHp then unit.hp=math.clamp(unit.hp/unit.maxHp,0,1)*hp;unit.maxHp=hp end
+  unit.damage=unit.baseDamage*(1+(effects and effects.damage or 0)+(if rallyActive then 0.2 else 0))
+  unit.bossDamage=unit.baseDamage*(effects and effects.bossDamage or 0)
+  unit.armor=effects and effects.armor or 0
+  unit.marchMultiplier=1+(effects and effects.march or 0)
+  unit.recoveryMultiplier=1-(effects and effects.recovery or 0)
+ end end
+end
+
+function Battle:CaptureRemaining()
+ local enemy=math.max(0,Config.NeutralizeSeconds-self.captureElapsed)
+ local friendly=math.max(0,Config.CaptureSeconds-math.max(Config.NeutralizeSeconds,self.captureElapsed))
+ local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
+ return enemy+friendly/(1+bonus)
 end
 
 function Battle:AddDefenders(roster, home: Vector3, now: number)
@@ -115,7 +138,7 @@ function Battle:StepCapture(dt: number, now: number)
 		else
 			local dx,dz=x-unit.x,z-unit.z
 			local length=math.sqrt(dx*dx+dz*dz)
-			if length>0 then local step=math.min(length,Config.MoveSpeed*dt);unit.x+=dx/length*step;unit.z+=dz/length*step end
+			if length>0 then local step=math.min(length,Config.MoveSpeed*(unit.marchMultiplier or 1)*dt);unit.x+=dx/length*step;unit.z+=dz/length*step end
 		end
 		-- Count actual living soldiers inside the objective, not the player's avatar
 		-- or a visual timer. Leaving the zone pauses capture.
@@ -123,7 +146,9 @@ function Battle:StepCapture(dt: number, now: number)
 	end
 	self.capturers=capturers
 	if capturers>0 then
-		self.captureElapsed=math.min(Config.CaptureSeconds,self.captureElapsed+dt)
+		local neutral=math.min(dt,math.max(0,Config.NeutralizeSeconds-self.captureElapsed))
+		local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
+		self.captureElapsed=math.min(Config.CaptureSeconds,self.captureElapsed+neutral+(dt-neutral)*(1+bonus))
 		if self.captureElapsed>=Config.CaptureSeconds-1e-6 then self.captureElapsed=Config.CaptureSeconds;return "A" end
 	elseif self:Alive("A")>0 and now-self.phaseAt>=Config.TravelTimeout then return "Blocked" end
 	return nil
@@ -164,7 +189,7 @@ function Battle:MoveUnit(unit, x, z, dt)
 	local dx,dz=x-unit.x,z-unit.z
 	local length=math.sqrt(dx*dx+dz*dz)
 	if length>0 then
-		local step=math.min(length,Config.MoveSpeed*dt)
+		local step=math.min(length,Config.MoveSpeed*(unit.marchMultiplier or 1)*dt)
 		unit.x+=dx/length*step;unit.z+=dz/length*step
 	end
 end
@@ -204,12 +229,13 @@ function Battle:ReachedCamp(unit): boolean
 end
 
 function Battle:StepReinforcements(dt: number, now: number)
+	if self.finiteRoster then return end
 	for _,unit in self.units do
 		if not unit.petId and unit.side~="A" then continue end
 		if unit.hp<=0 then
 			if not unit.petId then continue end
 			if self.incomeContest and self.rosterLocked and not unit.retiring then continue end
-			unit.respawnAt=unit.respawnAt or now+Config.AttackerRespawnSeconds
+			unit.respawnAt=unit.respawnAt or now+Config.AttackerRespawnSeconds*(unit.recoveryMultiplier or 1)
 			if now<unit.respawnAt then continue end
 			local x,z=unit.homeX,unit.homeZ
 			unit.hp,unit.x,unit.z=unit.maxHp,x,z
@@ -390,7 +416,7 @@ function Battle:StepSimulation(dt: number, now: number)
 					local endpoint=math.max(0.25,reach-Config.ActorArrivalDistance-0.2)
 					self.actors:Move(u,target.x-dx/d*endpoint,target.z-dz/d*endpoint,Config.MoveSpeed)
 				else
-					local move=math.min(Config.MoveSpeed*dt,d-reach+0.05)
+					local move=math.min(Config.MoveSpeed*(u.marchMultiplier or 1)*dt,d-reach+0.05)
 					u.x+=dx/d*move;u.z+=dz/d*move
 				end
 			elseif self.actors then self.actors:Face(u,target.x,target.z) end
@@ -412,14 +438,14 @@ function Battle:StepSimulation(dt: number, now: number)
 				u.pendingAttack=nil
 				if target.id==attack.targetId and distance(u,target)<=reach+0.4 then
 					u.impactSerial+=1;u.impactX,u.impactZ=target.x,target.z
-					damage[target.id]=(damage[target.id] or 0)+u.damage
+					damage[target.id]=(damage[target.id] or 0)+u.damage+(if target.boss and not target.petId then (u.bossDamage or 0) else 0)
 					if u.splash then
 						local others={}
 						for _,enemy in self.units do
 							if enemy~=target and enemy.side~=u.side and enemy.hp>0 and not enemy.reinforcing and not enemy.retiring and distance(enemy,target)<=Config.SplashRadius then table.insert(others,enemy) end
 						end
 						table.sort(others,function(a,b) return distance(a,target)<distance(b,target) end)
-						for i=1,math.min(2,#others) do local enemy=others[i];damage[enemy.id]=(damage[enemy.id] or 0)+u.damage*Config.SplashDamageFraction end
+						for i=1,math.min(2,#others) do local enemy=others[i];damage[enemy.id]=(damage[enemy.id] or 0)+(u.damage+(if enemy.boss and not enemy.petId then (u.bossDamage or 0) else 0))*Config.SplashDamageFraction end
 					end
 				end
 			end
@@ -430,7 +456,7 @@ function Battle:StepSimulation(dt: number, now: number)
 	end
 	for _,u in self.units do
 		local wasAlive=u.hp>0
-  u.hp=math.max(0,u.hp-(damage[u.id] or 0))
+  u.hp=math.max(0,u.hp-(damage[u.id] or 0)*(1-(u.armor or 0)))
   if wasAlive and u.hp<=0 then
    -- Schedule once at this chicken's death, never when the last guard falls.
    if u.side=="B" and not u.petId and not u.noRespawn and not self.incomeContest then
@@ -442,7 +468,7 @@ function Battle:StepSimulation(dt: number, now: number)
   end
 		if u.hp<=0 then
 			u.pendingAttack=nil;u.targetId=nil
-			if u.petId and not u.respawnAt then u.respawnAt=now+Config.AttackerRespawnSeconds;u.reinforcing=false end
+			if u.petId and not u.respawnAt then u.respawnAt=now+Config.AttackerRespawnSeconds*(u.recoveryMultiplier or 1);u.reinforcing=false end
 			if self.actors then self.actors:Stop(u) end
 		end
 	end
@@ -453,6 +479,7 @@ end
 
 function Battle:Step(dt: number, now: number)
 	if self.actors then self.actors:Sync(now) end
+	if self.operationReadyAt and now<self.operationReadyAt then return nil end
 	local outcome=self:StepSimulation(dt,now)
 	-- Publish this tick's windup and health immediately, not on the next tick.
 	if self.actors then self.actors:Publish(now) end
@@ -535,14 +562,14 @@ function Battle:Snapshot(now: number)
 	local reclaimProgress=if reclaiming then math.clamp(self.enemyReclaimElapsed/Config.EnemyReclaimSeconds,0,1) else 0
 	local defenderRespawnAt=self:NextDefenderRespawn()
 	return {id=self.id,coinDrops=table.clone(self.coinDrops),attacker=self.attacker,target=self.target,defender=self.defender,phase=self.phase,outcome=self.outcome,incomeContest=self.incomeContest==true,rosterLocked=self.rosterLocked==true,travelStage=if self.phase=="Travel" then (if self.assembling then "Assembling" else "Marching") else nil,
-		remaining=if self.phase=="Holding" then 0 elseif self.phase=="Capture" then math.max(0,Config.CaptureSeconds-self.captureElapsed) else math.max(0,duration-(now-self.phaseAt)),units=units,a=self:Alive("A"),b=self:Alive("B"),
+		remaining=if self.phase=="Holding" then 0 elseif self.phase=="Capture" then self:CaptureRemaining() else math.max(0,duration-(now-self.phaseAt)),units=units,a=self:Alive("A"),b=self:Alive("B"),
 		captureProgress=math.clamp(self.captureElapsed/Config.CaptureSeconds,0,1),
 		captureStarted=self.captureStarted,capturePaused=not reclaiming and self.captureStarted and (self.phase=="Fight" or self:Alive("A")==0),
 		enemyReclaiming=reclaiming,enemyReclaimComplete=reclaiming and reclaimProgress>=1,
 		captureStage=if reclaiming or self.captureElapsed<Config.NeutralizeSeconds then "Enemy" else "Player",
 		enemyControl=if reclaiming then self.enemyControlAtDefeat+(1-self.enemyControlAtDefeat)*reclaimProgress else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1),
 		playerControl=if reclaiming then self.playerControlAtDefeat*(1-reclaimProgress) else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(Config.CaptureSeconds-Config.NeutralizeSeconds),0,1),
-		captureRemaining=math.max(0,Config.CaptureSeconds-self.captureElapsed),
+		captureRemaining=self:CaptureRemaining(),
 		defenderRespawnIn=if defenderRespawnAt then math.max(0,defenderRespawnAt-now) else nil,
 		defenderRespawns=self.defenderRespawns,waitingForArmy=self:Alive("A")==0,
 		captureActive=self.phase=="Capture" and self.capturers>0,capturers=self.capturers,captureRadius=Config.CaptureRadius,

@@ -20,7 +20,8 @@ local function label(parent, name, text, size, color)
  item.TextXAlignment, item.TextYAlignment = Enum.TextXAlignment.Left, Enum.TextYAlignment.Center
  item.TextStrokeTransparency, item.ZIndex, item.TextScaled = 1, 2, true
  local stroke = Instance.new("UIStroke")
- stroke.Name, stroke.Color, stroke.Thickness, stroke.Parent = "TextOutline", OUTLINE, 2, item
+ stroke.Name, stroke.Color, stroke.Parent = "TextOutline", OUTLINE, item
+ stroke.StrokeSizingMode, stroke.Thickness = Enum.StrokeSizingMode.ScaledSize, 0.055
  item.Parent = parent
  Theme.ScaleText(item)
  return item

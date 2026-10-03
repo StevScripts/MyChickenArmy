@@ -31,7 +31,7 @@ function Browser.new(app,parent)
 	grid.Name,grid.Position,grid.Size="IndexGrid",UDim2.new(),UDim2.fromScale(1,1)
 	grid.BackgroundTransparency,grid.BorderSizePixel,grid.ScrollBarThickness=1,0,0
 	grid.ScrollBarImageColor3=Theme.ActionColors.navigation
-	grid.AutomaticCanvasSize,grid.CanvasSize=Enum.AutomaticSize.Y,UDim2.new()
+	grid.AutomaticCanvasSize,grid.CanvasSize=Enum.AutomaticSize.None,UDim2.new()
 	grid.ScrollingDirection,grid.VerticalScrollBarInset=Enum.ScrollingDirection.Y,Enum.ScrollBarInset.Always
 	grid.ClipsDescendants,grid.Parent=true,root
 	-- The canvas follows one width-constrained content frame. Grid row height
@@ -64,7 +64,7 @@ function Browser:BuildCards()
 		Theme.Aspect(slot,1)
 		local visual=Theme.Frame(slot,"Visual",CARD_SIZE,WHITE)
 		visual.Position,visual.AnchorPoint,visual.ClipsDescendants=REST,Vector2.new(0.5,0.5),false
-		Theme.Stroke(visual,Theme.Arcade.border,3)
+		Theme.Stroke(visual,Theme.Arcade.border,Theme.Border.Card)
 		local studs=Theme.Studs(visual,0.15,32,3)
 		local inset=Theme.Frame(visual,"InnerRim",UDim2.fromScale(0.968,0.968))
 		inset.Position,inset.BackgroundTransparency,inset.ZIndex=UDim2.fromScale(0.016,0.016),1,4
@@ -105,7 +105,17 @@ function Browser:BuildCards()
 end
 
 function Browser:Resize()
-	-- Native scale properties and aspect constraints handle every viewport.
+	-- CanvasSize is relative to the grid's parent. Use the saved menu aspect and
+	-- its native body proportions so the last constrained row remains reachable.
+	local panel=self.root.Parent.Parent.Parent
+	local aspect=panel:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+	if not aspect then return end
+	local body=self.root.Parent
+	local rootAspect=aspect.AspectRatio*body.Size.X.Scale/body.Size.Y.Scale*self.root.Size.X.Scale/self.root.Size.Y.Scale
+	local height=rootAspect*self.grid.Size.X.Scale*self.cardHolder.Size.X.Scale/self.cardHolder.UIAspectRatioConstraint.AspectRatio
+	local canvasHeight=height+0.05*self.grid.Size.Y.Scale
+	self.grid.CanvasSize=UDim2.fromScale(0,canvasHeight)
+	self.cardHolder.Position=UDim2.fromScale(0.02,0.03*self.grid.Size.Y.Scale/canvasHeight)
 end
 
 function Browser:StopMotion()

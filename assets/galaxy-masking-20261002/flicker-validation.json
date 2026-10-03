@@ -1,0 +1,29 @@
+{
+  "qualityHeldMaskedForReproduction": true,
+  "finalQualityTransitionWasExplicitCleanup": true,
+  "fallbackCleanup": true,
+  "nearerGalaxyDidNotSteal": true,
+  "events": [
+    {
+      "state": "loading:false",
+      "t": 22.76
+    },
+    {
+      "state": "ready:true",
+      "t": 23.83
+    },
+    {
+      "state": "quality:nil",
+      "t": 148.19
+    }
+  ],
+  "generation": 1,
+  "elapsedSeconds": 123.38021983333329,
+  "partialScreenRetained": true,
+  "counts": {
+    "quality:nil": 3,
+    "loading:false": 16,
+    "ready:true": 1849
+  },
+  "aura": true
+}

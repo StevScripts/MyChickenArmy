@@ -24,12 +24,12 @@ local function surface(parent,name,position,size,body)
  frame.Position=position
  local gradient=Theme.Gradient(frame,Color3.fromRGB(20,22,24),Color3.fromRGB(3,4,5))
  gradient.Transparency=NumberSequence.new(if body then 0.24 else 0.62,if body then 0.48 else 0.80)
- Theme.Stroke(frame,if body then INK else CYAN,2)
+ Theme.Stroke(frame,if body then INK else CYAN,if body then Theme.Border.Shell else Theme.Border.Card)
  return frame
 end
 
 local function studs(parent)
- return Theme.Studs(parent,0.14,28,0)
+ return Theme.Studs(parent,0.07,28,0)
 end
 
 local function dress(button,sequence,position,size)
@@ -37,7 +37,7 @@ local function dress(button,sequence,position,size)
  button.TextColor3,button.TextWrapped,button.TextScaled=WHITE,false,true
  Theme.ApplyReferenceAccent(button,sequence)
  local visual=button.Visual
- visual.UIStroke.Color,visual.UIStroke.Thickness=sequence.Keypoints[1].Value,3
+ visual.UIStroke.Color,visual.UIStroke.Thickness=sequence.Keypoints[1].Value,Theme.Border.Control
  visual.LowerLip.BackgroundColor3=INK
  visual.Caption.Position,visual.Caption.Size=UDim2.fromScale(0.035,0),UDim2.fromScale(0.93,0.9)
  studs(visual.Face)
@@ -140,7 +140,7 @@ function Browser:Render()
   local enabled=affordable and not offer.blocked and not waiting
   view.current.Text=offer.current
   view.nextLabel.Text=if view.hover then "View roll odds →" elseif offer.blocked then offer.reason or "Conquer more camps" else offer.benefit
-  view.nextLabel.TextWrapped=offer.blocked==true
+  view.nextLabel.TextScaled=true
   view.nextLabel.TextSize=if offer.blocked then 20 else 23
   view.nextLabel.TextColor3=if view.hover then CYAN else MUTED
   view.buy.Text=if waiting then "…" elseif offer.blocked then "Locked" elseif offer.price then "$"..Theme.Money(offer.price) else "MAX"

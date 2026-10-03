@@ -8,6 +8,8 @@ local RareChickenVFX = require(script.Parent.RareChickenVFX)
 local SpecialChickenVFX = require(script.Parent.SpecialChickenVFX)
 local GlitchEditableMesh = require(script.Parent.GlitchEditableMesh)
 local VoxelChickenAnimator = require(script.Parent.VoxelChickenAnimator)
+local ChickenEffectQuality = require(script.Parent.ChickenEffectQuality)
+local GalaxyViewportEffect = require(script.Parent.GalaxyViewportEffect)
 local KingVisual = require(game:GetService("ReplicatedStorage").PetRoll.Shared.KingVisual)
 local DuckAnimator = {}
 DuckAnimator.__index = DuckAnimator
@@ -20,7 +22,8 @@ local function phaseFor(name: string): number
 end
 
 function DuckAnimator.new()
-	local self = setmetatable({records = {}, connections = {}, reducedMotion = false, destroyed = false}, DuckAnimator)
+	local self = setmetatable({records = {}, connections = {}, reducedMotion = false, destroyed = false,
+		effectQuality = ChickenEffectQuality.new(), galaxyMask = GalaxyViewportEffect.new()}, DuckAnimator)
 	local function discover(item: Instance)
 		if item:IsA("Model") and (item:GetAttribute("DuckRig") == true or item:GetAttribute("SkinnedChicken") == true) and not self.records[item] then
 			self.records[item] = {model = item, root = nil, joints = {}, phase = phaseFor(item.Name),
@@ -61,6 +64,7 @@ end
 function DuckAnimator:_step(dt: number)
 	local now = os.clock()
 	local camera = workspace.CurrentCamera
+	local tier = self.effectQuality:Step(dt)
 	for model, record in self.records do
 		if not model:IsDescendantOf(workspace) then
 			if record.blender then record.blender:Destroy() end
@@ -69,7 +73,11 @@ function DuckAnimator:_step(dt: number)
 			self.records[model] = nil continue
 		end
 		if model:GetAttribute("ChickenKing") then KingVisual.Update(model) end
-		if record.fx then record.fx:Step(now, self.reducedMotion, camera) end
+		-- The mask replaces Galaxy's animated atlas for its one active bird.
+		-- All other birds keep the existing material path for this quality tier.
+		local textureTier = if tier == "static" or (tier == "masked" and model:GetAttribute("GalaxyMaskPreview") == true)
+			then "static" else "animated"
+		if record.fx then record.fx:Step(now, self.reducedMotion, camera, textureTier) end
 		if record.glitch then record.glitch:Step(now, self.reducedMotion, camera) end
 		if record.blender then
 			record.blender:Step(now, self.reducedMotion or model:GetAttribute("ReducedMotion") == true)
@@ -124,12 +132,16 @@ function DuckAnimator:_step(dt: number)
 		if joints.FootLeft then joints.FootLeft.Transform = CFrame.new(0, math.max(wave, 0) * walk * size * 0.035, -wave * walk * size * 0.035) * CFrame.Angles(wave * walk * 0.24, 0, 0) end
 		if joints.FootRight then joints.FootRight.Transform = CFrame.new(0, math.max(-wave, 0) * walk * size * 0.035, wave * walk * size * 0.035) * CFrame.Angles(-wave * walk * 0.24, 0, 0) end
 	end
+	-- Copy the final bone pose, not last frame's pose, into the cosmetic viewport.
+	self.galaxyMask:Step(now, camera, self.records, tier, self.reducedMotion)
 end
 
 function DuckAnimator:Destroy()
 	if self.destroyed then return end
 	self.destroyed = true
 	for _, connection in self.connections do connection:Disconnect() end
+	self.galaxyMask:Destroy()
+	self.effectQuality:Destroy()
 	for _, record in self.records do
 		if record.blender then record.blender:Destroy() end
 		if record.fx then record.fx:Destroy() end

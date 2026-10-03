@@ -20,6 +20,9 @@ local ProductService=require(script.Parent.ProductService)
 local CrateService=require(script.Parent.CrateService)
 local LoopTelemetry=require(script.Parent.LoopTelemetry)
 local UpgradeService=require(script.Parent.UpgradeService)
+local ResearchService=require(script.Parent.ResearchService)
+local ArmyAbilities=require(script.Parent.ArmyAbilities)
+local OperationService=require(script.Parent.OperationService)
 local GameServer={}
 GameServer.__index=GameServer
 
@@ -33,6 +36,7 @@ function GameServer.new()
 	self.rolls=RollService.new()
 	self.upgrades=UpgradeService.new(self.world,self.rolls)
 	self.battles=BattleService.new(self.sessions,self.world)
+	self.operations=OperationService.new(self.battles,self.world,self.sessions)
 	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
 	self.telemetry=LoopTelemetry.new()
 	self.battles.telemetry=self.telemetry
@@ -61,6 +65,7 @@ function GameServer:Send(player,result)
 	state.targets=self.battles:Targets(session,now)
 	state.incomeOutpost=if self.battles.IncomeSummary then self.battles:IncomeSummary(session,now) else nil
 	state.mergeOptions=ArmyService.MergeOptions(session)
+	state.operations=self.operations:Snapshot(session)
 	local battle=self.battles.battles[session.outgoing]
 	state.travelStage=if battle and battle.phase=="Travel" then (if battle.assembling then "Assembling" else "Marching") else nil
 	state.recoveringCount,state.reinforcingCount=0,0
@@ -91,6 +96,26 @@ function GameServer:Handle(player,request)
 	local receipt,purchase,crate
 	local selectedBefore=#session:BestPetIds()
 	if action=="Sync" then self:Send(player,{id=request.id,action="Sync",ok=true});return
+	elseif action=="StartResearch" then
+		ok,message=ResearchService.Start(session,request.nodeId,request.expectedRevision,request.expectedPrice,request.expectedDuration,os.time())
+	elseif action=="CancelResearch" then
+		ok,message=ResearchService.Cancel(session,request.jobId,request.expectedRevision,os.time())
+	elseif action=="Rally" then
+		ok,message=ArmyAbilities.Rally(session,self.battles,os.time())
+	elseif action=="PinResearch" then
+		ok,message=ResearchService.Pin(session,request.nodeId)
+	elseif action=="AcknowledgeResearch" then
+		session.researchRecap={};ok,message=true,"Research updated."
+	elseif action=="SaveFormation" then
+		ok,message=ArmyService.SaveFormation(session,request.slot,request.name,request.expectedIds,request.expectedRevision)
+	elseif action=="ApplyFormation" then
+		ok,message=ArmyService.ApplyFormation(session,request.slot,request.expectedIds,request.expectedRevision)
+	elseif action=="StartOperation" then
+		ok,message=self.operations:Start(session,request.operationId,request.expectedRevision,now)
+	elseif action=="LeaveOperation" then
+		local operation=self.battles.battles[session.outgoing]
+		if operation and operation.operationId then self.operations:Resolve(operation,"Abandoned",now);ok,message=true,"Operation ended."
+		else message="You are not in an Operation." end
 	elseif action=="EggCashCollect" then
 		-- Old clients cannot bypass server-owned movement/one-second collection.
 		return
@@ -142,7 +167,7 @@ function GameServer:Handle(player,request)
    ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
    if ok then self.world:CelebrateMerge(session,petId) end
   end
-	elseif action=="BoardUpgrade" then
+	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)
 	elseif action=="EggSellerUpgrade" then
 		ok,message=self.eggs:Upgrade(player,session,request.expectedLevel,request.expectedPrice)
@@ -293,6 +318,14 @@ end
 
 function GameServer:Step(dt)
 	local now=os.clock()
+	self.operations:Step(now)
+	local wallTime=os.time()
+	if wallTime~=(self.researchCheckedAt or 0) then
+		self.researchCheckedAt=wallTime
+		for _,session in self.sessions do
+			if session.loaded and not session.closing and not session.saveLost then ResearchService.Complete(session,wallTime) end
+		end
+	end
 	if Config.Features.Merging and now>=(self.nextAutomaticAt or 0) then
 		self.nextAutomaticAt=now+1
 		for _,session in self.sessions do
@@ -325,7 +358,6 @@ function GameServer:Start()
 	self.started=true
 	assert(self.products:Start(),"Could not initialize purchase delivery")
 	self.world:Build()
-	self.upgrades:Start()
 	self.leaderboards:Build()
 	local folder=ReplicatedStorage.PetRoll:FindFirstChild("Remotes")
 	if not folder then folder=Instance.new("Folder");folder.Name="Remotes";folder.Parent=ReplicatedStorage.PetRoll end
@@ -353,7 +385,7 @@ function GameServer:Destroy()
 	for _,session in self.sessions do session.closing=true;self.eggs:Release(session) end
 	for _,connection in self.connections do connection:Disconnect() end
 	for _,connection in self.playerConnections do connection:Disconnect() end
-	self.products:Destroy();self.leaderboards:Destroy();self.commerce:Destroy();self.eggs:Destroy();self.battles:Destroy();self.world:Destroy()
+	self.products:Destroy();self.leaderboards:Destroy();self.commerce:Destroy();self.eggs:Destroy();self.operations:Destroy();self.battles:Destroy();self.world:Destroy()
 	self.telemetry:Destroy()
  table.clear(self.recruitObservations);table.clear(self.awayObservations)
 	self.started=false

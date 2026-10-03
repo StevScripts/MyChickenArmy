@@ -35,6 +35,7 @@ local function killReward(session,unit,rank,isNpc)
  if isNpc and not unit.boss and session.entitlements and session.entitlements.DoubleBounty==true then
   amount*=ShopCatalog.BountyMultiplier
  end
+ if isNpc then amount=math.floor(amount*(1+(session.researchEffects and session.researchEffects.bounty or 0))) end
  return amount
 end
 
@@ -51,7 +52,7 @@ end
 -- Only this player's outgoing NPC encounter can be redirected. Shared income
 -- contests retain their separate participant/withdrawal rules.
 function BattleService:CanRedirect(session,battle)
- return battle~=nil and battle.attacker==session.userId and not battle.defender
+ return battle~=nil and not battle.operationId and battle.attacker==session.userId and not battle.defender
   and (not battle.incomeSite or battle.phase=="Holding")
   and (battle.phase=="Travel" or battle.phase=="Fight" or battle.phase=="Capture" or battle.phase=="Holding")
 end
@@ -689,6 +690,7 @@ end
 
 function BattleService:RewardKills(battle,now)
  for _,kill in battle:DrainKills() do
+  if battle.operationId then continue end -- Operations budget only completion rewards.
   local earner=self.sessions[if kill.side=="B" then battle.attacker else battle.defender]
   if not earner or earner.closing or earner.saveLost then continue end
   local opponent=self.sessions[if kill.side=="B" then battle.defender else battle.attacker]
@@ -707,6 +709,7 @@ end
 
 function BattleService:Finish(battle,outcome,now)
 	if battle.paid then return end
+ if battle.operationId then return self.operations:Resolve(battle,outcome,now) end
  if battle.incomeJoin then return self:ResolveIncomeJoin(battle,outcome,now) end
  if battle.incomeContest then return self:FinishIncome(battle,outcome,now) end
  self:RewardKills(battle,now)
@@ -775,7 +778,7 @@ function BattleService:ReconcileIncomeReturns(contestId,now)
   local session=self.sessions[battle.attacker]
   battle.incomeJoin=nil;battle.beforeIncomeArrival=nil
   battle.incomeContest=false;battle.rosterLocked=false
-  for _,unit in battle.units do if unit.hp<=0 then unit.respawnAt=now+Config.AttackerRespawnSeconds end end
+  for _,unit in battle.units do if unit.hp<=0 then unit.respawnAt=unit.respawnAt or now+Config.AttackerRespawnSeconds*(unit.recoveryMultiplier or 1) end end
   if session and owner and owner.userId==session.userId then
    battle.friendlyTerritory=true;battle.captureElapsed=Config.CaptureSeconds
    self:ReserveIncome(battle)
@@ -809,12 +812,12 @@ function BattleService:ResolveIncomeJoin(join,outcome,now)
  if outcome=="Join" and session and owner and owner.userId==session.userId and not contest then
   join.incomeJoin=nil;join.beforeIncomeArrival=nil;join.incomeContest=false;join.rosterLocked=false
   join.friendlyTerritory=true;join.captureElapsed=Config.CaptureSeconds
-  for _,unit in join.units do if unit.hp<=0 then unit.respawnAt=now+Config.AttackerRespawnSeconds end end
+  for _,unit in join.units do if unit.hp<=0 then unit.respawnAt=unit.respawnAt or now+Config.AttackerRespawnSeconds*(unit.recoveryMultiplier or 1) end end
   self:ReserveIncome(join);self:Finish(join,"A",now)
   return
  end
  join.incomeJoin=nil;join.beforeIncomeArrival=nil;join.incomeContest=false;join.rosterLocked=false;join.paid=true
- for _,unit in join.units do if unit.hp<=0 then unit.respawnAt=now+Config.AttackerRespawnSeconds end end
+ for _,unit in join.units do if unit.hp<=0 then unit.respawnAt=unit.respawnAt or now+Config.AttackerRespawnSeconds*(unit.recoveryMultiplier or 1) end end
  join.incomeDeparture=true;join:Finish(outcome,now)
  if session then
   session.armyState,session.returnAt="Returning",now+Config.ReturnSeconds
@@ -920,6 +923,7 @@ function BattleService:ReleaseCamp(key)
 end
 
 function BattleService:Remove(battle,successor,successorSide)
+ if battle.operationId and self.operations then self.operations:Detach(battle) end
  -- Occupied ground follows the moving squad until every rig clears its old bay.
  for key,owner in self.campBusy do if owner==battle.id then
   if successor then self.campBusy[key]=successor.id;self.departingCamps[key]=successor.id;self.departingSides[key]=successorSide or "A";self.campClearedAt[key]=nil
@@ -1031,6 +1035,10 @@ function BattleService:Step(dt,now)
 				if battle.phase~="Returning" and #owner:BestPetIds()==0 then self:ReturnHome(owner,now) end
 			end
 		end
+		for _,side in {"A","B"} do
+			local owner=self.sessions[if side=="A" then battle.attacker else battle.defender]
+			battle:ApplyResearch(side,owner and owner.researchEffects,owner and os.time()<(owner.rallyActiveUntil or 0))
+		end
 		local outcome=if battle.phase=="Returning" then nil else battle:Step(dt,now)
   self:RewardKills(battle,now)
 		local attacker=self.sessions[battle.attacker]
@@ -1063,6 +1071,7 @@ end
 function BattleService:ReturnHome(session,now)
 	local battle=self.battles[session.outgoing]
 	if not battle or battle.phase=="Returning" then return false,"Your army is already home or returning." end
+	if battle.operationId then self.operations:Resolve(battle,"Abandoned",now);return true,"Operation ended. Your army is home." end
  if battle.incomeContest and battle.defender==session.userId then
   local continuation=TerritoryContest.Continue(battle,session,"B",self.world,now,false)
   continuation.incomeDeparture=true;self.battles[continuation.id]=continuation

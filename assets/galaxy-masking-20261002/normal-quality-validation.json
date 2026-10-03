@@ -1,0 +1,45 @@
+{
+  "projection": {
+    "maxPixels": 745.8433532714844,
+    "maxArea": 0.5322363740570356,
+    "maxRadius": 13,
+    "minRadius": 3.800001096725465
+  },
+  "qualityOverride": false,
+  "quality": "Enum.SavedQualitySetting.QualityLevel10",
+  "elapsed": 229.48174666666682,
+  "viewports": 1,
+  "maxDt": 1.0171594619750977,
+  "syntheticFrameTimes": false,
+  "bones": 18,
+  "layers": 4,
+  "events": [
+    {
+      "focused": true,
+      "t": 0.0009448333335058123,
+      "key": "masked/idle/nil/0",
+      "dt": 0.07010770589113235
+    },
+    {
+      "focused": true,
+      "t": 19.20021008333333,
+      "key": "masked/loading/false/1",
+      "dt": 0.06242028996348381
+    },
+    {
+      "focused": true,
+      "t": 19.929437166666503,
+      "key": "masked/ready/true/1",
+      "dt": 0.06634733080863953
+    }
+  ],
+  "surfaces": 1,
+  "frames": 11235,
+  "generation": 1,
+  "counts": {
+    "masked/idle/nil/0": 288,
+    "masked/loading/false/1": 11,
+    "masked/ready/true/1": 10936
+  },
+  "readySeconds": 209.55231012500053
+}

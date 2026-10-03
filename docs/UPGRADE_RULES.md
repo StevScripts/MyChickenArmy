@@ -52,9 +52,16 @@ and next price. The later September 29 change increases the last two levels to
 75/100 without another conversion. New profiles start at level zero. The first three prices
 are $480 / $1,200 / $2,400, followed by the four unchanged existing prices.
 
+## October 2 location change
+
+The six world-board tracks now live as immediate cash purchases in the full-screen
+upgrade tree. The physical board is archived. No research prerequisite, research
+timer or researcher slot is added to these tracks. All prices, saved levels and
+maxima remain unchanged. See [cash upgrades in the tree](team/CASH_UPGRADES_IN_TREE.md).
+
 ## Checks that remain
 
-Keep server authority over loaded/closing/save-lost state, sufficient cash, existing track maxima, valid expected level/price, board ownership and proximity, and actual plot/podium support. A missing authored capability is different from a camp requirement. UI must display the server's current offer and must not add a separate local rank lock.
+Keep server authority over loaded/closing/save-lost state, sufficient cash, existing track maxima, valid expected level/price, and actual plot/podium support. These purchases are now global; the retired board’s proximity/ownership check no longer applies. A missing authored capability is different from a camp requirement. UI must display the server's current offer and must not add a separate local rank lock.
 
 Camp-route prerequisites, King access, rank milestones, existing combat encounters and rewards remain separate progression systems. The no-camp-upgrade change did not itself enable merging. The user subsequently authorized manual three-chicken merging on September 25; its separate existing progression rules are documented in `MERGING.md`. Historical rank metadata in Progression is not an instruction to gate cash upgrades.
 
@@ -63,12 +70,15 @@ Removing camp gates did not require a migration or refund/reset. The separately 
 ## Runtime owners
 
 - `server/PlayerSession.luau`: `NextSlot` and `GlobalUpgrade` expose available cash upgrades without rank checks; the snapshot reports the configured overall army capacity, not the old rank capacity. Rank banners no longer promise an army-slot unlock.
-- `server/UpgradeService.luau`: board offers have no required-rank parameter or promotion check. Plot availability remains enforced.
+- `server/UpgradeService.luau`: cash offers have no board proximity, required-rank parameter or promotion check. Plot availability remains enforced.
 - `shared/UpgradeCatalog.luau`: no `RollSlotRanks` field. Income reference bands used in fixed price calculations are tuning inputs, not eligibility requirements.
 - `server/ArmyService.luau`: the rejected legacy promotion action no longer claims territories increase army capacity.
 - Existing ArmyService, RollService, EggService and UI purchase paths consume these offers and preserve their remaining transaction safeguards.
 
-## Scope and verification
+## Historical September 25 verification
+
+The board-access checks in this historical pass are superseded by the October 2
+location change above.
 
 Seven focused standalone Luau groups passed against the actual current modules with in-memory service/world boundaries: all board tracks at zero camp wins, legacy menu transactions, rank-independent offers/prices, insufficient-cash and stale-quote rejection, retained readiness/access/capability restrictions, rank-one save roundtrip at maximum upgrades, and additive paid army capacity.
 

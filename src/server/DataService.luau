@@ -104,7 +104,8 @@ function DataService:Capture(session,release)
  local payload=session:ToData()
  -- During a crash the last persisted lease may include active play. Count
  -- offline time only after its expiry; a clean exit starts at departure.
- payload.offlineCash={at=self.clock()+(if release then 0 else Config.SaveLeaseSeconds),rate=OfflineCash.Rate(session)}
+ payload.offlineCash={at=self.clock()+(if release then 0 else Config.SaveLeaseSeconds),rate=OfflineCash.Rate(session),
+  maxSeconds=(session.researchEffects and session.researchEffects.offlineHours or 8)*3600}
  return payload
 end
 

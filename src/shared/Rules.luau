@@ -108,15 +108,16 @@ function Rules.LuckMultiplier(luckLevel: number): number
 	return 1 + opening * Config.LuckWeightPerLevel + later * Config.LuckContinuationWeightPerLevel
 end
 
-function Rules.Odds(luckLevel: number, _tier: number?, paidMultiplier: number?)
+function Rules.Odds(luckLevel: number, _tier: number?, paidMultiplier: number?, researchLuckBonus: number?)
 	local weights, total = {}, 0
 	-- Server-verified paid luck doubles Rare+ weights, not normalized percentages.
 	local paid = if paidMultiplier == 2 then 2 else 1
+	local research = 1 + math.max(0, researchLuckBonus or 0)
 	for _, id in Catalog.Order do
 		local definition = Catalog[id]
 		local lucky = definition.rarity == "Rare" or definition.rarity == "Epic" or definition.rarity == "Legendary" or definition.rarity == "Mythic"
 		local boost = if lucky
-			then Rules.LuckMultiplier(luckLevel) * paid else 1
+			then Rules.LuckMultiplier(luckLevel) * paid * research else 1
 		weights[id] = definition.weight * boost
 		total += weights[id]
 	end
@@ -132,8 +133,8 @@ function Rules.FormatOdds(chance: number): string
 	return string.format("≈ 1 in %d", math.floor(1 / chance + 0.5))
 end
 
-function Rules.Draw(luckLevel: number, randomValue: number, tier: number?, paidMultiplier: number?): string
-	local odds, cumulative = Rules.Odds(luckLevel,tier,paidMultiplier), 0
+function Rules.Draw(luckLevel: number, randomValue: number, tier: number?, paidMultiplier: number?, researchLuckBonus: number?): string
+	local odds, cumulative = Rules.Odds(luckLevel,tier,paidMultiplier,researchLuckBonus), 0
 	for _, id in Catalog.Order do
 		cumulative += odds[id]
 		if randomValue < cumulative then return id end

@@ -183,7 +183,7 @@ function Browser.new(app,parent)
  scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.01,0.02),UDim2.fromScale(0.98,0.91)
  scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,0
  scroll.ScrollingDirection,scroll.ScrollBarImageColor3,scroll.ClipsDescendants=Enum.ScrollingDirection.Y,P.gold,true
- scroll.CanvasSize,scroll.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.Y
+ scroll.CanvasSize,scroll.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.None
  scroll.VerticalScrollBarInset,scroll.ElasticBehavior=Enum.ScrollBarInset.Always,Enum.ElasticBehavior.WhenScrollable
  scroll.ZIndex,scroll.Parent=3,body
  self.scroll,self.grid=scroll,scroll
@@ -438,6 +438,7 @@ end
 function Browser:ShowDetails(kind,purchaseKey)
  self:CancelScroll()
  self.detailsKind,self.detailsPurchase=kind,purchaseKey
+ self.scroll.Visible,self.previewStatus.Visible=false,false
  self.detailsRoot.Visible=true
  self.detailsScroll.CanvasPosition=Vector2.zero
  self:RenderDetails()
@@ -445,6 +446,7 @@ end
 
 function Browser:CloseDetails()
  if self.detailsRoot then self.detailsRoot.Visible=false end
+ self.scroll.Visible,self.previewStatus.Visible=true,true
  self.detailsKind,self.detailsPurchase=nil,nil
 end
 
@@ -509,14 +511,14 @@ function Browser:RenderDetails()
   self.detailsRowsKey=signature
   for _,item in self.detailsContent:GetChildren() do if item:IsA("GuiObject") and item~=self.detailsDescription and item~=self.detailsNote then item:Destroy() end end
   -- Width controls every row; AutomaticCanvasSize only extends the scroll range.
-  local contentHeight=0.18+0.12+#rows*0.064+(#rows+1)*0.008
+  local contentHeight=0.135+0.09+#rows*0.048+(#rows+1)*0.008
   self.detailsContent.Size=UDim2.fromScale(0.98,#rows+2)
   Theme.Aspect(self.detailsContent,1/contentHeight)
-  self.detailsDescription.Size=UDim2.fromScale(1,0.18/contentHeight)
-  self.detailsNote.Size=UDim2.fromScale(1,0.12/contentHeight)
+  self.detailsDescription.Size=UDim2.fromScale(1,0.135/contentHeight)
+  self.detailsNote.Size=UDim2.fromScale(1,0.09/contentHeight)
   self.detailsLayout.Padding=UDim.new(0.008/contentHeight,0)
   for index,row in rows do
-   local entry=frame(self.detailsContent,"Outcome"..index,UDim2.fromScale(1,0.064/contentHeight))
+   local entry=frame(self.detailsContent,"Outcome"..index,UDim2.fromScale(1,0.048/contentHeight))
    entry.BackgroundTransparency,entry.LayoutOrder,entry.ZIndex=1,index,21
    local name=plain(entry,"Name",row.name,20,UDim2.new(),UDim2.fromScale(0.5,1),P.white)
    local value=plain(entry,"Chance",row.value,20,UDim2.fromScale(0.5,0),UDim2.fromScale(0.5,1),P.white)
@@ -643,7 +645,7 @@ function Browser:ApplyPresentation()
    -- Reset its alpha as well as its color so the offer keeps its full saturation.
    gradient.Enabled,gradient.Rotation,gradient.Transparency=true,90,NumberSequence.new(0)
   end
-  local edge=Theme.Stroke(item,color,3)
+  local edge=Theme.Stroke(item,color,Theme.Border.Card)
   edge.Transparency=0
   local rim=item:FindFirstChild("InnerRim")
   if rim and rim:IsA("Frame") then
@@ -732,6 +734,18 @@ function Browser:Resize()
  local cashCardWidth=(1-0.075*2)/3
  local featuredHeight=0.285
  local cashHeight=0.0856+featuredHeight+0.04+cashCardWidth
+ -- AutomaticCanvasSize undercounts these aspect-constrained sections. Express
+ -- their full height in the body's native Scale coordinates instead. CanvasSize
+ -- uses the scroll parent's height; padding and list gaps use the canvas height.
+ local padding=self.scroll.UIPadding
+ local innerWidth=1-padding.PaddingLeft.Scale-padding.PaddingRight.Scale
+ local innerHeight=1-padding.PaddingTop.Scale-padding.PaddingBottom.Scale
+ local bodyAspect=self.root.UIAspectRatioConstraint.AspectRatio*self.body.Size.X.Scale/self.body.Size.Y.Scale
+ local sectionWidth=self.scroll.Size.X.Scale*innerWidth*self.sections.Passes.Size.X.Scale
+ local gap=0.05*self.scroll.Size.Y.Scale
+ local canvasHeight=(bodyAspect*sectionWidth*(passHeight+cashHeight)+gap)/innerHeight
+ self.scroll.CanvasSize=UDim2.fromScale(0,canvasHeight)
+ self.layout.Padding=UDim.new(gap/(canvasHeight*innerHeight),0)
  Theme.Aspect(self.sections.Cash,1/cashHeight)
  self.sections.Cash.Heading.Position,self.sections.Cash.Heading.Size=UDim2.new(),UDim2.fromScale(1,0.0456/cashHeight)
  self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromScale(0,0.0856/cashHeight),UDim2.fromScale(1,featuredHeight/cashHeight)

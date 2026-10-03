@@ -3,6 +3,7 @@
 local Theme=require(script.Parent.UITheme)
 local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
+local ResearchAssets=require(script.Parent.ResearchAssets)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
@@ -59,15 +60,15 @@ function Hud.new(app,shell)
 	self.flock=Theme.Display(totals,"Flock","Chickens 0/40",25,A.gold)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self:BuildSettingsTopbar()
-	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.34))
+	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.51))
 	shortcuts.BackgroundTransparency=1
 	shortcuts.AnchorPoint,shortcuts.Position=Vector2.new(0,0.5),UDim2.fromScale(0.012,0.5)
 	self.shortcuts=shortcuts
 	local shortcutLayout=Instance.new("UIListLayout")
 	shortcutLayout.SortOrder,shortcutLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0.03,0)
 	shortcutLayout.Parent=shortcuts
-	for i,page in {"Shop","Index"} do
-		local button=Theme.IconButton(shortcuts,page,page,Theme.Assets[page],function() app:TogglePage(page) end)
+	for i,page in {"Shop","Index","Upgrades"} do
+		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
 	self.save=Theme.Display(shell,"SaveStatus","",12)
@@ -190,7 +191,7 @@ end
 -- The composition is authored once; viewport changes are handled by Roblox.
 function Hud:Layout()
 	Theme.Aspect(self.navigation,558/272)
-	Theme.Aspect(self.shortcuts,136/272)
+	Theme.Aspect(self.shortcuts,136/408)
 	self.army.AnchorPoint,self.army.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,1)
 	for _,button in {self.callArmy,self.army,self.myBase} do
 		local primary=button==self.army
@@ -203,9 +204,9 @@ function Hud:Layout()
 		label.TextScaled,label.ZIndex=true,4
 	end
 	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.875),UDim2.fromScale(1,0.09)
-	for _,page in {"Shop","Index"} do
+	for _,page in {"Shop","Index","Upgrades"} do
 		local button=self.shortcuts:FindFirstChild(page)
-		button.Size=UDim2.fromScale(1,0.485)
+		button.Size=UDim2.fromScale(1,0.3133)
 		Theme.Aspect(button,136/132)
 		button.Visual.Label.TextScaled=true
 	end

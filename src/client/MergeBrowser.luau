@@ -81,11 +81,11 @@ function Browser.new(app,parent)
  local self=setmetatable({app=app,alive=true,viewSerial=0,selection=Selection.new(),mode="Main",query="",cards={},rows={},connections={},slots={},key=""},Browser)
  local root=frame(parent,"MergeBrowser",INK)
  root.Size,root.Visible,root.ClipsDescendants=UDim2.fromScale(1,1),false,true
- root:SetAttribute("OwnsPopupStyle",true);Theme.Stroke(root,Color3.new(),6);self.root=root
+ root:SetAttribute("OwnsPopupStyle",true);Theme.Stroke(root,Color3.new(),Theme.Border.Shell);self.root=root
  Theme.Aspect(root,1)
  local rim=frame(root,"PurpleRim")
  rim.Position,rim.Size=UDim2.fromScale(3/900,3/900),UDim2.fromScale(894/900,894/900)
- Theme.Stroke(rim,PURPLE,2)
+ Theme.Stroke(rim,PURPLE,Theme.Border.Detail)
  self.header,self.title=Theme.Header(root,"Header","Fuse Chickens",PURPLE)
  self.header.ZIndex,self.title.ZIndex=root.ZIndex+2,root.ZIndex+6
  self.title.TextColor3=WHITE;Theme.ApplyReferenceAccent(self.header,ACCENT)
@@ -101,7 +101,7 @@ function Browser.new(app,parent)
  self.count=label(self.mainContent,"SelectedCount","0/3",30,MUTED)
  self.count.TextXAlignment=Enum.TextXAlignment.Right
  for i=1,3 do
-  local box=frame(self.mainContent,"Input"..i,INK);local outline=Theme.Stroke(box,LINE,3)
+  local box=frame(self.mainContent,"Input"..i,INK);local outline=Theme.Stroke(box,LINE,Theme.Border.Card)
   box.ZIndex=self.mainContent.ZIndex+3
   local title=label(box,"ChickenName","",28);fitText(title,28,12)
   local art=frame(box,"Portrait")
@@ -114,13 +114,13 @@ function Browser.new(app,parent)
    socket=line(self.mainContent,"InputSocket"..i),outputSocket=line(self.mainContent,"OutputSocket"..i)}
  end
  self.result=frame(self.mainContent,"Result",INK);self.result.ZIndex=self.mainContent.ZIndex+3
- self.resultOutline=Theme.Stroke(self.result,LINE,3)
+ self.resultOutline=Theme.Stroke(self.result,LINE,Theme.Border.Card)
  self.resultTitle=label(self.result,"Title","",28);fitText(self.resultTitle,28,16)
  self.resultArt=frame(self.result,"Portrait")
  self.resultEmpty=label(self.resultArt,"Empty","?",90,MUTED);self.resultEmpty.Size=UDim2.fromScale(1,1)
  self.resultName=label(self.result,"ChickenLevel","",32,PURPLE);fitText(self.resultName,32,20)
  self.action=button(self.footer,"Fuse","Fuse",function() self:Merge() end)
- fitText(self.action.Visual.Caption,46,14);self.action.Visual.Caption.TextWrapped=false
+ fitText(self.action)
  self.message=label(self.body,"Status","",20,MUTED);self.message.TextWrapped=true
  self.tradeoff=label(self.footer,"Tradeoff","3 chickens → 1 Giant",23,MUTED)
  self.picker=frame(self.body,"ChickenPicker")
@@ -140,6 +140,7 @@ function Browser.new(app,parent)
  self.back=button(self.picker,"Back","Back",function()
   if self.query~="" and #self.cards==0 then self.search.Text="" else self.mode="Main";self:Render(true);self:Focus(self.slots[self.activeSlot or 1].action) end
  end)
+ self.back.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",1.1)
  self.summary=scroll(self.body,"FusionResult")
  self.summaryRays=Theme.Image(self.summary,"ResultRays",Theme.Assets.Rays,UDim2.new())
  self.summaryRays.ImageColor3,self.summaryRays.ImageTransparency,self.summaryRays.ZIndex=PURPLE,0.55,self.summary.ZIndex+1
@@ -375,7 +376,7 @@ function Browser:RenderPicker()
    Theme.Aspect(card,266/250)
    local rarity=Catalog[recipe.species].rarity
    local tint=Theme.Rarities[rarity] or Theme.Rarities.Common
-   Theme.Stroke(card,tint,2)
+   Theme.Stroke(card,tint,Theme.Border.Card)
    local ribbon=frame(card,"RarityRibbon",tint)
    ribbon.Position,ribbon.Size=UDim2.fromScale(6/266,6/250),UDim2.fromScale(208/266,28/250)
    local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),20)

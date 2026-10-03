@@ -19,6 +19,7 @@ local Builder = require(script.Parent.WorldBuilder)
 local KingArena = require(script.Parent.KingArena)
 local AuthoredMap = require(script.Parent.AuthoredMap)
 local PlotUpgradeService = require(script.Parent.PlotUpgradeService)
+local OperationRewards=require(script.Parent.OperationRewards)
 local WorldService = {}
 WorldService.__index = WorldService
 
@@ -243,6 +244,7 @@ function WorldService:UpdatePlayerSpeed(player, index: number)
 	local padding=if humanoid:GetAttribute("OutsideHomeBase")==true then 0 else Config.PlayerTravelBoundaryPadding
 	local outside=math.abs(position.X)>deck.Size.X/2+padding or math.abs(position.Z)>deck.Size.Z/2+padding
 	local speed=if outside then Config.PlayerTravelWalkSpeed else Config.PlayerHomeWalkSpeed
+	speed*=1+(plot.researchWalk or 0)
 	if humanoid.WalkSpeed~=speed then humanoid.WalkSpeed=speed end
 	attribute(humanoid,"OutsideHomeBase",outside)
 end
@@ -467,6 +469,7 @@ function WorldService:UpdateSession(session)
 	local plot = self.plots[session.plotIndex]
 	if not plot then return end
 	plot.ownerId = session.userId
+	plot.researchWalk=session.researchEffects.walk
 	local rank=session.promotion or 1
 	local promotion=Progression.Get(rank)
 	local camps=Progression.Camps(rank)
@@ -487,7 +490,8 @@ function WorldService:UpdateSession(session)
 	if plot.mergeStand then plot.mergeStand:Sync(session) end
 	for name, value in {CommandTarget = "base:" .. session.userId, OwnerUserId = session.userId,
 		ArmyState = session.armyState} do attribute(plot.folder, name, value) end
-	local title = session.name .. "'S ARMY"
+	local bannerTier=OperationRewards.Apply(session,plot,self:PlotFrame(session.plotIndex))
+	local title = session.name .. "'S ARMY"..(if bannerTier==3 then "\nROYAL COMMANDER" else "")
 	if plot.title.Text ~= title then plot.title.Text = title end
 	local won=0
 	for index in camps do if session.firstWins[index] then won+=1 end end
@@ -658,6 +662,8 @@ function WorldService:Release(session)
 	local plot = self.plots[session.plotIndex]
 	if plot then
 		disposeActors(plot.actors)
+		OperationRewards.Clear(plot)
+		plot.researchWalk=0
 		plot.roaming, plot.homeOrdinals, plot.ownerId = {}, {}, nil
 		plot.upgrades:SetLevel(0)
 		for _,station in plot.stations do station:Clear() end

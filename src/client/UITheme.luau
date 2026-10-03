@@ -4,6 +4,8 @@ local Theme = {}
 local Palette = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UIColors)
 Theme.Motion = require(script.Parent.UIMotion).new()
 Theme.Font = Enum.Font.SourceSansBold
+-- One edge hierarchy across menus; secondary surfaces never outweigh the shell.
+Theme.Border = {Shell=3, Control=2, Card=1.5, Detail=1}
 Theme.Arcade = {
 	blue=Palette.Navigation, gold=Palette.Rewards, purple=Palette.Upgrade,
 	red=Palette.Danger, green=Palette.Purchase, border=Palette.Border,
@@ -197,20 +199,28 @@ function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
 	pattern.ImageRectOffset,pattern.ImageRectSize=Vector2.zero,Vector2.zero
 	pattern.Position,pattern.AnchorPoint,pattern.Rotation=UDim2.new(),Vector2.zero,0
 	pattern.BackgroundTransparency,pattern.BorderSizePixel,pattern.Active=1,0,false
-	-- A square native image extends beyond its clipping container. Headers show
-	-- one sheet; smaller buttons crop a wider sheet, like the authored reference.
+	-- Keep the sheet square. Action surfaces use their height so wide buttons
+	-- crop more of the same stud scale instead of enlarging every stud.
 	local aspect=pattern:FindFirstChildWhichIsA("UIAspectRatioConstraint") or Instance.new("UIAspectRatioConstraint")
 	aspect.Name,aspect.AspectRatio="UIAspectRatioConstraint",1
 	aspect.AspectType,aspect.DominantAxis=Enum.AspectType.FitWithinMaxSize,Enum.DominantAxis.Width
 	aspect.Parent=pattern
 	if studBindings[pattern] then return pattern end
 	local function resize()
-		local width=pattern:GetAttribute("StudScaleWidth") or 3
-		pattern.Size=UDim2.fromScale(width,1000)
+		local width=pattern:GetAttribute("StudScaleWidth")
+		local height=pattern:GetAttribute("StudScaleHeight")
+		if height and not width then
+			aspect.DominantAxis=Enum.DominantAxis.Height
+			pattern.Size=UDim2.fromScale(1000,height)
+		else
+			aspect.DominantAxis=Enum.DominantAxis.Width
+			pattern.Size=UDim2.fromScale(width or 3,1000)
+		end
 	end
 	local function layer() clip.ZIndex,clip.Visible=pattern.ZIndex,pattern.Visible end
 	local connections={
 		pattern:GetAttributeChangedSignal("StudScaleWidth"):Connect(resize),
+		pattern:GetAttributeChangedSignal("StudScaleHeight"):Connect(resize),
 		pattern:GetPropertyChangedSignal("ZIndex"):Connect(layer),
 		pattern:GetPropertyChangedSignal("Visible"):Connect(layer),
 	}
@@ -257,7 +267,7 @@ function Theme.Surface(item, tint)
 	Theme.Stroke(item,Theme.Arcade.border,3)
 	local inset=item:FindFirstChild("InnerRim") or Theme.Frame(item,"InnerRim",UDim2.fromScale(0.98,0.98))
 	inset.Position,inset.BackgroundTransparency=UDim2.fromScale(0.01,0.01),1
-	Theme.Stroke(inset,Theme.Colors.line,1.5)
+	Theme.Stroke(inset,Theme.Colors.line,Theme.Border.Detail)
 	return item
 end
 
@@ -271,12 +281,12 @@ function Theme.Label(parent, name, text, size, color)
 	label.TextXAlignment, label.TextYAlignment = Enum.TextXAlignment.Left, Enum.TextYAlignment.Center
 	label.TextWrapped, label.TextStrokeTransparency, label.ZIndex = true, 1, 4
 	local outline=Instance.new("UIStroke")
-	outline.Name,outline.Color,outline.Thickness="TextOutline",Theme.Arcade.border,math.clamp((size or 20)*0.068,1.25,4)
+	outline.Name,outline.Color="TextOutline",Theme.Arcade.border
+	-- Native scaling follows the rendered glyph size, including TextScaled.
+	-- Using nominal TextSize here made compact labels carry oversized outlines.
+	outline.StrokeSizingMode,outline.Thickness=Enum.StrokeSizingMode.ScaledSize,0.055
 	outline.Enabled = not lightSurface
 	outline.Parent=label
-	label:GetPropertyChangedSignal("TextSize"):Connect(function()
-		outline.Thickness=label:GetAttribute("OutlineThickness") or math.clamp(label.TextSize*0.068,1.25,4)
-	end)
 	label.Parent = parent
 	return label
 end
@@ -290,6 +300,7 @@ function Theme.Notification(parent)
 	group.Parent=parent
 	local label=Theme.Label(group,"Toast","",34,Theme.Colors.ink)
 	label:SetAttribute("OutlineThickness",3)
+	label.TextOutline.StrokeSizingMode=Enum.StrokeSizingMode.FixedSize
 	label.TextOutline.Thickness=3
 	label.Position,label.Size=UDim2.fromScale(0.02,0.1),UDim2.fromScale(0.96,0.8)
 	label.RichText,label.TextXAlignment,label.TextYAlignment=true,Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
@@ -302,13 +313,15 @@ function Theme.Button(parent, name, text, callback, color)
 	button.Name,button.Text,button.Size=name,text,UDim2.fromScale(1,0.15)
 	button.BackgroundColor3,button.BackgroundTransparency=color or Theme.ActionColors.navigation,1
 	button.TextColor3,button.Font,button.TextSize=Theme.Colors.ink,Theme.Font,23
-	button.TextWrapped,button.AutoButtonColor,button.TextTransparency=true,false,1
+	-- Caption updates copy this flag; fitting only the caption is undone whenever
+	-- the button text or enabled state changes.
+	button.TextWrapped,button.TextScaled,button.AutoButtonColor,button.TextTransparency=true,true,false,1
 	button.BorderSizePixel,button.Selectable=0,true
 	Theme.Round(button,11)
 	-- Layout and hitbox stay fixed while only this visual layer squashes or grows.
 	local visual=Theme.Frame(button,"Visual",UDim2.fromScale(1,1))
 	visual.AnchorPoint,visual.Position,visual.BackgroundTransparency=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),1
-	Theme.Stroke(visual,Theme.Arcade.border,3)
+	Theme.Stroke(visual,Theme.Arcade.border,Theme.Border.Control)
 	local lip=Theme.Frame(visual,"LowerLip",UDim2.fromScale(1,1),Theme.Arcade.border)
 	lip.ZIndex=1
 	local face=Theme.Frame(visual,"Face",UDim2.fromScale(1,0.93),Color3.new(1,1,1))
@@ -321,11 +334,11 @@ function Theme.Button(parent, name, text, callback, color)
 	end
 	recolor()
 	button:GetPropertyChangedSignal("BackgroundColor3"):Connect(recolor)
-	Theme.Studs(face)
+	Theme.Studs(face,0.07):SetAttribute("StudScaleHeight",1474/116)
 	local rim=Theme.Frame(face,"InsetHighlight",UDim2.fromScale(0.96,0.90))
 	rim.Position,rim.BackgroundTransparency,rim.ZIndex=UDim2.fromScale(0.02,0.05),1,3
 	Theme.Round(rim,7)
-	Theme.Stroke(rim,Palette.Text,1.5).Transparency=0.46
+	Theme.Stroke(rim,Palette.Text,Theme.Border.Detail).Transparency=0.46
 	local caption=Theme.Display(visual,"Caption",text,23)
 	caption.Position,caption.Size,caption.TextXAlignment=UDim2.fromScale(0.025,0.075),UDim2.fromScale(0.95,0.8),Enum.TextXAlignment.Center
 	caption.ZIndex=5
@@ -446,7 +459,7 @@ function Theme.LayoutHeader(header)
 	local rim=header:FindFirstChild("InsetHighlight") or Theme.Container(header,"InsetHighlight")
 	Theme.RelativeRect(rim,3,3,1468,109,1474,116)
 	rim.ZIndex=header.ZIndex+1
-	Theme.Stroke(rim,Palette.Text,1.5).Transparency=0.46
+	Theme.Stroke(rim,Palette.Text,Theme.Border.Detail).Transparency=0.46
 	local icon=header.PageIcon
 	icon.AnchorPoint=Vector2.new(0,0.5)
 	icon.Position,icon.Size=UDim2.fromScale(21/1474,0.5),UDim2.fromScale(98/1474,98/116)
@@ -454,19 +467,25 @@ function Theme.LayoutHeader(header)
 	Theme.Aspect(icon,1)
 	local title=header.Title
 	local left=if icon.Visible then 141 else 21
-	Theme.RelativeRect(title,left,11,1332-left,94,1474,116)
+	Theme.RelativeRect(title,left,7,1332-left,102,1474,116)
 	title.TextColor3,title.TextXAlignment,title.TextYAlignment=Palette.Text,Enum.TextXAlignment.Left,Enum.TextYAlignment.Center
 	title.TextWrapped,title.ZIndex=false,header.ZIndex+3
-	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,3
+	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,0.055
 	title.TextShadow.Visible,title.TextShadow.TextTransparency,title.TextShadow.TextOutline.Enabled=true,0.35,false
 	local close=header:FindFirstChild("Close")
 	if close then
 		close.AnchorPoint=Vector2.new(1,0)
-		close.Position,close.Size=UDim2.fromScale(1,1/116),UDim2.fromScale(120/1474,115/116)
+		close.Position,close.Size=UDim2.fromScale(1-14/1474,14/116),UDim2.fromScale(92/1474,88/116)
 		Theme.Aspect(close,120/115)
 		close.ZIndex=header.ZIndex+4
 		local visual=close.Visual
+		visual.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+		-- Crop the same header-width sheet inside the smaller close face. The
+		-- generic button crop made this control's studs much smaller than its header.
+		local closeStuds=Theme.Studs(visual.Face,0.07,28,0)
+		closeStuds:SetAttribute("StudScaleWidth",1474/92)
 		visual.ZIndex,visual.LowerLip.ZIndex,visual.Face.ZIndex=close.ZIndex,close.ZIndex,close.ZIndex+1
+		closeStuds.ZIndex=close.ZIndex+1
 		visual.Face.InsetHighlight.ZIndex,visual.Caption.ZIndex=close.ZIndex+2,close.ZIndex+3
 	end
 	Theme.ScaleText(header)

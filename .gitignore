@@ -16,3 +16,6 @@ __pycache__/
 !.env.example
 *.pem
 *.key
+
+# Research visual iteration workspace
+.dream-loop/

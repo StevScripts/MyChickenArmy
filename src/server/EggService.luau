@@ -175,7 +175,7 @@ end
 function EggService:Produce(session,dt,now)
  local yard=self:Yard(session)
  local production=session:EggProductionMultiplier()
- local unitValue=Rules.EggUnitValue(session.incomeLevel)
+ local unitValue=Rules.EggUnitValue(session.incomeLevel)*(1+session.researchEffects.eggValue)
  for id,pet in session.pets do
   local layer=yard.layers[id]
   if not layer then
@@ -189,7 +189,10 @@ function EggService:Produce(session,dt,now)
   local accrued=layer.fraction+Rules.EggRate(pet.species,pet.stars,pet.level)*production*dt
   local quantity=math.floor(accrued+1e-7)
   layer.fraction=math.max(0,accrued-quantity)
-  layer.count+=quantity;layer.value+=quantity*unitValue
+  local priced=quantity*unitValue+session.research.eggValueRemainder
+  local whole=math.floor(priced+1e-7)
+  session.research.eggValueRemainder=math.max(0,priced-whole)
+  layer.count+=quantity;layer.value+=whole
   layer.elapsed+=dt
   if layer.count>0 and layer.elapsed+1e-7>=Config.EggVisualBatchSeconds then
    layer.elapsed=0
@@ -350,7 +353,7 @@ function EggService:Collect(session,position,now)
  local yard=self:Yard(session)
  if position then
   local near={}
-  local radius=Config.EggMagnetRadius*(if session.entitlements and session.entitlements.EggMagnet==true then ShopCatalog.RadiusMultiplier else 1)
+  local radius=Config.EggMagnetRadius*(if session.entitlements and session.entitlements.EggMagnet==true then ShopCatalog.RadiusMultiplier else 1)+session.researchEffects.pickupStuds
   for _,drop in yard.drops do
    if not drop.claimAt and now>=drop.readyAt then
     local distance=(position-Vector3.new(drop.x,drop.y+0.8,drop.z)).Magnitude

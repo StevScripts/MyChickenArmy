@@ -46,6 +46,42 @@ function ArmyService.SelectBest(session)
 	return true,"Best chickens selected. Automatic selection is on."
 end
 
+local function formationSlot(session,slot)
+	return type(slot)=="number" and slot%1==0 and slot>=1 and slot<=session.researchEffects.formations
+end
+
+function ArmyService.SaveFormation(session,slot,name,expectedIds,expectedRevision)
+	if not formationSlot(session,slot) then return false,"Research another formation slot first." end
+	if session.research.revision~=expectedRevision then return false,"Your formations changed. Try again." end
+	if type(name)~="string" or #name<1 or #name>40 or not utf8.len(name) or name:find("%c") then
+		return false,"Use a formation name between 1 and 40 characters."
+	end
+	local expected=ownedIds(session,expectedIds);local selected=session:BestPetIds()
+	if not expected or #expected~=#selected then return false,"Your army changed. Choose again." end
+	for i,id in selected do if expected[i]~=id then return false,"Your army changed. Choose again." end end
+	if #selected==0 then return false,"Select some chickens before saving a formation." end
+	-- Personal names are only returned to their owner; never broadcast as world text.
+	session.research.formations[tostring(slot)]={name=name,petIds=table.clone(selected)}
+	session.research.revision+=1;session:Touch()
+	return true,"Formation saved."
+end
+
+function ArmyService.ApplyFormation(session,slot,expectedIds,expectedRevision)
+	if not formationSlot(session,slot) or session.research.revision~=expectedRevision then
+		return false,"Your formations changed. Try again."
+	end
+	local preset=session.research.formations[tostring(slot)]
+	if not preset then return false,"Save this formation first." end
+	local owned={}
+	for _,id in preset.petIds do if session.pets[id] then table.insert(owned,id) end end
+	local ids=session:FilterArmyIds(owned)
+	if #ids==0 then return false,"No chickens from this formation remain in your flock." end
+	local ok,message=ArmyService.SetSelection(session,ids,expectedIds)
+	if not ok then return ok,message end
+	local skipped=#preset.petIds-#ids
+	return true,"Formation applied."..(if skipped>0 then " "..skipped.." unavailable chickens skipped." else "")
+end
+
 function ArmyService.Favorite(session, petId)
 	local pet = if type(petId)=="string" then session.pets[petId] else nil
 	if not pet then return false, "Select an owned animal." end

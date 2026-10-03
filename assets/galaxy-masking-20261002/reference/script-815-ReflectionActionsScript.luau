@@ -1,0 +1,125 @@
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local plr = game.Players.LocalPlayer
+local playerGui = plr.PlayerGui
+local mouse = plr:GetMouse()
+
+local ctrlHeld = false
+
+-- Initialize ViewportFrame as a variable
+local viewportName = script.Name:match("%u%l*%d*") .. "Viewport"
+local reflectionFrame: ViewportFrame = plr.PlayerGui.MaskGui:FindFirstChild(viewportName)
+while not reflectionFrame do
+	reflectionFrame = plr.PlayerGui.MaskGui:FindFirstChild(viewportName)
+	task.wait()
+end
+
+-- Hide a single object or its descendants
+local function ToggleSelected(object: BasePart | Model | Folder, visible: boolean, hideButton: ImageButton)
+	if object:IsA("BasePart") then
+		-- If material is glass transparency should be 0.99 to decrease ViewportFrame light reflections
+		if object.Material == Enum.Material.Glass then
+			object.Transparency = if visible then 0.99 else 1
+		else
+			object.Transparency = if visible then 0 else 1
+		end
+	elseif object:IsA("Model") or object:IsA("Folder") then
+		for _, desc in object:GetDescendants() do
+			if desc:IsA("BasePart") then
+				if desc.Material == Enum.Material.Glass then
+					desc.Transparency = if visible then 0.99 else 1
+				else
+					desc.Transparency = if visible then 0 else 1
+				end
+			end
+		end
+	end
+	
+	hideButton.ImageLabel.Disabled.Visible = not visible
+	hideButton:SetAttribute("Visible", visible)
+end
+
+-- When holding ctrl hide / show all except selected
+local function ToggleAllExceptSelected(object: BasePart | Model | Folder, visible: boolean, hideButton: ImageButton)
+	ToggleSelected(object, visible, hideButton)
+	for _, child in object.Parent:GetChildren() do
+		if child == object then
+			continue
+		end
+		
+		-- Skip if child doesn't have a hide button
+		local hideChildButton = hideButton.Parent:FindFirstChild("Hide//" .. child.Name)
+		if not hideChildButton then continue end
+		
+		-- If selected is visible then other objects are invisible
+		ToggleSelected(child, not visible, hideChildButton)
+	end
+end
+
+-- Connect hide buttons within action frame
+for _, guiObject in script.Parent:GetChildren() do
+	if guiObject:IsA("ImageButton") and guiObject.Name:match("Hide") then
+		guiObject.MouseButton1Click:Connect(function()
+			local visible = guiObject:GetAttribute("Visible")
+			local object = reflectionFrame:FindFirstChild(guiObject.Name:split("//")[2], true)
+			if ctrlHeld then
+				ToggleAllExceptSelected(object, not visible, guiObject)
+			else
+				ToggleSelected(object, not visible, guiObject)
+			end
+		end)
+	end
+end
+
+-- Connect slider for adjusting ReflectionViewport ImageTransparency
+local slider: ImageButton = script.Parent.ImageTransparency.Slider
+local sliderValueText: TextLabel = slider.Parent.SliderValue
+local sliderDelta = 1
+slider.MouseButton1Down:Connect(function()
+	mouse1DownOnSlider = true
+	
+	-- Create a connection to check when slider is no longer held
+	local sliderConnection: RBXScriptConnection
+	sliderConnection = slider.InputEnded:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+			mouse1DownOnSlider = false
+			sliderConnection:Disconnect()
+		end
+	end)
+end)
+
+-- Adjust slider RenderStepped when mouse 1 holding started on slider
+RunService.RenderStepped:Connect(function()
+	if not mouse1DownOnSlider then return end
+	
+	local relativePos = Vector2.new(mouse.X, mouse.Y) - slider.AbsolutePosition
+	local alpha = math.clamp(relativePos.X / slider.AbsoluteSize.X, 0, 1)
+	local roundedValue = string.format("%.2f", sliderDelta * alpha)
+
+	-- Position slider selector and scale progress frame based on roundedValue
+	slider.Selector.Position = UDim2.fromScale(alpha, 0.5)
+	slider.Progress.Size = UDim2.fromScale(alpha, 1)
+
+	-- Update text of TextBox connected to slider
+	sliderValueText.Text = roundedValue
+
+	if tonumber(sliderValueText.Text) == roundedValue then return end
+	reflectionFrame.ImageTransparency = roundedValue
+end)
+
+UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean)
+	if gameProcessedEvent then return end
+	
+	if input.KeyCode == Enum.KeyCode.LeftControl then
+		ctrlHeld = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessedEvent: boolean)
+	if gameProcessedEvent then return end
+
+	if input.KeyCode == Enum.KeyCode.LeftControl then
+		ctrlHeld = false
+	end
+end)

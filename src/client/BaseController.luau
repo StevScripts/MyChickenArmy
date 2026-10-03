@@ -113,7 +113,7 @@ function BaseController.OpeningGuidance(state)
 		local slot = state.nextSlot
 		if not slot or not slot.unlocked then return nil end
 		if coins < slot.price then return {target = "Yard", text = "Collect eggs for your fourth slot"} end
-		return {text = "Open Upgrades to add a fourth chicken"}
+		return {text = "Open Upgrades and buy Army Size to add a fourth chicken"}
 	end
 	if selected >= 4 then return {target = "Camp1", text = "Try your bigger army"} end
 	local offer = state.offer

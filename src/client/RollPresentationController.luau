@@ -18,7 +18,7 @@ local BEATS = {0.065, 0.10, 0.14, 0.185, 0.235, 0.295, 0.365, 0.455, 0.56, 0.69,
 local GOLD = UIColors.Rewards
 local BLUE = Color3.fromRGB(67, 181, 222)
 local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6}
--- Camera feel: edit these, then restart Play. Duration follows Config.RollRevealSeconds.
+-- Camera feel: edit these, then restart Play. Duration follows each server-accepted roll.
 local ROLL_ZOOM_DEGREES = 2 -- Larger means a stronger zoom.
 local ROLL_ZOOM_EASING = Enum.EasingStyle.Linear
 local ROLL_ZOOM_DIRECTION = Enum.EasingDirection.In
@@ -58,20 +58,20 @@ function RollPresentationController:ReturnCameraZoom()
  zoom.tween:Play()
 end
 
-function RollPresentationController:StartCameraZoom(camera, station, rollId, startedAt, now)
+function RollPresentationController:StartCameraZoom(camera, station, rollId, startedAt, duration, now)
  self:ClearCameraZoom()
- local elapsed=math.clamp(now-startedAt,0,Config.RollRevealSeconds)
- local remaining=Config.RollRevealSeconds-elapsed
+ local elapsed=math.clamp(now-startedAt,0,duration)
+ local remaining=duration-elapsed
  if remaining<=0 then return end
  local base=camera.FieldOfView
  local degrees=math.clamp(ROLL_ZOOM_DEGREES,0,base-1)
  -- If the roll was already underway, catch up once and tween for its remaining time.
- local progress=TweenService:GetValue(elapsed/Config.RollRevealSeconds,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION)
+ local progress=TweenService:GetValue(elapsed/duration,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION)
  camera.FieldOfView=base-degrees*progress
  local tween=TweenService:Create(camera,
   TweenInfo.new(remaining,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION),
   {FieldOfView=base-degrees})
- self.cameraZoom={camera=camera,base=base,tween=tween,station=station,rollId=rollId,startedAt=startedAt}
+ self.cameraZoom={camera=camera,base=base,tween=tween,station=station,rollId=rollId,startedAt=startedAt,duration=duration}
  tween:Play()
 end
 
@@ -84,15 +84,16 @@ function RollPresentationController:StepCameraZoom(now)
  local character=player.Character
  local root=character and character:FindFirstChild("HumanoidRootPart")
  local humanoid=character and character:FindFirstChildOfClass("Humanoid")
- local activeStation,activeRollId,activeStartedAt
+ local activeStation,activeRollId,activeStartedAt,activeDuration
  if root and humanoid and humanoid.Health>0 and not self.app.panel.Visible and not self.app.dialogueActive then
   for station,record in self.records do
    local startedAt=station:GetAttribute("RollStartedAt")
+   local duration=station:GetAttribute("RollDuration") or Config.RollRevealSeconds
    local rollId=station:GetAttribute("RollId")
    if record.active and (station:GetAttribute("RollSlot") or 1)==1 and station:GetAttribute("OwnerId")==player.UserId
     and rollId and startedAt and now>=startedAt
-    and now-startedAt<Config.RollRevealSeconds and (root.Position-record.foot).Magnitude<=24 then
-    activeStation,activeRollId,activeStartedAt=station,rollId,startedAt;break
+    and now-startedAt<duration and (root.Position-record.foot).Magnitude<=24 then
+    activeStation,activeRollId,activeStartedAt,activeDuration=station,rollId,startedAt,duration;break
    end
   end
  end
@@ -105,14 +106,14 @@ function RollPresentationController:StepCameraZoom(now)
    and zoom.station:GetAttribute("OwnerId")==player.UserId
    and zoom.station:GetAttribute("RollId")==zoom.rollId
    and zoom.station:GetAttribute("RollStartedAt")==zoom.startedAt
-   and now>=zoom.startedAt+Config.RollRevealSeconds and (root.Position-record.foot).Magnitude<=24
+   and now>=zoom.startedAt+zoom.duration and (root.Position-record.foot).Magnitude<=24
   if revealed then self:ReturnCameraZoom() else self:ClearCameraZoom() end
   return
  end
  local zoom=self.cameraZoom
  -- The render callback only watches eligibility/end time; TweenService moves the FOV.
- if not zoom or zoom.station~=activeStation or zoom.rollId~=activeRollId or zoom.startedAt~=activeStartedAt then
-  self:StartCameraZoom(camera,activeStation,activeRollId,activeStartedAt,now)
+ if not zoom or zoom.station~=activeStation or zoom.rollId~=activeRollId or zoom.startedAt~=activeStartedAt or zoom.duration~=activeDuration then
+  self:StartCameraZoom(camera,activeStation,activeRollId,activeStartedAt,activeDuration,now)
  end
 end
 
@@ -159,6 +160,9 @@ function RollPresentationController:Preview(record, species, mystery: boolean?)
  -- Suppress species effects during the mystery shuffle, then restore them for
  -- the revealed offer, including when it reuses the last cached shuffle bird.
  model:SetAttribute("ReducedMotion",mystery == true)
+	-- The expensive silhouette material is reserved for revealed offers. Roaming
+	-- Galaxies all use the shared animated world texture.
+	model:SetAttribute("GalaxyMaskPreview",not mystery and species=="StormDuck")
  -- Highlights do not fully cover translucent art. Change only these local
  -- previews; restore on every reveal, even when it reuses the last shuffle bird.
  local appearance=record.appearances[species]
@@ -221,8 +225,9 @@ function RollPresentationController:StepRecord(record, now)
  record.active=true
  local rollId=station:GetAttribute("RollId")
  local startedAt=station:GetAttribute("RollStartedAt") or now
+ local duration=station:GetAttribute("RollDuration") or Config.RollRevealSeconds
  local elapsed=math.max(0,now-startedAt)
- local rolling=rollId~=nil and (station:GetAttribute("Rolling") or elapsed<Config.RollRevealSeconds)
+ local rolling=rollId~=nil and (station:GetAttribute("Rolling") or elapsed<duration)
  local reduced=self.app.reducedMotion
  if rollId~=record.rollId then
   if record.preview then record.preview.Parent=nil;record.preview=nil end
@@ -230,10 +235,12 @@ function RollPresentationController:StepRecord(record, now)
   record.sequence={}
   local tier=station:GetAttribute("RollTier") or station:GetAttribute("RecruitTier") or 1
   local luck=station:GetAttribute("RollLuck") or 0
+  local paidLuck=station:GetAttribute("RollPaidLuck") or 1
+  local researchLuck=station:GetAttribute("RollResearchLuck") or 0
   local random=Random.new(station:GetAttribute("RollSeed") or 1)
   -- Cosmetic candidates use the same weights; rare chickens are not teased equally.
   for i=1,#BEATS do
-   record.sequence[i]=Rules.Draw(luck,random:NextNumber(),tier)
+   record.sequence[i]=Rules.Draw(luck,random:NextNumber(),tier,paidLuck,researchLuck)
   end
   if rollId and elapsed<0.3 then self:Sound(record,"RollLever",0.9,0.55,0.3) end
  end
@@ -254,14 +261,14 @@ function RollPresentationController:StepRecord(record, now)
  end
 
  if rolling then
-  local progress=math.clamp(elapsed/Config.RollRevealSeconds,0,1)
+  local progress=math.clamp(elapsed/duration,0,1)
   local stage=0
   for i,beat in BEATS do if progress>=beat then stage=i else break end end
   if stage>0 and stage~=record.lastStage then
    record.lastStage=stage
    self:Preview(record,record.sequence[stage],true)
    -- Skip missed sounds when entering mid-roll or recovering from a slow frame.
-   if elapsed-BEATS[stage]*Config.RollRevealSeconds<0.12 then
+   if elapsed-BEATS[stage]*duration<0.12 then
     self:Sound(record,"RollTick",1.65-stage*0.055,0.32+stage*0.008,0.14)
    end
   end
@@ -277,7 +284,7 @@ function RollPresentationController:StepRecord(record, now)
    record.arm.CFrame=pivot*record.armRest
    record.knob.CFrame=pivot*record.knobRest
   end
-  local beatAge=if stage>0 then elapsed-BEATS[stage]*Config.RollRevealSeconds else 0
+  local beatAge=if stage>0 then elapsed-BEATS[stage]*duration else 0
   local pulse=math.max(0,1-beatAge/0.18)
   record.top.Color=GOLD:Lerp(BLUE,0.25*(1-pulse))
   if record.light then record.light.Color=GOLD;record.light.Brightness=if reduced then 0.2 else 0.25+pulse*0.45 end
@@ -296,7 +303,7 @@ function RollPresentationController:StepRecord(record, now)
   local rank=RARITY[def.rarity] or 1
   local tint=Color3.fromRGB(table.unpack(def.color))
   if result~=record.result then
-   local fresh=elapsed<Config.RollRevealSeconds+0.65
+   local fresh=elapsed<duration+0.65
    record.result=result;record.landedAt=if fresh then now else now-10
    record.finishPlayed=not fresh
    self:Preview(record,species)

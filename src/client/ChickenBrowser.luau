@@ -72,11 +72,8 @@ local function label(parent,name,text,size,position,bounds,color,prominent)
  item.TextWrapped,item.TextScaled=false,true
  item.TextTruncate=Enum.TextTruncate.None
  item.ZIndex=parent.ZIndex+4
- local function outline()
-  item.TextOutline.Color=INK
-  item.TextOutline.Thickness=math.clamp(item.TextSize*(if prominent then 0.065 else 0.05),1,4)
- end
- item:GetPropertyChangedSignal("TextSize"):Connect(outline);outline()
+ item.TextOutline.Color=INK
+ item.TextOutline.Thickness=if prominent then 0.055 else 0.045
  return item
 end
 
@@ -85,9 +82,9 @@ local function fitInspectorLine(item)
  Theme.ScaleText(item)
 end
 
-local function surface(item,top,bottom,border,thickness,radius)
+local function surface(item,top,bottom,border,thickness)
  item.BackgroundColor3,item.BackgroundTransparency=Color3.new(1,1,1),0
- Theme.Round(item).CornerRadius=UDim.new(0,radius or 0)
+ Theme.Round(item)
  local gradient=Theme.Gradient(item,top,bottom)
  gradient.Transparency=NumberSequence.new(0)
  local stroke=Theme.Stroke(item,border or EDGE,thickness or 1.5)
@@ -108,7 +105,7 @@ local function art(parent,name,asset,size,position)
 end
 
 local function figmaStuds(parent)
- local pattern=Theme.Studs(parent,0.14,24,0)
+ local pattern=Theme.Studs(parent,0.07,24,0)
  pattern.ZIndex=parent.ZIndex+1
  return pattern
 end
@@ -128,31 +125,28 @@ end
 local function figmaButton(item)
  local visual=item.Visual
  visual.ZIndex=item.ZIndex
- visual.BackgroundColor3,visual.BackgroundTransparency=INK,0
+ visual.BackgroundColor3,visual.BackgroundTransparency=INK,1
  visual.UIStroke.Color,visual.UIStroke.BorderStrokePosition=INK,Enum.BorderStrokePosition.Inner
- Theme.Round(visual).CornerRadius=UDim.new(0,4)
+ Theme.Round(visual)
  local face=visual.Face
- face.Position,face.Size=UDim2.fromScale(0.015,0),UDim2.fromScale(0.97,0.89)
+ face.Position,face.Size=UDim2.fromScale(0.006,0),UDim2.fromScale(0.988,0.94)
  face.ZIndex,face.ClipsDescendants=visual.ZIndex+2,true
- Theme.Round(face).CornerRadius=UDim.new(0,3)
+ Theme.Round(face)
  local lip=visual.LowerLip
- lip.Position,lip.Size=UDim2.fromScale(0.02,0.83),UDim2.fromScale(0.96,0.13)
+ lip.Position,lip.Size=UDim2.fromScale(0.006,0.90),UDim2.fromScale(0.988,0.085)
  lip.ZIndex=visual.ZIndex+1
- Theme.Round(lip).CornerRadius=UDim.new(0,2)
+ Theme.Round(lip)
  local rim=face.InsetHighlight
  rim.Position,rim.Size,rim.ZIndex=UDim2.fromScale(0.025,0.06),UDim2.fromScale(0.95,0.88),face.ZIndex+2
- rim.UIStroke.Thickness=2
- Theme.Round(rim).CornerRadius=UDim.new(0,1)
+ rim.UIStroke.Thickness=Theme.Border.Detail
+ Theme.Round(rim)
  local caption=visual.Caption
  caption.Position,caption.Size=UDim2.fromScale(0.045,0.06),UDim2.fromScale(0.91,0.75)
- Theme.ScaleText(caption)
+ Theme.ScaleText(item)
  caption.TextColor3,caption.ZIndex=WHITE,visual.ZIndex+5
  caption.TextShadow.TextTransparency=0.35;caption.TextShadow.TextOutline.Enabled=false
- local function outline()
-  caption.TextFace.TextOutline.Thickness=math.clamp(caption.TextSize*0.065,1.5,4)
-  caption.TextFace.TextOutline.Color=INK
- end
- caption:GetPropertyChangedSignal("TextSize"):Connect(outline);outline()
+ caption.TextFace.TextOutline.Thickness=0.055
+ caption.TextFace.TextOutline.Color=INK
  figmaStuds(face)
  applyButtonColor(item)
 end
@@ -239,6 +233,9 @@ function Browser.new(app,parent)
   self.showCapacity,self.showInfo,self.inspecting=true,false,false;self.placing=nil;self:Render(true)
  end,GREEN)
  self.capacityPlus.Position,self.capacityPlus.Size,self.capacityPlus.TextSize=UDim2.new(),UDim2.new(),44
+ for _,plus in {self.flockPlus,self.capacityPlus} do
+  plus.Visual.Caption.Position,plus.Visual.Caption.Size=UDim2.fromScale(0.025,-0.04),UDim2.fromScale(0.95,1)
+ end
  self.best=button(self.toolbar,"SelectBest","Select Best",function()
   if not self:CanEdit() then return end
   self.placing,self.placingExpected,self.saleQuote=nil,nil,nil
@@ -251,9 +248,9 @@ function Browser.new(app,parent)
  end,CYAN)
  self.infoButton.Position,self.infoButton.Size=UDim2.new(),UDim2.new()
  self.inventoryPanel=frame(inventory,"InventoryPanel",UDim2.new(),UDim2.new())
- surface(self.inventoryPanel,Color3.fromRGB(27,40,47),Color3.fromRGB(23,39,48),EDGE,2)
+ surface(self.inventoryPanel,Color3.fromRGB(27,40,47),Color3.fromRGB(13,29,38),EDGE,2)
  local searchShell=frame(self.inventoryPanel,"Search",UDim2.new(),UDim2.new())
- surface(searchShell,Color3.fromRGB(28,42,49),Color3.fromRGB(24,38,45),Color3.fromRGB(142,175,193),1.5,4)
+ surface(searchShell,Color3.fromRGB(28,42,49),Color3.fromRGB(24,38,45),Color3.fromRGB(142,175,193),Theme.Border.Card)
  art(searchShell,"SearchIcon",Art.Search,UDim2.new(),UDim2.new())
  local search=Instance.new("TextBox")
  search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search..."
@@ -269,7 +266,7 @@ function Browser.new(app,parent)
  sort.Font,sort.TextSize,sort.TextColor3=Theme.Font,27,WHITE
  sort.Position,sort.Size=UDim2.new(),UDim2.new()
  sort.ZIndex,sort.Parent=inventory.ZIndex+3,self.inventoryPanel
- surface(sort,Color3.fromRGB(34,49,58),Color3.fromRGB(21,32,40),Color3.fromRGB(140,167,184),1.5,4)
+ surface(sort,Color3.fromRGB(34,49,58),Color3.fromRGB(21,32,40),Color3.fromRGB(140,167,184),Theme.Border.Card)
  self.sortButton=sort
  local sortCaption=label(sort,"Caption",sort.Text,27,UDim2.new(),UDim2.new(),WHITE)
  local function syncSort() sortCaption.Text=sort.Text end
@@ -314,6 +311,7 @@ function Browser.new(app,parent)
 		self:Render(true)
 	end
 	self.infoBack=button(self.armyInfo,"BackToChickens","Back to Chickens",back,Theme.ReferenceColors.Upgrades)
+	self.infoFormations=button(self.armyInfo,"Formations","Formations",function() self.app:OpenPage("Formations") end,Theme.ActionColors.navigation)
 	self.statTiles={}
 	for _,definition in {{"Damage","COMBINED DAMAGE",GREEN},{"Health","COMBINED HEALTH",Theme.ReferenceColors.Upgrades},
 		{"Deployed","ARMY SELECTED",WHITE},{"Flock","TOTAL FLOCK",WHITE}} do
@@ -533,9 +531,11 @@ function Browser:Resize()
  rect(self.salePrompt,8,8,491,120,507,266)
  rect(self.saleConfirm,8,140,491,52,507,266)
  rect(self.saleCancel,8,204,491,48,507,266)
- self.armyInfo.Size,self.capacityPage.Size=UDim2.fromScale(1,1),UDim2.fromScale(1,1)
+ self.armyInfo.Position,self.capacityPage.Position=UDim2.fromScale(0.012,0.015),UDim2.fromScale(0.012,0.015)
+ self.armyInfo.Size,self.capacityPage.Size=UDim2.fromScale(0.976,0.97),UDim2.fromScale(0.976,0.97)
  self.armyInfo.CanvasSize,self.capacityPage.CanvasSize=UDim2.new(),UDim2.new()
- rect(self.infoTitle,0,0,1334,42,width,bodyHeight)
+ rect(self.infoTitle,0,0,1030,42,width,bodyHeight)
+ rect(self.infoFormations,1048,0,276,48,width,bodyHeight)
  rect(self.infoBack,1342,0,120,48,width,bodyHeight)
  self.infoBack.Text="Back"
  rect(self.infoMode,0,52,1462,28,width,bodyHeight)
@@ -558,6 +558,9 @@ function Browser:Resize()
  rect(self.passNote,50,445,1374,135,width,bodyHeight)
  rect(self.passShop,50,620,1374,90,width,bodyHeight)
  rect(self.passBack,50,735,1374,80,width,bodyHeight)
+ for _,item in {self.passShop,self.passBack} do
+  item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",width/(1374*0.976*0.988))
+ end
  return tostring(self.showInfo)..":"..tostring(self.showCapacity)
 end
 
@@ -772,7 +775,7 @@ function Browser:Highlight(target,toFlock)
 		local targetSlot=entry.slot and entry.slot==target
 		local viewing=self.inspecting and self.app.selected==entry.id
 		entry.border.Color=if targetSlot then WHITE elseif viewing then SELECTED elseif entry.equipped then EQUIPPED else entry.color
-		entry.border.Thickness=if targetSlot or viewing then 4 elseif entry.equipped then 3 else 1.8
+		entry.border.Thickness=if targetSlot or viewing then 2.5 elseif entry.equipped then 2 else Theme.Border.Card
 		if entry.viewing then entry.viewing.Visible=viewing end
 		if entry.selectedEdge then entry.selectedEdge.Visible=viewing end
 	end
@@ -884,16 +887,16 @@ function Browser:Card(parent,pet,slot,order)
  Theme.Aspect(card,210/220)
  card.BorderSizePixel,card.BackgroundTransparency,card.ClipsDescendants=0,1,true
  card.ZIndex,card.Parent=parent.ZIndex+1,parent
- Theme.Round(card).CornerRadius=UDim.new(0,5)
+ Theme.Round(card)
  local definition=Catalog[pet.species]
  local rarity=definition.rarity
  local color=RARITIES[rarity] or RARITIES.Common
  local background=art(card,"RarityBackground",Art.Card[rarity] or Art.Card.Common,UDim2.fromScale(1,1))
  background.ScaleType=Enum.ScaleType.Stretch
- Theme.Round(background).CornerRadius=UDim.new(0,5)
+ Theme.Round(background)
  local ribbon=frame(card,"RarityRibbon",UDim2.fromScale(198/210,26/220),UDim2.fromScale(6/210,6/220))
  ribbon.ZIndex=card.ZIndex+2
- surface(ribbon,color,color:Lerp(Color3.new(0,0,0),0.22),Color3.fromRGB(7,16,22),1.5,1)
+ surface(ribbon,color,color:Lerp(Color3.new(0,0,0),0.22),Color3.fromRGB(7,16,22),Theme.Border.Detail)
  local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),18,UDim2.new(),UDim2.fromScale(1,1),WHITE)
  rarityLabel.TextXAlignment=Enum.TextXAlignment.Center
  -- Let the actual chicken fill the card; its PNG already includes transparent padding.
@@ -904,17 +907,17 @@ function Browser:Card(parent,pet,slot,order)
   portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
  end
  local name=label(card,"Name",(if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..definition.name:gsub(" Chicken$",""),27,
-  UDim2.fromScale(5/210,172/220),UDim2.fromScale(200/210,22/220),WHITE)
+  UDim2.fromScale(5/210,161/220),UDim2.fromScale(200/210,26/220),WHITE)
  name.TextXAlignment=Enum.TextXAlignment.Center
- local stats=Rules.Stats(pet.species,pet.stars,pet.level)
+ local stats=self:ResearchStats(pet)
  local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",25,
-  UDim2.fromScale(5/210,195/220),UDim2.fromScale(200/210,22/220),GOLD,true)
+  UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),GOLD,true)
  strength.TextXAlignment=Enum.TextXAlignment.Center
  local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
  outline.ZIndex=card.ZIndex+7
- Theme.Round(outline).CornerRadius=UDim.new(0,5)
+ Theme.Round(outline)
  local equipped=slot~=nil
- local border=Theme.Stroke(outline,if equipped then EQUIPPED else color,if equipped then 3 else 1.8)
+ local border=Theme.Stroke(outline,if equipped then EQUIPPED else color,if equipped then 2 else Theme.Border.Card)
  border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
  local entry={card=card,border=border,id=pet.id,color=color,equipped=equipped,slot=slot}
  self.cards[pet.id]=entry
@@ -923,7 +926,7 @@ function Browser:Card(parent,pet,slot,order)
  if equipped then
   local badge=frame(card,"EquippedCheck",UDim2.fromScale(0.25,0.27))
   badge.ZIndex=card.ZIndex+8
-  surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),2,5)
+  surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),Theme.Border.Control)
   art(badge,"Check",Art.Check,UDim2.fromScale(0.75,0.65),UDim2.fromScale(0.1,0.15))
  end
  card.Activated:Connect(function()
@@ -935,6 +938,17 @@ function Browser:Card(parent,pet,slot,order)
  return card
 end
 
+-- Permanent army research is visible in inventory and combined stats.
+function Browser:ResearchStats(pet)
+ local stats=Rules.Stats(pet.species,pet.stars,pet.level)
+ local research=self.app.state and self.app.state.research
+ if research then
+  stats.damage*=1+research.effects.damage
+  stats.hp*=1+research.effects.health
+ end
+ return stats
+end
+
 function Browser:RenderArmyInfo(pets,ids)
 	clear(self.infoRoster)
 	local dps,hp,homeCount=0,0,0
@@ -944,7 +958,7 @@ function Browser:RenderArmyInfo(pets,ids)
 	for index,id in ids do
 		local pet=pets[id]
 		if not pet then continue end
-		local stats=Rules.Stats(pet.species,pet.stars,pet.level)
+		local stats=self:ResearchStats(pet)
 		dps+=stats.damage/stats.interval;hp+=stats.hp
 		local holder=frame(self.infoRoster,"Equipped_"..id,UDim2.fromScale(1,1))
   holder.LayoutOrder=index
@@ -970,9 +984,9 @@ function Browser:RenderArmyInfo(pets,ids)
 	end
 	local state=self.app.state
 	self.statTiles.Damage.value.Text=Theme.Number(dps)
-	self.statTiles.Damage.note.Text="damage per second"
+	self.statTiles.Damage.note.Text=if state.research and state.research.effects.damage>0 then "includes +"..math.round(state.research.effects.damage*100).."% research" else "damage per second"
 	self.statTiles.Health.value.Text=Theme.Number(hp)
-	self.statTiles.Health.note.Text="maximum hit points"
+	self.statTiles.Health.note.Text=if state.research and state.research.effects.health>0 then "includes +"..math.round(state.research.effects.health*100).."% research" else "maximum hit points"
 	self.statTiles.Deployed.value.Text=#ids.." / "..state.capacity
 	self.statTiles.Deployed.note.Text="army slots in use"
 	self.statTiles.Flock.value.Text=tostring(#(state.pets or {}))
@@ -995,7 +1009,7 @@ function Browser:RenderDetail(pet)
  end
  local definition=Catalog[pet.species]
  self.detailBorder.Color=Color3.fromRGB(23,199,238)
- local stats=Rules.Stats(pet.species,pet.stars,pet.level)
+ local stats=self:ResearchStats(pet)
  self.name.Text=definition.name
  local rarity=RARITIES[definition.rarity] or RARITIES.Common
  self.metadata.Text=string.format('<font color="#%s">%s</font> • Lv. %d',rarity:ToHex(),definition.rarity,pet.level)
@@ -1051,6 +1065,7 @@ function Browser:Render(force)
 	local keys={dimensions,self.app.selected or "",table.concat(ids,","),tostring(state.capacity),mode,
 		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
 		tostring(state.homeEggsPerSecond),self.query,self.sort,self.placing or ""}
+	table.insert(keys,tostring(state.research and state.research.revision))
 	for _,pet in state.pets or {} do
 		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap))
 	end

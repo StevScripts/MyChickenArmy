@@ -17,27 +17,30 @@ function RollService:Roll(session, now: number)
 	session.recruitTier=session.promotion
 	local rng = session.debugRandom or self.random
 	local paidLuck = session:PaidLuckMultiplier()
+	local researchLuck = session.researchEffects.rollingLuck or 0
+	local duration = Config.RollRevealSeconds / (1 + (session.researchEffects.rollingSpeed or 0))
 	local debugRoll = session.debugNext ~= nil or session.debugRandom ~= nil
 	-- Only verified restricted owners advance the disclosed fixed offer schedule.
 	-- Debug rolls, cooldown failures and unverified ownership cannot consume progress.
 	local guaranteed = if not debugRoll then session:AdvanceGuaranteedLuck() else nil
 	local offers={}
-	local odds=Rules.Odds(session.luck,session.recruitTier,paidLuck)
+	local odds=Rules.Odds(session.luck,session.recruitTier,paidLuck,researchLuck)
 	local count=math.clamp(session.rollSlotCount or 1,1,Config.RollSlotsUnlocked)
 	for slot=1,count do
 		-- The disclosed guarantee advances once per lever pull, not once per display.
 		local forced=if slot==1 then session.debugNext or guaranteed else nil
-		local species=forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck)
+		local species=forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
 		local level=Rules.RecruitLevel(session.pets,species,session.promotion)
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
 			level=level,price=Rules.RecruitPrice(species,level),tier=session.recruitTier,
-			luck=session.luck,paidLuck=paidLuck,guaranteed=slot==1 and guaranteed~=nil,
+			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
 			chance=if slot==1 and guaranteed then 1 else odds[species]}
 	end
 	session.offers,session.offer=offers,offers[1]
 	session.debugNext=nil
 	session.tutorial.rolled=true
-	session.rollRevealAt = now + Config.RollRevealSeconds
+	-- Freeze this roll: completing research cannot move an accepted reveal deadline.
+	session.rollRevealAt = now + duration
 	-- The lever unlocks with the reveal, without a second post-roll cooldown.
 	session.rollReadyAt = session.rollRevealAt
 	session:Touch()

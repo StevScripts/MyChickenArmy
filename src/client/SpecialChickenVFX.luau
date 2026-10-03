@@ -140,8 +140,7 @@ function Special._attach(self: any, body: MeshPart, root: BasePart, appearance: 
 	end
 	self.ownsGlitch = appearance == "Glitch"
 	if self.ownsGlitch then self:_glitch(1, 0, 0) end
-	if appearance == "Galaxy" then self.galaxy = GalaxyTextureAnimator.new(self.model) end
-	if appearance == "Rainbow" then self.rainbow = RainbowTextureAnimator.new(self.model) end
+	-- Galaxy's image cache is acquired lazily only while this client can use it.
 	if appearance == "Golden" or appearance == "Shadow" or appearance == "Galaxy" or appearance == "Glitch" then
 		preloadTextures()
 		for _, side in {-1, 1} do
@@ -214,7 +213,7 @@ function Special._visible(self: any, visible: boolean)
 	end
 end
 
-function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?)
+function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?, textureTier: string?)
 	if self.destroyed then return end
 	local model = self.model
 	if not model.Parent then self:Destroy(); return end
@@ -225,16 +224,35 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?)
 		self:_clear()
 		self:_attach(body, root, appearance)
 	end
+	local textureVisible = not reduced and model:GetAttribute("ReducedMotion") ~= true
+		and model:GetAttribute("Defeated") ~= true and model:GetAttribute("PresentationHidden") ~= true
+		and root.LocalTransparencyModifier < 0.5 and body.LocalTransparencyModifier < 0.5
+		and body.Transparency < 0.98 and camera ~= nil
+		and (camera.CFrame.Position - root.Position).Magnitude <= CULL_DISTANCE
+	if appearance == "Galaxy" and textureTier ~= "static" and textureVisible then
+		if not self.galaxy then self.galaxy = GalaxyTextureAnimator.new(model) end
+	elseif self.galaxy then
+		-- Destroy restores the authored material and releases the shared image
+		-- cache once the last eligible Galaxy leaves, including quality changes.
+		self.galaxy:Destroy()
+		self.galaxy = nil
+	end
 	if self.galaxy then
 		self.galaxy:Step(now, reduced, camera)
 		self.galaxyState, self.galaxyError = self.galaxy.state, self.galaxy.error
 		self.galaxyFrame, self.galaxyFrameCount = self.galaxy.frame, self.galaxy.frameCount
+	elseif appearance == "Galaxy" then
+		self.galaxyState = if textureTier == "static" then "static" else "hidden"
+		self.galaxyError, self.galaxyFrame, self.galaxyFrameCount = nil, 0, 0
 	end
-	-- Galaxy composites at render cadence; particles and other effects keep
+	if appearance == "Rainbow" and textureTier ~= "static" and textureVisible then
+		if not self.rainbow then self.rainbow = RainbowTextureAnimator.new(model) end
+	elseif self.rainbow then self.rainbow:Destroy();self.rainbow=nil end
+	if self.rainbow then self.rainbow:Step(now, reduced, camera) end
+	-- Shared materials scroll at render cadence; particles and other effects keep
 	-- their existing inexpensive 20 Hz updates.
 	if now < self.nextUpdate then return end
 	self.nextUpdate = now + UPDATE_INTERVAL
-	if self.rainbow then self.rainbow:Step(now, reduced, camera) end
 	local visible = not reduced and model:GetAttribute("ReducedMotion") ~= true
 		and model:GetAttribute("Defeated") ~= true and model:GetAttribute("PresentationHidden") ~= true
 		and root.LocalTransparencyModifier < 0.5

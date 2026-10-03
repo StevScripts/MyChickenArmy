@@ -1,0 +1,631 @@
+[
+  {
+    "class": "MeshPart",
+    "id": 2058,
+    "parent": 2057,
+    "Anchored": true,
+    "AttributesSerialize": "",
+    "BackParamA": -0.5,
+    "BackParamB": 0.5,
+    "BackSurface": 0,
+    "BackSurfaceInput": 0,
+    "BottomParamA": -0.5,
+    "BottomParamB": 0.5,
+    "BottomSurface": 0,
+    "BottomSurfaceInput": 0,
+    "CanCollide": true,
+    "CanQuery": true,
+    "CanTouch": true,
+    "CastShadow": true,
+    "CollisionGroup": "Default",
+    "CollisionGroupId": 0,
+    "Color3uint8": [
+      163,
+      162,
+      165
+    ],
+    "DefinesCapabilities": false,
+    "DoubleSided": false,
+    "EnableFluidForces": true,
+    "FluidFidelityInternal": 0,
+    "FrontParamA": -0.5,
+    "FrontParamB": 0.5,
+    "FrontSurface": 0,
+    "FrontSurfaceInput": 0,
+    "HasJointOffset": false,
+    "HasSkinnedMesh": false,
+    "InitialSize": [
+      200.0,
+      200.0,
+      40.00016403198242
+    ],
+    "JointOffset": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "LeftParamA": -0.5,
+    "LeftParamB": 0.5,
+    "LeftSurface": 0,
+    "LeftSurfaceInput": 0,
+    "Locked": false,
+    "Massless": false,
+    "Material": 256,
+    "MaterialVariantSerialized": "",
+    "MeshId": "rbxassetid://17754155715",
+    "Name": "Stars1",
+    "PhysicsData": "",
+    "Reflectance": 0.0,
+    "RenderFidelity": 1,
+    "RightParamA": -0.5,
+    "RightParamB": 0.5,
+    "RightSurface": 0,
+    "RightSurfaceInput": 0,
+    "RootPriority": 0,
+    "RotVelocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "Tags": "",
+    "TextureID": "",
+    "TopParamA": -0.5,
+    "TopParamB": 0.5,
+    "TopSurface": 0,
+    "TopSurfaceInput": 0,
+    "Transparency": 0.0,
+    "UnscaledCofm": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaOffDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolume": NaN,
+    "Velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "VertexCount": 7,
+    "size": [
+      16.0,
+      34.0,
+      0.0010000000474974513
+    ],
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Stars1"
+  },
+  {
+    "class": "MeshPart",
+    "id": 2060,
+    "parent": 2057,
+    "Anchored": true,
+    "AttributesSerialize": "",
+    "BackParamA": -0.5,
+    "BackParamB": 0.5,
+    "BackSurface": 0,
+    "BackSurfaceInput": 0,
+    "BottomParamA": -0.5,
+    "BottomParamB": 0.5,
+    "BottomSurface": 0,
+    "BottomSurfaceInput": 0,
+    "CanCollide": true,
+    "CanQuery": true,
+    "CanTouch": true,
+    "CastShadow": true,
+    "CollisionGroup": "Default",
+    "CollisionGroupId": 0,
+    "Color3uint8": [
+      163,
+      162,
+      165
+    ],
+    "DefinesCapabilities": false,
+    "DoubleSided": false,
+    "EnableFluidForces": true,
+    "FluidFidelityInternal": 0,
+    "FrontParamA": -0.5,
+    "FrontParamB": 0.5,
+    "FrontSurface": 0,
+    "FrontSurfaceInput": 0,
+    "HasJointOffset": false,
+    "HasSkinnedMesh": false,
+    "InitialSize": [
+      200.0,
+      200.0,
+      40.00016403198242
+    ],
+    "JointOffset": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "LeftParamA": -0.5,
+    "LeftParamB": 0.5,
+    "LeftSurface": 0,
+    "LeftSurfaceInput": 0,
+    "Locked": false,
+    "Massless": false,
+    "Material": 256,
+    "MaterialVariantSerialized": "",
+    "MeshId": "rbxassetid://17754156768",
+    "Name": "Stars2",
+    "PhysicsData": "",
+    "Reflectance": 0.0,
+    "RenderFidelity": 1,
+    "RightParamA": -0.5,
+    "RightParamB": 0.5,
+    "RightSurface": 0,
+    "RightSurfaceInput": 0,
+    "RootPriority": 0,
+    "RotVelocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "Tags": "",
+    "TextureID": "",
+    "TopParamA": -0.5,
+    "TopParamB": 0.5,
+    "TopSurface": 0,
+    "TopSurfaceInput": 0,
+    "Transparency": 0.0,
+    "UnscaledCofm": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaOffDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolume": NaN,
+    "Velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "VertexCount": 7,
+    "size": [
+      22.0,
+      48.0,
+      0.0010000000474974513
+    ],
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Stars2"
+  },
+  {
+    "class": "MeshPart",
+    "id": 2062,
+    "parent": 2057,
+    "Anchored": true,
+    "AttributesSerialize": "",
+    "BackParamA": -0.5,
+    "BackParamB": 0.5,
+    "BackSurface": 0,
+    "BackSurfaceInput": 0,
+    "BottomParamA": -0.5,
+    "BottomParamB": 0.5,
+    "BottomSurface": 0,
+    "BottomSurfaceInput": 0,
+    "CanCollide": true,
+    "CanQuery": true,
+    "CanTouch": true,
+    "CastShadow": true,
+    "CollisionGroup": "Default",
+    "CollisionGroupId": 0,
+    "Color3uint8": [
+      163,
+      162,
+      165
+    ],
+    "DefinesCapabilities": false,
+    "DoubleSided": false,
+    "EnableFluidForces": true,
+    "FluidFidelityInternal": 0,
+    "FrontParamA": -0.5,
+    "FrontParamB": 0.5,
+    "FrontSurface": 0,
+    "FrontSurfaceInput": 0,
+    "HasJointOffset": false,
+    "HasSkinnedMesh": false,
+    "InitialSize": [
+      200.0,
+      200.0,
+      40.00016403198242
+    ],
+    "JointOffset": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "LeftParamA": -0.5,
+    "LeftParamB": 0.5,
+    "LeftSurface": 0,
+    "LeftSurfaceInput": 0,
+    "Locked": false,
+    "Massless": false,
+    "Material": 256,
+    "MaterialVariantSerialized": "",
+    "MeshId": "rbxassetid://17754154181",
+    "Name": "Galaxy2",
+    "PhysicsData": "",
+    "Reflectance": 0.0,
+    "RenderFidelity": 1,
+    "RightParamA": -0.5,
+    "RightParamB": 0.5,
+    "RightSurface": 0,
+    "RightSurfaceInput": 0,
+    "RootPriority": 0,
+    "RotVelocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "Tags": "",
+    "TextureID": "",
+    "TopParamA": -0.5,
+    "TopParamB": 0.5,
+    "TopSurface": 0,
+    "TopSurfaceInput": 0,
+    "Transparency": 0.0,
+    "UnscaledCofm": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaOffDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolume": NaN,
+    "Velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "VertexCount": 7,
+    "size": [
+      18.0,
+      18.0,
+      0.0010000000474974513
+    ],
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Galaxy2"
+  },
+  {
+    "class": "MeshPart",
+    "id": 2064,
+    "parent": 2057,
+    "Anchored": true,
+    "AttributesSerialize": "",
+    "BackParamA": -0.5,
+    "BackParamB": 0.5,
+    "BackSurface": 0,
+    "BackSurfaceInput": 0,
+    "BottomParamA": -0.5,
+    "BottomParamB": 0.5,
+    "BottomSurface": 0,
+    "BottomSurfaceInput": 0,
+    "CanCollide": true,
+    "CanQuery": true,
+    "CanTouch": true,
+    "CastShadow": true,
+    "CollisionGroup": "Default",
+    "CollisionGroupId": 0,
+    "Color3uint8": [
+      163,
+      162,
+      165
+    ],
+    "DefinesCapabilities": false,
+    "DoubleSided": false,
+    "EnableFluidForces": true,
+    "FluidFidelityInternal": 0,
+    "FrontParamA": -0.5,
+    "FrontParamB": 0.5,
+    "FrontSurface": 0,
+    "FrontSurfaceInput": 0,
+    "HasJointOffset": false,
+    "HasSkinnedMesh": false,
+    "InitialSize": [
+      200.0,
+      200.0,
+      40.00016403198242
+    ],
+    "JointOffset": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "LeftParamA": -0.5,
+    "LeftParamB": 0.5,
+    "LeftSurface": 0,
+    "LeftSurfaceInput": 0,
+    "Locked": false,
+    "Massless": false,
+    "Material": 256,
+    "MaterialVariantSerialized": "",
+    "MeshId": "rbxassetid://17754152946",
+    "Name": "Galaxy1",
+    "PhysicsData": "",
+    "Reflectance": 0.0,
+    "RenderFidelity": 1,
+    "RightParamA": -0.5,
+    "RightParamB": 0.5,
+    "RightSurface": 0,
+    "RightSurfaceInput": 0,
+    "RootPriority": 0,
+    "RotVelocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "Tags": "",
+    "TextureID": "",
+    "TopParamA": -0.5,
+    "TopParamB": 0.5,
+    "TopSurface": 0,
+    "TopSurfaceInput": 0,
+    "Transparency": 0.0,
+    "UnscaledCofm": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolInertiaOffDiags": [
+      NaN,
+      NaN,
+      NaN
+    ],
+    "UnscaledVolume": NaN,
+    "Velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "VertexCount": 7,
+    "size": [
+      12.0,
+      12.0,
+      0.0010000000474974513
+    ],
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Galaxy1"
+  },
+  {
+    "class": "Model",
+    "id": 2057,
+    "parent": 1485,
+    "AttributesSerialize": "",
+    "DefinesCapabilities": false,
+    "LevelOfDetail": 0,
+    "ModelMeshSize": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ModelStreamingMode": 0,
+    "Name": "GalaxyMask",
+    "NeedsPivotMigration": false,
+    "PrimaryPart": -1,
+    "ScaleFactor": 1.0,
+    "Tags": "",
+    "path": "ServerStorage/Character2Viewport/GalaxyMask"
+  },
+  {
+    "class": "ScreenGui",
+    "id": 667,
+    "parent": 666,
+    "AttributesSerialize": "",
+    "AutoLocalize": true,
+    "ClipToDeviceSafeArea": true,
+    "DefinesCapabilities": false,
+    "DisplayOrder": 0,
+    "Enabled": true,
+    "Name": "MaskGui",
+    "ResetOnSpawn": true,
+    "RootLocalizationTable": -1,
+    "SafeAreaCompatibility": 1,
+    "ScreenInsets": 1,
+    "SelectionBehaviorDown": 0,
+    "SelectionBehaviorLeft": 0,
+    "SelectionBehaviorRight": 0,
+    "SelectionBehaviorUp": 0,
+    "SelectionGroup": false,
+    "Tags": "",
+    "ZIndexBehavior": 1,
+    "path": "StarterGui/MaskGui"
+  },
+  {
+    "class": "SurfaceAppearance",
+    "id": 2059,
+    "parent": 2058,
+    "AlphaMode": 1,
+    "AttributesSerialize": "",
+    "Color": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "ColorMap": "rbxassetid://17745916264",
+    "DefinesCapabilities": false,
+    "MetalnessMap": "",
+    "Name": "SurfaceAppearance",
+    "NormalMap": "",
+    "RoughnessMap": "",
+    "Tags": "",
+    "TexturePack": "rbxassetid://17746475246",
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Stars1/SurfaceAppearance"
+  },
+  {
+    "class": "SurfaceAppearance",
+    "id": 2061,
+    "parent": 2060,
+    "AlphaMode": 1,
+    "AttributesSerialize": "",
+    "Color": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "ColorMap": "rbxassetid://17745916264",
+    "DefinesCapabilities": false,
+    "MetalnessMap": "",
+    "Name": "SurfaceAppearance",
+    "NormalMap": "",
+    "RoughnessMap": "",
+    "Tags": "",
+    "TexturePack": "rbxassetid://17746475246",
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Stars2/SurfaceAppearance"
+  },
+  {
+    "class": "SurfaceAppearance",
+    "id": 2063,
+    "parent": 2062,
+    "AlphaMode": 1,
+    "AttributesSerialize": "",
+    "Color": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "ColorMap": "rbxassetid://17746794246",
+    "DefinesCapabilities": false,
+    "MetalnessMap": "",
+    "Name": "SurfaceAppearance",
+    "NormalMap": "",
+    "RoughnessMap": "",
+    "Tags": "",
+    "TexturePack": "rbxassetid://17746796735",
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Galaxy2/SurfaceAppearance"
+  },
+  {
+    "class": "SurfaceAppearance",
+    "id": 2065,
+    "parent": 2064,
+    "AlphaMode": 1,
+    "AttributesSerialize": "",
+    "Color": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "ColorMap": "rbxassetid://17746433819",
+    "DefinesCapabilities": false,
+    "MetalnessMap": "",
+    "Name": "SurfaceAppearance",
+    "NormalMap": "",
+    "RoughnessMap": "",
+    "Tags": "",
+    "TexturePack": "rbxassetid://17746680526",
+    "path": "ServerStorage/Character2Viewport/GalaxyMask/Galaxy1/SurfaceAppearance"
+  },
+  {
+    "class": "ViewportFrame",
+    "id": 1485,
+    "parent": 1476,
+    "Active": false,
+    "Ambient": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "AnchorPoint": [
+      0.0,
+      0.0
+    ],
+    "AttributesSerialize": "\u0005\u0000\u0000\u0000\r\u0000\u0000\u0000PlaneDistance\u0006\u0000\u0000\u0000\u0000\u0000\u0000\u0014@\u0015\u0000\u0000\u0000UpdateCrossHatchPlane\u0003\u0001\u0010\u0000\u0000\u0000UseCharacterMask\u0003\u0001\u0015\u0000\u0000\u0000UseGlassCharacterMask\u0003\u0001\u0012\u0000\u0000\u0000UseWorkspaceCamera\u0003\u0001",
+    "AutoLocalize": true,
+    "AutomaticSize": 0,
+    "BackgroundColor3": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "BackgroundTransparency": 1.0,
+    "BorderColor3": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "BorderMode": 0,
+    "BorderSizePixel": 0,
+    "CameraFieldOfView": 1.0471975803375244,
+    "ClipsDescendants": false,
+    "DefinesCapabilities": false,
+    "Draggable": false,
+    "ImageColor3": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "ImageTransparency": 0.0,
+    "Interactable": true,
+    "LayoutOrder": 0,
+    "LightColor": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "LightDirection": [
+      -1.0,
+      -1.0,
+      -1.0
+    ],
+    "Name": "Character2Viewport",
+    "NextSelectionDown": -1,
+    "NextSelectionLeft": -1,
+    "NextSelectionRight": -1,
+    "NextSelectionUp": -1,
+    "Position": {
+      "xs": 0.0,
+      "ys": 0.0,
+      "xo": 0,
+      "yo": 0
+    },
+    "RootLocalizationTable": -1,
+    "Rotation": 0.0,
+    "Selectable": false,
+    "SelectionBehaviorDown": 0,
+    "SelectionBehaviorLeft": 0,
+    "SelectionBehaviorRight": 0,
+    "SelectionBehaviorUp": 0,
+    "SelectionGroup": false,
+    "SelectionImageObject": -1,
+    "SelectionOrder": 0,
+    "Size": {
+      "xs": 1.0,
+      "ys": 1.0,
+      "xo": 0,
+      "yo": 0
+    },
+    "SizeConstraint": 0,
+    "Tags": "",
+    "Visible": true,
+    "ZIndex": 1,
+    "path": "ServerStorage/Character2Viewport"
+  }
+]

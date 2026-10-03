@@ -7,6 +7,7 @@ local Layout=require(Shared.FlockLayout)
 local March=require(Shared.ArmyMarch)
 local Reinforcements={}
 function Reinforcements.Sync(session,battle,world,now)
+	if battle.operationId then return end -- Operation lineups are fixed at deployment.
  if battle.phase=="Returning" then return end
  local side=if battle.attacker==session.userId then "A" elseif battle.defender==session.userId then "B" else nil
  if not side then return end

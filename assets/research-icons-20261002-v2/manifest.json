@@ -1,0 +1,38 @@
+{
+  "method": "built-in image_gen",
+  "transparent_background_requested": true,
+  "files": [
+    {
+      "file": "lucky-feather-v1.png",
+      "path": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/research-icons-20261002-v2/lucky-feather-v1.png",
+      "source": "/Users/stevin/.codex/generated_images/01a0efd9-cf8c-7cc3-bbd6-c8c51ab656ca/exec-ad201447-cac2-470a-813a-19df5424b51c.png",
+      "role": "Lucky Feathers / Super Luck",
+      "nodes": "L1–L6",
+      "status": "generated candidate; not uploaded or integrated"
+    },
+    {
+      "file": "peck-training-v1.png",
+      "path": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/research-icons-20261002-v2/peck-training-v1.png",
+      "source": "/Users/stevin/.codex/generated_images/01a0efd9-cf8c-7cc3-bbd6-c8c51ab656ca/exec-e551ac50-a365-48f2-9112-31d8736ef2f1.png",
+      "role": "Peck Drills / Officer Training / Elite Flock",
+      "nodes": "A1–A3 only",
+      "status": "generated candidate; not uploaded or integrated"
+    },
+    {
+      "file": "egg-magnet-v1.png",
+      "path": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/research-icons-20261002-v2/egg-magnet-v1.png",
+      "source": "/Users/stevin/.codex/generated_images/01a0efd9-cf8c-7cc3-bbd6-c8c51ab656ca/exec-7e5af627-a511-4d99-82c2-0b0b69cb8693.png",
+      "role": "Egg Magnet / Long Reach / Wide Sweep",
+      "nodes": "E7–E9",
+      "status": "generated candidate; not uploaded or integrated"
+    },
+    {
+      "file": "bounty-ledger-v1.png",
+      "path": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/research-icons-20261002-v2/bounty-ledger-v1.png",
+      "source": "/Users/stevin/.codex/generated_images/01a0efd9-cf8c-7cc3-bbd6-c8c51ab656ca/exec-f3c68a83-0da4-485b-9c8e-603abd9da8d9.png",
+      "role": "Bounty Ledger / Bounty Office / Bounty Network",
+      "nodes": "E10–E12",
+      "status": "generated candidate; not uploaded or integrated"
+    }
+  ]
+}
