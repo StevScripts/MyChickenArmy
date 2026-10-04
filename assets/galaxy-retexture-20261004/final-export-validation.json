@@ -1,0 +1,43 @@
+[
+  {
+    "file": "alien.glb",
+    "bytes": 2020760,
+    "joints": 18,
+    "materials": [
+      {
+        "name": "Galaxy Retexture 20261004 | Alien Chicken.003",
+        "doubleSided": false,
+        "alphaMode": "BLEND"
+      }
+    ]
+  },
+  {
+    "file": "dark-matter.glb",
+    "bytes": 2174768,
+    "joints": 18,
+    "materials": [
+      {
+        "name": "Galaxy Retexture 20261004 | Dark Matter Chicken",
+        "doubleSided": false,
+        "alphaMode": "BLEND"
+      }
+    ]
+  },
+  {
+    "file": "astronaut.glb",
+    "bytes": 1085692,
+    "joints": 18,
+    "materials": [
+      {
+        "name": "Galaxy Retexture 20261004 | Astronaut Chicken.001",
+        "doubleSided": false,
+        "alphaMode": "BLEND"
+      },
+      {
+        "name": "Game Base | Astronaut Visor | PBR.001",
+        "doubleSided": true,
+        "alphaMode": "BLEND"
+      }
+    ]
+  }
+]

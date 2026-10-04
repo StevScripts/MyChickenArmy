@@ -1,0 +1,19 @@
+{
+  "before": "cdb64d1d5cbae7637d0e74ac704077dc340dad16b8985c64463a2db99738f542",
+  "after": "cdb64d1d5cbae7637d0e74ac704077dc340dad16b8985c64463a2db99738f542",
+  "tile_count": 314,
+  "triangle_fallback_count": 16,
+  "degenerate_uv_count": 0,
+  "alpha_restricted": true,
+  "alpha_preserved": false,
+  "id": "alien",
+  "eye_treatment": "Head-painted eyes; transparent legacy Eye/Glint overlays",
+  "paths": {
+    "ColorMap": "/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/alien_ColorMap.png",
+    "RoughnessMap": "/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/alien_RoughnessMap.png",
+    "MetalnessMap": "/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/alien_MetalnessMap.png",
+    "NormalMap": "/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/alien_NormalMap.png",
+    "EmissionColor": "/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/alien_EmissionColor.png",
+    "ORM": "/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/alien_ORM.png"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "scope": "Wing-only feather material correction for Astronaut, Alien and Dark Matter.",
+  "reference": "references/original-lineup.png; top row only",
+  "geometry": "All vertices, topology, object transforms and skin weights of every approved base and accessory mesh are identical. Wings unchanged. UV coordinates and materials repainted.",
+  "original_game_mesh": "rbxassetid://103186782193963",
+  "base_source": "ReplicatedStorage.PetRoll.ChickenAssets.Duck.Body",
+  "base_geometry": {
+    "vertices": 504,
+    "triangles": 252,
+    "bones": 18
+  },
+  "authoring_dimensions": [
+    2.54,
+    3.64,
+    4.29
+  ],
+  "export_scale": 0.6701631701631702,
+  "textures": "2048-square body maps with feather color, shallow tangent normal relief, lower metalness and soft roughness on both wings. All non-wing pixels unchanged. Visor maps remain 1024 square.",
+  "runtime": "Rendered in Blender; GLB and FBX files regenerated. Not imported, uploaded, or tested in Roblox.",
+  "icons": "Transparent PNGs with an external black silhouette stroke and unclipped margins.",
+  "models": [
+    {
+      "id": "astronaut",
+      "name": "Astronaut Chicken",
+      "scene": "TEXTURES | Astronaut Chicken",
+      "base": "Texture Match | Astronaut Chicken | Unchanged original mesh",
+      "rig": "Texture Match | Astronaut Chicken rig",
+      "accessories": [
+        "Texture Match | Astronaut Chicken | Slim collar",
+        "Texture Match | Astronaut Chicken | Chest computer",
+        "Texture Match | Astronaut Chicken | Chest lamp",
+        "Texture Match | Astronaut Chicken | Chest lamp core",
+        "Texture Match | Astronaut Chicken | Chest stripe -1",
+        "Texture Match | Astronaut Chicken | Chest stripe lower -1",
+        "Texture Match | Astronaut Chicken | Chest stripe 1",
+        "Texture Match | Astronaut Chicken | Chest stripe lower 1",
+        "Texture Match | Astronaut Chicken | Compact life support",
+        "Texture Match | Astronaut Chicken | Pack band.001",
+        "Texture Match | Astronaut Chicken | Small exhaust -1",
+        "Texture Match | Astronaut Chicken | Exhaust light -1",
+        "Texture Match | Astronaut Chicken | Small exhaust 1",
+        "Texture Match | Astronaut Chicken | Exhaust light 1",
+        "Texture Match | Astronaut Chicken | Helmet side trim -1",
+        "Texture Match | Astronaut Chicken | Helmet side back -1",
+        "Texture Match | Astronaut Chicken | Helmet top rail -1",
+        "Texture Match | Astronaut Chicken | Helmet latch -1",
+        "Texture Match | Astronaut Chicken | Helmet side trim 1",
+        "Texture Match | Astronaut Chicken | Helmet side back 1",
+        "Texture Match | Astronaut Chicken | Helmet top rail 1",
+        "Texture Match | Astronaut Chicken | Helmet latch 1",
+        "Texture Match | Astronaut Chicken | Helmet front rail 2.75",
+        "Texture Match | Astronaut Chicken | Helmet back rail 2.75",
+        "Texture Match | Astronaut Chicken | Helmet front rail 4.41",
+        "Texture Match | Astronaut Chicken | Helmet back rail 4.41",
+        "Texture Match | Astronaut Chicken | Clear fitted visor"
+      ],
+      "stats": {
+        "vertices": 2072,
+        "triangles": 3276,
+        "mesh_objects": 2,
+        "bones": 18,
+        "weight_errors": 0,
+        "export_scale": 0.6701631701631702
+      },
+      "glb": "exports/astronaut.glb",
+      "fbx": "exports/astronaut.fbx",
+      "textures": {
+        "ColorMap": "textures/astronaut/astronaut_ColorMap.png",
+        "OpacityMap": "textures/astronaut/astronaut_OpacityMap.png",
+        "RoughnessMap": "textures/astronaut/astronaut_RoughnessMap.png",
+        "MetalnessMap": "textures/astronaut/astronaut_MetalnessMap.png",
+        "NormalMap": "textures/astronaut/astronaut_NormalMap.png",
+        "EmissiveMask": "textures/astronaut/astronaut_EmissiveMask.png",
+        "EmissionColor": "textures/astronaut/astronaut_EmissionColor.png",
+        "ORM": "textures/astronaut/astronaut_ORM.png"
+      },
+      "emission_multiplier": 4,
+      "visor_textures": {
+        "ColorMap": "textures/astronaut-visor/astronaut-visor_ColorMap.png",
+        "OpacityMap": "textures/astronaut-visor/astronaut-visor_OpacityMap.png",
+        "RoughnessMap": "textures/astronaut-visor/astronaut-visor_RoughnessMap.png",
+        "MetalnessMap": "textures/astronaut-visor/astronaut-visor_MetalnessMap.png",
+        "NormalMap": "textures/astronaut-visor/astronaut-visor_NormalMap.png",
+        "EmissiveMask": "textures/astronaut-visor/astronaut-visor_EmissiveMask.png",
+        "EmissionColor": "textures/astronaut-visor/astronaut-visor_EmissionColor.png",
+        "ORM": "textures/astronaut-visor/astronaut-visor_ORM.png"
+      }
+    },
+    {
+      "id": "alien",
+      "name": "Alien Chicken",
+      "scene": "TEXTURES | Alien Chicken",
+      "base": "Texture Match | Alien Chicken | Unchanged original mesh",
+      "rig": "Texture Match | Alien Chicken rig",
+      "accessories": [
+        "Texture Match | Alien Chicken | Antenna -1.003",
+        "Texture Match | Alien Chicken | Antenna light -1",
+        "Texture Match | Alien Chicken | Antenna 1.003",
+        "Texture Match | Alien Chicken | Antenna light 1"
+      ],
+      "stats": {
+        "vertices": 676,
+        "triangles": 580,
+        "mesh_objects": 1,
+        "bones": 18,
+        "weight_errors": 0,
+        "export_scale": 0.6701631701631702
+      },
+      "glb": "exports/alien.glb",
+      "fbx": "exports/alien.fbx",
+      "textures": {
+        "ColorMap": "textures/alien/alien_ColorMap.png",
+        "OpacityMap": "textures/alien/alien_OpacityMap.png",
+        "RoughnessMap": "textures/alien/alien_RoughnessMap.png",
+        "MetalnessMap": "textures/alien/alien_MetalnessMap.png",
+        "NormalMap": "textures/alien/alien_NormalMap.png",
+        "EmissiveMask": "textures/alien/alien_EmissiveMask.png",
+        "EmissionColor": "textures/alien/alien_EmissionColor.png",
+        "ORM": "textures/alien/alien_ORM.png"
+      },
+      "emission_multiplier": 4
+    },
+    {
+      "id": "dark-matter",
+      "name": "Dark Matter Chicken",
+      "scene": "TEXTURES | Dark Matter Chicken",
+      "base": "Texture Match | Dark Matter Chicken | Unchanged original mesh",
+      "rig": "Texture Match | Dark Matter Chicken rig",
+      "accessories": [
+        "Texture Match | Dark Matter Chicken | Small comb 0",
+        "Texture Match | Dark Matter Chicken | Small comb 1",
+        "Texture Match | Dark Matter Chicken | Small comb 2"
+      ],
+      "stats": {
+        "vertices": 672,
+        "triangles": 576,
+        "mesh_objects": 1,
+        "bones": 18,
+        "weight_errors": 0,
+        "export_scale": 0.6701631701631702
+      },
+      "glb": "exports/dark-matter.glb",
+      "fbx": "exports/dark-matter.fbx",
+      "textures": {
+        "ColorMap": "textures/dark-matter/dark-matter_ColorMap.png",
+        "OpacityMap": "textures/dark-matter/dark-matter_OpacityMap.png",
+        "RoughnessMap": "textures/dark-matter/dark-matter_RoughnessMap.png",
+        "MetalnessMap": "textures/dark-matter/dark-matter_MetalnessMap.png",
+        "NormalMap": "textures/dark-matter/dark-matter_NormalMap.png",
+        "EmissiveMask": "textures/dark-matter/dark-matter_EmissiveMask.png",
+        "EmissionColor": "textures/dark-matter/dark-matter_EmissionColor.png",
+        "ORM": "textures/dark-matter/dark-matter_ORM.png"
+      },
+      "emission_multiplier": 4
+    }
+  ],
+  "wing_revision": {
+    "source": "generated-textures/feather-height.png",
+    "shader": "fix_wings.py",
+    "evidence": "wing-only-map-check.json",
+    "meshes": "Geometry, topology, transforms and skin weights match every approved source object."
+  }
+}

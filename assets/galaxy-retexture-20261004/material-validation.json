@@ -1,0 +1,28 @@
+[
+  {
+    "id": "astronaut",
+    "before": "a84c9849b8b6356589510199aec3d05789183f802746b85119fe40706098f9f7",
+    "after": "a84c9849b8b6356589510199aec3d05789183f802746b85119fe40706098f9f7",
+    "tiles": 282,
+    "alpha_preserved": true,
+    "triangle_fallback_count": 0
+  },
+  {
+    "id": "alien",
+    "before": "cdb64d1d5cbae7637d0e74ac704077dc340dad16b8985c64463a2db99738f542",
+    "after": "cdb64d1d5cbae7637d0e74ac704077dc340dad16b8985c64463a2db99738f542",
+    "tiles": 314,
+    "alpha_preserved": false,
+    "triangle_fallback_count": 16,
+    "alpha_restricted": true,
+    "note": "Eye-quads made transparent outside painted alien eyes to avoid rectangular patches; no geometry change."
+  },
+  {
+    "id": "dark-matter",
+    "before": "229c8bf900b5a8a6c3a832d24c1f1e8390c196456182e879067b95e198817482",
+    "after": "229c8bf900b5a8a6c3a832d24c1f1e8390c196456182e879067b95e198817482",
+    "tiles": 144,
+    "alpha_preserved": true,
+    "triangle_fallback_count": 0
+  }
+]

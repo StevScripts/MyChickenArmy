@@ -1,0 +1,29 @@
+[
+  {
+    "id": "astronaut",
+    "vertices": 2072,
+    "bones": 18,
+    "uv_layers": [
+      "UVMap"
+    ],
+    "glb": "/Users/stevin/.codex/artifacts/galaxy-retexture-v2-20261004/exports/astronaut.glb"
+  },
+  {
+    "id": "alien",
+    "vertices": 676,
+    "bones": 18,
+    "uv_layers": [
+      "UVMap"
+    ],
+    "glb": "/Users/stevin/.codex/artifacts/galaxy-retexture-v2-20261004/exports/alien.glb"
+  },
+  {
+    "id": "dark-matter",
+    "vertices": 672,
+    "bones": 18,
+    "uv_layers": [
+      "UVMap"
+    ],
+    "glb": "/Users/stevin/.codex/artifacts/galaxy-retexture-v2-20261004/exports/dark-matter.glb"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "action": "Dragon Flight | Forward Cupped Wings",
+  "frames": [
+    1,
+    73
+  ],
+  "fps": 60,
+  "duration": 1.2,
+  "bones": 23,
+  "vertices": 9537,
+  "triangles": 19076,
+  "trimmedVertices": 38,
+  "maxRemovedInfluence": 0.006615802645683289,
+  "maxInfluences": 4
+}

@@ -1,0 +1,32 @@
+{
+  "keyframes": 73,
+  "samples": [
+    {
+      "translationScaleError": 5.859285360501273e-14,
+      "time": 0,
+      "rotationError": 0
+    },
+    {
+      "translationScaleError": 1.1368683772161603e-13,
+      "time": 0.3,
+      "rotationError": 0
+    },
+    {
+      "translationScaleError": 2.384185791015625e-7,
+      "time": 0.6,
+      "rotationError": 0.0006905339541845024
+    },
+    {
+      "translationScaleError": 1.1920928955078125e-7,
+      "time": 0.9,
+      "rotationError": 0.00048828125
+    },
+    {
+      "translationScaleError": 1.632702897576624e-13,
+      "time": 1.199,
+      "rotationError": 0.00048828125
+    }
+  ],
+  "length": 1.2000000476837158,
+  "loop": true
+}

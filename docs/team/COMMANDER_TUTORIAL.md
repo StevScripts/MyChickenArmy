@@ -7,6 +7,26 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Egg recovery trips — October 4 correction
+
+Fixed locally in `shared/TutorialGuide.luau`. The previous recovery rule pointed
+at the sell pad whenever the bag had any value, even if that sale could not fund
+the recruit or army slot. Emptying that small bag immediately pointed back to
+the yard. Recovery now keeps the yard objective until wallet cash plus the
+server-quoted bag value covers the actual purchase price. Copy shows the value
+still needed; one sufficient sale advances to the purchase. The first-sale
+lesson still accepts one egg, and free rerolls remain available. Prices, income,
+the four-chicken objective, player actions and saved progress are unchanged.
+
+Seventeen isolated routing checks passed, including 124 successive partial-bag
+snapshots, exact/over-target sales, changed offers, other income, first sale and
+skip. [Check source](../../assets/tutorial-egg-recovery-20261004/check-recovery.luau)
+and [results](../../assets/tutorial-egg-recovery-20261004/validation.json).
+The active Studio session is an unsynced auto-recovery file with place ID 0;
+its Edit/client modules still have the old rule. Canonical Rojo sync and a fresh
+Play session remain pending. The existing Play session was left running; no
+place, profile, purchase, publication or Git-history changes were made.
+
 ## Selective spotlight — latest October 3 correction
 
 Do not dim every tutorial task. World spotlights are limited to the initial

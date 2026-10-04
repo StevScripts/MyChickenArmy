@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-04",
+  "status": "PASS: isolated routing regression; live integration pending",
+  "source": {
+    "path": "/Users/stevin/Documents/Projects/MyChickenArmy/src/shared/TutorialGuide.luau",
+    "sha256": "0f8441916c2d96e2925fc24bb3fc93466b629fe9b2c6407afb9b2c7fe1982b5a",
+    "bytes": 5267
+  },
+  "result": {
+    "scope": "Pure in-memory snapshots; no place, player, economy, persistence or analytics mutations",
+    "passed": 17,
+    "checks": [
+      "one egg does not send an underfunded recruit back to sell",
+      "copy explains the remaining shortfall",
+      "124 successive partial bags retain the collection objective",
+      "exact recruit shortfall sends one trip to the pad",
+      "overshooting the shortfall still sends to sell",
+      "paid bag advances to buying rather than back to collection",
+      "army slot also waits for the whole shortfall",
+      "army slot exact shortfall sends to sell",
+      "army slot payment advances to upgrade",
+      "first sale lesson still needs only one egg",
+      "empty first-sale bag recovers to the yard",
+      "other income can make the recruit affordable immediately",
+      "changed offer recalculates the actual shortfall",
+      "cheaper reroll uses the new price",
+      "free reroll alternative remains in recruit help",
+      "missing bag snapshot safely stays at collection",
+      "skip still removes guidance"
+    ]
+  },
+  "studio": {
+    "instance": "instance:3p4-9bz",
+    "placeName": "96683186622050_AutoRecovery_0.rbxl",
+    "placeId": 0,
+    "playWasAlreadyRunning": true,
+    "editHasFix": false,
+    "clientHasFix": false
+  },
+  "limits": "Executed exact edited module as a local function against in-memory snapshots, without replacing/requiring live modules or mutating the recovered place. No live walk-through, profile write, purchase, publish, commit or push. Existing Play session left running."
+}

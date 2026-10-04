@@ -1,0 +1,85 @@
+[
+  {
+    "file": "alien.glb",
+    "joints": 18,
+    "primary_uv_only": true,
+    "materials": [
+      {
+        "name": "Galaxy Retexture 20261004 | Alien Chicken.004",
+        "doubleSided": false,
+        "emission": [
+          1,
+          1,
+          1
+        ],
+        "extensions": {
+          "KHR_materials_emissive_strength": {
+            "emissiveStrength": 2.200000047683716
+          }
+        }
+      }
+    ]
+  },
+  {
+    "file": "dark-matter.glb",
+    "joints": 18,
+    "primary_uv_only": true,
+    "materials": [
+      {
+        "name": "Galaxy Retexture 20261004 | Dark Matter Chicken.001",
+        "doubleSided": false,
+        "emission": [
+          1,
+          1,
+          1
+        ],
+        "extensions": {
+          "KHR_materials_emissive_strength": {
+            "emissiveStrength": 2.200000047683716
+          }
+        }
+      }
+    ]
+  },
+  {
+    "file": "astronaut.glb",
+    "joints": 18,
+    "primary_uv_only": true,
+    "materials": [
+      {
+        "name": "Galaxy Retexture 20261004 | Astronaut Chicken.002",
+        "doubleSided": false,
+        "emission": [
+          1,
+          1,
+          1
+        ],
+        "extensions": {
+          "KHR_materials_emissive_strength": {
+            "emissiveStrength": 2.200000047683716
+          }
+        }
+      },
+      {
+        "name": "Game Base | Astronaut Visor | PBR.001",
+        "doubleSided": true,
+        "emission": [
+          1,
+          1,
+          1
+        ],
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatFactor": 0.05999999865889549
+          },
+          "KHR_materials_emissive_strength": {
+            "emissiveStrength": 4
+          },
+          "KHR_materials_specular": {
+            "specularFactor": 0.6000000238418579
+          }
+        }
+      }
+    ]
+  }
+]

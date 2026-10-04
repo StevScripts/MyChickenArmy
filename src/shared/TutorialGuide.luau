@@ -25,12 +25,17 @@ local function step(id, title, text, target, help)
 	return {id=id, title=title, text=text, target=target, help=help or text}
 end
 
-local function earn(state, purpose)
-	if ((state.eggs or {}).carriedValue or 0) > 0 then
-		return step("RecoverSell", "Sell your eggs", "Green pad → instant cash.", "EggDeposit", "Earn enough cash for " .. purpose .. ".")
+local function earn(state, purpose, price)
+	local carried = (state.eggs or {}).carriedValue or 0
+	local needed = if price then math.max(0, price - (state.coins or 0)) else 1
+	-- Keep gathering until this trip can fund the purchase. Any nonempty bag
+	-- used to send players back to the pad, then straight back to the yard.
+	if carried > 0 and carried >= needed then
+		return step("RecoverSell", "Sell your eggs", "Green pad → instant cash.", "EggDeposit", "Sell this bag to afford " .. purpose .. ".")
 	end
-	return step("RecoverCollect", "Collect more eggs", "Walk near the eggs in your yard.", "Yard",
-		"Collect eggs in your yard, then walk onto the green sell pad.")
+	return step("RecoverCollect", "Collect more eggs",
+		if price then "Collect $" .. math.ceil(needed - carried) .. " more in eggs." else "Walk near the eggs in your yard.", "Yard",
+		"Collect eggs for " .. purpose .. ". I'll point to the sell pad when you have enough.")
 end
 
 local function recruit(state, growing)
@@ -48,8 +53,8 @@ local function recruit(state, growing)
 		if count==0 then
 			return step("Roll", "Roll again for FREE", "Use the lever for another offer.", "RollStation")
 		end
-		local recovery = earn(state, "your recruit")
-		recovery.help = "Earn cash for this chicken, or use the lever to roll again FREE."
+		local recovery = earn(state, "your recruit", offer.price)
+		recovery.help ..= " Or use the lever to roll again FREE."
 		return recovery
 	end
 	return step(id, if growing then "Grow your flock: "..count.."/4" else "Buy your first chicken",
@@ -90,7 +95,7 @@ function Guide.Resolve(state)
 	if not f.Grow then return recruit(state, true) end
 	if not f.Expand then
 		local offer = state.nextSlot
-		if offer and (state.coins or 0) < offer.price then return earn(state, "an army slot") end
+		if offer and (state.coins or 0) < offer.price then return earn(state, "an army slot", offer.price) end
 		return step("Expand", "Grow your army", "Upgrades → Army Size 1.", "Upgrades",
 			"Buy Army Size 1 above Start. Cash buys one more army slot.")
 	end
