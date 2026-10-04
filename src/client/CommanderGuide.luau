@@ -10,6 +10,8 @@ local CashNodes = require(script.Parent.CashUpgradeNodes)
 local GuideFocus = require(script.Parent.GuideFocus)
 local CARD_POSITION = UDim2.fromScale(.5,.005)
 local ENTER_SECONDS = .18
+-- Reserve world dimming for the two new interactions, once their prompt is in reach.
+local WORLD_SPOTLIGHT_STEPS = {Roll=true, Recruit=true}
 local Commander = {}
 Commander.__index = Commander
 
@@ -109,8 +111,8 @@ function Commander:ClearFocus()
 	self.focusTarget=nil
 end
 
-function Commander:Focus(target)
-	self.spotlight:SetTarget(target,self.app.reducedMotion)
+function Commander:Focus(target, worldParts)
+	self.spotlight:SetTarget(target,self.app.reducedMotion,worldParts)
 	self.focusTarget=target
 	self.focus=if target then self.spotlight.stroke else nil
 	self.pulse=self.spotlight.pulse
@@ -195,16 +197,22 @@ function Commander:Update()
 		end
 	end
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
-	local target
+	local target,worldParts
 	if not blocked and id=="Expand" then
 		if inTree then
 			local node=CashNodes.NextId("ArmySize",state.boardUpgrades.ArmySize)
 			target=app.research.nodes[node] and app.research.nodes[node].button
 			if app.research.selected==node and not self.sent.NodeInspect then self.sent.NodeInspect=true;self:Signal("NodeInspect") end
 		elseif not app.panel.Visible then target=app.hud.shortcuts:FindFirstChild("Upgrades") end
-	elseif not blocked and id=="Select" then target=if inArmy then app.chickenBrowser.best elseif not app.panel.Visible then app.hud.army else nil
-	elseif not blocked and inTree and id~="Expand" then target=app.research.root:FindFirstChild("Exit",true) end
-	self:Focus(target)
+	elseif not blocked and id=="Select" then
+		target=if inTree then app.research.root:FindFirstChild("Exit",true)
+			elseif inArmy then app.chickenBrowser.best elseif not app.panel.Visible then app.hud.army else nil
+	elseif WORLD_SPOTLIGHT_STEPS[id] and atTarget and not blocked and not inTree and not app.panel.Visible and not state.incoming
+		and (state.armyState=="Home" or state.armyState=="Following")
+		and app.base and app.base.guideWorldStep==id then
+		target,worldParts=app.base.guideWorldTarget,app.base.guideWorldParts
+	end
+	self:Focus(target,worldParts)
 end
 
 function Commander:Destroy()

@@ -7,6 +7,94 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Selective spotlight — latest October 3 correction
+
+Do not dim every tutorial task. World spotlights are limited to the initial
+**Roll** and **Recruit** steps, and only while a relevant native roll-station
+prompt is in reach. Walking toward these items uses the white Beam alone.
+Collect, Sell, Grow, recovery, return and deployment steps keep normal world
+lighting with Beam/marker guidance. Opening an unrelated menu does not add a
+spotlight to its Exit button.
+
+GUI spotlights remain for learning Army Size (Expand) and choosing the army
+(Select), including the tree Exit handoff between those two steps. The shared
+0.5-transparency spotlight rendering and projection support below is unchanged.
+This is a targeted presentation policy change; no new playtest sweep was run.
+
+## Projected world spotlight capability — preceding October 3 follow-up
+
+The same single transparent `ClearTarget` frame and enormous outer black
+UIStroke at **0.5 transparency** now also surround the tutorial's world items.
+`GuideWorldBounds` projects their corners with `Camera:WorldToScreenPoint`,
+then `GuideFocus` converts them into its native GUI coordinate space. The real
+lever includes base, arm and handle; a recruit includes its podium and revealed
+chicken; eggs use their visible, moving billboard bounds. Other world parts and
+models use their native geometry/bounding box.
+
+One render listener tracks the active world target and camera. This is projection
+tracking, not a replacement animation loop. The existing outline pulse and fades
+still use TweenService; reduced motion keeps those static. The white Beam and
+native destination marker retain world direction, without another GUI arrow.
+
+Off-screen, behind-camera and near-plane-crossing targets clear the mask;
+returning targets restore it. Destroyed targets and world/menu/skip handoffs
+release tracking. The overlay never captures input. This user request supersedes
+the earlier instruction to keep walking steps undimmed.
+
+Seventeen world projection/lifecycle cases passed on desktop and iPhone 13
+landscape emulation; all 19 existing GUI spotlight cases passed on desktop.
+The actual roll lever was visually inspected in both views. No performance or
+physical-phone claim is made. [Source, results and API references](../../assets/tutorial-world-focus-20261003/README.md).
+
+## Current white Beam route — October 3 follow-up
+
+World guidance now uses one client-local `CommanderGuideBeam`. An attachment
+on the player's root and an attachment on the current destination let Roblox
+follow both endpoints natively. The old ten chevron Parts, their positioning
+raycasts and transparency tweens are removed. The existing objective poll only
+chooses the target, distance visibility and reduced-motion state.
+
+The Beam repeats white directional arrows using Roblox's
+[documented tutorial texture](https://create.roblox.com/docs/education/build-it-play-it-mansion-of-wonder/connect-the-beam)
+(`rbxassetid://5886559421`), with native `TextureSpeed=1`; reduced motion sets
+speed to zero. This beam-ready texture points along the route. Existing generated
+white GUI and destination-pointer artwork remains unchanged. Attachments owned
+by the controller are cleaned up on replacement/destruction; egg target
+attachments are borrowed without taking their cleanup ownership.
+
+The route hides near the destination, during menus/dialogue, on missing targets,
+and when the guide no longer has a world step. The spotlight remains 0.5.
+
+Thirteen focused Studio checks passed for native endpoint movement, target
+replacement, attachment reuse, reduced motion, hiding and cleanup. The live
+opening route loaded the white texture and pointed toward the free roll lever;
+zero old chevron Parts remained. Local and running client source hashes matched.
+[Beam validation](../../assets/tutorial-stroke-20261003/beam-validation.json).
+The normal camera was restored and Play was left running, matching the task's
+initial state. No release or saved-profile change was made.
+
+## White arrows and stroke spotlight — preceding October 3 follow-up
+
+The latest user correction replaces gold tutorial arrows, ground chevrons and
+destination text with white. GUI and world pointers share original generated
+chunky-simulator-icons artwork with a black silhouette outline
+(`rbxassetid://101313283357577`). The earlier gold generation is retained as a
+backup and is not used in runtime.
+
+The spotlight uses the user's exact method: one transparent frame around the
+real control, with an enormous **outer black UIStroke at 0.5 transparency**.
+Thickness is at least 10,000 pixels. The four rectangular masks are removed.
+The thin Army-green focus outline, TweenService pulse/bounce/fades, target
+tracking, cleanup and static reduced-motion behavior remain.
+
+At the earlier 0.8 spotlight transparency, nineteen focused checks passed on
+desktop, landscape phone and portrait phone emulation. Pixel sampling confirmed even shading at all four screen corners,
+clear target padding and an undimmed button. Native input successfully closed
+the real research tree through its highlighted Exit control. The final white
+image loaded in both GUI and world arrows; chevrons and destination text are
+white. [Assets, prompts, screenshots and results](../../assets/tutorial-stroke-20261003/README.md).
+Studio is in Edit with the default device; no experience release was published.
+
 ## Current empty-yard start — October 3 follow-up
 
 New profiles start with $2,400, three army slots, **zero chickens** and no podium
@@ -192,7 +280,7 @@ and inspections; that is not a human completion-time benchmark.
 - shared/TutorialGuide: snapshot-only facts and objective resolution.
 - client/CommanderGuide: presentation, help/skip controls, menu observations,
   target selection and cleanup. GuideFocus owns the clear cutout and GUI arrow;
-  GuideArrow draws the shared arrow without font-dependent glyphs. These create
+  GuideArrow displays the shared generated white arrow image. These create
   ordinary Frames inside the existing
   PetRollGui ScreenGui and uses native Scale/aspect/TextScaled.
 - server/TutorialService: sparse per-visit analytics, confirmed milestones,

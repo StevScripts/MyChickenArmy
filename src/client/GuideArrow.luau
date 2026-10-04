@@ -5,7 +5,7 @@ local Theme = require(script.Parent.UITheme)
 return function(parent, name)
 	local arrow = Instance.new("ImageLabel")
 	arrow.Name, arrow.BackgroundTransparency = name, 1
-	arrow.Image, arrow.ScaleType = "rbxassetid://99969806505252", Enum.ScaleType.Fit
+	arrow.Image, arrow.ScaleType = "rbxassetid://101313283357577", Enum.ScaleType.Fit
 	arrow.Active, arrow.Selectable, arrow.ZIndex = false, false, 2
 	arrow.Parent = parent
 	Theme.Aspect(arrow, 1)

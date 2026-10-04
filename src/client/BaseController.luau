@@ -344,8 +344,8 @@ function BaseController:UpdateCommandPresentation()
 	self.commandHeading.Enabled=visible and hostile==true
 end
 
--- Local arrows point toward the live objective. Position tracking uses the
--- existing world poll; decorative bob/pulses are ordinary repeating tweens.
+-- Attachments follow the character and objective natively. The existing poll
+-- only selects endpoints/visibility; Beam.TextureSpeed animates the white arrows.
 function BaseController:StopGuideMotion()
 	for _,tween in self.guideTweens or {} do tween:Cancel();tween:Destroy() end
 	self.guideTweens={}
@@ -354,24 +354,9 @@ end
 
 function BaseController:UpdateGuideTrail(anchor, enabled)
 	if not self.folder then return end
-	if not self.guideTrail then
-		self.guideTrail={}
-		for i=1,5 do
-			local arms={}
-			for side=-1,1,2 do
-				local part=Instance.new("Part")
-				part.Name,part.Size="GuideChevron"..i,Vector3.new(.3,.08,1.45)
-				part.Anchored,part.CanCollide,part.CanTouch,part.CanQuery=true,false,false,false
-				part.CastShadow,part.Material,part.Color=false,Enum.Material.Neon,Theme.Arcade.gold
-				part.Transparency,part.Parent=1,self.folder
-				table.insert(arms,{part=part,side=side})
-			end
-			table.insert(self.guideTrail,arms)
-		end
-	end
 	local character=Players.LocalPlayer.Character
 	local body=character and character:FindFirstChild("HumanoidRootPart")
-	local goal=anchor and (if anchor:IsA("Attachment") then anchor.WorldPosition else anchor.Position)
+	local goal=if anchor and anchor:IsDescendantOf(workspace) then (if anchor:IsA("Attachment") then anchor.WorldPosition else anchor.Position) else nil
 	local delta=body and goal and Vector3.new(goal.X-body.Position.X,0,goal.Z-body.Position.Z)
 	local visible=enabled and delta~=nil and delta.Magnitude>4
 	local reduced=self.app.reducedMotion
@@ -383,52 +368,68 @@ function BaseController:UpdateGuideTrail(anchor, enabled)
 			table.insert(self.guideTweens,bob);bob:Play()
 		end
 	end
-	local params=RaycastParams.new()
-	params.FilterType=Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances={self.folder,character or self.folder}
-	for i,arms in self.guideTrail do
-		local distance=3+i*2.8
-		local show=visible and distance<delta.Magnitude-1
-		if arms.shown~=show or arms.reduced~=reduced then
-			arms.shown,arms.reduced=show,reduced
-			for _,arm in ipairs(arms) do
-				if arm.tween then arm.tween:Cancel();arm.tween:Destroy();arm.tween=nil end
-				arm.part.Transparency=if show then .12 else 1
-				if show and not reduced then
-					arm.tween=TweenService:Create(arm.part,TweenInfo.new(.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true,(i-1)*.06),{Transparency=.65})
-					arm.tween:Play()
-				end
-			end
-		end
-		if show then
-			local at=body.Position+delta.Unit*distance
-			local ground=workspace:Raycast(at+Vector3.new(0,5,0),Vector3.new(0,-20,0),params)
-			at=Vector3.new(at.X,if ground then ground.Position.Y+.10 else body.Position.Y-2.7,at.Z)
-			local frame=CFrame.lookAt(at,at+delta.Unit)
-			for _,arm in ipairs(arms) do arm.part.CFrame=frame*CFrame.new(arm.side*.43,0,.32)*CFrame.Angles(0,arm.side*math.pi/4,0) end
-		end
+	if not visible then
+		if self.guideBeam then self.guideBeam.Enabled=false end
+		return
 	end
+	if not self.guideBeam then
+		local beam=Instance.new("Beam")
+		beam.Name,beam.Enabled="CommanderGuideBeam",false
+		beam.Color,beam.Transparency=ColorSequence.new(Color3.new(1,1,1)),NumberSequence.new(.08)
+		-- Roblox's beam-ready tutorial arrows run along the texture's vertical axis.
+		beam.Texture,beam.TextureMode="rbxassetid://5886559421",Enum.TextureMode.Static
+		beam.TextureLength,beam.Width0,beam.Width1=4,3,3
+		beam.FaceCamera,beam.LightInfluence,beam.LightEmission=true,0,0
+		beam.Segments,beam.Parent=1,self.folder
+		self.guideBeam=beam
+	end
+	if not self.guideStart or self.guideStart.Parent~=body then
+		if self.guideStart then self.guideStart:Destroy() end
+		self.guideStart=Instance.new("Attachment")
+		self.guideStart.Name,self.guideStart.Position="CommanderGuideStart",Vector3.new(0,-2,0)
+		self.guideStart.Parent=body
+	end
+	local destination=anchor
+	if not anchor:IsA("Attachment") then
+		if not self.guideEnd or self.guideEnd.Parent~=anchor then
+			if self.guideEnd then self.guideEnd:Destroy() end
+			self.guideEnd=Instance.new("Attachment")
+			self.guideEnd.Name,self.guideEnd.Position="CommanderGuideEnd",Vector3.new(0,anchor.Size.Y*.5+.15,0)
+			self.guideEnd.Parent=anchor
+		end
+		destination=self.guideEnd
+	elseif self.guideEnd then
+		self.guideEnd:Destroy();self.guideEnd=nil
+	end
+	self.guideBeam.Attachment0,self.guideBeam.Attachment1=self.guideStart,destination
+	self.guideBeam.TextureSpeed=if reduced then 0 else 1
+	self.guideBeam.Enabled=true
 end
 
--- A destination arrow remains visible while the small ground trail indicates direction.
+-- A destination arrow remains visible while the Beam indicates the route.
 function BaseController:UpdateObjective()
  local state=self.app.state
  local world=workspace:FindFirstChild("PetRollWorld")
- if not state or not world then return end
+ if not state or not world then
+  self.guideWorldTarget,self.guideWorldParts,self.guideWorldStep=nil,nil,nil
+  if self.objective then self.objective.Enabled=false end
+  self:UpdateGuideTrail(nil,false)
+  if self.app.commander then self.app.commander:ClearFocus() end
+  return
+ end
  if not self.objective then
   local gui=Instance.new("BillboardGui")
   gui.Name,gui.Size,gui.StudsOffsetWorldSpace="NextDestination",UDim2.fromOffset(140,108),Vector3.new(0,6,0)
   gui.AlwaysOnTop,gui.MaxDistance,gui.Parent=true,500,Players.LocalPlayer.PlayerGui
-  local label=Theme.Display(gui,"Destination","NEXT",22,Theme.Arcade.gold)
+  local label=Theme.Display(gui,"Destination","NEXT",22,Color3.new(1,1,1))
   label.Size,label.TextScaled,label.TextXAlignment=UDim2.fromScale(1,.28),true,Enum.TextXAlignment.Center
   local arrow=GuideArrow(gui,"Arrow")
   arrow.Size,arrow.Position,arrow.AnchorPoint=UDim2.fromScale(.72,.72),UDim2.fromScale(.5,.64),Vector2.new(.5,.5)
   arrow.Rotation=90
   self.objective,self.objectiveCaption=gui,label
  end
- local target
+ local target,focusTarget,focusParts
  local guidance=BaseController.OpeningGuidance(state)
- if self.app.commander then self.app.commander:Update() end
  local plot=world:FindFirstChild("Plot"..state.plotIndex)
  local lane=world:FindFirstChild("Lane"..state.plotIndex)
  if guidance then
@@ -446,10 +447,13 @@ function BaseController:UpdateObjective()
     self.eggObjective.Parent=anchor
     self.eggObjective.WorldPosition=Vector3.new(drop.x,drop.y,drop.z)
     target=self.eggObjective
+    local view=self.app.eggs and self.app.eggs.views[drop.id]
+    focusTarget=view and view.gui
    else
     local pets=plot and plot:FindFirstChild("Pets")
     local model=pets and pets:FindFirstChildWhichIsA("Model")
     target=model and model.PrimaryPart
+    focusTarget=model
    end
   elseif guidance.target then target=plot and plot:FindFirstChild(guidance.target) end
  end
@@ -467,6 +471,21 @@ function BaseController:UpdateObjective()
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
+ if guidance and target and target.Name=="RollStation" and anchor then
+  focusTarget=anchor
+  focusParts={anchor}
+  if state.offer then
+   local record=self.roller and self.roller.records[target]
+   if record and record.preview then table.insert(focusParts,record.preview) end
+  else
+   for _,name in {"LeverArm","LeverHandle"} do
+    local part=target:FindFirstChild(name)
+    if part then table.insert(focusParts,part) end
+   end
+  end
+ end
+ self.guideWorldTarget=if guidance then focusTarget or target else nil
+ self.guideWorldParts,self.guideWorldStep=focusParts,guidance and guidance.id
  self.objective.Adornee=anchor
  self.objectiveCaption.Text=if not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
@@ -475,6 +494,7 @@ function BaseController:UpdateObjective()
   and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming
   and not (self.commandHeading.Enabled and self.nearestCommand and self.nearestCommand.model==target)
  self:UpdateGuideTrail(anchor,self.objective.Enabled and guidance~=nil)
+ if self.app.commander then self.app.commander:Update() end
 end
 
 function BaseController:PollCommand()
@@ -524,7 +544,8 @@ end
 function BaseController:Destroy()
 	self.alive = false
 	self:StopGuideMotion()
-	for _,arms in self.guideTrail or {} do for _,arm in ipairs(arms) do if arm.tween then arm.tween:Cancel();arm.tween:Destroy() end end end
+	if self.guideStart then self.guideStart:Destroy() end
+	if self.guideEnd then self.guideEnd:Destroy() end
 	if self.autoCollectStand then self.autoCollectStand:Destroy() end
 	if self.roller then self.roller:Destroy() end
 	for _, connection in self.connections do connection:Disconnect() end

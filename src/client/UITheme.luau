@@ -13,7 +13,7 @@ Theme.Arcade = {
 	army=Palette.Army, sell=Palette.Sell,
 }
 Theme.Colors = {
-	ink=Palette.Text, muted=Palette.Muted,
+	ink=Palette.Text, muted=Palette.Muted, money=Palette.Money,
 	paper=Palette.Body, white=Palette.Text,
 	panel=Palette.Body, line=Palette.Line,
 	card=Palette.Card, cardInk=Palette.CardText, cardMuted=Palette.CardMuted, cardMoney=Palette.CardMoney,

@@ -2,6 +2,19 @@
 
 Auto Collect uses the user's Tripo vacuum. Nine original parts remain separate; no chicken/map art is replaced. Wheels rotate from actual travel and turning. The server drives alternating rows, claims only nearby eggs, carries them separately from the player, returns to the existing sell pad and pays once. Manual nearby egg pickup remains available.
 
+October 3 feedback correction: automatic deliveries retain their payout, local
+amount display and unload animation, but do not trigger the player's deposit or
+cash burst/sound. Manual player deposits retain the normal cash effect.
+
+October 3 solo Play validation: eight consecutive automatic unloads paid $2,576
+with zero player Cash/DepositBurst calls or cash/deposit sound requests. A real
+manual collection and sale paid $264 across three receipts and triggered two
+grouped Money/sound calls. One further automatic unload paid $72. The separate
+manual `EggDepositEffects` template is missing from the place; its burst warns,
+while the Money template is present. Test profile and vacuum bypass were
+session-only; Play was stopped and temporary instrumentation cleared. Evidence:
+[`20261003-cash-feedback-loop.json`](../assets/egg-vacuum/validation/20261003-cash-feedback-loop.json).
+
 Each trip covers four straight, parallel passes, alternating direction, then returns to the cash stand. Cargo never interrupts a pass. The route uses the current chicken-yard bounds, including plot-size upgrades; the rover's intake widens enough to cover its four strips. Manual collection range is unchanged. Disabling Auto Collect or leaving transfers earned cargo into the existing saved egg bag. This does not add offline collection. Cargo not yet autosaved has the same sudden-server-loss limitation as other unsaved pickups.
 
 September 25: suction stays active on the outbound approach, all sweep passes,

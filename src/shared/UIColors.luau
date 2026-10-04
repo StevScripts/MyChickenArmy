@@ -8,6 +8,7 @@ return {
 	Text = Color3.fromRGB(255,251,233),
 	Navigation = Color3.fromRGB(45,158,223),
 	Rewards = Color3.fromRGB(255,209,42),
+	Money = Color3.fromRGB(76,250,32),
 	Upgrade = Color3.fromRGB(168,75,219),
 	Purchase = Color3.fromRGB(105,206,37),
 	Sell = Color3.fromRGB(255,189,43),

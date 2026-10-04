@@ -1,0 +1,143 @@
+{
+  "date": "2026-10-03",
+  "placeId": 96683186622050,
+  "assetId": "101313283357577",
+  "supersededGoldAssetId": "99969806505252",
+  "published": false,
+  "realProfileWrites": false,
+  "deviceRestored": true,
+  "desktop": {
+    "viewport": "1238, 587",
+    "passed": 19,
+    "checks": [
+      "One clear frame owns the shading stroke",
+      "No four-frame mask",
+      "Huge stroke covers beyond every screen edge",
+      "Exact requested 0.8 transparency",
+      "Outer stroke cannot cover the target interior",
+      "Square joined corners",
+      "Spotlight does not intercept input",
+      "Generated arrow image loaded",
+      "Repeated state updates preserve motion",
+      "Clear frame tracks corner 0.00999999978, 0.00999999978",
+      "Clear frame tracks corner 0.839999974, 0.00999999978",
+      "Clear frame tracks corner 0.00999999978, 0.860000014",
+      "Clear frame tracks corner 0.839999974, 0.860000014",
+      "Hidden target clears spotlight",
+      "Visible target restores spotlight",
+      "Offscreen target clears spotlight",
+      "Reduced motion stays static",
+      "Handoff fades out the stroke",
+      "Rapid handoff cancels stale fade-out"
+    ]
+  },
+  "landscapePhone": {
+    "viewport": "666, 374",
+    "passed": 19,
+    "checks": [
+      "One clear frame owns the shading stroke",
+      "No four-frame mask",
+      "Huge stroke covers beyond every screen edge",
+      "Exact requested 0.8 transparency",
+      "Outer stroke cannot cover the target interior",
+      "Square joined corners",
+      "Spotlight does not intercept input",
+      "Generated arrow image loaded",
+      "Repeated state updates preserve motion",
+      "Clear frame tracks corner 0.00999999978, 0.00999999978",
+      "Clear frame tracks corner 0.839999974, 0.00999999978",
+      "Clear frame tracks corner 0.00999999978, 0.860000014",
+      "Clear frame tracks corner 0.839999974, 0.860000014",
+      "Hidden target clears spotlight",
+      "Visible target restores spotlight",
+      "Offscreen target clears spotlight",
+      "Reduced motion stays static",
+      "Handoff fades out the stroke",
+      "Rapid handoff cancels stale fade-out"
+    ]
+  },
+  "portraitPhone": {
+    "viewport": "373, 666",
+    "passed": 19,
+    "checks": [
+      "One clear frame owns the shading stroke",
+      "No four-frame mask",
+      "Huge stroke covers beyond every screen edge",
+      "Exact requested 0.8 transparency",
+      "Outer stroke cannot cover the target interior",
+      "Square joined corners",
+      "Spotlight does not intercept input",
+      "Generated arrow image loaded",
+      "Repeated state updates preserve motion",
+      "Clear frame tracks corner 0.00999999978, 0.00999999978",
+      "Clear frame tracks corner 0.839999974, 0.00999999978",
+      "Clear frame tracks corner 0.00999999978, 0.860000014",
+      "Clear frame tracks corner 0.839999974, 0.860000014",
+      "Hidden target clears spotlight",
+      "Visible target restores spotlight",
+      "Offscreen target clears spotlight",
+      "Reduced motion stays static",
+      "Handoff fades out the stroke",
+      "Rapid handoff cancels stale fade-out"
+    ]
+  },
+  "live": {
+    "researchClosed": true,
+    "worldArrow": "rbxassetid://101313283357577",
+    "loaded": true,
+    "captionWhite": true,
+    "whiteChevronArms": 10
+  },
+  "sourceReadback": {
+    "sources": [
+      {
+        "bytes": 6446,
+        "name": "GuideFocus",
+        "hash": 114743726
+      },
+      {
+        "bytes": 470,
+        "name": "GuideArrow",
+        "hash": 1096041677
+      },
+      {
+        "bytes": 28390,
+        "name": "BaseController",
+        "hash": 1443030090
+      }
+    ],
+    "running": false
+  },
+  "pixelEvidence": {
+    "screenshot": "stroke-desktop.png",
+    "note": "Geometry check before the white color correction; stroke unchanged.",
+    "background": [
+      100,
+      175,
+      240
+    ],
+    "allFourShadedCorners": [
+      80,
+      140,
+      192
+    ],
+    "clearPadding": [
+      100,
+      175,
+      240
+    ],
+    "buttonWhite": [
+      255,
+      255,
+      255
+    ]
+  },
+  "notes": [
+    "Built-in image generation with chunky-simulator-icons reference input. White edit supersedes gold.",
+    "19 focused checks per viewport; no physical-phone or FPS claim.",
+    "Native input closed the real research menu through the spotlight.",
+    "Single transparent target frame with outer black UIStroke, thickness >=10000, transparency 0.8; no four-frame masks.",
+    "Source files synced with Rojo, Studio Flow used for asset upload and inspection. No default Roblox Studio MCP.",
+    "No Git commit/push, release publication, or real profile reset. Play stopped; default device restored."
+  ]
+}

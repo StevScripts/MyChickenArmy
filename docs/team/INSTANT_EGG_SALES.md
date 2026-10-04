@@ -8,9 +8,12 @@ September 27 correction and September 28 throughput tuning. No rebirth added.
 
 - Owned deposit pads pay player bags immediately; vacuum unloads use the same
   atomic server payout. Original earned values and Double Cash apply once.
-- Paid deposit receipts route through existing ActionFeedback deposit and Money
-  particles/sound. A three-second receipt history preserves player/vacuum deposits
-  between snapshots; client deduplication prevents replayed effects.
+- Manual paid deposit receipts use the existing ActionFeedback deposit and Money
+  particles/sound. October 3 correction: automatic vacuum deliveries do not trigger
+  player deposit/cash particles, sound or a fallback toast. They retain their
+  server payout, rover-local amount and unload animation. A three-second receipt
+  history preserves player/vacuum deposits between snapshots; client deduplication
+  prevents replayed effects.
 - All six original boards, including their separate cash pads, were moved intact
   to `ServerStorage.EggProcessingArchive20260929.Boards.Plot1` through `Plot6`.
   The six original egg deposit pads stay in the map.

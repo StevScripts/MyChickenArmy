@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-03",
+  "placeId": 96683186622050,
+  "desktop": {
+    "viewport": "1238, 587",
+    "passed": 17,
+    "checks": [
+      "Rotated item corners stay within the cutout with correct GUI inset",
+      "Same huge black stroke at 0.5 transparency",
+      "World direction keeps the Beam without another GUI arrow",
+      "Camera orbit and zoom resize the cutout automatically",
+      "Moving target follows without SetTarget or manual Layout",
+      "Off-screen target clears shading",
+      "Target behind camera clears shading",
+      "Near-plane crossing cannot produce an inverted cutout",
+      "Returning target restores aligned cutout",
+      "Multi-part item includes handle and base",
+      "Model bounds work with static reduced motion",
+      "Egg spotlight uses visible sprite size, not its tiny invisible anchor",
+      "Moving egg remains inside its opening",
+      "Hidden egg sprite clears shading",
+      "World-to-menu handoff retains the existing GUI pointer",
+      "Destroyed world target disconnects tracking",
+      "Clearing guidance leaves no tracking listener"
+    ]
+  },
+  "iphone13Landscape": {
+    "viewport": "749, 368",
+    "passed": 17,
+    "checks": [
+      "Rotated item corners stay within the cutout with correct GUI inset",
+      "Same huge black stroke at 0.5 transparency",
+      "World direction keeps the Beam without another GUI arrow",
+      "Camera orbit and zoom resize the cutout automatically",
+      "Moving target follows without SetTarget or manual Layout",
+      "Off-screen target clears shading",
+      "Target behind camera clears shading",
+      "Near-plane crossing cannot produce an inverted cutout",
+      "Returning target restores aligned cutout",
+      "Multi-part item includes handle and base",
+      "Model bounds work with static reduced motion",
+      "Egg spotlight uses visible sprite size, not its tiny invisible anchor",
+      "Moving egg remains inside its opening",
+      "Hidden egg sprite clears shading",
+      "World-to-menu handoff retains the existing GUI pointer",
+      "Destroyed world target disconnects tracking",
+      "Clearing guidance leaves no tracking listener"
+    ]
+  },
+  "guiRegression": {
+    "viewport": "1238, 587",
+    "passed": 19,
+    "checks": [
+      "One clear frame owns the shading stroke",
+      "No four-frame mask",
+      "Huge stroke covers beyond every screen edge",
+      "Exact requested 0.5 transparency",
+      "Outer stroke cannot cover the target interior",
+      "Square joined corners",
+      "Spotlight does not intercept input",
+      "Generated arrow image loaded",
+      "Repeated state updates preserve motion",
+      "Clear frame tracks corner 0.00999999978, 0.00999999978",
+      "Clear frame tracks corner 0.839999974, 0.00999999978",
+      "Clear frame tracks corner 0.00999999978, 0.860000014",
+      "Clear frame tracks corner 0.839999974, 0.860000014",
+      "Hidden target clears spotlight",
+      "Visible target restores spotlight",
+      "Offscreen target clears spotlight",
+      "Reduced motion stays static",
+      "Handoff fades out the stroke",
+      "Rapid handoff cancels stale fade-out"
+    ]
+  },
+  "notes": [
+    "Actual roll lever cutout visually inspected on desktop and iPhone 13 landscape emulation.",
+    "One transparent frame with outer 10000-pixel black UIStroke at 0.5 transparency.",
+    "Existing Beam retained; no duplicate world GUI pointer.",
+    "Session-only playtest; no player save reset, publication, commit or push.",
+    "No physical-device or performance measurement."
+  ]
+}

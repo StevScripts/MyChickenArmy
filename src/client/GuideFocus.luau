@@ -1,11 +1,13 @@
 --!strict
--- A cutout over the real control, never a cloned or intercepted purchase button.
+-- One cutout over the real GUI control or projected world item; never intercepts input.
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Theme = require(script.Parent.UITheme)
 local GuideArrow = require(script.Parent.GuideArrow)
+local WorldBounds = require(script.Parent.GuideWorldBounds)
 local Focus = {}
 Focus.__index = Focus
-local DIM_TRANSPARENCY = .8
+local DIM_TRANSPARENCY = .5
 
 function Focus.new(parent)
 	local self = setmetatable({connections={}, targetConnections={}}, Focus)
@@ -48,9 +50,12 @@ function Focus:Animate()
 	self:StopLoops()
 	if self.reduced or not self.root.Visible then return end
 	self.pulse = TweenService:Create(self.stroke, TweenInfo.new(.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Transparency=.6})
+	self.pulse:Play()
+	-- World direction already has the white Beam and native destination marker.
+	if self.world then return end
 	self.arrow.Position = UDim2.fromScale(.40,.5)
 	self.bounce = TweenService:Create(self.arrow, TweenInfo.new(.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Position=UDim2.fromScale(.56,.5)})
-	self.pulse:Play(); self.bounce:Play()
+	self.bounce:Play()
 end
 
 function Focus:HideGeometry()
@@ -62,18 +67,25 @@ function Focus:Layout()
 	local target = self.target
 	local size, origin = self.root.AbsoluteSize, self.root.AbsolutePosition
 	if not target or not target.Parent or size.X<=0 or size.Y<=0 then self:HideGeometry(); return end
-	local p, s = target.AbsolutePosition-origin, target.AbsoluteSize
-	local x1,y1,x2,y2 = math.max(0,p.X),math.max(0,p.Y),math.min(size.X,p.X+s.X),math.min(size.Y,p.Y+s.Y)
-	local ancestor = target
-	while ancestor and not ancestor:IsA("ScreenGui") do
-		if ancestor:IsA("GuiObject") then
-			if not ancestor.Visible then self:HideGeometry(); return end
-			if ancestor~=target and ancestor.ClipsDescendants then
-				local at, extent = ancestor.AbsolutePosition-origin, ancestor.AbsoluteSize
-				x1,y1,x2,y2 = math.max(x1,at.X),math.max(y1,at.Y),math.min(x2,at.X+extent.X),math.min(y2,at.Y+extent.Y)
+	local x1,y1,x2,y2
+	if self.world then
+		x1,y1,x2,y2=WorldBounds(target,self.worldParts,origin)
+		if not x1 then self:HideGeometry(); return end
+		x1,y1,x2,y2=math.max(0,x1),math.max(0,y1),math.min(size.X,x2),math.min(size.Y,y2)
+	else
+		local p,s=target.AbsolutePosition-origin,target.AbsoluteSize
+		x1,y1,x2,y2=math.max(0,p.X),math.max(0,p.Y),math.min(size.X,p.X+s.X),math.min(size.Y,p.Y+s.Y)
+		local ancestor = target
+		while ancestor and not ancestor:IsA("ScreenGui") do
+			if ancestor:IsA("GuiObject") then
+				if not ancestor.Visible then self:HideGeometry(); return end
+				if ancestor~=target and ancestor.ClipsDescendants then
+					local at, extent = ancestor.AbsolutePosition-origin, ancestor.AbsoluteSize
+					x1,y1,x2,y2 = math.max(x1,at.X),math.max(y1,at.Y),math.min(x2,at.X+extent.X),math.min(y2,at.Y+extent.Y)
+				end
 			end
+			ancestor = ancestor.Parent
 		end
-		ancestor = ancestor.Parent
 	end
 	if x2-x1<2 or y2-y1<2 then self:HideGeometry(); return end
 	-- Pixel padding follows a measured control; menu layout itself remains native.
@@ -99,12 +111,14 @@ function Focus:Layout()
 	if entering then self:Animate() end
 end
 
-function Focus:SetTarget(target, reduced)
+function Focus:SetTarget(target, reduced, worldParts)
+	self.worldParts=worldParts
 	if target==self.target and reduced==self.reduced then if target then self:Layout() end; return end
 	for _,connection in self.targetConnections do connection:Disconnect() end
 	table.clear(self.targetConnections)
 	self:StopLoops()
 	self.target, self.reduced = target, reduced
+	self.world=target~=nil and not target:IsA("GuiObject")
 	if not target then
 		self.pointer.Visible, self.stroke.Enabled = false, false
 		Theme.Motion:Tween(self.dim,"guide-dim",{Transparency=1},if reduced then 0 else .14,nil,nil,function()
@@ -112,19 +126,25 @@ function Focus:SetTarget(target, reduced)
 		end)
 		return
 	end
-	self.pointer.Visible,self.window.Visible = true,true
+	self.pointer.Visible,self.window.Visible = not self.world,true
 	self.stroke.Enabled = true
 	local function layout() self:Layout() end
-	for _,property in {"AbsolutePosition", "AbsoluteSize", "Visible"} do
-		table.insert(self.targetConnections,target:GetPropertyChangedSignal(property):Connect(layout))
-	end
 	table.insert(self.targetConnections,target.AncestryChanged:Connect(layout))
-	local ancestor=target.Parent
-	while ancestor and not ancestor:IsA("ScreenGui") do
-		if ancestor:IsA("GuiObject") then
-			table.insert(self.targetConnections,ancestor:GetPropertyChangedSignal("Visible"):Connect(layout))
+	if self.world then
+		-- Camera/target tracking is projection, not a decorative animation tween.
+		table.insert(self.targetConnections,RunService.PreRender:Connect(layout))
+		table.insert(self.targetConnections,target.Destroying:Connect(function() self:SetTarget(nil,self.reduced) end))
+	else
+		for _,property in {"AbsolutePosition", "AbsoluteSize", "Visible"} do
+			table.insert(self.targetConnections,target:GetPropertyChangedSignal(property):Connect(layout))
 		end
-		ancestor=ancestor.Parent
+		local ancestor=target.Parent
+		while ancestor and not ancestor:IsA("ScreenGui") do
+			if ancestor:IsA("GuiObject") then
+				table.insert(self.targetConnections,ancestor:GetPropertyChangedSignal("Visible"):Connect(layout))
+			end
+			ancestor=ancestor.Parent
+		end
 	end
 	self:Layout(); self:Animate()
 	Theme.Motion:Tween(self.dim,"guide-dim",{Transparency=DIM_TRANSPARENCY},if reduced then 0 else .18)

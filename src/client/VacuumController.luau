@@ -236,7 +236,7 @@ function Vacuum:Deposit(receipt, now)
 		self.label.Text = if receipt.queued then Theme.Money(receipt.count).." eggs deposited" else "+$" .. Theme.Money(receipt.value)
 		self.popup.Enabled, self.popupUntil, self.depositUntil = true, now + 1.1, now + 1.1
 	end
-	-- ActionFeedback owns deposit contact and any actual cash-arrival celebration.
+	-- Automatic deliveries stay local to the rover; no player cash burst or sound.
 end
 
 function Vacuum:ApplyPose()

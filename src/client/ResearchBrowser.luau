@@ -213,7 +213,7 @@ function Browser.new(app,parent)
 	Theme.Image(money,"ResearcherIcon",Assets.lab,UDim2.fromScale(.075,.34))
 	self.researchers=label(money,"Researchers","Researchers: 0/1",.085,0,.915,.34,CYAN);self.researchers.TextXAlignment=Enum.TextXAlignment.Left
 	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.13,.53),UDim2.fromScale(0,.44))
-	self.cash=label(money,"Cash","$0",.15,.37,.85,.63,GREEN);self.cash.TextXAlignment=Enum.TextXAlignment.Left
+	self.cash=label(money,"Cash","$0",.15,.37,.85,.63,Theme.Colors.money);self.cash.TextXAlignment=Enum.TextXAlignment.Left
 	self.exit=Instance.new("TextButton")
 	self.exit.Name,self.exit.Text,self.exit.AutoButtonColor="Exit","",false
 	self.exit.BackgroundColor3,self.exit.BorderSizePixel=Color3.fromRGB(239,5,31),0

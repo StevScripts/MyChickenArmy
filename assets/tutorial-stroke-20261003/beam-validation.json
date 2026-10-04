@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-03",
+  "placeId": 96683186622050,
+  "fixture": {
+    "passed": 13,
+    "checks": [
+      "No route allocated without a world target",
+      "White directional Beam created",
+      "Player endpoint follows movement without a guidance update",
+      "Destination endpoint follows movement without a guidance update",
+      "Repeated updates reuse Beam, attachments and bob tween",
+      "Reduced motion stops scrolling and bobbing",
+      "Normal motion resumes",
+      "Target change releases owned endpoint and borrows egg-style attachment",
+      "Hidden or completed guidance disables Beam and motion",
+      "Arrival hides the route",
+      "Removed character attachment is recreated",
+      "Removed destination hides the route",
+      "Destroy cleans owned effects and preserves borrowed attachment"
+    ]
+  },
+  "live": {
+    "enabled": true,
+    "color": "1, 1, 1",
+    "spotlight": ".5",
+    "loaded": [
+      {
+        "id": "rbxassetid://5886559421",
+        "status": "Success"
+      }
+    ],
+    "sourceBytes": 28365,
+    "oldChevronParts": 0,
+    "sourceHash": 1337001714,
+    "speed": 1,
+    "start": "Workspace.Stev_Scripts.HumanoidRootPart.CommanderGuideStart",
+    "goal": "Workspace.PetRollWorld.Plot1.RollStation.LeverBase.CommanderGuideEnd",
+    "textureMode": "Static",
+    "texture": "rbxassetid://5886559421"
+  },
+  "notes": [
+    "Disposable Studio session only; no saved profile reset or release publish.",
+    "Observed white Beam arrows pointing toward the free roll lever.",
+    "Normal camera restored; Play left running as it was at task start.",
+    "Existing plugin settings errors and startup PlayerGui delay appeared before client ready; no Beam runtime errors observed.",
+    "No physical-device or performance measurement."
+  ]
+}

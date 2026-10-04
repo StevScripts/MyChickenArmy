@@ -37,6 +37,18 @@ Preserve the current relative module paths, internal PetRoll/Duck IDs and save c
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 
 ## Chicken icons — black stroke
+For new illustrated icons, use the built-in image generator with
+`/Users/stevin/.codex/skills/chunky-simulator-icons/SKILL.md` whenever applicable.
+Tutorial arrows and destination text are white; generated pointer artwork has a
+black outline. World routes use one attachment-driven Beam with native texture
+scrolling, not repositioned arrow Parts. Tutorial spotlights use one transparent
+target frame with a huge outer black UIStroke at 0.5 transparency. Apply the same
+cutout to world items by projecting their bounds with WorldToScreenPoint; keep it
+aligned with camera movement and clear it for off-screen/behind-camera targets.
+Use it selectively: world dimming only for initial Roll/Recruit while the native
+prompt is in reach; walking, collection, selling, growth and battles use Beam
+and marker guidance. GUI dimming is for Expand/Select learning interactions.
+
 All chicken UI icons and portraits require a visible black stroke around the chicken silhouette, including new traits and rendered previews used as icons. Keep it consistent and unclipped; a card border is not a substitute. Follow the design workspace's DESIGN.md illustration contract. This is the user's September 27 reminder.
 
 ## Stud texture — mandatory image reuse

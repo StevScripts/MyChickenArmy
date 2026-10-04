@@ -1,5 +1,9 @@
 # Guidance arrow — October 3, 2026
 
+The user corrected the guidance palette to white. The gold generation below is
+superseded and retained only as a source backup. The runtime uses
+`guidance-arrow-white-roblox.png`, asset `rbxassetid://101313283357577`.
+
 Generated using the built-in image-generation tool and the chunky-simulator-icons skill. Actual reference input: `/Users/stevin/.codex/skills/chunky-simulator-icons/references/screenshots/01-hud-navigation.png`.
 
 Prompt:

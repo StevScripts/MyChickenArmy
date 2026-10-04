@@ -194,7 +194,9 @@ function Feedback:ClearDeposits()
 end
 
 function Feedback:ShowDeposit(receipt)
-	if not self.alive then return end
+	-- Automatic deliveries keep their rover-local unload/amount feedback; they
+	-- must not celebrate at the player every time the machine reaches the pad.
+	if not self.alive or receipt.collector=="rover" then return end
 	local root = self:Root()
 	if not root or not root:IsA("BasePart") then
 		self.app:Notify(if receipt.queued then "Deposited "..Theme.Money(receipt.count).." eggs" else "+$"..Theme.Money(receipt.value),true)
