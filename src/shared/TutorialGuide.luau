@@ -1,7 +1,7 @@
 --!strict
 -- Snapshot-only guidance. Never changes prices, eligibility or player actions.
 local Guide = {}
-Guide.Version = "cluck-2-empty-start"
+Guide.Version = "cluck-3-starter-army"
 Guide.Milestones = {"Roll", "Recruit", "Collect", "Sell", "Grow", "Expand", "Select", "Deploy", "Win"}
 
 function Guide.Facts(state)
@@ -10,7 +10,9 @@ function Guide.Facts(state)
 	for _, value in state.firstWins or {} do if value then won = true end end
 	return {
 		Roll = t.rolled == true,
-		Recruit = t.bought == true or #(state.pets or {}) >= (if t.emptyStart then 1 else 4),
+		-- The free squad must not count as completing the recruit lesson.
+		Recruit = if t.starterArmy then t.bought == true
+			else t.bought == true or #(state.pets or {}) >= (if t.emptyStart then 1 else 4),
 		Collect = t.collectedEggs == true or ((state.eggs or {}).carriedCount or 0) > 0,
 		Sell = t.soldEggs == true,
 		Grow = #(state.pets or {}) >= 4,
@@ -41,11 +43,14 @@ end
 local function recruit(state, growing)
 	local count = #(state.pets or {})
 	local id = if growing then "Grow" else "Recruit"
+	local starterArmy = (state.tutorial or {}).starterArmy == true and not growing
 	local offer = state.offer
 	if not offer then
-		return step(if growing then id else "Roll", if growing then "Grow your flock: "..count.."/4" else "Roll your first chicken",
+		return step(if growing then id else "Roll", if growing then "Grow your flock: "..count.."/4"
+			else if starterArmy then "Roll your fourth chicken" else "Roll your first chicken",
 			"Use the lever — rolling is FREE.", "RollStation",
-			if count==0 and (state.starterCashReserve or 0)>0 then
+			if starterArmy then "Three chickens are ready. Roll a fourth for $"..(state.starterRecruitPrice or 600).."; its cash is reserved."
+			elseif count==0 and (state.starterCashReserve or 0)>0 then
 				"Your first roll guarantees a chicken. $"..state.starterCashReserve.." is saved for buying it."
 			else "Use the lever beside your podium. Rolling is free; buying uses cash.")
 	end
@@ -57,8 +62,8 @@ local function recruit(state, growing)
 		recovery.help ..= " Or use the lever to roll again FREE."
 		return recovery
 	end
-	return step(id, if growing then "Grow your flock: "..count.."/4" else "Buy your first chicken",
-		"Your chicken will lay eggs for cash.", "RollStation",
+	return step(id, if growing then "Grow your flock: "..count.."/4" else if starterArmy then "Recruit your fourth chicken" else "Buy your first chicken",
+		if starterArmy then "Buy for $"..offer.price.." to grow your army." else "Your chicken will lay eggs for cash.", "RollStation",
 		"At your podium, use Buy. The lever rolls a new offer FREE.")
 end
 
@@ -78,6 +83,9 @@ function Guide.Resolve(state)
 			"Chickens recover after a knockout. Change squads in My Army.")
 	end
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
+		if t.starterArmy and f.Sell then
+			return step("Return", "Your flock is returning", "They'll be ready for another attack.", nil)
+		end
 		return step("Return", "Your flock is returning", "Collect eggs as they recover.", "Yard")
 	end
 	if not f.Recruit or #(state.pets or {})==0 then return recruit(state, false) end
@@ -90,8 +98,8 @@ function Guide.Resolve(state)
 		return step("Sell", "Sell your eggs", "Green pad → instant cash.", "EggDeposit",
 			"Walk onto your green sell pad with eggs in your bag.")
 	end
-	-- Earn from the first chicken before buying more; an empty army slot is not
-	-- the next useful purchase when this profile no longer starts with three birds.
+	-- The new squad already has four birds after Recruit. Older empty-yard saves
+	-- can still grow their flock without resetting or granting them extra birds.
 	if not f.Grow then return recruit(state, true) end
 	if not f.Expand then
 		local offer = state.nextSlot

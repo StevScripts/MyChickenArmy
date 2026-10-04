@@ -99,6 +99,8 @@ function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
 	local price=Rules.ChickenUpgradePrice(pet.species,level)
 	if expectedLevel~=level or expectedPrice~=price then return false,"The upgrade changed. Try again." end
 	if not price or session.coins<price then return false,"Not enough cash to upgrade this chicken." end
+	local canSpend,spendReason=session:CanSpendCash(price)
+	if not canSpend then return false,spendReason end
 	local investment=(pet.investment or Rules.Investment(pet.species,level))+price
 	if investment~=investment or investment<0 or investment>1e12 then
 		return false,"This upgrade exceeds the saved investment limit."
@@ -121,6 +123,7 @@ end
 -- Exact triples; keep a selected squad ID so the survivor retains its place.
 function ArmyService.MergeOptions(session, automatic: boolean?)
 	if not Config.Features.Merging then return {} end
+	if session:Count()-2<session:StarterFlockMinimum() then return {} end
 	local groups,options,protected={},{},{}
 	if automatic and session.armySelection then
 		for _,id in session.armySelection do protected[id]=true end
@@ -210,7 +213,9 @@ function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expect
 	if not Config.Features.Merging then return false,"Merging is unavailable." end
 	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if not triple then return false,reason end
-	if session.coins<triple.price then return false,"Not enough cash to fuse these chickens." end
+	if session:Count()-2<session:StarterFlockMinimum() then return false,"Keep your starter army for the first mission." end
+	local canSpend,spendReason=session:CanSpendCash(triple.price)
+	if not canSpend then return false,spendReason end
 	-- The fee is a service cost, not refundable chicken purchase investment.
 	session.coins-=triple.price
 	consumeTriple(session,triple)
@@ -240,7 +245,9 @@ function ArmyService.MergeAll(session,triples)
 		total+=triple.price
 	end
 	if count~=#triples then return false,"Invalid merge selection." end
-	if session.coins<total then return false,"Not enough cash to fuse these chickens." end
+	if session:Count()-2*count<session:StarterFlockMinimum() then return false,"Keep your starter army for the first mission." end
+	local canSpend,spendReason=session:CanSpendCash(total)
+	if not canSpend then return false,spendReason end
 	session.coins-=total
 	local results={}
 	for _,triple in validated do
@@ -286,8 +293,9 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	end
 	if count~=#petIds then return false,"Invalid chicken selection." end
 	if type(expectedTotal)~="number" or expectedTotal~=total then return false,"Your sale value changed. Choose again." end
-	if session:ProtectStarterFlock() and count>=session:Count() then
-		return false,"Keep one chicken to earn eggs during your first mission."
+	local minimum=session:StarterFlockMinimum()
+	if session:Count()-count<minimum then
+		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
 	if not session:CanCredit(total,"sale") then return false,"Spend some cash before selling these chickens." end
 	-- Validate the whole batch before mutation; this transaction never yields.
@@ -301,7 +309,7 @@ function ArmyService.Expand(session)
  local nextSlot=session:NextSlot()
  if not nextSlot then return false,"Your squad can already deploy "..session:Capacity().." chickens." end
  if not nextSlot.unlocked then return false,nextSlot.requirement.." first." end
- local canSpend,reason=session:CanSpendCash(nextSlot.price)
+ local canSpend,reason=session:CanSpendCash(nextSlot.price,"ArmySize")
  if not canSpend then return false,reason end
  session.coins-=nextSlot.price;session.capacity=nextSlot.capacity;session.tutorial.upgraded=true
  -- A bought slot adds one best reserve without replacing the manual lineup.

@@ -13,7 +13,7 @@ end
 
 function RollService:Roll(session, now: number)
 	if now < session.rollReadyAt then return false, "Roll is cooling down." end
-	local starter = session:StarterCashReserve()>0
+	local starter = session:StarterRecruitPending()
 	-- Rank metadata remains compatible with saved sessions; rolls use the full roster.
 	session.recruitTier=session.promotion
 	local rng = session.debugRandom or self.random
@@ -31,7 +31,7 @@ function RollService:Roll(session, now: number)
 		-- The disclosed guarantee advances once per lever pull, not once per display.
 		local forced=if slot==1 then session.debugNext or guaranteed else nil
 		local species=if starter then "Duck" else forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
-		local level=Rules.RecruitLevel(session.pets,species,session.promotion)
+		local level=if starter then 1 else Rules.RecruitLevel(session.pets,species,session.promotion)
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
 			level=level,price=if starter then Config.Economy.StarterRecruitPrice else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
@@ -62,6 +62,10 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local price = offer.price or Rules.RecruitPrice(species, level)
 	if session:Count() >= session:CollectionLimit() then return false, "Flock full — sell reserve chickens in the Army menu." end
 	if session.coins < price then return false, "Not enough coins. This offer will wait for you." end
+	local starter=offer.starter==true and session:StarterRecruitPending()
+		and species=="Duck" and level==1 and price==Config.Economy.StarterRecruitPrice
+	local canSpend,reason=session:CanSpendCash(price,if starter then "StarterRecruit" else nil)
+	if not canSpend then return false,reason end
 	local before=session:BestPetIds()
 	-- This transaction does not yield: an offer cannot be bought twice.
 	session.coins -= price

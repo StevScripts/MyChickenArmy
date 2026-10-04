@@ -21,7 +21,7 @@ function UpgradeService:Offers(session)
 	local function add(key, level, current, price, available)
 		local unlocked = available ~= false
 		local canSpend,spendReason=true,""
-		if price then canSpend,spendReason=session:CanSpendCash(price) end
+		if price then canSpend,spendReason=session:CanSpendCash(price,if key=="ArmySize" then "ArmySize" else nil) end
 		offers[key] = {level = level, currentText = current, price = price, unlocked = unlocked,
 			canSpend=canSpend,spendReason=spendReason,
 			requirement = if available == false then "This plot has no additional upgrade space." else "",
@@ -73,7 +73,7 @@ function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice)
 	if not offer.unlocked then return false, offer.requirement end
 	-- A replay or stale click never purchases another level at an unexpected price.
 	if expectedLevel ~= offer.level or expectedPrice ~= offer.price then return false, "This upgrade changed. Try again." end
-	local canSpend,reason=session:CanSpendCash(offer.price)
+	local canSpend,reason=session:CanSpendCash(offer.price,if key=="ArmySize" then "ArmySize" else nil)
 	if not canSpend then return false,reason end
 	if key == "ArmySize" then return ArmyService.Expand(session) end
 	if key == "EggValue" then return ArmyService.UpgradeIncome(session) end

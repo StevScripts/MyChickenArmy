@@ -50,7 +50,7 @@ function PlayerSession:Reset()
  self.promotion,self.recruitTier=1,1
  self.frontierWins,self.kingCleared={},false
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
- self.tutorial={emptyStart=true}
+ self.tutorial={starterArmy=true}
  self.saveStatus=self.saveStatus or "loading"
  self.saveMessage=self.saveMessage or "Loading your flock…"
 	self.pets, self.slots, self.firstWins, self.raidPaid = {}, {}, {}, {}
@@ -64,7 +64,7 @@ function PlayerSession:Reset()
 	self.passiveEarned, self.battleEarned, self.returnAt = 0, 0, 0
 	self.sessionIncome={eggs=0,battle=0,territory=0}
 	self.debugNext, self.debugRandom = nil, nil
-	self.lastResult, self.banner = "Roll your first chicken FREE at the lever.", ""
+	self.lastResult, self.banner = "Your first three chickens are ready. Roll FREE to recruit your fourth!", ""
 	for slot, species in Config.StarterFlock do
 		local pet = self:AddPet(species, 1)
 		pet.investment = 0 -- Free birds have no cash purchase to refund.
@@ -134,23 +134,49 @@ function PlayerSession:Count(): number
 	return count
 end
 
--- Keep the first income source affordable even if the guide is skipped/rejoined.
--- Existing saves do not opt into this new-player policy.
-function PlayerSession:StarterCashReserve(): number
-	return if self.tutorial.emptyStart and not self.tutorial.bought and self:Count()==0
-		then Config.Economy.StarterRecruitPrice else 0
+-- Saved cohorts keep their own opening; skipping/rejoining cannot spend its budget.
+function PlayerSession:StarterRecruitPending(): boolean
+	return not self.tutorial.bought and ((self.tutorial.starterArmy==true and not self.tutorial.guideCompleted)
+		or (self.tutorial.emptyStart==true and self:Count()==0))
 end
 
-function PlayerSession:CanSpendCash(amount: number): (boolean, string)
+function PlayerSession:StarterArmyReserve(): number
+	if not self.tutorial.starterArmy or self.tutorial.guideCompleted or self:Capacity()>=4 then return 0 end
+	local nextSlot=self:NextSlot()
+	return if nextSlot then nextSlot.price else 0
+end
+
+function PlayerSession:StarterCashReserve(): number
+	return (if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0)
+		+self:StarterArmyReserve()
+end
+
+function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean, string)
 	if amount<0 or amount~=amount or self.coins<amount then return false,"Not enough cash." end
-	if self.coins-amount<self:StarterCashReserve() then
-		return false,"Keep $"..Config.Economy.StarterRecruitPrice.." for your first chicken. Roll FREE at the lever!"
+	local reserve=self:StarterCashReserve()
+	-- Only validated server transactions supply a purpose. Each required purchase
+	-- may use its own earmark, never the money reserved for the other purchase.
+	if purpose=="StarterRecruit" and self:StarterRecruitPending() and amount==Config.Economy.StarterRecruitPrice then
+		reserve-=Config.Economy.StarterRecruitPrice
+	elseif purpose=="ArmySize" and amount==self:StarterArmyReserve() then
+		reserve-=self:StarterArmyReserve()
+	end
+	if self.coins-amount<reserve then
+		local reason=if self.tutorial.starterArmy then "Keep $"..reserve.." for your tutorial recruit and Army Size."
+			else "Keep $"..Config.Economy.StarterRecruitPrice.." for your first chicken. Roll FREE at the lever!"
+		return false,reason
 	end
 	return true,""
 end
 
+function PlayerSession:StarterFlockMinimum(): number
+	if self.tutorial.guideCompleted then return 0 end
+	if self.tutorial.starterArmy then return if self.tutorial.bought then 4 else 3 end
+	return if self.tutorial.emptyStart then 1 else 0
+end
+
 function PlayerSession:ProtectStarterFlock(): boolean
-	return self.tutorial.emptyStart==true and not self.tutorial.guideCompleted
+	return self:StarterFlockMinimum()>0
 end
 
 function PlayerSession:FindSlot(id: string): number?
@@ -229,8 +255,9 @@ end
 local function saleEligibility(session,id,selected): (boolean,string)
 	local pet=if type(id)=="string" then session.pets[id] else nil
 	if not pet then return false,"That chicken is no longer in your flock." end
-	if session:ProtectStarterFlock() and session:Count()==1 then
-		return false,"Keep one chicken to earn eggs during your first mission."
+	local minimum=session:StarterFlockMinimum()
+	if minimum>0 and session:Count()<=minimum then
+		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
 	if pet.favorite then return false,"Favorite protected — unfavorite this chicken before selling." end
 	if not session:IsPetHome(id) then return false,"This chicken is deployed or traveling." end
@@ -431,7 +458,9 @@ function PlayerSession:Snapshot(now: number)
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		campsWon=campsWon,allCampsWon=self:Completed(),
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
-		coins=self.coins,starterCashReserve=self:StarterCashReserve(),income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue),
+		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
+		starterRecruitPrice=if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0,
+		income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue),
 		homeEggsPerSecond=self:Income()/(Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue))*eggProduction,
 		capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
@@ -679,7 +708,7 @@ function PlayerSession:LoadData(data)
   if previousEarned>promotion then promotion,recruitTier=previousEarned,previousEarned end
  end
 	local tutorial={}
-	for _,key in {"emptyStart","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted"} do tutorial[key]=data.tutorial[key]==true end
+	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted"} do tutorial[key]=data.tutorial[key]==true end
 	if not numberIn(data.passiveEarned or 0,0,Currency.MaxCoins) or not numberIn(data.battleEarned or 0,0,Currency.MaxCoins) then return false,"Invalid saved earnings." end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.
