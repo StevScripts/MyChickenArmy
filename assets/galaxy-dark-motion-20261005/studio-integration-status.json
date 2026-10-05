@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-05",
+  "placeId": 96683186622050,
+  "placeName": "Pet Roll Test",
+  "studioInstance": "instance:hg3-vqc",
+  "status": "PARTIAL_PENDING_NATIVE_UI_CONNECTION",
+  "completed": [
+    "Dark Matter flowing 2048x2048 atlas, packed Blender file and skinned GLB saved",
+    "GalaxyCrateVisuals runtime and AppController hooks saved locally; Luau analysis passed",
+    "Astronaut revised GLB imported as Kiru Experiences and staged in Workspace.Astronaut and ReplicatedStorage.GalaxyCrateChickenAssets20261002.Astronaut",
+    "Astronaut old world and staged template preserved in ServerStorage.GalaxyRetextureBackup20261005",
+    "Astronaut appearance visually checked in canonical Edit viewport; Studio GUI temporarily hidden then restored"
+  ],
+  "pending": [
+    "Native Alien GLB import",
+    "Native Dark Matter flowing GLB import and GalaxyTextureMotion attribute",
+    "Restore DragonChickenFlight.rbxm and scale uniformly 2.5x",
+    "Rojo sync of two mapped scripts",
+    "Verify moving UV effect and final lineup",
+    "Save native complete place and save updated cloud place (not publish)"
+  ],
+  "blocker": "Computer Use native Roblox Studio controls repeatedly return noWindowsAvailable; asked user to bring Studio to the foreground. MCP read/asset operations remain connected.",
+  "astronautMeshId": "75448284625569",
+  "astronautColorMap": "137723443466211",
+  "astronautNormalMap": "134432308903097",
+  "astronautMetalnessMap": "108471077285530",
+  "astronautRoughnessMap": "139422560779360",
+  "astronautEmissiveMask": "86715854543105",
+  "newNativePlaceSaveConfirmed": false,
+  "newCloudSaveConfirmed": false,
+  "rojoPort": 34873,
+  "rojoProject": ".tools/galaxy-crate-visuals.project.json"
+}

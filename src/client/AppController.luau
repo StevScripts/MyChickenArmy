@@ -32,6 +32,7 @@ local CommerceController = require(script.Parent.CommerceController)
 local BaseController = require(script.Parent.BaseController)
 local BattleController = require(script.Parent.BattleController)
 local DuckAnimator = require(script.Parent.DuckAnimator)
+local GalaxyCrateVisuals = require(script.Parent.GalaxyCrateVisuals)
 local AppController = {}
 AppController.__index = AppController
 local C = Theme.Colors
@@ -553,7 +554,7 @@ function AppController:RenderSettings()
 	self.panelTitle.Text = "Settings"
 	self:Button("ToggleMusic", "Music  ·  " .. (if self.audio.musicEnabled then "ON" else "OFF"), function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	self:Button("ToggleEffects", "Sound effects  ·  " .. (if self.audio.sfxEnabled then "ON" else "OFF"), function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
-	self:Button("ReducedMotion", "Reduced motion  ·  " .. (if self.reducedMotion then "ON" else "OFF"), function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	self:Button("ReducedMotion", "Reduced motion  ·  " .. (if self.reducedMotion then "ON" else "OFF"), function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
 	self:Text("ControlsHeading", "PC CONTROLS", 13, 24, C.green)
 	self:Text("Controls", "WASD move · Mouse look\nE interact · F buy\nB chickens · U upgrades · O settings · Esc close", 16, 60, C.muted)
 	self:Text("SaveInfo", self.state.saveMessage or "Pets, coins and upgrades are saved between visits.", 12, 32, C.muted)
@@ -751,6 +752,8 @@ function AppController:Start()
 	self.eggs:Start()
 	self.animator = DuckAnimator.new(self.audio)
 	self.animator:SetReducedMotion(self.reducedMotion)
+	self.galaxyCrateVisuals = GalaxyCrateVisuals.new()
+	self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion)
 	self.prompts=PromptStyleController.new(self)
 	self.prompts:Start()
 	self.base:Start()
@@ -781,6 +784,7 @@ function AppController:Destroy()
 	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
 	if self.commander then self.commander:Destroy() end
 	if self.animator then self.animator:Destroy() end
+	if self.galaxyCrateVisuals then self.galaxyCrateVisuals:Destroy() end
 	if self.prompts then self.prompts:Destroy() end
 	self.commerce:Destroy();self.shopBrowser:Destroy();self.indexBrowser:Destroy()
 	if self.mergeBrowser then self.mergeBrowser:Destroy() end

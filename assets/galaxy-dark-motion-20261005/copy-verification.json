@@ -1,0 +1,57 @@
+[
+  {
+    "path": "dark-matter_ORM.png",
+    "bytes": 3468178,
+    "sha256": "4ecfb38d122ceefac2094ca86c97450ab8f169baf107986f876519de9ba4af00"
+  },
+  {
+    "path": "dark-matter_MetalnessMap.png",
+    "bytes": 1627635,
+    "sha256": "0d10aa42451407cdd9777af935a94048a31c80730e2cac47a89ba0e2364d46dd"
+  },
+  {
+    "path": "dark-matter_RoughnessMap.png",
+    "bytes": 2448105,
+    "sha256": "116e0cdff53df6aaeb71d43d472a800578e394917f37a4cdb29af1bfc03f54a9"
+  },
+  {
+    "path": "motion-export-report.json",
+    "bytes": 1984,
+    "sha256": "94017db3ea9d5d228df7c11f98e91564310ca21dfd0a8c56ca5072fe464a01f4"
+  },
+  {
+    "path": "Galaxy-Dark-Matter-Motion.blend",
+    "bytes": 74434800,
+    "sha256": "68249c6a7ab80331163419c578382d6c0aa325c517fa7a60cefdfa2d8a3cca15"
+  },
+  {
+    "path": "build_dark_motion.py",
+    "bytes": 17756,
+    "sha256": "35dbf2088688410a8e8fe29d9690db58a249dad7190cda2187540180ed1b25e8"
+  },
+  {
+    "path": "dark-matter_EmissionColor.png",
+    "bytes": 4833428,
+    "sha256": "50175fb3559995ff791237764d31517705f4a404753d90572b2d6ea80dcfc3fd"
+  },
+  {
+    "path": "README.md",
+    "bytes": 2229,
+    "sha256": "b4edab3356e55c55039bbb4fc68056fd456c368b35b852ab0d1cc3867d3eb14e"
+  },
+  {
+    "path": "dark-matter_ColorMap.png",
+    "bytes": 5032397,
+    "sha256": "4da011d3af129d1d53372784aee2902470221f738b5c387e97f66ea654a99729"
+  },
+  {
+    "path": "dark-matter_NormalMap.png",
+    "bytes": 2864656,
+    "sha256": "4c67884bda83b3644163c3f423873a64e6821210186735ad4e09af2fd7db1c66"
+  },
+  {
+    "path": "exports/dark-matter-flow.glb",
+    "bytes": 16269680,
+    "sha256": "035da7436aa2d2e348e8cdf81baff494965f3d30a66af858ad4e9979bb3e2021"
+  }
+]

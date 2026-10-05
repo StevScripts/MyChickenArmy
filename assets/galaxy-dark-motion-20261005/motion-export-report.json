@@ -1,0 +1,54 @@
+{
+  "glb": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/exports/dark-matter-flow.glb",
+  "blend": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/Galaxy-Dark-Matter-Motion.blend",
+  "vertices": 672,
+  "bones": 18,
+  "source_unchanged": true,
+  "source_signature": "229c8bf900b5a8a6c3a832d24c1f1e8390c196456182e879067b95e198817482",
+  "moving_authoring_loops": 108,
+  "protected_authoring_loops": 720,
+  "moving_gltf_uvs": 72,
+  "protected_gltf_uvs": 1080,
+  "moving_uv_bounds": [
+    [
+      0.07937512546777725,
+      0.40450283885002136
+    ],
+    [
+      0.0715067982673645,
+      0.44003957509994507
+    ]
+  ],
+  "static_min_v": 0.819091796875,
+  "atlas_size": [
+    2048,
+    2048
+  ],
+  "runtime": {
+    "model_attribute": {
+      "GalaxyTextureMotion": "DarkMatter"
+    },
+    "mesh_name": "Body",
+    "animated_region": "UV V < 0.5; initial U,V strictly within 0..0.5",
+    "protected_region": "UV V >= 0.5",
+    "offset_u": [
+      0,
+      0.5
+    ],
+    "period_seconds": 8,
+    "loop": "Linear TweenService repeat; identical mirrored tiles; no reset seam"
+  },
+  "maps": {
+    "ColorMap": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/dark-matter_ColorMap.png",
+    "NormalMap": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/dark-matter_NormalMap.png",
+    "RoughnessMap": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/dark-matter_RoughnessMap.png",
+    "MetalnessMap": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/dark-matter_MetalnessMap.png",
+    "ORM": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/dark-matter_ORM.png",
+    "EmissionColor": "/Users/stevin/.codex/artifacts/galaxy-dark-motion-20261005/dark-matter_EmissionColor.png"
+  },
+  "notes": [
+    "All geometry and 18 bones preserved.",
+    "Body, Neck, Head flow; eyes, beak, comb, feet and feather wings remain fixed.",
+    "Atlas authored with native Blender emission renders, not Python pixel editing."
+  ]
+}
