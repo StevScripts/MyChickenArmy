@@ -1,5 +1,19 @@
 # Eight roll podiums — September 29, 2026
 
+## October 6: eight authored podiums on every plot
+
+The user requested Plot1's full contents on all six plots. Plots2–6 now have
+Plot1's eight uniquely numbered podiums and lever, with their original entrance
+positions/rotations and individual plot labels preserved. All six therefore
+support the physical eight-slot maximum. This supersedes the historical
+one-podium limitation below; it does not grant unpurchased slots or change
+prices, saved ownership or the October 2 hidden-stand behavior.
+Authored structural readback and runtime facility inspection passed, and a
+full local place copy is saved. See [plot parity and recovery](PLOT_PARITY.md)
+for verification scope.
+
+## September 29 implementation record
+
 The user added eight authored stands to Plot1. Support now accepts up to eight
 simultaneous offers through `Config.RollSlotsUnlocked=8`. Stored ownership still
 limits active displays, and physical stands still limit each plot. New profiles
@@ -10,8 +24,9 @@ ownership is preserved; seven and eight serialize normally.
 The two new stands were both named DisplayPodium7. The one nearest podium six,
 at the inspected RollDisplay position (299.3721, 4.4920, -175.3151), was renamed
 DisplayPodium8 in the Edit source. Geometry and placement were untouched.
-Plot1 now orders DisplayPodium, DisplayPodium2 through DisplayPodium8 uniquely.
-Plots2–6 currently each have one RollDisplay and were left intact.
+Plot1 then ordered DisplayPodium, DisplayPodium2 through DisplayPodium8 uniquely.
+Plots2–6 each had one RollDisplay and were left intact in this September 29
+operation. The October 6 parity operation above replaces that limitation.
 
 The user's follow-up replaces the $600M sixth-slot luxury goal with a target of
 all eight slots in roughly 8–9 total active F2P hours from a fresh profile.

@@ -75,20 +75,40 @@ local function addTag(body: BasePart, displayName: string, offset: number)
 	health.Name = "Health"
 	health.AnchorPoint = Vector2.new(0.5, 0)
 	health.Position = UDim2.new(0.5, 0, 0, 2)
-	health.Size = UDim2.fromOffset(52, 6)
+	health.Size = UDim2.fromOffset(112, 18)
 	health.BorderSizePixel = 0
-	health.BackgroundColor3 = UIColors.Border
+	health.BackgroundColor3 = C(58, 72, 79)
 	health.Visible = false
 	health.Parent = tag
-	corner(health, 3)
+	local outline = Instance.new("UIStroke")
+	outline.Color, outline.Thickness = C(0, 0, 0), 2
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	outline.BorderStrokePosition = Enum.BorderStrokePosition.Outer
+	outline.LineJoinMode = Enum.LineJoinMode.Miter
+	outline.Parent = health
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.Size = UDim2.fromScale(1, 1)
 	fill.BorderSizePixel = 0
-	fill.BackgroundColor3 = UIColors.Purchase
+	fill.BackgroundColor3 = UIColors.Money
 	fill.Parent = health
-	corner(fill, 3)
-
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(C(255, 255, 255), C(205, 205, 205))
+	gradient.Rotation, gradient.Parent = 90, fill
+	local rim = Instance.new("Frame")
+	rim.Name, rim.BackgroundTransparency, rim.BorderSizePixel = "InnerRim", 1, 0
+	rim.Position, rim.Size = UDim2.fromOffset(1, 1), UDim2.new(1, -2, 1, -2)
+	rim.ZIndex, rim.Parent = 2, health
+	local highlight = Instance.new("UIStroke")
+	highlight.Color, highlight.Thickness, highlight.Transparency = UIColors.Text, 1, 0.65
+	highlight.ApplyStrokeMode, highlight.LineJoinMode = Enum.ApplyStrokeMode.Border, Enum.LineJoinMode.Miter
+	highlight.BorderStrokePosition, highlight.Parent = Enum.BorderStrokePosition.Inner, rim
+	local value = Instance.new("TextLabel")
+	value.Name, value.BackgroundTransparency, value.BorderSizePixel = "Value", 1, 0
+	value.Position, value.Size = UDim2.fromOffset(2, 1), UDim2.new(1, -4, 1, -2)
+	value.Font, value.TextSize, value.TextScaled = Enum.Font.SourceSansBold, 14, true
+	value.TextColor3, value.TextStrokeColor3, value.TextStrokeTransparency = UIColors.Text, C(0, 0, 0), 0
+	value.Text, value.ZIndex, value.Parent = "", 3, health
 end
 
 function PetView.Create(parent: Instance, id: string, species: string, stars: number, foot: Vector3)
@@ -463,23 +483,26 @@ function PetView.Level(model, level, giantSize)
 	if label and species and Catalog[species] then label.Text=if model:GetAttribute("ChickenKing") then "CHICKEN KING" else (if giantSize then Giant.Kind(giantSize).." " else "")..Catalog[species].name.." · Lv. "..level end
 end
 
-function PetView.Health(model: Model, ratio: number)
+function PetView.Health(model: Model, hp: number, maxHp: number)
 	local primary = model.PrimaryPart
 	if not primary then return end
 	local tag = primary:FindFirstChild("Tag") :: BillboardGui?
 	if not tag then return end
 	local bar = tag:FindFirstChild("Health") :: Frame
 	local fill = bar:FindFirstChild("Fill") :: Frame
-	local amount = if ratio == ratio then math.clamp(ratio, 0, 1) else 0
+	local maximum = if maxHp == maxHp then math.max(0, maxHp) else 0
+	local current = if hp == hp then math.clamp(hp, 0, maximum) else 0
+	local amount = if maximum > 0 then current / maximum else 0
 	(tag:FindFirstChild("NameLabel") :: TextLabel).Visible = model:GetAttribute("ChickenKing") == true
 	(tag:FindFirstChild("Cash") :: TextLabel).Visible = false
 	tag.MaxDistance = if model:GetAttribute("ChickenKing") then 180 else 105
 	bar.Visible = amount > 0
 	fill.Size = UDim2.fromScale(amount, 1)
+	(bar:FindFirstChild("Value") :: TextLabel).Text = string.format("%.0f/%.0f", math.ceil(current), math.ceil(maximum))
 	-- Identical chicken variants need a stable side cue during a crowded fight.
 	-- Bar length communicates remaining health; team color must not flip at low HP.
 	local side=model:GetAttribute("Side")
-	fill.BackgroundColor3=if side=="A" then UIColors.Navigation elseif side=="B" then UIColors.Danger
+	fill.BackgroundColor3=if side=="A" then UIColors.Money elseif side=="B" then UIColors.Danger
 		elseif amount<0.3 then UIColors.Danger elseif amount<0.6 then UIColors.Rewards else UIColors.Purchase
 end
 

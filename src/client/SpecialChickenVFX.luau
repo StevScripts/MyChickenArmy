@@ -1,5 +1,5 @@
 --!strict
--- Cosmetic-only V3 effects. DuckAnimator owns Step/Destroy; GlitchEditableMesh
+-- Cosmetic-only V3 and imported dragon effects. DuckAnimator owns Step/Destroy; GlitchEditableMesh
 -- consumes Glitch's local attributes. This module never moves/scales a rig.
 local ContentProvider = game:GetService("ContentProvider")
 local Assets = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ChickenAppearanceAssets)
@@ -52,7 +52,7 @@ local function scaleSequence(sequence: NumberSequence, scale: number): NumberSeq
 end
 
 function Special.new(model: Model, audio: any?)
-	if model:GetAttribute("ChickenVisualV3") ~= true then return nil end
+	if model:GetAttribute("ChickenVisualV3") ~= true and model:GetAttribute("GalaxyDragonAnimation") ~= true then return nil end
 	return setmetatable({model = model, audio = audio, sound = nil, appearance = nil, body = nil, root = nil,
 		anchors = {}, emitters = {}, lights = {}, imported = {}, visible = false, destroyed = false,
 		nextUpdate = 0, phase = phaseFor(model.Name), unit = 0, lastBurst = nil,
@@ -218,9 +218,12 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 	if self.destroyed then return end
 	local model = self.model
 	if not model.Parent then self:Destroy(); return end
-	local body, root = model:FindFirstChild("Body"), model.PrimaryPart
+	local dragon = model:GetAttribute("GalaxyDragonAnimation") == true
+	local body, root = model:FindFirstChild(if dragon then "DragonChickenMesh" else "Body"), model.PrimaryPart
 	if not body or not body:IsA("MeshPart") or not root then self:_clear(); return end
-	local appearance = model:GetAttribute("Appearance") or ""
+	-- The dragon uses only its authored VFX; its native animation and material
+	-- remain with their existing owners, without generated auras or textures.
+	local appearance = if dragon then "" else model:GetAttribute("Appearance") or ""
 	if self.body ~= body or self.root ~= root or self.appearance ~= appearance then
 		self:_clear()
 		self:_attach(body, root, appearance)
@@ -264,7 +267,7 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		and (camera.CFrame.Position - root.Position).Magnitude <= CULL_DISTANCE
 	if appearance == "Glitch" and model:GetAttribute("GlitchMeshStatus") ~= "ready" then visible = false end
 	-- Only nearby visible VFX get spatial audio. Empty authored IDs are silent.
-	if self.audio then
+	if self.audio and not dragon then
 		local audible=visible and (camera.CFrame.Position-root.Position).Magnitude<=42
 		self.sound=self.audio:VFXLoop("VFX_"..appearance,if audible then body else nil,self.sound)
 	end

@@ -76,6 +76,12 @@ local CASH_TIERS={
  {key="CoopStash",name="Coop Stash",tier=2,amount="100K Cash",art={62.5,46,176}},
  {key="PocketCoins",name="Pocket Cash",tier=1,amount="10K Cash",art={62.5,46,176}},
 }
+-- Recording-led spacing, expressed relative to section width on every screen.
+local OFFER_COLUMNS=3
+local OFFER_GAP=0.012
+local HEADING_HEIGHT=0.034
+local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.012
+local SECTION_ICONS={Galaxy=GalaxyPresentation.CrateImage,Passes=Theme.Assets.Army,Cash=Theme.Assets.Cash}
 
 local function frame(parent,name,size,position,color)
  local item=Theme.Frame(parent,name,size,color)
@@ -144,7 +150,7 @@ function Browser.new(app,parent)
  Theme.Aspect(root,1.4817016124725342)
  local window=Theme.Container(root,"Window")
  self.window=window
- local header=Theme.Header(window,"Header","Shop",P.gold)
+ local header=Theme.Header(window,"Header","Shop!",P.gold)
  header.PageIcon.Visible,header.PageIcon.Image=true,Theme.Assets.Shop
  self.header=header
  self.closeButton=Theme.HeaderClose(header,function()
@@ -197,8 +203,8 @@ function Browser.new(app,parent)
  layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.05,0),Enum.SortOrder.LayoutOrder,scroll
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.layout=layout
- self.galaxy=GalaxyCrateShop.new(app,scroll)
- self.sections.Galaxy=self.galaxy.root
+ local featured=self:Section("Galaxy","Featured",0)
+ self.galaxy=GalaxyCrateShop.new(app,featured)
  self:CreatePasses();self:CreateCash();self:CreateDetails()
  for _,property in {"CanvasPosition","AbsoluteCanvasSize","AbsoluteWindowSize"} do
   table.insert(self.connections,scroll:GetPropertyChangedSignal(property):Connect(function() self:UpdateSection() end))
@@ -225,9 +231,27 @@ end
 function Browser:Section(key,title,order)
  local section=frame(self.scroll,key,UDim2.fromScale(0.98,4))
  section.LayoutOrder,section.BackgroundTransparency=order,1
- text(section,"Heading",title,24,UDim2.new(),UDim2.fromScale(1,0.05),P.white,true)
+ local titleWidth=if key=="Cash" then 0.09 elseif key=="Galaxy" then 0.15 else 0.20
+ local heading=text(section,"Heading",title,24,UDim2.fromScale(0.5,0),UDim2.fromScale(titleWidth,0.05),FIGMA.text,true)
+ heading.AnchorPoint,heading.TextWrapped=Vector2.new(0.5,0),false
+ for _,side in {-1,1} do
+  local icon=Theme.Image(section,if side<0 then "HeadingLeft" else "HeadingRight",SECTION_ICONS[key],UDim2.fromScale(0.028,0.028))
+  icon.AnchorPoint,icon.ZIndex=Vector2.new(0.5,0.5),heading.ZIndex
+  icon.Position=UDim2.fromScale(0.5+side*(titleWidth/2+0.022),0)
+  Theme.Aspect(icon,1)
+ end
  self.sections[key]=section
  return section
+end
+
+local function layoutSection(section,height)
+ Theme.Aspect(section,1/height)
+ section.Heading.Size=UDim2.fromScale(section.Heading.Size.X.Scale,HEADING_HEIGHT/height)
+ for _,name in {"HeadingLeft","HeadingRight"} do
+  local icon=section[name]
+  icon.Position=UDim2.fromScale(icon.Position.X.Scale,HEADING_HEIGHT/(2*height))
+  icon.Size=UDim2.fromScale(0.028,0.028/height)
+ end
 end
 
 function Browser:PurchaseButton(parent,key,color)
@@ -250,12 +274,12 @@ function Browser:PurchaseButton(parent,key,color)
 end
 
 function Browser:CreatePasses()
- local section=self:Section("Passes","Game passes",1)
+ local section=self:Section("Passes","Gamepasses",1)
  local grid=frame(section,"PassCards",UDim2.fromScale(1,0.9),UDim2.fromScale(0,0.1))
  grid.BackgroundTransparency=1
  self.passGrid=grid
  local layout=Instance.new("UIGridLayout")
- layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(0.075,0.04),Enum.SortOrder.LayoutOrder,grid
+ layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(OFFER_GAP,OFFER_GAP),Enum.SortOrder.LayoutOrder,grid
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.passLayout=layout
  for _,definition in PASSES do
@@ -338,7 +362,8 @@ function Browser:RenderExisting()
   elseif normal then PASS_COPY.DoubleLuck else "Checking your available benefit…"
  if luck.multiplier then luck.multiplier.Visible=normal==true end
  local saving=not shop or not shop.productReady
- self.previewStatus.Text=if saving then "Cash purchases wait for a saved profile."
+ self.previewStatus.Text=if shop and shop.testAllowed then "Studio test · Use Test roll above · No Robux charged"
+  elseif saving then "Cash purchases wait for a saved profile."
   elseif self.app.commerce.pending then "Complete or cancel the Roblox purchase prompt."
   else "Prices from Roblox · purchases deliver to this account"
  -- Regional pricing can change unit value. Compare only verified current prices.
@@ -357,7 +382,7 @@ function Browser:RenderExisting()
 end
 
 function Browser:CreateCash()
- local section=self:Section("Cash","Cash packs",2)
+ local section=self:Section("Cash","Cash",2)
  local vault=panel(section,"CommandersVault",FIGMA.cash)
  self.cashFeatured=vault
  self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
@@ -378,7 +403,7 @@ function Browser:CreateCash()
  shelf.BackgroundTransparency=1
  self.cashShelf=shelf
  local layout=Instance.new("UIGridLayout")
- layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(0.075,0),Enum.SortOrder.LayoutOrder,shelf
+ layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(OFFER_GAP,0),Enum.SortOrder.LayoutOrder,shelf
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.cashLayout=layout
  for i,definition in CASH_TIERS do
@@ -668,7 +693,7 @@ function Browser:ApplyPresentation()
   button.TextColor3,button.Visual.Caption.TextColor3=FIGMA.text,FIGMA.text
  end
  offerSurface(self.cashFeatured,FIGMA.cash,FIGMA.cashTop,FIGMA.cashRim)
- self.sections.Passes.Heading.TextColor3,self.sections.Cash.Heading.TextColor3=FIGMA.text,FIGMA.text
+ for _,section in self.sections do section.Heading.TextColor3=FIGMA.text end
  for _,definition in PASSES do
   local view=self.cards[definition.key]
   if not view then continue end
@@ -711,36 +736,38 @@ function Browser:Resize()
  self.layoutReady=true
  self.root.Size,self.root.Position,self.root.AnchorPoint=UDim2.fromScale(1,1),UDim2.new(),Vector2.zero
  self.window.Position,self.window.Size=UDim2.new(),UDim2.fromScale(1,1)
- local passRatio=1.7654240131378174
- local columns=2
- local passRows=math.ceil(self.passCount/columns)
- local passCardHeight=0.4625/passRatio
- local gridHeight=passRows*passCardHeight+math.max(0,passRows-1)*0.04
- local passHeight=0.0856+gridHeight
+ local featuredSectionHeight=SECTION_CONTENT_TOP+GalaxyCrateShop.Height
+ layoutSection(self.sections.Galaxy,featuredSectionHeight)
+ self.galaxy.root.Position,self.galaxy.root.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/featuredSectionHeight),UDim2.fromScale(1,GalaxyCrateShop.Height/featuredSectionHeight)
+ local passRatio=1.10
+ local cardWidth=(1-OFFER_GAP*(OFFER_COLUMNS-1))/OFFER_COLUMNS
+ local passRows=math.ceil(self.passCount/OFFER_COLUMNS)
+ local passCardHeight=cardWidth/passRatio
+ local gridHeight=passRows*passCardHeight+math.max(0,passRows-1)*OFFER_GAP
+ local passHeight=SECTION_CONTENT_TOP+gridHeight
  self.sections.Passes.Size=UDim2.fromScale(0.98,passRows+1)
- Theme.Aspect(self.sections.Passes,1/passHeight)
- self.sections.Passes.Heading.Position,self.sections.Passes.Heading.Size=UDim2.new(),UDim2.fromScale(1,0.0456/passHeight)
- self.passGrid.Position,self.passGrid.Size=UDim2.fromScale(0,0.0856/passHeight),UDim2.fromScale(1,gridHeight/passHeight)
- self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(0.075,0.04/gridHeight),UDim2.fromScale(0.4625,passCardHeight/gridHeight)
- self.passLayout.FillDirectionMaxCells=columns
+ layoutSection(self.sections.Passes,passHeight)
+ self.passGrid.Position,self.passGrid.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/passHeight),UDim2.fromScale(1,gridHeight/passHeight)
+ self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(OFFER_GAP,OFFER_GAP/gridHeight),UDim2.fromScale(cardWidth,passCardHeight/gridHeight)
+ self.passLayout.FillDirectionMaxCells=OFFER_COLUMNS
  for _,view in self.cards do
   Theme.Aspect(view.root,passRatio)
-  view.title.Position,view.title.Size=UDim2.fromScale(0.035,0.03),UDim2.fromScale(0.93,0.17)
+  view.title.Position,view.title.Size=UDim2.fromScale(0.035,0.035),UDim2.fromScale(0.93,0.155)
   view.title.TextWrapped=true
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.245,0.465),UDim2.fromScale(0.43,0.48)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.245,0.455),UDim2.fromScale(0.43,0.44)
   Theme.Aspect(view.art,1)
   view.artRestSize=view.art.Size
-  view.description.Position,view.description.Size=UDim2.fromScale(0.51,0.23),UDim2.fromScale(0.45,if view.details then 0.28 else 0.46)
+  view.description.Position,view.description.Size=UDim2.fromScale(0.50,0.245),UDim2.fromScale(0.46,if view.details then 0.25 else 0.39)
   view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Center
   if view.details then
-   view.details.Position,view.details.Size=UDim2.fromScale(0.52,0.55),UDim2.fromScale(0.43,0.17)
+   view.details.Position,view.details.Size=UDim2.fromScale(0.52,0.545),UDim2.fromScale(0.43,0.14)
   end
-  view.buy.Position,view.buy.Size=UDim2.fromScale(0.04,0.78),UDim2.fromScale(0.92,0.18)
+  view.buy.Position,view.buy.Size=UDim2.fromScale(0.06,0.75),UDim2.fromScale(0.88,0.20)
  end
- local cashCardWidth=(1-0.075*2)/3
- local featuredHeight=0.285
- local cashHeight=0.0856+featuredHeight+0.04+cashCardWidth
+ local cashCardWidth=cardWidth
+ local featuredHeight=0.26
+ local cashHeight=SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP+cashCardWidth
  -- AutomaticCanvasSize undercounts these aspect-constrained sections. Express
  -- their full height in the body's native Scale coordinates instead. CanvasSize
  -- uses the scroll parent's height; padding and list gaps use the canvas height.
@@ -749,26 +776,26 @@ function Browser:Resize()
  local innerHeight=1-padding.PaddingTop.Scale-padding.PaddingBottom.Scale
  local bodyAspect=self.root.UIAspectRatioConstraint.AspectRatio*self.body.Size.X.Scale/self.body.Size.Y.Scale
  local sectionWidth=self.scroll.Size.X.Scale*innerWidth*self.sections.Passes.Size.X.Scale
- local gap=0.05*self.scroll.Size.Y.Scale
- local canvasHeight=(bodyAspect*sectionWidth*(GalaxyCrateShop.Height+passHeight+cashHeight)+gap*2)/innerHeight
+ local gap=0.025*self.scroll.Size.Y.Scale
+ local canvasHeight=(bodyAspect*sectionWidth*(featuredSectionHeight+passHeight+cashHeight)+gap*2)/innerHeight
  self.scroll.CanvasSize=UDim2.fromScale(0,canvasHeight)
  self.layout.Padding=UDim.new(gap/(canvasHeight*innerHeight),0)
- Theme.Aspect(self.sections.Cash,1/cashHeight)
- self.sections.Cash.Heading.Position,self.sections.Cash.Heading.Size=UDim2.new(),UDim2.fromScale(1,0.0456/cashHeight)
- self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromScale(0,0.0856/cashHeight),UDim2.fromScale(1,featuredHeight/cashHeight)
+ layoutSection(self.sections.Cash,cashHeight)
+ self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/cashHeight),UDim2.fromScale(1,featuredHeight/cashHeight)
  Theme.Aspect(self.cashFeatured,1/featuredHeight)
  self.cashRays.Visible=false
  self.cashBuy.Position,self.cashBuy.Size=UDim2.fromScale(0.65,0.71),UDim2.fromScale(0.32,0.24)
  self.cashTitle.TextWrapped,self.cashSubtitle.TextWrapped=true,true
  self.cashTitle.TextXAlignment,self.cashNote.TextXAlignment,self.cashSubtitle.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
- self.cashShelf.Position,self.cashShelf.Size=UDim2.fromScale(0,(0.0856+featuredHeight+0.04)/cashHeight),UDim2.fromScale(1,cashCardWidth/cashHeight)
- self.cashLayout.CellSize,self.cashLayout.FillDirectionMaxCells=UDim2.fromScale(cashCardWidth,1),3
+ self.cashShelf.Position,self.cashShelf.Size=UDim2.fromScale(0,(SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP)/cashHeight),UDim2.fromScale(1,cashCardWidth/cashHeight)
+ self.cashLayout.CellSize,self.cashLayout.FillDirectionMaxCells=UDim2.fromScale(cashCardWidth,1),OFFER_COLUMNS
  for _,view in self.cashViews do
   Theme.Aspect(view.root,1)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.425),UDim2.fromScale(0.66,0.5)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.385),UDim2.fromScale(0.64,0.46)
   view.artRestSize=view.art.Size
-  view.buy.Position,view.buy.Size=UDim2.fromScale(0.04,0.835),UDim2.fromScale(0.92,0.135)
+  view.note.Position,view.note.Size=UDim2.fromScale(0.04,0.64),UDim2.fromScale(0.92,0.11)
+  view.buy.Position,view.buy.Size=UDim2.fromScale(0.06,0.77),UDim2.fromScale(0.88,0.20)
  end
  Theme.ScaleText(self.root)
  self:UpdateSection()

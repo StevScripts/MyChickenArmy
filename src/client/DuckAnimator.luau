@@ -30,7 +30,7 @@ function DuckAnimator.new(audio)
 			local dragon = item:GetAttribute("GalaxyDragonAnimation") == true
 			self.records[item] = {model = item, root = nil, joints = {}, phase = phaseFor(item.Name),
 				lastPose = 0, lastScan = -1, attackSerial = item:GetAttribute("AttackSerial") or 0,
-				attackAt = -10, sleeping = false, fx = if dragon then nil elseif item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
+				attackAt = -10, sleeping = false, fx = if dragon or item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
 				glitch = if dragon then nil else GlitchEditableMesh.new(item),
 				blender = if dragon then GalaxyDragonAnimator.new(item) elseif item:GetAttribute("ChickenVisualV3") then VoxelChickenAnimator.new(item) elseif item:GetAttribute("SkinnedChicken") then ChickenClipPlayer.new(item) else nil}
 		end

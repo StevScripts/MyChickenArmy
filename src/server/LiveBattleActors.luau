@@ -88,7 +88,7 @@ function LiveBattleActors:Publish(now)
   actor.model:SetAttribute("Reinforcing",u.reinforcing==true)
   actor.model:SetAttribute("SpawnSerial",u.spawnSerial)
   PetView.Level(actor.model,u.level or 1,u.giantSize)
-  PetView.Health(actor.model,u.hp/u.maxHp)
+  PetView.Health(actor.model,u.hp,u.maxHp)
  end
 end
 
@@ -104,7 +104,7 @@ function LiveBattleActors:Respawn(unit,x,z)
  actor.safeFoot=spawnFoot(x or unit.entryX,z or unit.entryZ)
  actor.healthPosition,actor.healthAt=actor.safeFoot,os.clock()
  actor.model:SetAttribute("Defeated",false)
- PetView.Health(actor.model,1)
+ PetView.Health(actor.model,unit.hp,unit.maxHp)
 end
 
 function LiveBattleActors:Move(unit,x,z,speed)

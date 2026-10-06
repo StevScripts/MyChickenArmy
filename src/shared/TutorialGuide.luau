@@ -23,48 +23,37 @@ function Guide.Facts(state)
 	}
 end
 
-local function step(id, title, text, target, help)
-	return {id=id, title=title, text=text, target=target, help=help or text}
+local function step(id, text, target)
+	return {id=id, text=text, target=target}
 end
 
-local function earn(state, purpose, price)
+local function earn(state, price)
 	local carried = (state.eggs or {}).carriedValue or 0
 	local needed = if price then math.max(0, price - (state.coins or 0)) else 1
 	-- Keep gathering until this trip can fund the purchase. Any nonempty bag
 	-- used to send players back to the pad, then straight back to the yard.
 	if carried > 0 and carried >= needed then
-		return step("RecoverSell", "Sell your eggs", "Green pad → instant cash.", "EggDeposit", "Sell this bag to afford " .. purpose .. ".")
+		return step("RecoverSell", "Step on the green sell pad", "EggDeposit")
 	end
-	return step("RecoverCollect", "Collect more eggs",
-		if price then "Collect $" .. math.ceil(needed - carried) .. " more in eggs." else "Walk near the eggs in your yard.", "Yard",
-		"Collect eggs for " .. purpose .. ". I'll point to the sell pad when you have enough.")
+	return step("RecoverCollect",
+		if price then "Collect $" .. math.ceil(needed - carried) .. " more in eggs" else "Collect eggs in your yard", "Yard")
 end
 
 local function recruit(state, growing)
 	local count = #(state.pets or {})
 	local id = if growing then "Grow" else "Recruit"
-	local starterArmy = (state.tutorial or {}).starterArmy == true and not growing
 	local offer = state.offer
 	if not offer then
-		return step(if growing then id else "Roll", if growing then "Grow your flock: "..count.."/4"
-			else if starterArmy then "Roll your fourth chicken" else "Roll your first chicken",
-			"Use the lever — rolling is FREE.", "RollStation",
-			if starterArmy then "Three chickens are ready. Roll a fourth for $"..(state.starterRecruitPrice or 600).."; its cash is reserved."
-			elseif count==0 and (state.starterCashReserve or 0)>0 then
-				"Your first roll guarantees a chicken. $"..state.starterCashReserve.." is saved for buying it."
-			else "Use the lever beside your podium. Rolling is free; buying uses cash.")
+		return step(if growing then id else "Roll", if growing then "Roll a chicken ("..count.."/4)"
+			else "Pull the lever to roll", "RollStation")
 	end
 	if (offer.price or 0) > (state.coins or 0) then
 		if count==0 then
-			return step("Roll", "Roll again for FREE", "Use the lever for another offer.", "RollStation")
+			return step("Roll", "Roll again for free", "RollStation")
 		end
-		local recovery = earn(state, "your recruit", offer.price)
-		recovery.help ..= " Or use the lever to roll again FREE."
-		return recovery
+		return earn(state, offer.price)
 	end
-	return step(id, if growing then "Grow your flock: "..count.."/4" else if starterArmy then "Recruit your fourth chicken" else "Buy your first chicken",
-		if starterArmy then "Buy for $"..offer.price.." to grow your army." else "Your chicken will lay eggs for cash.", "RollStation",
-		"At your podium, use Buy. The lever rolls a new offer FREE.")
+	return step(id, if growing then "Buy a chicken ("..count.."/4)" else "Buy the chicken for $"..offer.price, "RollStation")
 end
 
 function Guide.Resolve(state)
@@ -73,46 +62,40 @@ function Guide.Resolve(state)
 	if t.guideSkipped then return nil end
 	if f.Win or t.guideCompleted then
 		if not t.guideStarted then return nil end -- Established players are not forced through a new tutorial.
-		return step("Complete", "Cluck Camp captured!", "Recruit, upgrade, or battle again.", nil)
+		return step("Complete", "Cluck Camp captured!", nil)
 	end
 	if state.incoming then
-		return step("Defend", "Defend your base", "Your chickens fight for you.", nil)
+		return step("Defend", "Your army is defending", nil)
 	end
 	if state.outgoing then
-		return step("Battle", "Your flock is fighting", "Earn cash while they fight.", nil,
-			"Chickens recover after a knockout. Change squads in My Army.")
+		return step("Battle", "Your army is fighting", nil)
 	end
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
 		if t.starterArmy and f.Sell then
-			return step("Return", "Your flock is returning", "They'll be ready for another attack.", nil)
+			return step("Return", "Wait for your army to return", nil)
 		end
-		return step("Return", "Your flock is returning", "Collect eggs as they recover.", "Yard")
+		return step("Return", "Collect eggs while they return", "Yard")
 	end
 	if not f.Recruit or #(state.pets or {})==0 then return recruit(state, false) end
 	if not f.Collect then
-		return step("Collect", "Collect an egg", "Walk near an egg in your yard.", "Yard",
-			"Walk close to an egg. Your bag fills; sell the eggs for cash.")
+		return step("Collect", "Walk over an egg", "Yard")
 	end
 	if not f.Sell then
-		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state, "your first sale") end
-		return step("Sell", "Sell your eggs", "Green pad → instant cash.", "EggDeposit",
-			"Walk onto your green sell pad with eggs in your bag.")
+		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state) end
+		return step("Sell", "Step on the green sell pad", "EggDeposit")
 	end
 	-- The new squad already has four birds after Recruit. Older empty-yard saves
 	-- can still grow their flock without resetting or granting them extra birds.
 	if not f.Grow then return recruit(state, true) end
 	if not f.Expand then
 		local offer = state.nextSlot
-		if offer and (state.coins or 0) < offer.price then return earn(state, "an army slot", offer.price) end
-		return step("Expand", "Grow your army", "Upgrades → Army Size 1.", "Upgrades",
-			"Buy Army Size 1 above Start. Cash buys one more army slot.")
+		if offer and (state.coins or 0) < offer.price then return earn(state, offer.price) end
+		return step("Expand", "Upgrades → Army Size 1", "Upgrades")
 	end
 	if not f.Select then
-		return step("Select", "Choose four fighters", "My Army → Select Best.", "Army",
-			"Select Best fills your slots, or choose four chickens yourself.")
+		return step("Select", "My Army → Select Best", "Army")
 	end
-	return step("Deploy", "Capture Cluck Camp", "Use Move Troops Here.", "Camp1",
-		"Follow the marker to Cluck Camp. Use Move Troops Here.")
+	return step("Deploy", "Cluck Camp → Move Troops Here", "Camp1")
 end
 
 return Guide

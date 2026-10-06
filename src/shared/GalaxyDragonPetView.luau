@@ -65,6 +65,14 @@ function View.Create(parent, id, species, stars, foot, physical)
 			end
 		end
 	end
+	-- Keep authored effects, but let the same client lifecycle as other imported
+	-- chickens control hiding, defeat, reduced motion and distance culling.
+	for _, effect in model:GetDescendants() do
+		if effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Trail") or effect:IsA("Light") then
+			effect:SetAttribute("ImportedEffectEnabled", effect.Enabled)
+			effect.Enabled = false
+		end
+	end
 	if physical then
 		local humanoid = Instance.new("Humanoid")
 		humanoid.RequiresNeck,humanoid.BreakJointsOnDeath = false,false

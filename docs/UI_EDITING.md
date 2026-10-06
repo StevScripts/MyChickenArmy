@@ -7,6 +7,12 @@ component for header/title/icon/X changes; do not add menu-specific overrides.
 Menu colors and icons remain screen-specific. Offline Earnings' X and Continue
 both dismiss the already-paid receipt.
 
+The header and painted body touch with zero external gap and matching left/right
+edges. The header's window owns one continuous outer shell contour; keep content
+padding inside the body instead of separating or narrowing its painted surface.
+Preserve the shared header aspect, icons and colors, Army/Fuse's existing body
+fills and content insets, and Research's full-screen headerless layout.
+
 Stop Play and open **StarterGui → PetRollGui → MenuLayouts**.
 
 1. Set **PreviewMenu** to `MyArmy`, `Shop`, `Index`, `Upgrades`, `Settings`,

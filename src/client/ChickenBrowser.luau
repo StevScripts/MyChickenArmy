@@ -202,7 +202,8 @@ function Browser.new(app,parent)
 	self.root=root
  Theme.Aspect(root,1274/876)
  local background=frame(root,"ArmyBackground",UDim2.new(),UDim2.new())
- surface(background,Color3.fromRGB(18,32,41),Color3.fromRGB(18,32,41),INK,3)
+ -- The shared header's window contour also frames this full-height background.
+ surface(background,Color3.fromRGB(18,32,41),Color3.fromRGB(18,32,41),INK,3).Enabled=false
  local header,title=Theme.Header(root,"Header","Your Chickens!",GREEN)
  Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
  header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true

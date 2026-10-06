@@ -1,5 +1,19 @@
 # Square-to-T Plot1 expansion — September 29, 2026
 
+## October 6: matching expansion on all six plots
+
+The user requested Plot1's full contents on all six plots. Plots2–6 now use
+copies of its 96 × 131.853668-stud deck, square-to-T yard and expanding-fence
+metadata. Their original entrance positions and rotations were preserved,
+with separate `PlotIndex` values and `HOME N` labels. The stages below now apply
+to every authored plot. This supersedes the older Plots2–6 uniform-expansion
+geometry; capacity, prices, saved levels and gameplay code are unchanged.
+Authored structural readback and runtime facility inspection passed, and a
+full local place copy is saved. See [plot parity and recovery](PLOT_PARITY.md)
+for verification scope.
+
+## September 29 design and implementation record
+
 Latest user correction: the starter yard must be square, then expand into the
 T-shaped outline in the supplied screenshot. This supersedes the two earlier
 rectangular iterations in RECTANGULAR_PLOT_EXPANSION.md.
@@ -45,7 +59,9 @@ fixed. `ExpansionMaxBack=62.5` and `ExpansionLateDepth=20` preserve early fence
 stages while adding the extra depth to the last two. The maximum rear fence has
 3.43 studs of deck margin; the yard has 5.43. The user's enlarged deck and
 foundation, machines, podiums, sign, spawn, grass, rocks and other scenery were
-not moved by this change. Plots2–6 retain their existing geometric expansion.
+not moved by this change. Plots2–6 retained their earlier geometric expansion
+in this September 29 operation; the October 6 parity operation above replaces
+that geometry with matching copies of Plot1.
 
 All seven upgrade prices, saved levels and camp-independent eligibility remain
 unchanged. Capacity is now 25 → 30 → 35 → 40 → 45 → 50 → 75 → 100, shared by all

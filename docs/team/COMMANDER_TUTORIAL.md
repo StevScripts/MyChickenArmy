@@ -7,6 +7,28 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## No Skip button — latest October 6 correction
+
+The tutorial has no Skip button. `CommanderGuide` no longer creates the control,
+sends its Skip action or reserves space for it; the instruction uses the freed
+width. This user correction supersedes historical Skip-button requirements
+below. Objectives, automatic completion, existing saved skipped-state
+compatibility and Settings Resume remain unchanged.
+
+## Compact guide — October 6
+
+The tutorial card now keeps the approved chicken portrait and one short
+instruction. The commander-name header, secondary explanation, tappable Help layer
+and timed help expansion are removed. The card is shorter with a transparent
+near-black body; its existing entrance/salute tweens and reduced-motion behavior
+remain. Example instructions are “Walk over an egg,” “Step on the green sell pad”
+and “Upgrades → Army Size 1.” Recovery still shows the egg value needed.
+
+`TutorialGuide` supplies one `text` field per step, also used by the existing HUD
+fallback. Step IDs, world targets, completion, saved-state/resume, focus guidance and
+all gameplay rules are unchanged. This local presentation edit did not run
+tests, start a playtest, initiate synchronization or publish the game.
+
 ## Current starter army — October 4 approval, October 5 live observation
 
 Fresh profiles now receive three free level-1 basic Chickens (internal `Duck`

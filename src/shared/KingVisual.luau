@@ -47,7 +47,7 @@ function KingVisual.Apply(model, scale)
 		tag.Size, tag.StudsOffset, tag.MaxDistance = UDim2.fromOffset(240, 62), Vector3.new(0, height + size * 0.65, 0), 180
 		tag.NameLabel.Text, tag.NameLabel.TextSize = "CHICKEN KING", 24
 		tag.NameLabel.TextColor3 = crown.Color
-		tag.Health.Position, tag.Health.Size = UDim2.new(0.5, 0, 0, 30), UDim2.fromOffset(180, 12)
+		tag.Health.Position, tag.Health.Size = UDim2.new(0.5, 0, 0, 30), UDim2.fromOffset(180, 22)
 	end
 end
 

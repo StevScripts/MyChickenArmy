@@ -1,5 +1,13 @@
 # Upgrade eligibility — no camp prerequisites
 
+**October 6 plot parity:** all six authored home plots now have Plot1's
+square-to-T yard/fence expansion, matching deck and eight roll podiums.
+This replaces the earlier single-podium and uniform-expansion limits on
+Plots2–6. Physical support is now the same on all six plots; purchased levels,
+Roll Slot ownership, prices and server checks are unchanged. Authored
+structural readback and runtime facility inspection passed, and a full local
+place copy is saved. See [plot parity](team/PLOT_PARITY.md) for verification scope.
+
 **October 4 starter-army protection:** fresh profiles begin with three free
 level-1 `Duck` chickens, $2,400 and three deployment slots. The first free roll
 guarantees the fourth level-1 chicken for $600. The server reserves that $600
@@ -45,10 +53,10 @@ The following existing cash tracks are independent of camp progress from the sta
 - Individual chickens: cash purchases in My Army through level 10, when the owned chicken is home and affordable. Preserve existing egg/combat level rewards. Current triple fusion remains separate; see [chicken cash upgrades](team/CHICKEN_CASH_UPGRADES.md).
 - Egg Speed: 25 purchases, up to 4.75× production before paid benefits. The first four prices and benefits are unchanged.
 - Egg Value: 25 purchases, setting each newly earned egg to $4 + level (maximum $29). Already-earned eggs keep their value.
-- Plot Size: seven purchases where the authored plot supports expansion, with capacities 25/30/35/40/45/50/75/100. Latest September 29 correction: Plot1 starts as a 30×30 square, extends its center, then widens behind the machines into a T (30×49 stem plus 84×45 back section). Only the final two stages gain depth after the user's deck enlargement; the authored square anchors all stages. Its outer fence also expands; the editor shows the square starter. Other plots retain 80–120% uniform scaling but share the new capacities. Prices and saved levels are unchanged; see [square-to-T expansion](team/SQUARE_TO_T_PLOT_EXPANSION.md).
+- Plot Size: seven purchases where the authored plot supports expansion, with capacities 25/30/35/40/45/50/75/100. The September 29 shape starts as a 30×30 square, extends its center, then widens behind the machines into a T (30×49 stem plus 84×45 back section). Only the final two stages gain depth after the user's deck enlargement; the authored square anchors all stages. Its outer fence also expands; the editor shows the square starter. All six authored plots use this shape as of October 6, superseding Plots2–6's earlier 80–120% uniform scaling. Prices and saved levels are unchanged; see [square-to-T expansion](team/SQUARE_TO_T_PLOT_EXPANSION.md).
 - Army Size: every configured purchase from three to ten base deployment slots. Bigger Army remains an additional five slots.
 - Luck: 20 purchases. The first four prices/bonuses are unchanged; later levels add 0.10 to Rare+ weights, reaching 4× weights (not 4× normalized probability).
-- Roll Slots: seven cash purchases unlock one through eight podiums as of September 29, capped by the number physically authored for the assigned plot. The user's target is all eight in roughly 8–9 active F2P hours; initial tuning models 8.47 hours for its reference policy, not a guaranteed or measured player duration. Plot1 has eight stands, while Plots2–6 currently have one each. See [eight podiums](team/EIGHT_ROLL_PODIUMS.md).
+- Roll Slots: seven cash purchases unlock one through eight podiums as of September 29, capped by the number physically authored for the assigned plot. The user's target is all eight in roughly 8–9 active F2P hours; initial tuning models 8.47 hours for its reference policy, not a guaranteed or measured player duration. All six authored plots have eight stands as of October 6; saved ownership still determines unlocked stands. See [eight podiums](team/EIGHT_ROLL_PODIUMS.md).
 - Selling Speed: archived September 29. Its saved levels and former unlimited curve are preserved for restoration; there is no current purchase offer.
 
 The September 25 change removed **camp prerequisites**, not track maxima. Later

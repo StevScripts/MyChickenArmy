@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-06",
+  "placeId": 96683186622050,
+  "scope": "Disposable Studio Galaxy crate test; no purchase, saved profile write, or experience publication",
+  "clientFixture": {
+    "ok": true,
+    "cleanup": true,
+    "name": "Galaxy crate commerce fixtures",
+    "scope": "Cloned client modules with injected Marketplace, app, timers, and reel",
+    "failed": 0,
+    "cases": [
+      {
+        "ok": true,
+        "name": "Loads enabled crate prices through injected Marketplace"
+      },
+      {
+        "ok": true,
+        "name": "Native success cannot spend existing baseline credits"
+      },
+      {
+        "ok": true,
+        "name": "Snapshot before checkout closes opens exactly one"
+      },
+      {
+        "ok": true,
+        "name": "Snapshot after checkout closes opens exactly one"
+      },
+      {
+        "ok": true,
+        "name": "Unrelated checkout callbacks cannot arm purchase"
+      },
+      {
+        "ok": true,
+        "name": "Cancelled checkout never automatically opens credits"
+      },
+      {
+        "ok": true,
+        "name": "Failed preparation clears intent and ignores late callback"
+      },
+      {
+        "ok": true,
+        "name": "Preparation timeout cannot consume later delivery"
+      },
+      {
+        "ok": true,
+        "name": "Native prompt failure cleans up safely"
+      },
+      {
+        "ok": true,
+        "name": "Delivery intent expires without spending late credits"
+      },
+      {
+        "ok": true,
+        "name": "Manual opening supersedes automatic intent"
+      },
+      {
+        "ok": true,
+        "name": "Restricted account cannot buy or manually open crates"
+      },
+      {
+        "ok": true,
+        "name": "Policy revoked during checkout prevents automatic open"
+      },
+      {
+        "ok": true,
+        "name": "Disabled crate and unready profile block requests"
+      },
+      {
+        "ok": true,
+        "name": "Matched award waits for reel and acknowledges exactly once"
+      },
+      {
+        "ok": true,
+        "name": "Failed opening leaves no presentation running"
+      },
+      {
+        "ok": true,
+        "name": "Late opening reply after timeout cannot revive a reel"
+      },
+      {
+        "ok": true,
+        "name": "Rejected reel falls back without trapping input"
+      },
+      {
+        "ok": true,
+        "name": "Destroy disconnects pending checkout and delayed callbacks"
+      },
+      {
+        "ok": true,
+        "name": "Destroy cancels reel and ignores late completion/reply"
+      },
+      {
+        "ok": true,
+        "name": "Disposable Studio crate state disables paid checkout only"
+      },
+      {
+        "ok": true,
+        "name": "TestCrate needs no saved profile or purchased credits"
+      },
+      {
+        "ok": true,
+        "name": "TestCrate requires explicit server permission"
+      },
+      {
+        "ok": true,
+        "name": "TestCrate still enforces policy and enabled catalog"
+      },
+      {
+        "ok": true,
+        "name": "TestCrate blocks concurrent and destroyed controllers"
+      },
+      {
+        "ok": true,
+        "name": "Matched TestCrate uses supplied preview and one completion"
+      },
+      {
+        "ok": true,
+        "name": "Failed TestCrate clears pending and permits an explicit retry"
+      },
+      {
+        "ok": true,
+        "name": "Timed-out TestCrate ignores late success safely"
+      },
+      {
+        "ok": true,
+        "name": "Destroy cancels test and rejects late success"
+      },
+      {
+        "ok": true,
+        "name": "Test permission never bypasses ordinary OpenCrate gates"
+      }
+    ],
+    "passed": 30
+  },
+  "serverFixture": {
+    "ok": true,
+    "cleanup": true,
+    "name": "Disposable Studio crate fixtures",
+    "failed": 0,
+    "cases": [
+      {
+        "ok": true,
+        "name": "OpenTest awards with zero credits and restores zero"
+      },
+      {
+        "ok": true,
+        "name": "OpenTest preserves existing credits"
+      },
+      {
+        "ok": true,
+        "name": "Full flock denies without leaking credits or pets"
+      },
+      {
+        "ok": true,
+        "name": "Account policy still denies test rewards"
+      },
+      {
+        "ok": true,
+        "name": "Unexpected opening exception restores credits"
+      },
+      {
+        "ok": true,
+        "name": "Real commerce eligibility rejects saved sessions"
+      },
+      {
+        "ok": true,
+        "name": "Real commerce eligibility requires healthy loaded disposable sessions"
+      },
+      {
+        "ok": true,
+        "name": "Disposable TestCrate recruits once and enforces cooldown"
+      },
+      {
+        "ok": true,
+        "name": "Failed TestCrate does not start cooldown"
+      },
+      {
+        "ok": true,
+        "name": "Normal OpenCrate still requires product-ready saved progress"
+      }
+    ],
+    "passed": 10
+  },
+  "live": {
+    "before": {
+      "count": 3,
+      "saveStatus": "studio-session"
+    },
+    "after": {
+      "testAllowed": true,
+      "roll": {
+        "Phase": "Complete",
+        "Preview": true,
+        "WinnerIndex": 70,
+        "RewardId": "StormDuck"
+      },
+      "petCount": 4,
+      "crateCredits": 0,
+      "productReady": false,
+      "saveStatus": "studio-session",
+      "reward": {
+        "ok": true,
+        "action": "TestCrate",
+        "id": 5,
+        "petId": "b6984dce-6bd8-44a0-a34a-9cbb560aba27",
+        "message": "TEST: Galaxy Overlord joined your flock! Temporary Studio reward; it will not save.",
+        "crate": {
+          "level": 1,
+          "species": "StormDuck",
+          "preview": true,
+          "petId": "b6984dce-6bd8-44a0-a34a-9cbb560aba27"
+        }
+      }
+    },
+    "handoff": {
+      "shopOpen": true,
+      "testRollEnabled": true
+    }
+  },
+  "backup": "MyChickenArmy-Galaxy-Shop-Roll-20261006.rbxl"
+}

@@ -22,53 +22,17 @@ function Commander.new(app)
 	self.root = root
 	self.spotlight = GuideFocus.new(app.other)
 	local card = Theme.Container(root, "Card")
-	card.AnchorPoint, card.Position, card.Size = Vector2.new(.5,0), CARD_POSITION, UDim2.fromScale(.88,.172)
-	Theme.Aspect(card, 5.4)
+	card.AnchorPoint, card.Position, card.Size = Vector2.new(.5,0), CARD_POSITION, UDim2.fromScale(.86,.115)
+	Theme.Aspect(card, 7.4)
 	self.card = card
-	local body = Theme.Frame(card,"Instruction",UDim2.fromScale(.87,1),Theme.OverlayColors.Bottom)
-	body.Position, body.BackgroundTransparency = UDim2.fromScale(.13,0), .14
-	self.body=body
+	local body = Theme.Frame(card,"Instruction",UDim2.fromScale(.9,.78),Theme.OverlayColors.Bottom)
+	body.Position, body.BackgroundTransparency = UDim2.fromScale(.1,.13), .28
 	Theme.Stroke(body,Theme.Arcade.border,Theme.Border.Control)
-	local strip = Theme.Frame(body,"CommanderStrip",UDim2.fromScale(.93,.255),Theme.ReferenceColors.Army)
-	strip.Position=UDim2.fromScale(.035,.04)
-	Theme.ApplyReferenceAccent(strip,Theme.ReferenceGradients.Army)
-	local studs=Theme.Studs(strip,.15,28,0)
-	studs:SetAttribute("StudScaleWidth",1)
-	local name=Theme.Label(strip,"CommanderName","COMMANDER CLUCK  ·  HELP",13,Theme.Arcade.border)
-	name.Position,name.Size,name.ZIndex=UDim2.fromScale(.085,0),UDim2.fromScale(.76,1),4
-	name.TextOutline.Enabled=false
-	self.name,self.strip=name,strip
-	self.title=Theme.Display(body,"Objective","",27)
-	self.title.Position,self.title.Size=UDim2.fromScale(.105,.345),UDim2.fromScale(.68,.32)
-	self.reason=Theme.Label(body,"Reason","",18,Theme.Colors.muted)
-	self.reason.Position,self.reason.Size=UDim2.fromScale(.105,.70),UDim2.fromScale(.68,.265)
-	self.portrait=Theme.Image(card,"Commander",Theme.Assets.Commander,UDim2.fromScale(.225,1.23),UDim2.fromScale(-.005,-.09))
+	self.instruction=Theme.Display(card,"Objective","",27)
+	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.19,.30),UDim2.fromScale(.77,.42)
+	self.portrait=Theme.Image(card,"Commander",Theme.Assets.Commander,UDim2.fromScale(.165,1.15),UDim2.fromScale(0,-.015))
 	Theme.Aspect(self.portrait,1)
-	-- Fixed card coordinates let the help body unfold without sliding the title.
-	strip.Parent,self.title.Parent,self.reason.Parent=card,card,card
-	strip.Position,strip.Size,strip.ZIndex=UDim2.fromScale(.16045,.04),UDim2.fromScale(.8091,.255),2
-	self.title.Position,self.title.Size,self.title.ZIndex=UDim2.fromScale(.22135,.345),UDim2.fromScale(.5916,.32),3
-	self.reason.Position,self.reason.ZIndex=UDim2.fromScale(.22135,.70),3
 	self.portrait.ZIndex=4
-	local help=Instance.new("TextButton")
-	help.Name,help.Text,help.BackgroundTransparency="Help","",1
-	help.Position,help.Size,help.ZIndex=UDim2.fromScale(0,0),UDim2.fromScale(.815,1),10
-	help.Parent=card
-	self.help=help
-	table.insert(self.connections,help.Activated:Connect(function() self:Help(true) end))
-	local skip=Instance.new("TextButton")
-	skip.Name,skip.Text,skip.Font="Skip","Skip",Theme.Font
-	skip.TextColor3,skip.TextScaled=Theme.Colors.white,true
-	skip.BackgroundColor3,skip.BackgroundTransparency,skip.BorderSizePixel=Theme.OverlayColors.Bottom,1,0
-	skip.Position,skip.Size,skip.ZIndex=UDim2.fromScale(.865,.06),UDim2.fromScale(.17,.95),11
-		skip.AnchorPoint=Vector2.new(1,0);skip.Position=UDim2.fromScale(.993,.03)
-	skip.Parent=card;self.skip=skip
-	local pad=Instance.new("UIPadding");pad.PaddingLeft,pad.PaddingRight=UDim.new(.18,0),UDim.new(.18,0)
-	pad.PaddingTop,pad.PaddingBottom=UDim.new(.34,0),UDim.new(.34,0);pad.Parent=skip
-	table.insert(self.connections,skip.Activated:Connect(function()
-		self:Signal("Skip");self.root.Visible=false;self:ClearFocus();self:Present(false)
-		app:Notify("Guide hidden. Resume Commander Cluck in Settings.","info")
-	end))
 	Theme.ScaleText(card)
 	table.insert(self.connections,ProximityPromptService.PromptShown:Connect(function(prompt)
 		if prompt:FindFirstAncestor("RollStation") or prompt.Name=="ArmyCommandPrompt" then self.prompts[prompt]=true;self:Update() end
@@ -118,17 +82,6 @@ function Commander:Focus(target, worldParts)
 	self.pulse=self.spotlight.pulse
 end
 
-function Commander:Help(navigate)
-	if not self.current or self.current.id=="Complete" then return end
-	self.hint=if navigate then not self.hint else true
-	self.autoHintShown=true
-	local key=self.current.id..":Help"
-	if self.hint and not self.sent[key] then self.sent[key]=true;self:Signal("Help") end
-	if navigate and self.hint and self.current.target=="Upgrades" then self.app:OpenPage("Upgrades")
-	elseif navigate and self.hint and self.current.target=="Army" then self.app:OpenPage("Army") end
-	self:Update()
-end
-
 function Commander:Update()
 	if not self.alive then return end
 	local app,state=self.app,self.app.state
@@ -150,7 +103,7 @@ function Commander:Update()
 	local id=current.id
 	local changed=self.step~=id
 	if changed then
-		self.step,self.stepAt,self.hint,self.autoHintShown=id,os.clock(),false,false
+		self.step,self.stepAt=id,os.clock()
 		self:ClearFocus()
 	end
 	self.root.Visible=not blocked
@@ -168,26 +121,13 @@ function Commander:Update()
 		and not (app.toastFrame and app.toastFrame.Visible)
 	self:Present(visible,changed)
 	if id=="Complete" then
-		self.skip.Visible=false
 		if os.clock()-self.stepAt>=8 then
 			self.root.Visible=false
 			if not self.sent.Finish then self.sent.Finish=true;self:Signal("Finish") end
 			self:ClearFocus();self:Present(false);return
 		end
-	else
-		self.skip.Visible=true
-		if os.clock()-self.stepAt>=20 and not self.autoHintShown and self.card.Visible then self:Help(false);return end
 	end
-	self.title.Text=current.title
-	self.reason.Text=if self.hint then current.help else current.text
-	local height=if self.hint then 1.42 else 1
-	if self.bodyHeight~=height or self.bodyReduced~=app.reducedMotion then
-		self.bodyHeight,self.bodyReduced=height,app.reducedMotion
-		Theme.Motion:Tween(self.body,"guide-help",{Size=UDim2.fromScale(.87,height)},if app.reducedMotion then 0 else .18)
-	end
-	self.reason.Size=UDim2.fromScale(.5916,if self.hint then .65 else .265)
-	self.reason.TextYAlignment=Enum.TextYAlignment.Top
-	self.name.Text=if id=="Complete" then "COMMANDER CLUCK" elseif self.hint then "COMMANDER CLUCK  ·  CLOSE" else "COMMANDER CLUCK  ·  HELP"
+	self.instruction.Text=current.text
 	if inTree~=self.wasTree then
 		self.wasTree=inTree;self:Signal(if inTree then "TreeOpen" else "TreeClose")
 		if inTree and id=="Expand" then

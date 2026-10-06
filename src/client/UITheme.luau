@@ -265,6 +265,13 @@ function Theme.Studs(parent, opacity, tilePixels, inset)
 	return pattern
 end
 
+local function alignPopupBody(body)
+	body.Position=UDim2.fromScale(body.AnchorPoint.X,body.Position.Y.Scale)
+	body.Size=UDim2.fromScale(1,body.Size.Y.Scale)
+	local stroke=body:FindFirstChildWhichIsA("UIStroke")
+	if stroke then stroke.Enabled=false end
+end
+
 function Theme.Surface(item, tint)
 	tint = tint or Theme.Colors.panel
 	item.BackgroundColor3, item.BackgroundTransparency = Color3.new(1,1,1), 0
@@ -273,6 +280,7 @@ function Theme.Surface(item, tint)
 	local inset=item:FindFirstChild("InnerRim") or Theme.Frame(item,"InnerRim",UDim2.fromScale(0.98,0.98))
 	inset.Position,inset.BackgroundTransparency=UDim2.fromScale(0.01,0.01),1
 	Theme.Stroke(inset,Theme.Colors.line,Theme.Border.Detail)
+	if item:GetAttribute("PopupBody")==true then alignPopupBody(item) end
 	return item
 end
 
@@ -457,8 +465,10 @@ function Theme.LayoutHeader(header)
 	header.AnchorPoint,header.Position,header.Size=Vector2.zero,UDim2.fromScale(0,0),UDim2.fromScale(1,1)
 	header.ZIndex=header.Parent.ZIndex+2
 	Theme.Aspect(header,Theme.HeaderAspect)
-	local stroke=Theme.Stroke(header,Theme.Arcade.border,3)
-	stroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	-- The window owns one continuous contour around the header and content.
+	local stroke=Theme.Stroke(header.Parent,Color3.new(),Theme.Border.Shell)
+	stroke.BorderStrokePosition=Enum.BorderStrokePosition.Outer
+	Theme.Stroke(header,Theme.Arcade.border,Theme.Border.Shell).Enabled=false
 	local studs=Theme.Studs(header,0.14,28,0)
 	studs.ZIndex=header.ZIndex;studs:SetAttribute("StudScaleWidth",1)
 	local rim=header:FindFirstChild("InsetHighlight") or Theme.Container(header,"InsetHighlight")
@@ -503,7 +513,7 @@ function Theme.HeaderClose(header,callback)
 	return close
 end
 
--- Convert the shared header + gap into its menu's native Scale coordinates.
+-- Join the shared header directly to its body in native Scale coordinates.
 -- Only authored aspect ratios are used; body contents retain their own layout.
 function Theme.BelowHeader(header,body,bottom)
 	Theme.LayoutHeader(header)
@@ -514,10 +524,16 @@ function Theme.BelowHeader(header,body,bottom)
 		parent=parent.Parent
 	end
 	assert(aspect,"A popup needs its authored UIAspectRatioConstraint")
-	local top=aspect.AspectRatio*(1/Theme.HeaderAspect+7/1474)
+	local top=aspect.AspectRatio/Theme.HeaderAspect
 	local height=(bottom or 1)-top
 	body.Position=UDim2.fromScale(body.Position.X.Scale,top+height*body.AnchorPoint.Y)
 	body.Size=UDim2.fromScale(body.Size.X.Scale,height)
+	body:SetAttribute("PopupBody",true)
+	-- Painted bodies meet the shell edges; transparent content containers keep
+	-- their authored insets. Surface also applies this when called afterward.
+	if body.BackgroundTransparency<1 or body:FindFirstChildWhichIsA("UIStroke") then
+		alignPopupBody(body)
+	end
 end
 
 function Theme.Header(parent,name,title,color)

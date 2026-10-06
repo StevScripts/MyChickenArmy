@@ -1,0 +1,231 @@
+{
+  "date": "2026-10-06",
+  "placeId": 96683186622050,
+  "integration": {
+    "backup": "ServerStorage.GalaxyCrateVFXIntegration20261006",
+    "updated": [
+      {
+        "species": "Astronaut",
+        "counts": {
+          "beams": 0,
+          "particles": 5,
+          "carriers": 0
+        },
+        "roots": 1
+      },
+      {
+        "species": "Alien",
+        "counts": {
+          "beams": 0,
+          "particles": 3,
+          "carriers": 0
+        },
+        "roots": 1
+      },
+      {
+        "species": "StormDuck",
+        "counts": {
+          "beams": 0,
+          "particles": 6,
+          "carriers": 0
+        },
+        "roots": 2
+      },
+      {
+        "species": "DarkMatter",
+        "counts": {
+          "beams": 0,
+          "particles": 4,
+          "carriers": 0
+        },
+        "roots": 1
+      },
+      {
+        "species": "CosmicDragon",
+        "counts": {
+          "beams": 10,
+          "particles": 11,
+          "carriers": 1
+        },
+        "roots": 2
+      }
+    ]
+  },
+  "serverSpawn": [
+    {
+      "counts": {
+        "enabled": 0,
+        "imported": 5,
+        "particles": 5,
+        "beams": 0
+      },
+      "species": "Astronaut"
+    },
+    {
+      "counts": {
+        "enabled": 0,
+        "imported": 3,
+        "particles": 3,
+        "beams": 0
+      },
+      "species": "Alien"
+    },
+    {
+      "counts": {
+        "enabled": 0,
+        "imported": 6,
+        "particles": 6,
+        "beams": 0
+      },
+      "species": "StormDuck"
+    },
+    {
+      "counts": {
+        "enabled": 0,
+        "imported": 4,
+        "particles": 4,
+        "beams": 0
+      },
+      "species": "DarkMatter"
+    },
+    {
+      "counts": {
+        "enabled": 0,
+        "imported": 21,
+        "particles": 11,
+        "beams": 10
+      },
+      "species": "CosmicDragon"
+    }
+  ],
+  "clientSpawn": [
+    {
+      "enabled": 5,
+      "name": "Astronaut",
+      "beams": 0,
+      "carriers": [],
+      "particles": 5,
+      "externalEndpoints": 0
+    },
+    {
+      "enabled": 3,
+      "name": "Alien",
+      "beams": 0,
+      "carriers": [],
+      "particles": 3,
+      "externalEndpoints": 0
+    },
+    {
+      "enabled": 8,
+      "name": "StormDuck",
+      "beams": 0,
+      "carriers": [],
+      "particles": 8,
+      "externalEndpoints": 0
+    },
+    {
+      "enabled": 4,
+      "name": "DarkMatter",
+      "beams": 0,
+      "carriers": [],
+      "particles": 4,
+      "externalEndpoints": 0
+    },
+    {
+      "enabled": 21,
+      "name": "CosmicDragon",
+      "beams": 10,
+      "carriers": [
+        {
+          "collide": false,
+          "anchored": false,
+          "offset": 0,
+          "massless": true
+        }
+      ],
+      "particles": 11,
+      "externalEndpoints": 0
+    }
+  ],
+  "movement": [
+    {
+      "travelXZ": 7.0196685791015625,
+      "name": "Astronaut",
+      "rootY": 3.2611660957336426
+    },
+    {
+      "travelXZ": 7.019859313964844,
+      "name": "Alien",
+      "rootY": 3.3361120223999023
+    },
+    {
+      "travelXZ": 7.021156311035156,
+      "name": "StormDuck",
+      "rootY": 3.6735587120056152
+    },
+    {
+      "travelXZ": 7.020721435546875,
+      "name": "DarkMatter",
+      "rootY": 3.6735053062438965
+    },
+    {
+      "carrierOffset": 0,
+      "travelXZ": 7.018608093261719,
+      "name": "CosmicDragon",
+      "rootY": 1.223291277885437
+    }
+  ],
+  "lifecycle": {
+    "restored": {
+      "Astronaut": 5,
+      "DarkMatter": 4,
+      "StormDuck": 8,
+      "CosmicDragon": 22,
+      "Alien": 3
+    },
+    "dragonTracks": [
+      {
+        "speed": 1,
+        "length": 1.2000000476837158,
+        "time": 0.5000000596046448,
+        "name": "FlightLoop"
+      }
+    ],
+    "far": {
+      "Astronaut": 0,
+      "DarkMatter": 0,
+      "StormDuck": 0,
+      "CosmicDragon": 0,
+      "Alien": 0
+    },
+    "externalBeamEndpoints": 0,
+    "Defeated": {
+      "Astronaut": 0,
+      "DarkMatter": 0,
+      "StormDuck": 0,
+      "CosmicDragon": 0,
+      "Alien": 0
+    },
+    "ReducedMotion": {
+      "Astronaut": 0,
+      "DarkMatter": 0,
+      "StormDuck": 0,
+      "CosmicDragon": 0,
+      "Alien": 0
+    },
+    "PresentationHidden": {
+      "Astronaut": 0,
+      "DarkMatter": 0,
+      "StormDuck": 0,
+      "CosmicDragon": 0,
+      "Alien": 0
+    }
+  },
+  "notes": [
+    "CosmicDragon also includes the authored PointLight (22 active imported effects total).",
+    "StormDuck has 6 imported particle emitters plus 2 existing client-generated star emitters.",
+    "Only the gameplay clone's misplaced Central carrier was recentered; authored source is preserved.",
+    "Temporary test models were removed and camera restored before stopping Play.",
+    "No purchase, persistent profile write, or experience publication."
+  ]
+}

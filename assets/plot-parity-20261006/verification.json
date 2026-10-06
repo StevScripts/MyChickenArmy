@@ -1,0 +1,273 @@
+{
+  "date": "2026-10-06",
+  "placeId": 96683186622050,
+  "operationId": "chicken-six-plot-parity-20261006-v2",
+  "application": {
+    "ok": true,
+    "archive": "ServerStorage.PlotParityArchive20261006",
+    "plots": [
+      {
+        "plot": 2,
+        "descendants": 670,
+        "entranceDelta": 1.1920928955078125e-7,
+        "deckSize": [
+          96,
+          9.5,
+          131.85366821289062
+        ],
+        "deckFrame": [
+          344.9824523925781,
+          -2.3899784088134766,
+          200.64451599121094,
+          0.500002384185791,
+          0,
+          0.8660243153572083,
+          0,
+          1,
+          0,
+          -0.8660287261009216,
+          0,
+          0.4999995827674866
+        ]
+      },
+      {
+        "plot": 3,
+        "descendants": 670,
+        "entranceDelta": 0.00001788178997230716,
+        "deckSize": [
+          96,
+          9.5,
+          131.85366821289062
+        ],
+        "deckFrame": [
+          0.2560322880744934,
+          -2.3899784088134766,
+          399.73779296875,
+          1.0000015497207642,
+          0,
+          -4.768370729379967e-7,
+          0,
+          1,
+          0,
+          3.177005964971613e-7,
+          0,
+          0.9999995231628418
+        ]
+      },
+      {
+        "plot": 4,
+        "descendants": 670,
+        "entranceDelta": 0.000015259254723787308,
+        "deckSize": [
+          96,
+          9.5,
+          131.85366821289062
+        ],
+        "deckFrame": [
+          -343.294189453125,
+          -2.3899784088134766,
+          203.24374389648438,
+          0.5000007152557373,
+          0,
+          -0.8660249710083008,
+          0,
+          1,
+          0,
+          0.8660271763801575,
+          0,
+          0.4999993145465851
+        ]
+      },
+      {
+        "plot": 5,
+        "descendants": 670,
+        "entranceDelta": 1.1920928955078125e-7,
+        "deckSize": [
+          96,
+          9.5,
+          131.85366821289062
+        ],
+        "deckFrame": [
+          -344.7945251464844,
+          -2.3899784088134766,
+          -197.59715270996094,
+          -0.500002384185791,
+          0,
+          -0.8660243153572083,
+          0,
+          1,
+          0,
+          0.8660287261009216,
+          0,
+          -0.4999995827674866
+        ]
+      },
+      {
+        "plot": 6,
+        "descendants": 670,
+        "entranceDelta": 0.00001788178997230716,
+        "deckSize": [
+          96,
+          9.5,
+          131.85366821289062
+        ],
+        "deckFrame": [
+          0.2546488642692566,
+          -2.3899784088134766,
+          -396.7476806640625,
+          -1.0000015497207642,
+          0,
+          4.768370729379967e-7,
+          0,
+          1,
+          0,
+          -3.177005964971613e-7,
+          0,
+          -0.9999995231628418
+        ]
+      }
+    ],
+    "sourceUnchanged": true
+  },
+  "structuralReadback": {
+    "ok": true,
+    "archive": "ServerStorage.PlotParityArchive20261006",
+    "plots": [
+      {
+        "plot": 1,
+        "descendants": 671,
+        "references": 120,
+        "yard": "T",
+        "entranceDelta": 0,
+        "deck": "96, 9.5, 131.85366821289062",
+        "parts": 334
+      },
+      {
+        "plot": 2,
+        "descendants": 671,
+        "references": 120,
+        "yard": "T",
+        "entranceDelta": 1.1920928955078125e-7,
+        "deck": "96, 9.5, 131.85366821289062",
+        "parts": 334
+      },
+      {
+        "plot": 3,
+        "descendants": 671,
+        "references": 120,
+        "yard": "T",
+        "entranceDelta": 0.00001788178997230716,
+        "deck": "96, 9.5, 131.85366821289062",
+        "parts": 334
+      },
+      {
+        "plot": 4,
+        "descendants": 671,
+        "references": 120,
+        "yard": "T",
+        "entranceDelta": 0.000015259254723787308,
+        "deck": "96, 9.5, 131.85366821289062",
+        "parts": 334
+      },
+      {
+        "plot": 5,
+        "descendants": 671,
+        "references": 120,
+        "yard": "T",
+        "entranceDelta": 1.1920928955078125e-7,
+        "deck": "96, 9.5, 131.85366821289062",
+        "parts": 334
+      },
+      {
+        "plot": 6,
+        "descendants": 671,
+        "references": 120,
+        "yard": "T",
+        "entranceDelta": 0.00001788178997230716,
+        "deck": "96, 9.5, 131.85366821289062",
+        "parts": 334
+      }
+    ]
+  },
+  "runtimeFacilityInspection": {
+    "plots": [
+      {
+        "plot": 1,
+        "yard": "T",
+        "deposits": 1,
+        "fuse": 1,
+        "crossRefs": [],
+        "found": true,
+        "vacuum": 1,
+        "index": 1,
+        "deck": "96, 9.5, 131.85366821289062",
+        "rolls": 8
+      },
+      {
+        "plot": 2,
+        "yard": "T",
+        "deposits": 1,
+        "fuse": 1,
+        "crossRefs": [],
+        "found": true,
+        "vacuum": 1,
+        "index": 2,
+        "deck": "96, 9.5, 131.85366821289062",
+        "rolls": 8
+      },
+      {
+        "plot": 3,
+        "yard": "T",
+        "deposits": 1,
+        "fuse": 1,
+        "crossRefs": [],
+        "found": true,
+        "vacuum": 1,
+        "index": 3,
+        "deck": "96, 9.5, 131.85366821289062",
+        "rolls": 8
+      },
+      {
+        "plot": 4,
+        "yard": "T",
+        "deposits": 1,
+        "fuse": 1,
+        "crossRefs": [],
+        "found": true,
+        "vacuum": 1,
+        "index": 4,
+        "deck": "96, 9.5, 131.85366821289062",
+        "rolls": 8
+      },
+      {
+        "plot": 5,
+        "yard": "T",
+        "deposits": 1,
+        "fuse": 1,
+        "crossRefs": [],
+        "found": true,
+        "vacuum": 1,
+        "index": 5,
+        "deck": "96, 9.5, 131.85366821289062",
+        "rolls": 8
+      },
+      {
+        "plot": 6,
+        "yard": "T",
+        "deposits": 1,
+        "fuse": 1,
+        "crossRefs": [],
+        "found": true,
+        "vacuum": 1,
+        "index": 6,
+        "deck": "96, 9.5, 131.85366821289062",
+        "rolls": 8
+      }
+    ],
+    "sessionOnly": true,
+    "ready": true
+  },
+  "scope": "Read-only runtime observation in a session-only preview. Transactions, all expansion stages, army routes and six-player multiplayer were not exercised.",
+  "localPlace": "MyChickenArmy-Six-Matching-Plots-20261006.rbxl",
+  "published": false
+}

@@ -6,15 +6,29 @@ local Motion=require(script.Parent.UIMotion)
 local Presentation={}
 Presentation.__index=Presentation
 
-local GOLD=Color3.fromRGB(222,181,73)
-local CENTER=UDim2.fromScale(0.5,0.515)
-local BELOW=UDim2.fromScale(0.5,1.15)
-local ABOVE=UDim2.fromScale(0.5,-0.15)
-local STRIDE=0.098
-local CARD_SIZE=UDim2.fromScale(0.074,0.66)
-local WINNER_INDEX=70
-local CARD_COUNT=76
-local DEFAULT_TIMING={entry=0.65,settle=0.1,spin=8,hold=2,exit=0.5,reducedHold=1.4}
+local GOLD=Color3.fromRGB(255,235,55)
+local ORANGE=Color3.fromRGB(239,153,28)
+local CENTER=UDim2.fromScale(0.5,0.5)
+local BELOW=UDim2.fromScale(0.5,1.2)
+local ABOVE=UDim2.fromScale(0.5,-0.1)
+local STRIDE=0.1
+local CARD_SIZE=UDim2.fromScale(0.07,0.5)
+local START=UDim2.fromScale(1.125,0)
+local WINNER_INDEX=88
+local CARD_COUNT=94
+-- Seconds, measured against the user's Oct 6 recording. Entry begins empty;
+-- cards enter near its end. See assets/galaxy-roll-20261006/reference-match/.
+local DEFAULT_TIMING={entry=1,spinDelay=0.9,spin=8.45,hold=1.5,exit=1,dim=0.65,exitDimDelay=0.15,reducedHold=1.4}
+
+local function markerTip(parent,name,bottom,color)
+	local clip=Theme.Container(parent,name)
+	clip.Size,clip.Position=UDim2.fromScale(0.012,0.1),UDim2.fromScale(0.5,if bottom then 1 else 0)
+	clip.AnchorPoint,clip.ClipsDescendants,clip.ZIndex=Vector2.new(0.5,if bottom then 1 else 0),true,108
+	Theme.Aspect(clip,2)
+	local diamond=Theme.Frame(clip,"Tip",UDim2.fromScale(0.7071,1.4142),color)
+	diamond.AnchorPoint,diamond.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,if bottom then 1 else 0)
+	diamond.Rotation,diamond.ZIndex=45,108
+end
 
 local function seedFor(id)
 	local value=5381
@@ -52,21 +66,25 @@ function Presentation.new(parent,options)
 	shield.Active,shield.Modal,shield.ZIndex=true,true,100
 	shield.Parent=root
 	self.shield=shield
-	local panel=Theme.Frame(root,"Reel",UDim2.fromScale(0.8,0.145),Color3.fromRGB(6,22,12))
+	local panel=Theme.Frame(root,"Reel",UDim2.fromScale(0.8,0.15),Color3.new(0,0,0))
 	panel.AnchorPoint,panel.Position=Vector2.new(0.5,0.5),CENTER
-	panel.BackgroundTransparency,panel.ZIndex=0.2,101
-	-- The reference reel has only a tiny radius; other game surfaces stay square.
-	panel.UICorner.CornerRadius=UDim.new(0.055,0)
-	Theme.Stroke(panel,GOLD,1.5)
+	panel.BackgroundTransparency,panel.ZIndex=0.6,101
+	-- Reference-specific rounded reel/cards; the game's other surfaces stay square.
+	panel.UICorner.CornerRadius=UDim.new(0.085,0)
+	local panelStroke=Theme.Stroke(panel,Color3.new(1,1,1),1.5)
+	panelStroke.LineJoinMode=Enum.LineJoinMode.Round
+	Theme.Gradient(panelStroke,GOLD,ORANGE)
 	self.panel=panel
 	local clip=Theme.Container(panel,"Clip")
 	clip.ClipsDescendants,clip.ZIndex=true,102
 	local strip=Theme.Container(clip,"Items")
 	strip.ZIndex=103
 	self.strip=strip
-	local marker=Theme.Frame(panel,"CenterMarker",UDim2.fromScale(0.003,1.16),GOLD)
+	local marker=Theme.Frame(panel,"CenterMarker",UDim2.fromScale(0.002,1),Color3.new(1,1,1))
 	marker.AnchorPoint,marker.Position,marker.ZIndex=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),108
-	marker.BackgroundTransparency=0.08
+	Theme.Gradient(marker,GOLD,ORANGE)
+	markerTip(panel,"TopMarker",false,GOLD)
+	markerTip(panel,"BottomMarker",true,ORANGE)
 	self.destroying=root.Destroying:Connect(function() self:Destroy() end)
 	return self
 end
@@ -83,7 +101,8 @@ end
 
 function Presentation:_Sound(name,pitch,volume,duration)
 	if not self.audio then return end
-	local sound=self.audio:Play(name,pitch,{volume=volume,maxDuration=duration,voiceKey="GalaxyCrate"..name,noFallback=true})
+	local sound=self.audio:Play(name,pitch,{volume=volume,maxDuration=duration,voiceKey="GalaxyCrate"..name,
+		maxVoices=if name=="RollTick" then 3 else nil,noFallback=true})
 	if sound then self.sounds[sound]=true end
 end
 
@@ -93,9 +112,16 @@ function Presentation:_Card(entry,index)
 	card.AnchorPoint,card.Position=Vector2.new(0.5,0.5),UDim2.fromScale((index-1)*STRIDE,0.5)
 	card.ZIndex=103
 	card:SetAttribute("RewardId",entry.id)
-	Theme.Aspect(card,1)
+	Theme.Aspect(card,1.2)
+	card.UICorner.CornerRadius=UDim.new(0.075,0)
+	local edge=Theme.Frame(card,"LightRim",UDim2.fromScale(1,1),Color3.new(0,0,0))
+	edge.BackgroundTransparency,edge.ZIndex=1,103
+	edge.UICorner.CornerRadius=UDim.new(0.075,0)
+	-- Child strokes render above their parent in the game's sibling Z order.
+	-- Put the wider dark border on the card and the thin white line above it.
+	Theme.Stroke(card,Color3.fromRGB(27,28,24),3.5).LineJoinMode=Enum.LineJoinMode.Round
+	Theme.Stroke(edge,Color3.fromRGB(248,245,231),1.5).LineJoinMode=Enum.LineJoinMode.Round
 	Theme.Gradient(card,color:Lerp(Color3.new(1,1,1),0.13),color:Lerp(Color3.new(0,0,0),0.12))
-	Theme.Stroke(card,color:Lerp(Color3.new(1,1,1),0.55),1)
 	for _,offset in {Vector2.new(-1,-1),Vector2.new(0,-1),Vector2.new(1,-1),Vector2.new(-1,0),Vector2.new(1,0),Vector2.new(-1,1),Vector2.new(0,1),Vector2.new(1,1)} do
 		local outline=Theme.Image(card,"SilhouetteStroke",entry.image,UDim2.fromScale(0.96,0.96),UDim2.fromScale(0.02+offset.X*0.008,0.02+offset.Y*0.008))
 		outline.ImageColor3,outline.ZIndex=Color3.new(0,0,0),104
@@ -106,7 +132,9 @@ function Presentation:_Card(entry,index)
 	if chance~=nil then
 		local text=if type(chance)=="number" then string.format("%.2f",chance*100):gsub("0+$",""):gsub("%.$","").."%" else tostring(chance)
 		local label=Theme.Label(card,"Chance",text,20,Theme.Colors.white)
-		label.AnchorPoint,label.Position,label.Size=Vector2.new(1,1),UDim2.fromScale(0.97,0.98),UDim2.fromScale(0.73,0.3)
+		label.AnchorPoint,label.Position,label.Size=Vector2.new(1,1),UDim2.fromScale(0.99,0.99),UDim2.fromScale(0.5,0.29)
+		label.BackgroundColor3,label.BackgroundTransparency=Color3.fromRGB(15,17,16),0.08
+		Theme.Round(label).CornerRadius=UDim.new(0.2,0)
 		label.TextScaled,label.TextWrapped,label.TextXAlignment=true,false,Enum.TextXAlignment.Right
 		label.ZIndex=106
 	end
@@ -115,6 +143,28 @@ end
 
 function Presentation:_StopTicks()
 	if self.ticks then self.ticks:Disconnect();self.ticks=nil end
+end
+
+function Presentation:_Focus()
+	-- This is a spatial effect, not a second animation clock: only cards near
+	-- the native tween's center change size. Fixed-target tweens would drift
+	-- away from the marker as the strip decelerates.
+	local center=(0.5-self.strip.Position.X.Scale)/STRIDE+1
+	for index in self.focused do
+		if math.abs(index-center)>=1.5 then
+			self.cards[index].Size=CARD_SIZE
+			self.focused[index]=nil
+		end
+	end
+	for index=math.max(1,math.floor(center)-1),math.min(CARD_COUNT,math.ceil(center)+1) do
+		local card=self.cards[index]
+		local weight=math.max(0,1-math.abs(index-center)/1.5)
+		if card and weight>0 then
+			local scale=1+0.25*weight
+			card.Size=UDim2.fromScale(CARD_SIZE.X.Scale*scale,CARD_SIZE.Y.Scale*scale)
+			self.focused[index]=true
+		end
+	end
 end
 
 function Presentation:_Complete()
@@ -127,7 +177,10 @@ end
 function Presentation:_Exit()
 	self.root:SetAttribute("Phase","Exiting")
 	if self.reduced then self:_Complete();return end
-	self.motion:Tween(self.shield,"dim",{BackgroundTransparency=1},self.timing.exit)
+	local fadeDelay=math.min(self.timing.exitDimDelay,self.timing.exit)
+	self:_Later(fadeDelay,function()
+		self.motion:Tween(self.shield,"dim",{BackgroundTransparency=1},math.min(self.timing.dim,self.timing.exit-fadeDelay),Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+	end)
 	self.motion:Tween(self.panel,"travel",{Position=ABOVE},self.timing.exit,Enum.EasingStyle.Back,Enum.EasingDirection.In,function()
 		self:_Complete()
 	end)
@@ -137,12 +190,10 @@ function Presentation:_Reveal()
 	self:_StopTicks()
 	self.strip.Visible=true
 	self.strip.Position=positionFor(WINNER_INDEX)
+	self:_Focus()
 	self.root:SetAttribute("Phase","Result")
 	self.root:SetAttribute("CenteredRewardId",self.reward.id)
 	self:_Sound("RollReveal",1,0.3,0.9)
-	if not self.reduced then
-		self.motion:Tween(self.winner,"winner",{Size=UDim2.fromScale(CARD_SIZE.X.Scale*1.12,CARD_SIZE.Y.Scale*1.12)},0.2,Enum.EasingStyle.Quad)
-	end
 	self:_Later(if self.reduced then self.timing.reducedHold else self.timing.hold,function() self:_Exit() end)
 end
 
@@ -150,16 +201,16 @@ function Presentation:_Spin()
 	self.root:SetAttribute("Phase","Spinning")
 	self.strip.Visible=true
 	local last=0
-	-- Observe the native tween solely for sound/inspection; never move it per frame.
+	-- Native TweenService owns travel. Observe it for marker focus and ticks.
 	self.ticks=self.strip:GetPropertyChangedSignal("Position"):Connect(function()
+		self:_Focus()
 		local centered=math.floor((0.5-self.strip.Position.X.Scale)/STRIDE+1.5)
 		if centered<1 or centered>CARD_COUNT then return end
 		if centered==last then return end
 		last=centered
 		self.root:SetAttribute("CenteredRewardId",self.cards[centered]:GetAttribute("RewardId"))
-		self:_Sound("RollTick",1.1,0.17,0.1)
+		self:_Sound("RollTick",1.1,0.17,0.13)
 	end)
-	-- One easing-out translation carries the strip all the way to the real winner.
 	self.motion:Tween(self.strip,"roll",{Position=positionFor(WINNER_INDEX)},self.timing.spin,Enum.EasingStyle.Quart,Enum.EasingDirection.Out,function()
 		self:_Reveal()
 	end)
@@ -193,6 +244,7 @@ function Presentation:Play(reward,pool,options)
 	self.root:SetAttribute("Preview",options.preview==true)
 	self.root:SetAttribute("WinnerIndex",WINNER_INDEX)
 	self.cards={}
+	self.focused={}
 	local random=Random.new(if type(options.seed)=="number" then options.seed else seedFor(selected.id))
 	local total=0
 	for _,entry in pool do total+=if type(entry.chance)=="number" then math.max(0,entry.chance) else 0 end
@@ -205,21 +257,23 @@ function Presentation:Play(reward,pool,options)
 		end
 		return pool[#pool]
 	end
-	for index=1,CARD_COUNT do
+	-- Reduced motion needs only the confirmed winner, not a hidden full reel.
+	for index=if self.reduced then WINNER_INDEX else 1,if self.reduced then WINNER_INDEX else CARD_COUNT do
 		local entry=if index==WINNER_INDEX then selected else decorativeEntry()
 		self.cards[index]=self:_Card(entry,index)
 	end
 	self.winner=self.cards[WINNER_INDEX]
-	self.strip.Position=UDim2.fromScale(1.1,0)
+	self.strip.Position=START
 	self.strip.Visible=false
 	self.panel.Position=if self.reduced then CENTER else BELOW
-	self.shield.BackgroundTransparency=if self.reduced then 0.55 else 1
+	self.shield.BackgroundTransparency=if self.reduced then 0.45 else 1
 	self.root.Visible=true
 	if self.reduced then self:_Reveal();return true end
-	self.motion:Tween(self.shield,"dim",{BackgroundTransparency=0.55},self.timing.entry)
-	self.motion:Tween(self.panel,"travel",{Position=CENTER},self.timing.entry,Enum.EasingStyle.Back,Enum.EasingDirection.Out,function()
-		self:_Later(self.timing.settle,function() self:_Spin() end)
-	end)
+	local delay=math.min(self.timing.spinDelay,self.timing.entry)
+	local entry=math.min(self.timing.entry,delay+self.timing.spin)
+	self.motion:Tween(self.shield,"dim",{BackgroundTransparency=0.45},self.timing.dim,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+	self.motion:Tween(self.panel,"travel",{Position=CENTER},entry,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	self:_Later(delay,function() self:_Spin() end)
 	return true
 end
 
@@ -242,6 +296,7 @@ function Presentation:Cancel()
 	self.panel.Position=CENTER
 	self.strip:ClearAllChildren()
 	self.cards={}
+	self.focused={}
 	self.winner=nil
 	self.reward=nil
 	self.root:SetAttribute("Phase","Idle")

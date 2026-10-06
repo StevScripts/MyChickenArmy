@@ -123,7 +123,9 @@ function Shop.new(app,parent)
  local open=Theme.ActionButton(footer,"OpenCrate","Open 1",function()
   if not self.openButton.Active then return end
   app.audio:Play("Click")
-  app.commerce:OpenCrate()
+  if app.state and app.state.shop and app.state.shop.testAllowed==true then
+   app.commerce:TestCrate()
+  else app.commerce:OpenCrate() end
  end,Theme.Colors.green)
  open.Position,open.Size,open.ZIndex=UDim2.fromScale(0.71,0.05),UDim2.fromScale(0.29,0.85),9
  self.openButton=open
@@ -175,11 +177,12 @@ end
 function Shop:Render()
  local commerce=self.app.commerce
  local shop=self.app.state and self.app.state.shop
+ local testing=shop and shop.testAllowed==true
  local busy=commerce.pending~=nil or commerce.cratePending~=nil or commerce.cratePresenting==true
  local purchaseBusy=busy or commerce.autoCrate~=nil
  for key,view in self.buttons do
   local status,price=commerce:State(key)
-  local quoted=status=="ready" and type(price)=="number"
+  local quoted=(status=="ready" or status=="studio") and type(price)=="number"
   view.currency.Visible=quoted
   view.price.Text=if quoted then Theme.Money(price) else STATUS[status] or "Unavailable"
   rect(view.price,if quoted then 122 else 16,13,if quoted then 280 else 398,104,430,150)
@@ -191,14 +194,15 @@ function Shop:Render()
   view.price.TextColor3=if status=="restricted" or status=="offsale" then Theme.Colors.muted else WHITE
  end
  local credits=if shop and type(shop.crateCredits)=="number" then math.max(0,math.floor(shop.crateCredits)) else 0
- self.openButton.Visible=credits>0
- self.openButton.Active=credits>0 and not busy and shop~=nil and shop.productReady==true
+ self.openButton.Visible=testing or credits>0
+ self.openButton.Active=(testing or credits>0) and not busy and shop~=nil and (testing or shop.productReady==true)
   and shop.policyReady==true and shop.paidRandomAllowed==true and Catalog.Crate.enabled==true
  self.openButton.Selectable=self.openButton.Active
- self.openButton.Text=if commerce.cratePending then "Opening…" else "Open 1"
- self.creditLabel.Text=if credits>0 then "Galaxy Crates: "..Theme.Money(credits) else "Five cosmic chickens to collect"
+ self.openButton.Text=if commerce.cratePending then "Opening…" elseif testing then "Test roll" else "Open 1"
+ self.creditLabel.Text=if testing then "Studio test roll" elseif credits>0 then "Galaxy Crates: "..Theme.Money(credits) else "Five cosmic chickens to collect"
  self.note.Text=if shop and shop.policyReady==true and shop.paidRandomAllowed==false then "Paid random items are unavailable for this account."
   elseif commerce.cratePending then "Waiting for your chicken…"
+  elseif testing then "No Robux charged · Rewards reset when you stop"
   else "One chicken per crate · Chances shown above"
 end
 
