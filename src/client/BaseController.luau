@@ -375,9 +375,9 @@ function BaseController:UpdateGuideTrail(anchor, enabled)
 	if not self.guideBeam then
 		local beam=Instance.new("Beam")
 		beam.Name,beam.Enabled="CommanderGuideBeam",false
-		beam.Color,beam.Transparency=ColorSequence.new(Color3.new(1,1,1)),NumberSequence.new(.08)
-		-- Roblox's beam-ready tutorial arrows run along the texture's vertical axis.
-		beam.Texture,beam.TextureMode="rbxassetid://5886559421",Enum.TextureMode.Static
+		beam.Color,beam.Transparency=ColorSequence.new(Color3.new(1,1,1)),NumberSequence.new(0)
+		-- Original white/black-contour arrow, drawn upward along the texture's vertical axis.
+		beam.Texture,beam.TextureMode="rbxassetid://78163165437840",Enum.TextureMode.Static
 		beam.TextureLength,beam.Width0,beam.Width1=4,3,3
 		beam.FaceCamera,beam.LightInfluence,beam.LightEmission=true,0,0
 		beam.Segments,beam.Parent=1,self.folder
@@ -411,7 +411,6 @@ function BaseController:UpdateObjective()
  local state=self.app.state
  local world=workspace:FindFirstChild("PetRollWorld")
  if not state or not world then
-  self.guideWorldTarget,self.guideWorldParts,self.guideWorldStep=nil,nil,nil
   if self.objective then self.objective.Enabled=false end
   self:UpdateGuideTrail(nil,false)
   if self.app.commander then self.app.commander:ClearFocus() end
@@ -428,7 +427,7 @@ function BaseController:UpdateObjective()
   arrow.Rotation=90
   self.objective,self.objectiveCaption=gui,label
  end
- local target,focusTarget,focusParts
+ local target
  local guidance=BaseController.OpeningGuidance(state)
  local plot=world:FindFirstChild("Plot"..state.plotIndex)
  local lane=world:FindFirstChild("Lane"..state.plotIndex)
@@ -447,13 +446,10 @@ function BaseController:UpdateObjective()
     self.eggObjective.Parent=anchor
     self.eggObjective.WorldPosition=Vector3.new(drop.x,drop.y,drop.z)
     target=self.eggObjective
-    local view=self.app.eggs and self.app.eggs.views[drop.id]
-    focusTarget=view and view.gui
    else
     local pets=plot and plot:FindFirstChild("Pets")
     local model=pets and pets:FindFirstChildWhichIsA("Model")
     target=model and model.PrimaryPart
-    focusTarget=model
    end
   elseif guidance.target then target=plot and plot:FindFirstChild(guidance.target) end
  end
@@ -471,21 +467,6 @@ function BaseController:UpdateObjective()
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
- if guidance and target and target.Name=="RollStation" and anchor then
-  focusTarget=anchor
-  focusParts={anchor}
-  if state.offer then
-   local record=self.roller and self.roller.records[target]
-   if record and record.preview then table.insert(focusParts,record.preview) end
-  else
-   for _,name in {"LeverArm","LeverHandle"} do
-    local part=target:FindFirstChild(name)
-    if part then table.insert(focusParts,part) end
-   end
-  end
- end
- self.guideWorldTarget=if guidance then focusTarget or target else nil
- self.guideWorldParts,self.guideWorldStep=focusParts,guidance and guidance.id
  self.objective.Adornee=anchor
  self.objectiveCaption.Text=if not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"

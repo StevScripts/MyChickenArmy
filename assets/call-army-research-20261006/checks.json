@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-06",
+  "placeId": 96683186622050,
+  "mode": "Studio session-only; disposable fixtures; no persistent profile writes",
+  "armyCommands": [
+    {
+      "passed": true,
+      "name": "Locked Call Army rejects before cooldown, recall or actor changes"
+    },
+    {
+      "passed": true,
+      "name": "Locked following leaves battle attacks and My Base recall available"
+    },
+    {
+      "passed": true,
+      "name": "Call transfers only selected actors; repeats preserve identity and one Colossal"
+    },
+    {
+      "passed": true,
+      "name": "Selection swaps return old Colossal and transfer its replacement once"
+    },
+    {
+      "passed": true,
+      "name": "Following retargets on consecutive frames between membership refreshes"
+    },
+    {
+      "passed": true,
+      "name": "Giant follows behind a partial regular row without changing selected slots"
+    },
+    {
+      "passed": true,
+      "name": "Multiple Giant rows, all-Giant and all-regular squads keep centered stable formations"
+    },
+    {
+      "passed": true,
+      "name": "Base returns player, following squad and reserves without replacing their actors"
+    },
+    {
+      "passed": true,
+      "name": "Invalid attack keeps following; valid attack starts from existing actor positions"
+    },
+    {
+      "passed": true,
+      "name": "Dead character and empty selection reject safely; death returns followers home"
+    },
+    {
+      "passed": true,
+      "name": "Recall cancels only the outgoing encounter, transfers its actors and awards no conquest"
+    },
+    {
+      "passed": true,
+      "name": "Territory defender recall leaves the challenger and capture progress intact"
+    }
+  ],
+  "research": [
+    {
+      "passed": true,
+      "name": "62 unique nodes have acyclic paths, coordinates and implemented effects"
+    },
+    {
+      "passed": true,
+      "name": "Fresh/legacy research starts with Start and one researcher"
+    },
+    {
+      "passed": true,
+      "name": "Call Army unlocks on completed research, persists, and cancelled research refunds once"
+    },
+    {
+      "passed": true,
+      "name": "Existing completed research remains valid without granting Call Army"
+    },
+    {
+      "passed": true,
+      "name": "Highest completed tier replaces smaller bonuses"
+    },
+    {
+      "passed": true,
+      "name": "Prices, prerequisites, duration quotes and stale revisions fail without charging"
+    },
+    {
+      "passed": true,
+      "name": "Start is one debit; duplicate request and occupied slot cannot add jobs"
+    },
+    {
+      "passed": true,
+      "name": "Completion frees a researcher exactly once without another charge"
+    },
+    {
+      "passed": true,
+      "name": "Cancellation refunds actual paid cash once, without multipliers"
+    },
+    {
+      "passed": true,
+      "name": "A finished job cannot be cancelled, and full-wallet refunds preserve the job"
+    },
+    {
+      "passed": true,
+      "name": "Two/three researchers enforce concurrency on independent branches"
+    },
+    {
+      "passed": true,
+      "name": "Research-speed completion never changes a purchased finish time"
+    },
+    {
+      "passed": true,
+      "name": "Research save is copied deeply and rejects malformed/unknown state"
+    },
+    {
+      "passed": true,
+      "name": "Existing saves retain pets and cash when research is absent"
+    },
+    {
+      "passed": true,
+      "name": "Offline jobs finish on load; old earning checkpoints remain unchanged"
+    },
+    {
+      "passed": true,
+      "name": "New farm research combines to 1.38x and does not reprice carried eggs"
+    },
+    {
+      "passed": true,
+      "name": "Real egg production carries fractional value and preserves old eggs"
+    },
+    {
+      "passed": true,
+      "name": "Combat bonuses use base stats and preserve health fraction"
+    },
+    {
+      "passed": true,
+      "name": "Real landed splash hits apply boss research only to NPC bosses"
+    },
+    {
+      "passed": true,
+      "name": "Real incoming damage uses armor and finite Operations never respawn"
+    },
+    {
+      "passed": true,
+      "name": "Recovery completion preserves an existing deadline"
+    },
+    {
+      "error": "Workspace.__MCPEvalPayload:120: 19.23076923076923 ~= 7.076923076923077",
+      "name": "Capture bonus changes only the friendly portion, not neutralization",
+      "passed": false
+    },
+    {
+      "passed": true,
+      "name": "Rally persists its cooldown and never stacks or works at home"
+    },
+    {
+      "passed": true,
+      "name": "Formation saves use owned selected IDs and stale overwrite protection"
+    },
+    {
+      "passed": true,
+      "name": "Formation application filters sold birds, capacity and extra Colossals"
+    },
+    {
+      "passed": true,
+      "name": "All nine Operations have fixed authored rosters and rewards"
+    },
+    {
+      "passed": true,
+      "name": "Operation victory rewards once; replay is lower; abandonment gives nothing"
+    },
+    {
+      "passed": true,
+      "name": "A full wallet preserves the exact Operation reward across save and pass changes"
+    },
+    {
+      "passed": true,
+      "name": "Banner progression requires all three distinct first clears"
+    }
+  ],
+  "unrelatedFailure": "Capture bonus test still expects old 4+4s model; Oct6 ordinary conquest now uses 25/1.3s. No capture implementation changed."
+}

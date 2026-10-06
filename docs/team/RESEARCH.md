@@ -5,15 +5,38 @@ Pet Roll Test. The original Chicken Army artwork remains in use. Desktop and
 landscape phone simulator checks cover the interactions listed below; no physical
 device equivalence or pixel-perfect clone is claimed. Nothing has been published.
 
-The later Slime RNG request adds twelve rolling-focused nodes, bringing the
-current catalog to 60 paid nodes plus Start. See [rolling research](RESEARCH_ROLLING.md)
-for the complete reference review, adaptation choices and runtime contract.
+The later Slime RNG request added twelve rolling-focused nodes. The October 6
+Call Army unlock brings the current catalog to **61 paid nodes plus Start (62
+total)**. See [rolling research](RESEARCH_ROLLING.md) for the complete rolling
+reference review, adaptation choices and runtime contract.
 
 Six existing cash-upgrade tracks form 91 individual purchase-tier hexes, branching
 from Start among the research paths. Earned tiers stay green and reveal the next
 purchase. The user rejected a separate cash island. These purchases apply
 immediately and remain independent of research slots/prerequisites;
 see [cash upgrades in the tree](CASH_UPGRADES_IN_TREE.md).
+
+## Call Army unlock — October 6
+
+`CallArmy` is an early Army research leaf directly off Start at `(q=-1, r=2)`.
+It costs **$1,000** and takes **60 base seconds**, subject to the existing
+research-speed quote. It has no camp/rank gate and does not alter any existing
+research or cash-upgrade prerequisite. The catalog now has 62 nodes; combined
+with the existing 91 cash tiers, the map contains 153 nodes.
+
+The permanent numeric effect is `callArmy=1` only after completion; its default
+is `0`. An active job grants no access. Completion uses the existing
+`research.completed.CallArmy` save entry, and cancellation uses the existing
+exact refund transaction. Existing research saves remain valid with their
+original completed IDs, jobs and values. Older profiles receive no automatic
+Call Army grant.
+
+The dimmed HUD control reads **Unlock Call Army** and opens the tree focused on
+this node and its tooltip. Once researched it invokes the ordinary command.
+The server rejects locked commands before cooldown, recall, Operation cleanup,
+or actor changes. My Base and ordinary attack/deploy actions remain available
+under their existing rules. See [army commands](ARMY_COMMANDS.md) for following,
+recall and HUD behavior.
 
 ## Design authority
 
@@ -43,11 +66,12 @@ map transform, never the individual node layout.
 
 | Owner | Responsibility |
 |---|---|
-| `shared/ResearchCatalog` | Start plus 60 paid nodes, links, coordinates, prices, durations, effects |
+| `shared/ResearchCatalog` | Start plus 61 paid nodes, links, coordinates, prices, durations, effects |
 | `shared/ResearchRules` | Highest-tier bonuses, quotes, statuses, deep copy, save validation |
 | `server/ResearchService` | Non-yielding purchase/cancel/completion/pin transactions and snapshots |
 | `server/PlayerSession`, `DataService` | Saved research and integration with existing earnings checkpoints |
 | `server/ArmyAbilities` | Rally eligibility, saved cooldown, session-local active duration |
+| `server/ArmyCommandService`, `client/HudController` | Call Army completion gate and locked HUD route to its research node |
 | `server/ArmyService` | Save/apply formation through existing army selection validation |
 | `shared/OperationCatalog` | Nine fixed encounters, first/replay rewards, banner tiers |
 | `server/OperationService`, `OperationRewards` | Separate arenas, finite rosters, rewards, cleanup and earned scenery |
@@ -120,7 +144,8 @@ Three sets each contain three fixed encounters. Unlocks use research; rosters do
 not scale with wallet or player power. The chosen army is finite for the mission:
 no reinforcements or respawns. Defeat all enemies and complete the existing
 capture phase. Leaving, death or walking out ends the mission without a reward.
-Call Army and My Base also abandon the Operation through the same cleanup path.
+Unlocked Call Army and My Base also abandon the Operation through the same cleanup
+path. A locked Call Army request is rejected before it can abandon an Operation.
 
 Each player's arena clones the existing authored KingArena into a separate area.
 It never reserves a public camp. Physical actors stay under the existing
@@ -139,6 +164,20 @@ The Royal set also displays Royal Commander at home. These add no stat advantage
 Prices, rosters and times are initial tuning, not a measured player progression curve.
 
 ## Evidence and validation limits
+
+October 6 Call Army checks are recorded in
+[`assets/call-army-research-20261006/checks.json`](../../assets/call-army-research-20261006/checks.json).
+All 12 army-command checks and all new Call Army research checks passed. The
+research suite passed 28 of 29: the existing capture check still expects the old
+`4 + 4/1.3` ordinary-camp timing. The current [October 6 conquest
+contract](CONQUEST_REFERENCE.md) uses `25/1.3` and supersedes that assertion and
+the older ordinary-camp timing paragraph above. This failure is unrelated to
+Call Army. A live locked HUD click opened and focused the node, and its native
+purchase successfully invoked `StartResearch`. A direct command during its timer
+was rejected and the HUD stayed dimmed. Play ended before the completed HUD state
+was inspected; isolated completion, cancellation and save/reload checks passed.
+
+The following records describe the earlier research implementation:
 
 - `tests/ResearchChecks.luau`: 27 isolated checks pass, including quotes, duplicate
   requests, refunds, old saves, offline completion, actual fractional egg production,

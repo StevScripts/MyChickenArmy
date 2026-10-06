@@ -3,6 +3,7 @@
 local Theme=require(script.Parent.UITheme)
 return {
 	index=Theme.Assets.Index, luck=Theme.Assets.Luck, army=Theme.Assets.ArmyHud, cash=Theme.Assets.Cash,
+	callArmy=Theme.Assets.CallArmy,
 	magnet=Theme.Assets.EggMagnet, egg="rbxassetid://74642843536793",
 	bandages="rbxassetid://120779534623977", boots="rbxassetid://137818969643923",
 	feed="rbxassetid://122007287446526", medkit="rbxassetid://80368789706410",

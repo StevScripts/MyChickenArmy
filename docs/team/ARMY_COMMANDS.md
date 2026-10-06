@@ -1,6 +1,46 @@
 # Army command HUD — September 28, 2026
 
-The bottom command row is **Call Army · My Army · My Base**, with My Army exactly centered. Transparent chunky whistle, helmet-chicken squad and yellow/orange tent art use separate native labels. My Army retains its live selected/deployed count and opens the existing inventory. Call Army follows the currently selected squad; reserves stay home. My Base returns both the player and all owned chickens to their own yard. The older Base page is not reopened by this shortcut.
+The bottom command row is **Call Army · My Army · My Base**, with My Army exactly centered. Transparent chunky whistle, helmet-chicken squad and yellow/orange tent art use separate native labels. My Army retains its live selected/deployed count and opens the existing inventory. Once researched, Call Army follows the currently selected squad; reserves stay home. My Base returns both the player and all owned chickens to their own yard. The older Base page is not reopened by this shortcut.
+
+## Call Army research unlock — October 6
+
+Call Army now unlocks through the skill tree. The `CallArmy` node branches directly
+from Start at `(q=-1, r=2)`, costs **$1,000**, and takes **60 base seconds**. Existing
+research-speed bonuses adjust the quoted duration before purchase. The node has
+no camp, rank, or other research prerequisite beyond Start. Its existing whistle
+art is reused.
+
+Only completed research grants the permanent numeric effect `callArmy=1`; the
+default is `0`. Buying or running its timer does not grant access, and cancelling
+uses the existing exact research refund. Completion saves under
+`research.completed.CallArmy`. Older saves receive no grandfathered unlock;
+their existing completed nodes, jobs, other research progress, chickens and cash
+retain their current validation and values. No existing prerequisite changes.
+
+Before unlocking, the contextual HUD shows a dimmed **Unlock Call Army** control.
+Activating it opens the tree, centers Call Army, and shows its existing research
+tooltip. After completion it becomes the normal Call Army command. Home/outside
+visibility and the command-row animations retain their existing behavior.
+
+`ArmyCommandService:CallArmy` checks the server-owned effect before cooldown,
+recall, Operation cleanup, or actor changes. A locked request fails without those
+side effects, even if sent directly. My Base, ordinary attack/deploy actions,
+actor cleanup, and battle return paths remain independent of the unlock. Calling
+the army after unlock has no per-call charge; its existing cooldown remains.
+
+Validation is recorded in
+[`assets/call-army-research-20261006/checks.json`](../../assets/call-army-research-20261006/checks.json):
+all 12 command checks passed, including locked and pending denial, unchanged
+actors, available attacks and My Base, and the existing following/recall cases.
+All Call Army research checks passed within 28 of 29 research checks. The one
+failure is an older capture expectation superseded by the October 6 conquest
+contract, not this unlock. A live locked HUD click opened and focused the node,
+and its native research purchase sent a successful `StartResearch` request.
+The live session also rejected a direct Call Army request during the timer and
+kept the dimmed HUD state. Play ended before the completed HUD state was inspected;
+the isolated checks cover completion and save/reload persistence. The full local
+place is saved as `assets/call-army-research-20261006/MyChickenArmy-Call-Army-Research-20261006.rbxl`.
+No saved player profile was written and the place was not published.
 
 ## Contextual row refinement — later September 28
 
@@ -30,7 +70,7 @@ five Hz. See [smooth-following research and checks](SMOOTH_FOLLOWING.md).
 
 Call Army withdraws an active outgoing encounter through `BattleService:ReturnHome`, then transfers its actors before removing its return encounter. Shared territory defense can create a separate return encounter; only that owner's actors transfer. Earned kill rewards retain the existing rule, and recall grants no conquest. A currently defending home army cannot be withdrawn. Starting a camp attack releases the follower actors at their current positions for battle ownership; rejected attacks resume following.
 
-My Base cancels the player's outgoing encounter, restores all their actors, positions them at server-owned home destinations, then moves their character to their own spawn. Commands require a living character and the existing loaded/writable session guard. Call Army uses a 0.75-second cooldown, My Base 2 seconds, plus the existing remote request limit. Clients never choose destinations or ownership IDs. No new saved fields, prices, upgrades or paid features.
+My Base cancels the player's outgoing encounter, restores all their actors, positions them at server-owned home destinations, then moves their character to their own spawn. Commands require a living character and the existing loaded/writable session guard. Call Army uses a 0.75-second cooldown, My Base 2 seconds, plus the existing remote request limit. Clients never choose destinations or ownership IDs. The October 6 Call Army research adds its one-time cash cost and completion ID through the existing research save object; the commands add no per-use price or Robux feature.
 
 ### Following attack prompt correction — September 28
 

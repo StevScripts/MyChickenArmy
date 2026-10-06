@@ -3,11 +3,13 @@ local Server=game.ServerStorage.PetRoll
 local Session=require(Server.PlayerSession)
 local Commands=require(Server.ArmyCommandService)
 local Battles=require(Server.BattleService)
+local Research=require(game.ReplicatedStorage.PetRoll.Shared.ResearchRules)
 local Checks={}
 local fixtures={}
 
-local function setup()
+local function setup(unlocked)
 	local s=Session.new(-9286,"Army command fixture",1);s.loaded=true
+	if unlocked~=false then s.research.completed.CallArmy=true;s.researchEffects=Research.Effects(s.research) end
 	s.pets,s.slots={},{}
 	local ids={}
 	for _=1,5 do table.insert(ids,s:AddPet("Duck",1).id) end
@@ -74,6 +76,28 @@ function Checks.Run()
 		for _,root in fixtures do root:Destroy() end;table.clear(fixtures)
 		table.insert(results,{name=name,passed=ok,error=if not ok then tostring(why) else nil})
 	end
+	check("Locked Call Army rejects before cooldown, recall or actor changes",function()
+		local s,ids,w,b,c,p=setup(false);local original=table.clone(w.plots[1].actors)
+		b.RecallForCommand=function() error("Locked command recalled an encounter") end
+		local ok,message=c:CallArmy(p,s,1)
+		assert(not ok and string.find(message,"skill tree",1,true))
+		assert(s.lastArmyCall==nil and not c.following[s.userId] and s.armyState=="Home")
+		assert(not next(s.awayPets) and w.created==5)
+		for _,id in ids do assert(w.plots[1].actors[id]==original[id]) end
+		-- An active research timer is not the permanent unlock.
+		s.research.jobs={{id="call-army-pending",nodeId="CallArmy",startedAt=100,finishAt=160,paid=1000}}
+		assert(not c:CallArmy(p,s,2) and s.lastArmyCall==nil)
+	end)
+	check("Locked following leaves battle attacks and My Base recall available",function()
+		local s,ids,w,b,c,p=setup(false)
+		assert(c:Attack(s,"camp:1",1));local encounter=b.battles[s.outgoing]
+		assert(encounter and not c:CallArmy(p,s,2))
+		assert(b.battles[encounter.id]==encounter and s.outgoing==encounter.id)
+		assert(c:GoBase(p,s,3))
+		assert(not s.outgoing and not b.battles[encounter.id] and s.armyState=="Home")
+		assert(p.Character:GetPivot().Position==w:SpawnFrame().Position and s:Count()==5)
+		for _,id in ids do assert(w.plots[1].actors[id] and s:IsPetHome(id)) end
+	end)
 	check("Call transfers only selected actors; repeats preserve identity and one Colossal",function()
 		local s,ids,w,b,c,p=setup();local original=table.clone(w.plots[1].actors)
 		assert(c:CallArmy(p,s,1));local record=c.following[s.userId]

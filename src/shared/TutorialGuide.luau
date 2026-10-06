@@ -1,8 +1,8 @@
 --!strict
 -- Snapshot-only guidance. Never changes prices, eligibility or player actions.
 local Guide = {}
-Guide.Version = "cluck-3-starter-army"
-Guide.Milestones = {"Roll", "Recruit", "Collect", "Sell", "Grow", "Expand", "Select", "Deploy", "Win"}
+Guide.Version = "cluck-4-eggs-first"
+Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win"}
 
 function Guide.Facts(state)
 	local t = state.tutorial or {}
@@ -76,7 +76,9 @@ function Guide.Resolve(state)
 		end
 		return step("Return", "Collect eggs while they return", "Yard")
 	end
-	if not f.Recruit or #(state.pets or {})==0 then return recruit(state, false) end
+	-- Starter birds can teach income before recruiting. Legacy openings retain
+	-- their recruit-first route, and an empty flock always needs an egg producer.
+	if #(state.pets or {})==0 or (not t.starterArmy and not f.Recruit) then return recruit(state, false) end
 	if not f.Collect then
 		return step("Collect", "Walk over an egg", "Yard")
 	end
@@ -84,6 +86,7 @@ function Guide.Resolve(state)
 		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state) end
 		return step("Sell", "Step on the green sell pad", "EggDeposit")
 	end
+	if not f.Recruit then return recruit(state, false) end
 	-- The new squad already has four birds after Recruit. Older empty-yard saves
 	-- can still grow their flock without resetting or granting them extra birds.
 	if not f.Grow then return recruit(state, true) end

@@ -1,0 +1,16 @@
+{
+  "width": 1024,
+  "height": 1024,
+  "rgbaSha256": "e12047ba5b2cdc57cec7e781e3613b0ec7c48d9af7c73fdc58f9375a5da9d9a8",
+  "masterSha256": "d27e429598f692c21ae45968c01a159bb3c81fa3198ae8eddeec7df5f1f8345e",
+  "alphaRange": [
+    0,
+    255
+  ],
+  "alphaBounds": [
+    106,
+    43,
+    919,
+    959
+  ]
+}

@@ -490,6 +490,7 @@ function PetView.Health(model: Model, hp: number, maxHp: number)
 	if not tag then return end
 	local bar = tag:FindFirstChild("Health") :: Frame
 	local fill = bar:FindFirstChild("Fill") :: Frame
+	local value = bar:FindFirstChild("Value") :: TextLabel
 	local maximum = if maxHp == maxHp then math.max(0, maxHp) else 0
 	local current = if hp == hp then math.clamp(hp, 0, maximum) else 0
 	local amount = if maximum > 0 then current / maximum else 0
@@ -498,7 +499,7 @@ function PetView.Health(model: Model, hp: number, maxHp: number)
 	tag.MaxDistance = if model:GetAttribute("ChickenKing") then 180 else 105
 	bar.Visible = amount > 0
 	fill.Size = UDim2.fromScale(amount, 1)
-	(bar:FindFirstChild("Value") :: TextLabel).Text = string.format("%.0f/%.0f", math.ceil(current), math.ceil(maximum))
+	value.Text = string.format("%.0f/%.0f", math.ceil(current), math.ceil(maximum))
 	-- Identical chicken variants need a stable side cue during a crowded fight.
 	-- Bar length communicates remaining health; team color must not flip at low HP.
 	local side=model:GetAttribute("Side")

@@ -48,13 +48,12 @@ For new illustrated icons, use the built-in image generator with
 `/Users/stevin/.codex/skills/chunky-simulator-icons/SKILL.md` whenever applicable.
 Tutorial arrows and destination text are white; generated pointer artwork has a
 black outline. World routes use one attachment-driven Beam with native texture
-scrolling, not repositioned arrow Parts. Tutorial spotlights use one transparent
-target frame with a huge outer black UIStroke at 0.5 transparency. Apply the same
-cutout to world items by projecting their bounds with WorldToScreenPoint; keep it
-aligned with camera movement and clear it for off-screen/behind-camera targets.
-Use it selectively: world dimming only for initial Roll/Recruit while the native
-prompt is in reach; walking, collection, selling, growth and battles use Beam
-and marker guidance. GUI dimming is for Expand/Select learning interactions.
+scrolling, not repositioned arrow Parts. Latest October 6 direction removes all
+tutorial highlighting: no viewport dimming, spotlight cutouts, pulsing target
+borders or projected world overlays. Keep GUI pointers, destination markers,
+native prompts and normal scene lighting. The Beam uses generated image
+`rbxassetid://78163165437840`; reduced motion keeps it static. This supersedes the
+earlier Roll/Recruit and Expand/Select spotlight requirements.
 
 All chicken UI icons and portraits require a visible black stroke around the chicken silhouette, including new traits and rendered previews used as icons. Keep it consistent and unclipped; a card border is not a substitute. Follow the design workspace's DESIGN.md illustration contract. This is the user's September 27 reminder.
 

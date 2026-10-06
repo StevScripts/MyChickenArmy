@@ -10,6 +10,11 @@ local ARMY_HOME_SCALE=0.82
 local Hud={}
 Hud.__index=Hud
 
+local function callArmyUnlocked(state)
+	local research=state and state.research
+	return research~=nil and research.effects~=nil and (research.effects.callArmy or 0)>=1
+end
+
 function Hud.new(app,shell)
 	local self=setmetatable({app=app},Hud)
 	local navigation=Theme.Frame(shell,"Navigation",UDim2.fromScale(0.31,0.255))
@@ -20,7 +25,15 @@ function Hud.new(app,shell)
 		app.audio:Play("Click")
 		app:Request(action)
 	end
-	self.callArmy=Theme.IconButton(navigation,"CallArmy","Call Army",Theme.Assets.CallArmy or "",function() command("CallArmy") end)
+	self.callArmy=Theme.IconButton(navigation,"CallArmy","Unlock Call Army",Theme.Assets.CallArmy or "",function()
+		if callArmyUnlocked(app.state) then command("CallArmy");return end
+		app.audio:Play("Click")
+		app:OpenPage("Research")
+		app.research:Center("CallArmy")
+		app.research:Select("CallArmy",true)
+	end)
+	self.callArmy.TextColor3=Theme.Colors.muted
+	self.callArmy.Visual.Icon.ImageColor3=Color3.new(0.65,0.65,0.65)
 	self.myBase=Theme.IconButton(navigation,"MyBase","My Base",Theme.Assets.MyBase or "",function() command("GoBase") end)
 	self.army.ZIndex=2
 	self.commandsExpanded=false
@@ -277,7 +290,11 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 		elseif state.stationedAt then "Holding "..state.stationedAt
 		elseif state.marchingTo then "Marching to "..state.marchingTo
 		else "Army deployed"
-	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
+	local callUnlocked=callArmyUnlocked(state)
+	self.callArmy.Text=if callUnlocked then "Call Army" else "Unlock Call Army"
+	self.callArmy.TextColor3=if not callUnlocked then Theme.Colors.muted
+		elseif state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
+	self.callArmy.Visual.Icon.ImageColor3=if callUnlocked then Color3.new(1,1,1) else Color3.new(0.65,0.65,0.65)
 	if state.armyState~="Returning" and (state.recoveringCount or 0)+(state.reinforcingCount or 0)>0 then
 		self.status.Text=(state.recoveringCount or 0)+(state.reinforcingCount or 0).." reinforcing"
 	end

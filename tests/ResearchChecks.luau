@@ -39,8 +39,8 @@ function Checks.Run()
 	local function check(name,fn)
 		local ok,err=pcall(fn);table.insert(results,{name=name,passed=ok,error=if not ok then tostring(err) else nil})
 	end
-	check("61 unique nodes have acyclic paths, coordinates and implemented effects",function()
-		assert(#Catalog.Order==61)
+	check("62 unique nodes have acyclic paths, coordinates and implemented effects",function()
+		assert(#Catalog.Order==62)
 		local ids,coordinates={},{}
 		local effects=Research.Effects(Research.New())
 		for _,id in Catalog.Order do
@@ -54,7 +54,30 @@ function Checks.Run()
 	end)
 	check("Fresh/legacy research starts with Start and one researcher",function()
 		local data=Research.Read(nil);assert(data.completed.Start and #data.jobs==0)
-		assert(Research.Effects(data).slots==1 and Research.Effects(data).offlineHours==8)
+		assert(Research.Effects(data).slots==1 and Research.Effects(data).offlineHours==8 and Research.Effects(data).callArmy==0)
+	end)
+	check("Call Army unlocks on completed research, persists, and cancelled research refunds once",function()
+		local s=setup();local node=Catalog.Nodes.CallArmy;local coins=s.coins
+		assert(node.prerequisite=="Start" and Research.Status(s.research,"CallArmy",coins)=="Available")
+		assert(s.researchEffects.callArmy==0 and start(s,"CallArmy",100))
+		assert(s.coins==coins-node.price and s.researchEffects.callArmy==0)
+		local job=s.research.jobs[1]
+		assert(not start(s,"CallArmy",101) and s.coins==coins-node.price)
+		assert(Transactions.Cancel(s,job.id,s.research.revision,101) and s.coins==coins)
+		assert(not Transactions.Cancel(s,job.id,s.research.revision,101) and s.researchEffects.callArmy==0)
+		assert(start(s,"CallArmy",200));local finish=s.research.jobs[1].finishAt
+		assert(#Transactions.Complete(s,finish-1)==0 and s.researchEffects.callArmy==0)
+		assert(#Transactions.Complete(s,finish)==1 and s.researchEffects.callArmy==1)
+		assert(#Transactions.Complete(s,finish+1)==0 and s.coins==coins-node.price)
+		local loaded=setup();assert(loaded:LoadData(s:ToData()))
+		assert(loaded.research.completed.CallArmy and loaded.researchEffects.callArmy==1)
+	end)
+	check("Existing completed research remains valid without granting Call Army",function()
+		local s=setup()
+		for _,id in Catalog.Order do if id~="CallArmy" then grant(s,id) end end
+		local read=assert(Research.Read(Research.Copy(s.research)))
+		assert(not read.completed.CallArmy and Research.Effects(read).callArmy==0)
+		for _,id in Catalog.Order do if id~="CallArmy" then assert(read.completed[id]) end end
 	end)
 	check("Highest completed tier replaces smaller bonuses",function()
 		local s=setup();for _,id in Catalog.Order do grant(s,id) end

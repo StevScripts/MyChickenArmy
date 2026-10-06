@@ -10,8 +10,6 @@ local CashNodes = require(script.Parent.CashUpgradeNodes)
 local GuideFocus = require(script.Parent.GuideFocus)
 local CARD_POSITION = UDim2.fromScale(.5,.005)
 local ENTER_SECONDS = .18
--- Reserve world dimming for the two new interactions, once their prompt is in reach.
-local WORLD_SPOTLIGHT_STEPS = {Roll=true, Recruit=true}
 local Commander = {}
 Commander.__index = Commander
 
@@ -20,7 +18,7 @@ function Commander.new(app)
 	local root = Theme.InsetContainer(app.other, "CommanderGuide", Enum.ScreenInsets.CoreUISafeInsets)
 	root.ZIndex, root.Visible = 25, false
 	self.root = root
-	self.spotlight = GuideFocus.new(app.other)
+	self.pointerGuide = GuideFocus.new(app.other)
 	local card = Theme.Container(root, "Card")
 	card.AnchorPoint, card.Position, card.Size = Vector2.new(.5,0), CARD_POSITION, UDim2.fromScale(.86,.115)
 	Theme.Aspect(card, 7.4)
@@ -70,16 +68,11 @@ function Commander:Signal(signal)
 end
 
 function Commander:ClearFocus()
-	self.spotlight:SetTarget(nil,self.app.reducedMotion)
-	self.focus,self.pulse=nil,nil
-	self.focusTarget=nil
+	self.pointerGuide:SetTarget(nil,self.app.reducedMotion)
 end
 
-function Commander:Focus(target, worldParts)
-	self.spotlight:SetTarget(target,self.app.reducedMotion,worldParts)
-	self.focusTarget=target
-	self.focus=if target then self.spotlight.stroke else nil
-	self.pulse=self.spotlight.pulse
+function Commander:Focus(target)
+	self.pointerGuide:SetTarget(target,self.app.reducedMotion)
 end
 
 function Commander:Update()
@@ -109,7 +102,7 @@ function Commander:Update()
 	self.root.Visible=not blocked
 	local inTree=app.research.root.Visible
 	local inArmy=app.panel.Visible and app.page=="Army"
-	-- Keep menu headers and controls unobstructed; their one relevant control is outlined.
+	-- Keep menu headers and controls unobstructed; the arrow points beside their relevant control.
 	local atTarget=false
 	for prompt in self.prompts do
 		if not prompt.Parent then self.prompts[prompt]=nil
@@ -137,7 +130,7 @@ function Commander:Update()
 		end
 	end
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
-	local target,worldParts
+	local target
 	if not blocked and id=="Expand" then
 		if inTree then
 			local node=CashNodes.NextId("ArmySize",state.boardUpgrades.ArmySize)
@@ -147,17 +140,13 @@ function Commander:Update()
 	elseif not blocked and id=="Select" then
 		target=if inTree then app.research.root:FindFirstChild("Exit",true)
 			elseif inArmy then app.chickenBrowser.best elseif not app.panel.Visible then app.hud.army else nil
-	elseif WORLD_SPOTLIGHT_STEPS[id] and atTarget and not blocked and not inTree and not app.panel.Visible and not state.incoming
-		and (state.armyState=="Home" or state.armyState=="Following")
-		and app.base and app.base.guideWorldStep==id then
-		target,worldParts=app.base.guideWorldTarget,app.base.guideWorldParts
 	end
-	self:Focus(target,worldParts)
+	self:Focus(target)
 end
 
 function Commander:Destroy()
 	self.alive=false;self:ClearFocus();self:Present(false)
-	self.spotlight:Destroy()
+	self.pointerGuide:Destroy()
 	for _,connection in self.connections do connection:Disconnect() end
 	self.root:Destroy()
 end

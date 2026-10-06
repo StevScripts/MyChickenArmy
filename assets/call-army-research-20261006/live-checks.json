@@ -1,0 +1,13 @@
+{
+  "placeId": 96683186622050,
+  "sessionOnly": true,
+  "lockedButton": "Unlock Call Army",
+  "lockedIconColor": [0.65, 0.65, 0.65],
+  "lockedActivation": {"researchOpened": true, "CallArmyVisible": true, "tooltip": "Call Army", "commandRequestsSent": 0},
+  "startResearch": {"ok": true, "message": "Call Army research started.", "paid": 1000, "duration": 60},
+  "pendingCommand": {"ok": false, "message": "Unlock Call Army in the skill tree first.", "effect": 0},
+  "completion": "Covered by isolated fixtures. Play ended before completed live HUD state was inspected.",
+  "profileWrites": false,
+  "published": false,
+  "localPlace": "MyChickenArmy-Call-Army-Research-20261006.rbxl"
+}

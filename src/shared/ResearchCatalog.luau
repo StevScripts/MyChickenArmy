@@ -1,9 +1,10 @@
 --!strict
 -- Permanent cash-and-time research. Existing cash upgrade eligibility is separate.
 local Catalog = {}
-Catalog.Order = {"Start", "L1", "L2", "L3", "L4", "L5", "L6", "R1", "R2", "R3", "R4", "R5", "R6", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13", "E14", "E15", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17"}
+Catalog.Order = {"Start", "L1", "L2", "L3", "L4", "L5", "L6", "R1", "R2", "R3", "R4", "R5", "R6", "CallArmy", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13", "E14", "E15", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17"}
 Catalog.Nodes = {
 	["Start"] = {id="Start", name="Start", branch="Start", price=0, duration=0, description="Improve your rolls, egg farm or fighting flock.", q=0, r=0, icon="index"},
+	["CallArmy"] = {id="CallArmy", name="Call Army", branch="Army", price=1000, duration=60, description="Unlock Call Army: recall your selected chickens to follow you.", q=-1, r=2, icon="callArmy", prerequisite="Start", effect="callArmy", value=1},
 	["A1"] = {id="A1", name="Peck Drills", branch="Army", price=500, duration=30, description="+5% army damage", q=-1, r=0, icon="army", prerequisite="Start", effect="damage", value=0.05},
 	["A2"] = {id="A2", name="Officer Training", branch="Army", price=5000, duration=120, description="+10% army damage", q=-2, r=0, icon="army", prerequisite="A1", effect="damage", value=0.1},
 	["A3"] = {id="A3", name="Elite Flock", branch="Army", price=250000, duration=1800, description="+25% army damage", q=-3, r=0, icon="army", prerequisite="A2", effect="damage", value=0.25},

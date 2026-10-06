@@ -32,3 +32,16 @@ health-bar modules and the tutorial's no-Skip client source matched their
 Studio Edit copies on readback. The active Play session was left running;
 restart Play to load the changes. No tests, new playtest or rendered-layout
 comparison were run, and nothing was published.
+
+## Startup repair — October 6
+
+The first saved version contained an ambiguous Luau statement in `PetView.Health`:
+a parenthesized label cast immediately followed a function-call assignment. This
+prevented PetView and both bootstrap dependency chains from loading. The HP label
+now uses a named local before assigning its text.
+
+A fresh disposable Studio Play session confirmed server/client readiness, plot 1
+assignment, the visible HUD, and the first tutorial objective with no Skip button.
+On an unparented clone of a spawned chicken, HP updates at 100/100, 25/100 and
+0/100 produced the expected label, fill and dead-bar visibility; the clone was
+destroyed afterward. Saved player progress was not changed.

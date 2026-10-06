@@ -63,7 +63,7 @@ local function quoteTriple(values, offset)
 end
 
 local s = fresh()
-check("new analytics guide version", Guide.Version=="cluck-3-starter-army")
+check("new analytics guide version", Guide.Version=="cluck-4-eggs-first")
 check("three starters and three selected slots", s:Count()==3 and #s:BestPetIds()==3 and s.capacity==3)
 check("three basic free level-one chickens", #Config.StarterFlock==3 and (function()
 	for _, pet in s.pets do
@@ -73,11 +73,17 @@ check("three basic free level-one chickens", #Config.StarterFlock==3 and (functi
 end)())
 check("fresh cohort has no pre-rolled offer", s.tutorial.starterArmy and not s.tutorial.emptyStart and s.offer==nil and next(s.offers)==nil)
 check("unchanged wallet and independently reserved purchases", s.coins==2400 and s:StarterRecruitPending() and s:StarterCashReserve()==1800 and s:StarterArmyReserve()==1200)
-check("ownership does not complete Roll or Recruit", not Guide.Facts(s:Snapshot(0)).Roll and not Guide.Facts(s:Snapshot(0)).Recruit and Guide.Resolve(s:Snapshot(0)).id=="Roll")
+check("ownership does not complete Roll or Recruit and starts with eggs", not Guide.Facts(s:Snapshot(0)).Roll and not Guide.Facts(s:Snapshot(0)).Recruit and Guide.Resolve(s:Snapshot(0)).id=="Collect")
 check("only the extra six hundred is discretionary", s:CanSpendCash(600) and not s:CanSpendCash(601) and not s:CanSpendCash(601, "Unknown"))
 check("each required purchase can spend its own earmark", s:CanSpendCash(600, "StarterRecruit") and s:CanSpendCash(1200, "ArmySize"))
 
 -- Normal route teaches income once, then reaches combat from starting cash alone.
+s.tutorial.collectedEggs = true
+local carrying = s:Snapshot(0)
+carrying.eggs = {carriedCount=1, carriedValue=4}
+check("one collected egg is enough for the teaching sale", Guide.Resolve(carrying).id=="Sell")
+s.tutorial.soldEggs = true
+check("first sale advances to the free roll", Guide.Resolve(s:Snapshot(0)).id=="Roll")
 check("free first roll succeeds", rolls:Roll(s, 10))
 local first = s.offer
 check("first offer is the six hundred basic recruit", first.starter and first.species=="Duck" and first.level==1 and first.price==600 and first.chance==1 and #s.offers==1 and s.coins==2400)
@@ -91,13 +97,7 @@ check("starter buy adds exactly the fourth bird", bought and s:Count()==4 and s.
 check("recruit investment reflects actual cash", s.pets[recruitId].investment==600 and Rules.SellValue(s.pets[recruitId].investment)==300)
 check("only Army Size cash remains reserved", s:StarterCashReserve()==1200 and s:StarterArmyReserve()==1200)
 check("duplicate recruit is rejected without mutation", not rolls:Buy(s, accepted, 30) and s:Count()==4 and s.coins==1800)
-check("first collection follows recruitment", Guide.Resolve(s:Snapshot(30)).id=="Collect")
-s.tutorial.collectedEggs = true
-local carrying = s:Snapshot(30)
-carrying.eggs = {carriedCount=1, carriedValue=4}
-check("one collected egg is enough for the teaching sale", Guide.Resolve(carrying).id=="Sell")
-s.tutorial.soldEggs = true
-check("sale goes directly to expansion without farming", Guide.Resolve(s:Snapshot(30)).id=="Expand")
+check("recruit goes directly to expansion without repeating the sale", Guide.Resolve(s:Snapshot(30)).id=="Expand")
 local armyQuote = upgrades:Offers(s).ArmySize
 check("first Army Size purchase uses its reserved budget", armyPurchase(s) and s.capacity==4 and s.coins==600 and s:StarterCashReserve()==0)
 check("stale Army Size quote cannot buy another tier", not upgrades:Buy(nil,s,"ArmySize",armyQuote.level,armyQuote.price) and s.capacity==4 and s.coins==600)
@@ -113,7 +113,7 @@ check("ordinary economy returns after discounted purchase", rolls:Roll(rejoined,
 -- Purchases may happen out of order; the other earmark remains available.
 local reordered = fresh()
 check("Army Size first leaves recruit reserve", armyPurchase(reordered) and reordered.coins==1200 and reordered:StarterCashReserve()==600 and reordered:StarterRecruitPending())
-check("Army Size first still asks for a roll", Guide.Resolve(reordered:Snapshot(0)).id=="Roll")
+check("Army Size first still teaches collection before a roll", Guide.Resolve(reordered:Snapshot(0)).id=="Collect")
 buyStarter(reordered)
 check("reordered purchases have identical total cost", reordered:Count()==4 and reordered.capacity==4 and reordered.coins==600 and reordered:StarterCashReserve()==0)
 local exact = fresh()
@@ -140,7 +140,7 @@ check("skip hides guidance but keeps budget protection", Guide.Resolve(skipped:S
 local resume = restore(skipped)
 check("saved cohort and reserve survive rejoin without added birds", resume.tutorial.starterArmy and resume.tutorial.guideSkipped and resume:Count()==3 and resume.coins==2400 and resume:StarterCashReserve()==1800)
 resume.tutorial.guideSkipped = false
-check("resuming unfinished purchase returns to Roll", Guide.Resolve(resume:Snapshot(0)).id=="Roll")
+check("resuming before the income lesson returns to collection", Guide.Resolve(resume:Snapshot(0)).id=="Collect")
 resume.pets[ids(resume)[1]].level = 3
 resume.rollSlotCount, resume.guaranteedLuckRolls = 8, 3
 resume.entitlements.DoubleLuck, resume.paidRandomRestricted = true, true

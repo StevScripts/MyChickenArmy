@@ -17,6 +17,9 @@ local CashNodes=require(script.Parent.CashUpgradeNodes)
 local displayOrder,displayNodes=table.clone(Catalog.Order),{}
 for id,node in Catalog.Nodes do
 	local display=table.clone(node)
+	if node.effect=="rollingLuck" then
+		display.description="Timed research bonus: +"..string.format("%g",node.value*100).."% Rare+ weights. Combines with cash Luck; replaces earlier luck research."
+	end
 	local position=CashNodes.ResearchPositions[id]
 	if position then display.q,display.r=position.q,position.r end
 	displayNodes[id]=display
@@ -69,6 +72,14 @@ local function cashStatus(offer,coins)
 	if not offer.price then return "Unavailable" end
 	if not offer.unlocked then return "Unavailable" end
 	return if offer.canSpend==false or coins<offer.price then "Unaffordable" else "Available"
+end
+local function luckOdds(offer,withNext)
+	if not offer or type(offer.rarePlusChance)~="number" then return nil end
+	local text=string.format("%.2f%%",offer.rarePlusChance*100)
+	if withNext and type(offer.nextRarePlusChance)=="number" then
+		text..=" → "..string.format("%.2f%%",offer.nextRarePlusChance*100)
+	end
+	return text
 end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
@@ -165,8 +176,10 @@ function Browser.new(app,parent)
 		local progress=Theme.Frame(bar,"Fill",UDim2.fromScale(0,1),Color3.fromRGB(87,246,255));progress.ZIndex=6;round(progress,.12)
 		local timer=label(bar,"Time","",.035,.04,.93,.9);timer.ZIndex=7
 		local level,change
-		if CashNodes.Nodes[id] then
+		if CashNodes.Nodes[id] or node.effect=="rollingLuck" then
 			level=label(visual,"Level","",.21,.055,.58,.085,CYAN);level.ZIndex=5
+		end
+		if CashNodes.Nodes[id] then
 			change=label(visual,"Benefit","",.09,.665,.82,.105);change.ZIndex=5
 		end
 		self.nodes[id]={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,title=title,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,bar=bar,progress=progress,timer=timer,level=level,change=change}
@@ -532,6 +545,12 @@ function Browser:Render()
 		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
 		view.icon.ImageTransparency,view.title.TextTransparency=if preview then .83 else 0,if preview then .77 else 0
 		view.title.TextOutline.Transparency=if preview then .8 else 0
+		if view.level then
+			view.level.Visible=not hidden
+			view.level.Text="Research"
+			view.level.TextColor3=if owned or active then WHITE else CYAN
+			view.level.TextTransparency=if preview then .77 else 0
+		end
 		view.cost.Visible=not hidden and not owned and not active and not preview
 		view.price.Text=priceText(offer.price)
 		view.price.TextColor3=if state=="Unaffordable" then RED else GREEN
@@ -568,6 +587,8 @@ function Browser:RenderCash(reveals)
 		local offer=self.cashOffers and self.cashOffers[node.upgradeKey]
 		local completed=if offer then CashNodes.Completed(node.upgradeKey,offer) else 0
 		local owned,nextTier=node.tier<=completed,node.tier==completed+1
+		local luck=node.upgradeKey=="Luck"
+		local maxed=luck and owned and node.tier==node.maxTier
 		local visible=node.tier<=completed+2
 		local hidden=not owned and not nextTier
 		local state=if owned then "Completed" elseif hidden then "Hidden" else cashStatus(offer,self.coins or 0)
@@ -595,13 +616,17 @@ function Browser:RenderCash(reveals)
 		view.icon.ImageTransparency,view.title.TextTransparency=if unavailable then .65 else 0,if unavailable then .35 else 0
 		view.title.TextOutline.Transparency=if unavailable then .35 else 0
 		view.bar.Visible=false
-		view.level.Visible,view.change.Visible=nextTier,nextTier
+		view.level.Visible,view.change.Visible=nextTier or (luck and owned),nextTier
 		view.icon.Position=UDim2.fromScale(.20,if nextTier then .16 else .14)
 		view.icon.Size=UDim2.fromScale(.60,if nextTier then .39 else .52)
 		view.title.Position=UDim2.fromScale(.025,if nextTier then .555 else .665)
 		view.title.Size=UDim2.fromScale(.95,if nextTier then .105 else .12)
-		view.level.Text=if nextTier and offer and offer.ready then "Instant" else ""
+		view.level.Text=if maxed then "MAX" elseif luck and offer and offer.ready then "Cash" elseif nextTier and offer and offer.ready then "Instant" else ""
+		view.level.TextColor3=if owned then WHITE else CYAN
 		view.change.Text=if not offer or not offer.ready then "Loading…" elseif offer.nextText and not unavailable then offer.currentText.." → "..offer.nextText else offer.currentText
+		if luck and nextTier and offer and offer.ready and offer.nextRarePlusChance then
+			view.change.Text=string.format("Rare+ %.1f%% → %.1f%%",offer.rarePlusChance*100,offer.nextRarePlusChance*100)
+		end
 		view.cost.Visible=nextTier
 		view.cashIcon.Visible=nextTier and state~="Loading" and not unavailable and not waiting
 		view.price.Position=UDim2.fromScale(if view.cashIcon.Visible then .28 else 0,0)
@@ -694,7 +719,21 @@ function Browser:RenderTooltip()
 	local effect=node.description
 	if cashNode then
 		local baseBenefit=if node.benefit:lower():find("base",1,true) then node.benefit else "Base upgrade: "..node.benefit
-		if owned then effect=baseBenefit
+		if cashNode.upgradeKey=="Luck" then
+			local limit=if offer and offer.maxLevel then offer.maxLevel else node.maxTier
+			local progress=tostring(completed).."/"..limit
+			if owned then
+				if cashNode.tier==node.maxTier then
+					local odds=luckOdds(offer,false)
+					effect="Cash Luck "..progress.." · MAX. "..baseBenefit
+					if odds then effect..=" Current Rare+ per chicken: "..odds..". Normal rolls, active bonuses included." end
+				else effect="Cash tier "..node.tier.."/"..limit.." purchased. "..baseBenefit end
+			elseif not offer or not offer.ready then effect="Waiting for your flock to load."
+			else
+				local odds=luckOdds(offer,true)
+				effect="Instant cash upgrade. Owned "..progress..". "..(if odds then "Rare+ per chicken: "..odds..". Normal rolls, active bonuses included." else baseBenefit)
+			end
+		elseif owned then effect=baseBenefit
 		elseif not offer or not offer.ready then effect="Waiting for your flock to load."
 		elseif state=="Unavailable" then
 			effect=baseBenefit.." "..(if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.")

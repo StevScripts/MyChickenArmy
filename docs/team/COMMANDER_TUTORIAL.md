@@ -7,6 +7,43 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Eggs first — latest October 6 correction
+
+The starter-army guide now begins **Collect → Sell → Roll → Recruit**, then
+prepares the four-chicken army and directs the player to conquer Cluck Camp.
+The three free starter chickens provide eggs before the first purchase. A single
+collected egg is enough for the first instant sale. Army Size 1 still brings the
+fourth chicken into the deployed squad; Select appears only when the player has
+not already selected four fighters.
+
+Saved collection, sale and purchase milestones remain authoritative, so rejoining
+or doing actions early does not reset progress. Legacy openings retain their
+recruit-first route, and an empty flock always recruits an egg producer before
+collection. Starting cash, reserves, prices, selection and combat rules are
+unchanged. The analytics version is now `cluck-4-eggs-first`.
+
+The updated shared guide is synchronized to Pet Roll Test and matches the local
+source. Twenty-three isolated snapshot-routing checks passed in Studio Edit,
+covering the normal route, early actions, resume, recovery and legacy profiles.
+The existing starter-army fixture was updated for the new order but its broader
+server suite was not rerun. No playtest, publication or player-data changes were
+performed for this revision.
+
+## No tutorial highlighting — latest October 6 correction
+
+Tutorial guidance no longer dims the viewport, outlines controls/world targets,
+or pulses a focus border. This supersedes every spotlight/cutout requirement
+below. `GuideFocus` is now GUI-pointer-only; `CommanderGuide` keeps the existing
+Expand/Select arrows and native-prompt handoff. World guidance uses the destination
+marker and one attachment-driven Beam with normal scene lighting.
+
+The Beam now uses the generated chunky white arrow with a black contour,
+`rbxassetid://78163165437840`, at full opacity. It retains native texture scrolling
+and becomes static for reduced motion. GUI pointers and destination markers keep
+their existing image. Gameplay, tutorial progression and saved state are unchanged.
+Source and art: [tutorial Beam arrow](../../assets/tutorial-beam-arrow-20261006/README.md).
+No playtest or experience publication was performed for this change.
+
 ## No Skip button — latest October 6 correction
 
 The tutorial has no Skip button. `CommanderGuide` no longer creates the control,
@@ -33,13 +70,14 @@ tests, start a playtest, initiate synchronization or publish the game.
 
 Fresh profiles now receive three free level-1 basic Chickens (internal `Duck`
 IDs), $2,400, three deployment slots and no offer. The free lever guarantees a
-$600 fourth recruit. The guide then teaches one collection and instant sale,
-buys Army Size 1 for $1,200, checks four selected fighters and directs the player
-to Cluck Camp. The new cohort does not need the former Grow/funding loop.
+$600 fourth recruit. The latest guide teaches collection and instant selling
+first, then the roll and purchase, Army Size 1 for $1,200, four selected fighters
+and Cluck Camp conquest. The new cohort does not need the former Grow/funding loop.
 
 `tutorial.starterArmy` identifies this opening; old profiles receive no extra
 chickens, cash or changed cohort. Legacy `emptyStart` saves retain their existing
-recruit/recovery path. The guide version is `cluck-3-starter-army`.
+recruit/recovery path. The original guide version was `cluck-3-starter-army`;
+the October 6 egg-first route uses `cluck-4-eggs-first`.
 
 PlayerSession reserves the $600 recruit and $1,200 expansion separately. Other
 cash spending uses only the remainder. The corresponding server purchase can
@@ -308,10 +346,10 @@ stud-sheet header to the right inset, and slightly overlaps the portrait.
 
 | Step | Instruction and consequence | Completion evidence |
 |---|---|---|
-| Roll | Pull the free lever beside the three starter chickens | Server-confirmed roll |
-| Recruit | Buy the $600 fourth chicken | Committed purchase; free starter birds do not satisfy this lesson |
 | Collect | Walk close to an egg to put it in the bag | Existing server collection fact or carried eggs |
 | Sell | Walk onto the green pad for immediate cash | Server-confirmed instant sale |
+| Roll | Pull the free lever after the first egg sale | Server-confirmed roll |
+| Recruit | Buy the $600 fourth chicken | Committed purchase; free starter birds do not satisfy this lesson |
 | Grow (legacy/recovery only) | Recruit toward four chickens if the existing profile has fewer | Four owned chickens; fresh cohort satisfies this after Recruit |
 | Expand | Open Upgrades and buy Army Size 1 | Available army capacity reaches four |
 | Select | Use Select Best or choose a squad | Four selected chickens; auto-selected squads already satisfy this |
@@ -377,7 +415,7 @@ deployment. UI reports cannot assert gameplay completion. Signals use the
 existing remote's rate limit plus a per-signal cooldown and bounded allowlist.
 Analytics failures do not reverse transactions.
 
-## Analytics contract: cluck-3-starter-army
+## Analytics contract: cluck-4-eggs-first
 
 Production events are server-side AnalyticsService calls. Studio collects a
 bounded local ring instead of sending production analytics. Actual charts
@@ -385,7 +423,7 @@ therefore require a separately authorized published release and subsequent
 event inspection.
 
 Three custom fields are used:
-1. tutorial version/cohort, such as cluck-3-starter-army/FirstGuide or cluck-3-starter-army/ReturningGuide;
+1. tutorial version/cohort, such as cluck-4-eggs-first/FirstGuide or cluck-4-eggs-first/ReturningGuide;
 2. stable step ID;
 3. a bounded outcome, action, input class or time bucket.
 

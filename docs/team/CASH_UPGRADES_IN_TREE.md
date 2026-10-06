@@ -38,7 +38,55 @@ bonuses still combine with those cash tracks. Egg Speed's next-value preview now
 includes the existing research production bonus, matching its current value.
 Instant egg deposits and the Giant/Colossal contracts remain untouched.
 
+## Luck progress and odds — October 6
+
+Cash Luck hexes show `Luck 1/20` through `Luck 20/20`, a Cash label, and MAX on
+the final purchased tier. The next tier's tooltip states the owned count. Owned
+nodes retain their historical base benefit; they never advertise a later tier's
+reward as their own. The cap, prices, saved levels and purchase validation remain
+unchanged.
+
+`UpgradeService.Offers` supplies `maxLevel`, `rarePlusChance` and, below the cap,
+`nextRarePlusChance` for Luck. These sum the normalized Rare/Epic/Legendary/Mythic
+results from the same `Rules.Odds` used by ordinary recruitment, including current
+research and eligible paid Luck. Percentages are per chicken, not the probability
+of any Rare+ across all podiums; forced tutorial/guarantee results and fixed crate
+pools are excluded. Hexes use one decimal and the tooltip two. No next chance or
+price is offered at the cap, and loading never fabricates a zero-percent value.
+
+The six timed luck research nodes retain their names, IDs, prices and durations.
+A Research label and tooltip identify their separate bonus, which combines with
+cash Luck and replaces the previous research tier instead of adding all tiers.
+
+Validation used a disposable Studio session: server/client startup succeeded;
+24 isolated combinations covered levels 0/7/19/20, eligible paid Luck on/off and
+research bonuses 0/0.35/1. Cap rejection preserved fixture cash, level and revision.
+Client fixtures checked loading, next-tier odds, historical owned benefits, 19→20,
+MAX with no price/action, and the Research label. No purchase requests were sent.
+A desktop capture was inspected at Luck 7→8. Player saves were not modified;
+phone layout and a complete live purchasing sequence were not exercised.
+
 ## Code contract
+
+### Compact branch layout — October 6
+
+The later spacing correction folds the long Luck, Egg Value and Egg Speed paths
+into adjacent rows around the existing research. Individual tier hexes, their
+purchase order, the six roots beside Start and normal node sizes remain intact.
+This replaces the long straight rays; it does not shorten the upgrade ladders.
+Coordinates belong to `CashUpgradeNodes` only. Research prerequisites, live quotes,
+saved levels, the Luck 20/20 MAX state and odds previews are unchanged.
+
+The follow-up applies the same compact layout rule to the remaining cash and
+timed-research branches. Army Size, Plot Capacity, Roll Slots, timed Luck and Roll
+Speed turn back into nearby rows instead of continuing as isolated straight tails.
+Outer research and egg-upgrade nodes are brought into the same cluster. All
+positions remain client-only; no saved research ID or prerequisite is rewritten.
+All 153 current nodes now fit within eight axial hex steps of Start at the
+existing node size. The cash paths and timed rolling paths retain adjacent
+successive tiers; existing army/economy/command research positions are preserved.
+
+No new gameplay or device playtest was run for this coordinate-only adjustment.
 
 `UpgradeService` remains the sole owner of these offers and transactions. The
 existing `state.boardUpgrades` snapshot field remains for compatibility; it is now

@@ -1,6 +1,8 @@
 --!strict
 -- Owns portable cash upgrade offers and transactions; Research owns timed jobs.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
+local Config = require(Shared.Config)
+local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
 local Definitions = require(Shared.UpgradeCatalog)
 local ArmyService = require(script.Parent.ArmyService)
@@ -9,6 +11,18 @@ UpgradeService.__index = UpgradeService
 
 local function decimal(value)
 	return (string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", ""))
+end
+
+local function rarePlusChance(session, level)
+	local chance = 0
+	for id, probability in Rules.Odds(level, session.recruitTier,
+		session:PaidLuckMultiplier(), session.researchEffects.rollingLuck) do
+		local rarity = Catalog[id].rarity
+		if rarity == "Rare" or rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" then
+			chance += probability
+		end
+	end
+	return chance
 end
 
 function UpgradeService.new(_world, rolls)
@@ -42,6 +56,13 @@ function UpgradeService:Offers(session)
 	local luck = session:GlobalUpgrade("Luck")
 	add("Luck", session.luck, decimal(Rules.LuckMultiplier(session.luck)
 		* session:PaidLuckMultiplier() * (1 + (session.researchEffects.rollingLuck or 0))) .. "x", luck and luck.price)
+	-- Normal individual roll outcomes; forced tutorial/guaranteed rolls and fixed
+	-- crate pools are separate. Use the same normalized odds as ordinary rolls.
+	offers.Luck.maxLevel = #Config.LuckPrices
+	offers.Luck.rarePlusChance = rarePlusChance(session, session.luck)
+	if offers.Luck.price then
+		offers.Luck.nextRarePlusChance = rarePlusChance(session, session.luck + 1)
+	end
 	local slots = session.rollSlotsUnlocked
 	local physicalLimit = session.rollSlotLimit or 1
 	add("RollSlots", slots, tostring(session.rollSlotCount or 1),
