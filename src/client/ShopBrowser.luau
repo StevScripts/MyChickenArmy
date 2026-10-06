@@ -316,6 +316,7 @@ function Browser:UpdatePurchase(button,key,root)
  local toggling=self.app.commerce.togglePending[key]~=nil
  button.Text=if automatic then (if toggling then "Updating…" elseif shop.automatic and shop.automatic[key] then "Auto: ON" else "Auto: OFF") else statusText(state,price)
  button.Active=(ready(state) or automatic) and self.app.commerce.pending==nil and not toggling
+  and (automatic or self.app.commerce.autoCrate==nil)
  button.Selectable=button.Active
  dress(button,if state=="owned" then P.gold elseif button.Active then P.green else P.tab)
  button:SetAttribute("State",state)

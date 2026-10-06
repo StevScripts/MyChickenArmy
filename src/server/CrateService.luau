@@ -42,4 +42,17 @@ function CrateService:Open(session)
  return true,Catalog[species].name.." joined your flock!",{species=species,level=1,petId=pet.id}
 end
 
+-- GameServer restricts this entry point to disposable Studio sessions.
+-- Restore credits even if Open fails; test rewards never spend purchased crates.
+function CrateService:OpenTest(session)
+ local credits=session.crateCredits
+ session.crateCredits=credits+1
+ local ran,ok,message,crate=pcall(self.Open,self,session)
+ session.crateCredits=credits
+ if not ran then error(ok,0) end
+ if not ok then return false,message end
+ crate.preview=true
+ return true,"TEST: "..message.." Temporary Studio reward; it will not save.",crate
+end
+
 return CrateService

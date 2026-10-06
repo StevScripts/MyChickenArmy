@@ -81,6 +81,11 @@ function Controller:State(key)
 	if self.autoCrate and self.autoCrate.key==key then return "pending" end
 	local product=self.products[key]
 	if product and product.status=="ready" then
+		if definition.crates and shop and shop.testAllowed==true then
+			if not shop.policyReady then return "policy" end
+			if shop.paidRandomAllowed~=true then return "restricted" end
+			return "studio",product.price
+		end
 		if kind=="Product" and (not shop or not shop.productReady) then return "profile" end
 		if kind=="Pass" and (not shop or not shop.ready) then
 			return if shop and shop.checking then "checking" else "ownership"
@@ -156,6 +161,23 @@ function Controller:OpenCrate()
 	return self:RequestCrate(self.app.state and self.app.state.shop)
 end
 
+function Controller:TestCrate()
+	local shop=self.app.state and self.app.state.shop
+	if not self.alive or self.pending or self.autoCrate or self.cratePending or self.cratePresenting
+		or not shop or shop.testAllowed~=true or not shop.policyReady or shop.paidRandomAllowed~=true
+		or not self.catalog.Crate or not self.catalog.Crate.enabled then return false end
+	-- The server permits this only for disposable Studio sessions; no checkout
+	-- or purchased credit is involved in the explicit test action.
+	local id=self.app:Request("TestCrate")
+	if id==nil then return false end
+	self.cratePending=id;self:Changed()
+	self.delay(20,function()
+		if not self.alive or self.cratePending~=id then return end
+		self.cratePending=nil;self:Changed()
+	end)
+	return true
+end
+
 function Controller:ReceiveState(state)
 	local intent=self.autoCrate
 	if not self.alive or not intent or not intent.armed then return end
@@ -192,7 +214,7 @@ function Controller:PresentCrate(result)
 		self:Changed()
 	end
 	local played=self.crateRoll:Play(crate.species,self.presentationCatalog.Rewards,{
-		seed=result.id,reducedMotion=self.app.reducedMotion,onComplete=complete,
+		seed=result.id,reducedMotion=self.app.reducedMotion,onComplete=complete,preview=crate.preview==true,
 	})
 	if not played then complete() end
 end
@@ -202,7 +224,7 @@ function Controller:Receive(result)
 	local handledCrate=false
 	if result.action=="SetCommerceToggle" then
 		for key,id in self.togglePending do if result.id==id then self.togglePending[key]=nil end end
-	elseif result.action=="OpenCrate" then
+	elseif result.action=="OpenCrate" or result.action=="TestCrate" then
 		if self.crateResults[result.id] then return true end
 		if self.cratePending~=nil and result.id==self.cratePending then
 			self.cratePending=nil

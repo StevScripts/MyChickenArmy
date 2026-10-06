@@ -194,8 +194,19 @@ function Presentation:Play(reward,pool,options)
 	self.root:SetAttribute("WinnerIndex",WINNER_INDEX)
 	self.cards={}
 	local random=Random.new(if type(options.seed)=="number" then options.seed else seedFor(selected.id))
+	local total=0
+	for _,entry in pool do total+=if type(entry.chance)=="number" then math.max(0,entry.chance) else 0 end
+	local function decorativeEntry()
+		if total<=0 then return pool[random:NextInteger(1,#pool)] end
+		local roll=random:NextNumber()*total
+		for _,entry in pool do
+			roll-=if type(entry.chance)=="number" then math.max(0,entry.chance) else 0
+			if roll<0 then return entry end
+		end
+		return pool[#pool]
+	end
 	for index=1,CARD_COUNT do
-		local entry=if index==WINNER_INDEX then selected else pool[random:NextInteger(1,#pool)]
+		local entry=if index==WINNER_INDEX then selected else decorativeEntry()
 		self.cards[index]=self:_Card(entry,index)
 	end
 	self.winner=self.cards[WINNER_INDEX]

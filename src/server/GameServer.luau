@@ -140,6 +140,16 @@ function GameServer:Handle(player,request)
 			ok,message,crate=self.crates:Open(session)
 			if ok then petId=crate.petId;self.world:Recruit(session,petId) end
 		end
+	elseif action=="TestCrate" then
+		if not self.commerce:TestAllowed(session) then message="Test crates are only available in a disposable Studio session."
+		elseif now<(session.testCrateReadyAt or 0) then message="Wait for your test roll to finish."
+		else
+			ok,message,crate=self.crates:OpenTest(session)
+			if ok then
+				session.testCrateReadyAt=now+12
+				petId=crate.petId;self.world:Recruit(session,petId)
+			end
+		end
 	elseif action=="SetCommerceToggle" then
 		ok,message=self.commerce:SetAutomatic(session,request.key,request.enabled)
 	elseif action=="Roll" or action=="Buy" then

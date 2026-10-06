@@ -12,6 +12,10 @@ function View.Create(parent, id, species, stars, foot, physical)
 	if not template then return nil end
 	local model = template:Clone()
 	model.Name = id
+	for _,name in {"Animations","InitialPoses","AnimSaves","HookupNotes"} do
+		local authoring = model:FindFirstChild(name)
+		if authoring and authoring:IsA("Folder") then authoring:Destroy() end
+	end
 	local body = model:FindFirstChild("DragonChickenMesh")
 	local controller = model:FindFirstChildOfClass("AnimationController")
 	if not body or not body:IsA("MeshPart") or not controller or not body:FindFirstChild("FlightRoot") then
@@ -31,7 +35,7 @@ function View.Create(parent, id, species, stars, foot, physical)
 	end
 	local oldHumanoid = model:FindFirstChildOfClass("Humanoid")
 	if oldHumanoid then oldHumanoid:Destroy() end
-	if not controller:FindFirstChildOfClass("Animator") then Instance.new("Animator",controller) end
+	local animator = controller:FindFirstChildOfClass("Animator") or Instance.new("Animator",controller)
 
 	local stats = Rules.Stats(species,stars)
 	local offset = stats.size*(if physical then 0.75 else 0.45)
@@ -71,6 +75,10 @@ function View.Create(parent, id, species, stars, foot, physical)
 		humanoid.AutoJumpEnabled = false
 		humanoid.HipHeight = offset-root.Size.Y/2
 		humanoid.Parent = model
+		-- Roblox advances the native track on the Humanoid for physical actors;
+		-- keeping a competing AnimationController leaves its pose clock frozen.
+		animator.Parent = humanoid
+		controller:Destroy()
 		for _,state in {Enum.HumanoidStateType.Climbing,Enum.HumanoidStateType.Swimming,
 			Enum.HumanoidStateType.Jumping,Enum.HumanoidStateType.Ragdoll,
 			Enum.HumanoidStateType.FallingDown,Enum.HumanoidStateType.Seated} do humanoid:SetStateEnabled(state,false) end

@@ -41,7 +41,7 @@ end
 
 function GalaxyDragonAnimator:_load(now: number): boolean
 	local model = self.model
-	local controller = model:FindFirstChildWhichIsA("AnimationController")
+	local controller = model:FindFirstChildWhichIsA("Humanoid") or model:FindFirstChildWhichIsA("AnimationController")
 	local animator = controller and controller:FindFirstChildWhichIsA("Animator")
 	local folder = model:FindFirstChild("RuntimeAnimations")
 	local flight = folder and folder:FindFirstChild("FlightLoop")

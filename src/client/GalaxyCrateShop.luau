@@ -176,6 +176,7 @@ function Shop:Render()
  local commerce=self.app.commerce
  local shop=self.app.state and self.app.state.shop
  local busy=commerce.pending~=nil or commerce.cratePending~=nil or commerce.cratePresenting==true
+ local purchaseBusy=busy or commerce.autoCrate~=nil
  for key,view in self.buttons do
   local status,price=commerce:State(key)
   local quoted=status=="ready" and type(price)=="number"
@@ -183,7 +184,7 @@ function Shop:Render()
   view.price.Text=if quoted then Theme.Money(price) else STATUS[status] or "Unavailable"
   rect(view.price,if quoted then 122 else 16,13,if quoted then 280 else 398,104,430,150)
   view.button.Text=string.format("%s · %s",Catalog.Products[key].name,if quoted then "R$ "..Theme.Money(price) else view.price.Text)
-  view.button.Active=not busy and (status=="ready" or status=="error" or status=="policy" or status=="profile")
+  view.button.Active=not purchaseBusy and (status=="ready" or status=="error" or status=="policy" or status=="profile")
   view.button.Selectable=view.button.Active
   view.button:SetAttribute("State",status)
   view.button:SetAttribute("UnavailableReason",if view.button.Active then nil else status)

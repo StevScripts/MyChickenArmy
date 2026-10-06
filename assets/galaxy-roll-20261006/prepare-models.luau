@@ -29,6 +29,15 @@ for _,entry in {{"Astronaut","Astronaut"},{"Alien","Alien"},{"DarkMatter","DarkM
   model.PrimaryPart=body
   body.PivotOffset=body.CFrame:ToObjectSpace(CFrame.identity)
   model.WorldPivot=CFrame.identity
+  -- Existing gameplay clip constructors rotate a +Z-authored mesh toward -Z.
+  model:PivotTo(CFrame.Angles(0,math.pi,0))
+  body.PivotOffset=body.CFrame:ToObjectSpace(CFrame.identity)
+  model:SetAttribute("GameplayForwardNormalized",true)
+ end
+ if species=="CosmicDragon" then
+  for _,name in {"Animations","InitialPoses","AnimSaves","HookupNotes"} do
+   local authoring=model:FindFirstChild(name);if authoring then authoring:Destroy() end
+  end
  end
  model:SetAttribute("IntegrationStatus","GameplayEnabled")
  model:SetAttribute("SourceTemplate",source:GetFullName())
