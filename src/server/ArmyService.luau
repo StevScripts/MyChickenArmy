@@ -123,6 +123,7 @@ end
 -- Exact triples; keep a selected squad ID so the survivor retains its place.
 function ArmyService.MergeOptions(session, automatic: boolean?)
 	if not Config.Features.Merging then return {} end
+	if not session:MergeAccess() then return {} end
 	if session:Count()-2<session:StarterFlockMinimum() then return {} end
 	local groups,options,protected={},{},{}
 	if automatic and session.armySelection then
@@ -211,6 +212,8 @@ end
 
 function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if not Config.Features.Merging then return false,"Merging is unavailable." end
+	local unlocked,requirement=session:MergeAccess()
+	if not unlocked then return false,requirement end
 	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if not triple then return false,reason end
 	if session:Count()-2<session:StarterFlockMinimum() then return false,"Keep your starter army for the first mission." end
@@ -227,6 +230,8 @@ end
 
 function ArmyService.MergeAll(session,triples)
 	if not Config.Features.Merging then return false,"Merging is unavailable." end
+	local unlocked,requirement=session:MergeAccess()
+	if not unlocked then return false,requirement end
 	local limit=math.floor(Config.LegacyCollectionLimit/3)
 	if type(triples)~="table" or #triples<1 or #triples>limit then return false,"Choose matching groups to merge." end
 	local validated,seen,count,total={},{},0,0

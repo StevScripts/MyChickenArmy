@@ -524,19 +524,25 @@ function BaseController:PollCommand()
 			if camera then local _,onScreen=camera:WorldToViewportPoint(part.Position+Vector3.new(0,2.5,0));visible=onScreen end
 			if not visible then continue end
 			local command=self:CommandFor(model)
-			if command then nearest,bestPart,bestDistance=command,part,distance end
+			-- Status sentences are not actions. In particular, never cover an
+			-- ongoing fight with an "already attacking/stationed" prompt.
+			if command and (command.action or command.canUnclaim) then nearest,bestPart,bestDistance=command,part,distance end
 		end
 	end
 	self.nearestCommand=nearest
 	if nearest then
 		self.commandAnchor.Parent=bestPart
+		-- Center the compact controls; inactive commands remain hidden in combat.
+		self.commandAnchor.Position=Vector3.new(0,2.5,0)
 		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
-		self.commandPrompt.ActionText=if not nearest.action then nearest.text else "Move Troops Here"
-		self.commandPrompt.ObjectText=nearest.title..(if nearest.action=="Attack" and nearest.text:find("Via ") then " · earlier camps first" else "")
+		self.commandPrompt.ActionText="Move Troops Here"
+		self.commandPrompt.ObjectText=""
+		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)
 		self.unclaimPrompt.MaxActivationDistance=self.commandPrompt.MaxActivationDistance
-		self.unclaimPrompt.ObjectText=nearest.title
+		self.unclaimPrompt.ObjectText=""
+		self.unclaimPrompt.UIOffset=Vector2.new(0,if nearest.action then -28 else 0)
 	end
-	self.commandPrompt.Enabled=nearest~=nil
+	self.commandPrompt.Enabled=nearest~=nil and nearest.action~=nil
 	self.unclaimPrompt.Enabled=nearest~=nil and nearest.canUnclaim==true
 	self:UpdateCommandPresentation()
 end

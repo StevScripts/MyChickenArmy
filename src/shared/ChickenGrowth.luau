@@ -15,6 +15,7 @@ function Growth.Apply(model: Model, level: number, giantSize: number?): number
 	local root = model.PrimaryPart
 	if not root then return 1 end
 	local mergeScale = Growth.ScaleForLevel(level)
+	local baseScale = model:GetAttribute("BaseVisualScale") or Growth.BaseScale
 	-- Record the applied factor so repeated updates never shrink a chicken again.
 	local previous = model:GetAttribute("AppliedChickenScale") or (model:GetAttribute("MergeVisualScale") or 1)
 		* (model:GetAttribute("AppliedBaseVisualScale") or model:GetAttribute("AppliedFieldVisualScale") or 1)
@@ -24,14 +25,14 @@ function Growth.Apply(model: Model, level: number, giantSize: number?): number
 			model:GetAttribute("VisualWidth") or 1,model:GetAttribute("VisualDepth") or 1)/previous)
 		model:SetAttribute("BaseRootSize",root.Size/previous)
 		model:SetAttribute("BaseFootOffset",offset/previous)
-		model:SetAttribute("BaseNavigationHeight",(model:GetAttribute("VisualHeight") or 4)/previous)
+		model:SetAttribute("BaseNavigationHeight",(model:GetAttribute("NavigationHeight") or model:GetAttribute("VisualHeight") or 4)/previous)
 	end
 	local giant = Giant.IsValidSize(giantSize)
-	local desired = if giant then (giantSize :: number)/model:GetAttribute("BaseVisualExtent") else Growth.BaseScale*mergeScale
+	local desired = if giant then (giantSize :: number)/model:GetAttribute("BaseVisualExtent") else baseScale*mergeScale
 	model:SetAttribute("GiantSize",if giant then giantSize else nil)
 	model:SetAttribute("AppliedChickenScale",desired)
 	model:SetAttribute("MergeVisualScale", mergeScale)
-	model:SetAttribute("AppliedBaseVisualScale", Growth.BaseScale)
+	model:SetAttribute("AppliedBaseVisualScale", baseScale)
 	model:SetAttribute("FieldVisualScale", nil)
 	model:SetAttribute("AppliedFieldVisualScale", nil)
 	if desired == previous then return 1 end
@@ -49,16 +50,16 @@ function Growth.Apply(model: Model, level: number, giantSize: number?): number
 		-- Giant art must not create a 27-stud pathfinding agent or collision shell.
 		-- Keep the normal walking root near the feet; move its visual joints upward
 		-- by the matching offset so the enlarged mesh remains grounded.
-		local walkingOffset = model:GetAttribute("BaseFootOffset")*Growth.BaseScale
+		local walkingOffset = model:GetAttribute("BaseFootOffset")*baseScale
 		local delta = newOffset-walkingOffset
 		for _,joint in root:GetChildren() do
 			if joint:IsA("Motor6D") and joint.Part0==root then
 				joint.C0=CFrame.new(0,delta,0)*joint.C0
 			end
 		end
-		root.Size=model:GetAttribute("BaseRootSize")*Growth.BaseScale
+		root.Size=model:GetAttribute("BaseRootSize")*baseScale
 		newOffset=walkingOffset
-		model:SetAttribute("NavigationHeight",math.max(2,model:GetAttribute("BaseNavigationHeight")*Growth.BaseScale))
+		model:SetAttribute("NavigationHeight",math.max(2,model:GetAttribute("BaseNavigationHeight")*baseScale))
 	end
 	model:SetAttribute("FootOffset",newOffset)
 	if humanoid then humanoid.HipHeight = math.max(0,newOffset-root.Size.Y/2) end

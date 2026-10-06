@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-05",
+  "placeId": 96683186622050,
+  "scope": "Observed live client progression after a session-only Free FreshEconomy reset. Inputs were not fully agent controlled; this is an observed route, not an automated input replay.",
+  "result": "One collect/sell lesson, four selected chickens, Cluck Camp captured, returned home; no recovery steps.",
+  "report": {
+    "saveStatus": "studio-session",
+    "tutorial": {
+      "soldEggs": true,
+      "collectedEggs": true,
+      "wonCamp": true,
+      "returned": true,
+      "rolled": true,
+      "guideStarted": true,
+      "bought": true,
+      "upgraded": true,
+      "guideCompleted": true,
+      "starterArmy": true
+    },
+    "lastResult": "Army home. Your chickens have rejoined the flock.",
+    "step": "Complete",
+    "coins": 1460,
+    "pets": 4,
+    "selectedCount": 4,
+    "ready": true,
+    "armyState": "Home",
+    "capacity": 4,
+    "carried": 8,
+    "receipts": {
+      "2:1": {
+        "collector": "player",
+        "targetZ": -164.147705078125,
+        "targetX": 342.42340087890625,
+        "count": 65,
+        "id": "2:1",
+        "value": 260,
+        "queued": false,
+        "targetY": 2.9160842895507812
+      }
+    },
+    "reserve": 0,
+    "carriedValue": 32,
+    "title": "Cluck Camp captured!",
+    "upgrades": {
+      "ArmySize": {
+        "canSpend": false,
+        "price": 4800,
+        "unlocked": true,
+        "spendReason": "Not enough cash.",
+        "currentText": "4",
+        "requirement": "Buy one more deployment slot",
+        "nextText": "5",
+        "level": 4,
+        "ready": true
+      },
+      "Luck": {
+        "canSpend": false,
+        "price": 1920,
+        "unlocked": true,
+        "spendReason": "Not enough cash.",
+        "currentText": "1x",
+        "requirement": "",
+        "nextText": "1.35x",
+        "level": 0,
+        "ready": true
+      },
+      "EggValue": {
+        "canSpend": false,
+        "price": 2880,
+        "unlocked": true,
+        "spendReason": "Not enough cash.",
+        "currentText": "$4",
+        "requirement": "",
+        "nextText": "$5",
+        "level": 0,
+        "ready": true
+      },
+      "EggSpeed": {
+        "canSpend": false,
+        "price": 2880,
+        "unlocked": true,
+        "spendReason": "Not enough cash.",
+        "currentText": "1x",
+        "requirement": "",
+        "nextText": "1.15x",
+        "level": 0,
+        "ready": true
+      },
+      "RollSlots": {
+        "canSpend": true,
+        "price": 1200,
+        "unlocked": true,
+        "spendReason": "",
+        "currentText": "1",
+        "requirement": "",
+        "nextText": "2",
+        "level": 1,
+        "ready": true
+      },
+      "PlotSize": {
+        "canSpend": true,
+        "price": 480,
+        "unlocked": true,
+        "spendReason": "",
+        "currentText": "25",
+        "requirement": "",
+        "nextText": "30",
+        "level": 0,
+        "ready": true
+      }
+    },
+    "history": [
+      {
+        "pets": 3,
+        "carried": 0,
+        "step": "Roll",
+        "coins": 2400
+      },
+      {
+        "pets": 3,
+        "carried": 0,
+        "step": "Recruit",
+        "coins": 2400
+      },
+      {
+        "pets": 4,
+        "carried": 0,
+        "step": "Collect",
+        "coins": 1800
+      },
+      {
+        "pets": 4,
+        "carried": 4,
+        "step": "Sell",
+        "coins": 1800
+      },
+      {
+        "pets": 4,
+        "carried": 0,
+        "step": "Expand",
+        "coins": 2060
+      },
+      {
+        "pets": 4,
+        "carried": 8,
+        "step": "Deploy",
+        "coins": 860
+      },
+      {
+        "pets": 4,
+        "carried": 8,
+        "step": "Battle",
+        "coins": 860
+      },
+      {
+        "pets": 4,
+        "carried": 8,
+        "step": "Complete",
+        "coins": 1460
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "revision": "Forward Swoop v3",
+  "zeroSidewaysOffset": true,
+  "zeroRootYawAndBank": true,
+  "peakForwardOffset": 0.3515247769866416,
+  "forwardAxis": "Blender world -Y / model local forward",
+  "duration": 1.4,
+  "evaluatedRootMaxAbsSideways": 0.0,
+  "evaluatedHeadMaxAbsSideways": 0.0,
+  "all85PosesEvaluatedFromExportedBoneMatrices": true
+}

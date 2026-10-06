@@ -2,32 +2,61 @@
   "date": "2026-10-05",
   "placeId": 96683186622050,
   "placeName": "Pet Roll Test",
-  "studioInstance": "instance:hg3-vqc",
-  "status": "PARTIAL_PENDING_NATIVE_UI_CONNECTION",
+  "status": "COMPLETE_IMPORTED_VERIFIED_SAVED",
+  "previewPath": "Workspace.GalaxyCratePreview",
+  "templatePath": "ReplicatedStorage.GalaxyCrateChickenAssets20261002",
+  "backupPath": "ServerStorage.GalaxyRetextureBackup20261005",
   "completed": [
-    "Dark Matter flowing 2048x2048 atlas, packed Blender file and skinned GLB saved",
-    "GalaxyCrateVisuals runtime and AppController hooks saved locally; Luau analysis passed",
-    "Astronaut revised GLB imported as Kiru Experiences and staged in Workspace.Astronaut and ReplicatedStorage.GalaxyCrateChickenAssets20261002.Astronaut",
-    "Astronaut old world and staged template preserved in ServerStorage.GalaxyRetextureBackup20261005",
-    "Astronaut appearance visually checked in canonical Edit viewport; Studio GUI temporarily hidden then restored"
+    "Reference-matched Astronaut and Alien imported through native Studio importer",
+    "Dark Matter flowing GLB imported with all 18 bones; 72 moving and 1080 protected UVs",
+    "Dragon native model recovered, uniformly enlarged 2.5x to 8.75 studs tall; 23 bones and 73 keyframes over 1.2 seconds preserved",
+    "All four world previews arranged together; reusable templates staged at identity pivots",
+    "GalaxyCrateVisuals and AppController synced through the selective Rojo project and exact source equality confirmed",
+    "Edit-time UV movement/material/bone/pose preservation and reduced-motion cleanup passed",
+    "Isolated client Play check passed automatic discovery, RenderStepped updates, native TweenService advancement, reduced-motion/resume and cleanup",
+    "Full native local place backup and Roblox cloud save confirmed by Studio CreatorOutput"
   ],
-  "pending": [
-    "Native Alien GLB import",
-    "Native Dark Matter flowing GLB import and GalaxyTextureMotion attribute",
-    "Restore DragonChickenFlight.rbxm and scale uniformly 2.5x",
-    "Rojo sync of two mapped scripts",
-    "Verify moving UV effect and final lineup",
-    "Save native complete place and save updated cloud place (not publish)"
+  "validation": {
+    "editUVsMoving": 72,
+    "editUVsProtected": 1080,
+    "editableMeshVertices": 1152,
+    "editableMeshBones": 18,
+    "clientFrameA": {
+      "updates": 33,
+      "phase": 0.034322090446949005
+    },
+    "clientFrameB": {
+      "updates": 70,
+      "phase": 0.07286348938941956
+    },
+    "reducedMotion": "hidden; original mesh restored; editable resources released",
+    "resume": "ready",
+    "cleanup": true,
+    "testIsolation": "Server and client game bootstraps temporarily disabled for presentation-only probe, then restored to enabled. No gameplay or player-save code ran in this probe."
+  },
+  "newNativePlaceSaveConfirmed": true,
+  "newCloudSaveConfirmed": true,
+  "cloudSaveUtc": "2026-10-06T02:49:58.656Z",
+  "cloudSaveMessage": "Saved new changes in \"Pet Roll Test\" to Roblox.",
+  "nativeSaveUtc": "2026-10-06T02:51:01.466Z",
+  "nativeBackup": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/galaxy-dark-motion-20261005/MyChickenArmy-Galaxy-Updated-20261005.rbxl",
+  "nativeBackupBytes": 5675035,
+  "nativeBackupSha256": "c2f9192530cbda300f8f488f55d266f0f40b5bd8893c04623505abc16d39f46a",
+  "experiencePublished": false,
+  "gitPushed": false,
+  "crateRewardsEnabledByTask": false,
+  "dragonAnimationPublished": false,
+  "limitations": [
+    "Assets remain staged for later rolling-box integration.",
+    "The Dragon editable native flight clip is preserved; no published AnimationId or gameplay playback was added.",
+    "Moving texture verified in Studio client Play; public-server rollout is outside this import task."
   ],
-  "blocker": "Computer Use native Roblox Studio controls repeatedly return noWindowsAvailable; asked user to bring Studio to the foreground. MCP read/asset operations remain connected.",
-  "astronautMeshId": "75448284625569",
-  "astronautColorMap": "137723443466211",
-  "astronautNormalMap": "134432308903097",
-  "astronautMetalnessMap": "108471077285530",
-  "astronautRoughnessMap": "139422560779360",
-  "astronautEmissiveMask": "86715854543105",
-  "newNativePlaceSaveConfirmed": false,
-  "newCloudSaveConfirmed": false,
+  "rojoProject": ".tools/galaxy-crate-visuals.project.json",
   "rojoPort": 34873,
-  "rojoProject": ".tools/galaxy-crate-visuals.project.json"
+  "assetManifest": "roblox-asset-manifest.json",
+  "screenshots": [
+    "Galaxy-Roblox-Lineup.png",
+    "DarkMatter-Roblox-Phase0.png",
+    "DarkMatter-Roblox-Phase25.png"
+  ]
 }

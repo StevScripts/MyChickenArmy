@@ -1,5 +1,35 @@
 # Manual chicken merging
 
+## October 5 machine unlock
+
+New profiles unlock the Fuse Machine on their first Cluck Camp capture. Before
+that, the owned machine's native prompt reads **Fuse Machine · Locked** /
+**Capture Cluck Camp**. Activating it explains the requirement without opening
+Fuse. The Army inspector shows the same requirement; the first live victory
+notification appends **Fuse Machine unlocked!** when access changes.
+
+`PlayerSession:MergeAccess()` owns eligibility. `firstWins[1]` grants access;
+the additive saved boolean `fusionUnlocked` retains earned access. Fresh saves
+explicitly store false. Valid older saves lacking this field retain their
+previous access, including profiles from the earlier starter-army cohort.
+Save loading validates the field before committing any profile changes.
+
+GameServer checks access for OpenMerge, Merge and MergeAll. ArmyService also
+checks it before either transaction and returns no recipes while locked. The
+client guards menu entry and closes a stale locked menu. The prompt stays visible
+to explain the requirement and retains owner/range/reveal checks. This changes
+fusion access only: cash upgrades remain independent of camps, and all existing
+fusion fees, matching rules, Giant sizes, protected birds and limits remain.
+
+The user requested an unlock; Cluck Camp was chosen as the implementation default
+to follow the introductory battle. It is not a measured retention result.
+
+All 53 focused unlock/persistence/prompt checks and 87 starter-army checks passed
+in disposable Studio objects. A session-only live client rejected locked menu
+entry and opened the real menu after test camp progress was granted. All seven
+changed modules matched Studio before testing; packaging passed. Studio was
+returned to Edit. [Scope and results](../assets/fusion-unlock-20261005/README.md).
+
 September 29: individual cash leveling is also available in My Army. The user explicitly kept this existing fusion contract for now; cash levels do not introduce a Giant-chance machine. See [cash upgrades](team/CHICKEN_CASH_UPGRADES.md).
 
 Implemented September 25, 2026 at the user's explicit request. This supersedes older statements that merging is disabled. `Config.Features.Merging = true`; `AutoMerging = false`. Enabling the manual feature does not enable the paid Auto Merge listing or automatic consumption.

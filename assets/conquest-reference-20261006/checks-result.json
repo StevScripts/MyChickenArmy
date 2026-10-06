@@ -1,0 +1,179 @@
+{
+  "message": "Code executed successfully",
+  "success": true,
+  "output": [],
+  "checks": [
+    {
+      "name": "one 25-second conquest meter; legacy contest duration stays eight",
+      "passed": true
+    },
+    {
+      "name": "physical troops advance conquest during a live fight",
+      "passed": true
+    },
+    {
+      "name": "avatar/absent/reinforcing/retiring/dead birds cannot capture",
+      "passed": true
+    },
+    {
+      "name": "leaving the radius pauses without erasing progress",
+      "passed": true
+    },
+    {
+      "name": "full meter cannot bypass surviving defenders",
+      "passed": true
+    },
+    {
+      "name": "a cleared base completes at the exact server threshold",
+      "passed": true
+    },
+    {
+      "name": "research accelerates the continuous meter",
+      "passed": true
+    },
+    {
+      "name": "respawning defenders preserve progress and keep combat authoritative",
+      "passed": true
+    },
+    {
+      "name": "loss recovery remains gradual and keeps recent damage receipts",
+      "passed": true
+    },
+    {
+      "name": "legacy contests still pause capture for defenders",
+      "passed": true
+    },
+    {
+      "name": "capture awards the existing Cluck milestone and is repeat-safe",
+      "passed": true
+    },
+    {
+      "name": "moving away preserves the owner and suppresses the garrison",
+      "passed": true
+    },
+    {
+      "name": "stationing at an owned base carries full progress without another capture",
+      "passed": true
+    },
+    {
+      "name": "unclaim restores defenders and resets capture while keeping exact player lives",
+      "passed": true
+    },
+    {
+      "name": "unclaim rejects a foreign owner and malformed targets",
+      "passed": true
+    },
+    {
+      "name": "owned marker is persistent native text with a clean release",
+      "passed": true
+    },
+    {
+      "name": "Recall/Go Base departure leaves the conquered mark and no enemies",
+      "passed": true
+    },
+    {
+      "name": "Empty base unclaims immediately and restores its native garrison",
+      "passed": true
+    },
+    {
+      "name": "Unclaim is ownership-checked, repeat-safe and independent of selected chickens",
+      "passed": true
+    },
+    {
+      "name": "Unclaim while stationed keeps exact player lives and restarts defender combat",
+      "passed": true
+    },
+    {
+      "name": "An army returning to an unclaimed base starts a fresh conquest",
+      "passed": true
+    },
+    {
+      "name": "Recall during released-base combat restores idle defenders after vacancy",
+      "passed": true
+    },
+    {
+      "name": "Unclaiming a friendly destination during travel restores its defenders",
+      "passed": true
+    },
+    {
+      "name": "Explicitly unclaimed ground refills after vacancy without waiting for the next destination",
+      "passed": true
+    },
+    {
+      "name": "Returning/empty armies still get the owner's unclaim action",
+      "passed": true
+    },
+    {
+      "name": "Disconnect clears pending claims without touching earned wins",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Travel preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Fight preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Capture preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Redirect from Holding preserves each chicken's life and cancels attacks",
+      "passed": true
+    },
+    {
+      "name": "Duplicate target and invalid orders leave the current fight untouched",
+      "passed": true
+    },
+    {
+      "name": "Switching repeatedly does not duplicate chickens or pay a kill twice",
+      "passed": true
+    },
+    {
+      "name": "All cleared camps remain empty through the full forward route",
+      "passed": true
+    },
+    {
+      "name": "Retreat from camp 3 to camp 1 frees reservations but preserves all claims",
+      "passed": true
+    },
+    {
+      "name": "Returning to camp 2 retains ownership of camps 1 and 3",
+      "passed": true
+    },
+    {
+      "name": "Changing a retreat mid-march waits for the replacement destination",
+      "passed": true
+    },
+    {
+      "name": "A new forward order cancels a pending abandoned-camp respawn",
+      "passed": true
+    },
+    {
+      "name": "A living straggler delays enemies after explicitly unclaiming its old camp",
+      "passed": true
+    },
+    {
+      "name": "Abandoned unfinished camps recover without granting cleared-route protection",
+      "passed": true
+    },
+    {
+      "name": "Returning and shared-defender armies cannot create a second outgoing battle",
+      "passed": true
+    },
+    {
+      "name": "Leaving the server releases retained camps without erasing earned wins",
+      "passed": true
+    },
+    {
+      "name": "Camp commands remain usable while traveling/fighting and disable the current target",
+      "passed": true
+    },
+    {
+      "name": "Physical actor handoff reuses player models and immediately clears attack flags",
+      "passed": true
+    }
+  ]
+}

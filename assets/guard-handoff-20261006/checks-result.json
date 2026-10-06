@@ -1,0 +1,183 @@
+{
+  "checks": [
+    {
+      "name": "camp and outpost transfers survive busy cleanup with their positions intact",
+      "passed": true
+    },
+    {
+      "name": "missing, busy and already conquered territories cannot surrender idle ownership",
+      "passed": true
+    },
+    {
+      "name": "King and Royal Flock retain roster order and leave idle patrol ownership",
+      "passed": true
+    },
+    {
+      "name": "attacking camp or King adopts each existing guard without moving it",
+      "passed": true
+    },
+    {
+      "name": "guard deaths retain normal respawn positions and reuse rigs; the King stays defeated",
+      "passed": true
+    }
+  ],
+  "approachRegression": [
+    {
+      "name": "guards walk toward nearby troops before melee contact",
+      "passed": true
+    },
+    {
+      "name": "live actor movement receives a defender chase command",
+      "passed": true
+    },
+    {
+      "name": "distant troops do not pull the defenders out of their base",
+      "passed": true
+    },
+    {
+      "name": "exit and road waypoints still finish before engagement",
+      "passed": true
+    },
+    {
+      "name": "a nearby front bird does not activate distant stragglers",
+      "passed": true
+    },
+    {
+      "name": "dead and returning defenders do not trigger detection",
+      "passed": true
+    },
+    {
+      "name": "income and Operations retain their existing contact boundary",
+      "passed": true
+    },
+    {
+      "name": "nearby reinforcement joins the fight but cannot capture from outside",
+      "passed": true
+    }
+  ],
+  "liveHandoff": [
+    {
+      "target": "camp:1",
+      "guards": [
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "4",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "5",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "6",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        }
+      ],
+      "idleCleared": true,
+      "count": 3
+    },
+    {
+      "target": "king:1",
+      "guards": [
+        {
+          "boss": true,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "7",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "8",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "9",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "10",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "11",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "12",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        },
+        {
+          "boss": false,
+          "sameScale": true,
+          "rotationDelta": 0,
+          "id": "13",
+          "positionDelta": 0,
+          "sameActorAndModel": true
+        }
+      ],
+      "idleCleared": true,
+      "count": 7
+    }
+  ],
+  "liveRespawn": {
+    "revived": true,
+    "outpostsBuilt": false,
+    "atSpawnLine": true,
+    "sameActor": true
+  },
+  "source": [
+    {
+      "module": "BattleService",
+      "exactSourceMatch": true
+    },
+    {
+      "module": "WorldService",
+      "exactSourceMatch": true
+    },
+    {
+      "module": "KingArena",
+      "exactSourceMatch": true
+    },
+    {
+      "module": "IdlePatrol",
+      "exactSourceMatch": true
+    }
+  ],
+  "playtestStopped": true,
+  "sessionOnly": true,
+  "buildPassed": true,
+  "outposts": "Disabled in the current map; direct transfer fixtures passed.",
+  "published": false
+}

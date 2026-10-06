@@ -1,0 +1,149 @@
+{
+  "assets": [
+    {
+      "bones": 18,
+      "name": "Astronaut",
+      "meshParts": [
+        {
+          "colorMap": "rbxassetid://137723443466211",
+          "normalMap": "rbxassetid://134432308903097",
+          "roughnessMap": "rbxassetid://139422560779360",
+          "meshId": "rbxassetid://75448284625569",
+          "emissiveStrength": 2.200000047683716,
+          "metalnessMap": "rbxassetid://108471077285530",
+          "name": "astronaut_RetexturedBody",
+          "emissiveMask": "rbxassetid://86715854543105",
+          "size": [
+            1.7022145986557007,
+            2.973849058151245,
+            2.6685898303985596
+          ]
+        },
+        {
+          "colorMap": "rbxassetid://82697584658170",
+          "normalMap": "rbxassetid://77078388853283",
+          "roughnessMap": "rbxassetid://71256574139371",
+          "meshId": "rbxassetid://119736545267578",
+          "emissiveStrength": 4,
+          "metalnessMap": "rbxassetid://86252673291756",
+          "name": "Clear fitted visor.010",
+          "emissiveMask": "rbxassetid://137774560119440",
+          "size": [
+            1.062208652496338,
+            1.1124703884124756,
+            1.0588579177856445
+          ]
+        }
+      ],
+      "scale": 0.6701631546020508,
+      "attributes": {
+        "GalaxyCrateNormalized": true,
+        "RBX_ReimportId": "32b622f4-67f2-423c-b389-1e2e05e804c2",
+        "IntegrationStatus": "Staged_NotRewardEnabled",
+        "GalaxyCrateId": "Astronaut",
+        "SourceRevision": "ReferenceMatchedV2_20261005"
+      }
+    },
+    {
+      "bones": 12,
+      "name": "Alien",
+      "meshParts": [
+        {
+          "colorMap": "rbxassetid://97101181860651",
+          "normalMap": "rbxassetid://93901881106676",
+          "roughnessMap": "rbxassetid://101610583587072",
+          "meshId": "rbxassetid://72421755021011",
+          "emissiveStrength": 2.200000047683716,
+          "metalnessMap": "rbxassetid://120757155100350",
+          "name": "Body",
+          "emissiveMask": "rbxassetid://79258328367046",
+          "size": [
+            1.7022145986557007,
+            3.2770979404449463,
+            2.439393997192383
+          ]
+        }
+      ],
+      "scale": 0.6701631546020508,
+      "attributes": {
+        "RBX_ReimportId": "cb2b6e2d-4e8c-44e1-aa4c-1ae5280d51b8",
+        "IntegrationStatus": "Staged_NotRewardEnabled",
+        "GalaxyCrateId": "Alien",
+        "SourceRevision": "ReferenceMatchedV2_20261005"
+      }
+    },
+    {
+      "bones": 18,
+      "name": "DarkMatter",
+      "meshParts": [
+        {
+          "colorMap": "rbxassetid://115935302192700",
+          "normalMap": "rbxassetid://97048795003157",
+          "roughnessMap": "rbxassetid://140081938570591",
+          "meshId": "rbxassetid://80179324175005",
+          "emissiveStrength": 2.200000047683716,
+          "metalnessMap": "rbxassetid://126663233867867",
+          "name": "Body",
+          "emissiveMask": "rbxassetid://79886284657433",
+          "size": [
+            1.7022145986557007,
+            3.059295177459717,
+            2.439393997192383
+          ]
+        }
+      ],
+      "scale": 0.6701631546020508,
+      "attributes": {
+        "GalaxyTextureMotion": "DarkMatter",
+        "GalaxyCrateNormalized": true,
+        "RBX_ReimportId": "3bd632a7-5955-4fe9-890b-b37fe6b75fae",
+        "IntegrationStatus": "Staged_NotRewardEnabled",
+        "GalaxyCrateId": "DarkMatter",
+        "SourceRevision": "ReferenceMatchedV2_MovingAtlas_20261005"
+      }
+    },
+    {
+      "bones": 23,
+      "name": "DragonChickenFlight",
+      "meshParts": [
+        {
+          "colorMap": "rbxassetid://131536918150698",
+          "normalMap": "rbxassetid://96780526398825",
+          "roughnessMap": "rbxassetid://77657584456579",
+          "meshId": "rbxassetid://78420174763373",
+          "emissiveStrength": 1,
+          "metalnessMap": "rbxassetid://123128471309639",
+          "name": "DragonChickenMesh",
+          "size": [
+            10.722732543945312,
+            8.75,
+            4.427483558654785
+          ]
+        }
+      ],
+      "scale": 10.919337272644043,
+      "attributes": {
+        "IntendedUse": "OuterSpaceCrate",
+        "PresentationScaleMultiplier": 2.5,
+        "SourceRevision": "Forward Cupped Wings 20261003",
+        "FlightLoopSeconds": 1.2,
+        "OriginalBodyHeightStuds": 3.5,
+        "AssetKey": "DragonChickenFlight",
+        "RBX_ReimportId": "e14a7be6-20f4-47d3-8c4b-49236c8a002b",
+        "FlightAnimationPublished": false,
+        "IntegrationStatus": "Staged_NotRewardEnabled",
+        "BodyHeightStuds": 8.75,
+        "GalaxyCrateId": "DragonChickenFlight",
+        "FlightLoopFPS": 60
+      }
+    }
+  ],
+  "crateFlags": [],
+  "placeId": 96683186622050,
+  "clientEnabled": true,
+  "guiEnabled": true,
+  "templates": "ReplicatedStorage.GalaxyCrateChickenAssets20261002",
+  "preview": "Workspace.GalaxyCratePreview",
+  "serverEnabled": true,
+  "probeLeft": false
+}

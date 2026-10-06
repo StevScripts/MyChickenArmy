@@ -14,7 +14,7 @@ local GOLD = Theme.Colors.gold
 local GREEN = Theme.Arcade.green
 
 function Feedback.new(app)
-	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
+	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, conquestEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
 end
 
 function Feedback:Root()
@@ -231,9 +231,43 @@ function Feedback:Action(kind)
 	end
 end
 
-function Feedback:Conquer(position)
-	self:Burst(position, GREEN, true)
+function Feedback:Conquer(position, captureRadius)
+	if not self.alive then return end
 	self.app.audio:Play("Victory", 1, {volume = 0.35, maxDuration = 2, voiceKey = "CaptureVictory"})
+	local root=self:Root()
+	if self.app.reducedMotion or self.bursts>=6 or not root or (root.Position-position).Magnitude>180 then return end
+	self.bursts+=1
+	local style=Theme.Conquest
+	local radius=(captureRadius or 7.8)*style.BurstRadiusMultiplier
+	local anchor=self:Anchor("ConquestCelebration",position+Vector3.new(0,2,0))
+	self.conquestEffects[anchor]=true
+	anchor.Size=Vector3.new(radius*1.6,0.3,radius*1.6)
+	local sphere=Instance.new("Part")
+	sphere.Name,sphere.Shape="ConquestGlow",Enum.PartType.Ball
+	sphere.Anchored,sphere.CanCollide,sphere.CanTouch,sphere.CanQuery,sphere.CastShadow=true,false,false,false,false
+	sphere.Color,sphere.Material,sphere.Transparency=style.Owned,Enum.Material.Neon,0.84
+	sphere.Size,sphere.CFrame,sphere.Parent=Vector3.one*radius,anchor.CFrame,anchor
+	TweenService:Create(sphere,TweenInfo.new(style.BurstSeconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+		{Size=Vector3.one*radius*2.5,Transparency=1}):Play()
+	local sparks=Instance.new("ParticleEmitter")
+	sparks.Name,sparks.Texture="ConquestStars","rbxasset://textures/particles/sparkles_main.dds"
+	sparks.Color=ColorSequence.new(style.Owned,Color3.new(1,1,0.65))
+	sparks.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.7),NumberSequenceKeypoint.new(0.2,1.7),NumberSequenceKeypoint.new(1,0)})
+	sparks.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1),NumberSequenceKeypoint.new(0.6,0.15),NumberSequenceKeypoint.new(1,1)})
+	sparks.Lifetime,sparks.Speed,sparks.SpreadAngle=NumberRange.new(1.3,style.BurstSeconds),NumberRange.new(3,8),Vector2.new(70,70)
+	sparks.Acceleration,sparks.LightEmission,sparks.Rate=Vector3.new(0,2,0),1,0
+	sparks.Parent=anchor;sparks:Emit(style.SparkleCount)
+	local ring=Instance.new("CylinderHandleAdornment")
+	ring.Name,ring.Adornee,ring.Parent="ConquestRing",anchor,anchor
+	ring.Radius,ring.InnerRadius,ring.Height=radius*0.6,radius*0.6-0.2,0.04
+	ring.CFrame,ring.Color3,ring.Transparency=CFrame.new(0,-1.8,0)*CFrame.Angles(math.pi/2,0,0),style.Owned,0.2
+	TweenService:Create(ring,TweenInfo.new(1.1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+		{Radius=radius,InnerRadius=radius-0.15,Transparency=1}):Play()
+	Debris:AddItem(anchor,style.BurstSeconds+0.2)
+	self:Later(style.BurstSeconds+0.2,function()
+		self.conquestEffects[anchor]=nil
+		self.bursts=math.max(0,self.bursts-1)
+	end)
 end
 
 function Feedback:Step(now)
@@ -246,7 +280,10 @@ function Feedback:Step(now)
 		self.depositPending, self.nextDeposit = nil, now + Feel.Deposit.GroupGap
 		for _,receipt in pending do self:ShowDeposit(receipt) end
 	end
-	if self.app.reducedMotion then self:ClearCash(); self:ClearDeposits() end
+	if self.app.reducedMotion then
+		self:ClearCash();self:ClearDeposits()
+		for effect in self.conquestEffects do effect:Destroy();self.conquestEffects[effect]=nil end
+	end
 end
 
 function Feedback:ResetCollections()

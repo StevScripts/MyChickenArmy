@@ -51,6 +51,7 @@ function PlayerSession:Reset()
  self.frontierWins,self.kingCleared={},false
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
  self.tutorial={starterArmy=true}
+ self.fusionUnlocked=false
  self.saveStatus=self.saveStatus or "loading"
  self.saveMessage=self.saveMessage or "Loading your flock…"
 	self.pets, self.slots, self.firstWins, self.raidPaid = {}, {}, {}, {}
@@ -177,6 +178,11 @@ end
 
 function PlayerSession:ProtectStarterFlock(): boolean
 	return self:StarterFlockMinimum()>0
+end
+
+function PlayerSession:MergeAccess(): (boolean, string)
+	if self.fusionUnlocked==true or self.firstWins[1]==true then return true,"" end
+	return false,"Capture Cluck Camp to unlock the Fuse Machine."
 end
 
 function PlayerSession:FindSlot(id: string): number?
@@ -403,6 +409,7 @@ end
 
 function PlayerSession:Snapshot(now: number)
 	local rank=Progression.Get(self.promotion)
+	local mergeUnlocked,mergeRequirement=self:MergeAccess()
 	local best=self:BestPetIds()
 	local selected,deployed={},{}
 	local deployedIds={}
@@ -456,6 +463,7 @@ function PlayerSession:Snapshot(now: number)
         firstWins=table.clone(self.firstWins),homeCount=#self:HomePets(),reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,
 		offlineCash=if self.offlineCashReceipt then table.clone(self.offlineCashReceipt) else nil,
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
+		mergeUnlocked=mergeUnlocked,mergeRequirement=mergeRequirement,
 		campsWon=campsWon,allCampsWon=self:Completed(),
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
 		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
@@ -500,6 +508,7 @@ function PlayerSession:ToData()
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
 		pets=pets,discovered=table.clone(self.discovered),firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,tutorial=table.clone(self.tutorial),
+		fusionUnlocked=self.fusionUnlocked==true or self.firstWins[1]==true,
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned}
 end
 
@@ -683,6 +692,10 @@ function PlayerSession:LoadData(data)
 	if converted>Currency.MaxCoins-data.coins then return false,"Saved coin balance exceeds the supported limit." end
 	local wins=readProgress(data,revision)
 	if not wins then return false,"Invalid saved camp progress." end
+	if data.fusionUnlocked~=nil and type(data.fusionUnlocked)~="boolean" then return false,"Invalid saved fusion access." end
+	-- Older saves already had access, including the existing starter-army cohort.
+	-- Fresh profiles explicitly save false until their first Cluck Camp capture.
+	local fusionUnlocked=data.fusionUnlocked==nil or data.fusionUnlocked==true or wins[1]==true
  local frontier,king={},false
  if revision>=6 then
   frontier=readWins(data.frontierWins,#Progression.Outposts(),true)
@@ -728,6 +741,7 @@ function PlayerSession:LoadData(data)
 	-- Preserve old saves: round any historical cents up once, never reset progress.
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.ceil(data.coins+converted),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial
+	self.fusionUnlocked=fusionUnlocked
 	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered
 	self.passiveEarned,self.battleEarned=math.ceil(data.passiveEarned or 0),math.ceil(data.battleEarned or 0)

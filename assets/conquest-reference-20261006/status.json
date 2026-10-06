@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-06",
+  "placeId": 96683186622050,
+  "delivery": {
+    "localFiles": true,
+    "rojoSynced": true,
+    "playStopped": true,
+    "published": false,
+    "gitCommit": false,
+    "gitPush": false,
+    "savedPlayerDataChanged": false
+  },
+  "checks": {
+    "fixturesPassed": 43,
+    "packaging": "passed",
+    "whitespace": "passed",
+    "nativePromptInput": [
+      "E: normal deployment; E/heading hidden immediately",
+      "R: ownership removed, three defenders restored, progress restarted at 0; both prompts hidden during fight"
+    ],
+    "desktopVisualReview": [
+      "four-section red capture meter",
+      "duplicate camp title suppressed",
+      "green owned label and compact entrance Unclaim prompt",
+      "active fight unobstructed by native prompts"
+    ],
+    "liveCapture": "25 seconds of capture occupancy, including multiple defender respawns; recapture also completed",
+    "otherLiveChecks": [
+      "owned camp persists when redirecting to Camp 2",
+      "reduced-motion cleanup removes active conquest effects",
+      "conquest toast uses green conquest style; fusion-unlock suffix preserved"
+    ]
+  },
+  "limitations": [
+    "Reference pacing is inferred from the recording, not recovered Mini War code.",
+    "Native effects use existing/local Roblox primitives, not the reference's original assets.",
+    "Studio Flow viewport screenshots omit native billboards/prompts; desktop screenshots were used for that UI.",
+    "No mobile/gamepad or multiplayer playtest was performed."
+  ],
+  "readback": [
+    {
+      "path": "src/server/Battle.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/server/BattleService.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/server/WorldBuilder.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/server/WorldService.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/server/KingArena.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/client/BattleController.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/client/BaseController.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/client/ActionFeedback.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/client/AppController.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/client/UITheme.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/shared/Config.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/shared/UIColors.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    },
+    {
+      "path": "src/shared/ConquestPresentation.luau",
+      "compiled": true,
+      "count": 1,
+      "matchesLocal": true
+    }
+  ]
+}

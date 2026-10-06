@@ -451,7 +451,7 @@ end
 function PetView.Level(model, level, giantSize)
 	if model:GetAttribute("Level")==level and model:GetAttribute("MergeVisualScale")
 		and model:GetAttribute("GiantSize")==giantSize
-		and model:GetAttribute("AppliedBaseVisualScale")==ChickenGrowth.BaseScale
+		and model:GetAttribute("AppliedBaseVisualScale")== (model:GetAttribute("BaseVisualScale") or ChickenGrowth.BaseScale)
 		and model:GetAttribute("FieldVisualScale")==nil
 		and model:GetAttribute("AppliedFieldVisualScale")==nil then return end
 	local ratio = ChickenGrowth.Apply(model, level, giantSize)

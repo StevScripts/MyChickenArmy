@@ -8,6 +8,7 @@ local RareChickenVFX = require(script.Parent.RareChickenVFX)
 local SpecialChickenVFX = require(script.Parent.SpecialChickenVFX)
 local GlitchEditableMesh = require(script.Parent.GlitchEditableMesh)
 local VoxelChickenAnimator = require(script.Parent.VoxelChickenAnimator)
+local GalaxyDragonAnimator = require(script.Parent.GalaxyDragonAnimator)
 local ChickenEffectQuality = require(script.Parent.ChickenEffectQuality)
 local GalaxyViewportEffect = require(script.Parent.GalaxyViewportEffect)
 local KingVisual = require(game:GetService("ReplicatedStorage").PetRoll.Shared.KingVisual)
@@ -25,12 +26,13 @@ function DuckAnimator.new(audio)
 	local self = setmetatable({records = {}, connections = {}, reducedMotion = false, destroyed = false,
 		effectQuality = ChickenEffectQuality.new(), galaxyMask = GalaxyViewportEffect.new()}, DuckAnimator)
 	local function discover(item: Instance)
-		if item:IsA("Model") and (item:GetAttribute("DuckRig") == true or item:GetAttribute("SkinnedChicken") == true) and not self.records[item] then
+		if item:IsA("Model") and (item:GetAttribute("DuckRig") == true or item:GetAttribute("SkinnedChicken") == true or item:GetAttribute("GalaxyDragonAnimation") == true) and not self.records[item] then
+			local dragon = item:GetAttribute("GalaxyDragonAnimation") == true
 			self.records[item] = {model = item, root = nil, joints = {}, phase = phaseFor(item.Name),
 				lastPose = 0, lastScan = -1, attackSerial = item:GetAttribute("AttackSerial") or 0,
-				attackAt = -10, sleeping = false, fx = if item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
-				glitch = GlitchEditableMesh.new(item),
-				blender = if item:GetAttribute("ChickenVisualV3") then VoxelChickenAnimator.new(item) elseif item:GetAttribute("SkinnedChicken") then ChickenClipPlayer.new(item) else nil}
+				attackAt = -10, sleeping = false, fx = if dragon then nil elseif item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
+				glitch = if dragon then nil else GlitchEditableMesh.new(item),
+				blender = if dragon then GalaxyDragonAnimator.new(item) elseif item:GetAttribute("ChickenVisualV3") then VoxelChickenAnimator.new(item) elseif item:GetAttribute("SkinnedChicken") then ChickenClipPlayer.new(item) else nil}
 		end
 	end
 	for _, tag in {"DuckRig", "ChickenVisual"} do

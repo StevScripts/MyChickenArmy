@@ -620,6 +620,19 @@ function WorldService:SetTerritoryOwner(location,userId,name)
  self:PopulateCamp(record)
 end
 
+-- Transfer the patrolling rigs before SetBusy clears the idle presentation.
+-- Roster order matches PopulateCamp; the encounter adopts their live positions.
+function WorldService:TakeTerritoryDefenders(location)
+ if location.king then return if self.kingArena then self.kingArena:TakeDefenders() else {} end
+ local record=if location.outpost then self.outposts[location.outpost]
+  else self.lanes[location.plot] and self.lanes[location.plot][location.index]
+ if not record or record.busy or record.conquerorId then return {} end
+ local actors=record.actors
+ record.actors,record.patrols={},{}
+ for _,actor in actors do actor:Stop() end
+ return actors
+end
+
 function WorldService:SetIncomeBusy(busy)
  local record=self.incomeOutpost
  if not record or record.busy==busy then return end
@@ -647,6 +660,7 @@ function WorldService:SetOutpostBusy(index,busy)
  local record=self.outposts[index]
  if not record or record.busy==busy then return end
  record.busy=busy;attribute(record.folder,"Occupied",busy)
+ Builder.ApplyCampTitle(record.folder)
  self:PopulateCamp(record)
 end
 
@@ -655,6 +669,7 @@ function WorldService:SetCampBusy(index: number, busy: boolean, plotIndex: numbe
 	if not record or record.busy == busy then return end
 	record.busy = busy
 	attribute(record.folder, "Occupied", busy)
+	Builder.ApplyCampTitle(record.folder)
 	if not self:ApplyCampStage(record) then self:PopulateCamp(record) end
 end
 
@@ -682,6 +697,7 @@ function WorldService:Release(session)
 			Builder.ApplyCampOwnership(record.folder,record.frame,nil,nil)
 			Builder.ApplyCampPromotion(record.folder,index,Progression.Camps(1)[index].name)
 			attribute(record.folder, "Occupied", false)
+			Builder.ApplyCampTitle(record.folder)
 			attribute(record.folder, "OwnerUserId", nil)
 		end
 	end

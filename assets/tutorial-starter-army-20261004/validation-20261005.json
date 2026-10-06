@@ -1,0 +1,355 @@
+{
+  "scope": "Disposable unsaved server objects and synthetic egg milestones; no DataStore or live players",
+  "guideVersion": "cluck-3-starter-army",
+  "passed": 87,
+  "checks": [
+    {
+      "name": "new analytics guide version",
+      "ok": true
+    },
+    {
+      "name": "three starters and three selected slots",
+      "ok": true
+    },
+    {
+      "name": "three basic free level-one chickens",
+      "ok": true
+    },
+    {
+      "name": "fresh cohort has no pre-rolled offer",
+      "ok": true
+    },
+    {
+      "name": "unchanged wallet and independently reserved purchases",
+      "ok": true
+    },
+    {
+      "name": "ownership does not complete Roll or Recruit",
+      "ok": true
+    },
+    {
+      "name": "only the extra six hundred is discretionary",
+      "ok": true
+    },
+    {
+      "name": "each required purchase can spend its own earmark",
+      "ok": true
+    },
+    {
+      "name": "free first roll succeeds",
+      "ok": true
+    },
+    {
+      "name": "first offer is the six hundred basic recruit",
+      "ok": true
+    },
+    {
+      "name": "roll advances to recruit despite existing army",
+      "ok": true
+    },
+    {
+      "name": "reveal cannot be bought or rerolled early",
+      "ok": true
+    },
+    {
+      "name": "reroll remains a free starter offer",
+      "ok": true
+    },
+    {
+      "name": "discarded offer cannot be purchased",
+      "ok": true
+    },
+    {
+      "name": "starter buy adds exactly the fourth bird",
+      "ok": true
+    },
+    {
+      "name": "recruit investment reflects actual cash",
+      "ok": true
+    },
+    {
+      "name": "only Army Size cash remains reserved",
+      "ok": true
+    },
+    {
+      "name": "duplicate recruit is rejected without mutation",
+      "ok": true
+    },
+    {
+      "name": "first collection follows recruitment",
+      "ok": true
+    },
+    {
+      "name": "one collected egg is enough for the teaching sale",
+      "ok": true
+    },
+    {
+      "name": "sale goes directly to expansion without farming",
+      "ok": true
+    },
+    {
+      "name": "first Army Size purchase uses its reserved budget",
+      "ok": true
+    },
+    {
+      "name": "stale Army Size quote cannot buy another tier",
+      "ok": true
+    },
+    {
+      "name": "automatic filled lineup goes straight to camp",
+      "ok": true
+    },
+    {
+      "name": "manual empty lineup is accepted",
+      "ok": true
+    },
+    {
+      "name": "manual lineup receives Select guidance",
+      "ok": true
+    },
+    {
+      "name": "Select Best advances to deployment",
+      "ok": true
+    },
+    {
+      "name": "completed income lesson never loops when bag is empty",
+      "ok": true
+    },
+    {
+      "name": "rejoin preserves paid fourth bird and completed income lesson",
+      "ok": true
+    },
+    {
+      "name": "ordinary economy returns after discounted purchase",
+      "ok": true
+    },
+    {
+      "name": "Army Size first leaves recruit reserve",
+      "ok": true
+    },
+    {
+      "name": "Army Size first still asks for a roll",
+      "ok": true
+    },
+    {
+      "name": "reordered purchases have identical total cost",
+      "ok": true
+    },
+    {
+      "name": "exact budget supports both required purchases",
+      "ok": true
+    },
+    {
+      "name": "own earmark cannot consume the other purchase's cash",
+      "ok": true
+    },
+    {
+      "name": "starter transaction preserves Army Size reserve at shortfall",
+      "ok": true
+    },
+    {
+      "name": "Army Size transaction preserves recruit reserve at shortfall",
+      "ok": true
+    },
+    {
+      "name": "effective paid capacity removes redundant Army reserve",
+      "ok": true
+    },
+    {
+      "name": "existing effective slots skip redundant expansion",
+      "ok": true
+    },
+    {
+      "name": "skip hides guidance but keeps budget protection",
+      "ok": true
+    },
+    {
+      "name": "saved cohort and reserve survive rejoin without added birds",
+      "ok": true
+    },
+    {
+      "name": "resuming unfinished purchase returns to Roll",
+      "ok": true
+    },
+    {
+      "name": "starter forced to basic level one regardless matching upgrades",
+      "ok": true
+    },
+    {
+      "name": "starter roll does not consume paid guarantee progress",
+      "ok": true
+    },
+    {
+      "name": "unsaved offer disappears but guaranteed purchase survives rejoin",
+      "ok": true
+    },
+    {
+      "name": "EggSpeed UI shows a reserve shortfall without camp gating",
+      "ok": true
+    },
+    {
+      "name": "EggSpeed rejects one-dollar reserve shortfall atomically",
+      "ok": true
+    },
+    {
+      "name": "EggSpeed accepts spending above exact reserve boundary",
+      "ok": true
+    },
+    {
+      "name": "PlotSize UI shows a reserve shortfall without camp gating",
+      "ok": true
+    },
+    {
+      "name": "PlotSize rejects one-dollar reserve shortfall atomically",
+      "ok": true
+    },
+    {
+      "name": "PlotSize accepts spending above exact reserve boundary",
+      "ok": true
+    },
+    {
+      "name": "EggValue UI shows a reserve shortfall without camp gating",
+      "ok": true
+    },
+    {
+      "name": "EggValue rejects one-dollar reserve shortfall atomically",
+      "ok": true
+    },
+    {
+      "name": "EggValue accepts spending above exact reserve boundary",
+      "ok": true
+    },
+    {
+      "name": "Luck UI shows a reserve shortfall without camp gating",
+      "ok": true
+    },
+    {
+      "name": "Luck rejects one-dollar reserve shortfall atomically",
+      "ok": true
+    },
+    {
+      "name": "Luck accepts spending above exact reserve boundary",
+      "ok": true
+    },
+    {
+      "name": "RollSlots UI shows a reserve shortfall without camp gating",
+      "ok": true
+    },
+    {
+      "name": "RollSlots rejects one-dollar reserve shortfall atomically",
+      "ok": true
+    },
+    {
+      "name": "RollSlots accepts spending above exact reserve boundary",
+      "ok": true
+    },
+    {
+      "name": "starting discretionary cash still buys affordable plot upgrade",
+      "ok": true
+    },
+    {
+      "name": "optional plot purchase cannot force another egg sale",
+      "ok": true
+    },
+    {
+      "name": "research cannot consume required-purchase budget",
+      "ok": true
+    },
+    {
+      "name": "legacy income cannot bypass reserve",
+      "ok": true
+    },
+    {
+      "name": "legacy luck cannot bypass reserve",
+      "ok": true
+    },
+    {
+      "name": "individual chicken upgrade preserves required cash",
+      "ok": true
+    },
+    {
+      "name": "later normal recruits cannot spend the Army Size reserve",
+      "ok": true
+    },
+    {
+      "name": "normal recruit above remaining reserve remains purchasable",
+      "ok": true
+    },
+    {
+      "name": "free starter chickens cannot be sold below floor three",
+      "ok": true
+    },
+    {
+      "name": "starter triple cannot be fused below floor three",
+      "ok": true
+    },
+    {
+      "name": "unavailable starter fusion is not advertised",
+      "ok": true
+    },
+    {
+      "name": "discounted chicken cannot be resold below floor four",
+      "ok": true
+    },
+    {
+      "name": "four-bird merge cannot remove the tutorial army",
+      "ok": true
+    },
+    {
+      "name": "genuine surplus remains sellable",
+      "ok": true
+    },
+    {
+      "name": "otherwise valid fusion cannot consume cash reserve",
+      "ok": true
+    },
+    {
+      "name": "surplus fusion remains available above the floor and reserve",
+      "ok": true
+    },
+    {
+      "name": "batch fusion validates the final combined flock floor",
+      "ok": true
+    },
+    {
+      "name": "completed mission releases flock restriction with actual refunds",
+      "ok": true
+    },
+    {
+      "name": "early mission completion releases all reserved budget",
+      "ok": true
+    },
+    {
+      "name": "early completion cannot mint a late discounted recruit",
+      "ok": true
+    },
+    {
+      "name": "preexisting cohort loads without the new policy",
+      "ok": true
+    },
+    {
+      "name": "preexisting flock cash and upgrades stay unchanged",
+      "ok": true
+    },
+    {
+      "name": "invalid save does not replace existing progress",
+      "ok": true
+    },
+    {
+      "name": "old empty-start save stays empty with its six hundred reserve",
+      "ok": true
+    },
+    {
+      "name": "old empty-start guide still begins with a roll",
+      "ok": true
+    },
+    {
+      "name": "old empty-start recruit does not grant three more birds or army reserve",
+      "ok": true
+    },
+    {
+      "name": "legacy purchased save preserves one real chicken",
+      "ok": true
+    }
+  ]
+}

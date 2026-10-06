@@ -5,10 +5,12 @@ local CollectionService = game:GetService("CollectionService")
 local Catalog = require(script.Parent.PetCatalog)
 local Rules = require(script.Parent.Rules)
 local Appearances = require(script.Parent.ChickenAppearanceAssets)
+local GalaxyDragonPetView = require(script.Parent.GalaxyDragonPetView)
 local BlenderPetView = {}
 local previews = {}
 
 function BlenderPetView.Create(parent, id, species, stars, foot, physical)
+	if species == "CosmicDragon" then return GalaxyDragonPetView.Create(parent,id,species,stars,foot,physical) end
 	local assets = script.Parent.Parent:FindFirstChild("ChickenAssets")
 	local template = assets and assets:FindFirstChild(species)
 	if not template then return nil end
@@ -131,6 +133,7 @@ function BlenderPetView.Create(parent, id, species, stars, foot, physical)
 end
 
 function BlenderPetView.Move(model, foot, direction, hop)
+	if model:GetAttribute("GalaxyDragonAnimation") then GalaxyDragonPetView.Move(model,foot,direction,hop); return end
 	local pose = previews[model]
 	if not pose then return end
 	local now = os.clock()

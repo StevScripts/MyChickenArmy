@@ -1,0 +1,11 @@
+{
+  "src/server/Battle.luau": "5581402774d6b56108657af1f40c879469542aa62282522ff67078bc998db06d",
+  "src/server/BattleService.luau": "b418ed1d5f32f5ad431718a45afe13a5cc89443affe51e1c77199bc2596ef7da",
+  "src/server/WorldBuilder.luau": "47ef343b3907d58ccd04a4b8c43f7d34df8d47a4bbaec61fdab8b7b2203b5846",
+  "src/server/KingArena.luau": "11b96ea05489f005ce8e57348c41e6c79e0aef5f56f2e49c981a97b8e822f825",
+  "src/client/BattleController.luau": "095b2169f00141e57a04a643014e5fc54bc1bb63d212257e866e4a9edde08813",
+  "src/client/ActionFeedback.luau": "ee48944de0186db61732a7e99c763f3dcb3f6f17c995a30c3d55e8e78c1a2f1c",
+  "src/client/UITheme.luau": "3429b81e60191861e6ce46337eec1d21f34b3a1394e66314272a4124ffc2abd8",
+  "src/shared/UIColors.luau": "d37c5b0c61e03a8777d2e2b4cf980471a0bf60702bba6bddb9965174ad1193ed",
+  "src/shared/Config.luau": "50e9a4428c27ae870f6cf69be46366716e73cfdb3c002a9f9ef3c6192c387811"
+}

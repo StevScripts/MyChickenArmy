@@ -94,6 +94,7 @@ function Rules.Stats(species: string, stars: number, level: number?)
 	for previous=1,rank-1 do investment += Rules.UpgradePrice(species, previous) or 0 end
 	return {hp=pet.hp * Config.StarHP[stars] * combat, damage=pet.damage * copies * combat,
 		income=Rules.Income(species,stars,rank,0), interval=pet.interval,
+		attackWindup=pet.attackWindup or Config.AttackWindupSeconds,
 		size=pet.size * Config.StarSize[stars], splash=pet.splash == true,
 		refund=Rules.SellValue(investment)}
 end

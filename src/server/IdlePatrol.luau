@@ -1,6 +1,6 @@
 --!strict
 -- Idle-only movement, stepped by the actor's world owner. No tasks or connections.
--- BattleService replaces these display actors when an encounter starts.
+-- Camp encounters take ownership of these same actors when an attack starts.
 local IdlePatrol = {}
 IdlePatrol.__index = IdlePatrol
 

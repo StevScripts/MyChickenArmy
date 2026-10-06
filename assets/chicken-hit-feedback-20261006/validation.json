@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-06",
+  "placeId": 96683186622050,
+  "modules": [
+    "server/Battle",
+    "client/BattleController"
+  ],
+  "studioExactSourceMatch": true,
+  "isolatedBattleChecks": {
+    "passed": 6,
+    "cases": [
+      "windup",
+      "committed hit",
+      "snapshot serial",
+      "health rescale",
+      "fully blocked damage",
+      "lethal hit"
+    ]
+  },
+  "live": {
+    "saveStatus": "studio-session",
+    "visiblePulses": 110,
+    "reducedMotionSuppressed": 35,
+    "activeDuringReducedMotion": 0,
+    "cleanup": {
+      "captured": 1,
+      "remainingAfterFade": 0
+    },
+    "visual": "Actual Cluck Camp battle. Highlight red ff4141, occluded, fill0.35; pulse briefly paused for screenshot inspection, then resumed."
+  },
+  "rojoBuild": "passed",
+  "whitespace": "passed",
+  "finalStudioState": "Edit",
+  "limitations": "Focused desktop Studio checks, not physical-device or multiplayer performance testing. No saved profile changes or publishing."
+}

@@ -2,6 +2,9 @@
 -- Approved V3 art: stable save IDs are independent of appearance names.
 return {
  Species={
+  Astronaut={name="Astronaut",bonePrefix="Original_",unitScale=0.670163170,pivotRig=true},
+  Alien={name="Alien",bonePrefix="Original_",unitScale=0.670163170,pivotRig=true},
+  DarkMatter={name="DarkMatter",bonePrefix="Original_",unitScale=0.670163170,pivotRig=true},
   Duck={name="Original",bonePrefix="Original_",unitScale=0.670163170},
   Mallard={name="Brown",bonePrefix="Brown_",unitScale=0.670163170},
   Sailor={name="Mushroom",bonePrefix="Mushroom_",unitScale=0.670163170},

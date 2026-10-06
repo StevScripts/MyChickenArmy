@@ -1,0 +1,58 @@
+{
+  "src/client/ActionFeedback.luau": {
+    "beforeSha256": "ee48944de0186db61732a7e99c763f3dcb3f6f17c995a30c3d55e8e78c1a2f1c",
+    "afterSha256": "f9c3ba9d117d59517c3b9ea23619eb2973ad42668dc9cefdbaf971acc4d9d856"
+  },
+  "src/client/AppController.luau": {
+    "beforeSha256": "1339b79f07fd38c2dac07f87dd099daf91a0afac2ff290d67694e14f27e19d20",
+    "afterSha256": "47f1cc6c6679e4344901bae05bd815c0d8f55d80d06ebea0c1c116d1632ea56d"
+  },
+  "src/client/BaseController.luau": {
+    "beforeSha256": "034850c494b0f18dc9c3671e454759af2cf49b171330f2200304431490f1f4bd",
+    "afterSha256": "642274b279566ce80aaaac1d60f3af1882ea07b1139239934e80bc17fdbe205c"
+  },
+  "src/client/BattleController.luau": {
+    "beforeSha256": "095b2169f00141e57a04a643014e5fc54bc1bb63d212257e866e4a9edde08813",
+    "afterSha256": "3275db416798533728c6fe9b317803995b3aa19869359843c585e1c09b92d534"
+  },
+  "src/client/UITheme.luau": {
+    "beforeSha256": "3429b81e60191861e6ce46337eec1d21f34b3a1394e66314272a4124ffc2abd8",
+    "afterSha256": "055d65bb4dfe4981b3aab0c15170fa78bdcf90e5f66eeaf9e1c67b120e59e813"
+  },
+  "src/server/Battle.luau": {
+    "beforeSha256": "5581402774d6b56108657af1f40c879469542aa62282522ff67078bc998db06d",
+    "afterSha256": "d9daf712f3efbeba6732c73efe3460a603b862ec850533d19c77bb7e59ef1cc4"
+  },
+  "src/server/BattleService.luau": {
+    "beforeSha256": "b418ed1d5f32f5ad431718a45afe13a5cc89443affe51e1c77199bc2596ef7da",
+    "afterSha256": "cd423202809fc1cb7c00716cec4adc473f4a0516360a76a66e58afe84d0ee299"
+  },
+  "src/server/KingArena.luau": {
+    "beforeSha256": "11b96ea05489f005ce8e57348c41e6c79e0aef5f56f2e49c981a97b8e822f825",
+    "afterSha256": "70b87bc00c66f63c2afbd2e1ccd9924dd5377426fe6c30612a38bbd36f499848"
+  },
+  "src/server/WorldBuilder.luau": {
+    "beforeSha256": "47ef343b3907d58ccd04a4b8c43f7d34df8d47a4bbaec61fdab8b7b2203b5846",
+    "afterSha256": "1b8a1f3d70e256523a00886f68005e6983468f6448968b7eac4e7c42c30b2fe1"
+  },
+  "src/server/WorldService.luau": {
+    "beforeSha256": "a2f316057ca64a4d3f348e235b282eb0bba6f7b4f6e3777b5a6b1568defaeb3c",
+    "afterSha256": "9e1272917dedfcd9f2cc4a1781f1cc499da92f6fe3e0cac57ea7b7075cea21c3"
+  },
+  "src/shared/Config.luau": {
+    "beforeSha256": "50e9a4428c27ae870f6cf69be46366716e73cfdb3c002a9f9ef3c6192c387811",
+    "afterSha256": "4271644d6f4172580d72a09a19a8c5c2091f76790678a11676915a41900b338d"
+  },
+  "src/shared/UIColors.luau": {
+    "beforeSha256": "d37c5b0c61e03a8777d2e2b4cf980471a0bf60702bba6bddb9965174ad1193ed",
+    "afterSha256": "bf7e103a5d3739fde10c1a8a94a40c2f37a45921009bcaac63d6eb7ddba1e2cf"
+  },
+  "tests/CampRetargetingChecks.luau": {
+    "beforeSha256": "e0078dc546096cab652f4c4a17c106241cf628ec7d9c98cfa30db3ef0647e64e",
+    "afterSha256": "e0078dc546096cab652f4c4a17c106241cf628ec7d9c98cfa30db3ef0647e64e"
+  },
+  "tests/TerritoryClaimChecks.luau": {
+    "beforeSha256": "594b3a28aae649a5f3278f8e1a581e8ae0daf68291634351c69f0d097ed31593",
+    "afterSha256": "f616c78b5a0a0dc06249a6d271813da657478ea943839692e10ebab05c533998"
+  }
+}

@@ -42,6 +42,8 @@ Theme.ActionColors = {
 	navigation=Theme.Arcade.blue, purchase=Theme.Arcade.green, sell=Theme.Arcade.sell,
 	danger=Theme.Arcade.red, disabled=Palette.Disabled, selected=Palette.Rewards,
 }
+-- October 6 conquest recording: red four-section meter, green owned marker.
+Theme.Conquest = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ConquestPresentation)
 -- Opt-in cash affordability feedback for the yard and egg-collection upgrades.
 Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color3.fromRGB(92,92,92))
 Theme.Assets = {
@@ -56,6 +58,7 @@ Theme.Assets = {
 Theme.Rarities = Palette.Rarities
 -- Background-free simulator feedback: bold status-colored text and a clear outline.
 Theme.NotificationStyles = {
+	conquest={symbol="⚔",color=Theme.Conquest.Owned},
 	success={symbol="✓",color=Color3.fromRGB(112,222,98)},
 	error={symbol="×",color=Color3.fromRGB(255,120,132)},
 	warning={symbol="!",color=Color3.fromRGB(244,194,71)},
@@ -565,7 +568,7 @@ function Theme.Money(value)
 	return (if whole<0 then "-" else "")..grouped
 end
 
-function Theme.SegmentedBar(parent,name,size)
+function Theme.SegmentedBar(parent,name,size,segments)
 	local track=Theme.Frame(parent,name,size,Theme.Arcade.border)
 	Theme.Round(track,7);Theme.Stroke(track,Theme.Arcade.border,3)
 	local inside=Theme.Frame(track,"Inside",UDim2.fromScale(0.97,0.87),Theme.Colors.dark)
@@ -574,9 +577,10 @@ function Theme.SegmentedBar(parent,name,size)
 	local fill=Theme.Frame(inside,"Fill",UDim2.fromScale(0,1),Theme.Arcade.red)
 	Theme.Round(fill,3)
 	Theme.Gradient(fill,Color3.new(1,1,1),Color3.fromRGB(224,224,224))
-	for i=1,4 do
+	local count=segments or 5
+	for i=1,count-1 do
 		local line=Instance.new("Frame")
-		line.Name,line.Size,line.Position="Segment"..i,UDim2.fromScale(0.006,1),UDim2.fromScale(i/5,0)
+		line.Name,line.Size,line.Position="Segment"..i,UDim2.fromScale(0.006,1),UDim2.fromScale(i/count,0)
 		line.BackgroundColor3,line.BorderSizePixel,line.ZIndex,line.Parent=Theme.Arcade.border,0,2,inside
 	end
 	return track,fill

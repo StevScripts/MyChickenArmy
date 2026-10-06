@@ -1,0 +1,36 @@
+{
+  "status": "passed_local_xml_readback",
+  "source": "attack-cycle.json",
+  "sourceSha256": "bb3a5bf18c510ed209569eb7f58abc0a671e4c3f149450c8a56fa06f74c6c1eb",
+  "output": "GalaxyDragon-Attack.rbxmx",
+  "outputSha256": "3a5b9296984cb61da957aab914b5cf0f517568e077f825af4cab7a169c031446",
+  "sequence": "Attack",
+  "revision": "Forward Swoop v3",
+  "loop": false,
+  "priority": "Action",
+  "priorityValue": 2,
+  "fps": 60,
+  "samples": 85,
+  "duration": 1.4,
+  "bonePosesPerSample": 23,
+  "meshWrapper": "DragonChickenMesh",
+  "markers": [
+    {
+      "name": "AttackContact",
+      "time": 0.5333333333333333
+    }
+  ],
+  "conversion": "Y180 * Blender bone-local delta * Y180; source-unit translations, no Model scale baked",
+  "maxSerializedMatrixElementError": 0.0,
+  "maxRotationOrthogonalityError": 6.455391139414957e-07,
+  "rotationDeterminantRange": [
+    0.9999993346425673,
+    1.0000007182637094
+  ],
+  "entryExitMatrixElementError": 0.0,
+  "studioImportVerified": false,
+  "animationPublished": false,
+  "gameplayHookedUp": false,
+  "flightPhaseZeroMatrixElementError": 3.5762786865234375e-07,
+  "flightComparisonSource": "/Users/stevin/.codex/artifacts/dragon-chicken-roblox/flight-cycle.json"
+}

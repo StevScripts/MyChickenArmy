@@ -650,6 +650,7 @@ function Browser:UpdateAction()
 	if pet then
 		local levelCap=pet.levelCap or (state.progression and state.progression.levelCap) or Config.MaxPetLevel
 		self.mergeHint.Text=if self.pending and self.pending.action=="UpgradeChicken" then ""
+			elseif Config.Features.Merging and state.mergeUnlocked==false then state.mergeRequirement
 			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
 			elseif pet.canUpgrade==false then "Return home to upgrade"
 			elseif not affordable then "Not enough cash"

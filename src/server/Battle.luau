@@ -38,10 +38,11 @@ function Battle:AddArmy(side: string, roster, home: Vector3)
 			giantSize=pet.giantSize,
 			boss=pet.boss==true,noRespawn=pet.noRespawn==true,
 			baseHp=stats.hp,baseDamage=stats.damage,
+			attackWindup=stats.attackWindup or Config.AttackWindupSeconds,
 			hp=stats.hp,maxHp=stats.hp,damage=stats.damage,interval=stats.interval,size=stats.size,splash=stats.splash,
 			x=if side=="A" then homeX else x,z=if side=="A" then homeZ else z,
 			homeX=homeX,homeZ=homeZ,startX=homeX,startZ=homeZ,entryX=x,entryZ=z,spawnX=spawn.X,spawnZ=spawn.Z,
-			nextAttack=0,attackSerial=0,impactSerial=0,spawnSerial=0,firstAttack=true,
+			nextAttack=0,attackSerial=0,impactSerial=0,damageSerial=0,spawnSerial=0,firstAttack=true,
 			attackStagger=((i-1)%4)*Config.AttackStaggerSeconds,faceX=0,faceZ=if side=="A" then 1 else -1})
 	end
 end
@@ -61,11 +62,41 @@ function Battle:ApplyResearch(side,effects,rallyActive)
  end end
 end
 
+function Battle:IsConquest(): boolean
+ return not self.incomeSite and not self.incomeContest and not self.operationId
+  and (self.target:match("^camp:")~=nil or self.target:match("^outpost:")~=nil or self.target=="king:1")
+end
+
+function Battle:CaptureDuration(): number
+ return if self:IsConquest() then Config.ConquestSeconds else Config.CaptureSeconds
+end
+
 function Battle:CaptureRemaining()
- local enemy=math.max(0,Config.NeutralizeSeconds-self.captureElapsed)
- local friendly=math.max(0,Config.CaptureSeconds-math.max(Config.NeutralizeSeconds,self.captureElapsed))
  local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
+ if self:IsConquest() then return math.max(0,self:CaptureDuration()-self.captureElapsed)/(1+bonus) end
+ local enemy=math.max(0,Config.NeutralizeSeconds-self.captureElapsed)
+ local friendly=math.max(0,self:CaptureDuration()-math.max(Config.NeutralizeSeconds,self.captureElapsed))
  return enemy+friendly/(1+bonus)
+end
+
+-- The reference meter advances while a living army physically contests the base.
+-- Combat continues normally. Full progress alone cannot defeat surviving guards.
+function Battle:StepConquest(dt: number)
+ local count=0
+ for _,unit in self.units do
+  if unit.side=="A" and unit.hp>0 and not unit.reinforcing and not unit.retiring
+   and (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then count+=1 end
+ end
+ self.capturers=count
+ if count==0 then return nil end
+ self.captureStarted=true
+ local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
+ local duration=self:CaptureDuration()
+ self.captureElapsed=math.min(duration,self.captureElapsed+dt*(1+bonus))
+ if self.captureElapsed>=duration-1e-6 and self:Alive("B")==0 then
+  self.captureElapsed=duration;return "A"
+ end
+ return nil
 end
 
 function Battle:AddDefenders(roster, home: Vector3, now: number)
@@ -145,11 +176,18 @@ function Battle:StepCapture(dt: number, now: number)
 		if (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then capturers+=1 end
 	end
 	self.capturers=capturers
+	if self:IsConquest() then
+		local outcome=self:StepConquest(dt)
+		if outcome then return outcome end
+		if self.capturers==0 and self:Alive("A")>0 and now-self.phaseAt>=Config.TravelTimeout then return "Blocked" end
+		return nil
+	end
 	if capturers>0 then
 		local neutral=math.min(dt,math.max(0,Config.NeutralizeSeconds-self.captureElapsed))
 		local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
-		self.captureElapsed=math.min(Config.CaptureSeconds,self.captureElapsed+neutral+(dt-neutral)*(1+bonus))
-		if self.captureElapsed>=Config.CaptureSeconds-1e-6 then self.captureElapsed=Config.CaptureSeconds;return "A" end
+		local duration=self:CaptureDuration()
+		self.captureElapsed=math.min(duration,self.captureElapsed+neutral+(dt-neutral)*(1+bonus))
+		if self.captureElapsed>=duration-1e-6 then self.captureElapsed=duration;return "A" end
 	elseif self:Alive("A")>0 and now-self.phaseAt>=Config.TravelTimeout then return "Blocked" end
 	return nil
 end
@@ -218,11 +256,13 @@ end
 function Battle:ReachedCamp(unit): boolean
  if unit.marchPath then return false end
  if (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then return true end
- -- A defender can meet the flock at the edge. Do not walk past it to touch a zone.
+ -- Start the ordinary camp fight on detection, so guards walk out to meet the
+ -- arriving troop. Capture still requires physical presence in CaptureRadius.
+ local aggro=if self:IsConquest() then Config.DefenderAggroRadius else 0
  for _,enemy in self.units do
   if enemy.side~=unit.side and enemy.hp>0 and not enemy.reinforcing and not enemy.retiring then
    local reach=math.max(Config.AttackRange,(unit.size+enemy.size)*0.5+0.3)
-   if distance(unit,enemy)<=reach+1 then return true end
+   if distance(unit,enemy)<=math.max(reach+1,aggro) then return true end
   end
  end
  return false
@@ -451,12 +491,14 @@ function Battle:StepSimulation(dt: number, now: number)
 			end
 		elseif now+1e-6>=u.nextAttack and distance(u,target)<=reach then
 			u.nextAttack=now+u.interval;u.attackSerial+=1;u.attackStartedAt=now
-			u.pendingAttack={targetId=target.id,hitAt=now+Config.AttackWindupSeconds}
+			u.pendingAttack={targetId=target.id,hitAt=now+(u.attackWindup or Config.AttackWindupSeconds)}
 		end
 	end
 	for _,u in self.units do
 		local wasAlive=u.hp>0
+  local previousHp=u.hp
   u.hp=math.max(0,u.hp-(damage[u.id] or 0)*(1-(u.armor or 0)))
+  if u.hp<previousHp then u.damageSerial+=1 end
   if wasAlive and u.hp<=0 then
    -- Schedule once at this chicken's death, never when the last guard falls.
    if u.side=="B" and not u.petId and not u.noRespawn and not self.incomeContest then
@@ -474,6 +516,7 @@ function Battle:StepSimulation(dt: number, now: number)
 	end
 	if self:LostFoothold(now) then return "B" end
 	if self:Alive("B")==0 then self:BeginCapture(now) end
+	if self:IsConquest() then return self:StepConquest(dt) end
 	return nil
 end
 
@@ -515,8 +558,8 @@ end
 function Battle:Finish(outcome: string, now: number)
 	if outcome=="B" then
 		self.enemyReclaimElapsed,self.captureAtDefeat=0,self.captureElapsed
-		self.enemyControlAtDefeat=math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1)
-		self.playerControlAtDefeat=math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(Config.CaptureSeconds-Config.NeutralizeSeconds),0,1)
+		self.enemyControlAtDefeat=if self:IsConquest() then 1-self.captureElapsed/self:CaptureDuration() else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1)
+		self.playerControlAtDefeat=if self:IsConquest() then self.captureElapsed/self:CaptureDuration() else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(self:CaptureDuration()-Config.NeutralizeSeconds),0,1)
 		self.capturers=0
 	end
 	self.outcome,self.phase,self.phaseAt=outcome,"Returning",now
@@ -553,27 +596,29 @@ function Battle:Snapshot(now: number)
 	for _,u in self.units do
 		table.insert(units,{id=u.id,petId=u.petId,side=u.side,boss=u.boss,species=u.species,stars=u.stars,level=u.level,retiring=u.retiring==true,reinforcing=u.reinforcing==true,respawnRemaining=if u.respawnAt then math.max(0,u.respawnAt-now) else 0,x=u.x,z=u.z,
 			giantSize=u.giantSize,
-			hp=u.hp,maxHp=u.maxHp,attackSerial=u.attackSerial,impactSerial=u.impactSerial,impactX=u.impactX,impactZ=u.impactZ,
+			hp=u.hp,maxHp=u.maxHp,attackSerial=u.attackSerial,impactSerial=u.impactSerial,damageSerial=u.damageSerial,impactX=u.impactX,impactZ=u.impactZ,
 			spawnSerial=u.spawnSerial,faceX=u.faceX,faceZ=u.faceZ})
 	end
-	local duration=if self.phase=="Travel" then Config.TravelSeconds elseif self.phase=="Capture" then Config.CaptureSeconds
+	local duration=if self.phase=="Travel" then Config.TravelSeconds elseif self.phase=="Capture" then self:CaptureDuration()
 		elseif self.phase=="Returning" then Config.ReturnSeconds else Config.FightTimeout
 	local reclaiming=self.enemyReclaimElapsed~=nil
 	local reclaimProgress=if reclaiming then math.clamp(self.enemyReclaimElapsed/Config.EnemyReclaimSeconds,0,1) else 0
 	local defenderRespawnAt=self:NextDefenderRespawn()
+	local conquest=self:IsConquest()
+	local progress=math.clamp(self.captureElapsed/self:CaptureDuration(),0,1)
 	return {id=self.id,coinDrops=table.clone(self.coinDrops),attacker=self.attacker,target=self.target,defender=self.defender,phase=self.phase,outcome=self.outcome,incomeContest=self.incomeContest==true,rosterLocked=self.rosterLocked==true,travelStage=if self.phase=="Travel" then (if self.assembling then "Assembling" else "Marching") else nil,
 		remaining=if self.phase=="Holding" then 0 elseif self.phase=="Capture" then self:CaptureRemaining() else math.max(0,duration-(now-self.phaseAt)),units=units,a=self:Alive("A"),b=self:Alive("B"),
-		captureProgress=math.clamp(self.captureElapsed/Config.CaptureSeconds,0,1),
-		captureStarted=self.captureStarted,capturePaused=not reclaiming and self.captureStarted and (self.phase=="Fight" or self:Alive("A")==0),
+		captureProgress=progress,conquest=conquest,friendlyTerritory=self.friendlyTerritory==true,
+		captureStarted=self.captureStarted,capturePaused=not reclaiming and self.captureStarted and (if conquest then self.capturers==0 else self.phase=="Fight" or self:Alive("A")==0),
 		enemyReclaiming=reclaiming,enemyReclaimComplete=reclaiming and reclaimProgress>=1,
-		captureStage=if reclaiming or self.captureElapsed<Config.NeutralizeSeconds then "Enemy" else "Player",
-		enemyControl=if reclaiming then self.enemyControlAtDefeat+(1-self.enemyControlAtDefeat)*reclaimProgress else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1),
-		playerControl=if reclaiming then self.playerControlAtDefeat*(1-reclaimProgress) else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(Config.CaptureSeconds-Config.NeutralizeSeconds),0,1),
+		captureStage=if reclaiming then "Enemy" elseif conquest then "Conquest" elseif self.captureElapsed<Config.NeutralizeSeconds then "Enemy" else "Player",
+		enemyControl=if reclaiming then self.enemyControlAtDefeat+(1-self.enemyControlAtDefeat)*reclaimProgress elseif conquest then 1-progress else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1),
+		playerControl=if reclaiming then self.playerControlAtDefeat*(1-reclaimProgress) elseif conquest then progress else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(self:CaptureDuration()-Config.NeutralizeSeconds),0,1),
 		captureRemaining=self:CaptureRemaining(),
 		defenderRespawnIn=if defenderRespawnAt then math.max(0,defenderRespawnAt-now) else nil,
 		defenderRespawns=self.defenderRespawns,waitingForArmy=self:Alive("A")==0,
-		captureActive=self.phase=="Capture" and self.capturers>0,capturers=self.capturers,captureRadius=Config.CaptureRadius,
-		x=self.destination.X,z=self.destination.Z,name=self.name,
+		captureActive=(self.phase=="Capture" or (conquest and self.phase=="Fight")) and self.capturers>0,capturers=self.capturers,captureRadius=Config.CaptureRadius,
+		x=self.destination.X,y=self.destination.Y,z=self.destination.Z,name=self.name,
 		promotion=self.promotion,routeGoal=if self.routeGoal then self.routeGoalName else nil}
 end
 

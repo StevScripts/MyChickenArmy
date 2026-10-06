@@ -20,7 +20,7 @@ local BattleService={}
 BattleService.__index=BattleService
 
 function BattleService.new(sessions,world)
-	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},territoryReclaims={},departingCamps={},departingSides={},campClearedAt={},campLocations={},
+	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},
   territoryIncome=TerritoryIncome.new((Config.IncomeOutpost and Config.IncomeOutpost.Rate) or 0),
   income={graceUntil=0,retry={},eligibleTime=0,warningAfter=(Config.IncomeOutpost and Config.IncomeOutpost.WarningAfter) or 120}},BattleService)
 end
@@ -96,7 +96,7 @@ end
 
 function BattleService:SetTerritoryOwner(key,session,location)
  local previous=self.campOwners[key]
- if session then self.territoryReclaims[key]=nil end
+ if session then self.releasedTerritories[key]=nil end
  if key=="income:1" then
   -- Observation history only; never consulted for income or command permission.
   self.income.lostOwners=self.income.lostOwners or {}
@@ -119,7 +119,7 @@ function BattleService:SetTerritoryOwner(key,session,location)
 end
 
 -- Moving an army never releases its flag. Only the owning player's explicit
--- command starts this recovery; existing combat/kill/recruit rules still apply.
+-- command restores its native garrison; existing combat/kill/recruit rules apply.
 function BattleService:Unclaim(session,targetId,now)
  if type(targetId)~="string" or #targetId>60 then return false,"Invalid territory." end
  local kind,index=targetId:match("^(%a+):(%d+)$")
@@ -132,9 +132,9 @@ function BattleService:Unclaim(session,targetId,now)
  if not location then return false,"This base is unavailable." end
  local battle=self.battles[self.campBusy[key]]
  local active=battle and battle.campKey==key and battle.phase~="Returning"
- local reclaim={id="unclaim:"..key,ownerId=session.userId,target=targetId,location=location,
-  name=CampaignRoute.Name(targetId),captureElapsed=Config.CaptureSeconds}
- self.territoryReclaims[key]=reclaim
+ -- The footage restores the native flag immediately. This record only allows
+ -- vacancy release before the departing army reaches its next destination.
+ self.releasedTerritories[key]=session.userId
  self:SetTerritoryOwner(key,nil,location)
  if location.index then
   for _,other in self.battles do
@@ -150,38 +150,14 @@ function BattleService:Unclaim(session,targetId,now)
   battle:CancelAttacks()
   battle.paid,battle.friendlyTerritory,battle.outcome=false,false,nil
   battle.phase=if battle.phase=="Travel" then "Travel" else "Fight"
-  battle.phaseAt,battle.captureStarted,battle.captureElapsed=now,true,Config.CaptureSeconds
+  battle.phaseAt,battle.captureStarted,battle.captureElapsed,battle.capturers=now,false,0,0
   battle.routeGoal=nil
   battle:AddArmy("B",roster,battle.destination)
-  reclaim.battleId=battle.id
   if battle.actors then battle.actors:Sync(now);battle.actors:Publish(now) end
   session.armyState,session.stationedAt=if battle.phase=="Travel" then "Traveling" else "Fighting",nil
- elseif active then
-  -- An army already contesting this base keeps its own capture progress.
-  self.territoryReclaims[key]=nil
  end
  session:Touch()
- return true,"Base unclaimed. Enemies are taking it back."
-end
-
-function BattleService:StepTerritoryReclaims(dt,now)
- for key,reclaim in self.territoryReclaims do
-  local battle=self.battles[reclaim.battleId]
-  local fighting=battle and battle.campKey==key and battle.phase~="Returning"
-  if fighting and battle:Alive("B")==0 then
-   -- Ordinary capture resumes from the remaining control once defenders fall.
-   self.territoryReclaims[key]=nil
-   continue
-  end
-  if fighting or not self.campBusy[key] then
-   reclaim.captureElapsed=math.max(0,reclaim.captureElapsed-dt)
-   if fighting then battle.captureElapsed=reclaim.captureElapsed end
-   if reclaim.captureElapsed==0 then
-    reclaim.completedAt=reclaim.completedAt or now
-    if now-reclaim.completedAt>=1 then self.territoryReclaims[key]=nil end
-   end
-  end
- end
+ return true,"Base unclaimed. Defeat its defenders to conquer it again."
 end
 
 function BattleService:Targets(session,now)
@@ -583,13 +559,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
  battle.campKey=if isKing then KingEncounter.Target elseif outpostIndex then targetId elseif campIndex then campKey(session.plotIndex,campIndex) else nil
  battle.friendlyTerritory=territoryOwner~=nil and territoryOwner.userId==session.userId
  if campIndex and not battle.friendlyTerritory then battle.routeCamps[campIndex]=nil end
- if battle.friendlyTerritory then battle.captureElapsed=Config.CaptureSeconds end
- local reclaim=self.territoryReclaims[battle.campKey]
- if reclaim then
-  if reclaim.ownerId==session.userId then
-   battle.captureElapsed=reclaim.captureElapsed;battle.captureStarted=true;reclaim.battleId=battleId
-  else self.territoryReclaims[battle.campKey]=nil end
- end
+ if battle.friendlyTerritory then battle.captureElapsed=battle:CaptureDuration() end
  if isKing then
   local outward=Vector3.new(origin.X,0,origin.Z)
   if outward.Magnitude<1 then outward=self.world:Position(session.plotIndex) end
@@ -633,12 +603,19 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		local folder=self.world.root:FindFirstChild("Battles")
 		if not folder then folder=Instance.new("Folder");folder.Name="Battles";folder.Parent=self.world.root end
 		battle.actors=LiveBattleActors.new(folder,battle)
+		local guards=if #defenders>0 and self.world.TakeTerritoryDefenders then
+			self.world:TakeTerritoryDefenders({king=isKing,outpost=outpostIndex,index=campIndex,plot=session.plotIndex}) else {}
+		local guardIndex=0
 		for _,u in battle.units do
 			local actor=nil
 			if u.side=="A" then
 				if moving and previous.actors then actor=previous.actors:TakePet(u.petId,"A")
 				elseif self.world.TakeActor then actor=self.world:TakeActor(session.plotIndex,u.petId) end
-			elseif defender and self.world.TakeActor then actor=self.world:TakeActor(defender.plotIndex,u.petId) end
+			elseif defender and self.world.TakeActor then actor=self.world:TakeActor(defender.plotIndex,u.petId)
+			else
+				guardIndex+=1
+				actor=guards[guardIndex]
+			end
 			if actor then battle.actors:Adopt(u,actor) end
 		end
 	end
@@ -751,8 +728,9 @@ function BattleService:Finish(battle,outcome,now)
 	if attacker and attacker.outgoing==battle.id then
 		attacker.armyState,attacker.returnAt=if hold then "Deployed" else "Returning",if hold then 0 else now+Config.ReturnSeconds
 		attacker.stationedAt=if hold then battle.name else nil
-		attacker.lastResult=if hold and battle.routeGoal then "Conquered! Marching toward "..battle.routeGoalName.."."
-			elseif hold then "Conquered! Army stays at "..battle.name..". Approach another camp or change your lineup in My Army."
+		attacker.lastResult=if hold and battle.friendlyTerritory then "Army stationed at "..battle.name.."."
+			elseif hold and battle.routeGoal then "You've conquered "..battle.name.."! Marching toward "..battle.routeGoalName.."."
+			elseif hold then "You've conquered "..battle.name.."!"
 			elseif outcome=="A" then "Victory at "..battle.name.."!"
 			elseif outcome=="B" then "Squad wiped out. Enemy control is recovering; your chickens are returning home."
 			elseif outcome=="Draw" then "Draw — all pets are returning."
@@ -920,6 +898,7 @@ function BattleService:ReleaseCamp(key)
   else self.world:SetCampBusy(location.index,false,location.plot) end
  end
  self.campLocations[key]=nil
+ self.releasedTerritories[key]=nil
 end
 
 function BattleService:Remove(battle,successor,successorSide)
@@ -956,7 +935,7 @@ function BattleService:ReleaseClearedCamps(now)
   -- A new order alone cannot release ground. Its army must first physically
   -- arrive; redirecting again while en route restarts this arrival boundary.
   local awaitingArrival=battle and battle.phase=="Travel" and not battle.arrivedAt
-  if awaitingArrival and not self.territoryReclaims[key] then self.campClearedAt[key]=nil;continue end
+  if awaitingArrival and not self.releasedTerritories[key] then self.campClearedAt[key]=nil;continue end
   local clear=true
   if key=="income:1" then
    local occupants={}
@@ -978,7 +957,6 @@ end
 
 function BattleService:Step(dt,now)
  self:StepIncome(dt,now)
- self:StepTerritoryReclaims(dt,now)
  local expired={}
  for _,battle in self.battles do
   if battle.phase=="Returning" then
@@ -1166,7 +1144,7 @@ function BattleService:CancelPlayer(userId,now)
  local released={}
  for key,owner in self.campOwners do if owner.userId==userId then table.insert(released,key) end end
  for _,key in released do self:SetTerritoryOwner(key,nil) end
- for key,reclaim in self.territoryReclaims do if reclaim.ownerId==userId then self.territoryReclaims[key]=nil end end
+ for key,ownerId in self.releasedTerritories do if ownerId==userId then self.releasedTerritories[key]=nil end end
  if self.income.clockOwner==userId or (self.campOwners["income:1"]==nil and self.income.raidId) then self:CancelIncomeApproach(now);self.income.clockOwner=nil end
  self.income.retry[userId]=nil
  if self.income.lostOwners then self.income.lostOwners[userId]=nil end
@@ -1176,22 +1154,8 @@ end
 
 function BattleService:Snapshots(now)
 	local result={}
-	local byId={}
 	for _,battle in self.battles do
-  local snapshot=battle:Snapshot(now);table.insert(result,snapshot);byId[battle.id]=snapshot
- end
- for _,reclaim in self.territoryReclaims do
-  local snapshot=byId[reclaim.battleId]
-  if not snapshot or snapshot.phase=="Returning" then
-   if snapshot then snapshot.enemyReclaiming=false end
-   snapshot={id=reclaim.id,territoryReclaim=true,target=reclaim.target,units={},
-    name=reclaim.name,x=reclaim.location.position.X,z=reclaim.location.position.Z,captureRadius=Config.CaptureRadius}
-   table.insert(result,snapshot)
-  end
-  snapshot.enemyReclaiming,snapshot.enemyReclaimComplete=true,reclaim.captureElapsed==0
-  snapshot.reclaimReason="Unclaimed · enemies taking back the base"
-  snapshot.enemyControl=1-reclaim.captureElapsed/Config.CaptureSeconds
-  snapshot.playerControl=reclaim.captureElapsed/Config.CaptureSeconds
+  table.insert(result,battle:Snapshot(now))
  end
 	return result
 end
@@ -1200,7 +1164,7 @@ function BattleService:Destroy()
  for _,battle in self.battles do battle:Destroy() end
 	self.battles,self.campBusy,self.campOwners,self.departingCamps,self.departingSides,self.campClearedAt={},{},{},{},{},{}
  self.territoryIncome:Destroy()
- self.territoryReclaims={}
+ self.releasedTerritories={}
 end
 
 return BattleService

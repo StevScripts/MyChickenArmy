@@ -163,7 +163,9 @@ function GameServer:Handle(player,request)
 		ok,message,receipt=ArmyService.Sell(session,request.petIds,true,request.expectedTotal)
 	elseif action=="OpenSell" then message="Select a reserve chicken in the Army menu to sell it."
 	elseif action=="OpenMerge" or action=="Merge" or action=="MergeAll" then
+  local unlocked,requirement=session:MergeAccess()
   if not Config.Features.Merging then message="Merging is unavailable."
+  elseif not unlocked then message=requirement
   elseif not self.world:CanUseMergeStand(player,session,request.stationIndex) then
    message="Walk to the merge stand at your base."
   elseif action=="OpenMerge" then ok,message=true,"Choose matching chickens to merge."

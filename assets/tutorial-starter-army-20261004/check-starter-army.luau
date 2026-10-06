@@ -193,6 +193,7 @@ check("normal recruit above remaining reserve remains purchasable", rolls:Buy(or
 
 -- Removing free birds cannot recreate the collect/sell grind or mint refunds.
 local protected = fresh()
+protected.fusionUnlocked = true -- Isolate the flock floor from the later fusion-unlock requirement.
 assert(Army.SetSelection(protected, {}, protected:BestPetIds()))
 local starterIds = ids(protected)
 check("free starter chickens cannot be sold below floor three", not Army.Sell(protected,{starterIds[1]},true,0) and protected:Count()==3 and protected.coins==2400)
@@ -204,6 +205,7 @@ check("four-bird merge cannot remove the tutorial army", not Army.Merge(protecte
 local extra = protected:AddPet("Duck",1)
 check("genuine surplus remains sellable", Army.Sell(protected,{extra.id},true,Rules.SellValue(extra.investment)) and protected:Count()==4)
 local mergeBudget = fresh()
+mergeBudget.fusionUnlocked = true -- This scenario tests only the reserved-cash boundary.
 for _=1,2 do mergeBudget:AddPet("Duck",1) end
 local mergeIds = ids(mergeBudget)
 local fee = Rules.MergePrice("Duck",1)
@@ -212,6 +214,7 @@ check("otherwise valid fusion cannot consume cash reserve", not Army.Merge(merge
 mergeBudget.coins = fee+1800
 check("surplus fusion remains available above the floor and reserve", Army.Merge(mergeBudget,mergeIds[1],mergeIds[2],mergeIds[3],1,fee) and mergeBudget:Count()==3 and mergeBudget.coins==1800)
 local batch = fresh()
+batch.fusionUnlocked = true -- This scenario tests only the combined batch flock floor.
 buyStarter(batch)
 for _=1,2 do batch:AddPet("Duck",1) end
 batch.coins = 10000

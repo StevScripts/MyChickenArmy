@@ -2,6 +2,7 @@
 -- Central landmark and idle guardian; BattleService alone owns challenge/occupancy.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
+local Conquest = require(Shared.ConquestPresentation)
 local MapLayout = require(Shared.MapLayout)
 local KingVisual = require(Shared.KingVisual)
 local PetView = require(Shared.PetView)
@@ -165,6 +166,17 @@ function KingArena.new(root)
 	return self
 end
 
+-- The King occupies roster slot one, followed by the Royal Flock in order.
+-- Clear idle ownership before SetBusy so it cannot destroy transferred rigs.
+function KingArena:TakeDefenders()
+ if self.busy or self.ownerId then return {} end
+ local actors={[1]=self.actor}
+ for i,guard in self.guards or {} do actors[i+1]=guard end
+ self.actor,self.guards,self.kingPatrol,self.guardPatrols=nil,{},nil,{}
+ for _,actor in actors do actor:Stop() end
+ return actors
+end
+
 function KingArena:SetBusy(busy, ownerName)
 	self.busy=busy
 	self.random = self.random or Random.new()
@@ -175,10 +187,11 @@ function KingArena:SetBusy(busy, ownerName)
 	self.folder:SetAttribute("OwnerUserId", self.ownerId)
 	self.folder:SetAttribute("ConquerorUserId", self.ownerId)
 	self.folder:SetAttribute("Conquered", self.ownerId~=nil)
-	self.flag.Color = if self.ownerId then Color3.fromRGB(98,226,56) else Color3.fromRGB(228,59,49)
-	self.status.Text = if busy then "CHICKEN KING\nContested" elseif self.ownerId then "CROWN CAPTURED\n"..self.ownerName else "CHICKEN KING"
+	self.flag.Color = if self.ownerId then Conquest.Owned else Color3.fromRGB(228,59,49)
+	self.status.Text = if self.ownerId then "⚔ Conquered ⚔\n"..self.ownerName elseif busy then "CHICKEN KING\nContested" else "CHICKEN KING"
+	self.status.TextColor3=if self.ownerId then Conquest.Owned else palette.gold
 	-- The living boss already owns its name/health label; only show this marker after capture.
-	self.status.Parent.Enabled = self.ownerId~=nil and not busy
+	self.status.Parent.Enabled = self.ownerId~=nil
 	if not busy and not self.ownerId then
 		self.actor = PetActor.new(self.folder, "ChickenKing", "Duck", 1, self.folder.KingSpawn.Position, Vector3.new(0, 0, -1))
 		KingVisual.Apply(self.actor.model, KingEncounter.Scale)
@@ -205,8 +218,9 @@ function KingArena:Hold(userId, name)
 	self.folder:SetAttribute("OwnerUserId", userId)
 	self.folder:SetAttribute("ConquerorUserId", userId)
 	self.folder:SetAttribute("Conquered",true)
-	self.flag.Color = Color3.fromRGB(98, 226, 56)
-	self.status.Text = "CROWN CAPTURED\n" .. name
+	self.flag.Color = Conquest.Owned
+	self.status.Text = "⚔ Conquered ⚔\n" .. name
+	self.status.TextColor3=Conquest.Owned
 	self.status.Parent.Enabled = true
 end
 

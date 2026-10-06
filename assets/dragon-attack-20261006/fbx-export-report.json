@@ -1,0 +1,15 @@
+{
+  "action": "Dragon Attack | Airborne Strike",
+  "frames": [
+    1,
+    85
+  ],
+  "fps": 60,
+  "duration": 1.4,
+  "bones": 23,
+  "vertices": 9537,
+  "triangles": 19076,
+  "trimmedVertices": 38,
+  "maxRemovedInfluence": 0.006615802645683289,
+  "maxInfluences": 4
+}

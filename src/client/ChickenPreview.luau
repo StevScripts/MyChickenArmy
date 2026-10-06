@@ -16,6 +16,21 @@ function Preview.Create(parent,pet,size,position)
   portrait.Image,portrait.ImageColor3=image,Color3.new(1,1,1)
   portrait.ScaleType=Enum.ScaleType.Fit
   portrait.Parent=parent
+  if pet.species=="Astronaut" or pet.species=="Alien" or pet.species=="DarkMatter" or pet.species=="CosmicDragon" then
+   -- Preserve the original Figma art and outline its alpha with native layers.
+   for index,offset in {{-1,-1},{0,-1},{1,-1},{-1,0},{1,0},{-1,1},{0,1},{1,1}} do
+    local edge=Instance.new("ImageLabel")
+    edge.Name,edge.Image="Silhouette"..index,image
+    edge.Size,edge.Position=UDim2.fromScale(1,1),UDim2.fromScale(offset[1]*0.008,offset[2]*0.008)
+    edge.BackgroundTransparency,edge.ImageColor3,edge.ScaleType=1,Color3.new(0,0,0),Enum.ScaleType.Fit
+    edge.ZIndex,edge.Parent=3,portrait
+   end
+   local face=Instance.new("ImageLabel")
+   face.Name,face.Image,face.Size="Artwork",image,UDim2.fromScale(1,1)
+   face.BackgroundTransparency,face.ScaleType,face.ZIndex,face.Parent=1,Enum.ScaleType.Fit,4,portrait
+   local tint=portrait:GetPropertyChangedSignal("ImageColor3"):Connect(function() face.ImageColor3=portrait.ImageColor3 end)
+   portrait.Destroying:Once(function() tint:Disconnect() end)
+  end
   return portrait
  end
  local PetView=require(Shared.PetView)

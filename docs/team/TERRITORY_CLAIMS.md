@@ -1,5 +1,11 @@
 # Persistent territory claims — September 29, 2026
 
+**October 6 update:** [the user's supplied conquest recording](CONQUEST_REFERENCE.md)
+supersedes this page's eight-second explicit-unclaim recovery. Unclaim now
+restores the native flag/guards immediately and a surviving army begins a fresh
+continuous conquest. Persistent claims, ownership checks, preserved chicken lives
+and vacancy grace remain. The historical verification below describes September 29.
+
 The user's Mini War conquest request supersedes the automatic ownership release
 on army withdrawal described in CAMP_RETARGETING.md. Current runtime ownership
 remains server-session state; this change adds no saved-territory schema.

@@ -329,11 +329,13 @@ function Browser:RenderSlots()
 end
 
 function Browser:UpdateAction()
+ local unlocked=self.app.state.mergeUnlocked==true
  local price=self.recipe and self.recipe.price
  local affordable=type(price)=="number" and (self.app.state.coins or 0)>=price
- local ready=not self.pending and not self.animating and self.selection:Count()==3 and self:NearStand() and affordable
+ local ready=unlocked and not self.pending and not self.animating and self.selection:Count()==3 and self:NearStand() and affordable
  local remaining=3-self.selection:Count()
- self.action.Text=if remaining>0 then remaining.." more chicken"..(if remaining==1 then "" else "s")
+ self.action.Text=if not unlocked then "Fusion locked"
+  elseif remaining>0 then remaining.." more chicken"..(if remaining==1 then "" else "s")
   elseif not self:NearStand() then "Move closer"
   elseif type(price)~="number" then "Updating price…"
   elseif not affordable then "Need $"..Theme.Money(price-(self.app.state.coins or 0)).." more"
@@ -428,7 +430,7 @@ function Browser:Render(force)
 end
 
 function Browser:Merge()
- if self.pending or self.animating or self.mode~="Main" or not self:NearStand() then return end
+ if self.app.state.mergeUnlocked~=true or self.pending or self.animating or self.mode~="Main" or not self:NearStand() then return end
  local payload=self.selection:Payload(self.app.state.mergeOptions,self.app.state.plotIndex)
  local recipe=self.selection:Recipe(self.app.state.mergeOptions)
  if not payload or not recipe then self:Render(true);return end

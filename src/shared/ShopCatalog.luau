@@ -7,7 +7,13 @@ local ShopCatalog = {
 	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
 	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs"},
 	ArmyBonus = 5,
-	Crate = {enabled=false,rewards={}},
+	Crate = {enabled=true,name="Galaxy Crate",rewards={
+		{species="Astronaut",chance=0.40},
+		{species="Alien",chance=0.30},
+		{species="StormDuck",chance=0.20},
+		{species="DarkMatter",chance=0.09},
+		{species="CosmicDragon",chance=0.01},
+	}},
 	RestrictedTreatment = "GuaranteedOffers",
 	-- Restricted owners receive these known offers in order; never a random reward.
 	-- The recruit's normal coin purchase is still required after the free reveal.
@@ -21,9 +27,9 @@ local ShopCatalog = {
 		CoopStash = {productId=3712929549, name="Coop Stash", coins=100000, proposedPrice=199},
 		ArmyChest = {productId=3712929607, name="Cash Sack", coins=1000000, proposedPrice=799},
 		CommandersVault = {productId=3712929634, name="Commander's Vault", coins=10000000, proposedPrice=2499},
-		OuterSpaceCrate1 = {productId=3712929703, name="Outer Space Crate", crates=1, proposedPrice=500, paidRandom=true},
-		OuterSpaceCrate3 = {productId=3712929865, name="3 Outer Space Crates", crates=3, proposedPrice=1250, paidRandom=true},
-		OuterSpaceCrate10 = {productId=3712929926, name="10 Outer Space Crates", crates=10, proposedPrice=4000, paidRandom=true},
+		OuterSpaceCrate1 = {productId=3712929703, name="Galaxy Crate", crates=1, proposedPrice=500, paidRandom=true},
+		OuterSpaceCrate3 = {productId=3712929865, name="3 Galaxy Crates", crates=3, proposedPrice=1250, paidRandom=true},
+		OuterSpaceCrate10 = {productId=3712929926, name="10 Galaxy Crates", crates=10, proposedPrice=4000, paidRandom=true},
 	},
 	RadiusMultiplier = 2,
 	BountyMultiplier = 2,

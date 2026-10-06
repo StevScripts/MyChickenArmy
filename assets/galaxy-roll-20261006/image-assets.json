@@ -1,0 +1,38 @@
+{
+  "Astronaut": {
+    "width": 768,
+    "height": 768,
+    "sha256": "e7024742e906778ff0272aa25ed9fda75129ec2f1980b52ccfe9cc14fad10f28",
+    "assetId": "75271050682798"
+  },
+  "Crate": {
+    "width": 1024,
+    "height": 870,
+    "sha256": "11b3508925dc83e7319e172940b52afea12a0a874b50706a057b5c534fd6fb05",
+    "assetId": "118823454682113"
+  },
+  "DarkMatter": {
+    "width": 768,
+    "height": 768,
+    "sha256": "c829511c3d1542261a34f39c62db0b7fffdf1e4254ef69879b2f76787db0f270",
+    "assetId": "74290048846405"
+  },
+  "Background": {
+    "width": 1024,
+    "height": 336,
+    "sha256": "fe0217263e33d2d056440273b93f25ba447490f80b5033c6be70c03db4c9f55f",
+    "assetId": "86095532575238"
+  },
+  "CosmicDragon": {
+    "width": 1024,
+    "height": 1024,
+    "sha256": "53b716bec4f74582217e7f1bf905ee3f145e3b47d803d85f8092e928f1508f68",
+    "assetId": "88171858947713"
+  },
+  "Alien": {
+    "width": 768,
+    "height": 768,
+    "sha256": "5c0be89583a4546bb31f5e745266c41d14c904d65ed8a50b337d8124ffa5315e",
+    "assetId": "74942259744399"
+  }
+}

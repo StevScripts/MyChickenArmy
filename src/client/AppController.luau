@@ -277,11 +277,16 @@ function AppController:SetMenuBlur(owner, visible)
 end
 
 function AppController:OpenPage(page)
+	if self.commerce.cratePresenting then return end
 	if page=="Upgrades" or page=="Research" then self.research:Open();return end
 	if self.research then self.research:Close() end
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
 	if page=="Merge" and not self.mergeBrowser then return end
+	if page=="Merge" and (not self.state or self.state.mergeUnlocked~=true) then
+		self:Notify((self.state and self.state.mergeRequirement) or "Capture Cluck Camp to unlock the Fuse Machine.",false)
+		return
+	end
 	self:SetMenuBlur("main",true)
 	self.offlineCash:Dismiss(true)
 	if self.mergeBrowser and self.page=="Merge" and page~="Merge" then self.mergeBrowser:Close() end
@@ -330,6 +335,7 @@ function AppController:ClosePanel()
 end
 
 function AppController:TogglePage(page)
+	if self.commerce.cratePresenting then return end
 	self.audio:Play("Click")
 	if page=="Research" or page=="Upgrades" then
 		if self.research.root.Visible then self.research:Close() else self.research:Open() end
@@ -608,6 +614,7 @@ end
 
 function AppController:RenderPanel(force)
 	if not self.state or not self.panel.Visible then return end
+	if self.page=="Merge" and self.state.mergeUnlocked~=true then self:ClosePanel();return end
 	local browsing=self.page=="Army"
 	local merging=self.page=="Merge" and self.mergeBrowser~=nil
 	local shopping,indexing=self.page=="Shop",self.page=="Index"
@@ -677,6 +684,7 @@ function AppController:Receive(packet)
 	local old = self.state
 	self.state = packet.state
 	local state = self.state
+	self.commerce:ReceiveState(state)
 	local researchFeedback=self.research:Receive(state,packet.result)
 	self.eggs:Receive(state.eggs)
 	if not old or old.plotIndex ~= state.plotIndex then self.base:RefreshPromptOwnership() end
@@ -701,13 +709,13 @@ function AppController:Receive(packet)
 	if result then shownProduction,newProduction=self:TrackProductionUpgrade(result,researchFeedback) end
 	self.chickenBrowser:Receive(result)
 	if self.mergeBrowser then self.mergeBrowser:Receive(result) end
-	self.commerce:Receive(result)
+	local shownCrate=self.commerce:Receive(result)
 	self.progression:Receive(result)
 	self.eggBoard:Receive(result)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" and result.action~="AcknowledgeResearch" then
 		local shownInMerge=result.action=="OpenMerge" or ((result.action=="Merge" or result.action=="MergeAll") and self.page=="Merge" and self.panel.Visible)
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
-  if not researchFeedback and not shownProduction and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
+  if not researchFeedback and not shownProduction and not shownCrate and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
@@ -723,7 +731,11 @@ function AppController:Receive(packet)
 	self.base:UpdateObjective()
 	self:StepRecruitFeedback()
 	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner);self.lastBanner = state.banner end
-	if old and state.lastResult ~= old.lastResult and not packet.result then self:Notify(state.lastResult) end
+	if old and state.lastResult ~= old.lastResult and not packet.result then
+		local unlocked=old.mergeUnlocked==false and state.mergeUnlocked==true
+		local kind=if state.lastResult:match("^You've conquered ") then "conquest" else nil
+		self:Notify(state.lastResult..(if unlocked then " Fuse Machine unlocked!" else ""),kind)
+	end
 	self:RenderPanel(old == nil)
 	self.offlineCash:Receive(state)
 	if self.commander then self.commander:Update() end
@@ -763,12 +775,14 @@ function AppController:Start()
 		local page, key = entry[1], entry[2]
 		ContextActionService:BindAction("PetRoll" .. page, function(_, inputState)
 			if inputState ~= Enum.UserInputState.Begin or UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+			if self.commerce.cratePresenting then return Enum.ContextActionResult.Sink end
 			if page == "Test" and (not self.state or not self.state.debugAllowed) then return Enum.ContextActionResult.Pass end
 			self:TogglePage(page)
 			return Enum.ContextActionResult.Sink
 		end, false, key)
 	end
 	table.insert(self.connections, UserInputService.InputBegan:Connect(function(input)
+		if self.commerce.cratePresenting then return end
 		if input.KeyCode == Enum.KeyCode.Escape and (self.panel.Visible or self.research.root.Visible) then self:ClosePanel() end
 	end))
 	self:Request("Sync")

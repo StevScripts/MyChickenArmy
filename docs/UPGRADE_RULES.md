@@ -1,9 +1,17 @@
 # Upgrade eligibility — no camp prerequisites
 
-**October 3 starter protection:** new empty-yard profiles reserve $600 for their
-first chicken until it is bought. Other purchases can use the remaining cash;
-they still require no camp, rank or guide-step milestone. Existing saves are
-unaffected. See [the starter contract](team/COMMANDER_TUTORIAL.md).
+**October 4 starter-army protection:** fresh profiles begin with three free
+level-1 `Duck` chickens, $2,400 and three deployment slots. The first free roll
+guarantees the fourth level-1 chicken for $600. The server reserves that $600
+until recruited and another $1,200 until effective army capacity reaches four.
+The recruit and Army Size purchases may consume their respective reserves in
+either order; other cash spending must leave the remaining reserve intact.
+Neither purchase requires a guide step, camp or rank. Completing the guide
+releases any remaining protection; skipping or rejoining does not. The guide
+teaches egg collection/selling once before expansion, selection and deployment,
+without requiring repeated funding trips. Existing saves retain their flock,
+cash and cohort; legacy `emptyStart` saves keep their $600 first-recruit safeguard
+without receiving the new free squad. See [the starter contract](team/COMMANDER_TUTORIAL.md).
 
 **September 29 direction:** egg deposits now pay immediately with the existing Money
 effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
@@ -74,8 +82,8 @@ Removing camp gates did not require a migration or refund/reset. The separately 
 
 ## Runtime owners
 
-- `server/PlayerSession.luau`: `NextSlot` and `GlobalUpgrade` expose available cash upgrades without rank checks; the snapshot reports the configured overall army capacity, not the old rank capacity. Rank banners no longer promise an army-slot unlock.
-- `server/UpgradeService.luau`: cash offers have no board proximity, required-rank parameter or promotion check. Plot availability remains enforced.
+- `server/PlayerSession.luau`: `NextSlot` and `GlobalUpgrade` expose available cash upgrades without rank checks; `StarterRecruitPending`, `StarterArmyReserve` and `CanSpendCash` protect the saved opening budget. The snapshot reports the configured overall army capacity, not the old rank capacity. Rank banners no longer promise an army-slot unlock.
+- `server/UpgradeService.luau`: cash offers have no board proximity, required-rank parameter or promotion check. Offers honor the remaining starter reserve, allowing Army Size to use its own earmark. Plot availability remains enforced.
 - `shared/UpgradeCatalog.luau`: no `RollSlotRanks` field. Income reference bands used in fixed price calculations are tuning inputs, not eligibility requirements.
 - `server/ArmyService.luau`: the rejected legacy promotion action no longer claims territories increase army capacity.
 - Existing ArmyService, RollService, EggService and UI purchase paths consume these offers and preserve their remaining transaction safeguards.

@@ -17,7 +17,7 @@ Roblox runtime contract:
 
 The export report records 672 authored vertices, 18 joints, 72 moving glTF UVs, 1080 protected glTF UVs, and an unchanged approved-source signature. Its absolute paths identify the working artifact directory; this canonical directory is an identical durable copy.
 
-Studio import, rendering, and runtime motion validation are pending. This asset does not enable the Galaxy crate, purchases, or gameplay rewards.
+Studio import, rendering, and runtime motion validation are complete. This asset does not enable the Galaxy crate, purchases, or gameplay rewards.
 
 Sources:
 
@@ -25,6 +25,18 @@ Sources:
 - Source object manifest: `/Users/stevin/.codex/artifacts/galaxy-retexture-20261004/source-manifest.json`.
 - Existing generated plasma: `/Users/stevin/.codex/artifacts/galaxy-reference-textures/generated-textures/plasma.png`.
 
-## Studio integration checkpoint
+## Completed Studio integration
 
-Astronaut was imported and visually checked in canonical Pet Roll Test on October 5. Its old world and template instances are preserved in `ServerStorage.GalaxyRetextureBackup20261005`. Alien/Dark Matter import, Dragon recovery, runtime sync/validation, and native/cloud place saving remain pending because the native UI bridge is returning `noWindowsAvailable`. See `studio-integration-status.json`. The local art and runtime files are saved; do not assume the open place or Roblox cloud has been saved.
+All four chickens are saved in canonical **Pet Roll Test** (place `96683186622050`). Their visible lineup is `Workspace.GalaxyCratePreview`; reusable templates are in `ReplicatedStorage.GalaxyCrateChickenAssets20261002`. The previous models and raw imports remain in `ServerStorage.GalaxyRetextureBackup20261005`.
+
+Astronaut, Alien, and Dark Matter use matching display scale `0.6701631546`. Dragon is uniformly enlarged 2.5× from the recovered model: its mesh is 8.75 studs tall, with all 23 bones and the original 73-keyframe, 1.2-second looping `Animations.FlightLoop` intact. No published flight AnimationId was added.
+
+The imported Dark Matter mesh is `rbxassetid://80179324175005`; its color map is `rbxassetid://115935302192700`. All material IDs and scales are recorded in `roblox-asset-manifest.json`.
+
+`GalaxyCrateVisuals` and its AppController hooks match the local code after selective Rojo sync. Edit-time checks confirmed that 72 UVs move and 1080 protected UVs stay fixed, with the same Bone and SurfaceAppearance instances and unchanged part size/pose. A focused client Play check confirmed automatic discovery, advancing native tween phase and frame updates, reduced-motion pause/resume, and complete resource cleanup. Game bootstraps were temporarily disabled during that isolated check and restored afterward, so it did not run gameplay or player-data saves.
+
+**Save confirmed:** Studio reported `Saved new changes in "Pet Roll Test" to Roblox.` at 2026-10-06 02:49:58 UTC (October 5 locally). This used **Save to Roblox**, not Publish. The full native backup is `MyChickenArmy-Galaxy-Updated-20261005.rbxl`, saved at 02:51:01 UTC. Its size and SHA-256 are in `studio-integration-status.json`.
+
+`Galaxy-Roblox-Lineup.png` shows the four models in the actual Studio viewport. `DarkMatter-Roblox-Phase0.png` and `DarkMatter-Roblox-Phase25.png` show the changed energy pattern with fixed facial details. Studio's View → Show UI is toggled off to leave the model preview visible; the actual `StarterGui.PetRollGui.Enabled` remains true.
+
+The assets remain staged for later rolling-box hookup. Purchases, rewards, and public-server rollout are outside this import task. The moving texture runs during Play; a static Edit viewport shows its first frame.

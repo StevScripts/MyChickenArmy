@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "reducedResume": {
+    "attack": false,
+    "flight": true
+  },
+  "loaded": {
+    "flightLength": 1.2000000476837158,
+    "attackLength": 1.399999976158142,
+    "flightPlaying": true
+  },
+  "retriggerWeight": 1,
+  "recovered": {
+    "flightSpeed": 1,
+    "attackPlaying": false,
+    "active": false,
+    "flightPlaying": true
+  },
+  "cleaned": true,
+  "staleSkipped": true,
+  "flightChanges": true,
+  "contact": {
+    "root": [
+      0,
+      2.0786941051483154,
+      -2.444321393966675
+    ],
+    "weight": 1,
+    "time": 0.5501062273979187,
+    "playing": true
+  },
+  "reduced": {
+    "flightStopped": true,
+    "attackStopped": true
+  },
+  "visibleResumed": true,
+  "hiddenStopped": true
+}

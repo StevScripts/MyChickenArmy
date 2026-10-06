@@ -3,6 +3,10 @@
 -- Fresh captures: assets/portrait-refresh-20260925/portrait-manifest.json
 -- Remaining portraits: assets/army-figma-20260925/portrait-manifest.json
 return {
+ Astronaut="rbxassetid://75271050682798",
+ Alien="rbxassetid://74942259744399",
+ DarkMatter="rbxassetid://74290048846405",
+ CosmicDragon="rbxassetid://88171858947713",
  Duck="rbxassetid://135168626845574", -- Chicken
  Noob="rbxassetid://97678362273308", -- Noob Chick
  Mallard="rbxassetid://104818014921703", -- Brown Chicken
@@ -36,4 +40,3 @@ return {
  StormDuck="rbxassetid://134363557302070", -- Galaxy Overlord
  Storm="rbxassetid://122546714884572", -- Storm Wing
 }
-

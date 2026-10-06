@@ -3,11 +3,18 @@
 This repository is the code source of truth starting with the September 24, 2026 Rojo migration. Read README.md and docs/CODE_MAP.md first. The legacy pet-roll-prototype tree under Documents/ChatGPT/RobloxGameIdeas is historical; do not copy its scripts over these files without comparing changes.
 
 ## Upgrade rule — never gate upgrades behind camps
-October 3 opening: fresh profiles start with zero chickens and no offer, then
-roll the first chicken. Preserve the server's $600 first-recruit cash reserve
-and last-chicken protection during the opening mission. Other upgrades use cash
-above that reserve without camp/rank prerequisites. Existing profiles retain
-their flock and balance. Contract: `docs/team/COMMANDER_TUTORIAL.md`.
+October 4 starter-army opening supersedes the October 3 empty yard for fresh
+profiles: start with three free level-1 `Duck` chickens, $2,400, three deployment
+slots and no offer. The first free roll guarantees a level-1 fourth chicken for
+$600. Reserve that recruit cost plus $1,200 for Army Size 4; each required
+purchase may spend its own reserve in either order. Teach egg collection and
+selling once, then expand/select four and deploy to Cluck Camp. Protect three
+owned chickens before recruiting and four afterward until the guide completes.
+Other upgrades use cash above the remaining reserve without camp/rank or
+guide-step prerequisites. Skipping/rejoining does not release the reserve.
+Existing profiles retain their flock, balance and saved tutorial cohort; legacy
+`emptyStart` saves keep their earlier supported opening without bonus grants.
+Contract: `docs/team/COMMANDER_TUTORIAL.md`.
 
 All available cash upgrades are purchasable from the start when the player can afford them. Egg Speed, Egg Value, Plot Size, Army Size, Luck, Roll Slots and Selling Speed must not require visiting/conquering another camp, earning a rank, or reaching the King. This explicit September 25 user correction supersedes historical rank/camp gates in code, docs, tests and handoffs; never reintroduce them during UI work or balancing. Preserve configured track maxima, prices, server validation and physical plot/podium limits unless separately changed. Camp-route/King access and merge progression remain separate. Read `docs/UPGRADE_RULES.md` for the authoritative rule.
 
@@ -59,6 +66,12 @@ Manual three-matching-chicken merging was explicitly enabled by the user on Sept
 September 28 Giant fusion: every successful matching triple guarantees a Giant. Later September 28 tuning uses 4–6-stud Common Giants and progressively larger rarity bands up to 27.5-stud Mythics (superseding the old 6-stud minimum and 20-stud maximum guides). Fusion costs 25% of one matching input's normal recruit price; require the server quote and sufficient cash before atomic deduction/consumption. Re-fusion retains at least the largest input size; size itself adds no income/combat bonus. Do not reintroduce a separate Giant acquisition roll or connect size luck to the cash Luck upgrade. See `docs/team/GIANT_CHICKEN_DESIGN.md` and `src/shared/GiantChicken.luau`.
 
 Latest September 28 clarification: only chickens with saved `giantSize >= 20` are **Colossal**. Allow at most one Colossal per player's selected/deployed army; smaller Giants use ordinary slots without a special cap. Fresh Colossal odds are 1% for Legendary inputs and 3% for Mythic inputs, with a further bias toward the smaller end of the Colossal range. Other rarities cannot freshly roll 20+. Preserve earned sizes and owned chickens, including old large low-rarity birds; re-fusion with a Colossal input retains it. Enforce the slot in server selection, Select Best, saved lineups and battle replacements, not only UI. The inventory offers Replace Colossal; a deployed replacement waits for the retiring Colossal to return.
+
+October 5 Fuse Machine unlock: new profiles unlock fusion after their first
+Cluck Camp capture. Persist `fusionUnlocked`; valid older saves missing the field
+retain prior access. Keep the locked native prompt visible with its requirement,
+and enforce access on the server. This prerequisite applies only to fusion,
+never cash upgrades. See `docs/MERGING.md`.
 
 One writer per file. For parallel tasks, assign explicit files and contracts. Workers do not control canonical Studio, Blender, Git history or further agents; the root integrates. Keep changes scoped and preserve user work.
 

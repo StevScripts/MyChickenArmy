@@ -3,6 +3,8 @@
 local TweenService=game:GetService("TweenService")
 local Theme=require(script.Parent.UITheme)
 local Art=require(script.Parent.ShopPreviewArt)
+local GalaxyCrateShop=require(script.Parent.GalaxyCrateShop)
+local GalaxyPresentation=require(game:GetService("ReplicatedStorage").PetRoll.Shared.GalaxyCratePresentation)
 local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
 local PetCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local Browser={}
@@ -133,7 +135,7 @@ end
 
 function Browser.new(app,parent)
  local self=setmetatable({app=app,alive=true,sections={},tabs={},cards={},existingCards={},
-  passCount=0,connections={},cashViews={},motionViews={},entranceSerial=0,activeSection="Passes"},Browser)
+  passCount=0,connections={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy"},Browser)
  local root=frame(parent,"ShopBrowser",UDim2.fromScale(1,1))
  root.BackgroundTransparency,root.Visible,root.ZIndex=1,false,2
  -- The shared popup visitor must also skip this subtree while another page is open.
@@ -163,17 +165,18 @@ function Browser.new(app,parent)
  local navLayout=Instance.new("UIListLayout")
  navLayout.FillDirection,navLayout.Padding,navLayout.SortOrder,navLayout.Parent=Enum.FillDirection.Vertical,UDim.new(0.025,0),Enum.SortOrder.LayoutOrder,nav
  navLayout.VerticalAlignment=Enum.VerticalAlignment.Center
- for index,key in {"Passes","Cash"} do
+ for index,key in {"Galaxy","Passes","Cash"} do
   local button=Theme.IconButton(nav,key,key,"",function()
    self.app.audio:Play("Click");self:ScrollTo(key)
   end)
   button.LayoutOrder,button.ZIndex=index,6
-  button.Size=UDim2.fromScale(1,0.45)
+  button.Size=UDim2.fromScale(1,0.3)
   Theme.Aspect(button,1)
   button.TextColor3=if index==1 then P.gold else P.white
   button:SetAttribute("Selected",index==1)
   local icon=button.Visual.Icon
-  if key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
+  if key=="Galaxy" then icon.Image=GalaxyPresentation.CrateImage
+  elseif key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
   else Art.CashPile(icon,1) end
   local indicator=frame(button.Visual,"SelectedIndicator",UDim2.fromScale(0.9,0.035),UDim2.fromScale(0.05,0.965),P.gold)
   indicator.Visible,indicator.ZIndex=index==1,7
@@ -194,6 +197,8 @@ function Browser.new(app,parent)
  layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.05,0),Enum.SortOrder.LayoutOrder,scroll
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.layout=layout
+ self.galaxy=GalaxyCrateShop.new(app,scroll)
+ self.sections.Galaxy=self.galaxy.root
  self:CreatePasses();self:CreateCash();self:CreateDetails()
  for _,property in {"CanvasPosition","AbsoluteCanvasSize","AbsoluteWindowSize"} do
   table.insert(self.connections,scroll:GetPropertyChangedSignal(property):Connect(function() self:UpdateSection() end))
@@ -319,6 +324,7 @@ function Browser:UpdatePurchase(button,key,root)
 end
 
 function Browser:RenderExisting()
+ self.galaxy:Render()
  for key,view in self.cards do self:UpdatePurchase(view.buy,key,view.root) end
  for _,view in self.cashViews do self:UpdatePurchase(view.buy,view.key) end
  self:UpdatePurchase(self.cashBuy,"CommandersVault")
@@ -618,8 +624,8 @@ end
 function Browser:UpdateSection()
  if not self.alive then return end
  self:RefreshScrollMetrics()
- local y,active=self.scroll.CanvasPosition.Y,"Passes"
- for _,key in {"Passes","Cash"} do
+ local y,active=self.scroll.CanvasPosition.Y,"Galaxy"
+ for _,key in {"Galaxy","Passes","Cash"} do
   if y>=self.sectionStarts[key]-self.scroll.AbsoluteWindowSize.Y*0.04 then active=key end
  end
  if self.maxScroll>0 and y>=self.maxScroll-self.scroll.AbsoluteWindowSize.Y*0.003 then active="Cash" end
@@ -743,7 +749,7 @@ function Browser:Resize()
  local bodyAspect=self.root.UIAspectRatioConstraint.AspectRatio*self.body.Size.X.Scale/self.body.Size.Y.Scale
  local sectionWidth=self.scroll.Size.X.Scale*innerWidth*self.sections.Passes.Size.X.Scale
  local gap=0.05*self.scroll.Size.Y.Scale
- local canvasHeight=(bodyAspect*sectionWidth*(passHeight+cashHeight)+gap)/innerHeight
+ local canvasHeight=(bodyAspect*sectionWidth*(GalaxyCrateShop.Height+passHeight+cashHeight)+gap*2)/innerHeight
  self.scroll.CanvasSize=UDim2.fromScale(0,canvasHeight)
  self.layout.Padding=UDim.new(gap/(canvasHeight*innerHeight),0)
  Theme.Aspect(self.sections.Cash,1/cashHeight)
@@ -778,6 +784,7 @@ function Browser:Destroy()
  self:CancelArtworkMotion()
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)
+ self.galaxy:Destroy()
  self.root:Destroy()
 end
 return Browser

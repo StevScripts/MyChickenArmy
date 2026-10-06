@@ -1,0 +1,16 @@
+{
+  "revision": "Forward Swoop v3",
+  "fps": 60,
+  "samples": 85,
+  "duration": 1.4,
+  "attackEntryExitMaxDifference": 0.0,
+  "attackVsFlightHandoffMaxDifference": 3.5762786865234375e-07,
+  "finiteVerticesAllFrames": true,
+  "boneCount": 23,
+  "contactSeconds": 0.5333333333333333,
+  "sidewaysArcRange": 0.0,
+  "verticalArcRange": 0.17267539169315174,
+  "minRootPathSpeedAroundContactFrames29to39": 0.9372437662216115,
+  "forwardPeakFrame": 45,
+  "lowestArcFrame": 48
+}

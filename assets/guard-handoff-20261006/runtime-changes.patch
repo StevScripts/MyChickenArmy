@@ -1,0 +1,75 @@
+--- a/src/server/BattleService.luau
++++ b/src/server/BattleService.luau
+@@ -603,12 +603,19 @@
+ 		local folder=self.world.root:FindFirstChild("Battles")
+ 		if not folder then folder=Instance.new("Folder");folder.Name="Battles";folder.Parent=self.world.root end
+ 		battle.actors=LiveBattleActors.new(folder,battle)
++		local guards=if #defenders>0 and self.world.TakeTerritoryDefenders then
++			self.world:TakeTerritoryDefenders({king=isKing,outpost=outpostIndex,index=campIndex,plot=session.plotIndex}) else {}
++		local guardIndex=0
+ 		for _,u in battle.units do
+ 			local actor=nil
+ 			if u.side=="A" then
+ 				if moving and previous.actors then actor=previous.actors:TakePet(u.petId,"A")
+ 				elseif self.world.TakeActor then actor=self.world:TakeActor(session.plotIndex,u.petId) end
+-			elseif defender and self.world.TakeActor then actor=self.world:TakeActor(defender.plotIndex,u.petId) end
++			elseif defender and self.world.TakeActor then actor=self.world:TakeActor(defender.plotIndex,u.petId)
++			else
++				guardIndex+=1
++				actor=guards[guardIndex]
++			end
+ 			if actor then battle.actors:Adopt(u,actor) end
+ 		end
+ 	end
+--- a/src/server/WorldService.luau
++++ b/src/server/WorldService.luau
+@@ -620,6 +620,19 @@
+  self:PopulateCamp(record)
+ end
+ 
++-- Transfer the patrolling rigs before SetBusy clears the idle presentation.
++-- Roster order matches PopulateCamp; the encounter adopts their live positions.
++function WorldService:TakeTerritoryDefenders(location)
++ if location.king then return if self.kingArena then self.kingArena:TakeDefenders() else {} end
++ local record=if location.outpost then self.outposts[location.outpost]
++  else self.lanes[location.plot] and self.lanes[location.plot][location.index]
++ if not record or record.busy or record.conquerorId then return {} end
++ local actors=record.actors
++ record.actors,record.patrols={},{}
++ for _,actor in actors do actor:Stop() end
++ return actors
++end
++
+ function WorldService:SetIncomeBusy(busy)
+  local record=self.incomeOutpost
+  if not record or record.busy==busy then return end
+--- a/src/server/KingArena.luau
++++ b/src/server/KingArena.luau
+@@ -164,6 +164,17 @@
+ 	folder:SetAttribute("StaticPartCount", staticParts)
+ 	self:SetBusy(false)
+ 	return self
++end
++
++-- The King occupies roster slot one, followed by the Royal Flock in order.
++-- Clear idle ownership before SetBusy so it cannot destroy transferred rigs.
++function KingArena:TakeDefenders()
++ if self.busy or self.ownerId then return {} end
++ local actors={[1]=self.actor}
++ for i,guard in self.guards or {} do actors[i+1]=guard end
++ self.actor,self.guards,self.kingPatrol,self.guardPatrols=nil,{},nil,{}
++ for _,actor in actors do actor:Stop() end
++ return actors
+ end
+ 
+ function KingArena:SetBusy(busy, ownerName)
+--- a/src/server/IdlePatrol.luau
++++ b/src/server/IdlePatrol.luau
+@@ -1,6 +1,6 @@
+ --!strict
+ -- Idle-only movement, stepped by the actor's world owner. No tasks or connections.
+--- BattleService replaces these display actors when an encounter starts.
++-- Camp encounters take ownership of these same actors when an attack starts.
+ local IdlePatrol = {}
+ IdlePatrol.__index = IdlePatrol
+ 

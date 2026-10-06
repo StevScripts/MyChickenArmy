@@ -1,0 +1,61 @@
+{
+  "file": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/dragon-attack-20261006/Galaxy-Dragon-Flying-Attack.blend",
+  "revision": "Forward Swoop v3",
+  "activeAction": "Dragon Attack | Airborne Strike",
+  "actionFrames": [
+    1.0,
+    85.0
+  ],
+  "previewFrames": [
+    1,
+    84
+  ],
+  "fps": 60,
+  "bones": 23,
+  "markers": [
+    [
+      "Flight entry",
+      1
+    ],
+    [
+      "Rising anticipation",
+      18
+    ],
+    [
+      "AttackContact",
+      33
+    ],
+    [
+      "Low curved follow-through",
+      46
+    ],
+    [
+      "Recovery arc",
+      64
+    ],
+    [
+      "Flight exit",
+      85
+    ]
+  ],
+  "originalFlightPreserved": true,
+  "savedFileReopened": true,
+  "packedImages": [
+    [
+      "dragon_character_3d_model_basecolor.JPEG",
+      true
+    ],
+    [
+      "dragon_character_3d_model_metallic.JPEG",
+      true
+    ],
+    [
+      "dragon_character_3d_model_normal.JPEG",
+      true
+    ],
+    [
+      "dragon_character_3d_model_roughness.JPEG",
+      true
+    ]
+  ]
+}

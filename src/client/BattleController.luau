@@ -9,6 +9,8 @@ local Catalog = require(Shared.PetCatalog)
 local Theme = require(script.Parent.UITheme)
 local ArmyMarkerController = require(script.Parent.ArmyMarkerController)
 local C = Theme.Colors
+local HIT_COLOR = Color3.fromRGB(255, 65, 65)
+local HIT_FADE = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local BattleController = {}
 BattleController.__index = BattleController
 
@@ -21,6 +23,13 @@ end
 local function capturePresentation(battle)
 	local completed=battle.captureProgress==1 and (battle.phase=="Holding" or (battle.phase=="Returning" and battle.outcome=="A"))
 	local reclaiming=battle.enemyReclaiming==true
+	if battle.conquest then
+		return {completed=completed,paused=battle.capturePaused==true,
+			value=math.clamp(battle.captureProgress or 0,0,1),stage="Conquest",
+			title=if reclaiming then "Conquest lost" else "⚔ Conquering ⚔",
+			color=Theme.Conquest.Progress,detail=battle.name or "Base",
+			active=not completed and (reclaiming or battle.phase=="Capture" or (battle.captureStarted and battle.phase=="Fight"))}
+	end
 	local enemy=reclaiming or battle.captureStage=="Enemy"
 	local paused=battle.capturePaused==true
 	local value=math.clamp((if enemy then battle.enemyControl else battle.playerControl) or 0,0,1)
@@ -40,36 +49,41 @@ function BattleController:ReleaseCapture(id)
 	local view=self.captureViews[id]
 	if not view then return end
 	if view.tween then view.tween:Cancel();view.tween:Destroy() end
-	view.gui:Destroy();view.anchor:Destroy();view.zone:Destroy()
+	view.gui:Destroy();view.anchor:Destroy();if view.zone then view.zone:Destroy() end
 	self.captureViews[id]=nil
 end
 
 function BattleController:UpdateCapture(battle)
 	local presentation=capturePresentation(battle)
 	local completed=presentation.completed
-	if not presentation.active and not completed then self:ReleaseCapture(battle.id);return end
+	if (not presentation.active and not completed) or (battle.conquest and completed) then self:ReleaseCapture(battle.id);return end
 	local view=self.captureViews[battle.id]
 	if not view then
 		local anchor=Instance.new("Part")
 		anchor.Name,anchor.Size="Capture_"..battle.id,Vector3.one
 		anchor.Anchored,anchor.CanCollide,anchor.CanTouch,anchor.CanQuery,anchor.Transparency=true,false,false,false,1
-		anchor.Position,anchor.Parent=Vector3.new(battle.x,12,battle.z),self.folder
-		local zone=Instance.new("Part")
+		anchor.Position,anchor.Parent=Vector3.new(battle.x,(battle.y or 1.2)+Theme.Conquest.Elevation,battle.z),self.folder
+		local zone
+		if not battle.conquest then
+		zone=Instance.new("Part")
 		zone.Name,zone.Shape="CaptureZone_"..battle.id,Enum.PartType.Cylinder
 		local radius=battle.captureRadius or 12
 		zone.Size=Vector3.new(0.06,radius*2,radius*2)
 		zone.CFrame=CFrame.new(battle.x,1.14,battle.z)*CFrame.Angles(0,0,math.pi/2)
 		zone.Anchored,zone.CanCollide,zone.CanTouch,zone.CanQuery,zone.CastShadow=true,false,false,false,false
 		zone.Color,zone.Material,zone.Transparency,zone.Parent=C.gold,Enum.Material.Neon,0.87,self.folder
+		end
 		local gui=Instance.new("BillboardGui")
-		gui.Name,gui.Size,gui.Adornee="ConquestMeter",UDim2.fromOffset(320,112),anchor
-		gui.AlwaysOnTop,gui.MaxDistance,gui.LightInfluence,gui.Parent=true,180,0,Players.LocalPlayer.PlayerGui
+		gui.Name,gui.Size,gui.Adornee="ConquestMeter",UDim2.fromScale(Theme.Conquest.Width,Theme.Conquest.Height),anchor
+		gui.AlwaysOnTop,gui.MaxDistance,gui.LightInfluence,gui.Parent=true,Theme.Conquest.MaxDistance,0,Players.LocalPlayer.PlayerGui
 		local title=Theme.Display(gui,"Title","Conquering",27,Theme.Arcade.red)
-		title.Position,title.Size,title.TextXAlignment=UDim2.fromOffset(0,2),UDim2.new(1,0,0,34),Enum.TextXAlignment.Center
+		title.Position,title.Size,title.TextXAlignment=UDim2.fromScale(0.08,0),UDim2.fromScale(0.84,0.35),Enum.TextXAlignment.Center
 		local detail=Theme.Display(gui,"Detail","",20)
-		detail.Position,detail.Size,detail.TextXAlignment=UDim2.fromOffset(0,38),UDim2.new(1,0,0,28),Enum.TextXAlignment.Center
-		local track,fill=Theme.SegmentedBar(gui,"Progress",UDim2.new(1,-16,0,31))
-		track.Position=UDim2.fromOffset(8,73)
+		detail.Position,detail.Size,detail.TextXAlignment=UDim2.fromScale(0.1,0.36),UDim2.fromScale(0.8,0.23),Enum.TextXAlignment.Center
+		local track,fill=Theme.SegmentedBar(gui,"Progress",UDim2.fromScale(1,0.27),Theme.Conquest.Segments)
+		track.Position=UDim2.fromScale(0,0.66)
+		fill.Parent.BackgroundColor3=Theme.Conquest.Track
+		Theme.Gradient(fill.Parent,Color3.fromRGB(235,245,248),Color3.fromRGB(160,180,186))
 		view={anchor=anchor,zone=zone,gui=gui,title=title,detail=detail,fill=fill,progress=-1}
 		self.captureViews[battle.id]=view
 	end
@@ -79,8 +93,11 @@ function BattleController:UpdateCapture(battle)
 	view.stage=presentation.stage
 	view.title.Text,view.title.TextColor3=presentation.title,presentation.color
 	view.detail.Text=presentation.detail
-	view.zone.Transparency=if completed then 1 else 0.87
-	view.zone.Color,view.fill.BackgroundColor3=presentation.color,presentation.color
+	if view.zone then
+		view.zone.Transparency=if completed then 1 else 0.87
+		view.zone.Color=presentation.color
+	end
+	view.fill.BackgroundColor3=presentation.color
 	-- Interpolate only toward a received server value; never predict a victory.
 	if progress~=view.progress or stageChanged or presentation.paused then
 		if view.tween then view.tween:Cancel();view.tween:Destroy() end
@@ -130,7 +147,7 @@ function BattleController:ReleaseView(view)
 	if view.released then return end
 	view.released = true
 	if view.descendantConnection then view.descendantConnection:Disconnect() end
-	if view.highlight then view.highlight:Destroy() end
+	self:ClearFlash(view)
 	-- Only this view's model owner may restore shared presentation. An older
 	-- encounter must never undo a view already adopted by the next encounter.
 	if self.modelViews[view.model] ~= view then return end
@@ -151,7 +168,7 @@ function BattleController:Defeat(view)
 end
 
 function BattleController:Respawn(view, unit, now)
-	view.defeatedAt=nil;view.flashAt=-10
+	view.defeatedAt=nil;self:ClearFlash(view)
 	view.spawnedAt=if self.app.reducedMotion then nil else now
 	view.spawnFadeSeconds=if unit.side=="B" and not unit.petId then 0.55 else 0.28
 	-- Start hidden on the receipt itself; never flash opaque before the next frame.
@@ -177,15 +194,28 @@ function BattleController:StepFade(view, alive, now)
 	end
 end
 
-function BattleController:Flash(view, active)
-	if active and not view.highlight then
-		local highlight = Instance.new("Highlight")
-		highlight.Name, highlight.Adornee, highlight.Parent = "DuckHit", view.model, self.folder
-		highlight.FillColor, highlight.FillTransparency, highlight.OutlineTransparency = Color3.new(1, 1, 1), 0.2, 1
-		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-		view.highlight = highlight
-	end
-	if view.highlight then view.highlight.Enabled = active end
+function BattleController:ClearFlash(view)
+	if view.hitConnection then view.hitConnection:Disconnect();view.hitConnection=nil end
+	if view.hitTween then view.hitTween:Cancel();view.hitTween:Destroy();view.hitTween=nil end
+	if view.highlight then view.highlight:Destroy();view.highlight=nil end
+end
+
+function BattleController:Flash(view)
+	-- Replace the previous pulse so rapid hits never stack highlights or callbacks.
+	self:ClearFlash(view)
+	if self.app.reducedMotion or not self:IsCurrentView(view) or not self:IsNearby(view.position) then return end
+	local highlight = Instance.new("Highlight")
+	highlight.Name, highlight.Adornee = "DuckHit", view.model
+	highlight.FillColor, highlight.OutlineColor = HIT_COLOR, HIT_COLOR
+	highlight.FillTransparency, highlight.OutlineTransparency = 0.35, 0.1
+	highlight.DepthMode, highlight.Parent = Enum.HighlightDepthMode.Occluded, self.folder
+	view.highlight = highlight
+	local tween=TweenService:Create(highlight,HIT_FADE,{FillTransparency=1,OutlineTransparency=1})
+	view.hitTween=tween
+	view.hitConnection=tween.Completed:Connect(function()
+		if view.hitTween==tween then self:ClearFlash(view) end
+	end)
+	tween:Play()
 end
 
 function BattleController:PhaseFeedback(battle)
@@ -196,12 +226,12 @@ function BattleController:PhaseFeedback(battle)
 	if battle.attacker ~= userId and battle.defender ~= userId then return end
 	if battle.phase == "Holding" then
 		local won = if battle.defender == userId then battle.outcome == "B" else battle.outcome == nil or battle.outcome == "A"
-		if won then
-			self.app.feedback:Conquer(Vector3.new(battle.x, 1.2, battle.z))
+		if won and not battle.friendlyTerritory then
+			self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z),battle.captureRadius)
 		end
 	elseif battle.phase == "Returning" and battle.outcome then
 		local won = (battle.attacker == userId and battle.outcome == "A") or (battle.defender == userId and battle.outcome == "B")
-		if won and old ~= "Holding" then self.app.feedback:Conquer(Vector3.new(battle.x, 1.2, battle.z))
+		if won and old ~= "Holding" and not battle.friendlyTerritory then self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z),battle.captureRadius)
 		elseif won then return
 		elseif battle.outcome ~= "Recall" then self.app.audio:Play("Pop", 0.65) end
 	elseif battle.phase == "Fight" and self:IsNearby(Vector3.new(battle.x, 1.2, battle.z)) then self.app.audio:Play("Pop", 0.9) end
@@ -274,7 +304,7 @@ function BattleController:Receive(snapshots)
 				local previous = self.modelViews[model]
 				if previous then self:ReleaseView(previous) end
 				view = {model = model, battleId = battle.id, unitId = unit.id, position = model.PrimaryPart.Position, attack = unit.attackSerial, impact=unit.impactSerial or 0, hp = unit.hp,
-					flashAt = -10, spawnSerial=unit.spawnSerial or 0, transparencies = {}, tags = {}}
+					damage=unit.damageSerial or 0, spawnSerial=unit.spawnSerial or 0, transparencies = {}, tags = {}}
 				self.modelViews[model] = view
 				local actorView = view
 				local function cachePart(item)
@@ -302,12 +332,15 @@ function BattleController:Receive(snapshots)
 				end
 				if self:IsNearby(view.position) then self.app.audio:Play("Impact", 0.9 + math.random() * 0.2) end
 			end
-			if unit.hp < view.hp then view.flashAt = os.clock() end
+			-- A victim receipt represents committed damage, not an attack windup or
+			-- a health-stat change. Seed it on binding; don't replay a prior life.
+			if (unit.damageSerial or 0)>view.damage and (unit.spawnSerial or 0)==view.spawnSerial then self:Flash(view) end
 			if unit.hp <= 0 and (view.hp > 0 or not view.unit) then self:Defeat(view)
 			elseif unit.hp > 0 and (view.hp <= 0 or (unit.spawnSerial or 0)>(view.spawnSerial or 0)) then
 				self:Respawn(view,unit,os.clock())
 			end
 			view.spawnSerial=unit.spawnSerial or 0
+			view.damage=unit.damageSerial or 0
 			view.attack, view.hp, view.unit, view.phase = unit.attackSerial, unit.hp, unit, battle.phase
 			view.impact=unit.impactSerial or 0
 			self.app:ObserveRecruitUnit(battle, unit, view.model)
@@ -335,7 +368,7 @@ function BattleController:UpdateStatus()
   local visible=false
   if camera and not self.app.panel.Visible then
    local point,onScreen=camera:WorldToViewportPoint(view.anchor.Position)
-   visible=onScreen and point.Z>0 and (camera.CFrame.Position-view.anchor.Position).Magnitude<180
+   visible=onScreen and point.Z>0 and (camera.CFrame.Position-view.anchor.Position).Magnitude<Theme.Conquest.MaxDistance
   end
   view.gui.Enabled=visible
  end
@@ -366,7 +399,7 @@ function BattleController:Start(remote)
 		for key, view in self.views do
 			if not self:IsCurrentView(view) then self:ReleaseView(view);self.views[key] = nil;continue end
 			local alive = view.unit and view.unit.hp > 0
-			self:Flash(view, alive and not self.app.reducedMotion and now - view.flashAt < 0.11)
+			if self.app.reducedMotion and view.highlight then self:ClearFlash(view) end
 			self:StepFade(view,alive,now)
 		end
 	end))

@@ -97,7 +97,11 @@ end
 function MergeStand:Sync(session)
  self.ownerId=session.userId
  self.loaded=session.loaded==true and not session.closing and not session.saveLost
+ local unlocked=session:MergeAccess()
  self.model:SetAttribute("OwnerUserId",session.userId)
+ self.prompt.ObjectText=if unlocked then "Fuse Machine" else "Fuse Machine · Locked"
+ self.prompt.ActionText=if unlocked then "Fuse Chickens" else "Capture Cluck Camp"
+ -- Keep the native prompt available so the server can explain locked access.
  self.prompt.Enabled=self.loaded and not self.reveal
 end
 
@@ -109,6 +113,7 @@ function MergeStand:ReleaseChicken()
  local reveal=self.reveal
  if not reveal then return end
  self.reveal=nil
+ self.prompt.Enabled=self.loaded
  local actor,bird=reveal.actor,reveal.actor.model
  table.clear(self.birds) -- This is the owned actor, never a disposable copy.
  if actor.destroyed or not bird.Parent then return end
@@ -120,7 +125,6 @@ function MergeStand:ReleaseChicken()
  actor.root:SetNetworkOwner(nil)
  bird:SetAttribute("PresentationHidden",reveal.presentationHidden)
  for gui,enabled in reveal.labels do if gui.Parent then gui.Enabled=enabled end end
- self.prompt.Enabled=self.loaded
  reveal.onReleased(actor)
 end
 

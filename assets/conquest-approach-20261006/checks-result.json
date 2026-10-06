@@ -1,0 +1,119 @@
+{
+  "checks": [
+    {
+      "name": "guards walk toward nearby troops before melee contact",
+      "passed": true
+    },
+    {
+      "name": "live actor movement receives a defender chase command",
+      "passed": true
+    },
+    {
+      "name": "distant troops do not pull the defenders out of their base",
+      "passed": true
+    },
+    {
+      "name": "exit and road waypoints still finish before engagement",
+      "passed": true
+    },
+    {
+      "name": "a nearby front bird does not activate distant stragglers",
+      "passed": true
+    },
+    {
+      "name": "dead and returning defenders do not trigger detection",
+      "passed": true
+    },
+    {
+      "name": "income and Operations retain their existing contact boundary",
+      "passed": true
+    },
+    {
+      "name": "nearby reinforcement joins the fight but cannot capture from outside",
+      "passed": true
+    }
+  ],
+  "live": [
+    {
+      "capture": 0,
+      "guards": [
+        {
+          "x": 235.8701629638672,
+          "targetId": "1",
+          "z": -126.99298095703125,
+          "id": "4",
+          "hp": 42,
+          "nearest": 18.05855369567871
+        },
+        {
+          "x": 234.32015991210938,
+          "targetId": "1",
+          "z": -129.6776580810547,
+          "id": "5",
+          "hp": 42,
+          "nearest": 17.78764533996582
+        },
+        {
+          "x": 232.77017211914062,
+          "targetId": "1",
+          "z": -132.36233520507812,
+          "id": "6",
+          "hp": 42,
+          "nearest": 18.052946090698242
+        }
+      ],
+      "event": "detection",
+      "at": 35284.43543246705
+    },
+    {
+      "capture": 0,
+      "guards": [
+        {
+          "x": 238.77561950683594,
+          "z": -129.4520721435547,
+          "id": "4",
+          "hp": 42,
+          "travel": 3.8064167499542236
+        },
+        {
+          "x": 237.61471557617188,
+          "z": -131.5838165283203,
+          "id": "5",
+          "hp": 42,
+          "travel": 3.8062498569488525
+        },
+        {
+          "x": 236.3502655029297,
+          "z": -133.65516662597656,
+          "id": "6",
+          "hp": 42,
+          "travel": 3.8063738346099854
+        }
+      ],
+      "event": "guards-after-0.4-seconds"
+    }
+  ],
+  "source": [
+    {
+      "file": "src/client/BaseController.luau",
+      "exactStudioSourceMatch": true
+    },
+    {
+      "file": "src/server/Battle.luau",
+      "exactStudioSourceMatch": true
+    },
+    {
+      "file": "src/shared/Config.luau",
+      "exactStudioSourceMatch": true
+    }
+  ],
+  "playtestStopped": true,
+  "sessionOnly": true,
+  "nativePrompt": {
+    "centered": true,
+    "enabledAtCamp2": true,
+    "activatedWithE": true,
+    "hiddenAfterCommand": true
+  },
+  "buildPassed": true
+}

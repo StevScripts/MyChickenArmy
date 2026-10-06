@@ -65,4 +65,18 @@ variant("Devil","Knight","Devil Chicken",0.75,{249,32,53})
 variant("Heavenly","Wizard","Heavenly Chicken",0.25,{255,242,184})
 variant("SolarFlare","Wizard","Solar Flare Chicken",0.25,{255,206,28})
 
+-- Crate-only species remain in the persistent collection/index roster. A zero
+-- normal-roll weight keeps every existing station probability unchanged.
+variant("Astronaut","Knight","Astronaut Chicken",0,{99,180,255})
+variant("Alien","Wizard","Alien Chicken",0,{164,238,37})
+variant("DarkMatter","StormDuck","Dark Matter Chicken",0,{209,54,255})
+variant("CosmicDragon","StormDuck","Cosmic Dragon",0,{103,155,255})
+Catalog.CosmicDragon.damage = 122
+Catalog.CosmicDragon.interval = 1.6
+Catalog.CosmicDragon.attackWindup = 32/60
+for _,id in {"Astronaut","Alien","DarkMatter","CosmicDragon"} do
+ Catalog[id].crateExclusive = true
+ table.insert(Catalog.Order,id)
+end
+
 return Catalog

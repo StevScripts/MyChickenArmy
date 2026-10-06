@@ -2,7 +2,11 @@
 -- Client owns product display and Roblox's native prompt. The server owns benefits.
 local Players=game:GetService("Players")
 local Marketplace=game:GetService("MarketplaceService")
+local GuiService=game:GetService("GuiService")
 local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
+local GalaxyPresentation=require(game:GetService("ReplicatedStorage").PetRoll.Shared.GalaxyCratePresentation)
+local CrateRoll=require(script.Parent.GalaxyCrateRollPresentation)
+local Theme=require(script.Parent.UITheme)
 local Controller={}
 Controller.__index=Controller
 
@@ -11,7 +15,8 @@ function Controller.new(app,dependencies)
 	return setmetatable({app=app,products={},connections={},alive=true,pending=nil,revision=0,
 		marketplace=deps.marketplace or Marketplace,player=deps.player or Players.LocalPlayer,
 		catalog=deps.catalog or Catalog,clock=deps.clock or os.clock,spawn=deps.spawn or task.spawn,
-		delay=deps.delay or task.delay,togglePending={}},Controller)
+		delay=deps.delay or task.delay,togglePending={},cratePresenting=false,crateResults={},crateResultOrder={},
+		presentationFactory=deps.presentationFactory or CrateRoll.new,presentationCatalog=deps.presentationCatalog or GalaxyPresentation},Controller)
 end
 
 function Controller:Definition(key)
@@ -61,7 +66,7 @@ function Controller:Open()
 	for _,key in self.catalog.Order do self:Load(key) end
 	for _,key in self.catalog.ProductOrder or {} do
 		local definition=self.catalog.Products[key]
-		if definition and not definition.crates then self:Load(key) end
+		if definition and (not definition.crates or (self.catalog.Crate and self.catalog.Crate.enabled)) then self:Load(key) end
 	end
 	self.app:Request("RefreshShop")
 end
@@ -73,6 +78,7 @@ function Controller:State(key)
 	if definition.crates and (not self.catalog.Crate or not self.catalog.Crate.enabled) then return "unconfigured" end
 	if shop and shop.owned and shop.owned[key] then return "owned" end
 	if self.pending and self.pending.key==key then return if self.pending.prompted then "pending" else "preparing" end
+	if self.autoCrate and self.autoCrate.key==key then return "pending" end
 	local product=self.products[key]
 	if product and product.status=="ready" then
 		if kind=="Product" and (not shop or not shop.productReady) then return "profile" end
@@ -90,18 +96,24 @@ function Controller:State(key)
 end
 
 function Controller:Buy(key)
-	if self.pending then return end
+	if not self.alive or self.pending or self.autoCrate or self.cratePending or self.cratePresenting then return end
 	local status=self:State(key)
 	if status=="ownership" or status=="policy" or status=="profile" then self.app:Request("RefreshShop");return end
 	if status=="error" then self:Load(key,true);self:Changed();return end
 	local definition,kind,id=self:Definition(key)
 	if not definition or status~="ready" then return end
 	local pending={key=key,kind=kind,productId=id,prompted=false}
+	if definition.crates then
+		local shop=self.app.state and self.app.state.shop
+		local intent={key=key,baseline=(shop and shop.crateCredits) or 0,armed=false}
+		pending.crateIntent,self.autoCrate=intent,intent
+	end
 	self.pending=pending
 	pending.requestId=self.app:Request("PreparePurchase",{key=key})
 	self:Changed()
 	self.delay(20,function()
 		if not self.alive or self.pending~=pending or pending.prompted then return end
+		if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
 		self.pending=nil;self:Changed();self.app:Notify("Purchase check timed out. Try again.",false)
 	end)
 end
@@ -119,33 +131,100 @@ function Controller:Toggle(key)
 	end)
 end
 
-function Controller:OpenCrate()
-	local shop=self.app.state and self.app.state.shop
-	if self.pending or self.cratePending or not shop or not shop.productReady or not shop.policyReady
+function Controller:CanOpenCrate(shop)
+	if not self.alive or self.pending or self.cratePending or self.cratePresenting or not shop or not shop.productReady or not shop.policyReady
 		or shop.paidRandomAllowed~=true or (shop.crateCredits or 0)<1
-		or not self.catalog.Crate or not self.catalog.Crate.enabled then return end
+		or not self.catalog.Crate or not self.catalog.Crate.enabled then return false end
+	return true
+end
+
+function Controller:RequestCrate(shop)
+	if not self:CanOpenCrate(shop) then return false end
 	local id=self.app:Request("OpenCrate")
+	if id==nil then return false end
 	self.cratePending=id;self:Changed()
 	self.delay(20,function()
 		if not self.alive or self.cratePending~=id then return end
 		self.cratePending=nil;self:Changed()
 	end)
+	return true
+end
+
+function Controller:OpenCrate()
+	-- Manual opening supersedes checkout's one-shot automatic presentation.
+	self.autoCrate=nil
+	return self:RequestCrate(self.app.state and self.app.state.shop)
+end
+
+function Controller:ReceiveState(state)
+	local intent=self.autoCrate
+	if not self.alive or not intent or not intent.armed then return end
+	if self.clock()>=intent.expiresAt then self.autoCrate=nil;self:Changed();return end
+	local shop=state and state.shop
+	-- Native checkout success only arms this intent. A server snapshot must prove
+	-- new credits were delivered beyond those owned before this purchase began.
+	if not shop or (shop.crateCredits or 0)<=intent.baseline or not self:CanOpenCrate(shop) then return end
+	self.autoCrate=nil
+	self:RequestCrate(shop)
+end
+
+function Controller:PresentCrate(result)
+	local crate=result.crate
+	self.latestCrate=crate
+	if not self.crateRoll then
+		self.crateRoll=self.presentationFactory(self.app.other or self.app.gui,{audio=self.app.audio})
+	end
+	if self.app.research then self.app.research:Close() end
+	self.app:ClosePanel()
+	self.crateSelection=GuiService.SelectedObject
+	GuiService.SelectedObject=nil
+	self.cratePresenting=true
+	local completed=false
+	local function complete()
+		if not self.alive or completed then return end
+		completed=true
+		self.cratePresenting=false
+		if self.crateSelection and self.crateSelection.Parent then GuiService.SelectedObject=self.crateSelection end
+		self.crateSelection=nil
+		self.app:Notify(result.message,true)
+		self.app.feedback:Action("Buy")
+		if crate.petId then self.app.base:PetPulse(crate.petId,Theme.Colors.gold) end
+		self:Changed()
+	end
+	local played=self.crateRoll:Play(crate.species,self.presentationCatalog.Rewards,{
+		seed=result.id,reducedMotion=self.app.reducedMotion,onComplete=complete,
+	})
+	if not played then complete() end
 end
 
 function Controller:Receive(result)
 	if not self.alive or type(result)~="table" then return end
+	local handledCrate=false
 	if result.action=="SetCommerceToggle" then
 		for key,id in self.togglePending do if result.id==id then self.togglePending[key]=nil end end
-	elseif result.action=="OpenCrate" and result.id==self.cratePending then
-		self.cratePending=nil
-		if result.ok and type(result.crate)=="table" then self.latestCrate=result.crate end
+	elseif result.action=="OpenCrate" then
+		if self.crateResults[result.id] then return true end
+		if self.cratePending~=nil and result.id==self.cratePending then
+			self.cratePending=nil
+			if result.ok and type(result.crate)=="table" then
+				self.crateResults[result.id]=true
+				table.insert(self.crateResultOrder,result.id)
+				if #self.crateResultOrder>64 then self.crateResults[table.remove(self.crateResultOrder,1)]=nil end
+				handledCrate=true
+				self:PresentCrate(result)
+			end
+		end
 	elseif result.action=="PreparePurchase" then
 		local pending=self.pending
 		if not pending or result.id~=pending.requestId or pending.prompted then return end
-		if not self:Definition(pending.key) then self.pending=nil;self:Changed();return end
+		if not self:Definition(pending.key) then
+			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
+			self.pending=nil;self:Changed();return
+		end
 		local purchase=result.purchase
 		if result.ok~=true or type(purchase)~="table" or purchase.key~=pending.key
 			or purchase.kind~=pending.kind or purchase.id~=pending.productId then
+			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
 			self.pending=nil;self:Changed();return
 		end
 		-- A validated server response permits the native checkout, never a local grant.
@@ -155,10 +234,12 @@ function Controller:Receive(result)
 			else self.marketplace:PromptProductPurchase(self.player,pending.productId) end
 		end)
 		if not ok then
+			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
 			self.pending=nil;self.app:Notify("Roblox couldn't open the purchase. Try again.",false)
 		end
 	end
 	self:Changed()
+	return handledCrate
 end
 
 function Controller:Start()
@@ -171,12 +252,24 @@ function Controller:Start()
 		self.app:Request("RefreshShop")
 		self:Changed()
 	end))
-	table.insert(self.connections,self.marketplace.PromptProductPurchaseFinished:Connect(function(userId,productId,_purchased)
+	table.insert(self.connections,self.marketplace.PromptProductPurchaseFinished:Connect(function(userId,productId,purchased)
 		if userId~=self.player.UserId or not self.alive then return end
 		local pending=self.pending
-		if not pending or pending.kind~="Product" or pending.productId~=productId then return end
+		if not pending or not pending.prompted or pending.kind~="Product" or pending.productId~=productId then return end
 		self.pending=nil
 		-- Closing checkout is not proof of payment or receipt delivery.
+		local intent=pending.crateIntent
+		if intent and self.autoCrate==intent then
+			if purchased==true then
+				intent.armed,intent.expiresAt=true,self.clock()+60
+				self.delay(60,function()
+					if not self.alive or self.autoCrate~=intent then return end
+					self.autoCrate=nil;self:Changed()
+				end)
+				-- Delivery can precede the native dialog's completion callback.
+				self:ReceiveState(self.app.state)
+			else self.autoCrate=nil end
+		end
 		self.app:Request("RefreshShop")
 		self:Changed()
 	end))
@@ -184,6 +277,10 @@ end
 
 function Controller:Destroy()
 	self.alive=false
+	self.autoCrate,self.pending,self.cratePending=nil,nil,nil
+	self.cratePresenting=false
+	if self.crateRoll then self.crateRoll:Destroy();self.crateRoll=nil end
+	if self.crateSelection then GuiService.SelectedObject=nil;self.crateSelection=nil end
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
 end

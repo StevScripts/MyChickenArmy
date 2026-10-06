@@ -6,6 +6,7 @@ local MapScenery = require(script.Parent.MapScenery)
 local MapLayout = require(game:GetService("ReplicatedStorage").PetRoll.Shared.MapLayout)
 local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local UIColors = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UIColors)
+local Conquest = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ConquestPresentation)
 
 local palette = {
 	grass = Color3.fromRGB(106, 185, 79), grassLight = Color3.fromRGB(108, 187, 80),
@@ -254,10 +255,19 @@ function WorldBuilder.ApplyCampPromotion(group,rank,name)
  end
 end
 
+-- The encounter/owned label supplies the camp name while this site is occupied.
+function WorldBuilder.ApplyCampTitle(group)
+ if group:GetAttribute("IncomeTerritory") then return end
+ local anchor=group:FindFirstChild("Title")
+ local gui=anchor and anchor:FindFirstChild("Label")
+ if gui then gui.Enabled=not group:GetAttribute("Occupied") and not group:GetAttribute("Conquered") end
+end
+
 -- This marker belongs to the territory, so it outlives its departing battle.
 function WorldBuilder.ApplyCampOwnership(group,frame,userId,name)
  group:SetAttribute("ConquerorUserId",userId)
  group:SetAttribute("Conquered",userId~=nil)
+ WorldBuilder.ApplyCampTitle(group)
  local marker=group:FindFirstChild("OwnershipFlag")
  if not userId then if marker then marker:Destroy() end;return end
  if not marker then
@@ -265,12 +275,20 @@ function WorldBuilder.ApplyCampOwnership(group,frame,userId,name)
   local scale=Config.CampHalfSize/18
   local cf=frame*CFrame.new(8.75*scale,0,-16.5*scale)
   WorldBuilder.Part(marker,"Pole",Vector3.new(.35,9,.35),cf*CFrame.new(0,4.5,0),Color3.fromRGB(80,88,66),false)
-  WorldBuilder.Part(marker,"Flag",Vector3.new(2.5,2,.15),cf*CFrame.new(1.25,7.5,0),Color3.fromRGB(98,226,56),false)
-  local title=WorldBuilder.Billboard(marker,"Owner",(cf*CFrame.new(0,11,0)).Position,"",Color3.fromRGB(98,226,56),150,80)
-  title.Parent.Size=UDim2.fromScale(12,2.8)
+  WorldBuilder.Part(marker,"Flag",Vector3.new(2.5,2,.15),cf*CFrame.new(1.25,7.5,0),Conquest.Owned,false)
+  local title=WorldBuilder.Billboard(marker,"Owner",frame.Position+Vector3.new(0,Conquest.Elevation,0),"",Conquest.Owned,150,Conquest.MaxDistance)
+  title.Parent.Size=UDim2.fromScale(Conquest.Width,Conquest.Height)
+  title.Parent.AlwaysOnTop=true
+  title.Size=UDim2.fromScale(1,0.35)
   title.TextScaled=true
+  local camp=title:Clone();camp.Name="CampName";camp.Position=UDim2.fromScale(0.1,0.36)
+  camp.Size=UDim2.fromScale(0.8,0.23);camp.TextColor3=UIColors.Text;camp.Parent=title.Parent
+  local owner=title:Clone();owner.Name="OwnerName";owner.Position=UDim2.fromScale(0.08,0.64)
+  owner.Size=UDim2.fromScale(0.84,0.2);owner.TextColor3=UIColors.Rewards;owner.Parent=title.Parent
  end
- marker.Owner.Label.Text.Text="CONQUERED\n"..(name or "")
+ marker.Owner.Label.Text.Text="⚔ Conquered ⚔"
+ marker.Owner.Label.CampName.Text=group:GetAttribute("CampName") or group:GetAttribute("SceneryName") or "Base"
+ marker.Owner.Label.OwnerName.Text=name or ""
 end
 
 function WorldBuilder.ApplyLighting()

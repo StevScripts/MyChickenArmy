@@ -1,0 +1,816 @@
+--- a/src/client/ActionFeedback.luau
++++ b/src/client/ActionFeedback.luau
+@@ -14,7 +14,7 @@
+ local GREEN = Theme.Arcade.green
+ 
+ function Feedback.new(app)
+-	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
++	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, conquestEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
+ end
+ 
+ function Feedback:Root()
+@@ -231,9 +231,43 @@
+ 	end
+ end
+ 
+-function Feedback:Conquer(position)
+-	self:Burst(position, GREEN, true)
++function Feedback:Conquer(position, captureRadius)
++	if not self.alive then return end
+ 	self.app.audio:Play("Victory", 1, {volume = 0.35, maxDuration = 2, voiceKey = "CaptureVictory"})
++	local root=self:Root()
++	if self.app.reducedMotion or self.bursts>=6 or not root or (root.Position-position).Magnitude>180 then return end
++	self.bursts+=1
++	local style=Theme.Conquest
++	local radius=(captureRadius or 7.8)*style.BurstRadiusMultiplier
++	local anchor=self:Anchor("ConquestCelebration",position+Vector3.new(0,2,0))
++	self.conquestEffects[anchor]=true
++	anchor.Size=Vector3.new(radius*1.6,0.3,radius*1.6)
++	local sphere=Instance.new("Part")
++	sphere.Name,sphere.Shape="ConquestGlow",Enum.PartType.Ball
++	sphere.Anchored,sphere.CanCollide,sphere.CanTouch,sphere.CanQuery,sphere.CastShadow=true,false,false,false,false
++	sphere.Color,sphere.Material,sphere.Transparency=style.Owned,Enum.Material.Neon,0.84
++	sphere.Size,sphere.CFrame,sphere.Parent=Vector3.one*radius,anchor.CFrame,anchor
++	TweenService:Create(sphere,TweenInfo.new(style.BurstSeconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
++		{Size=Vector3.one*radius*2.5,Transparency=1}):Play()
++	local sparks=Instance.new("ParticleEmitter")
++	sparks.Name,sparks.Texture="ConquestStars","rbxasset://textures/particles/sparkles_main.dds"
++	sparks.Color=ColorSequence.new(style.Owned,Color3.new(1,1,0.65))
++	sparks.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.7),NumberSequenceKeypoint.new(0.2,1.7),NumberSequenceKeypoint.new(1,0)})
++	sparks.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1),NumberSequenceKeypoint.new(0.6,0.15),NumberSequenceKeypoint.new(1,1)})
++	sparks.Lifetime,sparks.Speed,sparks.SpreadAngle=NumberRange.new(1.3,style.BurstSeconds),NumberRange.new(3,8),Vector2.new(70,70)
++	sparks.Acceleration,sparks.LightEmission,sparks.Rate=Vector3.new(0,2,0),1,0
++	sparks.Parent=anchor;sparks:Emit(style.SparkleCount)
++	local ring=Instance.new("CylinderHandleAdornment")
++	ring.Name,ring.Adornee,ring.Parent="ConquestRing",anchor,anchor
++	ring.Radius,ring.InnerRadius,ring.Height=radius*0.6,radius*0.6-0.2,0.04
++	ring.CFrame,ring.Color3,ring.Transparency=CFrame.new(0,-1.8,0)*CFrame.Angles(math.pi/2,0,0),style.Owned,0.2
++	TweenService:Create(ring,TweenInfo.new(1.1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
++		{Radius=radius,InnerRadius=radius-0.15,Transparency=1}):Play()
++	Debris:AddItem(anchor,style.BurstSeconds+0.2)
++	self:Later(style.BurstSeconds+0.2,function()
++		self.conquestEffects[anchor]=nil
++		self.bursts=math.max(0,self.bursts-1)
++	end)
+ end
+ 
+ function Feedback:Step(now)
+@@ -246,7 +280,10 @@
+ 		self.depositPending, self.nextDeposit = nil, now + Feel.Deposit.GroupGap
+ 		for _,receipt in pending do self:ShowDeposit(receipt) end
+ 	end
+-	if self.app.reducedMotion then self:ClearCash(); self:ClearDeposits() end
++	if self.app.reducedMotion then
++		self:ClearCash();self:ClearDeposits()
++		for effect in self.conquestEffects do effect:Destroy();self.conquestEffects[effect]=nil end
++	end
+ end
+ 
+ function Feedback:ResetCollections()
+--- a/src/client/AppController.luau
++++ b/src/client/AppController.luau
+@@ -730,7 +730,8 @@
+ 	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner);self.lastBanner = state.banner end
+ 	if old and state.lastResult ~= old.lastResult and not packet.result then
+ 		local unlocked=old.mergeUnlocked==false and state.mergeUnlocked==true
+-		self:Notify(state.lastResult..(if unlocked then " Fuse Machine unlocked!" else ""))
++		local kind=if state.lastResult:match("^You've conquered ") then "conquest" else nil
++		self:Notify(state.lastResult..(if unlocked then " Fuse Machine unlocked!" else ""),kind)
+ 	end
+ 	self:RenderPanel(old == nil)
+ 	self.offlineCash:Receive(state)
+--- a/src/client/BaseController.luau
++++ b/src/client/BaseController.luau
+@@ -524,19 +524,27 @@
+ 			if camera then local _,onScreen=camera:WorldToViewportPoint(part.Position+Vector3.new(0,2.5,0));visible=onScreen end
+ 			if not visible then continue end
+ 			local command=self:CommandFor(model)
+-			if command then nearest,bestPart,bestDistance=command,part,distance end
++			-- Status sentences are not actions. In particular, never cover an
++			-- ongoing fight with an "already attacking/stationed" prompt.
++			if command and (command.action or command.canUnclaim) then nearest,bestPart,bestDistance=command,part,distance end
+ 		end
+ 	end
+ 	self.nearestCommand=nearest
+ 	if nearest then
+ 		self.commandAnchor.Parent=bestPart
+-		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
+-		self.commandPrompt.ActionText=if not nearest.action then nearest.text else "Move Troops Here"
+-		self.commandPrompt.ObjectText=nearest.title..(if nearest.action=="Attack" and nearest.text:find("Via ") then " · earlier camps first" else "")
++		-- Keep the two native controls at the approach edge, away from the
++		-- chickens fighting in the middle. Server reach still uses CampCommand.
++		local edge=(nearest.model:GetAttribute("CampHalfSize") or Config.CampHalfSize)+2
++		self.commandAnchor.Position=Vector3.new(0,2.5,edge)
++		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)+edge
++		self.commandPrompt.ActionText="Move Troops Here"
++		self.commandPrompt.ObjectText=""
++		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)
+ 		self.unclaimPrompt.MaxActivationDistance=self.commandPrompt.MaxActivationDistance
+-		self.unclaimPrompt.ObjectText=nearest.title
+-	end
+-	self.commandPrompt.Enabled=nearest~=nil
++		self.unclaimPrompt.ObjectText=""
++		self.unclaimPrompt.UIOffset=Vector2.new(0,if nearest.action then -28 else 0)
++	end
++	self.commandPrompt.Enabled=nearest~=nil and nearest.action~=nil
+ 	self.unclaimPrompt.Enabled=nearest~=nil and nearest.canUnclaim==true
+ 	self:UpdateCommandPresentation()
+ end
+--- a/src/client/BattleController.luau
++++ b/src/client/BattleController.luau
+@@ -23,6 +23,13 @@
+ local function capturePresentation(battle)
+ 	local completed=battle.captureProgress==1 and (battle.phase=="Holding" or (battle.phase=="Returning" and battle.outcome=="A"))
+ 	local reclaiming=battle.enemyReclaiming==true
++	if battle.conquest then
++		return {completed=completed,paused=battle.capturePaused==true,
++			value=math.clamp(battle.captureProgress or 0,0,1),stage="Conquest",
++			title=if reclaiming then "Conquest lost" else "⚔ Conquering ⚔",
++			color=Theme.Conquest.Progress,detail=battle.name or "Base",
++			active=not completed and (reclaiming or battle.phase=="Capture" or (battle.captureStarted and battle.phase=="Fight"))}
++	end
+ 	local enemy=reclaiming or battle.captureStage=="Enemy"
+ 	local paused=battle.capturePaused==true
+ 	local value=math.clamp((if enemy then battle.enemyControl else battle.playerControl) or 0,0,1)
+@@ -42,36 +49,41 @@
+ 	local view=self.captureViews[id]
+ 	if not view then return end
+ 	if view.tween then view.tween:Cancel();view.tween:Destroy() end
+-	view.gui:Destroy();view.anchor:Destroy();view.zone:Destroy()
++	view.gui:Destroy();view.anchor:Destroy();if view.zone then view.zone:Destroy() end
+ 	self.captureViews[id]=nil
+ end
+ 
+ function BattleController:UpdateCapture(battle)
+ 	local presentation=capturePresentation(battle)
+ 	local completed=presentation.completed
+-	if not presentation.active and not completed then self:ReleaseCapture(battle.id);return end
++	if (not presentation.active and not completed) or (battle.conquest and completed) then self:ReleaseCapture(battle.id);return end
+ 	local view=self.captureViews[battle.id]
+ 	if not view then
+ 		local anchor=Instance.new("Part")
+ 		anchor.Name,anchor.Size="Capture_"..battle.id,Vector3.one
+ 		anchor.Anchored,anchor.CanCollide,anchor.CanTouch,anchor.CanQuery,anchor.Transparency=true,false,false,false,1
+-		anchor.Position,anchor.Parent=Vector3.new(battle.x,12,battle.z),self.folder
+-		local zone=Instance.new("Part")
++		anchor.Position,anchor.Parent=Vector3.new(battle.x,(battle.y or 1.2)+Theme.Conquest.Elevation,battle.z),self.folder
++		local zone
++		if not battle.conquest then
++		zone=Instance.new("Part")
+ 		zone.Name,zone.Shape="CaptureZone_"..battle.id,Enum.PartType.Cylinder
+ 		local radius=battle.captureRadius or 12
+ 		zone.Size=Vector3.new(0.06,radius*2,radius*2)
+ 		zone.CFrame=CFrame.new(battle.x,1.14,battle.z)*CFrame.Angles(0,0,math.pi/2)
+ 		zone.Anchored,zone.CanCollide,zone.CanTouch,zone.CanQuery,zone.CastShadow=true,false,false,false,false
+ 		zone.Color,zone.Material,zone.Transparency,zone.Parent=C.gold,Enum.Material.Neon,0.87,self.folder
++		end
+ 		local gui=Instance.new("BillboardGui")
+-		gui.Name,gui.Size,gui.Adornee="ConquestMeter",UDim2.fromOffset(320,112),anchor
+-		gui.AlwaysOnTop,gui.MaxDistance,gui.LightInfluence,gui.Parent=true,180,0,Players.LocalPlayer.PlayerGui
++		gui.Name,gui.Size,gui.Adornee="ConquestMeter",UDim2.fromScale(Theme.Conquest.Width,Theme.Conquest.Height),anchor
++		gui.AlwaysOnTop,gui.MaxDistance,gui.LightInfluence,gui.Parent=true,Theme.Conquest.MaxDistance,0,Players.LocalPlayer.PlayerGui
+ 		local title=Theme.Display(gui,"Title","Conquering",27,Theme.Arcade.red)
+-		title.Position,title.Size,title.TextXAlignment=UDim2.fromOffset(0,2),UDim2.new(1,0,0,34),Enum.TextXAlignment.Center
++		title.Position,title.Size,title.TextXAlignment=UDim2.fromScale(0.08,0),UDim2.fromScale(0.84,0.35),Enum.TextXAlignment.Center
+ 		local detail=Theme.Display(gui,"Detail","",20)
+-		detail.Position,detail.Size,detail.TextXAlignment=UDim2.fromOffset(0,38),UDim2.new(1,0,0,28),Enum.TextXAlignment.Center
+-		local track,fill=Theme.SegmentedBar(gui,"Progress",UDim2.new(1,-16,0,31))
+-		track.Position=UDim2.fromOffset(8,73)
++		detail.Position,detail.Size,detail.TextXAlignment=UDim2.fromScale(0.1,0.36),UDim2.fromScale(0.8,0.23),Enum.TextXAlignment.Center
++		local track,fill=Theme.SegmentedBar(gui,"Progress",UDim2.fromScale(1,0.27),Theme.Conquest.Segments)
++		track.Position=UDim2.fromScale(0,0.66)
++		fill.Parent.BackgroundColor3=Theme.Conquest.Track
++		Theme.Gradient(fill.Parent,Color3.fromRGB(235,245,248),Color3.fromRGB(160,180,186))
+ 		view={anchor=anchor,zone=zone,gui=gui,title=title,detail=detail,fill=fill,progress=-1}
+ 		self.captureViews[battle.id]=view
+ 	end
+@@ -81,8 +93,11 @@
+ 	view.stage=presentation.stage
+ 	view.title.Text,view.title.TextColor3=presentation.title,presentation.color
+ 	view.detail.Text=presentation.detail
+-	view.zone.Transparency=if completed then 1 else 0.87
+-	view.zone.Color,view.fill.BackgroundColor3=presentation.color,presentation.color
++	if view.zone then
++		view.zone.Transparency=if completed then 1 else 0.87
++		view.zone.Color=presentation.color
++	end
++	view.fill.BackgroundColor3=presentation.color
+ 	-- Interpolate only toward a received server value; never predict a victory.
+ 	if progress~=view.progress or stageChanged or presentation.paused then
+ 		if view.tween then view.tween:Cancel();view.tween:Destroy() end
+@@ -211,12 +226,12 @@
+ 	if battle.attacker ~= userId and battle.defender ~= userId then return end
+ 	if battle.phase == "Holding" then
+ 		local won = if battle.defender == userId then battle.outcome == "B" else battle.outcome == nil or battle.outcome == "A"
+-		if won then
+-			self.app.feedback:Conquer(Vector3.new(battle.x, 1.2, battle.z))
++		if won and not battle.friendlyTerritory then
++			self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z),battle.captureRadius)
+ 		end
+ 	elseif battle.phase == "Returning" and battle.outcome then
+ 		local won = (battle.attacker == userId and battle.outcome == "A") or (battle.defender == userId and battle.outcome == "B")
+-		if won and old ~= "Holding" then self.app.feedback:Conquer(Vector3.new(battle.x, 1.2, battle.z))
++		if won and old ~= "Holding" and not battle.friendlyTerritory then self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z),battle.captureRadius)
+ 		elseif won then return
+ 		elseif battle.outcome ~= "Recall" then self.app.audio:Play("Pop", 0.65) end
+ 	elseif battle.phase == "Fight" and self:IsNearby(Vector3.new(battle.x, 1.2, battle.z)) then self.app.audio:Play("Pop", 0.9) end
+@@ -353,7 +368,7 @@
+   local visible=false
+   if camera and not self.app.panel.Visible then
+    local point,onScreen=camera:WorldToViewportPoint(view.anchor.Position)
+-   visible=onScreen and point.Z>0 and (camera.CFrame.Position-view.anchor.Position).Magnitude<180
++   visible=onScreen and point.Z>0 and (camera.CFrame.Position-view.anchor.Position).Magnitude<Theme.Conquest.MaxDistance
+   end
+   view.gui.Enabled=visible
+  end
+--- a/src/client/UITheme.luau
++++ b/src/client/UITheme.luau
+@@ -42,6 +42,8 @@
+ 	navigation=Theme.Arcade.blue, purchase=Theme.Arcade.green, sell=Theme.Arcade.sell,
+ 	danger=Theme.Arcade.red, disabled=Palette.Disabled, selected=Palette.Rewards,
+ }
++-- October 6 conquest recording: red four-section meter, green owned marker.
++Theme.Conquest = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ConquestPresentation)
+ -- Opt-in cash affordability feedback for the yard and egg-collection upgrades.
+ Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color3.fromRGB(92,92,92))
+ Theme.Assets = {
+@@ -56,6 +58,7 @@
+ Theme.Rarities = Palette.Rarities
+ -- Background-free simulator feedback: bold status-colored text and a clear outline.
+ Theme.NotificationStyles = {
++	conquest={symbol="⚔",color=Theme.Conquest.Owned},
+ 	success={symbol="✓",color=Color3.fromRGB(112,222,98)},
+ 	error={symbol="×",color=Color3.fromRGB(255,120,132)},
+ 	warning={symbol="!",color=Color3.fromRGB(244,194,71)},
+@@ -565,7 +568,7 @@
+ 	return (if whole<0 then "-" else "")..grouped
+ end
+ 
+-function Theme.SegmentedBar(parent,name,size)
++function Theme.SegmentedBar(parent,name,size,segments)
+ 	local track=Theme.Frame(parent,name,size,Theme.Arcade.border)
+ 	Theme.Round(track,7);Theme.Stroke(track,Theme.Arcade.border,3)
+ 	local inside=Theme.Frame(track,"Inside",UDim2.fromScale(0.97,0.87),Theme.Colors.dark)
+@@ -574,9 +577,10 @@
+ 	local fill=Theme.Frame(inside,"Fill",UDim2.fromScale(0,1),Theme.Arcade.red)
+ 	Theme.Round(fill,3)
+ 	Theme.Gradient(fill,Color3.new(1,1,1),Color3.fromRGB(224,224,224))
+-	for i=1,4 do
++	local count=segments or 5
++	for i=1,count-1 do
+ 		local line=Instance.new("Frame")
+-		line.Name,line.Size,line.Position="Segment"..i,UDim2.fromScale(0.006,1),UDim2.fromScale(i/5,0)
++		line.Name,line.Size,line.Position="Segment"..i,UDim2.fromScale(0.006,1),UDim2.fromScale(i/count,0)
+ 		line.BackgroundColor3,line.BorderSizePixel,line.ZIndex,line.Parent=Theme.Arcade.border,0,2,inside
+ 	end
+ 	return track,fill
+--- a/src/server/Battle.luau
++++ b/src/server/Battle.luau
+@@ -61,11 +61,41 @@
+  end end
+ end
+ 
++function Battle:IsConquest(): boolean
++ return not self.incomeSite and not self.incomeContest and not self.operationId
++  and (self.target:match("^camp:")~=nil or self.target:match("^outpost:")~=nil or self.target=="king:1")
++end
++
++function Battle:CaptureDuration(): number
++ return if self:IsConquest() then Config.ConquestSeconds else Config.CaptureSeconds
++end
++
+ function Battle:CaptureRemaining()
++ local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
++ if self:IsConquest() then return math.max(0,self:CaptureDuration()-self.captureElapsed)/(1+bonus) end
+  local enemy=math.max(0,Config.NeutralizeSeconds-self.captureElapsed)
+- local friendly=math.max(0,Config.CaptureSeconds-math.max(Config.NeutralizeSeconds,self.captureElapsed))
++ local friendly=math.max(0,self:CaptureDuration()-math.max(Config.NeutralizeSeconds,self.captureElapsed))
++ return enemy+friendly/(1+bonus)
++end
++
++-- The reference meter advances while a living army physically contests the base.
++-- Combat continues normally. Full progress alone cannot defeat surviving guards.
++function Battle:StepConquest(dt: number)
++ local count=0
++ for _,unit in self.units do
++  if unit.side=="A" and unit.hp>0 and not unit.reinforcing and not unit.retiring
++   and (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then count+=1 end
++ end
++ self.capturers=count
++ if count==0 then return nil end
++ self.captureStarted=true
+  local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
+- return enemy+friendly/(1+bonus)
++ local duration=self:CaptureDuration()
++ self.captureElapsed=math.min(duration,self.captureElapsed+dt*(1+bonus))
++ if self.captureElapsed>=duration-1e-6 and self:Alive("B")==0 then
++  self.captureElapsed=duration;return "A"
++ end
++ return nil
+ end
+ 
+ function Battle:AddDefenders(roster, home: Vector3, now: number)
+@@ -145,11 +175,18 @@
+ 		if (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then capturers+=1 end
+ 	end
+ 	self.capturers=capturers
++	if self:IsConquest() then
++		local outcome=self:StepConquest(dt)
++		if outcome then return outcome end
++		if self.capturers==0 and self:Alive("A")>0 and now-self.phaseAt>=Config.TravelTimeout then return "Blocked" end
++		return nil
++	end
+ 	if capturers>0 then
+ 		local neutral=math.min(dt,math.max(0,Config.NeutralizeSeconds-self.captureElapsed))
+ 		local bonus=self.researchBySide and self.researchBySide.A and self.researchBySide.A.capture or 0
+-		self.captureElapsed=math.min(Config.CaptureSeconds,self.captureElapsed+neutral+(dt-neutral)*(1+bonus))
+-		if self.captureElapsed>=Config.CaptureSeconds-1e-6 then self.captureElapsed=Config.CaptureSeconds;return "A" end
++		local duration=self:CaptureDuration()
++		self.captureElapsed=math.min(duration,self.captureElapsed+neutral+(dt-neutral)*(1+bonus))
++		if self.captureElapsed>=duration-1e-6 then self.captureElapsed=duration;return "A" end
+ 	elseif self:Alive("A")>0 and now-self.phaseAt>=Config.TravelTimeout then return "Blocked" end
+ 	return nil
+ end
+@@ -476,6 +513,7 @@
+ 	end
+ 	if self:LostFoothold(now) then return "B" end
+ 	if self:Alive("B")==0 then self:BeginCapture(now) end
++	if self:IsConquest() then return self:StepConquest(dt) end
+ 	return nil
+ end
+ 
+@@ -517,8 +555,8 @@
+ function Battle:Finish(outcome: string, now: number)
+ 	if outcome=="B" then
+ 		self.enemyReclaimElapsed,self.captureAtDefeat=0,self.captureElapsed
+-		self.enemyControlAtDefeat=math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1)
+-		self.playerControlAtDefeat=math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(Config.CaptureSeconds-Config.NeutralizeSeconds),0,1)
++		self.enemyControlAtDefeat=if self:IsConquest() then 1-self.captureElapsed/self:CaptureDuration() else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1)
++		self.playerControlAtDefeat=if self:IsConquest() then self.captureElapsed/self:CaptureDuration() else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(self:CaptureDuration()-Config.NeutralizeSeconds),0,1)
+ 		self.capturers=0
+ 	end
+ 	self.outcome,self.phase,self.phaseAt=outcome,"Returning",now
+@@ -558,24 +596,26 @@
+ 			hp=u.hp,maxHp=u.maxHp,attackSerial=u.attackSerial,impactSerial=u.impactSerial,damageSerial=u.damageSerial,impactX=u.impactX,impactZ=u.impactZ,
+ 			spawnSerial=u.spawnSerial,faceX=u.faceX,faceZ=u.faceZ})
+ 	end
+-	local duration=if self.phase=="Travel" then Config.TravelSeconds elseif self.phase=="Capture" then Config.CaptureSeconds
++	local duration=if self.phase=="Travel" then Config.TravelSeconds elseif self.phase=="Capture" then self:CaptureDuration()
+ 		elseif self.phase=="Returning" then Config.ReturnSeconds else Config.FightTimeout
+ 	local reclaiming=self.enemyReclaimElapsed~=nil
+ 	local reclaimProgress=if reclaiming then math.clamp(self.enemyReclaimElapsed/Config.EnemyReclaimSeconds,0,1) else 0
+ 	local defenderRespawnAt=self:NextDefenderRespawn()
++	local conquest=self:IsConquest()
++	local progress=math.clamp(self.captureElapsed/self:CaptureDuration(),0,1)
+ 	return {id=self.id,coinDrops=table.clone(self.coinDrops),attacker=self.attacker,target=self.target,defender=self.defender,phase=self.phase,outcome=self.outcome,incomeContest=self.incomeContest==true,rosterLocked=self.rosterLocked==true,travelStage=if self.phase=="Travel" then (if self.assembling then "Assembling" else "Marching") else nil,
+ 		remaining=if self.phase=="Holding" then 0 elseif self.phase=="Capture" then self:CaptureRemaining() else math.max(0,duration-(now-self.phaseAt)),units=units,a=self:Alive("A"),b=self:Alive("B"),
+-		captureProgress=math.clamp(self.captureElapsed/Config.CaptureSeconds,0,1),
+-		captureStarted=self.captureStarted,capturePaused=not reclaiming and self.captureStarted and (self.phase=="Fight" or self:Alive("A")==0),
++		captureProgress=progress,conquest=conquest,friendlyTerritory=self.friendlyTerritory==true,
++		captureStarted=self.captureStarted,capturePaused=not reclaiming and self.captureStarted and (if conquest then self.capturers==0 else self.phase=="Fight" or self:Alive("A")==0),
+ 		enemyReclaiming=reclaiming,enemyReclaimComplete=reclaiming and reclaimProgress>=1,
+-		captureStage=if reclaiming or self.captureElapsed<Config.NeutralizeSeconds then "Enemy" else "Player",
+-		enemyControl=if reclaiming then self.enemyControlAtDefeat+(1-self.enemyControlAtDefeat)*reclaimProgress else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1),
+-		playerControl=if reclaiming then self.playerControlAtDefeat*(1-reclaimProgress) else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(Config.CaptureSeconds-Config.NeutralizeSeconds),0,1),
++		captureStage=if reclaiming then "Enemy" elseif conquest then "Conquest" elseif self.captureElapsed<Config.NeutralizeSeconds then "Enemy" else "Player",
++		enemyControl=if reclaiming then self.enemyControlAtDefeat+(1-self.enemyControlAtDefeat)*reclaimProgress elseif conquest then 1-progress else math.clamp(1-self.captureElapsed/Config.NeutralizeSeconds,0,1),
++		playerControl=if reclaiming then self.playerControlAtDefeat*(1-reclaimProgress) elseif conquest then progress else math.clamp((self.captureElapsed-Config.NeutralizeSeconds)/(self:CaptureDuration()-Config.NeutralizeSeconds),0,1),
+ 		captureRemaining=self:CaptureRemaining(),
+ 		defenderRespawnIn=if defenderRespawnAt then math.max(0,defenderRespawnAt-now) else nil,
+ 		defenderRespawns=self.defenderRespawns,waitingForArmy=self:Alive("A")==0,
+-		captureActive=self.phase=="Capture" and self.capturers>0,capturers=self.capturers,captureRadius=Config.CaptureRadius,
+-		x=self.destination.X,z=self.destination.Z,name=self.name,
++		captureActive=(self.phase=="Capture" or (conquest and self.phase=="Fight")) and self.capturers>0,capturers=self.capturers,captureRadius=Config.CaptureRadius,
++		x=self.destination.X,y=self.destination.Y,z=self.destination.Z,name=self.name,
+ 		promotion=self.promotion,routeGoal=if self.routeGoal then self.routeGoalName else nil}
+ end
+ 
+--- a/src/server/BattleService.luau
++++ b/src/server/BattleService.luau
+@@ -20,7 +20,7 @@
+ BattleService.__index=BattleService
+ 
+ function BattleService.new(sessions,world)
+-	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},territoryReclaims={},departingCamps={},departingSides={},campClearedAt={},campLocations={},
++	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},
+   territoryIncome=TerritoryIncome.new((Config.IncomeOutpost and Config.IncomeOutpost.Rate) or 0),
+   income={graceUntil=0,retry={},eligibleTime=0,warningAfter=(Config.IncomeOutpost and Config.IncomeOutpost.WarningAfter) or 120}},BattleService)
+ end
+@@ -96,7 +96,7 @@
+ 
+ function BattleService:SetTerritoryOwner(key,session,location)
+  local previous=self.campOwners[key]
+- if session then self.territoryReclaims[key]=nil end
++ if session then self.releasedTerritories[key]=nil end
+  if key=="income:1" then
+   -- Observation history only; never consulted for income or command permission.
+   self.income.lostOwners=self.income.lostOwners or {}
+@@ -119,7 +119,7 @@
+ end
+ 
+ -- Moving an army never releases its flag. Only the owning player's explicit
+--- command starts this recovery; existing combat/kill/recruit rules still apply.
++-- command restores its native garrison; existing combat/kill/recruit rules apply.
+ function BattleService:Unclaim(session,targetId,now)
+  if type(targetId)~="string" or #targetId>60 then return false,"Invalid territory." end
+  local kind,index=targetId:match("^(%a+):(%d+)$")
+@@ -132,9 +132,9 @@
+  if not location then return false,"This base is unavailable." end
+  local battle=self.battles[self.campBusy[key]]
+  local active=battle and battle.campKey==key and battle.phase~="Returning"
+- local reclaim={id="unclaim:"..key,ownerId=session.userId,target=targetId,location=location,
+-  name=CampaignRoute.Name(targetId),captureElapsed=Config.CaptureSeconds}
+- self.territoryReclaims[key]=reclaim
++ -- The footage restores the native flag immediately. This record only allows
++ -- vacancy release before the departing army reaches its next destination.
++ self.releasedTerritories[key]=session.userId
+  self:SetTerritoryOwner(key,nil,location)
+  if location.index then
+   for _,other in self.battles do
+@@ -150,38 +150,14 @@
+   battle:CancelAttacks()
+   battle.paid,battle.friendlyTerritory,battle.outcome=false,false,nil
+   battle.phase=if battle.phase=="Travel" then "Travel" else "Fight"
+-  battle.phaseAt,battle.captureStarted,battle.captureElapsed=now,true,Config.CaptureSeconds
++  battle.phaseAt,battle.captureStarted,battle.captureElapsed,battle.capturers=now,false,0,0
+   battle.routeGoal=nil
+   battle:AddArmy("B",roster,battle.destination)
+-  reclaim.battleId=battle.id
+   if battle.actors then battle.actors:Sync(now);battle.actors:Publish(now) end
+   session.armyState,session.stationedAt=if battle.phase=="Travel" then "Traveling" else "Fighting",nil
+- elseif active then
+-  -- An army already contesting this base keeps its own capture progress.
+-  self.territoryReclaims[key]=nil
+  end
+  session:Touch()
+- return true,"Base unclaimed. Enemies are taking it back."
+-end
+-
+-function BattleService:StepTerritoryReclaims(dt,now)
+- for key,reclaim in self.territoryReclaims do
+-  local battle=self.battles[reclaim.battleId]
+-  local fighting=battle and battle.campKey==key and battle.phase~="Returning"
+-  if fighting and battle:Alive("B")==0 then
+-   -- Ordinary capture resumes from the remaining control once defenders fall.
+-   self.territoryReclaims[key]=nil
+-   continue
+-  end
+-  if fighting or not self.campBusy[key] then
+-   reclaim.captureElapsed=math.max(0,reclaim.captureElapsed-dt)
+-   if fighting then battle.captureElapsed=reclaim.captureElapsed end
+-   if reclaim.captureElapsed==0 then
+-    reclaim.completedAt=reclaim.completedAt or now
+-    if now-reclaim.completedAt>=1 then self.territoryReclaims[key]=nil end
+-   end
+-  end
+- end
++ return true,"Base unclaimed. Defeat its defenders to conquer it again."
+ end
+ 
+ function BattleService:Targets(session,now)
+@@ -583,13 +559,7 @@
+  battle.campKey=if isKing then KingEncounter.Target elseif outpostIndex then targetId elseif campIndex then campKey(session.plotIndex,campIndex) else nil
+  battle.friendlyTerritory=territoryOwner~=nil and territoryOwner.userId==session.userId
+  if campIndex and not battle.friendlyTerritory then battle.routeCamps[campIndex]=nil end
+- if battle.friendlyTerritory then battle.captureElapsed=Config.CaptureSeconds end
+- local reclaim=self.territoryReclaims[battle.campKey]
+- if reclaim then
+-  if reclaim.ownerId==session.userId then
+-   battle.captureElapsed=reclaim.captureElapsed;battle.captureStarted=true;reclaim.battleId=battleId
+-  else self.territoryReclaims[battle.campKey]=nil end
+- end
++ if battle.friendlyTerritory then battle.captureElapsed=battle:CaptureDuration() end
+  if isKing then
+   local outward=Vector3.new(origin.X,0,origin.Z)
+   if outward.Magnitude<1 then outward=self.world:Position(session.plotIndex) end
+@@ -751,8 +721,9 @@
+ 	if attacker and attacker.outgoing==battle.id then
+ 		attacker.armyState,attacker.returnAt=if hold then "Deployed" else "Returning",if hold then 0 else now+Config.ReturnSeconds
+ 		attacker.stationedAt=if hold then battle.name else nil
+-		attacker.lastResult=if hold and battle.routeGoal then "Conquered! Marching toward "..battle.routeGoalName.."."
+-			elseif hold then "Conquered! Army stays at "..battle.name..". Approach another camp or change your lineup in My Army."
++		attacker.lastResult=if hold and battle.friendlyTerritory then "Army stationed at "..battle.name.."."
++			elseif hold and battle.routeGoal then "You've conquered "..battle.name.."! Marching toward "..battle.routeGoalName.."."
++			elseif hold then "You've conquered "..battle.name.."!"
+ 			elseif outcome=="A" then "Victory at "..battle.name.."!"
+ 			elseif outcome=="B" then "Squad wiped out. Enemy control is recovering; your chickens are returning home."
+ 			elseif outcome=="Draw" then "Draw — all pets are returning."
+@@ -920,6 +891,7 @@
+   else self.world:SetCampBusy(location.index,false,location.plot) end
+  end
+  self.campLocations[key]=nil
++ self.releasedTerritories[key]=nil
+ end
+ 
+ function BattleService:Remove(battle,successor,successorSide)
+@@ -956,7 +928,7 @@
+   -- A new order alone cannot release ground. Its army must first physically
+   -- arrive; redirecting again while en route restarts this arrival boundary.
+   local awaitingArrival=battle and battle.phase=="Travel" and not battle.arrivedAt
+-  if awaitingArrival and not self.territoryReclaims[key] then self.campClearedAt[key]=nil;continue end
++  if awaitingArrival and not self.releasedTerritories[key] then self.campClearedAt[key]=nil;continue end
+   local clear=true
+   if key=="income:1" then
+    local occupants={}
+@@ -978,7 +950,6 @@
+ 
+ function BattleService:Step(dt,now)
+  self:StepIncome(dt,now)
+- self:StepTerritoryReclaims(dt,now)
+  local expired={}
+  for _,battle in self.battles do
+   if battle.phase=="Returning" then
+@@ -1166,7 +1137,7 @@
+  local released={}
+  for key,owner in self.campOwners do if owner.userId==userId then table.insert(released,key) end end
+  for _,key in released do self:SetTerritoryOwner(key,nil) end
+- for key,reclaim in self.territoryReclaims do if reclaim.ownerId==userId then self.territoryReclaims[key]=nil end end
++ for key,ownerId in self.releasedTerritories do if ownerId==userId then self.releasedTerritories[key]=nil end end
+  if self.income.clockOwner==userId or (self.campOwners["income:1"]==nil and self.income.raidId) then self:CancelIncomeApproach(now);self.income.clockOwner=nil end
+  self.income.retry[userId]=nil
+  if self.income.lostOwners then self.income.lostOwners[userId]=nil end
+@@ -1176,22 +1147,8 @@
+ 
+ function BattleService:Snapshots(now)
+ 	local result={}
+-	local byId={}
+ 	for _,battle in self.battles do
+-  local snapshot=battle:Snapshot(now);table.insert(result,snapshot);byId[battle.id]=snapshot
+- end
+- for _,reclaim in self.territoryReclaims do
+-  local snapshot=byId[reclaim.battleId]
+-  if not snapshot or snapshot.phase=="Returning" then
+-   if snapshot then snapshot.enemyReclaiming=false end
+-   snapshot={id=reclaim.id,territoryReclaim=true,target=reclaim.target,units={},
+-    name=reclaim.name,x=reclaim.location.position.X,z=reclaim.location.position.Z,captureRadius=Config.CaptureRadius}
+-   table.insert(result,snapshot)
+-  end
+-  snapshot.enemyReclaiming,snapshot.enemyReclaimComplete=true,reclaim.captureElapsed==0
+-  snapshot.reclaimReason="Unclaimed · enemies taking back the base"
+-  snapshot.enemyControl=1-reclaim.captureElapsed/Config.CaptureSeconds
+-  snapshot.playerControl=reclaim.captureElapsed/Config.CaptureSeconds
++  table.insert(result,battle:Snapshot(now))
+  end
+ 	return result
+ end
+@@ -1200,7 +1157,7 @@
+  for _,battle in self.battles do battle:Destroy() end
+ 	self.battles,self.campBusy,self.campOwners,self.departingCamps,self.departingSides,self.campClearedAt={},{},{},{},{},{}
+  self.territoryIncome:Destroy()
+- self.territoryReclaims={}
++ self.releasedTerritories={}
+ end
+ 
+ return BattleService
+--- a/src/server/KingArena.luau
++++ b/src/server/KingArena.luau
+@@ -2,6 +2,7 @@
+ -- Central landmark and idle guardian; BattleService alone owns challenge/occupancy.
+ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
+ local Config = require(Shared.Config)
++local Conquest = require(Shared.ConquestPresentation)
+ local MapLayout = require(Shared.MapLayout)
+ local KingVisual = require(Shared.KingVisual)
+ local PetView = require(Shared.PetView)
+@@ -175,10 +176,11 @@
+ 	self.folder:SetAttribute("OwnerUserId", self.ownerId)
+ 	self.folder:SetAttribute("ConquerorUserId", self.ownerId)
+ 	self.folder:SetAttribute("Conquered", self.ownerId~=nil)
+-	self.flag.Color = if self.ownerId then Color3.fromRGB(98,226,56) else Color3.fromRGB(228,59,49)
+-	self.status.Text = if busy then "CHICKEN KING\nContested" elseif self.ownerId then "CROWN CAPTURED\n"..self.ownerName else "CHICKEN KING"
++	self.flag.Color = if self.ownerId then Conquest.Owned else Color3.fromRGB(228,59,49)
++	self.status.Text = if self.ownerId then "⚔ Conquered ⚔\n"..self.ownerName elseif busy then "CHICKEN KING\nContested" else "CHICKEN KING"
++	self.status.TextColor3=if self.ownerId then Conquest.Owned else palette.gold
+ 	-- The living boss already owns its name/health label; only show this marker after capture.
+-	self.status.Parent.Enabled = self.ownerId~=nil and not busy
++	self.status.Parent.Enabled = self.ownerId~=nil
+ 	if not busy and not self.ownerId then
+ 		self.actor = PetActor.new(self.folder, "ChickenKing", "Duck", 1, self.folder.KingSpawn.Position, Vector3.new(0, 0, -1))
+ 		KingVisual.Apply(self.actor.model, KingEncounter.Scale)
+@@ -205,8 +207,9 @@
+ 	self.folder:SetAttribute("OwnerUserId", userId)
+ 	self.folder:SetAttribute("ConquerorUserId", userId)
+ 	self.folder:SetAttribute("Conquered",true)
+-	self.flag.Color = Color3.fromRGB(98, 226, 56)
+-	self.status.Text = "CROWN CAPTURED\n" .. name
++	self.flag.Color = Conquest.Owned
++	self.status.Text = "⚔ Conquered ⚔\n" .. name
++	self.status.TextColor3=Conquest.Owned
+ 	self.status.Parent.Enabled = true
+ end
+ 
+--- a/src/server/WorldBuilder.luau
++++ b/src/server/WorldBuilder.luau
+@@ -6,6 +6,7 @@
+ local MapLayout = require(game:GetService("ReplicatedStorage").PetRoll.Shared.MapLayout)
+ local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
+ local UIColors = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UIColors)
++local Conquest = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ConquestPresentation)
+ 
+ local palette = {
+ 	grass = Color3.fromRGB(106, 185, 79), grassLight = Color3.fromRGB(108, 187, 80),
+@@ -254,10 +255,19 @@
+  end
+ end
+ 
++-- The encounter/owned label supplies the camp name while this site is occupied.
++function WorldBuilder.ApplyCampTitle(group)
++ if group:GetAttribute("IncomeTerritory") then return end
++ local anchor=group:FindFirstChild("Title")
++ local gui=anchor and anchor:FindFirstChild("Label")
++ if gui then gui.Enabled=not group:GetAttribute("Occupied") and not group:GetAttribute("Conquered") end
++end
++
+ -- This marker belongs to the territory, so it outlives its departing battle.
+ function WorldBuilder.ApplyCampOwnership(group,frame,userId,name)
+  group:SetAttribute("ConquerorUserId",userId)
+  group:SetAttribute("Conquered",userId~=nil)
++ WorldBuilder.ApplyCampTitle(group)
+  local marker=group:FindFirstChild("OwnershipFlag")
+  if not userId then if marker then marker:Destroy() end;return end
+  if not marker then
+@@ -265,12 +275,20 @@
+   local scale=Config.CampHalfSize/18
+   local cf=frame*CFrame.new(8.75*scale,0,-16.5*scale)
+   WorldBuilder.Part(marker,"Pole",Vector3.new(.35,9,.35),cf*CFrame.new(0,4.5,0),Color3.fromRGB(80,88,66),false)
+-  WorldBuilder.Part(marker,"Flag",Vector3.new(2.5,2,.15),cf*CFrame.new(1.25,7.5,0),Color3.fromRGB(98,226,56),false)
+-  local title=WorldBuilder.Billboard(marker,"Owner",(cf*CFrame.new(0,11,0)).Position,"",Color3.fromRGB(98,226,56),150,80)
+-  title.Parent.Size=UDim2.fromScale(12,2.8)
++  WorldBuilder.Part(marker,"Flag",Vector3.new(2.5,2,.15),cf*CFrame.new(1.25,7.5,0),Conquest.Owned,false)
++  local title=WorldBuilder.Billboard(marker,"Owner",frame.Position+Vector3.new(0,Conquest.Elevation,0),"",Conquest.Owned,150,Conquest.MaxDistance)
++  title.Parent.Size=UDim2.fromScale(Conquest.Width,Conquest.Height)
++  title.Parent.AlwaysOnTop=true
++  title.Size=UDim2.fromScale(1,0.35)
+   title.TextScaled=true
+- end
+- marker.Owner.Label.Text.Text="CONQUERED\n"..(name or "")
++  local camp=title:Clone();camp.Name="CampName";camp.Position=UDim2.fromScale(0.1,0.36)
++  camp.Size=UDim2.fromScale(0.8,0.23);camp.TextColor3=UIColors.Text;camp.Parent=title.Parent
++  local owner=title:Clone();owner.Name="OwnerName";owner.Position=UDim2.fromScale(0.08,0.64)
++  owner.Size=UDim2.fromScale(0.84,0.2);owner.TextColor3=UIColors.Rewards;owner.Parent=title.Parent
++ end
++ marker.Owner.Label.Text.Text="⚔ Conquered ⚔"
++ marker.Owner.Label.CampName.Text=group:GetAttribute("CampName") or group:GetAttribute("SceneryName") or "Base"
++ marker.Owner.Label.OwnerName.Text=name or ""
+ end
+ 
+ function WorldBuilder.ApplyLighting()
+--- a/src/server/WorldService.luau
++++ b/src/server/WorldService.luau
+@@ -647,6 +647,7 @@
+  local record=self.outposts[index]
+  if not record or record.busy==busy then return end
+  record.busy=busy;attribute(record.folder,"Occupied",busy)
++ Builder.ApplyCampTitle(record.folder)
+  self:PopulateCamp(record)
+ end
+ 
+@@ -655,6 +656,7 @@
+ 	if not record or record.busy == busy then return end
+ 	record.busy = busy
+ 	attribute(record.folder, "Occupied", busy)
++	Builder.ApplyCampTitle(record.folder)
+ 	if not self:ApplyCampStage(record) then self:PopulateCamp(record) end
+ end
+ 
+@@ -682,6 +684,7 @@
+ 			Builder.ApplyCampOwnership(record.folder,record.frame,nil,nil)
+ 			Builder.ApplyCampPromotion(record.folder,index,Progression.Camps(1)[index].name)
+ 			attribute(record.folder, "Occupied", false)
++			Builder.ApplyCampTitle(record.folder)
+ 			attribute(record.folder, "OwnerUserId", nil)
+ 		end
+ 	end
+--- a/src/shared/Config.luau
++++ b/src/shared/Config.luau
+@@ -75,7 +75,9 @@
+  -- Authored Blender pecks make contact at 0.30s; damage follows that beat.
+  AttackWindupSeconds=0.3,AttackStaggerSeconds=0.06,DefenderSpawnDepth=9,
+  RouteRegroupSeconds=1.2,CampHalfSize=11.7,CampRespawnGrace=2,
+- RoamStep=0.1,RoamSpeed=2.5,CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,
++ -- October 6 footage: one continuous conquest meter, approximately 25s.
++ -- Supply Outpost/player contests and Operations retain their existing timing.
++ RoamStep=0.1,RoamSpeed=2.5,ConquestSeconds=25,CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,
+  KillCoins={Duck=100,Mallard=160,Chunky=280,Sailor=280,Bucket=520,Viking=960,Knight=1760,Wizard=3360,Dragon=7200,IceDuck=9600,StormDuck=14400},
+  KillLevelBonus=0.15,
+  KingKillCoins=48000,
+--- a/src/shared/UIColors.luau
++++ b/src/shared/UIColors.luau
+@@ -9,6 +9,8 @@
+ 	Navigation = Color3.fromRGB(45,158,223),
+ 	Rewards = Color3.fromRGB(255,209,42),
+ 	Money = Color3.fromRGB(76,250,32),
++	Conquest = Color3.fromRGB(255,66,81),
++	ConquestTrack = Color3.fromRGB(74,95,103),
+ 	Upgrade = Color3.fromRGB(168,75,219),
+ 	Purchase = Color3.fromRGB(105,206,37),
+ 	Sell = Color3.fromRGB(255,189,43),
+--- a/tests/TerritoryClaimChecks.luau
++++ b/tests/TerritoryClaimChecks.luau
+@@ -19,7 +19,7 @@
+  local service=Battles.new({[s.userId]=s},world)
+  assert(service:Attack(s,"camp:1",0))
+  local b=service.battles[s.outgoing]
+- b.captureElapsed=Config.CaptureSeconds
++ b.captureElapsed=b:CaptureDuration()
+  for _,u in b.units do if u.side=="A" then u.x,u.z=b.destination.X,b.destination.Z;u.marchPath=nil end end
+  service:Finish(b,"A",1)
+  return s,service,world,b
+@@ -39,19 +39,13 @@
+   local s,service,world=setup();emptyCamp(service,s)
+   assert(service.campOwners["1:1"].userId==s.userId and world.owners[1]==s.userId)
+   assert(not service.campBusy["1:1"] and not world.spawns[1])
+-  service:StepTerritoryReclaims(100,100)
+   assert(service.campOwners["1:1"] and s.firstWins[1])
+  end)
+- test("Empty base unclaims immediately but enemy control refills over eight seconds",function()
++ test("Empty base unclaims immediately and restores its native garrison",function()
+   local s,service,world=setup();emptyCamp(service,s)
+   assert(service:Unclaim(s,"camp:1",5));assert(not service.campOwners["1:1"] and not world.owners[1])
+   assert(world.spawns[1]==1 and s.firstWins[1])
+-  local first=service:Snapshots(5)[1];assert(first.territoryReclaim and first.enemyControl==0)
+-  service:StepTerritoryReclaims(Config.CaptureSeconds/2,9)
+-  local half=service:Snapshots(9)[1];assert(half.enemyControl==.5 and not half.enemyReclaimComplete)
+-  service:StepTerritoryReclaims(Config.CaptureSeconds/2,13)
+-  assert(service:Snapshots(13)[1].enemyControl==1)
+-  service:StepTerritoryReclaims(1,14);assert(#service:Snapshots(14)==0 and world.spawns[1]==1)
++  assert(#service:Snapshots(5)==0 and world.spawns[1]==1)
+  end)
+  test("Unclaim is ownership-checked, repeat-safe and independent of selected chickens",function()
+   local s,service=setup();emptyCamp(service,s)
+@@ -71,27 +65,24 @@
+   assert(service.battles[s.outgoing]==b and b.phase=="Fight" and not b.paid and b:Alive("B")>0)
+   assert(b.units[1]==u and u.hp==hp and u.x==x and u.z==z and dead.hp==0 and dead.respawnAt==20)
+   local players=0;for _,unit in b.units do if unit.side=="A" then players+=1 end end;assert(players==count)
+-  service:StepTerritoryReclaims(2,4);assert(b.captureElapsed==Config.CaptureSeconds-2)
++  assert(b.captureElapsed==0 and not b.captureStarted)
+   for _,unit in b.units do if unit.side=="B" then unit.hp=0;unit.respawnAt=nil end end
+-  service:StepTerritoryReclaims(0,4);assert(not service.territoryReclaims["1:1"])
+   b:BeginCapture(4)
+-  assert(b:StepCapture(2,6)=="A");service:Finish(b,"A",6)
++  assert(b:StepCapture(b:CaptureDuration(),29)=="A");service:Finish(b,"A",29)
+   assert(service.campOwners["1:1"].userId==s.userId and b.phase=="Holding")
+  end)
+- test("An army can return mid-reclaim without resetting the meter",function()
++ test("An army returning to an unclaimed base starts a fresh conquest",function()
+   local s,service=setup();emptyCamp(service,s);assert(service:Unclaim(s,"camp:1",5))
+-  service:StepTerritoryReclaims(3,8)
+   assert(service:Attack(s,"camp:1",8));local b=service.battles[s.outgoing]
+-  assert(b.captureElapsed==Config.CaptureSeconds-3 and b:Alive("B")>0)
+-  local snapshots=service:Snapshots(8);assert(#snapshots==1 and snapshots[1].enemyControl==3/Config.CaptureSeconds)
++  assert(b.captureElapsed==0 and b:Alive("B")>0)
++  local snapshots=service:Snapshots(8);assert(#snapshots==1 and snapshots[1].captureProgress==0)
+   service:SetTerritoryOwner("1:1",s,service.campLocations["1:1"])
+-  service:StepTerritoryReclaims(100,108);assert(service.campOwners["1:1"] and not service.territoryReclaims["1:1"])
++  assert(service.campOwners["1:1"] and not service.releasedTerritories["1:1"])
+  end)
+- test("Recall during released-base combat preserves the independent recovery",function()
++ test("Recall during released-base combat restores idle defenders after vacancy",function()
+   local s,service,world=setup();assert(service:Unclaim(s,"camp:1",2))
+-  service:StepTerritoryReclaims(2,4);emptyCamp(service,s)
+-  local reclaim=service.territoryReclaims["1:1"];assert(reclaim.captureElapsed==Config.CaptureSeconds-2)
+-  service:StepTerritoryReclaims(2,6);assert(reclaim.captureElapsed==Config.CaptureSeconds-4)
++  emptyCamp(service,s)
++  assert(not service.releasedTerritories["1:1"])
+   assert(not service.campOwners["1:1"] and world.spawns[1]==1)
+  end)
+  test("Unclaiming a friendly destination during travel restores its defenders",function()
+@@ -99,7 +90,7 @@
+   local b=service.battles[s.outgoing];assert(b.friendlyTerritory and b:Alive("B")==0)
+   assert(service:Unclaim(s,"camp:1",6))
+   assert(b.phase=="Travel" and s.armyState=="Traveling" and b:Alive("B")>0 and not b.friendlyTerritory)
+-  service:StepTerritoryReclaims(2,8);assert(b.captureElapsed==Config.CaptureSeconds-2)
++  assert(b.captureElapsed==0 and not b.captureStarted)
+  end)
+  test("Explicitly unclaimed ground refills after vacancy without waiting for the next destination",function()
+   local s,service,world=setup();assert(service:Attack(s,"camp:2",2))
+@@ -108,8 +99,7 @@
+   assert(service:Unclaim(s,"camp:1",3))
+   service:ReleaseClearedCamps(3);service:ReleaseClearedCamps(3+Config.CampRespawnGrace+.01)
+   assert(not b.arrivedAt and not service.campBusy["1:1"] and world.spawns[1]==1)
+-  service:StepTerritoryReclaims(2,7)
+-  assert(service.territoryReclaims["1:1"].captureElapsed==Config.CaptureSeconds-2)
++  assert(not service.releasedTerritories["1:1"])
+  end)
+  test("Returning/empty armies still get the owner's unclaim action",function()
+   local Controller=require(game:GetService("StarterPlayer").StarterPlayerScripts.PetRoll.BaseController)
+@@ -124,7 +114,7 @@
+  test("Disconnect clears pending claims without touching earned wins",function()
+   local s,service=setup();emptyCamp(service,s);assert(service:Unclaim(s,"camp:1",5))
+   service:CancelPlayer(s.userId,6)
+-  assert(next(service.territoryReclaims)==nil and next(service.campOwners)==nil and s.firstWins[1])
++  assert(next(service.releasedTerritories)==nil and next(service.campOwners)==nil and s.firstWins[1])
+  end)
+  return results
+ end
+--- /dev/null
++++ b/src/shared/ConquestPresentation.luau
+@@ -0,0 +1,8 @@
++--!strict
++-- Presentation only. Capture authority and duration remain in Battle/Config.
++local Colors=require(script.Parent.UIColors)
++return table.freeze({
++	Progress=Colors.Conquest,Owned=Colors.Money,Track=Colors.ConquestTrack,
++	Width=20,Height=5.6,Elevation=18,MaxDistance=220,Segments=4,
++	BurstSeconds=3.2,BurstRadiusMultiplier=1.6,SparkleCount=54,
++})

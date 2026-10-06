@@ -1,0 +1,46 @@
+--- a/src/client/BaseController.luau
++++ b/src/client/BaseController.luau
+@@ -532,11 +532,9 @@
+ 	self.nearestCommand=nearest
+ 	if nearest then
+ 		self.commandAnchor.Parent=bestPart
+-		-- Keep the two native controls at the approach edge, away from the
+-		-- chickens fighting in the middle. Server reach still uses CampCommand.
+-		local edge=(nearest.model:GetAttribute("CampHalfSize") or Config.CampHalfSize)+2
+-		self.commandAnchor.Position=Vector3.new(0,2.5,edge)
+-		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)+edge
++		-- Center the compact controls; inactive commands remain hidden in combat.
++		self.commandAnchor.Position=Vector3.new(0,2.5,0)
++		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
+ 		self.commandPrompt.ActionText="Move Troops Here"
+ 		self.commandPrompt.ObjectText=""
+ 		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)
+--- a/src/server/Battle.luau
++++ b/src/server/Battle.luau
+@@ -255,11 +255,13 @@
+ function Battle:ReachedCamp(unit): boolean
+  if unit.marchPath then return false end
+  if (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then return true end
+- -- A defender can meet the flock at the edge. Do not walk past it to touch a zone.
++ -- Start the ordinary camp fight on detection, so guards walk out to meet the
++ -- arriving troop. Capture still requires physical presence in CaptureRadius.
++ local aggro=if self:IsConquest() then Config.DefenderAggroRadius else 0
+  for _,enemy in self.units do
+   if enemy.side~=unit.side and enemy.hp>0 and not enemy.reinforcing and not enemy.retiring then
+    local reach=math.max(Config.AttackRange,(unit.size+enemy.size)*0.5+0.3)
+-   if distance(unit,enemy)<=reach+1 then return true end
++   if distance(unit,enemy)<=math.max(reach+1,aggro) then return true end
+   end
+  end
+  return false
+--- a/src/shared/Config.luau
++++ b/src/shared/Config.luau
+@@ -74,6 +74,8 @@
+  BattleStep=0.1,SnapshotInterval=0.2,TravelSeconds=5,ReturnSeconds=5,
+  -- Authored Blender pecks make contact at 0.30s; damage follows that beat.
+  AttackWindupSeconds=0.3,AttackStaggerSeconds=0.06,DefenderSpawnDepth=9,
++ -- Camp defenders meet nearby troops before either side reaches pecking range.
++ DefenderAggroRadius=18,
+  RouteRegroupSeconds=1.2,CampHalfSize=11.7,CampRespawnGrace=2,
+  -- October 6 footage: one continuous conquest meter, approximately 25s.
+  -- Supply Outpost/player contests and Operations retain their existing timing.

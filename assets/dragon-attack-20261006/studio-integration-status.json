@@ -1,0 +1,28 @@
+{
+  "placeId": 96683186622050,
+  "groupId": 778575811,
+  "revision": "Forward Swoop v3",
+  "attackAnimationId": "91418238280745",
+  "flightAnimationId": "107847012846776",
+  "attackSeconds": 1.4,
+  "contactSeconds": 0.5333333333333333,
+  "installedModels": [
+    "ReplicatedStorage.GalaxyCrateChickenAssets20261002.DragonChickenFlight",
+    "Workspace.GalaxyCratePreview.DragonChickenFlight"
+  ],
+  "runtimeCheck": "runtime-check.json",
+  "sourceSync": "2 modules, byte-for-byte match",
+  "rewardEnabled": false,
+  "armyDeploymentEnabled": false,
+  "experiencePublished": false,
+  "playerDataChangedByCheck": false,
+  "cloudSaveVerified": true,
+  "localPlaceSaveVerified": true,
+  "cloudSaveLogUtc": "2026-10-06T05:30:34.906Z",
+  "localPlaceSaveLogUtc": "2026-10-06T05:31:09.039Z",
+  "localPlaceBackup": "/Users/stevin/Documents/Projects/MyChickenArmy/assets/dragon-attack-20261006/MyChickenArmy-Dragon-Attack-20261006.rbxl",
+  "localPlaceBackupBytes": 5749816,
+  "localPlaceBackupSha256": "ba2422bd96ec4fc4f6d5acf1d1ffb3bbce4f6345b00f5d92e9a0d3e28832481b",
+  "bootstrapsRestored": true,
+  "testClonesRemoved": true
+}

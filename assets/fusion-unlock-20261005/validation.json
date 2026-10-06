@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-05",
+  "placeId": 96683186622050,
+  "sourceReadback": {
+    "modules": [
+      "server/GameServer",
+      "server/PlayerSession",
+      "server/MergeStand",
+      "server/ArmyService",
+      "client/AppController",
+      "client/MergeBrowser",
+      "client/ChickenBrowser"
+    ],
+    "exactMatch": true
+  },
+  "isolated": {
+    "passed": 53,
+    "scope": "Unsaved real server-module session objects, synthetic first-win facts, unparented native prompt fixtures. Full checks printed in Studio Flow tool result; see check-unlock.luau."
+  },
+  "starterRegression": {
+    "passed": 87
+  },
+  "live": {
+    "locked": {
+      "pets": 3,
+      "page": "Army",
+      "panelVisible": false,
+      "lastResult": "TEST: fresh Free session. Saved progress and real purchases are untouched.",
+      "unlocked": false,
+      "coins": 2400
+    },
+    "unlocked": {
+      "saveStatus": "studio-session",
+      "action": "Fuse Chickens",
+      "mergeUnlocked": true,
+      "prompt": "Fuse Machine",
+      "page": "Merge",
+      "panelVisible": true
+    },
+    "scope": "FreshEconomy Free session-only profile. OpenMerge used normal client/server remote; locked local entry also rejected. Debug Unlock set camp facts for positive UI test; no new battle was executed for this lock validation."
+  },
+  "packaging": "Rojo build passed"
+}

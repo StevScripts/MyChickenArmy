@@ -7,7 +7,43 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
-## Egg recovery trips — October 4 correction
+## Current starter army — October 4 approval, October 5 live observation
+
+Fresh profiles now receive three free level-1 basic Chickens (internal `Duck`
+IDs), $2,400, three deployment slots and no offer. The free lever guarantees a
+$600 fourth recruit. The guide then teaches one collection and instant sale,
+buys Army Size 1 for $1,200, checks four selected fighters and directs the player
+to Cluck Camp. The new cohort does not need the former Grow/funding loop.
+
+`tutorial.starterArmy` identifies this opening; old profiles receive no extra
+chickens, cash or changed cohort. Legacy `emptyStart` saves retain their existing
+recruit/recovery path. The guide version is `cluck-3-starter-army`.
+
+PlayerSession reserves the $600 recruit and $1,200 expansion separately. Other
+cash spending uses only the remainder. The corresponding server purchase can
+consume its own earmark, including if the player expands before recruiting.
+Effective paid capacity counts. While the mission is incomplete, sales and
+fusion preserve three starter birds before recruiting and four afterward;
+skipping the guide does not bypass protection. Completion releases it. Ordinary
+roll odds, prices, upgrades and existing saved progress remain unchanged.
+
+Validation: 87 disposable server/shared checks passed on October 4 after exact
+source readback of all six changed modules. These cover purchase ordering,
+replay, reserves across cash sinks, flock protection, skip/completion, save
+round trips and legacy profiles. Egg milestones in that fixture are synthetic.
+The implementation was synchronized to the user's approved recovery working
+copy; on October 5, connected Pet Roll Test also contained the current sources.
+
+A fresh session-only Free profile's live client reported the route
+Roll → Recruit → Collect → Sell → Expand → Deploy → Battle → Complete, followed
+by returning home. It had four selected chickens, one $260 sale and $860 after
+the $600 recruit/$1,200 expansion, then $1,460 after victory. No Grow or recovery
+step occurred. Inputs were not all agent controlled, so this is an observed
+live route, not a fully automated replay or a novice usability study.
+See [fixture](../../assets/tutorial-starter-army-20261004/check-starter-army.luau)
+and [observed completion](../../assets/tutorial-starter-army-20261004/observed-completion-20261005.json).
+
+## Egg recovery trips — preceding October 4 correction
 
 Fixed locally in `shared/TutorialGuide.luau`. The previous recovery rule pointed
 at the sell pad whenever the bag had any value, even if that sale could not fund
@@ -22,10 +58,9 @@ Seventeen isolated routing checks passed, including 124 successive partial-bag
 snapshots, exact/over-target sales, changed offers, other income, first sale and
 skip. [Check source](../../assets/tutorial-egg-recovery-20261004/check-recovery.luau)
 and [results](../../assets/tutorial-egg-recovery-20261004/validation.json).
-The active Studio session is an unsynced auto-recovery file with place ID 0;
-its Edit/client modules still have the old rule. Canonical Rojo sync and a fresh
-Play session remain pending. The existing Play session was left running; no
-place, profile, purchase, publication or Git-history changes were made.
+This correction remains relevant to legacy profiles and unusual insufficient-
+cash states. Its earlier pending sync was completed with the starter-army
+revision above; the empty opening described below is historical.
 
 ## Selective spotlight — latest October 3 correction
 
@@ -115,7 +150,7 @@ image loaded in both GUI and world arrows; chevrons and destination text are
 white. [Assets, prompts, screenshots and results](../../assets/tutorial-stroke-20261003/README.md).
 Studio is in Edit with the default device; no experience release was published.
 
-## Current empty-yard start — October 3 follow-up
+## Historical empty-yard start — October 3, superseded for fresh profiles
 
 New profiles start with $2,400, three army slots, **zero chickens** and no podium
 offer. The player must pull the normal free lever. Until the first chicken is
@@ -251,18 +286,18 @@ stud-sheet header to the right inset, and slightly overlaps the portrait.
 
 | Step | Instruction and consequence | Completion evidence |
 |---|---|---|
-| Roll | Pull the free lever in the empty yard | Server-confirmed roll |
-| Recruit | Buy the $600 starter chicken; it produces eggs | Committed purchase or existing owned flock |
+| Roll | Pull the free lever beside the three starter chickens | Server-confirmed roll |
+| Recruit | Buy the $600 fourth chicken | Committed purchase; free starter birds do not satisfy this lesson |
 | Collect | Walk close to an egg to put it in the bag | Existing server collection fact or carried eggs |
 | Sell | Walk onto the green pad for immediate cash | Server-confirmed instant sale |
-| Grow | Recruit toward four chickens; collect/sell if more cash is needed | Four owned chickens |
+| Grow (legacy/recovery only) | Recruit toward four chickens if the existing profile has fewer | Four owned chickens; fresh cohort satisfies this after Recruit |
 | Expand | Open Upgrades and buy Army Size 1 | Available army capacity reaches four |
 | Select | Use Select Best or choose a squad | Four selected chickens; auto-selected squads already satisfy this |
 | Deploy | Follow the marker and use Move Troops Here at Cluck Camp | Accepted server camp command |
 | Battle / complete | Chickens fight automatically; after capture choose another recruit, upgrade or camp | Existing server camp-victory fact |
 
 The guide observes gameplay rather than imposing prerequisites. Cash upgrades
-remain accessible when affordable above the temporary first-chicken reserve.
+remain accessible when affordable above the temporary recruit/army-slot reserves.
 Existing progress and paid capacity
 count; early victories end the guide without inventing missing milestones.
 Unaffordable purchases route back to collecting/selling, and the recruit help
@@ -312,7 +347,7 @@ and inspections; that is not a human completion-time benchmark.
   suppresses the superseded opening text line.
 - GameServer observes augmented snapshots and committed actions. PlayerSession
   preserves optional booleans in its existing tutorial data:
-  emptyStart, guideStarted, guideSkipped, guideDeployed and guideCompleted. Missing fields
+  starterArmy, emptyStart, guideStarted, guideSkipped, guideDeployed and guideCompleted. Missing fields
   load false. There is no new profile schema or DataStore.
 
 Guide code does not award cash, change prices, execute purchases, or authorize
@@ -320,7 +355,7 @@ deployment. UI reports cannot assert gameplay completion. Signals use the
 existing remote's rate limit plus a per-signal cooldown and bounded allowlist.
 Analytics failures do not reverse transactions.
 
-## Analytics contract: cluck-2-empty-start
+## Analytics contract: cluck-3-starter-army
 
 Production events are server-side AnalyticsService calls. Studio collects a
 bounded local ring instead of sending production analytics. Actual charts
@@ -328,7 +363,7 @@ therefore require a separately authorized published release and subsequent
 event inspection.
 
 Three custom fields are used:
-1. tutorial version/cohort, such as cluck-2-empty-start/FirstGuide or cluck-2-empty-start/ReturningGuide;
+1. tutorial version/cohort, such as cluck-3-starter-army/FirstGuide or cluck-3-starter-army/ReturningGuide;
 2. stable step ID;
 3. a bounded outcome, action, input class or time bucket.
 
