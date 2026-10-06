@@ -1,8 +1,19 @@
 --!strict
 -- Snapshot-only guidance. Never changes prices, eligibility or player actions.
 local Guide = {}
-Guide.Version = "cluck-4-eggs-first"
+Guide.Version = "cluck-5-forty-eggs"
+Guide.EggGoal = 40
 Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win"}
+
+function Guide.CollectedEggCount(tutorial)
+	local count = tutorial.collectedEggCount
+	if type(count)=="number" and count==count and count<math.huge then
+		return math.clamp(math.floor(count), 0, Guide.EggGoal)
+	end
+	-- Boolean-only snapshots retain their earned lesson. New profiles always
+	-- carry a numeric count, so an early sale or a nonempty bag cannot bypass it.
+	return if count==nil and (tutorial.collectedEggs==true or tutorial.guideCompleted==true) then Guide.EggGoal else 0
+end
 
 function Guide.Facts(state)
 	local t = state.tutorial or {}
@@ -13,7 +24,7 @@ function Guide.Facts(state)
 		-- The free squad must not count as completing the recruit lesson.
 		Recruit = if t.starterArmy then t.bought == true
 			else t.bought == true or #(state.pets or {}) >= (if t.emptyStart then 1 else 4),
-		Collect = t.collectedEggs == true or ((state.eggs or {}).carriedCount or 0) > 0,
+		Collect = Guide.CollectedEggCount(t) >= Guide.EggGoal,
 		Sell = t.soldEggs == true,
 		Grow = #(state.pets or {}) >= 4,
 		Expand = (state.capacity or 3) >= 4,
@@ -80,7 +91,7 @@ function Guide.Resolve(state)
 	-- their recruit-first route, and an empty flock always needs an egg producer.
 	if #(state.pets or {})==0 or (not t.starterArmy and not f.Recruit) then return recruit(state, false) end
 	if not f.Collect then
-		return step("Collect", "Walk over an egg", "Yard")
+		return step("Collect", "Collect "..Guide.EggGoal.." eggs ("..Guide.CollectedEggCount(t).."/"..Guide.EggGoal..")", "Yard")
 	end
 	if not f.Sell then
 		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state) end

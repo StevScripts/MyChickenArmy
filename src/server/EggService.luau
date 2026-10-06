@@ -12,6 +12,7 @@ local EggRover=require(script.Parent.EggRover)
 local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
 local Currency=require(Shared.CurrencyLimits)
+local TutorialGuide=require(Shared.TutorialGuide)
 local EggService={}
 EggService.__index=EggService
 local CASH_COLLECT_SECONDS=1
@@ -205,26 +206,29 @@ end
 function EggService:Pay(session,yard,drop,now)
  if drop.paid then return end
  drop.paid=true
+ local count=drop.stack or 1
  local credited=session:EarnedAmount(drop.value,"eggs")
  if drop.collector=="rover" then
   local rover=yard.rover
   if rover and rover.enabled then
-   rover.pendingCount=math.max(0,rover.pendingCount-(drop.stack or 1))
-   rover.cargoCount+=drop.stack or 1
+   rover.pendingCount=math.max(0,rover.pendingCount-count)
+   rover.cargoCount+=count
    rover.cargoValue+=drop.value
   else
    -- A claim already belongs to this player, even if the robot was toggled off.
-   session.eggCarry.count+=drop.stack or 1
+   session.eggCarry.count+=count
    session.eggCarry.value+=drop.value
-   session:Touch()
   end
  else
-  session.eggCarry.count+=drop.stack or 1
+  session.eggCarry.count+=count
   session.eggCarry.value+=drop.value
-  session:Touch()
  end
- session.tutorial.collectedEggs=true
- table.insert(yard.receipts,{id=drop.id,value=credited,count=drop.stack or 1,at=now,
+ -- Count committed egg units once, including stacked and rover pickups. The
+ -- saved lesson counter survives deposits and is bounded after completion.
+ session.tutorial.collectedEggCount=math.min(TutorialGuide.EggGoal,TutorialGuide.CollectedEggCount(session.tutorial)+count)
+ session.tutorial.collectedEggs=session.tutorial.collectedEggCount>=TutorialGuide.EggGoal
+ session:Touch()
+ table.insert(yard.receipts,{id=drop.id,value=credited,count=count,at=now,
   collector=drop.collector or "player",targetX=drop.targetX,targetY=drop.targetY,targetZ=drop.targetZ})
  yard.revision+=1
 end

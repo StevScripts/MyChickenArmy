@@ -13,6 +13,7 @@ local EggProcessor = require(script.Parent.EggProcessor)
 local OfflineCash = require(script.Parent.OfflineCash)
 local ResearchRules = require(Shared.ResearchRules)
 local ResearchService = require(script.Parent.ResearchService)
+local TutorialGuide = require(Shared.TutorialGuide)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 
@@ -50,7 +51,7 @@ function PlayerSession:Reset()
  self.promotion,self.recruitTier=1,1
  self.frontierWins,self.kingCleared={},false
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
- self.tutorial={starterArmy=true}
+ self.tutorial={starterArmy=true,collectedEggCount=0}
  self.fusionUnlocked=false
  self.saveStatus=self.saveStatus or "loading"
  self.saveMessage=self.saveMessage or "Loading your flock…"
@@ -722,6 +723,17 @@ function PlayerSession:LoadData(data)
  end
 	local tutorial={}
 	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted"} do tutorial[key]=data.tutorial[key]==true end
+	local collectedEggCount=data.tutorial.collectedEggCount
+	if collectedEggCount==nil then
+		-- Existing saves already passed the one-egg lesson when they collected,
+		-- sold or completed it. Only new/unfinished profiles begin counting at zero.
+		collectedEggCount=if tutorial.collectedEggs or carry.count>0 or tutorial.soldEggs
+			or tutorial.wonCamp or tutorial.guideCompleted then TutorialGuide.EggGoal else 0
+	elseif not numberIn(collectedEggCount,0,1e12,true) then
+		return false,"Invalid saved tutorial egg count."
+	end
+	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
+	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
 	if not numberIn(data.passiveEarned or 0,0,Currency.MaxCoins) or not numberIn(data.battleEarned or 0,0,Currency.MaxCoins) then return false,"Invalid saved earnings." end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.

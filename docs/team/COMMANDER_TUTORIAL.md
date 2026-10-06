@@ -7,7 +7,20 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
-## Eggs first — latest October 6 correction
+## Collect 40 eggs and larger one-line instructions — latest October 6 correction
+
+The initial Collect lesson requires 40 server-confirmed egg units and displays
+`Collect 40 eggs (n/40)`. Stacked/rarer drops contribute their actual quantity.
+Selling early, skipping/resuming or rejoining does not reset progress; the player
+does not need to hold all 40 at once. A carried egg alone no longer advances a
+new tutorial. Legacy earned collection milestones and completed guides remain
+earned. Egg prices, rewards and ordinary gameplay actions are unchanged.
+
+The Commander instruction now occupies most of the strip's usable space beside
+the portrait. Native `TextScaled=true`, `TextWrapped=false` and centered alignment
+keep every instruction on one line. The Skip button remains absent.
+
+## Eggs first — preceding October 6 correction
 
 The starter-army guide now begins **Collect → Sell → Roll → Recruit**, then
 prepares the four-chicken army and directs the player to conquer Cluck Camp.

@@ -279,14 +279,15 @@ end
 function AppController:OpenPage(page)
 	if self.commerce.cratePresenting then return end
 	if page=="Upgrades" or page=="Research" then self.research:Open();return end
-	if self.research then self.research:Close() end
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
 	if page=="Merge" and not self.mergeBrowser then return end
 	if page=="Merge" and (not self.state or self.state.mergeUnlocked~=true) then
-		self:Notify((self.state and self.state.mergeRequirement) or "Capture Cluck Camp to unlock the Fuse Machine.",false)
+		self:Notify("Unlock the Fuse Machine in the skill tree first.",false)
+		self.research:OpenNode("FuseMachine")
 		return
 	end
+	if self.research then self.research:Close() end
 	self:SetMenuBlur("main",true)
 	self.offlineCash:Dismiss(true)
 	if self.mergeBrowser and self.page=="Merge" and page~="Merge" then self.mergeBrowser:Close() end
@@ -719,6 +720,11 @@ function AppController:Receive(packet)
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
+		if not result.ok and result.action=="OpenMerge" and state.mergeUnlocked==false
+			and not self.panel.Visible and not self.research.root.Visible and not self.dialogueActive and not self.commerce.cratePresenting then
+			-- Keep the existing Error notice; do not replace a menu opened while the reply was in flight.
+			self.research:OpenNode("FuseMachine")
+		end
 		if result.ok and (result.action == "Merge" or result.action == "MergeAll") then
 			self.base:PetPulse(result.petId,C.gold)
 		end
@@ -732,9 +738,8 @@ function AppController:Receive(packet)
 	self:StepRecruitFeedback()
 	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner);self.lastBanner = state.banner end
 	if old and state.lastResult ~= old.lastResult and not packet.result then
-		local unlocked=old.mergeUnlocked==false and state.mergeUnlocked==true
 		local kind=if state.lastResult:match("^You've conquered ") then "conquest" else nil
-		self:Notify(state.lastResult..(if unlocked then " Fuse Machine unlocked!" else ""),kind)
+		self:Notify(state.lastResult,kind)
 	end
 	self:RenderPanel(old == nil)
 	self.offlineCash:Receive(state)

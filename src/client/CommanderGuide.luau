@@ -27,7 +27,9 @@ function Commander.new(app)
 	body.Position, body.BackgroundTransparency = UDim2.fromScale(.1,.13), .28
 	Theme.Stroke(body,Theme.Arcade.border,Theme.Border.Control)
 	self.instruction=Theme.Display(card,"Objective","",27)
-	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.19,.30),UDim2.fromScale(.77,.42)
+	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.18,.19),UDim2.fromScale(.795,.66)
+	self.instruction.TextScaled,self.instruction.TextWrapped=true,false
+	self.instruction.TextXAlignment=Enum.TextXAlignment.Center
 	self.portrait=Theme.Image(card,"Commander",Theme.Assets.Commander,UDim2.fromScale(.165,1.15),UDim2.fromScale(0,-.015))
 	Theme.Aspect(self.portrait,1)
 	self.portrait.ZIndex=4

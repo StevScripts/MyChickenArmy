@@ -10,6 +10,10 @@ uploaded to the game's creator group 778575811. Its white face, black contour,
 short shaft and broad head repeat vertically with transparent spacing. Existing
 GUI/destination artwork remains `rbxassetid://101313283357577`.
 
+Direction correction: destination is Attachment0 and player is Attachment1 so
+the drawn arrows face the destination. TextureSpeed is -1 to scroll from player
+to destination, or 0 for reduced motion. The uploaded artwork is unchanged.
+
 - `beam-arrow-master.png`: unchanged generated 1254 × 1254 source.
 - `beam-arrow-roblox.png`: 1024 × 1024 runtime export; no crop or recoloring.
 - `beam-arrow.rgba`: upload pixels; `asset.json` records hashes and alpha bounds.

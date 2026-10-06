@@ -966,6 +966,16 @@ function Browser:OpenCash(upgradeKey)
 	end
 end
 
+function Browser:OpenNode(id)
+	self:Open()
+	if not self.nodes[id] then return end
+	self:Center(id)
+	self:Select(id,true)
+	if UserInputService.GamepadEnabled and self.selected then
+		GuiService.SelectedObject=self.nodes[self.selected].button
+	end
+end
+
 function Browser:Open()
 	if self.root.Visible then self:Focus();return end
 	self.app.audio:Play("SkillTreeOpen",nil,{noFallback=true})

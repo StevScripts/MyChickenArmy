@@ -401,8 +401,9 @@ function BaseController:UpdateGuideTrail(anchor, enabled)
 	elseif self.guideEnd then
 		self.guideEnd:Destroy();self.guideEnd=nil
 	end
-	self.guideBeam.Attachment0,self.guideBeam.Attachment1=self.guideStart,destination
-	self.guideBeam.TextureSpeed=if reduced then 0 else 1
+	-- Reverse the texture orientation; negative scrolling still travels toward the destination.
+	self.guideBeam.Attachment0,self.guideBeam.Attachment1=destination,self.guideStart
+	self.guideBeam.TextureSpeed=if reduced then 0 else -1
 	self.guideBeam.Enabled=true
 end
 
