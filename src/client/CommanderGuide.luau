@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
+local TextService = game:GetService("TextService")
 local Theme = require(script.Parent.UITheme)
 local Guide = require(game.ReplicatedStorage.PetRoll.Shared.TutorialGuide)
 local CashNodes = require(script.Parent.CashUpgradeNodes)
@@ -28,12 +29,22 @@ function Commander.new(app)
 	Theme.Stroke(body,Theme.Arcade.border,Theme.Border.Control)
 	self.instruction=Theme.Display(card,"Objective","",27)
 	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.18,.19),UDim2.fromScale(.795,.66)
-	self.instruction.TextScaled,self.instruction.TextWrapped=true,false
 	self.instruction.TextXAlignment=Enum.TextXAlignment.Center
 	self.portrait=Theme.Image(card,"Commander",Theme.Assets.Commander,UDim2.fromScale(.165,1.15),UDim2.fromScale(0,-.015))
 	Theme.Aspect(self.portrait,1)
 	self.portrait.ZIndex=4
 	Theme.ScaleText(card)
+	self.instructionLimits={}
+	for _,label in {self.instruction,self.instruction.TextFace,self.instruction.TextShadow} do
+		local limit=Instance.new("UITextSizeConstraint")
+		limit.MinTextSize,limit.MaxTextSize=1,100
+		limit.Parent=label
+		table.insert(self.instructionLimits,limit)
+	end
+	for _,property in {"Text","AbsoluteSize"} do
+		table.insert(self.connections,self.instruction:GetPropertyChangedSignal(property):Connect(function() self:FitInstruction() end))
+	end
+	self:FitInstruction()
 	table.insert(self.connections,ProximityPromptService.PromptShown:Connect(function(prompt)
 		if prompt:FindFirstAncestor("RollStation") or prompt.Name=="ArmyCommandPrompt" then self.prompts[prompt]=true;self:Update() end
 	end))
@@ -41,6 +52,23 @@ function Commander.new(app)
 		self.prompts[prompt]=nil;self:Update()
 	end))
 	return self
+end
+
+function Commander:FitInstruction()
+	-- TextScaled enables wrapping in Roblox. Cap it at the largest one-line
+	-- size; only text/frame changes remeasure, never a frame-by-frame loop.
+	local label=self.instruction
+	local space=label.AbsoluteSize
+	if space.X<=0 or space.Y<=0 then return end
+	local low,high,best=1,100,1
+	while low<=high do
+		local size=math.floor((low+high)/2)
+		local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(100000,100000))
+		if bounds.X<=math.max(1,space.X-4) and bounds.Y<=space.Y*.96 then
+			best,low=size,size+1
+		else high=size-1 end
+	end
+	for _,limit in self.instructionLimits do limit.MaxTextSize=best end
 end
 
 -- Snapshot refreshes never restart this one short entrance. The shared tween

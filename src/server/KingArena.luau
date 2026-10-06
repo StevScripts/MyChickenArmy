@@ -187,7 +187,9 @@ function KingArena:SetBusy(busy, ownerName)
 	self.folder:SetAttribute("OwnerUserId", self.ownerId)
 	self.folder:SetAttribute("ConquerorUserId", self.ownerId)
 	self.folder:SetAttribute("Conquered", self.ownerId~=nil)
-	self.flag.Color = if self.ownerId then Conquest.Owned else Color3.fromRGB(228,59,49)
+	if not Builder.ApplyOwnershipFlag(self.folder,self.ownerId) then
+		self.flag.Color = if self.ownerId then Conquest.Owned else Color3.fromRGB(228,59,49)
+	end
 	self.status.Text = if self.ownerId then "⚔ Conquered ⚔\n"..self.ownerName elseif busy then "CHICKEN KING\nContested" else "CHICKEN KING"
 	self.status.TextColor3=if self.ownerId then Conquest.Owned else palette.gold
 	-- The living boss already owns its name/health label; only show this marker after capture.
@@ -218,7 +220,7 @@ function KingArena:Hold(userId, name)
 	self.folder:SetAttribute("OwnerUserId", userId)
 	self.folder:SetAttribute("ConquerorUserId", userId)
 	self.folder:SetAttribute("Conquered",true)
-	self.flag.Color = Conquest.Owned
+	if not Builder.ApplyOwnershipFlag(self.folder,userId) then self.flag.Color = Conquest.Owned end
 	self.status.Text = "⚔ Conquered ⚔\n" .. name
 	self.status.TextColor3=Conquest.Owned
 	self.status.Parent.Enabled = true

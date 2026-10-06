@@ -1,0 +1,291 @@
+{
+  "ok": true,
+  "scope": "Latest local sources, separate require cache, disposable profiles; no mapped Source or live session writes",
+  "result": {
+    "scope": "Disposable sessions and native unparented prompt; synthetic time/camp facts; no live players, remotes, map, DataStore, Play or real purchases",
+    "passed": 70,
+    "checks": [
+      {
+        "name": "manual fusion remains enabled",
+        "ok": true
+      },
+      {
+        "name": "Fuse Machine is an early Army research unlock",
+        "ok": true
+      },
+      {
+        "name": "fresh profiles deny fusion with the actionable server error",
+        "ok": true
+      },
+      {
+        "name": "fresh snapshot supplies the same locked requirement",
+        "ok": true
+      },
+      {
+        "name": "fresh save stamps version 2 and explicit locked access",
+        "ok": true
+      },
+      {
+        "name": "fresh locked access survives rejoin",
+        "ok": true
+      },
+      {
+        "name": "funded matching trio receives the locked error",
+        "ok": true
+      },
+      {
+        "name": "locked single fusion is atomic",
+        "ok": true
+      },
+      {
+        "name": "locked batch uses the same error and preserves all saved state",
+        "ok": true
+      },
+      {
+        "name": "locked profiles advertise no manual or automatic recipes",
+        "ok": true
+      },
+      {
+        "name": "a new Cluck Camp victory no longer grants access",
+        "ok": true
+      },
+      {
+        "name": "a new camp victory remains locked after save/load",
+        "ok": true
+      },
+      {
+        "name": "version 2 missing access flag cannot use legacy grandfathering",
+        "ok": true
+      },
+      {
+        "name": "Start makes Fuse Machine research available without a camp",
+        "ok": true
+      },
+      {
+        "name": "research charges once and leaves fusion locked while running",
+        "ok": true
+      },
+      {
+        "name": "unfinished research remains locked on rejoin",
+        "ok": true
+      },
+      {
+        "name": "duplicate research does not charge again",
+        "ok": true
+      },
+      {
+        "name": "cancelling refunds the paid cost without unlocking",
+        "ok": true
+      },
+      {
+        "name": "cancel can only refund once",
+        "ok": true
+      },
+      {
+        "name": "cancelled research stays locked after rejoin",
+        "ok": true
+      },
+      {
+        "name": "cancelled research can be started again",
+        "ok": true
+      },
+      {
+        "name": "research does not complete before its deadline",
+        "ok": true
+      },
+      {
+        "name": "deadline completes fusion access",
+        "ok": true
+      },
+      {
+        "name": "completion does not charge again or replay",
+        "ok": true
+      },
+      {
+        "name": "completed snapshot clears the error",
+        "ok": true
+      },
+      {
+        "name": "completed research persists access and completed node",
+        "ok": true
+      },
+      {
+        "name": "offline fixture starts research",
+        "ok": true
+      },
+      {
+        "name": "elapsed offline job completes on load without another charge",
+        "ok": true
+      },
+      {
+        "name": "offline completion serializes durable access",
+        "ok": true
+      },
+      {
+        "name": "researched fusion performs the ordinary quoted transaction",
+        "ok": true
+      },
+      {
+        "name": "researched fusion retains next-level guaranteed Giant behavior",
+        "ok": true
+      },
+      {
+        "name": "earned flag preserves fusion access and marks just Fuse Machine complete",
+        "ok": true
+      },
+      {
+        "name": "earned flag migration preserves cash chickens and existing research",
+        "ok": true
+      },
+      {
+        "name": "earned flag migration persists without any later camp requirement",
+        "ok": true
+      },
+      {
+        "name": "missing flag preserves fusion access and marks just Fuse Machine complete",
+        "ok": true
+      },
+      {
+        "name": "missing flag migration preserves cash chickens and existing research",
+        "ok": true
+      },
+      {
+        "name": "missing flag migration persists without any later camp requirement",
+        "ok": true
+      },
+      {
+        "name": "old camp victory preserves fusion access and marks just Fuse Machine complete",
+        "ok": true
+      },
+      {
+        "name": "old camp victory migration preserves cash chickens and existing research",
+        "ok": true
+      },
+      {
+        "name": "old camp victory migration persists without any later camp requirement",
+        "ok": true
+      },
+      {
+        "name": "old explicit false without earned access stays locked",
+        "ok": true
+      },
+      {
+        "name": "old locked profile switches to version 2 on save",
+        "ok": true
+      },
+      {
+        "name": "invalid string fusion flag rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "invalid number fusion flag rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "invalid table fusion flag rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "unsupported fusion version 0 rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "unsupported fusion version 1 rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "unsupported fusion version 3 rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "unsupported fusion version 2 rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "unsupported fusion version true rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "unsupported fusion version table: 0xaf5c7c2243190385 rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "version 2 flag plus active fusion job rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "old flag plus active fusion job rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "old missing flag plus active fusion job rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "old camp plus active fusion job rejects atomically",
+        "ok": true
+      },
+      {
+        "name": "EggSpeed remains purchasable without fusion research or camp progress",
+        "ok": true
+      },
+      {
+        "name": "EggValue remains purchasable without fusion research or camp progress",
+        "ok": true
+      },
+      {
+        "name": "PlotSize remains purchasable without fusion research or camp progress",
+        "ok": true
+      },
+      {
+        "name": "ArmySize remains purchasable without fusion research or camp progress",
+        "ok": true
+      },
+      {
+        "name": "Luck remains purchasable without fusion research or camp progress",
+        "ok": true
+      },
+      {
+        "name": "RollSlots remains purchasable without fusion research or camp progress",
+        "ok": true
+      },
+      {
+        "name": "fusion unlock does not change cash upgrade offers",
+        "ok": true
+      },
+      {
+        "name": "locked native prompt remains visible with skill-tree action",
+        "ok": true
+      },
+      {
+        "name": "prompt sync preserves ownership and readiness",
+        "ok": true
+      },
+      {
+        "name": "locked prompt remains suppressed during reveal",
+        "ok": true
+      },
+      {
+        "name": "completion changes prompt copy without interrupting reveal suppression",
+        "ok": true
+      },
+      {
+        "name": "researched prompt returns when reveal ends",
+        "ok": true
+      },
+      {
+        "name": "loaded guard still disables the prompt",
+        "ok": true
+      },
+      {
+        "name": "closing guard still disables the prompt",
+        "ok": true
+      },
+      {
+        "name": "saveLost guard still disables the prompt",
+        "ok": true
+      }
+    ]
+  },
+  "isolatedModules": 33
+}

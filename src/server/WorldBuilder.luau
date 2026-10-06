@@ -263,19 +263,69 @@ function WorldBuilder.ApplyCampTitle(group)
  if gui then gui.Enabled=not group:GetAttribute("Occupied") and not group:GetAttribute("Conquered") end
 end
 
--- This marker belongs to the territory, so it outlives its departing battle.
+-- The builder's pennants have three thin-X cloth panels and a separate wooden
+-- pole/base. Put one upright headshot on each side of the largest cloth panel.
+function WorldBuilder.ApplyOwnershipFlag(group,userId)
+ local flags=group:FindFirstChild("Flags")
+ local royal=group:FindFirstChild("Flag")
+ if not flags and royal then flags=royal:FindFirstChild("ThroneFlag") end
+ if not flags then return false end
+ local cloth=nil
+ local largest=0
+ for _,panel in flags:GetDescendants() do
+  if panel:IsA("BasePart") and panel.Size.X<math.min(panel.Size.Y,panel.Size.Z)*0.5 then
+   local original=panel:GetAttribute("ConquestOriginalColor")
+   if userId then
+    if original==nil then panel:SetAttribute("ConquestOriginalColor",panel.Color) end
+    panel.Color=Conquest.Owned
+   elseif typeof(original)=="Color3" then
+    panel.Color=original
+    panel:SetAttribute("ConquestOriginalColor",nil)
+   end
+   local area=panel.Size.Y*panel.Size.Z
+   if area>largest then cloth,largest=panel,area end
+  end
+ end
+ if not cloth then return false end
+ for _,face in {Enum.NormalId.Left,Enum.NormalId.Right} do
+  local name="ConquerorPortrait"..face.Name
+  local gui=cloth:FindFirstChild(name)
+  if not userId then
+   if gui then gui:Destroy() end
+   continue
+  end
+  if not gui then
+   gui=Instance.new("SurfaceGui")
+   gui.Name,gui.Face=name,face
+   gui.SizingMode,gui.PixelsPerStud=Enum.SurfaceGuiSizingMode.PixelsPerStud,100
+   gui.AlwaysOnTop,gui.LightInfluence,gui.MaxDistance=false,0.2,Conquest.MaxDistance
+   local portrait=Instance.new("ImageLabel")
+   portrait.Name,portrait.BackgroundTransparency="Headshot",1
+   portrait.AnchorPoint,portrait.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+   local side=math.min(cloth.Size.Y,cloth.Size.Z)*0.9
+   portrait.Size=UDim2.fromScale(side/cloth.Size.Z,side/cloth.Size.Y)
+   portrait.ScaleType=Enum.ScaleType.Fit
+   local right=if face==Enum.NormalId.Left then cloth.CFrame.ZVector else -cloth.CFrame.ZVector
+   portrait.Rotation=math.deg(math.atan2(right.Y,cloth.CFrame.UpVector.Y))
+   portrait.Parent=gui
+   gui.Parent=cloth
+  end
+  -- A direct thumbnail URI avoids a yielding request racing a later unclaim.
+  gui.Headshot.Image=if userId>0 then "rbxthumb://type=AvatarHeadShot&id="..userId.."&w=420&h=420" else ""
+ end
+ return true
+end
+
+-- This label belongs to the territory, so it outlives its departing battle.
 function WorldBuilder.ApplyCampOwnership(group,frame,userId,name)
  group:SetAttribute("ConquerorUserId",userId)
  group:SetAttribute("Conquered",userId~=nil)
  WorldBuilder.ApplyCampTitle(group)
+ WorldBuilder.ApplyOwnershipFlag(group,userId)
  local marker=group:FindFirstChild("OwnershipFlag")
  if not userId then if marker then marker:Destroy() end;return end
  if not marker then
   marker=model(group,"OwnershipFlag")
-  local scale=Config.CampHalfSize/18
-  local cf=frame*CFrame.new(8.75*scale,0,-16.5*scale)
-  WorldBuilder.Part(marker,"Pole",Vector3.new(.35,9,.35),cf*CFrame.new(0,4.5,0),Color3.fromRGB(80,88,66),false)
-  WorldBuilder.Part(marker,"Flag",Vector3.new(2.5,2,.15),cf*CFrame.new(1.25,7.5,0),Conquest.Owned,false)
   local title=WorldBuilder.Billboard(marker,"Owner",frame.Position+Vector3.new(0,Conquest.Elevation,0),"",Conquest.Owned,150,Conquest.MaxDistance)
   title.Parent.Size=UDim2.fromScale(Conquest.Width,Conquest.Height)
   title.Parent.AlwaysOnTop=true

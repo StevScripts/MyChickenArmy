@@ -1,6 +1,39 @@
 # Manual chicken merging
 
-## October 5 machine unlock
+## October 6 skill-tree unlock — current contract
+
+Fuse Machine is an early Army research node (`FuseMachine`), available from
+Start for **$5,000** and **120 base seconds**. Research-speed bonuses use the
+existing quote calculation. These are initial tuning values. Completing the
+research unlocks manual fusion; starting or cancelling it does not. New Cluck
+Camp captures no longer grant fusion, including after save/rejoin. Other merge
+eligibility, fees, Giant sizes, level caps and starter-flock protections remain.
+Cash upgrades retain their independent eligibility.
+
+The owned machine stays visible and its locked native prompt reads
+**Fuse Machine · Locked / Unlock in Skill Tree**. Trying it returns the server
+error **“Unlock the Fuse Machine in the skill tree first.”** through the normal
+Error toast and sound. The client opens the tree focused on Fuse Machine unless
+a newer menu/dialogue/crate presentation is already open. It never starts a
+purchase automatically. The Army inspector uses the same server requirement.
+
+`PlayerSession:MergeAccess()` accepts completed FuseMachine research or retained
+`fusionUnlocked` access. New saves stamp `fusionUnlockVersion=2`. Loading an older,
+unversioned save preserves previously earned access (true flag, historical first
+Cluck victory, or pre-lock missing field), and marks only FuseMachine research
+complete for free. Previously locked saves remain locked. Version-2 saves cannot
+use new camp wins or a missing access flag to regain the old unlock route. Invalid
+versions/flags and contradictory active-job entitlement data reject before the
+profile changes. Existing chickens, money and research are preserved.
+
+The existing GameServer/ArmyService gates reject OpenMerge, Merge and MergeAll
+before consumption. `ResearchService` retains cash quotes, starter reserves,
+timers, cancellation/refund and offline completion. The tree uses existing Merge
+art, and the normal research completion notice replaces the old conquest suffix.
+
+Implementation and focused checks: [fusion research](../assets/fusion-research-20261006/README.md).
+
+## October 5 machine unlock — historical, superseded above
 
 New profiles unlock the Fuse Machine on their first Cluck Camp capture. Before
 that, the owned machine's native prompt reads **Fuse Machine · Locked** /

@@ -1,0 +1,116 @@
+{
+  "liveSessionsUsed": 0,
+  "playerDataWrites": 0,
+  "passed": 27,
+  "checks": [
+    {
+      "name": "fresh zero uses progress instruction",
+      "ok": true
+    },
+    {
+      "name": "carried bag cannot bypass counter",
+      "ok": true
+    },
+    {
+      "name": "39 units remain on Collect regardless of value",
+      "ok": true
+    },
+    {
+      "name": "same pickup counted only once",
+      "ok": true
+    },
+    {
+      "name": "unstacked fortieth egg advances to Sell",
+      "ok": true
+    },
+    {
+      "name": "overshoot caps progress but not earned eggs",
+      "ok": true
+    },
+    {
+      "name": "actual early sale succeeds",
+      "ok": true
+    },
+    {
+      "name": "sale retains partial progress",
+      "ok": true
+    },
+    {
+      "name": "save/load retains partial count without sale bypass",
+      "ok": true
+    },
+    {
+      "name": "cumulative collection advances after earlier sale",
+      "ok": true
+    },
+    {
+      "name": "completed count survives round trip",
+      "ok": true
+    },
+    {
+      "name": "active rover advances saved progress and revision",
+      "ok": true
+    },
+    {
+      "name": "rover pickup is deduplicated",
+      "ok": true
+    },
+    {
+      "name": "disabled rover fallback reaches forty once",
+      "ok": true
+    },
+    {
+      "name": "legacy migration: collectedEggs",
+      "ok": true
+    },
+    {
+      "name": "legacy migration: soldEggs",
+      "ok": true
+    },
+    {
+      "name": "legacy migration: wonCamp",
+      "ok": true
+    },
+    {
+      "name": "legacy migration: guideCompleted",
+      "ok": true
+    },
+    {
+      "name": "legacy migration: carriedEggs",
+      "ok": true
+    },
+    {
+      "name": "legacy migration: unfinished",
+      "ok": true
+    },
+    {
+      "name": "present numeric count overrides stale boolean",
+      "ok": true
+    },
+    {
+      "name": "over-target saved counter is bounded",
+      "ok": true
+    },
+    {
+      "name": "invalid count rejected atomically: nan",
+      "ok": true
+    },
+    {
+      "name": "invalid count rejected atomically: inf",
+      "ok": true
+    },
+    {
+      "name": "invalid count rejected atomically: -1",
+      "ok": true
+    },
+    {
+      "name": "invalid count rejected atomically: 1.5",
+      "ok": true
+    },
+    {
+      "name": "invalid count rejected atomically: 40",
+      "ok": true
+    }
+  ],
+  "scope": "Disposable Studio Edit fixtures using fresh copies of tutorial source; no live profile or DataStore writes."
+}

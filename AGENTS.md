@@ -66,11 +66,14 @@ September 28 Giant fusion: every successful matching triple guarantees a Giant. 
 
 Latest September 28 clarification: only chickens with saved `giantSize >= 20` are **Colossal**. Allow at most one Colossal per player's selected/deployed army; smaller Giants use ordinary slots without a special cap. Fresh Colossal odds are 1% for Legendary inputs and 3% for Mythic inputs, with a further bias toward the smaller end of the Colossal range. Other rarities cannot freshly roll 20+. Preserve earned sizes and owned chickens, including old large low-rarity birds; re-fusion with a Colossal input retains it. Enforce the slot in server selection, Select Best, saved lineups and battle replacements, not only UI. The inventory offers Replace Colossal; a deployed replacement waits for the retiring Colossal to return.
 
-October 5 Fuse Machine unlock: new profiles unlock fusion after their first
-Cluck Camp capture. Persist `fusionUnlocked`; valid older saves missing the field
-retain prior access. Keep the locked native prompt visible with its requirement,
-and enforce access on the server. This prerequisite applies only to fusion,
-never cash upgrades. See `docs/MERGING.md`.
+October 6 Fuse Machine research replaces the October 5 Cluck Camp unlock. New
+access requires completed `FuseMachine` research ($5,000, 120 base seconds,
+Start prerequisite, Army branch). Locked use shows the normal Error notice:
+"Unlock the Fuse Machine in the skill tree first." Preserve earned access through
+`fusionUnlocked` and versioned save migration (`fusionUnlockVersion=2`); mark its
+research complete for legacy owners without charging. New camp wins must not
+grant fusion, even after rejoin. Cash upgrades remain independent. See
+`docs/MERGING.md`.
 
 One writer per file. For parallel tasks, assign explicit files and contracts. Workers do not control canonical Studio, Blender, Git history or further agents; the root integrates. Keep changes scoped and preserve user work.
 

@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "labelSize": "487.112427, 54.6480026",
+      "fontLimit": 52,
+      "viewport": "1280, 720",
+      "text": "Pull the lever to roll",
+      "textBounds": "362, 52"
+    },
+    {
+      "labelSize": "487.112427, 54.6480026",
+      "fontLimit": 52,
+      "viewport": "1280, 720",
+      "text": "Collect 40 eggs (39/40)",
+      "textBounds": "413, 52"
+    },
+    {
+      "labelSize": "487.112427, 54.6480026",
+      "fontLimit": 52,
+      "viewport": "1280, 720",
+      "text": "Step on the green sell pad",
+      "textBounds": "472.5, 52"
+    },
+    {
+      "labelSize": "263.85257, 29.6010017",
+      "fontLimit": 28,
+      "viewport": "844, 390",
+      "text": "Pull the lever to roll",
+      "textBounds": "196, 28"
+    },
+    {
+      "labelSize": "263.85257, 29.6010017",
+      "fontLimit": 28,
+      "viewport": "844, 390",
+      "text": "Collect 40 eggs (39/40)",
+      "textBounds": "223.5, 28"
+    },
+    {
+      "labelSize": "263.85257, 29.6010017",
+      "fontLimit": 28,
+      "viewport": "844, 390",
+      "text": "Step on the green sell pad",
+      "textBounds": "255, 28"
+    },
+    {
+      "labelSize": "266.643005, 29.914053",
+      "fontLimit": 28,
+      "viewport": "390, 844",
+      "text": "Pull the lever to roll",
+      "textBounds": "196, 28"
+    },
+    {
+      "labelSize": "266.643005, 29.914053",
+      "fontLimit": 28,
+      "viewport": "390, 844",
+      "text": "Collect 40 eggs (39/40)",
+      "textBounds": "223.5, 28"
+    },
+    {
+      "labelSize": "266.643005, 29.914053",
+      "fontLimit": 28,
+      "viewport": "390, 844",
+      "text": "Step on the green sell pad",
+      "textBounds": "255, 28"
+    }
+  ],
+  "skipAbsent": true
+}

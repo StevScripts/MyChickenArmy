@@ -1,0 +1,45 @@
+{
+  "name": "My Chicken Army - Conquest Flag Portraits",
+  "serveAddress": "127.0.0.1",
+  "servePort": 34876,
+  "servePlaceIds": [
+    96683186622050
+  ],
+  "emitLegacyScripts": true,
+  "tree": {
+    "$className": "DataModel",
+    "$ignoreUnknownInstances": true,
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$ignoreUnknownInstances": true,
+        "PetRoll": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true,
+          "BattleController": {
+            "$path": "../../src/client/BattleController.luau",
+            "$ignoreUnknownInstances": true
+          }
+        }
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "$ignoreUnknownInstances": true,
+      "PetRoll": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "WorldBuilder": {
+          "$path": "../../src/server/WorldBuilder.luau",
+          "$ignoreUnknownInstances": true
+        },
+        "KingArena": {
+          "$path": "../../src/server/KingArena.luau",
+          "$ignoreUnknownInstances": true
+        }
+      }
+    }
+  }
+}

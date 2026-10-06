@@ -17,8 +17,14 @@ new tutorial. Legacy earned collection milestones and completed guides remain
 earned. Egg prices, rewards and ordinary gameplay actions are unchanged.
 
 The Commander instruction now occupies most of the strip's usable space beside
-the portrait. Native `TextScaled=true`, `TextWrapped=false` and centered alignment
-keep every instruction on one line. The Skip button remains absent.
+the portrait. Native `TextScaled=true` and centered alignment keep the instruction large.
+Roblox automatically enables wrapping with TextScaled, so a local
+UITextSizeConstraint on the display layers caps the font at the largest measured
+one-line fit. It updates only when the text or label size changes. The Skip
+button remains absent.
+
+All 27 isolated Studio Edit collection/persistence checks passed using disposable
+sessions with no player-data writes. Sync/save status is recorded below once done.
 
 ## Eggs first — preceding October 6 correction
 

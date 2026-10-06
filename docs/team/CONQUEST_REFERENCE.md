@@ -50,7 +50,13 @@ combat stats and rewards; it is not a claim of pixel-identical rendering.
   split into four equal sections. It has no percent text or second drain/fill
   phase. The old camp title is suppressed while occupied or conquered.
 - Victory swaps to a persistent green conquered label, white camp name and
-  gold owner name. Green flag/label remain after recall or another camp order.
+  gold owner name. The existing authored flag's cloth turns green and displays
+  the conquering player's avatar headshot on both sides; no second pole/flag is
+  generated. The portrait and label remain after recall or another camp order.
+  Unclaim clears the portrait and restores the original cloth colors. The same
+  portrait behavior applies to the authored Chicken King throne flag.
+- The player portrait/crown/"My army" billboard no longer follows troops.
+  Owner portraits appear on conquered flags only, after server-awarded ownership.
 - Explicit unclaim resets capture to zero and restores defenders. Player unit
   identities, positions, health and respawn deadlines survive the transition.
   An empty released camp restores idle guards after the existing vacancy grace.

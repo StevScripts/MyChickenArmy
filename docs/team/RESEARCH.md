@@ -6,7 +6,7 @@ landscape phone simulator checks cover the interactions listed below; no physica
 device equivalence or pixel-perfect clone is claimed. Nothing has been published.
 
 The later Slime RNG request added twelve rolling-focused nodes. The October 6
-Call Army unlock brings the current catalog to **61 paid nodes plus Start (62
+Call Army and Fuse Machine unlocks bring the current catalog to **62 paid nodes plus Start (63
 total)**. See [rolling research](RESEARCH_ROLLING.md) for the complete rolling
 reference review, adaptation choices and runtime contract.
 
@@ -16,13 +16,26 @@ purchase. The user rejected a separate cash island. These purchases apply
 immediately and remain independent of research slots/prerequisites;
 see [cash upgrades in the tree](CASH_UPGRADES_IN_TREE.md).
 
+## Fuse Machine unlock — October 6
+
+`FuseMachine` is an early Army research leaf directly off Start at `(-3, 4)`.
+It costs **$5,000**, takes **120 base seconds**, and grants `fusion=1` on completion.
+It uses the existing Merge artwork and leaves all other nodes/coordinates intact.
+The combined map now contains **154 nodes** (63 research/Start plus 91 cash tiers).
+
+This replaces the Cluck Camp unlock. Locked machine use produces the normal
+Error notice and focuses its research node. Existing earned access migrates to
+completed research without a charge or unrelated node grants. See
+[the fusion contract](../MERGING.md) and
+[focused checks](../../assets/fusion-research-20261006/README.md).
+
 ## Call Army unlock — October 6
 
 `CallArmy` is an early Army research leaf directly off Start at `(q=-1, r=2)`.
 It costs **$1,000** and takes **60 base seconds**, subject to the existing
 research-speed quote. It has no camp/rank gate and does not alter any existing
-research or cash-upgrade prerequisite. The catalog now has 62 nodes; combined
-with the existing 91 cash tiers, the map contains 153 nodes.
+research or cash-upgrade prerequisite. At the time of the Call Army addition the catalog had 62 nodes and the combined
+map had 153. The later Fuse Machine addition above brings those to 63 and 154.
 
 The permanent numeric effect is `callArmy=1` only after completion; its default
 is `0`. An active job grants no access. Completion uses the existing
@@ -66,7 +79,7 @@ map transform, never the individual node layout.
 
 | Owner | Responsibility |
 |---|---|
-| `shared/ResearchCatalog` | Start plus 61 paid nodes, links, coordinates, prices, durations, effects |
+| `shared/ResearchCatalog` | Start plus 62 paid nodes, links, coordinates, prices, durations, effects |
 | `shared/ResearchRules` | Highest-tier bonuses, quotes, statuses, deep copy, save validation |
 | `server/ResearchService` | Non-yielding purchase/cancel/completion/pin transactions and snapshots |
 | `server/PlayerSession`, `DataService` | Saved research and integration with existing earnings checkpoints |

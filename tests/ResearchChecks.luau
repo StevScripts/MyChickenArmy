@@ -39,8 +39,8 @@ function Checks.Run()
 	local function check(name,fn)
 		local ok,err=pcall(fn);table.insert(results,{name=name,passed=ok,error=if not ok then tostring(err) else nil})
 	end
-	check("62 unique nodes have acyclic paths, coordinates and implemented effects",function()
-		assert(#Catalog.Order==62)
+	check("63 unique nodes have acyclic paths, coordinates and implemented effects",function()
+		assert(#Catalog.Order==63)
 		local ids,coordinates={},{}
 		local effects=Research.Effects(Research.New())
 		for _,id in Catalog.Order do
@@ -78,6 +78,31 @@ function Checks.Run()
 		local read=assert(Research.Read(Research.Copy(s.research)))
 		assert(not read.completed.CallArmy and Research.Effects(read).callArmy==0)
 		for _,id in Catalog.Order do if id~="CallArmy" then assert(read.completed[id]) end end
+	end)
+	check("Fuse Machine completes through research; a new camp win cannot grant it",function()
+		local s=setup();local node=Catalog.Nodes.FuseMachine;local coins=s.coins
+		assert(node.prerequisite=="Start" and node.price==5000 and node.duration==120)
+		s.firstWins[1]=true
+		assert(not s:MergeAccess())
+		local rejoined=setup();assert(rejoined:LoadData(s:ToData()));assert(not rejoined:MergeAccess())
+		assert(start(s,"FuseMachine",100));local job=s.research.jobs[1]
+		assert(not s:MergeAccess() and s.coins==coins-node.price)
+		assert(Transactions.Cancel(s,job.id,s.research.revision,101) and s.coins==coins)
+		assert(not Transactions.Cancel(s,job.id,s.research.revision,101) and not s:MergeAccess())
+		assert(start(s,"FuseMachine",200));local finish=s.research.jobs[1].finishAt
+		assert(#Transactions.Complete(s,finish-1)==0 and not s:MergeAccess())
+		assert(#Transactions.Complete(s,finish)==1 and s:MergeAccess() and s.researchEffects.fusion==1)
+		assert(#Transactions.Complete(s,finish+1)==0 and s.coins==coins-node.price)
+		local loaded=setup();assert(loaded:LoadData(s:ToData()))
+		assert(loaded:MergeAccess() and loaded.research.completed.FuseMachine)
+	end)
+	check("Pre-research fusion access migrates without cash or unrelated research grants",function()
+		local data=setup():ToData();data.fusionUnlockVersion=nil;data.fusionUnlocked=true
+		data.research.completed.A1=true
+		local loaded=setup();assert(loaded:LoadData(data))
+		assert(loaded:MergeAccess() and loaded.coins==data.coins and loaded.research.completed.FuseMachine)
+		assert(loaded.research.completed.A1 and not loaded.research.completed.CallArmy and not loaded.research.completed.A2)
+		assert(loaded:ToData().fusionUnlockVersion==2)
 	end)
 	check("Highest completed tier replaces smaller bonuses",function()
 		local s=setup();for _,id in Catalog.Order do grant(s,id) end

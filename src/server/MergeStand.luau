@@ -100,7 +100,7 @@ function MergeStand:Sync(session)
  local unlocked=session:MergeAccess()
  self.model:SetAttribute("OwnerUserId",session.userId)
  self.prompt.ObjectText=if unlocked then "Fuse Machine" else "Fuse Machine · Locked"
- self.prompt.ActionText=if unlocked then "Fuse Chickens" else "Capture Cluck Camp"
+ self.prompt.ActionText=if unlocked then "Fuse Chickens" else "Unlock in Skill Tree"
  -- Keep the native prompt available so the server can explain locked access.
  self.prompt.Enabled=self.loaded and not self.reveal
 end

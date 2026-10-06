@@ -182,8 +182,8 @@ function PlayerSession:ProtectStarterFlock(): boolean
 end
 
 function PlayerSession:MergeAccess(): (boolean, string)
-	if self.fusionUnlocked==true or self.firstWins[1]==true then return true,"" end
-	return false,"Capture Cluck Camp to unlock the Fuse Machine."
+	if self.fusionUnlocked==true or self.research.completed.FuseMachine==true then return true,"" end
+	return false,"Unlock the Fuse Machine in the skill tree first."
 end
 
 function PlayerSession:FindSlot(id: string): number?
@@ -509,7 +509,8 @@ function PlayerSession:ToData()
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
 		pets=pets,discovered=table.clone(self.discovered),firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,tutorial=table.clone(self.tutorial),
-		fusionUnlocked=self.fusionUnlocked==true or self.firstWins[1]==true,
+		fusionUnlockVersion=2,
+		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned}
 end
 
@@ -694,9 +695,12 @@ function PlayerSession:LoadData(data)
 	local wins=readProgress(data,revision)
 	if not wins then return false,"Invalid saved camp progress." end
 	if data.fusionUnlocked~=nil and type(data.fusionUnlocked)~="boolean" then return false,"Invalid saved fusion access." end
-	-- Older saves already had access, including the existing starter-army cohort.
-	-- Fresh profiles explicitly save false until their first Cluck Camp capture.
-	local fusionUnlocked=data.fusionUnlocked==nil or data.fusionUnlocked==true or wins[1]==true
+	if data.fusionUnlockVersion~=nil and data.fusionUnlockVersion~=2 then return false,"Unsupported saved fusion unlock version." end
+	-- Only pre-research saves inherit the old missing-field/camp entitlement.
+	-- Version 2 prevents future captures from granting access after a rejoin.
+	local legacyFusion=data.fusionUnlockVersion==nil and (data.fusionUnlocked==nil or wins[1]==true)
+	local fusionUnlocked=data.fusionUnlocked==true or legacyFusion or research.completed.FuseMachine==true
+	if fusionUnlocked and ResearchRules.Job(research,"FuseMachine") then return false,"Invalid saved fusion research." end
  local frontier,king={},false
  if revision>=6 then
   frontier=readWins(data.frontierWins,#Progression.Outposts(),true)
@@ -735,6 +739,9 @@ function PlayerSession:LoadData(data)
 	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
 	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
 	if not numberIn(data.passiveEarned or 0,0,Currency.MaxCoins) or not numberIn(data.battleEarned or 0,0,Currency.MaxCoins) then return false,"Invalid saved earnings." end
+	-- Display retained access as completed research without charging or granting
+	-- unrelated Army research. FuseMachine depends only on the existing Start.
+	if fusionUnlocked then research.completed.FuseMachine=true end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.
 	self.purchaseReceipts,self.crateCredits,self.commerceAutomatic=receipts,data.crateCredits or 0,automatic

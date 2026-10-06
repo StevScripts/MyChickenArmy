@@ -715,12 +715,14 @@ function AppController:Receive(packet)
 	self.eggBoard:Receive(result)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" and result.action~="AcknowledgeResearch" then
 		local shownInMerge=result.action=="OpenMerge" or ((result.action=="Merge" or result.action=="MergeAll") and self.page=="Merge" and self.panel.Visible)
+		local lockedOpenMerge=not result.ok and result.action=="OpenMerge" and state.mergeUnlocked==false
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
-  if not researchFeedback and not shownProduction and not shownCrate and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit)) then self:Notify(result.message,result.ok) end
+		if lockedOpenMerge or (not researchFeedback and not shownProduction and not shownCrate
+			and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit))) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
-		if not result.ok and result.action=="OpenMerge" and state.mergeUnlocked==false
+		if lockedOpenMerge
 			and not self.panel.Visible and not self.research.root.Visible and not self.dialogueActive and not self.commerce.cratePresenting then
 			-- Keep the existing Error notice; do not replace a menu opened while the reply was in flight.
 			self.research:OpenNode("FuseMachine")

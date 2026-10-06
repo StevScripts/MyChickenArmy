@@ -1,0 +1,120 @@
+{
+  "ok": true,
+  "scope": "Latest local sources, separate require cache, disposable profiles; no mapped Source or live session writes",
+  "result": {
+    "scope": "Actual AppController.OpenPage/Receive and ResearchBrowser.OpenNode with table collaborators; no live UI, remotes, profiles or selection writes",
+    "limitations": "Notify is recorded rather than rendered or played; OpenNode gamepad assignment and actual tree layout are not exercised",
+    "passed": 27,
+    "checks": [
+      {
+        "name": "locked OpenPage emits exactly one false Notify",
+        "ok": true
+      },
+      {
+        "name": "locked OpenPage focuses FuseMachine",
+        "ok": true
+      },
+      {
+        "name": "locked OpenPage never opens Fuse or submits a purchase",
+        "ok": true
+      },
+      {
+        "name": "OpenNode opens then centers and persistently selects the requested node",
+        "ok": true
+      },
+      {
+        "name": "OpenNode does not activate research or purchase",
+        "ok": true
+      },
+      {
+        "name": "OpenNode fixture never supplies a native selected object",
+        "ok": true
+      },
+      {
+        "name": "ordinary locked reply: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "ordinary locked reply: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "ordinary locked reply: no Fuse menu or transaction",
+        "ok": true
+      },
+      {
+        "name": "research feedback in the same packet: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "research feedback in the same packet: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "research feedback in the same packet: no Fuse menu or transaction",
+        "ok": true
+      },
+      {
+        "name": "all other feedback paths in the same packet: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "all other feedback paths in the same packet: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "all other feedback paths in the same packet: no Fuse menu or transaction",
+        "ok": true
+      },
+      {
+        "name": "a newer menu: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "a newer menu: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "a newer menu: no Fuse menu or transaction",
+        "ok": true
+      },
+      {
+        "name": "an already open research tree: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "an already open research tree: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "an already open research tree: no Fuse menu or transaction",
+        "ok": true
+      },
+      {
+        "name": "a newer dialogue: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "a newer dialogue: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "a newer dialogue: no Fuse menu or transaction",
+        "ok": true
+      },
+      {
+        "name": "a crate presentation: exactly one actionable error",
+        "ok": true
+      },
+      {
+        "name": "a crate presentation: navigation respects newer UI",
+        "ok": true
+      },
+      {
+        "name": "a crate presentation: no Fuse menu or transaction",
+        "ok": true
+      }
+    ]
+  },
+  "isolatedModules": 82
+}

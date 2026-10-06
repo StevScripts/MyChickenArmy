@@ -7,7 +7,6 @@ local Debris = game:GetService("Debris")
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog = require(Shared.PetCatalog)
 local Theme = require(script.Parent.UITheme)
-local ArmyMarkerController = require(script.Parent.ArmyMarkerController)
 local C = Theme.Colors
 local HIT_COLOR = Color3.fromRGB(255, 65, 65)
 local HIT_FADE = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -271,14 +270,13 @@ end
 
 function BattleController:Receive(snapshots)
 	if type(snapshots) ~= "table" then return end
-	-- A recovering empty territory has a meter, but no army portrait or combat effects.
+	-- A recovering empty territory has a meter, but no troop combat effects.
 	local reclaims,battles={},{}
 	for _,snapshot in snapshots do
 		if snapshot.territoryReclaim then table.insert(reclaims,snapshot) else table.insert(battles,snapshot) end
 	end
 	snapshots=battles
 	self.snapshots = snapshots
-	if self.markers then self.markers:Receive(snapshots) end
 	local seen, battlesSeen = {}, {}
 	for _, battle in snapshots do
 		for _, unit in battle.units do seen[battle.id .. ":" .. unit.id] = true end
@@ -379,11 +377,10 @@ function BattleController:Start(remote)
 	if old then old:Destroy() end
 	self.folder = Instance.new("Folder")
 	self.folder.Name, self.folder.Parent = "PetRollBattleVisuals", workspace
-	self.markers=ArmyMarkerController.new(self,self.folder)
 	table.insert(self.connections, remote.OnClientEvent:Connect(function(snapshots) self:Receive(snapshots) end))
 	table.insert(self.connections, RunService.RenderStepped:Connect(function()
 		local now = os.clock()
-		self.markers:Step();self:UpdateStatus()
+		self:UpdateStatus()
 		-- A settled snapshot can precede its rig, or state.outgoing can arrive
 		-- after BattleChanged. Recheck confirmed data without fabricating movement.
 		if now >= (self.nextRecruitCheck or 0) then
@@ -410,7 +407,6 @@ function BattleController:Destroy()
 	for _, connection in self.connections do connection:Disconnect() end
 	for _, view in self.views do self:ReleaseView(view) end
 	for id in self.captureViews do self:ReleaseCapture(id) end
-	if self.markers then self.markers:Destroy() end
 	if self.folder then self.folder:Destroy() end
 	if self.card then self.card:Destroy() end
 	self.views, self.modelViews, self.snapshots, self.phases = {}, {}, {}, {}
