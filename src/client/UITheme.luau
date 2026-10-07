@@ -2,6 +2,7 @@
 -- Country screenshot vocabulary. This module owns presentation, never game state.
 local Theme = {}
 local Palette = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UIColors)
+local TweenService = game:GetService("TweenService")
 Theme.Motion = require(script.Parent.UIMotion).new()
 Theme.Font = Enum.Font.SourceSansBold
 -- One edge hierarchy across menus; secondary surfaces never outweigh the shell.
@@ -66,13 +67,51 @@ Theme.NotificationStyles = {
 	pending={symbol="…",color=Palette.Muted},
 }
 
+-- Frame-built status marks (no font glyphs): check, cross, !, i, crossed swords, dots.
+function Theme.StatusGlyph(icon, kind, color)
+	local face=icon:FindFirstChild("Face")
+	if not face then return end
+	face.BackgroundColor3=color
+	for _,child in face:GetChildren() do if child.Name=="Glyph" then child:Destroy() end end
+	local function bar(x,y,w,h,rotation,round)
+		local item=Instance.new("Frame")
+		item.Name,item.BorderSizePixel,item.BackgroundColor3="Glyph",0,Color3.new(1,1,1)
+		item.AnchorPoint,item.Position,item.Size,item.Rotation=Vector2.new(.5,.5),UDim2.fromScale(x,y),UDim2.fromScale(w,h),rotation or 0
+		item.ZIndex=face.ZIndex+1
+		if round then local corner=Instance.new("UICorner");corner.CornerRadius,corner.Parent=UDim.new(.5,0),item end
+		item.Parent=face
+	end
+	if kind=="success" then bar(.37,.6,.17,.38,-45);bar(.6,.47,.17,.68,40)
+	elseif kind=="error" then bar(.5,.5,.18,.66,45);bar(.5,.5,.18,.66,-45)
+	elseif kind=="warning" then bar(.5,.4,.18,.42,0,true);bar(.5,.76,.18,.18,0,true)
+	elseif kind=="conquest" then bar(.5,.5,.14,.72,45);bar(.5,.5,.14,.72,-45);bar(.3,.7,.3,.1,45);bar(.7,.7,.3,.1,-45)
+	elseif kind=="pending" then for i,x in {.28,.5,.72} do bar(x,.5,.15,.15,0,true) end
+	else bar(.5,.6,.17,.4,0,true);bar(.5,.27,.17,.17,0,true) end
+end
+
 function Theme.SetNotification(label, text, kind)
 	local style=Theme.NotificationStyles[kind] or Theme.NotificationStyles.info
 	-- Names remain literal; color the full message so status reads at a glance.
 	local escaped=text:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;")
-	label.TextColor3=style.color
-	label.Text=style.symbol.."  "..escaped
-	label:SetAttribute("PlainText",style.symbol.."  "..text)
+	-- The status color lives in the Shine gradient so a bright band can sweep across it.
+	local shine=label:FindFirstChild("Shine")
+	if shine then
+		local bright=style.color:Lerp(Color3.new(1,1,1),0.8)
+		shine.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,style.color),ColorSequenceKeypoint.new(0.42,style.color),
+			ColorSequenceKeypoint.new(0.5,bright),ColorSequenceKeypoint.new(0.58,style.color),ColorSequenceKeypoint.new(1,style.color)})
+		shine.Offset=Vector2.new(-1,0)
+		label.TextColor3=Color3.new(1,1,1)
+	else label.TextColor3=style.color end
+	local icon=label.Parent and label.Parent:FindFirstChild("StatusIcon")
+	if icon then
+		-- A round status badge replaces the text glyph.
+		Theme.StatusGlyph(icon,kind,style.color)
+		label.Text=escaped
+		label:SetAttribute("PlainText",text)
+	else
+		label.Text=style.symbol.."  "..escaped
+		label:SetAttribute("PlainText",style.symbol.."  "..text)
+	end
 end
 
 function Theme.Round(item, radius)
@@ -120,26 +159,30 @@ function Theme.Container(parent, name)
 end
 
 -- Keep inset-specific overlays inside the one game ScreenGui. GetInsetArea
--- rectangles and AbsolutePosition share the Core UI origin.
-function Theme.InsetContainer(parent, name, screenInsets)
+-- rectangles and AbsolutePosition share the Core UI origin. Enum.ScreenInsets.None
+-- reaches the full device screen, past notches the safe-area ScreenGui excludes.
+function Theme.FitToInset(item, parent, screenInsets)
 	local guiService=game:GetService("GuiService")
-	local container=Theme.Container(parent,name)
 	local function resize()
 		local area=guiService:GetInsetArea(screenInsets)
 		local position=area.Min-parent.AbsolutePosition
 		local size=area.Max-area.Min
-		container.Position,container.Size=UDim2.fromOffset(position.X,position.Y),UDim2.fromOffset(size.X,size.Y)
+		item.Position,item.Size=UDim2.fromOffset(position.X,position.Y),UDim2.fromOffset(size.X,size.Y)
 	end
 	local connections={
 		parent:GetPropertyChangedSignal("AbsolutePosition"):Connect(resize),
 		parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize),
 		guiService:GetPropertyChangedSignal("TopbarInset"):Connect(resize),
 	}
-	container.Destroying:Once(function()
+	item.Destroying:Once(function()
 		for _,connection in connections do connection:Disconnect() end
 	end)
 	resize()
-	return container
+	return item
+end
+
+function Theme.InsetContainer(parent, name, screenInsets)
+	return Theme.FitToInset(Theme.Container(parent,name),parent,screenInsets)
 end
 
 function Theme.Aspect(item, ratio)
@@ -315,10 +358,80 @@ function Theme.Notification(parent)
 	label:SetAttribute("OutlineThickness",3)
 	label.TextOutline.StrokeSizingMode=Enum.StrokeSizingMode.FixedSize
 	label.TextOutline.Thickness=3
-	label.Position,label.Size=UDim2.fromScale(0.02,0.1),UDim2.fromScale(0.96,0.8)
+	label.Position,label.Size=UDim2.fromScale(0.1,0.1),UDim2.fromScale(0.88,0.8)
+	-- Round badge that sits just left of the centered text.
+	local icon=Instance.new("Frame")
+	icon.Name,icon.BackgroundColor3,icon.BorderSizePixel,icon.ZIndex="StatusIcon",Theme.Arcade.border,0,label.ZIndex+1
+	icon.AnchorPoint,icon.Size=Vector2.new(1,.5),UDim2.fromScale(0.2,0.56)
+	local ratio=Instance.new("UIAspectRatioConstraint");ratio.AspectRatio,ratio.DominantAxis,ratio.Parent=1,Enum.DominantAxis.Height,icon
+	local corner=Instance.new("UICorner");corner.CornerRadius,corner.Parent=UDim.new(.5,0),icon
+	local face=Instance.new("Frame")
+	face.Name,face.BorderSizePixel,face.ZIndex,face.AnchorPoint="Face",0,icon.ZIndex+1,Vector2.new(.5,.5)
+	face.Position,face.Size=UDim2.fromScale(.5,.5),UDim2.fromScale(.8,.8)
+	local faceCorner=Instance.new("UICorner");faceCorner.CornerRadius,faceCorner.Parent=UDim.new(.5,0),face
+	face.Parent=icon
+	local iconScale=Instance.new("UIScale");iconScale.Name,iconScale.Parent="Pop",icon
+	icon.Parent=group
+	local function place()
+		local width=math.max(1,group.AbsoluteSize.X)
+		local text=label.TextBounds.X/width
+		icon.Position=UDim2.fromScale(math.max(0.07,0.1+0.88/2-text/2-0.012),0.5)
+	end
+	label:GetPropertyChangedSignal("TextBounds"):Connect(place)
+	group:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	label.RichText,label.TextXAlignment,label.TextYAlignment=true,Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
 	label.Active=false
+	label:SetAttribute("OutlineThickness",3.5)
+	label.TextOutline.Thickness=3.5
+	local shine=Instance.new("UIGradient");shine.Name,shine.Rotation,shine.Parent="Shine",15,label
+	local scale=Instance.new("UIScale");scale.Name,scale.Parent="Pop",group
 	return group,label
+end
+
+-- Background-free messages with personality: success pops and shines, errors
+-- shake, warnings hop, repeats pulse. Info and pending keep the plain fade.
+function Theme.NotificationFlair(group,label,kind,repeated)
+	local motion=Theme.Motion
+	local scale,shine=group:FindFirstChild("Pop"),label:FindFirstChild("Shine")
+	local rest=UDim2.fromScale(0.1,0.1)
+	label.Position=rest
+	local icon=group:FindFirstChild("StatusIcon")
+	local iconScale=icon and icon:FindFirstChild("Pop")
+	if icon then icon.Rotation=0 end
+	if iconScale then iconScale.Scale=1 end
+	if not scale or motion.reduced then if scale then scale.Scale=1 end;return end
+	-- The badge pops in a beat after the text (or spins in for errors).
+	if iconScale and not repeated then
+		iconScale.Scale=0
+		TweenService:Create(iconScale,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out,0,false,0.06),{Scale=1}):Play()
+		if kind=="error" then
+			icon.Rotation=-90
+			TweenService:Create(icon,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out,0,false,0.06),{Rotation=0}):Play()
+		end
+	end
+	local function sweep(seconds,delay)
+		if not shine then return end
+		shine.Offset=Vector2.new(-1,0)
+		local tween=TweenService:Create(shine,TweenInfo.new(seconds,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,0,false,delay),{Offset=Vector2.new(1,0)})
+		tween:Play()
+	end
+	if repeated then
+		scale.Scale=1.08;motion:Tween(scale,"toast-pop",{Scale=1},0.18)
+		if kind=="error" then sweep(0.3,0) end
+	elseif kind=="error" then
+		scale.Scale=1.14;motion:Tween(scale,"toast-pop",{Scale=1},0.22,Enum.EasingStyle.Back)
+		TweenService:Create(label,TweenInfo.new(0.045,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,3,true),
+			{Position=rest+UDim2.fromScale(0.018,0)}):Play()
+		sweep(0.3,0)
+	elseif kind=="success" or kind=="conquest" then
+		scale.Scale=0.72;motion:Tween(scale,"toast-pop",{Scale=1},0.32,Enum.EasingStyle.Back)
+		sweep(0.55,0.12)
+	elseif kind=="warning" then
+		scale.Scale=1
+		label.Position=rest-UDim2.fromScale(0,0.08)
+		TweenService:Create(label,TweenInfo.new(0.4,Enum.EasingStyle.Bounce),{Position=rest}):Play()
+		sweep(0.45,0.1)
+	else scale.Scale=1 end
 end
 
 function Theme.Button(parent, name, text, callback, color)
@@ -629,8 +742,9 @@ function Theme.ApplyPopupStyle(panel)
 		local gradient=item:FindFirstChildWhichIsA("UIGradient") or Instance.new("UIGradient")
 		gradient.Color=ColorSequence.new(Theme.OverlayColors.Top,Theme.OverlayColors.Bottom)
 		gradient.Transparency=NumberSequence.new({
-			NumberSequenceKeypoint.new(0,if isBody then 0.24 else 0.62),
-			NumberSequenceKeypoint.new(1,if isBody then 0.48 else 0.80),
+			-- Near-opaque so the bright world never tints the body olive; every popup matches.
+			NumberSequenceKeypoint.new(0,if isBody then 0.06 else 0.62),
+			NumberSequenceKeypoint.new(1,if isBody then 0.16 else 0.80),
 		})
 		gradient.Rotation,gradient.Parent=90,item
 		local rim=item:FindFirstChild("InnerRim")
@@ -742,6 +856,8 @@ for name,color in Theme.ReferenceColors do
 	Theme.PageColors[name]=color
 	Theme.HeaderColors[name]=color
 end
+-- DESIGN.md: Settings is neutral, not an Upgrades-cyan page.
+Theme.HeaderColors.Settings=Color3.fromRGB(82,102,90)
 Theme.NavigationColors.HotPink=Theme.ReferenceColors.Base
 Theme.NavigationColors.Orange=Theme.ReferenceColors.Base
 Theme.NavigationColors.Cyan=Theme.ReferenceColors.Upgrades

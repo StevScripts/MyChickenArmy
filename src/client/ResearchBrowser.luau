@@ -18,7 +18,7 @@ local displayOrder,displayNodes=table.clone(Catalog.Order),{}
 for id,node in Catalog.Nodes do
 	local display=table.clone(node)
 	if node.effect=="rollingLuck" then
-		display.description="Timed research bonus: +"..string.format("%g",node.value*100).."% Rare+ weights. Combines with cash Luck; replaces earlier luck research."
+		display.description="Timed research: +"..string.format("%g",node.value*100).."% Luck strength. Favors stronger chickens; replaces earlier Luck research."
 	end
 	local position=CashNodes.ResearchPositions[id]
 	if position then display.q,display.r=position.q,position.r end
@@ -32,6 +32,17 @@ local CYAN=Color3.fromRGB(0,226,250)
 local WHITE=Color3.fromRGB(255,255,255)
 local MUTED=Color3.fromRGB(64,67,65)
 local RED=Color3.fromRGB(255,77,86)
+-- Node kinds read at a glance: timed research is cyan with a clock badge,
+-- instant cash buys are gold with an INSTANT badge.
+local RESEARCH_RIM=Color3.fromRGB(0,226,250)
+local INSTANT_RIM=Color3.fromRGB(255,201,30)
+-- Only tiles you can buy right now glow at full strength; the rest sit back.
+local function dim(color) return color:Lerp(Color3.new(0,0,0),.5) end
+local function haloStrength(i,buyable) return 1-(if buyable then .045+i*.016 else .01+i*.004) end
+local function setRim(view,rim)
+	view.rimColor=rim
+	if not view.flash or view.flash.PlaybackState~=Enum.PlaybackState.Playing then view.outline.ImageColor3=rim end
+end
 local TOOLTIP_WIDTH=.218
 local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
@@ -63,9 +74,22 @@ local function timeText(seconds)
 	return seconds.."s"
 end
 local function priceText(amount)
-	if amount>=1e6 then return string.format("%g",amount/1e6).."M" end
-	if amount>=1000 then return string.format("%g",amount/1000).."K" end
-	return tostring(amount)
+	if amount>=1e6 then return "$"..string.format("%g",amount/1e6).."M" end
+	if amount>=1000 then return "$"..string.format("%g",amount/1000).."K" end
+	return "$"..tostring(amount)
+end
+-- Badge-length durations: 45s, 2m, 1m 30s, 1h, 2h 15m.
+local function shortTime(seconds)
+	seconds=math.max(0,math.ceil(seconds or 0))
+	if seconds>=3600 then
+		local h,m=math.floor(seconds/3600),math.floor(seconds%3600/60)
+		return if m>0 then string.format("%dh %dm",h,m) else h.."h"
+	end
+	if seconds>=60 then
+		local m,sec=math.floor(seconds/60),seconds%60
+		return if sec>0 then string.format("%dm %ds",m,sec) else m.."m"
+	end
+	return seconds.."s"
 end
 local function cashStatus(offer,coins)
 	if not offer or not offer.ready then return "Loading" end
@@ -73,13 +97,21 @@ local function cashStatus(offer,coins)
 	if not offer.unlocked then return "Unavailable" end
 	return if offer.canSpend==false or coins<offer.price then "Unaffordable" else "Available"
 end
-local function luckOdds(offer,withNext)
-	if not offer or type(offer.rarePlusChance)~="number" then return nil end
-	local text=string.format("%.2f%%",offer.rarePlusChance*100)
-	if withNext and type(offer.nextRarePlusChance)=="number" then
-		text..=" → "..string.format("%.2f%%",offer.nextRarePlusChance*100)
+local function luckOdds(offer,withNext,topBand)
+	if not offer then return nil end
+	local current=if topBand then offer.topBandChance else offer.epicPlusChance
+	local nextChance=if topBand then offer.nextTopBandChance else offer.nextEpicPlusChance
+	if type(current)~="number" then return nil end
+	local text=string.format("%.2f%%",current*100)
+	if withNext and type(nextChance)=="number" then
+		text..=" → "..string.format("%.2f%%",nextChance*100)
 	end
 	return text
+end
+local function useTopLuckOdds(offer)
+	return offer and type(offer.epicPlusChance)=="number" and type(offer.nextEpicPlusChance)=="number"
+		and type(offer.topBandChance)=="number" and type(offer.nextTopBandChance)=="number"
+		and string.format("%.1f",offer.epicPlusChance*100)==string.format("%.1f",offer.nextEpicPlusChance*100)
 end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
@@ -101,6 +133,13 @@ local function wrap(text,limit)
 	end
 	if line~="" then table.insert(rows,line) end
 	return table.concat(rows,"\n"),math.max(1,#rows)
+end
+local function badgeFade(view,amount)
+	view.badge.BackgroundTransparency,view.badgeStroke.Transparency,view.badgeText.TextTransparency=amount,amount,amount
+	view.badgeText.TextOutline.Transparency=amount
+	for _,part in view.clock:GetDescendants() do
+		if part:IsA("Frame") then part.BackgroundTransparency=amount end
+	end
 end
 local function round(item,radius)
 	Theme.Round(item).CornerRadius=UDim.new(radius,0)
@@ -170,11 +209,33 @@ function Browser.new(app,parent)
 		local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.22,.795),UDim2.fromScale(.56,.115),5
 		local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
 		local price=label(cost,"Price","",.28,0,.72,1,GREEN);price.TextXAlignment=Enum.TextXAlignment.Left;price.ZIndex=5
-		local hidden=label(visual,"Hidden","?",.16,.24,.68,.43);hidden.ZIndex=5
+		-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
+		local hidden=label(visual,"Hidden","?",.25,.3,.5,.32);hidden.ZIndex=5
+		hidden.TextTransparency,hidden.TextOutline.Transparency=.5,.5
 		local bar=Theme.Frame(visual,"Progress",UDim2.fromScale(.70,.085),Color3.fromRGB(0,157,184))
 		bar.Position,bar.ZIndex=UDim2.fromScale(.15,.735),5;round(bar,.12)
 		local progress=Theme.Frame(bar,"Fill",UDim2.fromScale(0,1),Color3.fromRGB(87,246,255));progress.ZIndex=6;round(progress,.12)
 		local timer=label(bar,"Time","",.035,.04,.93,.9);timer.ZIndex=7
+		-- Pill tucked into the hex's top point (plain Frame; a CanvasGroup per node is too costly).
+		local badge=Instance.new("Frame")
+		badge.Name,badge.BackgroundColor3,badge.BorderSizePixel="KindBadge",Color3.fromRGB(4,46,58),0
+		badge.AnchorPoint,badge.Position,badge.Size=Vector2.new(.5,0),UDim2.fromScale(.5,.05),UDim2.fromScale(.5,.125)
+		badge.ZIndex,badge.Visible=6,false
+		badge.Parent=visual
+		round(badge,.5)
+		local badgeStroke=Instance.new("UIStroke");badgeStroke.Thickness,badgeStroke.Parent=1.5,badge
+		local clock=Theme.Container(badge,"Clock")
+		clock.AnchorPoint,clock.Position,clock.Size=Vector2.new(0,.5),UDim2.fromScale(.08,.5),UDim2.fromScale(.7,.7)
+		Theme.Aspect(clock,1);clock.ZIndex=7
+		local dial=Theme.Frame(clock,"Dial",UDim2.fromScale(1,1),WHITE);dial.ZIndex=7;round(dial,.5)
+		local center=Theme.Frame(dial,"Inner",UDim2.fromScale(.66,.66),Color3.fromRGB(4,46,58));center.ZIndex=8;round(center,.5)
+		center.AnchorPoint,center.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
+		for _,hand in {{0,.3},{90,.22}} do
+			local stick=Theme.Frame(dial,"Hand",UDim2.fromScale(.12,hand[2]),WHITE);stick.ZIndex=9
+			stick.AnchorPoint,stick.Position,stick.Rotation=Vector2.new(.5,1),UDim2.fromScale(.5,.5),hand[1]
+		end
+		local badgeText=label(badge,"Text","",.1,.02,.86,.96,WHITE);badgeText.ZIndex=8
+		badgeText.TextOutline.Thickness=.02
 		local level,change
 		if CashNodes.Nodes[id] or node.effect=="rollingLuck" then
 			level=label(visual,"Level","",.21,.055,.58,.085,CYAN);level.ZIndex=5
@@ -182,7 +243,8 @@ function Browser.new(app,parent)
 		if CashNodes.Nodes[id] then
 			change=label(visual,"Benefit","",.09,.665,.82,.105);change.ZIndex=5
 		end
-		self.nodes[id]={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,title=title,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,bar=bar,progress=progress,timer=timer,level=level,change=change}
+		self.nodes[id]={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,title=title,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,bar=bar,progress=progress,timer=timer,level=level,change=change,
+			badge=badge,badgeStroke=badgeStroke,badgeText=badgeText,clock=clock}
 		button.Activated:Connect(function(input)
 			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
 			self:Select(id,input and input.UserInputType~=Enum.UserInputType.MouseButton1)
@@ -217,6 +279,15 @@ function Browser.new(app,parent)
 				end
 			end)
 		end)
+	end
+	-- Soft dark bands so the title, balance and Exit never sit on top of nodes.
+	for _,spec in {{"TopFade",0,.15,90,0},{"BottomFade",.8,.2,-90,1}} do
+		local fade=Theme.Frame(root,spec[1],UDim2.fromScale(1,spec[3]),Color3.new(0,0,0))
+		fade.Position,fade.ZIndex,fade.Active=UDim2.fromScale(0,spec[2]),4,false
+		local gradient=Instance.new("UIGradient")
+		gradient.Rotation=spec[4]
+		gradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.55,.15),NumberSequenceKeypoint.new(1,1)})
+		gradient.Parent=fade
 	end
 	self.banner=label(root,"OfflineMessage","Your research works offline!",.225,.03,.55,.044)
 	self.banner.ZIndex=5
@@ -524,11 +595,10 @@ function Browser:Render()
 		local hidden=not known[id]
 		local owned,active=state=="Completed",state=="Researching"
 		local preview=state=="Locked" and not hidden
-		local rim=if owned then Color3.fromRGB(179,255,155) elseif active then Color3.fromRGB(170,255,255) elseif preview then Color3.fromRGB(34,40,37) elseif hidden then MUTED else WHITE
-		view.rimColor=rim
+		local buyable=state=="Available" and #data.jobs<data.effects.slots
+		local rim=if owned then Color3.fromRGB(179,255,155) elseif active then Color3.fromRGB(170,255,255) elseif preview then Color3.fromRGB(34,40,37) elseif hidden then MUTED elseif buyable then RESEARCH_RIM else dim(RESEARCH_RIM)
 		if view.lastState~=state or view.lastHidden~=hidden then
 			cancelTween(view,"flash")
-			view.outline.ImageColor3=rim
 			view.fill.Image=if owned or active then Assets.hexMask else Assets.hexFill
 			local color=if owned then GREEN elseif active then CYAN elseif preview then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
 			view.fillColor=color
@@ -538,19 +608,24 @@ function Browser:Render()
 			else view.fill.ImageColor3=color end
 			view.gradient.Enabled=owned or active
 		end
+		setRim(view,rim)
 		for i,halo in view.halos do
-			halo.ImageColor3=if owned then GREEN elseif active then CYAN else WHITE
-			halo.ImageTransparency=if preview then 1 elseif hidden then .99 else 1-(.025+i*.009)
+			halo.ImageColor3=if owned then GREEN else CYAN
+			halo.ImageTransparency=if preview then 1 elseif hidden then .99 else haloStrength(i,buyable or active)
 		end
 		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
 		view.icon.ImageTransparency,view.title.TextTransparency=if preview then .83 else 0,if preview then .77 else 0
 		view.title.TextOutline.Transparency=if preview then .8 else 0
-		if view.level then
-			view.level.Visible=not hidden
-			view.level.Text="Research"
-			view.level.TextColor3=if owned or active then WHITE else CYAN
-			view.level.TextTransparency=if preview then .77 else 0
-		end
+		if view.level then view.level.Visible=false end
+		-- Timed research: cyan clock badge with how long it takes.
+		view.badge.Visible=not hidden and not owned and not active and (offer.duration or node.duration or 0)>0
+		view.badge.BackgroundColor3=Color3.fromRGB(4,46,58)
+		view.badgeStroke.Color=RESEARCH_RIM
+		badgeFade(view,if preview then .7 else 0)
+		view.clock.Visible=true
+		view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.28,.02),UDim2.fromScale(.66,.96)
+		view.badgeText.Text=shortTime(offer.duration or node.duration)
+		view.badgeText.TextColor3=WHITE
 		view.cost.Visible=not hidden and not owned and not active and not preview
 		view.price.Text=priceText(offer.price)
 		view.price.TextColor3=if state=="Unaffordable" then RED else GREEN
@@ -574,7 +649,7 @@ function Browser:Render()
 		link.line.BackgroundColor3=if completed then GREEN else Color3.fromRGB(51,58,54)
 		link.line.BackgroundTransparency=if completed then .72 else .35
 	end
-	self.cash.Text=Theme.Money(self.coins or 0).."$"
+	self.cash.Text="$"..Theme.Money(self.coins or 0)
 	self.researchers.Text="Researchers: "..#data.jobs.."/"..data.effects.slots
 	self:Step()
 end
@@ -588,17 +663,16 @@ function Browser:RenderCash(reveals)
 		local completed=if offer then CashNodes.Completed(node.upgradeKey,offer) else 0
 		local owned,nextTier=node.tier<=completed,node.tier==completed+1
 		local luck=node.upgradeKey=="Luck"
-		local maxed=luck and owned and node.tier==node.maxTier
+		local maxed=owned and node.tier==node.maxTier
 		local visible=node.tier<=completed+2
 		local hidden=not owned and not nextTier
 		local state=if owned then "Completed" elseif hidden then "Hidden" else cashStatus(offer,self.coins or 0)
 		local waiting=nextTier and self.cashPending[node.upgradeKey]~=nil
 		local unavailable=state=="Unavailable"
-		local rim=if owned then Color3.fromRGB(179,255,155) elseif hidden or unavailable then MUTED else WHITE
-		view.rimColor=rim
+		local buyable=nextTier and state=="Available" and not waiting
+		local rim=if owned then Color3.fromRGB(179,255,155) elseif hidden or unavailable then MUTED elseif buyable then INSTANT_RIM else dim(INSTANT_RIM)
 		if view.lastState~=state then
 			cancelTween(view,"flash")
-			view.outline.ImageColor3=rim
 			view.fill.Image=if owned then Assets.hexMask else Assets.hexFill
 			local color=if owned then GREEN elseif unavailable then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
 			view.fillColor=color
@@ -608,24 +682,42 @@ function Browser:RenderCash(reveals)
 			else view.fill.ImageColor3=color end
 			view.gradient.Enabled=owned
 		end
+		setRim(view,rim)
 		for i,halo in view.halos do
-			halo.ImageColor3=if owned then GREEN else WHITE
-			halo.ImageTransparency=if unavailable then 1 elseif hidden then .99 else 1-(.025+i*.009)
+			halo.ImageColor3=if owned then GREEN else INSTANT_RIM
+			halo.ImageTransparency=if unavailable then 1 elseif hidden then .99 else haloStrength(i,buyable)
 		end
+		view.title.Text=node.tileName
 		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
 		view.icon.ImageTransparency,view.title.TextTransparency=if unavailable then .65 else 0,if unavailable then .35 else 0
 		view.title.TextOutline.Transparency=if unavailable then .35 else 0
 		view.bar.Visible=false
-		view.level.Visible,view.change.Visible=nextTier or (luck and owned),nextTier
-		view.icon.Position=UDim2.fromScale(.20,if nextTier then .16 else .14)
-		view.icon.Size=UDim2.fromScale(.60,if nextTier then .39 else .52)
-		view.title.Position=UDim2.fromScale(.025,if nextTier then .555 else .665)
-		view.title.Size=UDim2.fromScale(.95,if nextTier then .105 else .12)
-		view.level.Text=if maxed then "MAX" elseif luck and offer and offer.ready then "Cash" elseif nextTier and offer and offer.ready then "Instant" else ""
-		view.level.TextColor3=if owned then WHITE else CYAN
+		view.level.Visible,view.change.Visible=false,nextTier
+		-- Next tier: smaller icon so the before/after reads first.
+		view.icon.Position=UDim2.fromScale(.21,if nextTier then .155 else .14)
+		view.icon.Size=UDim2.fromScale(.58,if nextTier then .37 else .52)
+		view.title.Position=UDim2.fromScale(.025,if nextTier then .53 else .665)
+		view.title.Size=UDim2.fromScale(.95,if nextTier then .1 else .12)
+		view.change.Position,view.change.Size=UDim2.fromScale(.07,.635),UDim2.fromScale(.86,.13)
+		-- Level badge instead of a timer: gold for the level you can buy, green once earned.
+		view.badge.Visible=not hidden
+		view.clock.Visible=false
+		view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.06,.02),UDim2.fromScale(.88,.96)
+		if nextTier then
+			view.badge.BackgroundColor3,view.badgeStroke.Color=INSTANT_RIM,Color3.fromRGB(120,72,0)
+			view.badgeText.Text="LV "..node.tier.."/"..node.maxTier
+			view.badgeText.TextColor3=Color3.fromRGB(60,32,0)
+		else
+			view.badge.BackgroundColor3,view.badgeStroke.Color=Color3.fromRGB(22,84,30),Color3.fromRGB(179,255,155)
+			view.badgeText.Text=if maxed then "MAX" else "LV "..node.tier
+			view.badgeText.TextColor3=WHITE
+		end
+		badgeFade(view,if unavailable then .5 else 0)
 		view.change.Text=if not offer or not offer.ready then "Loading…" elseif offer.nextText and not unavailable then offer.currentText.." → "..offer.nextText else offer.currentText
-		if luck and nextTier and offer and offer.ready and offer.nextRarePlusChance then
-			view.change.Text=string.format("Rare+ %.1f%% → %.1f%%",offer.rarePlusChance*100,offer.nextRarePlusChance*100)
+		if luck and nextTier and offer and offer.ready and offer.nextEpicPlusChance then
+			view.change.Text=if useTopLuckOdds(offer)
+				then string.format("Top %.1f%% → %.1f%%",offer.topBandChance*100,offer.nextTopBandChance*100)
+				else string.format("Epic+ %.1f%% → %.1f%%",offer.epicPlusChance*100,offer.nextEpicPlusChance*100)
 		end
 		view.cost.Visible=nextTier
 		view.cashIcon.Visible=nextTier and state~="Loading" and not unavailable and not waiting
@@ -725,13 +817,21 @@ function Browser:RenderTooltip()
 			if owned then
 				if cashNode.tier==node.maxTier then
 					local odds=luckOdds(offer,false)
-					effect="Cash Luck "..progress.." · MAX. "..baseBenefit
-					if odds then effect..=" Current Rare+ per chicken: "..odds..". Normal rolls, active bonuses included." end
+					effect="Cash Luck "..progress.." · MAX."
+					if odds then effect..=" Epic+ per chicken: "..odds..". Bonuses included." end
+					local topOdds=luckOdds(offer,false,true)
+					if topOdds then effect..=" Strongest chickens: "..topOdds.."." end
+					if offer and offer.windowText then effect..=" Favored bands: "..offer.windowText.."." else effect..=" "..baseBenefit end
+					effect..=" All normal chickens remain possible."
 				else effect="Cash tier "..node.tier.."/"..limit.." purchased. "..baseBenefit end
 			elseif not offer or not offer.ready then effect="Waiting for your flock to load."
 			else
-				local odds=luckOdds(offer,true)
-				effect="Instant cash upgrade. Owned "..progress..". "..(if odds then "Rare+ per chicken: "..odds..". Normal rolls, active bonuses included." else baseBenefit)
+				local topBand=useTopLuckOdds(offer)
+				local odds=luckOdds(offer,true,topBand)
+				effect="Cash Luck "..progress..". "..(if odds then (if topBand then "Strongest chickens: " else "Epic+ per chicken: ")..odds..". Bonuses included." else baseBenefit)
+				if offer.windowText then effect..=" Favored now: "..offer.windowText.."." end
+				if offer.nextWindowText then effect..=" Next: "..offer.nextWindowText.."." end
+				effect..=" All normal chickens remain possible."
 			end
 		elseif owned then effect=baseBenefit
 		elseif not offer or not offer.ready then effect="Waiting for your flock to load."

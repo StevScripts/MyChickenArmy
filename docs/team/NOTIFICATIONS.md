@@ -11,3 +11,18 @@ The existing single latest-message behavior remains. Identical repeats refresh t
 Reference research: inspected gameplay screenshots from https://gamertweak.com/leather-in-blox-fruits/ and https://twinfinite.net/roblox/how-to-go-to-trading-plaza-pet-simulator-99/ in the browser. Blox Fruits' upper-center outlined colored reward text fits the user's background-free request; the shown Pet Simulator error modal does not. No reference assets copied. The current Play session was not interrupted; restart is needed to load the changed modules. No runtime or visual validation of this revision was performed.
 
 Before-source copies: `/tmp/chicken-notifications-desu14/` (AppController, UITheme, UIMotion). All three matched canonical Studio Edit before edits, place 96683186622050. Local edits use Rojo, not Studio Source writes. No playtest, automated test, visual validation, save, publish, purchase, commit or push was performed. Appearance and runtime behavior remain untested in this task. Canonical DESIGN.md, its HTML companion and documentary tokens record the lighter visual contract.
+
+## Livelier messages — October 7, 2026
+
+The user found success/error messages dull and asked for something cooler. They stay
+background-free (the September 25 request). Changes are client presentation only:
+
+- A round status badge (dark ring, colored face, frame-built mark: check, cross,
+  `!`, `i`, crossed swords, dots) sits just left of the centered text, replacing the
+  text glyph. `Theme.StatusGlyph` draws the marks; no font glyphs or uploaded art.
+- Text keeps SourceSansBold with a 3.5px outline. Its status color lives in a
+  `Shine` UIGradient so a bright band can sweep across it.
+- `Theme.NotificationFlair`: success/conquest pop in (0.72 → 1, Back) and shine;
+  errors punch in (1.14 → 1), shake side to side and the badge spins in; warnings
+  hop with a bounce; identical repeats pulse once. Info/pending keep the fade.
+  Reduced motion skips all of it.

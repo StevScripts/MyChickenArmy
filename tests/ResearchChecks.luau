@@ -209,7 +209,7 @@ function Checks.Run()
 	end)
 	check("Real landed splash hits apply boss research only to NPC bosses",function()
 		local s=setup();grant(s,"A3");grant(s,"A16")
-		local pet=s:AddPet("Wizard",1)
+		local pet=s:AddPet("Diamond",1)
 		local b=Battle.new("hit",s.userId,"operation:3:3",Vector3.zero,Vector3.zero,0);b.phase="Fight";b.finiteRoster=true
 		b:AddArmy("A",{pet},Vector3.zero)
 		b:AddArmy("B",{{species="Duck",stars=1,boss=true},{species="Duck",stars=1},{id="enemy-owned",species="Duck",stars=1,boss=true}},Vector3.zero)

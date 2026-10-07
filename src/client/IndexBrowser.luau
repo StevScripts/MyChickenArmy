@@ -185,6 +185,11 @@ function Browser:Render(_force)
 			if state.discovered[species]==true then discovered[species]=true end
 		end
 	end
+	local found=0
+	for _,species in Catalog.Order do
+		if discovered[species] then found+=1 end
+	end
+	self.app.panelTitle.Text="Chicken Index!  "..found.."/"..#Catalog.Order
 	for _,species in Catalog.Order do
 		local view=self.cards[species]
 		local portraitScale=MenuLayout.Number(self.app.gui,"Index","PortraitScale",1.15,0.8,1.35)
@@ -204,8 +209,10 @@ function Browser:Render(_force)
 				view.rim.Color=color:Lerp(WHITE,0.65)
 				view.studs.ImageTransparency=0.82
 			else
-				Theme.Gradient(view.visual,Color3.fromRGB(117,131,136),Color3.fromRGB(67,78,85))
-				view.rim.Color=Color3.fromRGB(176,194,201)
+				-- Locked birds stay silhouettes; a faint rarity tint hints at what is left to find.
+				local color=Theme.Rarities[Catalog[species].rarity] or Color3.fromRGB(117,131,136)
+				Theme.Gradient(view.visual,Color3.fromRGB(117,131,136):Lerp(color,0.3),Color3.fromRGB(67,78,85):Lerp(color,0.18))
+				view.rim.Color=Color3.fromRGB(176,194,201):Lerp(color,0.55)
 				view.studs.ImageTransparency=0.91
 			end
 			if newlyCollected and self.opened and not Theme.Motion.reduced then

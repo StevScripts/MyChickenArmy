@@ -227,6 +227,10 @@ function EggService:Pay(session,yard,drop,now)
  -- saved lesson counter survives deposits and is bounded after completion.
  session.tutorial.collectedEggCount=math.min(TutorialGuide.EggGoal,TutorialGuide.CollectedEggCount(session.tutorial)+count)
  session.tutorial.collectedEggs=session.tutorial.collectedEggCount>=TutorialGuide.EggGoal
+ -- The post-roll egg run only counts between the first roll and the first purchase.
+ if session.tutorial.rolled and not session.tutorial.bought then
+  session.tutorial.rollEggCount=math.min(TutorialGuide.RollEggGoal,TutorialGuide.RollEggCount(session.tutorial)+count)
+ end
  session:Touch()
  table.insert(yard.receipts,{id=drop.id,value=credited,count=count,at=now,
   collector=drop.collector or "player",targetX=drop.targetX,targetY=drop.targetY,targetZ=drop.targetZ})

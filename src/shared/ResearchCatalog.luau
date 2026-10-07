@@ -55,13 +55,13 @@ Catalog.Nodes = {
 	["S16"] = {id="S16", name="Elite Operations", branch="Command", price=25000000, duration=28800, description="Unlock the Elite Operations set", q=4, r=-4, icon="index", prerequisite="S15", effect="operations", value=2},
 	["S17"] = {id="S17", name="Royal Operations", branch="Command", price=250000000, duration=172800, description="Unlock the Royal Operations set", q=5, r=-5, icon="index", prerequisite="S16", effect="operations", value=3},
 	-- Collection progression inspired by the supplied Slime RNG tree. Our tuning
-	-- uses Rare+ weights and podium frequency; it never changes fusion or slot caps.
-	["L1"] = {id="L1", name="Lucky Feathers I", branch="Rolling", price=750, duration=30, description="+10% roll luck for Rare+ chickens", q=0, r=-1, icon="luck", prerequisite="Start", effect="rollingLuck", value=0.1},
-	["L2"] = {id="L2", name="Lucky Feathers II", branch="Rolling", price=7500, duration=120, description="+20% roll luck for Rare+ chickens", q=0, r=-2, icon="luck", prerequisite="L1", effect="rollingLuck", value=0.2},
-	["L3"] = {id="L3", name="Lucky Feathers III", branch="Rolling", price=75000, duration=600, description="+35% roll luck for Rare+ chickens", q=0, r=-3, icon="luck", prerequisite="L2", effect="rollingLuck", value=0.35},
-	["L4"] = {id="L4", name="Super Luck I", branch="Rolling", price=750000, duration=1800, description="+50% roll luck for Rare+ chickens", q=0, r=-4, icon="luck", prerequisite="L3", effect="rollingLuck", value=0.5},
-	["L5"] = {id="L5", name="Super Luck II", branch="Rolling", price=7500000, duration=7200, description="+75% roll luck for Rare+ chickens", q=0, r=-5, icon="luck", prerequisite="L4", effect="rollingLuck", value=0.75},
-	["L6"] = {id="L6", name="Super Luck III", branch="Rolling", price=50000000, duration=28800, description="+100% roll luck for Rare+ chickens", q=0, r=-6, icon="luck", prerequisite="L5", effect="rollingLuck", value=1},
+	-- shifts favored chicken bands and podium frequency; it never changes fusion or slot caps.
+	["L1"] = {id="L1", name="Lucky Feathers I", branch="Rolling", price=750, duration=30, description="+10% Luck strength toward stronger chickens", q=0, r=-1, icon="luck", prerequisite="Start", effect="rollingLuck", value=0.1},
+	["L2"] = {id="L2", name="Lucky Feathers II", branch="Rolling", price=7500, duration=120, description="+20% Luck strength toward stronger chickens", q=0, r=-2, icon="luck", prerequisite="L1", effect="rollingLuck", value=0.2},
+	["L3"] = {id="L3", name="Lucky Feathers III", branch="Rolling", price=75000, duration=600, description="+35% Luck strength toward stronger chickens", q=0, r=-3, icon="luck", prerequisite="L2", effect="rollingLuck", value=0.35},
+	["L4"] = {id="L4", name="Super Luck I", branch="Rolling", price=750000, duration=1800, description="+50% Luck strength toward stronger chickens", q=0, r=-4, icon="luck", prerequisite="L3", effect="rollingLuck", value=0.5},
+	["L5"] = {id="L5", name="Super Luck II", branch="Rolling", price=7500000, duration=7200, description="+75% Luck strength toward stronger chickens", q=0, r=-5, icon="luck", prerequisite="L4", effect="rollingLuck", value=0.75},
+	["L6"] = {id="L6", name="Super Luck III", branch="Rolling", price=50000000, duration=28800, description="+100% Luck strength toward stronger chickens", q=0, r=-6, icon="luck", prerequisite="L5", effect="rollingLuck", value=1},
 	["R1"] = {id="R1", name="Roll Speed", branch="Rolling", price=1500, duration=60, description="+10% podium roll speed", q=-1, r=-1, icon="boots", prerequisite="L1", effect="rollingSpeed", value=0.1},
 	["R2"] = {id="R2", name="Faster Rolls", branch="Rolling", price=15000, duration=180, description="+20% podium roll speed", q=-1, r=-2, icon="boots", prerequisite="R1", effect="rollingSpeed", value=0.2},
 	["R3"] = {id="R3", name="Rapid Rolls", branch="Rolling", price=150000, duration=900, description="+30% podium roll speed", q=-1, r=-3, icon="boots", prerequisite="R2", effect="rollingSpeed", value=0.3},

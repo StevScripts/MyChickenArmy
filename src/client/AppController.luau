@@ -18,6 +18,7 @@ local EggController = require(script.Parent.EggController)
 local EggFeedback = require(script.Parent.EggFeedback)
 local HudController = require(script.Parent.HudController)
 local CommanderGuide = require(script.Parent.CommanderGuide)
+local IntroCutscene = require(script.Parent.IntroCutscene)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
 local EggProcessorController = require(script.Parent.EggProcessorController)
@@ -96,6 +97,7 @@ function AppController:Notify(text, ok)
 	Theme.SetNotification(self.toast,text,kind)
 	self:SizeNotice()
 	Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),repeated)
+	Theme.NotificationFlair(self.toastFrame,self.toast,kind,repeated)
 	if self.toastDelay then task.cancel(self.toastDelay) end
 	local duration=math.clamp(#text/24+1,if kind=="error" or kind=="warning" then 5 else 4,8)
 	self.toastDelay=task.delay(duration, function()
@@ -386,7 +388,10 @@ function AppController:BuildUI()
 	self.hudLayer,self.frames,self.other=hudLayer,frames,other
 	-- Keep screen coordinates in rendered pixels; each menu owns its content layout.
 	self.hud=HudController.new(self,hudLayer)
-	local backdrop=Theme.Frame(frames,"Backdrop",UDim2.fromScale(1,1),C.dark)
+	-- The dim covers the whole device screen; panels stay in the safe area.
+	local backdropLayer=Theme.InsetContainer(frames,"BackdropLayer",Enum.ScreenInsets.None)
+	backdropLayer.ZIndex=10
+	local backdrop=Theme.Frame(backdropLayer,"Backdrop",UDim2.fromScale(1,1),C.dark)
 	backdrop.BackgroundTransparency,backdrop.Visible,backdrop.Active=1,false,true
 	backdrop.ZIndex,self.backdrop=10,backdrop
 	Theme.Round(backdrop,0)
@@ -427,6 +432,10 @@ function AppController:BuildUI()
 	self:FitPanel()
 	self.hud:Resize()
 	self:SizeNotice()
+	-- The bottom HUD buttons step aside while a popup is open so they never sit on its edge.
+	local function syncNavigation() self.hud.navigation.Visible=not panel.Visible end
+	panel:GetPropertyChangedSignal("Visible"):Connect(syncNavigation)
+	syncNavigation()
 end
 
 function AppController:FitPanel()
@@ -553,18 +562,27 @@ function AppController:Groups()
 end
 
 function AppController:RenderSettings()
-	if self.state and not (self.state.tutorial or {}).guideCompleted and not (self.state.tutorial or {}).wonCamp then
+	local tutorial=(self.state and self.state.tutorial) or {}
+	-- Only offer to resume the guide after the player actually skipped it.
+	if tutorial.guideSkipped and not tutorial.guideCompleted and not tutorial.wonCamp then
 		local resume=self:Button("ResumeCommander", "Resume Commander Cluck", function() self:Request("TutorialSignal",{signal="Resume"});self:ClosePanel() end)
 		Theme.Aspect(resume,5.6)
 		resume.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
 	end
 	self.panelTitle.Text = "Settings"
-	self:Button("ToggleMusic", "Music  ·  " .. (if self.audio.musicEnabled then "ON" else "OFF"), function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
-	self:Button("ToggleEffects", "Sound effects  ·  " .. (if self.audio.sfxEnabled then "ON" else "OFF"), function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
-	self:Button("ReducedMotion", "Reduced motion  ·  " .. (if self.reducedMotion then "ON" else "OFF"), function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	-- Toggles read at a glance: green when ON, gray when OFF.
+	local function toggle(name, label, on, callback)
+		return self:Button(name, label .. "  ·  " .. (if on then "ON" else "OFF"), callback, if on then Theme.Arcade.green else Theme.ActionColors.disabled)
+	end
+	toggle("ToggleMusic", "Music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
+	toggle("ToggleEffects", "Sound effects", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
+	toggle("ReducedMotion", "Reduced motion", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	if self.intro and self.intro:CanReplay() then
+		self:Button("ReplayIntro", "Replay intro", function() self:ClosePanel();self.intro:Replay() end, Theme.ActionColors.navigation)
+	end
 	self:Text("ControlsHeading", "PC CONTROLS", 13, 24, C.green)
 	self:Text("Controls", "WASD move · Mouse look\nE interact · F buy\nB chickens · U upgrades · O settings · Esc close", 16, 60, C.muted)
-	self:Text("SaveInfo", self.state.saveMessage or "Pets, coins and upgrades are saved between visits.", 12, 32, C.muted)
+	self:Text("SaveInfo", self.state.saveMessage or "Pets, cash and upgrades are saved between visits.", 12, 32, C.muted)
 	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
 end
 
@@ -685,6 +703,8 @@ function AppController:Receive(packet)
 	local old = self.state
 	self.state = packet.state
 	local state = self.state
+	-- Before any guide/objective refresh, so a first-visit intro can hold them.
+	if self.intro then self.intro:Observe(state) end
 	self.commerce:ReceiveState(state)
 	local researchFeedback=self.research:Receive(state,packet.result)
 	self.eggs:Receive(state.eggs)
@@ -700,6 +720,9 @@ function AppController:Receive(packet)
 		end
 	end
 	local result = packet.result
+	if result and result.ok and result.action=="CallArmy" then
+		self.audio:Play("CallArmyWhistle",nil,{volume=0.18,noFallback=true,voiceKey="CallArmyWhistle",cooldown=0.75})
+	end
 	if result and result.ok and (result.action=="UpgradeChicken" or result.action=="BoardUpgrade") then
 		self.audio:Play("UIPurchase",nil,{noFallback=true})
 	end
@@ -763,6 +786,7 @@ function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
 	self.commander=CommanderGuide.new(self)
+	self.intro=IntroCutscene.new(self)
 	self.eggBoard:Start()
 	self.audio:Start()
 	self.audio:BindUI(self.gui)
@@ -804,6 +828,7 @@ function AppController:Destroy()
 	for _, connection in self.connections do connection:Disconnect() end
 	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
 	if self.commander then self.commander:Destroy() end
+	if self.intro then self.intro:Destroy() end
 	if self.animator then self.animator:Destroy() end
 	if self.galaxyCrateVisuals then self.galaxyCrateVisuals:Destroy() end
 	if self.prompts then self.prompts:Destroy() end

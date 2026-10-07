@@ -13,16 +13,20 @@ local function decimal(value)
 	return (string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", ""))
 end
 
-local function rarePlusChance(session, level)
-	local chance = 0
+local function luckChances(session, level, window)
+	local rarePlus, epicPlus, topBand = 0, 0, 0
 	for id, probability in Rules.Odds(level, session.recruitTier,
 		session:PaidLuckMultiplier(), session.researchEffects.rollingLuck) do
 		local rarity = Catalog[id].rarity
-		if rarity == "Rare" or rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" then
-			chance += probability
+		if rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" then
+			rarePlus += probability
+			epicPlus += probability
+		elseif rarity == "Rare" then
+			rarePlus += probability
 		end
+		if Catalog[id].income >= window.topIncome then topBand += probability end
 	end
-	return chance
+	return rarePlus, epicPlus, topBand
 end
 
 function UpgradeService.new(_world, rolls)
@@ -54,14 +58,18 @@ function UpgradeService:Offers(session)
 	add("ArmySize", session.capacity, tostring(session:Capacity()), army and army.price)
 	if army then offers.ArmySize.unlocked = army.unlocked; offers.ArmySize.requirement = army.requirement end
 	local luck = session:GlobalUpgrade("Luck")
-	add("Luck", session.luck, decimal(Rules.LuckMultiplier(session.luck)
-		* session:PaidLuckMultiplier() * (1 + (session.researchEffects.rollingLuck or 0))) .. "x", luck and luck.price)
+	local window = Rules.LuckWindow(session.luck, session:PaidLuckMultiplier(), session.researchEffects.rollingLuck)
+	add("Luck", session.luck, decimal(window.multiplier) .. "x", luck and luck.price)
 	-- Normal individual roll outcomes; forced tutorial/guaranteed rolls and fixed
 	-- crate pools are separate. Use the same normalized odds as ordinary rolls.
 	offers.Luck.maxLevel = #Config.LuckPrices
-	offers.Luck.rarePlusChance = rarePlusChance(session, session.luck)
+	offers.Luck.window, offers.Luck.windowText = window, window.rangeText
+	offers.Luck.rarePlusChance, offers.Luck.epicPlusChance, offers.Luck.topBandChance = luckChances(session, session.luck, window)
 	if offers.Luck.price then
-		offers.Luck.nextRarePlusChance = rarePlusChance(session, session.luck + 1)
+		local nextWindow = Rules.LuckWindow(session.luck + 1, session:PaidLuckMultiplier(), session.researchEffects.rollingLuck)
+		offers.Luck.nextWindow, offers.Luck.nextWindowText = nextWindow, nextWindow.rangeText
+		offers.Luck.nextText = decimal(nextWindow.multiplier) .. "x"
+		offers.Luck.nextRarePlusChance, offers.Luck.nextEpicPlusChance, offers.Luck.nextTopBandChance = luckChances(session, session.luck + 1, nextWindow)
 	end
 	local slots = session.rollSlotsUnlocked
 	local physicalLimit = session.rollSlotLimit or 1
@@ -80,8 +88,6 @@ function UpgradeService:Offers(session)
 	preview("PlotSize", tostring(Definitions.PlotCapacity(session.plotSizeLevel + 1)))
 	preview("EggValue", "$" .. decimal(Rules.EggUnitValue(session.incomeLevel + 1)))
 	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
-	preview("Luck", decimal(Rules.LuckMultiplier(session.luck + 1)
-		* session:PaidLuckMultiplier() * (1 + (session.researchEffects.rollingLuck or 0))) .. "x")
 	preview("RollSlots", tostring(math.min(slots + 1, physicalLimit)))
 	return offers
 end

@@ -27,10 +27,26 @@ end
 local function setup()
 	local session=Session.new(-67001,"Research roll fixture",1)
 	session.loaded=true;session.coins=1e9
+	-- These checks exercise ordinary rolls, not the forced tutorial recruit.
+	session.tutorial.bought=true
 	return session,Rolls.new()
 end
 local function sameOdds(actual,expected)
 	for _,species in Catalog.Order do near(actual[species],expected[species]) end
+end
+local function atLeastIncome(odds,income)
+	local chance=0
+	for _,species in Catalog.Order do
+		if Catalog[species].income>=income then chance+=odds[species] end
+	end
+	return chance
+end
+local function rarityChance(odds,rarities)
+	local chance=0
+	for _,species in Catalog.Order do
+		if table.find(rarities,Catalog[species].rarity) then chance+=odds[species] end
+	end
+	return chance
 end
 
 function Checks.Run()
@@ -43,39 +59,36 @@ function Checks.Run()
 		local session=setup();grant(session,"L6");grant(session,"R6")
 		near(session.researchEffects.rollingLuck,1);near(session.researchEffects.rollingSpeed,.6)
 	end)
-	check("No research preserves the original cash and paid luck weights",function()
+	check("Omitted research and zero research agree with normal-roll snapshots",function()
 		for _,paid in {1,2} do
 			for _,level in {0,4,#Config.LuckPrices} do
 				local odds=Rules.Odds(level,1,paid);sameOdds(odds,Rules.Odds(level,1,paid,0))
-				local expected,total={},0
-				for _,species in Catalog.Order do
-					local definition=Catalog[species]
-					local rare=table.find({"Rare","Epic","Legendary","Mythic"},definition.rarity)~=nil
-					expected[species]=definition.weight*(if rare then Rules.LuckMultiplier(level)*paid else 1)
-					total+=expected[species]
-				end
-				for species,weight in expected do near(odds[species],weight/total) end
+				local session=setup();session.luck=level
+				session.entitlements.DoubleLuck=paid==2;session.paidRandomAllowed=true
+				sameOdds(session:Snapshot(100).odds,odds)
 			end
 		end
 	end)
 	check("Every research tier normalizes and real draw intervals match displayed chances",function()
-		for _,bonus in {.1,.2,.35,.5,.75,1} do
-			for _,paid in {1,2} do
+		for _,paid in {1,2} do
+			local previous=Rules.Odds(4,1,paid,0)
+			for _,bonus in {.1,.2,.35,.5,.75,1} do
 				local odds=Rules.Odds(4,1,paid,bonus);local total=0
 				for _,species in Catalog.Order do
-					local chance=odds[species];assert(chance>0 and chance<1)
-					assert(Rules.Draw(4,total+chance/2,1,paid,bonus)==species)
+					local chance=odds[species];assert(chance>=0 and chance<=1)
+					if Catalog[species].weight==0 then near(chance,0) end
+					if chance>0 then assert(Rules.Draw(4,total+chance/2,1,paid,bonus)==species) end
 					total+=chance
 				end
 				near(total,1)
-				local baseline=Rules.Odds(4,1,paid)
-				-- Relative Rare/Common weight receives precisely the additional multiplier.
-				local common,rare
+				-- Research shifts the fixed stat bands upward; it need not improve
+				-- every individual species once the favored range has moved past it.
 				for _,species in Catalog.Order do
-					if Catalog[species].rarity=="Common" then common=species end
-					if Catalog[species].rarity=="Rare" then rare=species end
+					local income=Catalog[species].income
+					assert(atLeastIncome(odds,income)+1e-10>=atLeastIncome(previous,income),
+						"Research reduced the chance of reaching stat band "..income)
 				end
-				near((odds[rare]/odds[common])/(baseline[rare]/baseline[common]),1+bonus)
+				previous=odds
 			end
 		end
 	end)
@@ -101,7 +114,29 @@ function Checks.Run()
 		local offers=Upgrades.Offers({},session)
 		near(tonumber(offers.Luck.currentText:match("[%d.]+")),4)
 		near(tonumber(offers.Luck.nextText:match("[%d.]+")),Rules.LuckMultiplier(1)*4)
+		local current,nextOdds=Rules.Odds(0,1,2,1),Rules.Odds(1,1,2,1)
+		near(offers.Luck.rarePlusChance,rarityChance(current,{"Rare","Epic","Legendary","Mythic"}))
+		near(offers.Luck.nextRarePlusChance,rarityChance(nextOdds,{"Rare","Epic","Legendary","Mythic"}))
+		near(offers.Luck.epicPlusChance,rarityChance(current,{"Epic","Legendary","Mythic"}))
+		near(offers.Luck.nextEpicPlusChance,rarityChance(nextOdds,{"Epic","Legendary","Mythic"}))
+		near(offers.Luck.topBandChance,atLeastIncome(current,Rules.LuckWindow(0,2,1).topIncome))
+		near(offers.Luck.nextTopBandChance,atLeastIncome(nextOdds,Rules.LuckWindow(1,2,1).topIncome))
+		assert(offers.Luck.windowText==offers.Luck.window.rangeText and offers.Luck.windowText~="")
+		assert(offers.Luck.nextWindowText==offers.Luck.nextWindow.rangeText and offers.Luck.nextWindowText~="")
+		assert(offers.Luck.window.topName==Rules.LuckWindow(0,2,1).topName)
 		assert(offers.Luck.price==Config.LuckPrices[1] and offers.Luck.unlocked)
+		-- At high combined luck Epic+ has plateaued, but the last cash upgrade
+		-- still improves the strongest band and must disclose that benefit.
+		session.luck=19
+		local high=Upgrades.Offers({},session).Luck
+		near(high.epicPlusChance,high.nextEpicPlusChance)
+		near(high.topBandChance,atLeastIncome(Rules.Odds(19,1,2,1),Rules.LuckWindow(19,2,1).topIncome))
+		near(high.nextTopBandChance,atLeastIncome(Rules.Odds(20,1,2,1),Rules.LuckWindow(20,2,1).topIncome))
+		assert(high.nextTopBandChance>high.topBandChance)
+		session.luck=20
+		local capped=Upgrades.Offers({},session).Luck
+		near(capped.topBandChance,high.nextTopBandChance)
+		assert(capped.nextTopBandChance==nil)
 	end)
 	check("Accepted duration is frozen; cooldown and early purchase cannot bypass it",function()
 		local session,rolls=setup();grant(session,"R1")
@@ -118,7 +153,7 @@ function Checks.Run()
 		assert(rolls:Roll(session,deadline));near(session.offer.duration,Config.RollRevealSeconds/1.6)
 		near(session.rollRevealAt,deadline+Config.RollRevealSeconds/1.6)
 	end)
-	check("Station publishes the accepted timing and weights unchanged by mid-roll research",function()
+	check("Station publishes the accepted timing and luck inputs unchanged by mid-roll research",function()
 		local session,rolls=setup();grant(session,"R1");grant(session,"L3")
 		session.entitlements.DoubleLuck=true;session.paidRandomAllowed=true
 		assert(rolls:Roll(session,100))

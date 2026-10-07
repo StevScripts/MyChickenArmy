@@ -64,7 +64,10 @@ function Presentation.new(parent,options)
 	shield.BackgroundColor3,shield.BackgroundTransparency=Color3.new(0,0,0),1
 	shield.BorderSizePixel,shield.AutoButtonColor,shield.Selectable=0,false,false
 	shield.Active,shield.Modal,shield.ZIndex=true,true,100
-	shield.Parent=root
+	-- The dim reaches the full device screen, past phone notches.
+	local shieldLayer=Theme.InsetContainer(root,"ShieldLayer",Enum.ScreenInsets.None)
+	shieldLayer.ZIndex=100
+	shield.Parent=shieldLayer
 	self.shield=shield
 	local panel=Theme.Frame(root,"Reel",UDim2.fromScale(0.8,0.15),Color3.new(0,0,0))
 	panel.AnchorPoint,panel.Position=Vector2.new(0.5,0.5),CENTER

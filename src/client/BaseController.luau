@@ -411,7 +411,7 @@ end
 function BaseController:UpdateObjective()
  local state=self.app.state
  local world=workspace:FindFirstChild("PetRollWorld")
- if not state or not world then
+ if not state or not world or (self.app.intro and self.app.intro.playing) then
   if self.objective then self.objective.Enabled=false end
   self:UpdateGuideTrail(nil,false)
   if self.app.commander then self.app.commander:ClearFocus() end

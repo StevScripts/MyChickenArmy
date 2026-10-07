@@ -22,7 +22,7 @@ function Checks.Run()
 	end
 	check("Fee follows species and level; upgrades and wallet cannot change the quote",function()
 		assert(Rules.MergePrice("Duck",1)==600 and Rules.MergePrice("Duck",2)==1200)
-		assert(Rules.MergePrice("Bucket",1)==4200 and Rules.MergePrice("Dragon",1)==40200)
+		assert(Rules.MergePrice("Bucket",1)==4200 and Rules.MergePrice("Rainbow",1)==40200)
 		local s,ids,price=setup();s.coins=0;s.incomeLevel=25;s.luck=20
 		assert(Army.MergeOptions(s)[1].price==price)
 	end)

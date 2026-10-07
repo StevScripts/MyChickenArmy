@@ -10,6 +10,7 @@ local checkpoints = {30, 60, 180, 300, 600}
 local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, Expand=true,
 	UpgradeChicken=true, SetArmy=true, SelectBest=true, Attack=true, CallArmy=true}
 local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
+	IntroStarted=true, IntroFinished=true, IntroSkipped=true,
 	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true}
 local inputs = {Keyboard=true, Touch=true, Gamepad=true}
 local function durationBucket(seconds)
@@ -157,6 +158,16 @@ function Tutorial:Signal(session, signal, input)
 		session.tutorial.guideSkipped=true;session:Touch()
 		r.endedAt,r.independent,r.windowClosed=now,false,false
 		if r.eligible then self:Emit(r,"FTUEOutcome",now-r.at,r.step,"Skipped") end
+	elseif signal=="IntroStarted" then
+		-- Presentation only: mark it watched before it ends so a crash cannot loop it.
+		if session.tutorial.introSeen then return end
+		session.tutorial.introSeen=true;session:Touch()
+		r.introAt=now
+		self:Emit(r,"FTUEIntro",1,"Entry","Started")
+	elseif signal=="IntroFinished" or signal=="IntroSkipped" then
+		if not r.introAt or r.introEnded then return end
+		r.introEnded=true
+		self:Emit(r,"FTUEIntroSeconds",now-r.introAt,"Entry",if signal=="IntroSkipped" then "Skipped" else "Finished")
 	elseif signal=="Resume" then
 		if session.tutorial.guideCompleted then return end
 		session.tutorial.guideSkipped=false;session:Touch()

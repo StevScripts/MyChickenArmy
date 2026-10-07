@@ -12,6 +12,8 @@ Edit mode so it persists. No script edit is needed.
 | Collection | Collect, EggPickup, EggDeposit, Money |
 | Rolling | RollLever, RollTick, RollLand, RollReveal, RollRare |
 | Combat | Impact, Victory |
+| MyChickenArmyAudio root | CallArmyWhistle |
+| Intro / 1_Island … 8_CampPayoff | First-visit cutscene: one Sound per moment, grouped by scene (AudioCue `Intro_<Name>`). Volume and PlaybackSpeed are read from each Sound. Recipe: `assets/audio/add_intro_sounds.luau`. |
 | VFX | Named chicken effect loops (Galaxy, Rainbow, Glitch, Magma, etc.) and GlitchBurst |
 | Fallbacks | Tick, Impact (quiet substitutes while a sound loads) |
 | Mix | Music and Effects SoundGroups for the overall mix |
@@ -57,6 +59,11 @@ Studio. New audio IDs must be available to this experience for playback.
 
 Runtime owner: `src/client/AudioController.luau`. Egg/cash timing and contextual
 volumes remain in `src/shared/CollectionFeel.luau`, which no longer stores IDs.
+
+Call Army plays the existing `MyChickenArmyAudio.CallArmyWhistle` only after the
+server accepts the command. Its playback volume is 0.18 instead of the authored
+0.5; the Effects mute and mix still apply. The old HUD click does not accompany
+the whistle. A locked or rejected command does not sound the whistle.
 
 Chicken VFX sounds initially have empty SoundIds because these visuals previously
 had no audio. Set their SoundIds under **MyChickenArmyAudio → VFX**. Each named

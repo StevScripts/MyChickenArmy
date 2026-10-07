@@ -27,7 +27,7 @@ local function offerLabel(parent, frame)
 	local anchor = Builder.Part(parent, "OfferLabelAnchor", Vector3.one, frame * CFrame.new(0, 6, -3.5), colors.white, false)
 	anchor.Transparency, anchor.CanQuery, anchor.CastShadow = 1, false, false
 	local gui = Instance.new("BillboardGui")
-	gui.Name, gui.Size = "OfferLabel", UDim2.fromOffset(340, 66)
+	gui.Name, gui.Size = "OfferLabel", UDim2.fromOffset(340, 96)
 	gui.AlwaysOnTop, gui.MaxDistance, gui.StudsOffset = true, 38, Vector3.new(0, 0, 0)
 	gui.LightInfluence, gui.Enabled, gui.Parent = 0, false, anchor
 	local function line(name, top, height, textSize)
@@ -41,8 +41,14 @@ local function offerLabel(parent, frame)
 		stroke.Parent = label
 		return label
 	end
-	-- Fixed sizes keep short and long names consistent; rarity is the only accent.
-	return gui, line("Text", 0, 34, 28), line("Rarity", 36, 28, 21)
+	-- Fixed sizes keep short and long names consistent; rarity and price are the accents.
+	local price = line("Price", 64, 30, 24)
+	price.TextColor3 = UIColors.Money
+	return gui, line("Text", 0, 34, 28), line("Rarity", 36, 28, 21), price
+end
+
+local function commas(value)
+	return (tostring(math.floor(value)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
 end
 
 -- Stable authored names keep display identity independent of GetDescendants order.
@@ -135,13 +141,14 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 	model:SetAttribute("DisplayFrame",self.frame);model:SetAttribute("DisplayFoot",self.foot)
 	model:SetAttribute("LeverPivot",self.leverPivot)
 	model:SetAttribute("LeverArmRest",self.armRest);model:SetAttribute("LeverHandleRest",self.knobRest)
-	self.offerGui, self.label, self.rarityLabel = offerLabel(model, if parent:GetAttribute("AuthoredPlot") then self.frame*CFrame.new(0,-1.5,3.5) else frame)
+	self.offerGui, self.label, self.rarityLabel, self.priceLabel = offerLabel(model, if parent:GetAttribute("AuthoredPlot") then self.frame*CFrame.new(0,-1.5,3.5) else frame)
 	if #RollStation.DisplayAnchors(parent)>1 then
 		-- World-sized labels stay inside their neighboring podium's footprint.
-		self.offerGui.Size=UDim2.fromScale(5.6,1.25)
-		self.label.Position,self.label.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,0.55)
-		self.rarityLabel.Position,self.rarityLabel.Size=UDim2.fromScale(0,0.56),UDim2.fromScale(1,0.44)
-		self.label.TextScaled,self.rarityLabel.TextScaled=true,true
+		self.offerGui.Size=UDim2.fromScale(5.6,1.8)
+		self.label.Position,self.label.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,0.38)
+		self.rarityLabel.Position,self.rarityLabel.Size=UDim2.fromScale(0,0.39),UDim2.fromScale(1,0.3)
+		self.priceLabel.Position,self.priceLabel.Size=UDim2.fromScale(0,0.69),UDim2.fromScale(1,0.31)
+		self.label.TextScaled,self.rarityLabel.TextScaled,self.priceLabel.TextScaled=true,true,true
 	end
 	-- The cylinder is rotated, so world-space emission uses a separate upright anchor.
 	local emitterAnchor = Builder.Part(model, "EffectAnchor", Vector3.one, CFrame.new(self.foot + Vector3.new(0, 0.6, 0)), colors.white, false)
@@ -251,7 +258,7 @@ function RollStation:Step(now, force)
 	self.lastVisualAt = now
 	self.offerGui.Enabled = canBuy
 	if rolling then
-		self.label.Text, self.rarityLabel.Text = "", ""
+		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	elseif self.offer then
 		local def = Catalog[self.offer.species]
 		local level = self.offer.level or 1
@@ -265,12 +272,13 @@ function RollStation:Step(now, force)
 		self.label.Text = def.name
 		self.rarityLabel.Text = def.rarity
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
-		local promptText = if self.flockFull then "Flock full · sell in Army" else "Buy " .. def.name .. " · " .. price .. " coins"
+		self.priceLabel.Text = "$" .. commas(price)
+		local promptText = if self.flockFull then "Flock full · sell in Army" else "Buy " .. def.name .. " · $" .. commas(price)
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
 		self.top.Color = tint
 
 	else
-		self.label.Text, self.rarityLabel.Text = "", ""
+		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 		self.top.Color, self.light.Brightness = Color3.fromRGB(67, 181, 222), 0
 	end
 
@@ -283,7 +291,7 @@ function RollStation:Clear()
 	if self.rollPrompt then self.rollPrompt.Enabled=false end
 	self.buyPrompt.Enabled,self.light.Brightness=false,0
 	self.offerGui.Enabled = false
-	self.label.Text, self.rarityLabel.Text = "", ""
+	self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
 	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end

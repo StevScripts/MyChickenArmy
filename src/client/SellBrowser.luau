@@ -56,7 +56,7 @@ end
 
 function Browser:Value(pet)
  self.mode,self.quote="value",nil
- self.view:Result("I'd value it at <font color='#FFEF40'>"..money(pet.refund).." coins</font>.")
+ self.view:Result("I'd value it at <font color='#FFEF40'>$"..money(pet.refund).."</font>.")
 end
 
 function Browser:Groups()
@@ -105,7 +105,7 @@ function Browser:Review(pets)
  end
  self.mode,self.quote="review",quote
  self.view:Show("I'll buy "..#pets.." spare "..(if #pets==1 then "chicken" else "chickens")..".",{
-  {text="Sell "..#pets.." for "..money(quote.refund).." coins",run=function() self:Confirm() end},
+  {text="Sell "..#pets.." for $"..money(quote.refund),run=function() self:Confirm() end},
   {text="Nevermind",run=function() self:Root() end},
  },"Egg income −"..money(quote.income).."/s")
 end
@@ -136,7 +136,7 @@ function Browser:Receive(result)
   if not self.view.active then return false end
   if result.ok and result.receipt then
    local receipt=result.receipt
-   self.view:Result("Here is <font color='#FFEF40'>"..money(receipt.total).." coins</font>")
+   self.view:Result("Here is <font color='#FFEF40'>$"..money(receipt.total).."</font>")
   else self:Root(result.message or "Your flock changed. Choose again.") end
   return true
  end

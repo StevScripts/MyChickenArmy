@@ -49,7 +49,10 @@ function Controller:Receive(state)
 	gui.ZIndex=30
 	self.gui,self.closing=gui,false
 	local frames=Theme.Container(gui,"FRAMES")
-	local backdrop=Theme.Frame(frames,"Backdrop",UDim2.fromScale(1,1))
+	-- The tap blocker covers the full device screen, past phone notches.
+	local backdropParent=if self.app.editPreview then frames
+		else Theme.InsetContainer(frames,"BackdropLayer",Enum.ScreenInsets.None)
+	local backdrop=Theme.Frame(backdropParent,"Backdrop",UDim2.fromScale(1,1))
 	backdrop.BackgroundTransparency,backdrop.Active=1,true
 	local panel=Instance.new("CanvasGroup")
 	panel.Name="OfflineCash"

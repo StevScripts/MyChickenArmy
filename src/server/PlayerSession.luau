@@ -726,7 +726,7 @@ function PlayerSession:LoadData(data)
   if previousEarned>promotion then promotion,recruitTier=previousEarned,previousEarned end
  end
 	local tutorial={}
-	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted"} do tutorial[key]=data.tutorial[key]==true end
+	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen"} do tutorial[key]=data.tutorial[key]==true end
 	local collectedEggCount=data.tutorial.collectedEggCount
 	if collectedEggCount==nil then
 		-- Existing saves already passed the one-egg lesson when they collected,
@@ -738,6 +738,9 @@ function PlayerSession:LoadData(data)
 	end
 	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
 	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
+	local rollEggCount=data.tutorial.rollEggCount
+	if rollEggCount~=nil and not numberIn(rollEggCount,0,1e12,true) then return false,"Invalid saved tutorial egg count." end
+	tutorial.rollEggCount=if rollEggCount==nil then nil else math.min(rollEggCount,TutorialGuide.RollEggGoal)
 	if not numberIn(data.passiveEarned or 0,0,Currency.MaxCoins) or not numberIn(data.battleEarned or 0,0,Currency.MaxCoins) then return false,"Invalid saved earnings." end
 	-- Display retained access as completed research without charging or granting
 	-- unrelated Army research. FuseMachine depends only on the existing Start.
@@ -770,7 +773,7 @@ function PlayerSession:LoadData(data)
 	while self.firstWins[self.campUnlocked] and self.campUnlocked<#Progression.Camps(1) do self.campUnlocked+=1 end
 	self.offer,self.offers=nil,{}
 	self:UnlockProgress();self:RefreshArmy();self:Touch()
-	return true,if legacy then "Loaded and converted stored egg value to coins." else "Loaded."
+	return true,if legacy then "Loaded and converted stored egg value to cash." else "Loaded."
 end
 
 function PlayerSession:Destroy()

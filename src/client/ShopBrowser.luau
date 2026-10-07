@@ -59,7 +59,7 @@ local PASSES={
  {key="DoubleEggSpawn",name="2x Egg Spawn",description="Chickens lay eggs twice as often.",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),rim=Color3.fromRGB(188,239,255),title=Color3.fromRGB(227,250,255),icon="Eggs",background="eggs",double=true},
  {key="AutoMerge",name="Auto Merge",description="Merge matching chickens for you.",color=Color3.fromRGB(8,207,243),top=Color3.fromRGB(0,110,228),rim=Color3.fromRGB(179,240,255),title=Color3.fromRGB(222,248,255),icon="AutoMerge",background="cyan"},
  {key="BiggerArmy",name="Bigger Army",description="+5 deployment slots. Field 15 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
- {key="DoubleLuck",name="2x Luck",description="Twice the luck on every spin.",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),rim=Color3.fromRGB(255,236,173),title=Color3.fromRGB(255,242,205),icon="DoubleLuck",background="gold",double=true},
+ {key="DoubleLuck",name="2x Luck",description="2x Luck strength. Favor stronger chickens.",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),rim=Color3.fromRGB(255,236,173),title=Color3.fromRGB(255,242,205),icon="DoubleLuck",background="gold",double=true},
 }
 local EXISTING_STYLES={
  EggMagnet={icon="EggMagnet",background="cyan",palette=4},
@@ -67,8 +67,8 @@ local EXISTING_STYLES={
  DoubleBounty={icon="DoubleBounty",background="army",palette=5},
 }
 local PASS_COPY={
- AutoCollectEggs="Collect eggs into your bag.",DoubleCash="2x earned egg and combat coins.",
- AutoMerge="Merge eligible home chickens.",BiggerArmy="+5 slots. Up to 15 chickens.",DoubleLuck="2x Rare+ roll weights.",
+ AutoCollectEggs="Collect eggs into your bag.",DoubleCash="2x earned egg and combat cash.",
+ AutoMerge="Merge eligible home chickens.",BiggerArmy="+5 slots. Up to 15 chickens.",DoubleLuck="2x Luck strength. Favor stronger chickens.",
 }
 -- Quantities match the server catalog; checkout prices always come from Roblox.
 local CASH_TIERS={
@@ -163,8 +163,8 @@ function Browser.new(app,parent)
  body.ClipsDescendants=true
  self.body=body
  self.previewStatus=plain(body,"PurchaseStatus","Prices from Roblox · purchases deliver to this account",14,UDim2.fromScale(0.015,0.945),UDim2.fromScale(0.97,0.045),P.muted,true)
- -- Use the main HUD's icon buttons, outside the scrolling content.
- local nav=frame(root,"SectionNavigation",UDim2.fromScale(0.06580273,0.5),UDim2.fromScale(1.04,0.5))
+ -- Section tabs live in a left rail inside the panel, beside the scrolling content.
+ local nav=frame(body,"SectionNavigation",UDim2.fromScale(0.07,0.62),UDim2.fromScale(0.008,0.5))
  nav.AnchorPoint=Vector2.new(0,0.5)
  nav.BackgroundTransparency,nav.ZIndex=1,5
  self.navigation=nav
@@ -189,13 +189,27 @@ function Browser.new(app,parent)
   self.tabs[key]=button
  end
  local scroll=Instance.new("ScrollingFrame")
- scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.01,0.02),UDim2.fromScale(0.98,0.91)
- scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,0
+ scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.085,0.02),UDim2.fromScale(0.905,0.91)
+ -- A visible gold scrollbar and a soft fade say "there is more below".
+ scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,8
  scroll.ScrollingDirection,scroll.ScrollBarImageColor3,scroll.ClipsDescendants=Enum.ScrollingDirection.Y,P.gold,true
  scroll.CanvasSize,scroll.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.None
  scroll.VerticalScrollBarInset,scroll.ElasticBehavior=Enum.ScrollBarInset.Always,Enum.ElasticBehavior.WhenScrollable
  scroll.ZIndex,scroll.Parent=3,body
  self.scroll,self.grid=scroll,scroll
+ local fade=frame(body,"ScrollFade",UDim2.fromScale(0.975,0.08),UDim2.fromScale(0.005,0.85),Theme.Colors.panel)
+ fade.ZIndex,fade.Active=6,false
+ Theme.Round(fade).CornerRadius=UDim.new(0,0)
+ local fadeGradient=Instance.new("UIGradient")
+ fadeGradient.Rotation=90
+ fadeGradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})
+ fadeGradient.Parent=fade
+ self.scrollFade=fade
+ local footer=frame(body,"PurchaseStatusBacking",UDim2.fromScale(1,0.07),UDim2.fromScale(0,0.93),Theme.Colors.panel)
+ footer.ZIndex,footer.Active=6,false
+ Theme.Round(footer).CornerRadius=UDim.new(0,0)
+ self.previewStatus.ZIndex=8
+ self.previewBacking=footer
  local padding=Instance.new("UIPadding")
  padding.PaddingLeft,padding.PaddingRight,padding.PaddingTop,padding.PaddingBottom=UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.02,0)
  padding.Parent=scroll
@@ -471,6 +485,7 @@ function Browser:ShowDetails(kind,purchaseKey)
  self:CancelScroll()
  self.detailsKind,self.detailsPurchase=kind,purchaseKey
  self.scroll.Visible,self.previewStatus.Visible=false,false
+ self.scrollFade.Visible,self.previewBacking.Visible,self.navigation.Visible=false,false,false
  self.detailsRoot.Visible=true
  self.detailsScroll.CanvasPosition=Vector2.zero
  self:RenderDetails()
@@ -479,6 +494,7 @@ end
 function Browser:CloseDetails()
  if self.detailsRoot then self.detailsRoot.Visible=false end
  self.scroll.Visible,self.previewStatus.Visible=true,true
+ self.scrollFade.Visible,self.previewBacking.Visible,self.navigation.Visible=true,true,true
  self.detailsKind,self.detailsPurchase=nil,nil
 end
 
@@ -504,11 +520,11 @@ function Browser:RenderDetails()
   self.detailsTitle.Text="2x Luck · Guaranteed Offers"
   self.detailsDescription.Text="For this account, 2x Luck gives a known Rare+ offer every 10 manual rolls; regular rolls keep their normal odds. Normal coin price applies; higher-level offers cost more. Offers last until reroll or leaving."
   if available then
-   table.insert(rows,{name="Fixed repeating order",value="Level 1 price (coins)"})
+   table.insert(rows,{name="Fixed repeating order",value="Level 1 price"})
    for index,species in guarantee.sequence do
     local pet=PetCatalog[species]
     if not pet or type(pet.price)~="number" then available=false;break end
-    table.insert(rows,{name=index..". "..pet.name,value=Theme.Money(pet.price).." coins"})
+    table.insert(rows,{name=index..". "..pet.name,value="$"..Theme.Money(pet.price)})
    end
    if available then
     local owned=shop.owned and shop.owned.DoubleLuck
@@ -519,7 +535,7 @@ function Browser:RenderDetails()
   end
  elseif shop and shop.policyReady==true and shop.paidRandomAllowed==true then
   self.detailsTitle.Text="2x Luck · roll chances"
-  self.detailsDescription.Text="Doubles Rare+ weights before all chances are normalized. Your current coin Luck upgrades are included."
+  self.detailsDescription.Text="Doubles Luck strength, shifting favored results toward stronger chickens. Each chicken's chance changes differently. Current cash Luck and research are included; crates are unaffected."
   local odds=shop and shop.luckOdds
   available=odds and type(odds.withoutPass)=="table" and type(odds.withPass)=="table"
   if available then

@@ -27,7 +27,7 @@ end
 
 local Config = {
 	-- Manual three-chicken merging is enabled; paid automation is a separate rollout.
-	Features = {Merging = true, AutoMerging = false},
+	Features = {Merging = true, AutoMerging = false, IntroCutscene = true},
 	Economy = Economy,
  Version="1.19.0-paced-economy", GameTitle="My Chicken Army!",
  -- Staged rollout: enable territory after the opening/feedback PC check.
@@ -60,7 +60,7 @@ local Config = {
  PassiveIncomeMultiplier=1,
  SplashDamageFraction=0.5,
  AttackerRespawnSeconds=5,EnemyReclaimSeconds=4,
- LuckPrices={pacedPrice(1,Economy.LuckUpgradeSeconds),pacedPrice(2,Economy.LuckUpgradeSeconds),pacedPrice(3,Economy.LuckUpgradeSeconds),pacedPrice(4,Economy.LuckUpgradeSeconds)},LuckWeightPerLevel=0.35,
+ LuckPrices={pacedPrice(1,Economy.LuckUpgradeSeconds),pacedPrice(2,Economy.LuckUpgradeSeconds),pacedPrice(3,Economy.LuckUpgradeSeconds),pacedPrice(4,Economy.LuckUpgradeSeconds)},LuckWeightPerLevel=0.10,
  LuckOpeningLevels=4,LuckContinuationWeightPerLevel=0.10,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,
  MaxStars=1,StarHP={1},StarSize={1},SellFraction=0.5,

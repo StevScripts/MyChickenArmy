@@ -46,7 +46,7 @@ local compactPaths={
 }
 local tracks={
 	{key="ArmySize",name="Army Size",icon="cashArmySize",q=0,r=-1,prices={},description="Deploy more chickens in your army."},
-	{key="Luck",name="Luck",icon="cashLuck",q=1,r=-1,prices=Config.LuckPrices,description="Instant cash Luck for normal chicken rolls."},
+	{key="Luck",name="Luck",icon="cashLuck",q=1,r=-1,prices=Config.LuckPrices,description="Favor stronger chickens in normal rolls."},
 	{key="RollSlots",name="Roll Slots",icon="cashRollSlots",q=1,r=0,prices=Upgrades.RollSlotPrices,description="Roll on more of your plot's podiums."},
 	{key="PlotSize",name="Plot Capacity",icon="cashPlotSize",q=-1,r=0,prices=Upgrades.PlotPrices,description="Expand your yard and keep more chickens."},
 	{key="EggValue",name="Egg Value",icon="cashEggValue",q=0,r=1,prices=Config.IncomePrices,description="Each new egg is worth more cash."},
@@ -67,15 +67,20 @@ for _,track in tracks do
 		if track.key=="Luck" then name..="/"..#track.prices end
 		local benefit
 		if track.key=="RollSlots" then
-			name=(tier+1).." Roll Slots";benefit=(tier+1).." owned roll slots."
+			name="Roll Slots";benefit=(tier+1).." owned roll slots."
 		elseif track.key=="PlotSize" then
 			local capacity=Upgrades.PlotCapacity(tier)
-			name=capacity.." Chickens";benefit="Flock capacity: "..capacity.." chickens."
+			name="Flock Size";benefit="Flock capacity: "..capacity.." chickens."
 		elseif track.key=="ArmySize" then benefit=(Config.StartingSlots+tier).." base army slots, plus any paid bonus."
 		elseif track.key=="EggSpeed" then benefit="Base egg production: "..decimal(Upgrades.EggSpeedRates[tier+1]).."x."
 		elseif track.key=="EggValue" then benefit="Base egg value: $"..Rules.EggUnitValue(tier).."."
-		else benefit="Base Rare+ roll weight: "..decimal(Rules.LuckMultiplier(tier)).."x." end
-		Cash.Nodes[id]={id=id,upgradeKey=track.key,tier=tier,maxTier=#track.prices,name=name,description=track.description,
+		else
+			local window=Rules.LuckWindow(tier)
+			benefit="Base Luck strength: "..decimal(window.multiplier).."x. Favored bands: "..window.rangeText.."."
+		end
+		-- Hexes show the track name and a level badge; tooltips and messages keep the tier name.
+		local tileName=if track.key=="PlotSize" then "Flock Size" else track.name
+		Cash.Nodes[id]={id=id,upgradeKey=track.key,tier=tier,maxTier=#track.prices,name=name,tileName=tileName,description=track.description,
 			icon=track.icon,q=q,r=r,price=price,benefit=benefit,
 			prerequisite=if tier==1 then "Start" else ids[tier-1]}
 		table.insert(ids,id);table.insert(Cash.Order,id)

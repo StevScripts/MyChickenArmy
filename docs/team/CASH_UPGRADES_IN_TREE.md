@@ -46,13 +46,18 @@ nodes retain their historical base benefit; they never advertise a later tier's
 reward as their own. The cap, prices, saved levels and purchase validation remain
 unchanged.
 
-`UpgradeService.Offers` supplies `maxLevel`, `rarePlusChance` and, below the cap,
-`nextRarePlusChance` for Luck. These sum the normalized Rare/Epic/Legendary/Mythic
-results from the same `Rules.Odds` used by ordinary recruitment, including current
-research and eligible paid Luck. Percentages are per chicken, not the probability
-of any Rare+ across all podiums; forced tutorial/guarantee results and fixed crate
-pools are excluded. Hexes use one decimal and the tooltip two. No next chance or
-price is offered at the cap, and loading never fabricates a zero-percent value.
+The later October 6 [moving-window change](LUCK_WINDOW.md) uses
+`epicPlusChance`/`nextEpicPlusChance` for the visible before/after probabilities.
+`UpgradeService.Offers` also supplies `maxLevel`, current/next `window` records
+and `windowText`, and retains the Rare+ fields for compatibility. Odds use the
+same `Rules.Odds` as recruitment, including research and eligible paid Luck.
+Percentages are per chicken in normal rolls; forced tutorial/guarantee results
+and fixed crates are separate. Hexes use one decimal and tooltips two. Tooltips
+describe the favored bands and full normal availability. No next chance or price
+is offered at the cap, and loading never fabricates a zero-percent value.
+If Epic+ rounds to the same percentage before/after, the next node uses `Top`
+with `topBandChance`/`nextTopBandChance`; the tooltip calls these the strongest
+chickens. This keeps late Luck gains visible after Epic+ has reached its plateau.
 
 The six timed luck research nodes retain their names, IDs, prices and durations.
 A Research label and tooltip identify their separate bonus, which combines with
@@ -172,3 +177,14 @@ their Rojo-synced sources; scripts-only packaging passed. No new tree errors wer
 observed. Existing unrelated plugin and egg-deposit-effect warnings remain.
 Studio is back in Edit with device simulation off; no persistent profile or
 published place was changed by the checks.
+
+## Tile kinds read at a glance — October 7
+
+Cash tiers stay instant (91 cash tiers against one researcher slot would stall
+spending). Timed research hexes carry a cyan rim and a clock badge with the
+duration. Cash hexes carry a gold rim and a level badge: `LV 2/7` on the tier you
+can buy, a green `LV n` once earned, and `MAX` on a track's last tier. Hexes show
+the track name ("Army Size", "Flock Size"); tooltips and feedback keep the tier
+name. Only tiles you can act on now (affordable, and for research a free
+researcher) glow at full strength; the rest show a dimmed rim. Frontier "?" hexes
+are smaller and half transparent.

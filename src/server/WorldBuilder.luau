@@ -1,6 +1,7 @@
 --!strict
 -- Authored native-part scenery. Gameplay state and moving pets belong to WorldService.
 local WorldBuilder = {}
+local Players = game:GetService("Players")
 local CampScenery = require(script.Parent.CampScenery)
 local MapScenery = require(script.Parent.MapScenery)
 local MapLayout = require(game:GetService("ReplicatedStorage").PetRoll.Shared.MapLayout)
@@ -17,6 +18,15 @@ local palette = {
 	gold = Color3.fromRGB(255, 204, 61), white = Color3.fromRGB(252, 252, 238),
 }
 WorldBuilder.Palette = palette
+local flagBannerBindings = {}
+
+local function clearFlagBannerBinding(group)
+	local binding = flagBannerBindings[group]
+	if not binding then return end
+	if binding.changed then binding.changed:Disconnect() end
+	if binding.destroying then binding.destroying:Disconnect() end
+	flagBannerBindings[group] = nil
+end
 
 function WorldBuilder.Part(parent, name, size, cf, color, collidable)
 	local p = Instance.new("Part")
@@ -266,6 +276,8 @@ end
 -- The builder's pennants have three thin-X cloth panels and a separate wooden
 -- pole/base. Put one upright headshot on each side of the largest cloth panel.
 function WorldBuilder.ApplyOwnershipFlag(group,userId)
+ local binding=flagBannerBindings[group]
+ if binding and binding.userId~=userId then clearFlagBannerBinding(group);binding=nil end
  local flags=group:FindFirstChild("Flags")
  local royal=group:FindFirstChild("Flag")
  if not flags and royal then flags=royal:FindFirstChild("ThroneFlag") end
@@ -307,11 +319,47 @@ function WorldBuilder.ApplyOwnershipFlag(group,userId)
    portrait.ScaleType=Enum.ScaleType.Fit
    local right=if face==Enum.NormalId.Left then cloth.CFrame.ZVector else -cloth.CFrame.ZVector
    portrait.Rotation=math.deg(math.atan2(right.Y,cloth.CFrame.UpVector.Y))
+   local rim=Instance.new("UIStroke")
+   rim.Name,rim.Color,rim.Thickness,rim.Enabled="CommanderRim",palette.gold,3,false
+   rim.Parent=portrait
+   local crown=Instance.new("Frame")
+   crown.Name,crown.BackgroundColor3,crown.BorderSizePixel,crown.Visible="CommanderCrown",palette.gold,0,false
+   crown.AnchorPoint,crown.Position,crown.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.06),UDim2.fromScale(0.42,0.12)
+   for i=1,3 do
+    local point=Instance.new("Frame")
+    point.Name,point.BackgroundColor3,point.BorderSizePixel="Point"..i,palette.gold,0
+    point.Position=UDim2.fromScale((i-1)*0.4,-0.7)
+    point.Size=UDim2.fromScale(0.2,0.9)
+    point.Parent=crown
+   end
+   crown.Parent=portrait
    portrait.Parent=gui
    gui.Parent=cloth
   end
   -- A direct thumbnail URI avoids a yielding request racing a later unclaim.
   gui.Headshot.Image=if userId>0 then "rbxthumb://type=AvatarHeadShot&id="..userId.."&w=420&h=420" else ""
+ end
+ if userId then
+  if not binding then
+   binding={userId=userId}
+   flagBannerBindings[group]=binding
+   binding.destroying=group.Destroying:Connect(function() clearFlagBannerBinding(group) end)
+   local owner=Players:GetPlayerByUserId(userId)
+   if owner then
+    binding.changed=owner:GetAttributeChangedSignal("PetRollCommanderBanner"):Connect(function()
+     if group.Parent then WorldBuilder.ApplyOwnershipFlag(group,userId) end
+    end)
+   end
+  end
+  local owner=Players:GetPlayerByUserId(userId)
+  local commander=owner~=nil and owner:GetAttribute("PetRollCommanderBanner")==true
+  for _,face in {Enum.NormalId.Left,Enum.NormalId.Right} do
+   local gui=cloth:FindFirstChild("ConquerorPortrait"..face.Name)
+   if gui then
+    gui.Headshot.CommanderRim.Enabled=commander
+    gui.Headshot.CommanderCrown.Visible=commander
+   end
+  end
  end
  return true
 end

@@ -35,11 +35,11 @@ local ShopCatalog = {
 	BountyMultiplier = 2,
 	Definitions = {
 		AutoCollectEggs = {passId=1978713718, name="Auto Collect Eggs", proposedPrice=199, automatic=true, description="A vacuum collects eggs around your yard.", scope="Sweeps the yard and delivers eggs to your sell stand."},
-		DoubleCash = {passId=1980764263, name="2x Cash", proposedPrice=399, description="2x coins from eggs and combat.", scope="Earned coins only; excludes cash packs and chicken sales."},
+		DoubleCash = {passId=1980764263, name="2x Cash", proposedPrice=399, description="2x cash from eggs and combat.", scope="Earned cash only; excludes cash packs and chicken sales."},
 		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Home chickens produce twice as many eggs.", scope=if ProcessorConfig.Enabled then "2x egg production and selling speed; stacks with 2x Cash." else "2x egg production; stacks with 2x Cash."},
 		AutoMerge = {enabled=Config.Features.Merging and Config.Features.AutoMerging, passId=1975401932, name="Auto Merge", proposedPrice=249, automatic=true, description="Merge matching home chickens automatically.", scope="Protects favorites, deployed and manually selected chickens."},
 		BiggerArmy = {passId=1980638268, name="Bigger Army", proposedPrice=499, description="Add 5 deployment slots.", scope="Starts at 8; upgrade your base capacity to field 15."},
-		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double the roll weight of Rare+ chickens.", scope="Actual chances are shown in Details. Crates unaffected."},
+		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double Luck strength to favor stronger chickens.", scope="Actual chances are shown in Details. Crates unaffected."},
 		EggMagnet = {
 			name = "Egg Magnet", category = "Convenience", proposedPrice = 49, passId = 1980009442,
 			description = "Collect eggs from twice as far.",
@@ -47,12 +47,12 @@ local ShopCatalog = {
 		},
 		CommanderBanner = {
 			name = "Commander Banner", category = "Style", proposedPrice = 99, passId = 1975521947,
-			description = "A gold army portrait and crown.",
+			description = "Gold portrait frame and crown on conquered flags.",
 			scope = "Cosmetic · no combat bonus",
 		},
 		DoubleBounty = {
 			name = "Double NPC Bounty", category = "Rewards", proposedPrice = 249, passId = 1981040250,
-			description = "2× coins from regular NPC kills.",
+			description = "2× cash from regular NPC kills.",
 			scope = "Excludes the King, PvP and Supply Outpost",
 		},
 	},

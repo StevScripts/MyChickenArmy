@@ -251,6 +251,33 @@ function KingArena:Step(now)
 	end
 end
 
+-- First-visit film set: a copy of the idle arena (King, crown, Royal Flock, red
+-- flag) kept in ReplicatedStorage, which is never drawn. A client clones it only on
+-- its own screen while its film plays, so conquests and fights never reach the film.
+-- Tags are parked in an attribute so no client manager adopts the stored copy.
+function KingArena:SnapshotIntroSet()
+	local set = self.folder:Clone()
+	local CollectionService = game:GetService("CollectionService")
+	local removed = {}
+	local function strip(item: Instance)
+		if item:IsA("BaseScript") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") or item:IsA("Sound") then
+			table.insert(removed, item);return
+		end
+		local tags = CollectionService:GetTags(item)
+		if #tags > 0 then
+			for _, tag in tags do CollectionService:RemoveTag(item, tag) end
+			item:SetAttribute("IntroTags", table.concat(tags, ","))
+		end
+	end
+	strip(set)
+	for _, item in set:GetDescendants() do strip(item) end
+	for _, item in removed do item:Destroy() end
+	for _, name in {"Occupied", "OwnerUserId", "ConquerorUserId", "Conquered"} do set:SetAttribute(name, nil) end
+	set.Name = "PetRollIntroSet"
+	set.Parent = game:GetService("ReplicatedStorage")
+	return set
+end
+
 function KingArena:Destroy()
 	self.kingPatrol, self.guardPatrols = nil, {}
 	if self.actor then self.actor:Destroy(); self.actor = nil end

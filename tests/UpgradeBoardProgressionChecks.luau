@@ -1,7 +1,7 @@
 -- Isolated contract checks using caller-supplied source strings keyed by src path.
 -- No DataStore, real players/purchases, Studio world or shared module-cache reuse.
 -- Board access is a fake boundary; this fixture does not verify authored geometry.
-return function(sources)
+return function(sources, onlyNames)
 	local cache, serial = {}, 0
 	local function folder(name)
 		return setmetatable({Name = name}, {__index = function(self, key)
@@ -39,6 +39,7 @@ return function(sources)
 	local Roll = loadModule(server.RollService)
 	local results = {}
 	local function check(name, fn)
+		if onlyNames and not onlyNames[name] then return end
 		local ok, err = pcall(fn)
 		table.insert(results, {name = name, passed = ok, error = if ok then nil else tostring(err)})
 	end
@@ -92,23 +93,31 @@ return function(sources)
 		assert(same(s:ToData(), before) and s.revision == revision, key .. " rejection mutated profile")
 	end
 	local function expectedLuck(level)
-		return math.min(4, 1 + math.min(level, 4) * 0.35 + math.max(0, level - 4) * 0.10)
-	end
-	local function expectedOdds(level, paid)
-		local weights, total = {}, 0
-		for _, id in Catalog.Order do
-			local pet = Catalog[id]
-			local lucky = pet.rarity == "Rare" or pet.rarity == "Epic" or pet.rarity == "Legendary" or pet.rarity == "Mythic"
-			weights[id] = pet.weight * (if lucky then expectedLuck(level) * paid else 1)
-			total += weights[id]
-		end
-		for id, weight in weights do weights[id] = weight / total end
-		return weights
+		return 1 + level * 0.10
 	end
 	local function assertOdds(actual, expected)
 		local total = 0
-		for _, id in Catalog.Order do close(actual[id], expected[id]); total += actual[id] end
+		for _, id in Catalog.Order do
+			close(actual[id], expected[id])
+			assert(actual[id] >= 0 and actual[id] <= 1)
+			if Catalog[id].weight == 0 then close(actual[id], 0) end
+			total += actual[id]
+		end
 		close(total, 1)
+	end
+	local function rarityChance(odds, rarities)
+		local chance = 0
+		for _, id in Catalog.Order do
+			if table.find(rarities, Catalog[id].rarity) then chance += odds[id] end
+		end
+		return chance
+	end
+	local function atLeastIncome(odds, income)
+		local chance = 0
+		for _, id in Catalog.Order do
+			if Catalog[id].income >= income then chance += odds[id] end
+		end
+		return chance
 	end
 	local function displayNumber(text)
 		return tonumber(string.match(text or "", "[%d%.]+"))
@@ -150,7 +159,7 @@ return function(sources)
 			s.eggSpeedLevel = level
 			close(s:EggProductionMultiplier(), rates[level + 1])
 			close(Rules.EggUnitValue(level), 4 + level)
-			close(Rules.LuckMultiplier(level), 1 + 0.35 * level)
+			close(Rules.LuckMultiplier(level), 1 + 0.10 * level)
 		end
 	end)
 
@@ -259,6 +268,8 @@ return function(sources)
 
 	check("Luck helper, display, normalized odds and actual rolls agree at curve boundaries", function()
 		local s, b, rolls = fresh(), board(), Roll.new()
+		-- Ordinary odds must not be replaced by the tutorial's forced recruit.
+		s.tutorial.bought = true
 		for _, level in {0, 4, 5, 19, 20} do
 			s.luck = level
 			close(Rules.LuckMultiplier(level), expectedLuck(level))
@@ -266,10 +277,25 @@ return function(sources)
 			close(displayNumber(offer.currentText), expectedLuck(level))
 			if level < 20 then close(displayNumber(offer.nextText), expectedLuck(level + 1))
 			else assert(offer.nextText == nil and offer.price == nil) end
-			local expected = expectedOdds(level, 1)
-			assertOdds(Rules.Odds(level, 1, 1), expected)
+			local expected = Rules.Odds(level, 1, 1)
 			assertOdds(Rules.Odds(level, 4, 1), expected)
 			assertOdds(s:Snapshot(0).odds, expected)
+			close(offer.rarePlusChance, rarityChance(expected, {"Rare", "Epic", "Legendary", "Mythic"}))
+			close(offer.epicPlusChance, rarityChance(expected, {"Epic", "Legendary", "Mythic"}))
+			local window = Rules.LuckWindow(level, 1, 0)
+			close(offer.topBandChance, atLeastIncome(expected, window.topIncome))
+			assert(offer.window.topName == window.topName)
+			assert(offer.windowText == offer.window.rangeText and offer.windowText ~= "")
+			if level < 20 then
+				local nextOdds = Rules.Odds(level + 1, 1, 1)
+				close(offer.nextRarePlusChance, rarityChance(nextOdds, {"Rare", "Epic", "Legendary", "Mythic"}))
+				close(offer.nextEpicPlusChance, rarityChance(nextOdds, {"Epic", "Legendary", "Mythic"}))
+				close(offer.nextTopBandChance, atLeastIncome(nextOdds, Rules.LuckWindow(level + 1, 1, 0).topIncome))
+				assert(offer.nextWindowText == offer.nextWindow.rangeText and offer.nextWindowText ~= "")
+			else
+				assert(offer.nextRarePlusChance == nil and offer.nextEpicPlusChance == nil and offer.nextTopBandChance == nil)
+				assert(offer.nextWindow == nil and offer.nextWindowText == nil)
+			end
 			-- Midpoints independently exercise every catalog interval in the actual draw path.
 			local cumulative = 0
 			for _, id in Catalog.Order do
@@ -285,7 +311,7 @@ return function(sources)
 				cumulative += chance
 			end
 		end
-		close(Rules.LuckMultiplier(20), 4)
+		close(Rules.LuckMultiplier(20), 3)
 	end)
 
 	check("Paid benefits retain verified Luck policy and existing multipliers/army bonus", function()
@@ -296,7 +322,7 @@ return function(sources)
 		close(s:EggProductionMultiplier(), 9.5); assert(s:Capacity() == 15)
 		close(displayNumber(b:Offers(s).EggSpeed.currentText), 9.5)
 		close(displayNumber(b:Offers(s).Luck.currentText), 8)
-		assertOdds(s:Snapshot(0).odds, expectedOdds(20, 2))
+		assertOdds(s:Snapshot(0).odds, Rules.Odds(20, 1, 2))
 		close(s:PetEggRate("Duck", 1, 1), Rules.EggRate("Duck", 1, 1) * 9.5)
 		close(s:DisplayedPetIncome("Duck", 1, 1), Rules.EggRate("Duck", 1, 1) * 9.5 * 29 * 2)
 		s.eggSpeedLevel, s.luck = 24, 19
@@ -304,7 +330,7 @@ return function(sources)
 		close(displayNumber(b:Offers(s).Luck.nextText), 8)
 		s.paidRandomAllowed = false
 		close(s:PaidLuckMultiplier(), 1)
-		assertOdds(s:Snapshot(0).odds, expectedOdds(19, 1))
+		assertOdds(s:Snapshot(0).odds, Rules.Odds(19, 1, 1))
 		local restored = fresh(); assert(restored:LoadData(s:ToData()))
 		assert(next(restored.entitlements) == nil, "Verified passes must not be serialized")
 	end)
@@ -374,7 +400,7 @@ return function(sources)
 			assert(restored:CollectionLimit() == s:CollectionLimit() and restored.rollSlotsUnlocked == 6)
 			close(restored:EggProductionMultiplier(), 1 + level * 0.15)
 			close(Rules.EggUnitValue(restored.incomeLevel), 4 + level)
-			close(Rules.LuckMultiplier(restored.luck), 1 + level * 0.35)
+			close(Rules.LuckMultiplier(restored.luck), 1 + level * 0.10)
 		end
 		local data = fresh():ToData()
 		data.eggSpeedLevel, data.plotSizeLevel, data.rollSlotsUnlocked = nil, nil, nil

@@ -15,6 +15,9 @@ plus the flag paragraph in `CONQUEST_REFERENCE.md`. Other dirty work is preserve
   creates/feeds/steps ArmyMarkerController. Its historical module is retained
   inactive; saved cosmetic entitlements are untouched. The player's conquest
   portrait appears only on the base's authored flag after ownership is awarded.
+- Commander Banner adds a gold frame and crown to that flag portrait. Its
+  existing entitlement updates the decoration immediately while the base is
+  owned; the shop description matches the new placement.
 - Reuse `Flags` in all 18 authored camps and `Flag.ThroneFlag` in Chicken King.
   These inspected pennants each contain three thin-X cloth panels and a wooden
   pole/base. The largest panel carries a headshot on its Left and Right faces.
@@ -34,22 +37,10 @@ plus the flag paragraph in `CONQUEST_REFERENCE.md`. Other dirty work is preserve
 Platform references: [thumbnail URIs](https://create.roblox.com/docs/projects/assets#rbxthumb)
 and [SurfaceGui](https://create.roblox.com/docs/reference/engine/classes/SurfaceGui).
 
-Related follow-up: ShopCatalog still describes Commander Banner as a gold army
-portrait/crown. This task removes the requested hovering presentation without
-changing its saved entitlement, pricing or listing; its advertised benefit needs
-a separately chosen replacement before release.
-
 ## Delivery status
 
-Source implementation and independent source review complete; runtime appearance
-has not been playtested. Readback confirms Studio still has both pre-change sources.
-Studio inspection confirmed Pet Roll Test, place `96683186622050`, and pre-edit
-WorldBuilder/KingArena sources matched the canonical repository. The Edit peer
-was inspected; a separate Play session is active, confirmed by solo-playtest status.
-Stopping that existing session to sync is awaiting the user's answer.
-
-A narrow Rojo mapping at `assets/conquest-flag-portraits-20261006/flags.project.json`
-contains only these two modules, with unknown instances preserved and the canonical
-place allowlist retained. The sibling `before/` folder preserves exact pre-change
-Studio sources. This is a source backup, not a place/map backup.
-No Play/Stop, player-data changes, asset uploads, place save or publication.
+The implementation is synced to Pet Roll Test (`96683186622050`). In a
+session-only Studio playtest, an authored base flag showed the conqueror's
+headshot, changed its Commander Banner trim when the entitlement changed, and
+removed the portrait when ownership cleared. The playtest was stopped. Rojo
+build and Studio source readback passed. No place save or publication was done.

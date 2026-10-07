@@ -18,7 +18,7 @@ Its Golden Rolls description says "every 0th roll" and its Speed Rolls price use
 
 | Reference family | Chicken Army treatment |
 |---|---|
-| Ordinary/Super/Ultra luck | New six-tier Rare+ recruitment-luck research path |
+| Ordinary/Super/Ultra luck | New six-tier recruitment Luck-strength research path |
 | Roll Speed through Lightning Rolls | New six-tier podium-speed research path |
 | Coin Income, offline loot, pickup magnet | Existing egg value, egg production, offline allowance and egg magnet branches already supply the relevant benefits |
 | Walk speed, companion range, target rewards | Existing player/army movement and NPC bounty research retained; range changes omitted because current combat targeting is a separate mechanic |
@@ -41,7 +41,7 @@ cells; the map keeps its existing pan, zoom and local reveal rules.
 
 | ID | Upgrade | Total research bonus | Cash | Base time |
 |---|---|---:|---:|---:|
-| L1 | Lucky Feathers I | +10% Rare+ roll luck | 750 | 30s |
+| L1 | Lucky Feathers I | +10% Luck strength | 750 | 30s |
 | L2 | Lucky Feathers II | +20% | 7,500 | 2m |
 | L3 | Lucky Feathers III | +35% | 75,000 | 10m |
 | L4 | Super Luck I | +50% | 750,000 | 30m |
@@ -60,9 +60,11 @@ initial tuning, not a claim about measured player progression hours.
 
 ## Authoritative behavior
 
-`rollingLuck` multiplies Rare+ roll weights by `1 + bonus` alongside existing cash
-Luck and eligible paid luck. Normalization still occurs across the complete
-roster. A +100% weight bonus does not promise twice the normalized probability.
+October 6 replaces the flat Rare+ boost: `rollingLuck` multiplies Luck strength
+by `1 + bonus` alongside cash Luck and eligible paid Luck. The combined strength
+moves the favored chicken range upward while retaining every normal outcome.
+A +100% strength bonus does not promise twice any final probability. See the
+[moving-window contract](LUCK_WINDOW.md) for band budgets and guarantees.
 The Odds view, shop comparison and cash-upgrade current/next display use the same
 research bonus as actual rolls. Already-generated offers retain their odds.
 

@@ -60,7 +60,7 @@ Relevant implementation references: `src/server/PlayerSession.luau`, `src/server
 
 ## Economy guardrails and risks
 
-- Preserve early purchased benefits. In particular, uniformly changing Luck's current +0.35 weight increment to +0.15 would nerf existing levels. Four times Rare+ weights is not four times normalized probability; retain normalization and existing paid-benefit handling.
+- Preserve early purchased benefits. (Superseded for Luck on October 7: the user chose a flat +0.10 per level, knowingly weakening existing opening levels. See `LUCK_WINDOW.md`.) Four times Rare+ weights is not four times normalized probability; retain normalization and existing paid-benefit handling.
 - Speed, Value and access to stronger producers compound. Seller congestion can hide that power temporarily; later Selling Speed purchases can expose it. Price against spendable earnings and competing purchases, not level count alone. The separate quantitative flock model is outside this review.
 - Maintain existing earned egg/bag/queue values and paid entitlements. Newly purchased Egg Value levels must not reprice already-earned eggs. Follow [EGG_ECONOMY.md](../EGG_ECONOMY.md).
 - Roll Slots should have sharply increasing late prices, while ordinary progression remains practical with fewer slots. Slot six offers only 20% more simultaneous offers than slot five, so an extreme price is a luxury objective, not a justified mandatory progression wall.

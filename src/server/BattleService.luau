@@ -734,11 +734,11 @@ function BattleService:Finish(battle,outcome,now)
 			elseif outcome=="A" then "Victory at "..battle.name.."!"
 			elseif outcome=="B" then "Squad wiped out. Enemy control is recovering; your chickens are returning home."
 			elseif outcome=="Draw" then "Draw — all pets are returning."
-			else outcome.." — returning home. Kill coins kept."
+			else outcome.." — returning home. Kill cash kept."
 		attacker:Touch()
 	end
 	if defender then
-		defender.banner=if outcome=="A" then "Base defeated. Your pets and coins are safe."
+		defender.banner=if outcome=="A" then "Base defeated. Your pets and cash are safe."
 			elseif outcome=="B" then "Base defended!" else "Raid ended: "..outcome
 		if defender.defending==battle.id then
 			defender.defending=nil
@@ -829,7 +829,7 @@ function BattleService:FinishIncome(battle,outcome,now)
   local nextBattle=TerritoryContest.Continue(battle,session,participant.side,self.world,now,holding)
   nextBattle.incomeDeparture=not holding
   self.battles[nextBattle.id]=nextBattle;continuations[participant.side]=nextBattle
-  session.lastResult=if holding then "Supply Outpost secured · +"..config.Rate.." coins/sec. Swap chickens anytime in My Army."
+  session.lastResult=if holding then "Supply Outpost secured · +$"..config.Rate.."/s. Swap chickens anytime in My Army."
    elseif outcome=="A" then "Outpost lost. Your chickens recover at home."
    else "Contest ended. Your chickens are returning home."
   session:Touch()

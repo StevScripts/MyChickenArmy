@@ -307,7 +307,7 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	for id in seen do session.pets[id]=nil end
 	session:RefreshArmy()
 	session:Credit(total,"sale")
-	return true,"Sold "..count.." reserve "..(if count==1 then "chicken" else "chickens").." for "..math.floor(total).." coins.",{count=count,total=total}
+	return true,"Sold "..count.." reserve "..(if count==1 then "chicken" else "chickens").." for $"..(tostring(math.floor(total)):reverse():gsub("(%d%d%d)","%1,"):reverse():gsub("^,",""))..".",{count=count,total=total}
 end
 
 function ArmyService.Expand(session)
@@ -339,7 +339,7 @@ function ArmyService.UpgradeIncome(session)
  local canSpend,reason=session:CanSpendCash(price)
  if not canSpend then return false,reason end
  session.coins-=price;session.incomeLevel+=1;session.tutorial.upgraded=true;session:Touch()
- return true,"Every owned chicken now earns more coins, including your deployed squad!"
+ return true,"Every owned chicken now earns more cash, including your deployed squad!"
 end
 
 -- Older clients may still request promotion; cash upgrades do not require conquest.

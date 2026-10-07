@@ -5,7 +5,7 @@ local C = Theme.Colors
 local TutorialController = {}
 TutorialController.__index = TutorialController
 local STEPS = {
-	{key = "collectedEggs", title = "Collect your eggs", text = "Walk near eggs in your yard to collect coins."},
+	{key = "collectedEggs", title = "Collect your eggs", text = "Walk near eggs in your yard to collect cash."},
 	{key = "rolled", title = "Meet your next chicken", text = "Walk to the rolling machine and press E. Every reveal is free."},
 	{key = "bought", title = "Grow your flock", text = "Press F at the podium to buy. Chickens lay eggs at home and fight when deployed."},
 	{key = "wonCamp", title = "Take your first camp", text = "Walk to the first camp and press E to send your strongest chickens."},

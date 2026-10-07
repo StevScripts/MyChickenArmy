@@ -308,6 +308,7 @@ function WorldService:Build()
 		Builder.BuildIsland(root, Config.PlotPositions, Config.CampRadii, Config.Map)
 	end
 	self.kingArena = KingArena.new(root)
+	self.kingArena:SnapshotIntroSet()
 	local starterCamps=Progression.Camps(1)
 	-- The standalone machine was authored against Plot 1. Keep it intact in
 	-- ServerStorage during Play and clone that same placement into each home.

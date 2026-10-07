@@ -2,6 +2,7 @@
 local Config = require(script.Parent.Config)
 local Catalog = require(script.Parent.PetCatalog)
 local Progression = require(script.Parent.Progression)
+local ChickenLuck = require(script.Parent.ChickenLuck)
 local Rules = {}
 
 -- Frozen paid-level-era values. A new catalog price must not revalue old refunds.
@@ -101,29 +102,18 @@ end
 
 -- One full roster at every rank. Keep the optional tier argument for older callers;
 -- conquest changes combat progression, never species eligibility or roll odds.
--- One owner for the displayed weight multiplier and normalized roll odds.
--- Preserve purchased opening bonuses; later levels add smaller gains.
+-- Luck strength moves a favored range through equivalent-stat bands. Keep these
+-- compatibility entry points so offers, snapshots, reels and disclosures agree.
 function Rules.LuckMultiplier(luckLevel: number): number
-	local opening = math.min(luckLevel, Config.LuckOpeningLevels)
-	local later = math.max(0, luckLevel - Config.LuckOpeningLevels)
-	return 1 + opening * Config.LuckWeightPerLevel + later * Config.LuckContinuationWeightPerLevel
+	return ChickenLuck.Multiplier(luckLevel)
+end
+
+function Rules.LuckWindow(luckLevel: number, paidMultiplier: number?, researchLuckBonus: number?)
+	return ChickenLuck.Window(luckLevel, paidMultiplier, researchLuckBonus)
 end
 
 function Rules.Odds(luckLevel: number, _tier: number?, paidMultiplier: number?, researchLuckBonus: number?)
-	local weights, total = {}, 0
-	-- Server-verified paid luck doubles Rare+ weights, not normalized percentages.
-	local paid = if paidMultiplier == 2 then 2 else 1
-	local research = 1 + math.max(0, researchLuckBonus or 0)
-	for _, id in Catalog.Order do
-		local definition = Catalog[id]
-		local lucky = definition.rarity == "Rare" or definition.rarity == "Epic" or definition.rarity == "Legendary" or definition.rarity == "Mythic"
-		local boost = if lucky
-			then Rules.LuckMultiplier(luckLevel) * paid * research else 1
-		weights[id] = definition.weight * boost
-		total += weights[id]
-	end
-	for id, weight in weights do weights[id] = weight / total end
-	return weights
+	return ChickenLuck.Odds(luckLevel, paidMultiplier, researchLuckBonus)
 end
 
 function Rules.FormatOdds(chance: number): string

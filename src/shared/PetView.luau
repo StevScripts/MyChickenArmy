@@ -39,7 +39,7 @@ end
 local function addTag(body: BasePart, displayName: string, offset: number)
 	local tag = Instance.new("BillboardGui")
 	tag.Name = "Tag"
-	tag.Size = UDim2.fromOffset(120, 42)
+	tag.Size = UDim2.fromOffset(150, 44)
 	tag.StudsOffset = Vector3.new(0, offset, 0)
 	tag.AlwaysOnTop = false
 	tag.MaxDistance = 60
@@ -47,10 +47,10 @@ local function addTag(body: BasePart, displayName: string, offset: number)
 	tag.Parent = body
 	local label = Instance.new("TextLabel")
 	label.Name = "NameLabel"
-	label.Size = UDim2.new(1, 0, 0, 23)
+	label.Size = UDim2.new(1, 0, 0, 24)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.SourceSansBold
-	label.TextSize = 12
+	label.TextSize = 16
 	label.TextColor3 = UIColors.Text
 	label.TextStrokeColor3 = UIColors.Border
 	label.TextStrokeTransparency = 0.2

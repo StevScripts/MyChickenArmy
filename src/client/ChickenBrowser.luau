@@ -649,13 +649,10 @@ function Browser:UpdateAction()
 	end
 	self.mergeHint.Text=""
 	if pet then
-		local levelCap=pet.levelCap or (state.progression and state.progression.levelCap) or Config.MaxPetLevel
 		self.mergeHint.Text=if self.pending and self.pending.action=="UpgradeChicken" then ""
-			elseif Config.Features.Merging and state.mergeUnlocked==false then state.mergeRequirement
 			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
 			elseif pet.canUpgrade==false then "Return home to upgrade"
 			elseif not affordable then "Not enough cash"
-			elseif Config.Features.Merging and pet.level<levelCap then "Fuse 3 matching chickens for a Giant"
 			else "Upgrades boost damage and egg production"
 	end
 end
@@ -1095,10 +1092,18 @@ function Browser:Render(force)
 		local holder=frame(self.grid,"EmptyRow",UDim2.fromScale(1,1))
   Theme.Aspect(holder,877/220)
 		local empty=label(holder,"Empty",if self.query~="" then "No matching chickens"
-			else "Your flock is empty",
+			else "Your flock is empty. Roll chickens at the lever in your yard!",
 			18,UDim2.new(),UDim2.fromScale(1,1),MUTED)
 		empty.TextWrapped,empty.TextTruncate=true,Enum.TextTruncate.None
 		empty.TextXAlignment=Enum.TextXAlignment.Center
+	elseif #visible<8 and self.query=="" then
+		-- A sparse grid points at where more chickens come from.
+		local holder=frame(self.grid,"RollHint",UDim2.fromScale(1,1))
+		holder.LayoutOrder,holder.BackgroundTransparency=10000,1
+		Theme.Aspect(holder,877/90)
+		local hint=label(holder,"Hint","Roll more chickens at the lever in your yard!",18,UDim2.new(),UDim2.fromScale(1,1),MUTED)
+		hint.TextWrapped,hint.TextTruncate=true,Enum.TextTruncate.None
+		hint.TextXAlignment=Enum.TextXAlignment.Center
 	end
 	if self.showInfo then self:RenderArmyInfo(pets,ids) end
 	self:RenderDetail(pets[self.app.selected])

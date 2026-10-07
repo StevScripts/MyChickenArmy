@@ -7,6 +7,28 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Post-roll egg run, plain buy step and completion pop — October 7
+
+The user asked for an egg-collecting step after the first roll, a buy step that does
+not quote the price, and a small effect whenever a step completes.
+
+- **Harvest** sits between Roll and Recruit for starter-army profiles: "Collect 10
+  eggs (n/10)". `EggService` counts committed egg units into
+  `tutorial.rollEggCount` (cap `Guide.RollEggGoal` = 10) only between the first roll
+  and the first purchase; `PlayerSession` validates and keeps it. Saves without the
+  field count as done once they have bought or completed the guide. The rolled offer
+  waits on the podium meanwhile; an unaffordable offer still shows the existing
+  "Collect $X more in eggs" step first.
+- The recruit step now reads **"Buy the chicken"** (the podium label and prompt
+  already show the price).
+- **Completion pop:** whenever a `Guide.Milestones` fact flips to true while the
+  guide is active, `Commander:Celebrate` plays on the card: a green check pops
+  beside the Commander, sparks burst, the bar flashes green, the card bumps, and the
+  `SkillTreeResearchCompleted` chime plays. If the card is hidden at that moment
+  (menu open, standing at a prompt) it plays when the card returns. Reduced motion
+  keeps the check and flash without the scale and sparks.
+- `Guide.Version` is now `cluck-6-harvest`; `Harvest` joins the milestone list.
+
 ## Collect 40 eggs and larger one-line instructions — latest October 6 correction
 
 The initial Collect lesson requires 40 server-confirmed egg units and displays
@@ -23,8 +45,13 @@ UITextSizeConstraint on the display layers caps the font at the largest measured
 one-line fit. It updates only when the text or label size changes. The Skip
 button remains absent.
 
-All 27 isolated Studio Edit collection/persistence checks passed using disposable
-sessions with no player-data writes. Sync/save status is recorded below once done.
+All 27 isolated Studio Edit collection/persistence checks passed against the
+final synced scripts, using disposable sessions with no player-data writes.
+Nine text-fit cases passed across desktop and phone-sized frames. The four
+tutorial scripts matched the canonical repository sources in Studio, and the
+main Pet Roll Test place (96683186622050) was saved to Roblox on October 6.
+Studio reported “Successfully saved!” and “Saved new changes in Pet Roll Test
+to Roblox.” No experience publication or player-data change was performed.
 
 ## Eggs first — preceding October 6 correction
 

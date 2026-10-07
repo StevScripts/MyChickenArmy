@@ -1,8 +1,11 @@
 --!strict
 -- Editable art references stay in the place file, outside every running game.
-local vfxWorkbench = workspace:FindFirstChild("ChickenVFX_Workbench")
-if vfxWorkbench and vfxWorkbench:GetAttribute("ChickenVFXWorkbench") == true then
- vfxWorkbench.Parent = game:GetService("ServerStorage")
+-- Mark any Workspace authoring reference with EditOnlyReference=true to keep it
+-- editable in Studio but out of every player's world.
+for _, item in workspace:GetChildren() do
+ if item:GetAttribute("ChickenVFXWorkbench") == true or item:GetAttribute("EditOnlyReference") == true then
+  item.Parent = game:GetService("ServerStorage")
+ end
 end
 local modules=game:GetService("ServerStorage"):WaitForChild("PetRoll",15)
 assert(modules,"PetRoll server modules are missing")

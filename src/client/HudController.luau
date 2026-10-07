@@ -26,7 +26,7 @@ function Hud.new(app,shell)
 		app:Request(action)
 	end
 	self.callArmy=Theme.IconButton(navigation,"CallArmy","Unlock Call Army",Theme.Assets.CallArmy or "",function()
-		if callArmyUnlocked(app.state) then command("CallArmy");return end
+		if callArmyUnlocked(app.state) then app:Request("CallArmy");return end
 		app.audio:Play("Click")
 		app:OpenPage("Research")
 		app.research:Center("CallArmy")
@@ -54,20 +54,20 @@ function Hud.new(app,shell)
 	self.objective.AnchorPoint,self.objective.Position,self.objective.Size,self.objective.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self.objective.Visible=false
 	local cash=Theme.Container(shell,"CashReadout")
-	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.285,0.12)
-	Theme.Aspect(cash,3.6)
+	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.14)
+	Theme.Aspect(cash,3.2)
 	self.money=Theme.Display(cash,"Money","$0",46,Theme.Colors.money)
-	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Cash,UDim2.fromScale(0.22,0.72),UDim2.fromScale(0,0.12))
+	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Cash,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0,0.04))
 	Theme.Aspect(self.cashIcon,1)
-	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.27),UDim2.fromScale(0.76,0.45)
+	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.2),UDim2.fromScale(0.76,0.44)
 	self.income=Theme.Display(cash,"Income","",20)
-	self.income.Position,self.income.Size=UDim2.fromScale(0,0.78),UDim2.fromScale(1,0.2)
+	self.income.Position,self.income.Size=UDim2.fromScale(0,0.68),UDim2.fromScale(1,0.3)
 	self.income.TextWrapped,self.income.Visible=false,false
 	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
 	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
 	local totals=Theme.Container(shell,"ArmyTotals")
-	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.24,0.065)
-	Theme.Aspect(totals,4.8)
+	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.3,0.09)
+	Theme.Aspect(totals,4.2)
 	self.conquered=Theme.Display(totals,"Conquered","Conquered 0/"..#Progression.Camps(1),27,A.gold)
 	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self.flock=Theme.Display(totals,"Flock","Chickens 0/40",25,A.gold)
@@ -216,7 +216,7 @@ function Hud:Layout()
 		label.Position,label.Size=UDim2.fromScale(0,0.73),UDim2.fromScale(1,if primary then 0.13 else 0.2)
 		label.TextScaled,label.ZIndex=true,4
 	end
-	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.875),UDim2.fromScale(1,0.09)
+	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.86),UDim2.fromScale(1,0.135)
 	for _,page in {"Shop","Index","Upgrades"} do
 		local button=self.shortcuts:FindFirstChild(page)
 		button.Size=UDim2.fromScale(1,0.3133)

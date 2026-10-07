@@ -1,9 +1,11 @@
 --!strict
 -- Snapshot-only guidance. Never changes prices, eligibility or player actions.
 local Guide = {}
-Guide.Version = "cluck-5-forty-eggs"
+Guide.Version = "cluck-6-harvest"
 Guide.EggGoal = 40
-Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win"}
+-- After the first roll, a short egg run before buying the rolled chicken.
+Guide.RollEggGoal = 10
+Guide.Milestones = {"Collect", "Sell", "Roll", "Harvest", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win"}
 
 function Guide.CollectedEggCount(tutorial)
 	local count = tutorial.collectedEggCount
@@ -13,6 +15,15 @@ function Guide.CollectedEggCount(tutorial)
 	-- Boolean-only snapshots retain their earned lesson. New profiles always
 	-- carry a numeric count, so an early sale or a nonempty bag cannot bypass it.
 	return if count==nil and (tutorial.collectedEggs==true or tutorial.guideCompleted==true) then Guide.EggGoal else 0
+end
+
+function Guide.RollEggCount(tutorial)
+	local count = tutorial.rollEggCount
+	if type(count)=="number" and count==count and count<math.huge then
+		return math.clamp(math.floor(count), 0, Guide.RollEggGoal)
+	end
+	-- Saves from before this lesson already bought or finished; they are not sent back.
+	return if tutorial.bought==true or tutorial.guideCompleted==true then Guide.RollEggGoal else 0
 end
 
 function Guide.Facts(state)
@@ -25,6 +36,7 @@ function Guide.Facts(state)
 		Recruit = if t.starterArmy then t.bought == true
 			else t.bought == true or #(state.pets or {}) >= (if t.emptyStart then 1 else 4),
 		Collect = Guide.CollectedEggCount(t) >= Guide.EggGoal,
+		Harvest = t.bought == true or Guide.RollEggCount(t) >= Guide.RollEggGoal,
 		Sell = t.soldEggs == true,
 		Grow = #(state.pets or {}) >= 4,
 		Expand = (state.capacity or 3) >= 4,
@@ -64,7 +76,12 @@ local function recruit(state, growing)
 		end
 		return earn(state, offer.price)
 	end
-	return step(id, if growing then "Buy a chicken ("..count.."/4)" else "Buy the chicken for $"..offer.price, "RollStation")
+	local t = state.tutorial or {}
+	if not growing and t.starterArmy and count > 0 and not Guide.Facts(state).Harvest then
+		local eggs = Guide.RollEggCount(t)
+		return step("Harvest", "Collect "..Guide.RollEggGoal.." eggs ("..eggs.."/"..Guide.RollEggGoal..")", "Yard")
+	end
+	return step(id, if growing then "Buy a chicken ("..count.."/4)" else "Buy the chicken", "RollStation")
 end
 
 function Guide.Resolve(state)

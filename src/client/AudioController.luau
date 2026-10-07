@@ -215,7 +215,8 @@ function AudioController:SetMusic(enabled)
 	self.musicEnabled = enabled
 	local music = self.music
 	if not music then return end
-	if enabled and music.IsLoaded then
+	-- The intro cutscene holds the loop while it plays its own score.
+	if enabled and music.IsLoaded and not self.musicHold then
 		if music.IsPaused then music:Resume() elseif not music.IsPlaying then music:Play() end
 	else music:Pause() end
 end

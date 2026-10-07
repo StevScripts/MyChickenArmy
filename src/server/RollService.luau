@@ -61,7 +61,7 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local level = math.clamp(offer.level or 1, 1, Config.MaxPetLevel)
 	local price = offer.price or Rules.RecruitPrice(species, level)
 	if session:Count() >= session:CollectionLimit() then return false, "Flock full — sell reserve chickens in the Army menu." end
-	if session.coins < price then return false, "Not enough coins. This offer will wait for you." end
+	if session.coins < price then return false, "Not enough cash. This offer will wait for you." end
 	local starter=offer.starter==true and session:StarterRecruitPending()
 		and species=="Duck" and level==1 and price==Config.Economy.StarterRecruitPrice
 	local canSpend,reason=session:CanSpendCash(price,if starter then "StarterRecruit" else nil)
