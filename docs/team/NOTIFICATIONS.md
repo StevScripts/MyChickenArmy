@@ -12,17 +12,30 @@ Reference research: inspected gameplay screenshots from https://gamertweak.com/l
 
 Before-source copies: `/tmp/chicken-notifications-desu14/` (AppController, UITheme, UIMotion). All three matched canonical Studio Edit before edits, place 96683186622050. Local edits use Rojo, not Studio Source writes. No playtest, automated test, visual validation, save, publish, purchase, commit or push was performed. Appearance and runtime behavior remain untested in this task. Canonical DESIGN.md, its HTML companion and documentary tokens record the lighter visual contract.
 
-## Livelier messages — October 7, 2026
+## Color text with a self-drawing mark — October 7, 2026
 
-The user found success/error messages dull and asked for something cooler. They stay
-background-free (the September 25 request). Changes are client presentation only:
+Chosen from Figma option A ("Feedback / Status text options", node 651:1501, file
+4lJjZOqNhR8K7rfMbVIjaK) after the user rejected background badges and louder
+pop/shake styles as too silly for the military theme. Still background-free.
 
-- A round status badge (dark ring, colored face, frame-built mark: check, cross,
-  `!`, `i`, crossed swords, dots) sits just left of the centered text, replacing the
-  text glyph. `Theme.StatusGlyph` draws the marks; no font glyphs or uploaded art.
-- Text keeps SourceSansBold with a 3.5px outline. Its status color lives in a
-  `Shine` UIGradient so a bright band can sweep across it.
-- `Theme.NotificationFlair`: success/conquest pop in (0.72 → 1, Back) and shine;
-  errors punch in (1.14 → 1), shake side to side and the badge spins in; warnings
-  hop with a bounce; identical repeats pulse once. Info/pending keep the fade.
-  Reduced motion skips all of it.
+- **Look:** the message is Source Sans Pro Bold in the UI kit's status gradient
+  (success = header green 176,255,1 → 23,223,0; error = close-button red
+  255,107,83 → 233,51,43; other kinds derive from their style color), with a dark
+  `16,23,16` outline and a hard dark drop, like the kit's pressed buttons. A matching
+  mark leads it: check, X, `!`, `i` or dots, drawn with `Path2D` vector lines (rotated
+  Frames looked stair-stepped and jittered when scaled) in the status mid-tone, with the
+  same outline (lengthened past the flat Path2D ends) and drop. The narrow `i`, `!` and
+  pending dots draw 30% heavier, and stacked pieces leave room for both outlines and
+  the drop shadow so they never merge into one dark bar. All shadows, then all outlines, then all faces are layered, so
+  the X's strokes cross cleanly.
+- **Motion (`Theme.NotificationFlair`):** the group fades and slides down
+  (`Motion:Toast`); the mark draws itself (check in one pen move, X in two quick
+  strokes); the text wipes in left to right behind the pen; then success gives the
+  check one small pop and errors give the line one short nudge. Repeats only
+  pop the mark. Exit (`Theme.NotificationLeave`) wipes the text away to the
+  right while the group fades. Same-property steps chain on `Completed`, because a
+  later `Play()` cancels an earlier tween even during its delay. Reduced motion
+  shows it at rest.
+- **Layout:** `layoutNotification` measures with `TextService` and shrinks the font
+  until icon plus text fit (two-line messages supported). The invisible `Toast`
+  label stays as the measuring surface for callers such as recruit messages.

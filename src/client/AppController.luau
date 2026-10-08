@@ -102,7 +102,7 @@ function AppController:Notify(text, ok)
 	local duration=math.clamp(#text/24+1,if kind=="error" or kind=="warning" then 5 else 4,8)
 	self.toastDelay=task.delay(duration, function()
 		self.toastDelay=nil
-		if self.alive and serial == self.toastSerial then Theme.Motion:Toast(self.toastFrame,false) end
+		if self.alive and serial == self.toastSerial then Theme.NotificationLeave(self.toastFrame) end
 	end)
 end
 

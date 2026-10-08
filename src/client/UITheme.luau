@@ -3,6 +3,7 @@
 local Theme = {}
 local Palette = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UIColors)
 local TweenService = game:GetService("TweenService")
+local TextService = game:GetService("TextService")
 Theme.Motion = require(script.Parent.UIMotion).new()
 Theme.Font = Enum.Font.SourceSansBold
 -- One edge hierarchy across menus; secondary surfaces never outweigh the shell.
@@ -57,61 +58,160 @@ Theme.Assets = {
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
 }
 Theme.Rarities = Palette.Rarities
--- Background-free simulator feedback: bold status-colored text and a clear outline.
+-- Background-free messages in the UI kit's lettering: status-gradient text with a
+-- dark outline and a hard drop, led by a matching self-drawing mark.
+local INK=Color3.fromRGB(16,23,16)
 Theme.NotificationStyles = {
 	conquest={symbol="⚔",color=Theme.Conquest.Owned},
-	success={symbol="✓",color=Color3.fromRGB(112,222,98)},
-	error={symbol="×",color=Color3.fromRGB(255,120,132)},
+	-- Success and error reuse the kit's header green and close-button red.
+	success={symbol="✓",color=Color3.fromRGB(112,222,98),top=Color3.fromRGB(176,255,1),bottom=Color3.fromRGB(23,223,0)},
+	error={symbol="×",color=Color3.fromRGB(255,120,132),top=Color3.fromRGB(255,107,83),bottom=Color3.fromRGB(233,51,43)},
 	warning={symbol="!",color=Color3.fromRGB(244,194,71)},
 	info={symbol="i",color=Theme.Arcade.blue:Lerp(Palette.Text,0.35)},
 	pending={symbol="…",color=Palette.Muted},
 }
+-- Pen strokes (polylines) in a 46-unit box, drawn in order. Path2D renders them as
+-- smooth vector lines; rotated Frames stair-stepped and jittered when scaled.
+local NOTIFICATION_MARKS={
+	success={{{8,24},{18,34},{38,12}}},
+	error={{{11,11},{35,35}},{{35,11},{11,35}}},
+	conquest={{{11,11},{35,35}},{{35,11},{11,35}}},
+	-- A single point is a square dot. Stacked pieces leave room for the outlines and the
+	-- drop shadow, which would otherwise fill the gap and merge them.
+	warning={{{23,0},{23,21}},{{23,39}}},
+	info={{{23,4}},{{23,21},{23,44}}},
+	pending={{{4,23}},{{23,23}},{{42,23}}},
+}
 
--- Frame-built status marks (no font glyphs): check, cross, !, i, crossed swords, dots.
-function Theme.StatusGlyph(icon, kind, color)
-	local face=icon:FindFirstChild("Face")
-	if not face then return end
-	face.BackgroundColor3=color
-	for _,child in face:GetChildren() do if child.Name=="Glyph" then child:Destroy() end end
-	local function bar(x,y,w,h,rotation,round)
-		local item=Instance.new("Frame")
-		item.Name,item.BorderSizePixel,item.BackgroundColor3="Glyph",0,Color3.new(1,1,1)
-		item.AnchorPoint,item.Position,item.Size,item.Rotation=Vector2.new(.5,.5),UDim2.fromScale(x,y),UDim2.fromScale(w,h),rotation or 0
-		item.ZIndex=face.ZIndex+1
-		if round then local corner=Instance.new("UICorner");corner.CornerRadius,corner.Parent=UDim.new(.5,0),item end
-		item.Parent=face
+-- The first `progress` share of a polyline, optionally lengthened at both ends
+-- (outlines need square ends because Path2D caps are flat).
+-- Narrow marks read thin next to the check and X, so they draw heavier.
+local NOTIFICATION_MARK_WEIGHT={info=1.3,warning=1.3,pending=1.3}
+
+local function partialStroke(points,length,progress,extend,shift)
+	local want,walked,out=length*progress,0,{points[1]}
+	for index=2,#points do
+		local a,b=points[index-1],points[index]
+		local piece=(b-a).Magnitude
+		if walked+piece>=want then
+			if piece>0 then table.insert(out,a+(b-a)*((want-walked)/piece)) else table.insert(out,b) end
+			break
+		end
+		table.insert(out,b);walked+=piece
 	end
-	if kind=="success" then bar(.37,.6,.17,.38,-45);bar(.6,.47,.17,.68,40)
-	elseif kind=="error" then bar(.5,.5,.18,.66,45);bar(.5,.5,.18,.66,-45)
-	elseif kind=="warning" then bar(.5,.4,.18,.42,0,true);bar(.5,.76,.18,.18,0,true)
-	elseif kind=="conquest" then bar(.5,.5,.14,.72,45);bar(.5,.5,.14,.72,-45);bar(.3,.7,.3,.1,45);bar(.7,.7,.3,.1,-45)
-	elseif kind=="pending" then for i,x in {.28,.5,.72} do bar(x,.5,.15,.15,0,true) end
-	else bar(.5,.6,.17,.4,0,true);bar(.5,.27,.17,.17,0,true) end
+	if #out<2 or want<=0 then return nil end
+	if extend>0 then
+		local first,last=out[2]-out[1],out[#out]-out[#out-1]
+		if first.Magnitude>0 then out[1]-=first.Unit*extend end
+		if last.Magnitude>0 then out[#out]+=last.Unit*extend end
+	end
+	local control={}
+	for _,point in out do table.insert(control,Path2DControlPoint.new(UDim2.fromOffset(point.X,point.Y+shift))) end
+	return control
+end
+local notificationMotion=setmetatable({},{__mode="k"})
+
+local function notificationTones(kind)
+	local style=Theme.NotificationStyles[kind] or Theme.NotificationStyles.info
+	local top=style.top or style.color:Lerp(Color3.new(1,1,1),0.35)
+	return ColorSequence.new(top,style.bottom or style.color)
+end
+
+-- Rebuilds the row at rest (fully drawn). NotificationFlair animates it from empty.
+local function layoutNotification(group)
+	local label,row=group:FindFirstChild("Toast"),group:FindFirstChild("Row")
+	if not label or not row then return end
+	local kind,text=group:GetAttribute("Kind") or "info",label:GetAttribute("PlainText") or ""
+	local size=group.AbsoluteSize
+	local width,height=if size.X>1 then size.X else 1000,if size.Y>1 then size.Y else 110
+	local lines=select(2,text:gsub("\n",""))+1
+	local fontSize=math.clamp(math.floor(math.min(height*0.36,height*0.82/lines)),14,40)
+	local measure,iconSize,gap
+	repeat
+		measure=TextService:GetTextSize(text,fontSize,Theme.Font,Vector2.new(100000,100000))
+		iconSize=math.floor(fontSize*1.15);gap=math.floor(fontSize*0.3)
+		if measure.X+iconSize+gap<=width*0.96 or fontSize<=14 then break end
+		fontSize-=1
+	until false
+	label.TextSize=fontSize
+	local outline=math.max(2,math.floor(fontSize*0.08+0.5))
+	local drop=math.max(2,math.floor(fontSize*0.08+0.5))
+	local pad=outline+2
+	row:ClearAllChildren()
+	row.Size=UDim2.fromOffset(iconSize+gap+measure.X+pad,math.max(iconSize,measure.Y)+drop)
+	local tones=notificationTones(kind)
+	local icon=Instance.new("Frame")
+	icon.Name,icon.BackgroundTransparency,icon.AnchorPoint="Icon",1,Vector2.new(0,0.5)
+	icon.Position,icon.Size=UDim2.new(0,0,0.5,-drop/2),UDim2.fromOffset(iconSize,iconSize)
+	icon.Parent=row
+	local pop=Instance.new("UIScale");pop.Name,pop.Parent="Pop",icon
+	local scale=iconSize/46
+	local thin=7*scale*(NOTIFICATION_MARK_WEIGHT[kind] or 1)
+	local thick=thin+6*scale
+	local face=tones.Keypoints[1].Value:Lerp(tones.Keypoints[#tones.Keypoints].Value,0.45)
+	local strokes={}
+	for _,mark in NOTIFICATION_MARKS[kind] or NOTIFICATION_MARKS.info do
+		local points,length={},0
+		for index,point in mark do points[index]=Vector2.new(point[1],point[2])*scale end
+		if #points==1 then
+			local half=Vector2.new(0,thin/2)
+			points={points[1]-half,points[1]+half}
+		end
+		for index=2,#points do length+=(points[index]-points[index-1]).Magnitude end
+		local progress=Instance.new("NumberValue");progress.Name,progress.Value,progress.Parent="Progress",1,icon
+		table.insert(strokes,{points=points,length=length,paths={},progress=progress})
+	end
+	-- Shadows, then outlines, then faces: crossing strokes never cut each other.
+	for layer,spec in {{thick,INK,drop,(thick-thin)/2},{thick,INK,0,(thick-thin)/2},{thin,face,0,0}} do
+		for _,stroke in strokes do
+			local path=Instance.new("Path2D")
+			path.Name,path.Thickness,path.Color3,path.ZIndex=("Stroke"..layer),spec[1],spec[2],layer
+			path.Parent=icon
+			table.insert(stroke.paths,{path=path,shift=spec[3],extend=spec[4]})
+		end
+	end
+	for _,stroke in strokes do
+		local function draw()
+			for _,entry in stroke.paths do
+				local control=partialStroke(stroke.points,stroke.length,stroke.progress.Value,entry.extend,entry.shift)
+				entry.path.Visible=control~=nil
+				if control then entry.path:SetControlPoints(control) end
+			end
+		end
+		stroke.progress.Changed:Connect(draw)
+		draw()
+	end
+	local clip=Instance.new("Frame")
+	clip.Name,clip.BackgroundTransparency,clip.ClipsDescendants="TextClip",1,true
+	-- Padded on every side so the outline and drop are never trimmed at rest.
+	clip.Position=UDim2.fromOffset(iconSize+gap-pad,-pad)
+	clip.Size=UDim2.fromOffset(measure.X+pad*2,row.Size.Y.Offset+pad*2)
+	clip.Parent=row
+	for _,layer in {{"Shadow",drop,1},{"Face",0,2}} do
+		local face=Instance.new("TextLabel")
+		face.Name,face.BackgroundTransparency,face.Text,face.Font,face.TextSize=layer[1],1,text,Theme.Font,fontSize
+		face.TextColor3=if layer[1]=="Face" then Color3.new(1,1,1) else INK
+		face.TextXAlignment,face.TextYAlignment=Enum.TextXAlignment.Left,Enum.TextYAlignment.Center
+		face.AnchorPoint=Vector2.new(0,0.5)
+		face.Position=UDim2.new(0,pad,0.5,layer[2]-drop/2)
+		face.Size=UDim2.fromOffset(measure.X,measure.Y)
+		face.ZIndex=layer[3]
+		local stroke=Instance.new("UIStroke");stroke.Color,stroke.Thickness,stroke.Parent=INK,outline,face
+		if layer[1]=="Face" then
+			local gradient=Instance.new("UIGradient");gradient.Color,gradient.Rotation,gradient.Parent=tones,90,face
+		end
+		face.Parent=clip
+	end
+	notificationMotion[group]=notificationMotion[group] or {}
+	notificationMotion[group].strokes=strokes
+	notificationMotion[group].clipWidth=clip.Size.X.Offset
 end
 
 function Theme.SetNotification(label, text, kind)
-	local style=Theme.NotificationStyles[kind] or Theme.NotificationStyles.info
-	-- Names remain literal; color the full message so status reads at a glance.
-	local escaped=text:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;")
-	-- The status color lives in the Shine gradient so a bright band can sweep across it.
-	local shine=label:FindFirstChild("Shine")
-	if shine then
-		local bright=style.color:Lerp(Color3.new(1,1,1),0.8)
-		shine.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,style.color),ColorSequenceKeypoint.new(0.42,style.color),
-			ColorSequenceKeypoint.new(0.5,bright),ColorSequenceKeypoint.new(0.58,style.color),ColorSequenceKeypoint.new(1,style.color)})
-		shine.Offset=Vector2.new(-1,0)
-		label.TextColor3=Color3.new(1,1,1)
-	else label.TextColor3=style.color end
-	local icon=label.Parent and label.Parent:FindFirstChild("StatusIcon")
-	if icon then
-		-- A round status badge replaces the text glyph.
-		Theme.StatusGlyph(icon,kind,style.color)
-		label.Text=escaped
-		label:SetAttribute("PlainText",text)
-	else
-		label.Text=style.symbol.."  "..escaped
-		label:SetAttribute("PlainText",style.symbol.."  "..text)
-	end
+	label.Text=text
+	label:SetAttribute("PlainText",text)
+	local group=label.Parent
+	if group then group:SetAttribute("Kind",kind);layoutNotification(group) end
 end
 
 function Theme.Round(item, radius)
@@ -354,84 +454,110 @@ function Theme.Notification(parent)
 	group.Active,group.Visible,group.ZIndex=false,false,20
 	group.AnchorPoint,group.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.24)
 	group.Parent=parent
+	-- Invisible measuring label: callers fit message text to its width and TextSize.
 	local label=Theme.Label(group,"Toast","",34,Theme.Colors.ink)
-	label:SetAttribute("OutlineThickness",3)
-	label.TextOutline.StrokeSizingMode=Enum.StrokeSizingMode.FixedSize
-	label.TextOutline.Thickness=3
-	label.Position,label.Size=UDim2.fromScale(0.1,0.1),UDim2.fromScale(0.88,0.8)
-	-- Round badge that sits just left of the centered text.
-	local icon=Instance.new("Frame")
-	icon.Name,icon.BackgroundColor3,icon.BorderSizePixel,icon.ZIndex="StatusIcon",Theme.Arcade.border,0,label.ZIndex+1
-	icon.AnchorPoint,icon.Size=Vector2.new(1,.5),UDim2.fromScale(0.2,0.56)
-	local ratio=Instance.new("UIAspectRatioConstraint");ratio.AspectRatio,ratio.DominantAxis,ratio.Parent=1,Enum.DominantAxis.Height,icon
-	local corner=Instance.new("UICorner");corner.CornerRadius,corner.Parent=UDim.new(.5,0),icon
-	local face=Instance.new("Frame")
-	face.Name,face.BorderSizePixel,face.ZIndex,face.AnchorPoint="Face",0,icon.ZIndex+1,Vector2.new(.5,.5)
-	face.Position,face.Size=UDim2.fromScale(.5,.5),UDim2.fromScale(.8,.8)
-	local faceCorner=Instance.new("UICorner");faceCorner.CornerRadius,faceCorner.Parent=UDim.new(.5,0),face
-	face.Parent=icon
-	local iconScale=Instance.new("UIScale");iconScale.Name,iconScale.Parent="Pop",icon
-	icon.Parent=group
-	local function place()
-		local width=math.max(1,group.AbsoluteSize.X)
-		local text=label.TextBounds.X/width
-		icon.Position=UDim2.fromScale(math.max(0.07,0.1+0.88/2-text/2-0.012),0.5)
-	end
-	label:GetPropertyChangedSignal("TextBounds"):Connect(place)
-	group:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
-	label.RichText,label.TextXAlignment,label.TextYAlignment=true,Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
-	label.Active=false
-	label:SetAttribute("OutlineThickness",3.5)
-	label.TextOutline.Thickness=3.5
-	local shine=Instance.new("UIGradient");shine.Name,shine.Rotation,shine.Parent="Shine",15,label
-	local scale=Instance.new("UIScale");scale.Name,scale.Parent="Pop",group
+	label.Position,label.Size=UDim2.fromScale(0.02,0.1),UDim2.fromScale(0.96,0.8)
+	label.TextTransparency,label.TextOutline.Enabled,label.Active=1,false,false
+	local row=Instance.new("Frame")
+	row.Name,row.BackgroundTransparency,row.AnchorPoint,row.Position="Row",1,Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+	row.Parent=group
+	group:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() layoutNotification(group) end)
 	return group,label
 end
 
--- Background-free messages with personality: success pops and shines, errors
--- shake, warnings hop, repeats pulse. Info and pending keep the plain fade.
+local function trackNotification(group,item,seconds,goal,style,direction,delay)
+	local motion=notificationMotion[group]
+	local tween=TweenService:Create(item,TweenInfo.new(seconds,style or Enum.EasingStyle.Quart,direction or Enum.EasingDirection.Out,0,false,delay or 0),goal)
+	table.insert(motion.tweens,tween);tween:Play()
+	return tween
+end
+
+-- Steps on one property must chain: a later Play() on the same property cancels
+-- an earlier tween even while the later one is still waiting out its delay.
+local function chainNotification(group,item,delay,steps)
+	local function play(index,wait)
+		local step=steps[index]
+		if not step then return end
+		local tween=trackNotification(group,item,step[1],step[2],step[3] or Enum.EasingStyle.Quad,step[4],wait)
+		tween.Completed:Once(function(state)
+			if state==Enum.PlaybackState.Completed then play(index+1,0) end
+		end)
+	end
+	play(1,delay)
+end
+
+local function stopNotification(group)
+	local motion=notificationMotion[group]
+	if not motion then return nil end
+	for _,tween in motion.tweens or {} do tween:Cancel() end
+	motion.tweens={}
+	if motion.leaving then task.cancel(motion.leaving);motion.leaving=nil end
+	return motion
+end
+
+-- Smooth, signed-off entrance: the mark draws itself like a pen tick, the message
+-- wipes in behind the pen, then the check gives one small pop (errors one nudge).
+-- Repeats only pop the mark.
 function Theme.NotificationFlair(group,label,kind,repeated)
-	local motion=Theme.Motion
-	local scale,shine=group:FindFirstChild("Pop"),label:FindFirstChild("Shine")
-	local rest=UDim2.fromScale(0.1,0.1)
-	label.Position=rest
-	local icon=group:FindFirstChild("StatusIcon")
-	local iconScale=icon and icon:FindFirstChild("Pop")
-	if icon then icon.Rotation=0 end
-	if iconScale then iconScale.Scale=1 end
-	if not scale or motion.reduced then if scale then scale.Scale=1 end;return end
-	-- The badge pops in a beat after the text (or spins in for errors).
-	if iconScale and not repeated then
-		iconScale.Scale=0
-		TweenService:Create(iconScale,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out,0,false,0.06),{Scale=1}):Play()
-		if kind=="error" then
-			icon.Rotation=-90
-			TweenService:Create(icon,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out,0,false,0.06),{Rotation=0}):Play()
+	local row=group:FindFirstChild("Row")
+	local motion=stopNotification(group)
+	if not row or not motion then return end
+	local icon,clip=row:FindFirstChild("Icon"),row:FindFirstChild("TextClip")
+	local pop=icon and icon:FindFirstChild("Pop")
+	row.Position=UDim2.fromScale(0.5,0.5)
+	if Theme.Motion.reduced then return end
+	if repeated then
+		if pop and icon then
+			pop.Scale=1
+			chainNotification(group,pop,0,{{0.11,{Scale=1.15}},{0.15,{Scale=1}}})
+		end
+		return
+	end
+	-- Draw strokes in order; a check is one continuous pen move, an X two quick ones.
+	local total=0
+	for _,stroke in motion.strokes do total+=stroke.length end
+	local ink,start=0,0
+	for index,stroke in motion.strokes do
+		local seconds=if kind=="success" then 0.3*stroke.length/math.max(total,1) else 0.17
+		local at=if kind=="success" then start else (index-1)*0.15
+		stroke.progress.Value=0
+		trackNotification(group,stroke.progress,math.max(seconds,0.05),{Value=1},Enum.EasingStyle.Quad,Enum.EasingDirection.InOut,at)
+		start+=seconds;ink=math.max(ink,at+seconds)
+	end
+	if clip then
+		local width=motion.clipWidth
+		clip.AnchorPoint,clip.Position=Vector2.new(0,0),UDim2.new(0,clip.Position.X.Offset+(if clip.AnchorPoint.X==1 then -width else 0),0,clip.Position.Y.Offset)
+		for _,face in clip:GetChildren() do face.AnchorPoint,face.Position=Vector2.new(0,0.5),UDim2.new(0,face.Position.X.Offset,0.5,face.Position.Y.Offset) end
+		clip.Size=UDim2.fromOffset(0,clip.Size.Y.Offset)
+		trackNotification(group,clip,0.38,{Size=UDim2.fromOffset(width,clip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.Out,ink*0.7)
+	end
+	local settle=ink*0.7+0.38
+	if kind=="error" then
+		local sine,inOut=Enum.EasingStyle.Sine,Enum.EasingDirection.InOut
+		chainNotification(group,row,settle,{{0.06,{Position=UDim2.new(0.5,6,0.5,0)},sine,inOut},
+			{0.08,{Position=UDim2.new(0.5,-3,0.5,0)},sine,inOut},{0.08,{Position=UDim2.fromScale(0.5,0.5)},sine,inOut}})
+	elseif pop then
+		pop.Scale=1
+		chainNotification(group,pop,settle,{{0.12,{Scale=1.12}},{0.16,{Scale=1}}})
+	end
+end
+
+-- Exit mirrors the entrance: the message wipes away to the right as the row fades.
+function Theme.NotificationLeave(group)
+	local motion=stopNotification(group)
+	local row=group:FindFirstChild("Row")
+	local clip=row and row:FindFirstChild("TextClip")
+	if not motion or not clip or Theme.Motion.reduced then Theme.Motion:Toast(group,false);return end
+	local width=clip.Size.X.Offset
+	if clip.AnchorPoint.X~=1 then
+		clip.AnchorPoint,clip.Position=Vector2.new(1,0),UDim2.new(0,clip.Position.X.Offset+width,0,clip.Position.Y.Offset)
+		for _,face in clip:GetChildren() do
+			local offset=face.Position.X.Offset
+			face.AnchorPoint,face.Position=Vector2.new(1,0.5),UDim2.new(1,offset-width+face.Size.X.Offset,0.5,face.Position.Y.Offset)
 		end
 	end
-	local function sweep(seconds,delay)
-		if not shine then return end
-		shine.Offset=Vector2.new(-1,0)
-		local tween=TweenService:Create(shine,TweenInfo.new(seconds,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,0,false,delay),{Offset=Vector2.new(1,0)})
-		tween:Play()
-	end
-	if repeated then
-		scale.Scale=1.08;motion:Tween(scale,"toast-pop",{Scale=1},0.18)
-		if kind=="error" then sweep(0.3,0) end
-	elseif kind=="error" then
-		scale.Scale=1.14;motion:Tween(scale,"toast-pop",{Scale=1},0.22,Enum.EasingStyle.Back)
-		TweenService:Create(label,TweenInfo.new(0.045,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,3,true),
-			{Position=rest+UDim2.fromScale(0.018,0)}):Play()
-		sweep(0.3,0)
-	elseif kind=="success" or kind=="conquest" then
-		scale.Scale=0.72;motion:Tween(scale,"toast-pop",{Scale=1},0.32,Enum.EasingStyle.Back)
-		sweep(0.55,0.12)
-	elseif kind=="warning" then
-		scale.Scale=1
-		label.Position=rest-UDim2.fromScale(0,0.08)
-		TweenService:Create(label,TweenInfo.new(0.4,Enum.EasingStyle.Bounce),{Position=rest}):Play()
-		sweep(0.45,0.1)
-	else scale.Scale=1 end
+	trackNotification(group,clip,0.3,{Size=UDim2.fromOffset(0,clip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.In)
+	motion.leaving=task.delay(0.22,function() motion.leaving=nil;Theme.Motion:Toast(group,false) end)
 end
 
 function Theme.Button(parent, name, text, callback, color)

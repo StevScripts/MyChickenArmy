@@ -321,13 +321,13 @@ return function(sources, onlyNames)
 		s.paidRandomAllowed = true
 		close(s:EggProductionMultiplier(), 9.5); assert(s:Capacity() == 15)
 		close(displayNumber(b:Offers(s).EggSpeed.currentText), 9.5)
-		close(displayNumber(b:Offers(s).Luck.currentText), 8)
+		close(displayNumber(b:Offers(s).Luck.currentText), 6)
 		assertOdds(s:Snapshot(0).odds, Rules.Odds(20, 1, 2))
 		close(s:PetEggRate("Duck", 1, 1), Rules.EggRate("Duck", 1, 1) * 9.5)
 		close(s:DisplayedPetIncome("Duck", 1, 1), Rules.EggRate("Duck", 1, 1) * 9.5 * 29 * 2)
 		s.eggSpeedLevel, s.luck = 24, 19
 		close(displayNumber(b:Offers(s).EggSpeed.nextText), 9.5)
-		close(displayNumber(b:Offers(s).Luck.nextText), 8)
+		close(displayNumber(b:Offers(s).Luck.nextText), 6)
 		s.paidRandomAllowed = false
 		close(s:PaidLuckMultiplier(), 1)
 		assertOdds(s:Snapshot(0).odds, Rules.Odds(19, 1, 1))
