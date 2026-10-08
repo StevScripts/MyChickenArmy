@@ -295,12 +295,24 @@ function Theme.Aspect(item, ratio)
 end
 
 -- The restored GUI uses native text fitting inside proportionally sized boxes.
+-- October 8 readability floor: TextScaled may shrink text to fit, but never below
+-- MinTextSize on phones. Only a minimum is added (MaxTextSize stays at Roblox's
+-- 100 ceiling), so desktop layouts are unchanged. The floor is attached on the
+-- next frame and skipped when a caller added its own measured constraint.
+Theme.MinTextSize = 12
+local READABLE_TEXT="ReadableTextSize"
 function Theme.ScaleText(root)
 	local function apply(item)
 		if item:IsA("TextLabel") or item:IsA("TextButton") or item:IsA("TextBox") then
 			item.TextScaled=true
 			item.TextTruncate=Enum.TextTruncate.None
 			for _,child in item:GetChildren() do if child:IsA("UITextSizeConstraint") then child:Destroy() end end
+			task.defer(function()
+				if not item.Parent or item:FindFirstChildWhichIsA("UITextSizeConstraint") then return end
+				local floor=Instance.new("UITextSizeConstraint")
+				floor.Name,floor.MinTextSize,floor.MaxTextSize=READABLE_TEXT,Theme.MinTextSize,100
+				floor.Parent=item
+			end)
 		end
 	end
 	apply(root)
@@ -806,12 +818,33 @@ function Theme.CollectionCard(parent,name,callback,rarity,selected)
 	return card
 end
 
+-- One compact formatter for prices and stats: about three significant figures
+-- with K/M/B/T (2,880 → 2.88K, 725,760 → 726K, 3,628,800 → 3.63M, 1.2e9 → 1.2B).
+local SUFFIXES={"","K","M","B","T"}
+local function significant(x)
+	if x<=0 then return 0,0 end
+	local decimals=math.clamp(2-math.floor(math.log10(x)),0,3)
+	local scale=10^decimals
+	return math.round(x*scale)/scale,decimals
+end
 function Theme.Number(value)
 	value=value or 0
-	if value>=1000000 then return string.format("%.1fm",value/1000000) end
-	if value>=10000 then return string.format("%.1fk",value/1000) end
-	if value==math.floor(value) then return tostring(math.floor(value)) end
-	return string.format("%.1f",value)
+	if value~=value or value==math.huge or value==-math.huge then return "0" end
+	local sign=if value<0 then "-" else ""
+	local n,index=math.abs(value),1
+	while n>=1000 and index<#SUFFIXES do n/=1000;index+=1 end
+	local rounded,decimals=significant(n)
+	if rounded>=1000 and index<#SUFFIXES then rounded,decimals=significant(rounded/1000);index+=1 end
+	local text=string.format("%."..decimals.."f",rounded)
+	if decimals>0 then text=text:gsub("0+$",""):gsub("%.$","") end
+	if text=="0" then sign="" end
+	return sign..text..SUFFIXES[index]
+end
+
+-- "1 egg/s" but "2 eggs/s": singular only when the shown number is exactly 1.
+function Theme.Count(value,singular,plural)
+	local text=Theme.Number(value)
+	return text.." "..(if text=="1" then singular else plural)
 end
 
 -- Currency has whole coins. Keep exact prices readable instead of abbreviating

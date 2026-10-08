@@ -1,4 +1,5 @@
 --!strict
+local TextService = game:GetService("TextService")
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
@@ -50,18 +51,43 @@ local function formationSlot(session,slot)
 	return type(slot)=="number" and slot%1==0 and slot>=1 and slot<=session.researchEffects.formations
 end
 
-function ArmyService.SaveFormation(session,slot,name,expectedIds,expectedRevision)
+local function formationReady(session,slot,expectedIds,expectedRevision)
 	if not formationSlot(session,slot) then return false,"Research another formation slot first." end
 	if session.research.revision~=expectedRevision then return false,"Your formations changed. Try again." end
-	if type(name)~="string" or #name<1 or #name>40 or not utf8.len(name) or name:find("%c") then
-		return false,"Use a formation name between 1 and 40 characters."
-	end
 	local expected=ownedIds(session,expectedIds);local selected=session:BestPetIds()
 	if not expected or #expected~=#selected then return false,"Your army changed. Choose again." end
 	for i,id in selected do if expected[i]~=id then return false,"Your army changed. Choose again." end end
 	if #selected==0 then return false,"Select some chickens before saving a formation." end
+	return true,"",selected
+end
+
+-- Typed names are stored only after Roblox text filtering (shown back as
+-- research.formations[slot].name). A filter failure stores "Formation N".
+local function filteredName(session,slot,name)
+	local fallback="Formation "..slot
+	if type(session.userId)~="number" or session.userId<=0 then return fallback end
+	local ok,result=pcall(function()
+		local filtered=TextService:FilterStringAsync(name,session.userId,Enum.TextFilterContext.PrivateChat)
+		return filtered:GetNonChatStringForUserAsync(session.userId)
+	end)
+	-- Saved names must still pass ResearchRules.Read (1-40 bytes, valid UTF-8).
+	if not ok or type(result)~="string" or #result<1 or #result>40 or not utf8.len(result) or result:find("%c") then return fallback end
+	return result
+end
+
+function ArmyService.SaveFormation(session,slot,name,expectedIds,expectedRevision)
+	if type(name)~="string" or #name<1 or #name>40 or not utf8.len(name) or name:find("%c") then
+		return false,"Use a formation name between 1 and 40 characters."
+	end
+	local ready,reason=formationReady(session,slot,expectedIds,expectedRevision)
+	if not ready then return false,reason end
+	local stored=filteredName(session,slot,name) -- Yields.
+	if session.closing or session.saveLost then return false,"Your flock is not ready yet." end
+	local selected
+	ready,reason,selected=formationReady(session,slot,expectedIds,expectedRevision)
+	if not ready or not selected then return false,reason end
 	-- Personal names are only returned to their owner; never broadcast as world text.
-	session.research.formations[tostring(slot)]={name=name,petIds=table.clone(selected)}
+	session.research.formations[tostring(slot)]={name=stored,petIds=table.clone(selected)}
 	session.research.revision+=1;session:Touch()
 	return true,"Formation saved."
 end
@@ -339,7 +365,7 @@ function ArmyService.UpgradeIncome(session)
  local canSpend,reason=session:CanSpendCash(price)
  if not canSpend then return false,reason end
  session.coins-=price;session.incomeLevel+=1;session.tutorial.upgraded=true;session:Touch()
- return true,"Every owned chicken now earns more cash, including your deployed squad!"
+ return true,"Egg value upgraded. Chickens laying at home now earn more cash."
 end
 
 -- Older clients may still request promotion; cash upgrades do not require conquest.

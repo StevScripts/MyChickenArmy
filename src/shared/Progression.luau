@@ -54,7 +54,9 @@ homeCamps[1] = table.clone(homeCamps[1])
 homeCamps[1].name = "Cluck Camp"
 homeCamps[2] = table.clone(homeCamps[2])
 homeCamps[2].name = "Fort Roost"
-homeCamps[2].roster = {{species="Bucket",level=2},{species="Sailor",level=2},{species="Sailor",level=2},{species="Mallard",level=2}}
+-- October 8: level-1 garrison (power ~107, was ~146) so about five Uncommon/Rare
+-- level-1 chickens can take it. Ironbeak HQ and the King are unchanged.
+homeCamps[2].roster = {{species="Bucket",level=1},{species="Sailor",level=1},{species="Mallard",level=1},{species="Mallard",level=1}}
 homeCamps[3] = {name="Ironbeak HQ",roster={{species="Bucket",level=2},{species="Bucket",level=2},{species="Sailor",level=2},{species="Viking",level=1}}}
 local outposts = {}
 for i, source in {{2,1},{2,3},{3,1},{3,3},{4,1},{4,2}} do

@@ -74,9 +74,7 @@ local function timeText(seconds)
 	return seconds.."s"
 end
 local function priceText(amount)
-	if amount>=1e6 then return "$"..string.format("%g",amount/1e6).."M" end
-	if amount>=1000 then return "$"..string.format("%g",amount/1000).."K" end
-	return "$"..tostring(amount)
+	return "$"..Theme.Number(amount or 0)
 end
 -- Badge-length durations: 45s, 2m, 1m 30s, 1h, 2h 15m.
 local function shortTime(seconds)
@@ -245,21 +243,23 @@ function Browser.new(app,parent)
 		end
 		self.nodes[id]={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,title=title,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,bar=bar,progress=progress,timer=timer,level=level,change=change,
 			badge=badge,badgeStroke=badgeStroke,badgeText=badgeText,clock=clock}
-		button.Activated:Connect(function(input)
+		-- A tap or click only selects and opens the detail card; spending happens
+		-- on its explicit Buy/Start button (touch, mouse and gamepad alike).
+		button.Activated:Connect(function()
 			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
-			self:Select(id,input and input.UserInputType~=Enum.UserInputType.MouseButton1)
-			if self.selected==id then self:Activate() end
+			self.app.audio:Play("Click")
+			self:Select(id,true)
 		end)
 		button.MouseEnter:Connect(function()
 			if self.pinchScale or (self.drag and self.drag.moved) then return end
 			local view=self.nodes[id];view.hovered=true;self:RestNode(view)
-			if self.root.Visible and not self.options.Visible and not self.drag then self:Select(id,false) end
+			if self.root.Visible and not self.persistent and not self.drag then self:Select(id,false) end
 		end)
 		button.MouseLeave:Connect(function()
 			local view=self.nodes[id];view.hovered=false;view.pressed=false;self:RestNode(view)
 			if not self.persistent and self.selected==id then self:DismissTooltip() end
 		end)
-		button.MouseButton2Click:Connect(function() self:ShowOptions(id) end)
+		button.MouseButton2Click:Connect(function() self:Select(id,true) end)
 		button.SelectionGained:Connect(function()
 			local view=self.nodes[id];view.focused=true;self:RestNode(view)
 			if self.root.Visible then self:Select(id,true) end
@@ -271,13 +271,6 @@ function Browser.new(app,parent)
 			if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
 				local view=self.nodes[id];view.pressInput=input;view.pressed=true;self:RestNode(view)
 			end
-			if input.UserInputType~=Enum.UserInputType.Touch then return end
-			task.delay(.55,function()
-				local drag=self.drag
-				if self.alive and self.root.Visible and drag and drag.input==input and not drag.moved then
-					drag.inspected=true;self.suppressUntil=os.clock()+.8;self:ShowOptions(id)
-				end
-			end)
 		end)
 	end
 	-- Soft dark bands so the title, balance and Exit never sit on top of nodes.
@@ -328,6 +321,10 @@ function Browser.new(app,parent)
 	self.message.ZIndex,self.message.Visible=12,false
 
 	self:BuildTooltip()
+	-- Tapping empty map closes a pinned card (nodes and the card sink their own input).
+	root.Activated:Connect(function()
+		if self.persistent and os.clock()>=(self.suppressUntil or 0) then self:DismissTooltip() end
+	end)
 	self:BindInput()
 	local elapsed=0
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
@@ -357,21 +354,38 @@ function Browser:BuildTooltip()
 	self.tipBar=Theme.Frame(tip,"Progress",UDim2.fromScale(.87,.15),Color3.fromRGB(3,48,56));self.tipBar.ZIndex=9;round(self.tipBar,.14)
 	self.tipProgress=Theme.Frame(self.tipBar,"Fill",UDim2.fromScale(0,1),Color3.fromRGB(0,166,206));self.tipProgress.ZIndex=10;round(self.tipProgress,.14)
 	self.tipTimer=label(self.tipBar,"Time","",.03,.07,.94,.86);self.tipTimer.ZIndex=11
-	local options=Theme.Frame(self.root,"ResearchOptions",UDim2.fromScale(1,.115),Color3.fromRGB(27,27,27))
-	Theme.Aspect(options,2.3);local oa=options.UIAspectRatioConstraint;oa.AspectType,oa.DominantAxis=Enum.AspectType.ScaleWithParentSize,Enum.DominantAxis.Height
-	round(options,.07);Theme.Stroke(options,Color3.fromRGB(128,128,128),1)
-	options.Visible,options.Active,options.ZIndex=false,true,10;self.options=options
-	local function action(name,y,text,callback)
+	-- Explicit actions inside the pinned card; a tap on a hex never spends.
+	-- The card sinks input only while pinned, so hover cards never block the map.
+	local function action(name,callback)
 		local button=Instance.new("TextButton")
-		button.Name,button.Text,button.BackgroundTransparency,button.AutoButtonColor=name,"",1,false
-		button.Position,button.Size,button.ZIndex=UDim2.fromScale(.035,y),UDim2.fromScale(.93,.40),11
-		button.Parent=options
-		local caption=label(button,"Caption",text,.04,.12,.92,.76);caption.ZIndex=12
-		button.Activated:Connect(callback)
-		return button,caption
+		button.Name,button.Text,button.AutoButtonColor,button.BorderSizePixel=name,"",false,0
+		button.BackgroundColor3,button.ZIndex,button.Visible,button.Selectable=GREEN,10,false,true
+		button.Parent=tip
+		round(button,.22)
+		local stroke=Theme.Stroke(button,Color3.new(0,0,0),1.5);stroke.LineJoinMode=Enum.LineJoinMode.Round
+		stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+		local caption=label(button,"Caption","",.05,.12,.9,.76);caption.ZIndex=11
+		button.Activated:Connect(function()
+			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
+			callback()
+		end)
+		return {button=button,caption=caption}
 	end
-	self.goalAction,self.goalCaption=action("Pin",.05,"Pin goal",function() self:Secondary();self.options.Visible=false end)
-	self.cancelAction,self.cancelCaption=action("Cancel",.53,"Cancel research",function() self:CancelSelected() end)
+	self.primaryAction=action("PrimaryAction",function() self:Primary() end)
+	self.secondaryAction=action("PinGoal",function() self.app.audio:Play("Click");self:Secondary() end)
+end
+
+local ACTION_STYLES={
+	buy={GREEN,Color3.fromRGB(10,40,6)}, open={CYAN,Color3.fromRGB(2,36,42)},
+	cancel={RED,WHITE}, pin={Color3.fromRGB(58,62,60),WHITE}, off={Color3.fromRGB(70,72,71),Color3.fromRGB(176,176,176)},
+}
+local function styleAction(view,text,style)
+	view.button.Visible=text~=nil
+	if not text then return end
+	local colors=ACTION_STYLES[style] or ACTION_STYLES.off
+	view.caption.Text,view.button.BackgroundColor3,view.caption.TextColor3=text,colors[1],colors[2]
+	view.caption.TextOutline.Enabled=colors[2]==WHITE
+	view.button:SetAttribute("ActionStyle",style)
 end
 
 function Browser:RestScale(view)
@@ -568,9 +582,17 @@ function Browser:Receive(state,result)
 	if cashRequest and self.root.Visible then
 		local id=cashRequest.nodeId
 		local offer=self.cashOffers[cashRequest.key]
-		local text=if result.ok and offer then displayNodes[id].name..": "..cashRequest.currentText.." → "..offer.currentText else result.message or "Upgrade changed. Try again."
+		local text=if result.ok and offer then (displayNodes[id].tileName or displayNodes[id].name)..": "..cashRequest.currentText.." → "..offer.currentText else result.message or "Upgrade changed. Try again."
 		self:Feedback(text,if result.ok then CYAN else RED,id)
-		if result.ok then self:PulseNode(self.nodes[id]) end
+		if result.ok then
+			self:PulseNode(self.nodes[id])
+			-- Keep the card on this track: the next tier is now the one to buy.
+			local nextId=CashNodes.NextId(cashRequest.key,offer)
+			local nextView=nextId and self.nodes[nextId]
+			if self.selected==id and self.persistent and nextId~=id and nextView and nextView.button.Visible and nextView.kind~="Hidden" then
+				self:Select(nextId,true)
+			end
+		end
 		return true
 	end
 	local handled=self.root.Visible and result and (result.action=="StartResearch" or result.action=="CancelResearch" or result.action=="PinResearch")
@@ -765,7 +787,7 @@ function Browser:Select(id,persistent)
 		end
 		self:DismissTooltip();return
 	end
-	if self.selected~=id then self.confirmCancel=nil;self.options.Visible=false;self:StopProgress(self.tipMotion) end
+	if self.selected~=id then self.confirmCancel=nil;self:StopProgress(self.tipMotion) end
 	self.selected,self.persistent=id,persistent
 	self.tip.Visible=true
 	self:RenderTooltip()
@@ -773,8 +795,9 @@ end
 
 function Browser:DismissTooltip()
 	self:StopProgress(self.tipMotion)
+	self:ReleaseActionFocus()
 	self.selected,self.persistent,self.confirmCancel=nil,false,nil
-	self.tip.Visible,self.options.Visible=false,false
+	self.tip.Visible=false
 end
 
 function Browser:PlaceTooltip()
@@ -794,9 +817,6 @@ function Browser:PlaceTooltip()
 	x=math.clamp(x,margin,math.max(margin,rootSize.X-tipSize.X-margin))
 	y=math.clamp(y,margin,math.max(margin,rootSize.Y*.88-tipSize.Y))
 	self.tip.Position=UDim2.fromScale(x/rootSize.X,y/rootSize.Y)
-	local osize=self.options.AbsoluteSize
-	local oy=if y+tipSize.Y+osize.Y<rootSize.Y*.88 then y+tipSize.Y+margin else y-osize.Y-margin
-	self.options.Position=UDim2.fromScale(x/rootSize.X,math.max(margin,oy)/rootSize.Y)
 end
 
 function Browser:RenderTooltip()
@@ -846,30 +866,104 @@ function Browser:RenderTooltip()
 	local title,titleRows=wrap(node.name,22)
 	local description,rows=wrap(effect,23)
 	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" else job~=nil or state~="Completed"
+	local primaryText,primaryStyle,pinText=self:TooltipActions(id,cashNode,offer,state,job,completed)
+	local actionRow=self.persistent and (primaryText~=nil or pinText~=nil)
+	-- Thumb-sized buttons on touch; the card itself has a pixel floor (TipWidth).
+	local buttonHeight=if UserInputService.PreferredInput==Enum.PreferredInput.Touch then 52 else 34
+	local actionHeight=if actionRow then buttonHeight+14 else 0
+	local tipWidth=self:TipWidth()
 	local titleHeight=30*titleRows
-	local height=18+titleHeight+12+rows*27+(if footer then 52 else 14)
-	self.tip.Size=UDim2.fromScale(1,TOOLTIP_WIDTH*height/240)
+	local height=18+titleHeight+12+rows*27+(if footer then 52 else 14)+actionHeight
+	local bottom=height-actionHeight
+	self.tip.Size=UDim2.fromScale(1,tipWidth*height/240)
 	self.tipAspect.AspectRatio=240/height
 	self.tip.UICorner.CornerRadius=UDim.new(10/height,0)
 	self.tipTitle.Text=title;self.tipTitle.Position,self.tipTitle.Size=UDim2.fromScale(.055,10/height),UDim2.fromScale(.89,titleHeight/height)
 	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.085,(15+titleHeight)/height),UDim2.fromScale(.83,1/height)
 	self.tipEffect.Text=description;self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.06,(24+titleHeight)/height),UDim2.fromScale(.88,rows*27/height)
-	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(height-44)/height),UDim2.fromScale(.62,34/height)
+	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(bottom-44)/height),UDim2.fromScale(.62,34/height)
 	self.tipPrice.Text=if offer and offer.price then priceText(offer.price) else "";self.tipPrice.TextColor3=if state=="Unaffordable" or state=="Unavailable" then RED else GREEN
 	self.tipCost.Visible,self.tipBar.Visible=footer and not job,job~=nil
-	self.tipBar.Position,self.tipBar.Size=UDim2.fromScale(.065,(height-40)/height),UDim2.fromScale(.87,29/height)
+	self.tipBar.Position,self.tipBar.Size=UDim2.fromScale(.065,(bottom-40)/height),UDim2.fromScale(.87,29/height)
 	if job then
 		self.tipTimer.Text=timeText(job.finishAt-self:Now())
 		self:UpdateProgress(self.tipMotion,self.tipProgress,job)
 	else self:StopProgress(self.tipMotion) end
-	if cashNode then self.options.Visible=false;self:PlaceTooltip();return end
-	self.goalCaption.Text=if data.pinned==id then "Clear goal" else "Pin goal"
-	self.cancelAction.Visible=job~=nil
-	self.options.Size=UDim2.fromScale(1,if job then .10 else .052)
-	self.options.UIAspectRatioConstraint.AspectRatio=if job then TOOLTIP_WIDTH/.10 else TOOLTIP_WIDTH/.052
-	self.goalAction.Size=UDim2.fromScale(.93,if job then .40 else .86)
-	self.cancelCaption.Text=if job and self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"
+	self.tip.Active=self.persistent==true
+	styleAction(self.primaryAction,if actionRow then primaryText else nil,primaryStyle)
+	styleAction(self.secondaryAction,if actionRow then pinText else nil,"pin")
+	local both=actionRow and primaryText~=nil and pinText~=nil
+	local y,h=(height-buttonHeight-8)/height,buttonHeight/height
+	self.primaryAction.button.Position,self.primaryAction.button.Size=UDim2.fromScale(.065,y),UDim2.fromScale(if both then .52 else .87,h)
+	self.secondaryAction.button.Position,self.secondaryAction.button.Size=UDim2.fromScale(if both then .605 else .065,y),UDim2.fromScale(if both then .33 else .87,h)
+	local focused=GuiService.SelectedObject
+	if (focused==self.primaryAction.button or focused==self.secondaryAction.button) and not focused.Visible then self:FocusActions(false) end
 	self:PlaceTooltip()
+end
+
+-- Height-relative card width, with a ~200 px floor so phone text and buttons stay usable.
+function Browser:TipWidth()
+	local rootHeight=self.root.AbsoluteSize.Y
+	if rootHeight<=0 then return TOOLTIP_WIDTH end
+	return math.clamp(200/rootHeight,TOOLTIP_WIDTH,.5)
+end
+
+-- Returns the pinned card's primary label/style and the goal toggle label.
+function Browser:TooltipActions(id,cashNode,offer,state,job,completed)
+	local data=self.data
+	if cashNode then
+		if cashNode.tier~=completed+1 then return nil,nil,nil end
+		if self.cashPending[cashNode.upgradeKey] then return "Buying…","off",nil end
+		if state=="Loading" then return "Loading…","off",nil end
+		if state=="Unavailable" then return "Unavailable","off",nil end
+		return "Buy",if state=="Available" then "buy" else "off",nil
+	end
+	local node=Catalog.Nodes[id]
+	if state=="Completed" and not job then
+		if node.effect=="formations" then return "Open Formations","open",nil end
+		if node.effect=="operations" then return "Open Operations","open",nil end
+		return nil,nil,nil
+	end
+	local pin=if data.pinned==id then "Clear goal" else "Pin goal"
+	if job then
+		return (if self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"),"cancel",pin
+	end
+	if state=="Locked" then return "Locked","off",pin end
+	local pending=self.pending and self.pending.nodeId==id
+	if pending then return "Starting…","off",pin end
+	local ready=state=="Available" and #data.jobs<data.effects.slots
+	return "Start research",if ready then "buy" else "off",pin
+end
+
+-- Gamepad: A on a hex moves focus into its card; B returns to the hex.
+function Browser:FocusActions(enter)
+	local view=self.selected and self.nodes[self.selected]
+	if enter then
+		local target=if self.primaryAction.button.Visible then self.primaryAction.button elseif self.secondaryAction.button.Visible then self.secondaryAction.button else nil
+		if target then GuiService.SelectedObject=target end
+		return target~=nil
+	end
+	if view then GuiService.SelectedObject=view.button end
+	return true
+end
+
+function Browser:ReleaseActionFocus()
+	local focused=GuiService.SelectedObject
+	if focused and (focused==self.primaryAction.button or focused==self.secondaryAction.button) then
+		local view=self.selected and self.nodes[self.selected]
+		GuiService.SelectedObject=if view and view.button.Visible then view.button else nil
+	end
+end
+
+function Browser:Primary()
+	local id,data=self.selected,self.data;if not id or not data then return end
+	if not CashNodes.Nodes[id] and Rules.Job(data,id) then self.app.audio:Play("Click");self:CancelSelected();return end
+	local view=self.nodes[id]
+	if view then
+		view.pulsing=false
+		self:SizeNode(view,MOTION.PressScale,MOTION.PressSeconds,0,function() self:RestNode(view) end)
+	end
+	self:Activate()
 end
 
 function Browser:Activate()
@@ -881,13 +975,14 @@ function Browser:Activate()
 	if offer.status=="Completed" then
 		if node.effect=="formations" then self.app:OpenPage("Formations")
 		elseif node.effect=="operations" then self.app:OpenPage("Operations") end
-	elseif offer.status=="Locked" then self:Feedback("Research "..Catalog.Nodes[node.prerequisite].name.." first!",RED,id)
-	elseif offer.status=="Unaffordable" then self:Feedback(offer.spendReason or "Not enough cash!",RED,id)
+	elseif offer.status=="Locked" then self:Feedback("Research "..Catalog.Nodes[node.prerequisite].name.." first",RED,id)
+	elseif offer.status=="Unaffordable" then self:Feedback(offer.spendReason or "Not enough cash",RED,id)
 	elseif offer.status=="Available" then
-		if #data.jobs>=data.effects.slots then self:Feedback("All researchers are busy!",RED,id);return end
+		if #data.jobs>=data.effects.slots then self:Feedback("All researchers are busy",RED,id);return end
 		if self.pending and self.pending.revision==data.revision and os.clock()-self.pending.at<1 then return end
 		self.pending={nodeId=id,revision=data.revision,at=os.clock()}
 		self.app:Request("StartResearch",{nodeId=id,expectedRevision=data.revision,expectedPrice=offer.price,expectedDuration=offer.duration})
+		self:RenderTooltip()
 	end
 end
 
@@ -901,7 +996,7 @@ function Browser:PurchaseCash(id)
 	if node.tier~=completed+1 then return end
 	local state=cashStatus(offer,self.coins or 0)
 	if state~="Available" then
-		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash!"
+		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash"
 		self:Feedback(text,RED,id);return
 	end
 	local requestId=self.app:Request("CashUpgrade",{upgradeKey=key,expectedLevel=offer.level,expectedPrice=offer.price})
@@ -909,6 +1004,7 @@ function Browser:PurchaseCash(id)
 	self.cashPending[key]=requestId
 	self.cashRequests[requestId]={key=key,nodeId=id,currentText=offer.currentText}
 	self:RenderCash()
+	if self.selected then self:RenderTooltip() end
 	-- Unlock the control after a lost reply; its server quote still rejects repeats.
 	task.delay(8,function()
 		if self.alive and self.cashPending[key]==requestId then
@@ -919,26 +1015,18 @@ function Browser:PurchaseCash(id)
 	task.delay(30,function() if self.alive then self.cashRequests[requestId]=nil end end)
 end
 
-function Browser:ShowOptions(id)
-	if not self.root.Visible then return end
-	if CashNodes.Nodes[id] then self:Select(id,true);return end
-	self:Select(id,true)
-	if self.selected~=id then return end
-	self.options.Visible=true
-	if UserInputService.PreferredInput==Enum.PreferredInput.Gamepad then GuiService.SelectedObject=self.goalAction end
-	self:PlaceTooltip()
-end
-
 function Browser:CancelSelected()
 	local data,id=self.data,self.selected;if not data or not id then return end
-	local job=Rules.Job(data,id);if not job then self.options.Visible=false;return end
+	local job=Rules.Job(data,id);if not job then return end
 	if self.confirmCancel~=job.id then self.confirmCancel=job.id;self:RenderTooltip();return end
 	self.app:Request("CancelResearch",{jobId=job.id,expectedRevision=data.revision})
-	self.confirmCancel=nil;self.options.Visible=false
+	self.confirmCancel=nil
 end
 
 function Browser:Secondary()
-	if self.selected and self.data and not CashNodes.Nodes[self.selected] then self.app:Request("PinResearch",{nodeId=if self.data.pinned==self.selected then nil else self.selected}) end
+	if self.selected and self.data and not CashNodes.Nodes[self.selected] and self.data.completed[self.selected]~=true then
+		self.app:Request("PinResearch",{nodeId=if self.data.pinned==self.selected then nil else self.selected})
+	end
 end
 
 function Browser:Transform()
@@ -1015,8 +1103,7 @@ function Browser:BindInput()
 		local mouse=input.UserInputType==Enum.UserInputType.MouseButton1
 		if not mouse and input.UserInputType~=Enum.UserInputType.Touch then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y)
-		if not inside(self.root,p) or inside(self.exit,p) or (self.options.Visible and inside(self.options,p)) then return end
-		self.options.Visible=false
+		if not inside(self.root,p) or inside(self.exit,p) or (self.tip.Visible and self.persistent and inside(self.tip,p)) then return end
 		if self.drag then self.drag=nil;self.suppressUntil=os.clock()+.4;return end
 		self.drag={input=input,at=p,pan=self.pan,moved=false,mouse=mouse}
 	end)
@@ -1036,7 +1123,7 @@ function Browser:BindInput()
 		if self.drag and input==self.drag.input then
 			-- A quick drag can release before the final movement event is delivered.
 			moveDrag(input)
-			if self.drag.moved or self.drag.inspected then self.suppressUntil=os.clock()+.3 end
+			if self.drag.moved then self.suppressUntil=os.clock()+.3 end
 			self.drag=nil
 		end
 	end)
@@ -1096,22 +1183,24 @@ function Browser:Open()
 	ContextActionService:BindActionAtPriority("ResearchNavigation",function(_,state,input)
 		if state~=Enum.UserInputState.Begin then return Enum.ContextActionResult.Sink end
 		local key=input.KeyCode
+		local focused=GuiService.SelectedObject
+		local inCard=focused~=nil and (focused==self.primaryAction.button or focused==self.secondaryAction.button)
 		if key==Enum.KeyCode.ButtonB or key==Enum.KeyCode.Escape then
-			if self.options.Visible then self.options.Visible=false;GuiService.SelectedObject=self.nodes[self.selected].button else self:Close() end
+			if inCard then self:FocusActions(false) else self:Close() end
 		elseif key==Enum.KeyCode.ButtonA then
-			if self.options.Visible then
-				if GuiService.SelectedObject==self.cancelAction then self:CancelSelected() else self:Secondary();self.options.Visible=false end
-			else
-				local view=self.selected and self.nodes[self.selected]
-				if view then
-					view.pulsing=false
-					self:SizeNode(view,MOTION.PressScale,MOTION.PressSeconds,0,function() self:RestNode(view) end)
-				end
-				self:Activate()
+			if focused==self.primaryAction.button then self:Primary()
+			elseif focused==self.secondaryAction.button then self.app.audio:Play("Click");self:Secondary()
+			elseif self.selected then
+				-- First press opens the card's buttons; only a second, explicit press spends.
+				if not self.persistent then self:Select(self.selected,true) end
+				self:FocusActions(true)
 			end
-		elseif self.options.Visible and (key==Enum.KeyCode.DPadDown or key==Enum.KeyCode.DPadUp) then
-			GuiService.SelectedObject=if GuiService.SelectedObject==self.goalAction and self.cancelAction.Visible then self.cancelAction else self.goalAction
-		elseif key==Enum.KeyCode.ButtonY then if self.selected then self:ShowOptions(self.selected) end
+		elseif inCard and (key==Enum.KeyCode.DPadLeft or key==Enum.KeyCode.DPadRight or key==Enum.KeyCode.Left or key==Enum.KeyCode.Right) then
+			local other=if focused==self.primaryAction.button then self.secondaryAction.button else self.primaryAction.button
+			if other.Visible then GuiService.SelectedObject=other end
+		elseif inCard and (key==Enum.KeyCode.DPadUp or key==Enum.KeyCode.DPadDown or key==Enum.KeyCode.Up or key==Enum.KeyCode.Down) then
+			self:FocusActions(false)
+		elseif key==Enum.KeyCode.ButtonY then if self.selected then self.app.audio:Play("Click");self:Secondary() end
 		elseif key==Enum.KeyCode.ButtonX or key==Enum.KeyCode.Home then self:Focus()
 		elseif key==Enum.KeyCode.ButtonR1 then self:Zoom(1.12)
 		elseif key==Enum.KeyCode.ButtonL1 then self:Zoom(1/1.12)

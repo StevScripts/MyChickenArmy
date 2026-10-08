@@ -211,9 +211,19 @@ function Commander:Update()
 	end
 	local current=Guide.Resolve(state)
 	if self.completedBeforeVisit and current and current.id=="Complete" then current=nil end
+	-- The victory line stays eight seconds, then the same strip carries a
+	-- snapshot-derived next goal (also for players who finished earlier).
+	if current and current.id=="Complete" then
+		if self.step=="Complete" and os.clock()-self.stepAt>=8 then self.completeShown=true end
+		if self.completeShown then
+			if not self.sent.Finish then self.sent.Finish=true;self:Signal("Finish") end
+			current=nil
+		end
+	end
+	if not current then current=Guide.NextGoal(state) end
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
-	if self.facts and current then
+	if self.facts and current and not current.goal then
 		for _,milestone in Guide.Milestones do
 			if facts[milestone] and not self.facts[milestone] then self.celebrate=true end
 		end
@@ -239,7 +249,7 @@ function Commander:Update()
 	for prompt in self.prompts do
 		if not prompt.Parent then self.prompts[prompt]=nil
 		elseif (current.target=="RollStation" and prompt:FindFirstAncestor("RollStation"))
-			or (id=="Deploy" and prompt.Name=="ArmyCommandPrompt") then atTarget=true end
+			or ((id=="Deploy" or string.sub(id,1,12)=="Goal:Attack:") and prompt.Name=="ArmyCommandPrompt") then atTarget=true end
 	end
 	-- Let the game's native action prompt take over when the player reaches it.
 	local visible=not app.panel.Visible and not inTree and not blocked and not atTarget
@@ -248,13 +258,6 @@ function Commander:Update()
 	if visible then self.pendingType=false end
 	self:Present(visible,changed)
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end
-	if id=="Complete" then
-		if os.clock()-self.stepAt>=8 then
-			self.root.Visible=false
-			if not self.sent.Finish then self.sent.Finish=true;self:Signal("Finish") end
-			self:ClearFocus();self:Present(false);return
-		end
-	end
 	if inTree~=self.wasTree then
 		self.wasTree=inTree;self:Signal(if inTree then "TreeOpen" else "TreeClose")
 		if inTree and id=="Expand" then

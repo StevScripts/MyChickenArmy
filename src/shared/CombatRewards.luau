@@ -3,11 +3,14 @@
 local Config = require(script.Parent.Config)
 local Catalog = require(script.Parent.PetCatalog)
 local CombatRewards = {}
+-- The King's bounty pays in full once per player; later kills pay this share,
+-- like Operation replays, so unclaim/re-kill cannot farm the full bounty.
+CombatRewards.BossRepeatFraction = 0.1
 
-function CombatRewards.ForUnit(unit, pvpRank: number?): number
+function CombatRewards.ForUnit(unit, pvpRank: number?, repeatBoss: boolean?): number
  local definition = Catalog[unit.species]
  local species = if definition then definition.economyBase or unit.species else unit.species
- local amount = if unit.boss then Config.KingKillCoins
+ local amount = if unit.boss then Config.KingKillCoins * (if repeatBoss then CombatRewards.BossRepeatFraction else 1)
   else (Config.KillCoins[species] or 0) * (1 + (math.clamp(unit.level or 1,1,Config.MaxPetLevel)-1) * Config.KillLevelBonus)
  -- Player duels still pay every kill, but cannot turn a friend's costly units
  -- into a shortcut past the attacker's unlocked NPC progression.

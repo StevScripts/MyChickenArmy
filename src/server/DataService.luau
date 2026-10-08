@@ -20,14 +20,16 @@ function DataService.new(storeOverride,clockOverride,dependencies)
  return self
 end
 
-function DataService:Update(key,callback)
+-- deadline (monotonic) bounds retries during shutdown; nil keeps the normal schedule.
+function DataService:Update(key,callback,deadline)
  if not self.store then return false,"This unpublished local file uses session-only progress." end
  local lastError
  for attempt=1,Config.SaveAttempts do
   local ok,value=pcall(function() return self.store:UpdateAsync(key,callback) end)
   if ok then return true,value end
   lastError=tostring(value)
-  if attempt<Config.SaveAttempts then self.wait(attempt) end
+  if attempt>=Config.SaveAttempts or (deadline and self.monotonic()+attempt>=deadline) then break end
+  self.wait(attempt)
  end
  return false,lastError
 end
@@ -109,9 +111,11 @@ function DataService:Capture(session,release)
  return payload
 end
 
-function DataService:Save(session,release)
+-- force is used only by shutdown: an older in-flight autosave cannot overwrite the
+-- release, because its UpdateAsync callback aborts once our lease is cleared.
+function DataService:Save(session,release,deadline,force)
  local entry=self.entries[session.userId]
- if not entry or entry.session~=session or self.saving[session.userId] then return false,"No writable session, or save already running." end
+ if not entry or entry.session~=session or (self.saving[session.userId] and not force) then return false,"No writable session, or save already running." end
  self.saving[session.userId]=true
  session.saveStatus="saving";session.saveMessage="Saving your flock…";session:Touch()
  local captured,payload=pcall(function() return entry.releasePayload or self:Capture(session,release) end)
@@ -125,7 +129,7 @@ function DataService:Save(session,release)
   if type(old)~="table" or old.schemaVersion~=1 or not old.lease or old.lease.owner~=self.token then return nil end
   return {schemaVersion=1,data=payload,updatedAt=self.clock(),
    lease=if release then nil else {owner=self.token,expires=self.clock()+Config.SaveLeaseSeconds}}
- end)
+ end,deadline)
  self.saving[session.userId]=nil
  if not ok or not record then
   session.saveStatus="error";session.saveMessage="Saving interrupted. Retrying; keep this session open."
@@ -138,6 +142,8 @@ function DataService:Save(session,release)
  -- can also include a grant whose last save failed and must not acknowledge it yet.
  entry.savedReceipts=table.clone(record.data.purchaseReceipts or {})
  session.offlineCash=table.clone(record.data.offlineCash)
+ -- The store accepted our lease, so an earlier local expiry no longer applies.
+ session.saveLost=false
  session.saveStatus="saved";session.saveMessage="Progress saved automatically.";session:Touch()
  if release then self.entries[session.userId]=nil end
  return true,"Saved."
@@ -211,25 +217,35 @@ function DataService:Step()
  end
 end
 
+local CLOSE_SECONDS=26 -- Inside Roblox's 30 s BindToClose budget.
+local CLOSE_RELEASE_SECONDS=12 -- Reserved for the release write and its retries.
+
 function DataService:Release(session)
  if session.dataReleasing then return end
  session.dataReleasing=true
  local entry=self.entries[session.userId]
  if entry and entry.session==session and not entry.releasePayload then entry.releasePayload=self:Capture(session,true) end
- local deadline=os.clock()+24
- while self.saving[session.userId] and os.clock()<deadline do task.wait(0.1) end
- if not self.saving[session.userId] then self:Save(session,true) end
+ -- A normal leave may wait for an autosave; Step retries the release payload later.
+ -- Shutdown (closeDeadline, possibly set while waiting) stops waiting early and writes.
+ local leaveDeadline=self.monotonic()+24
+ while self.saving[session.userId] do
+  local limit=if self.closeDeadline then math.min(leaveDeadline,self.closeDeadline-CLOSE_RELEASE_SECONDS) else leaveDeadline
+  if self.monotonic()>=limit then break end
+  self.wait(0.1)
+ end
+ if self.closeDeadline then self:Save(session,true,self.closeDeadline,true)
+ elseif not self.saving[session.userId] then self:Save(session,true) end
  session.dataReleasing=false
 end
 
 function DataService:Close()
  self.closing=true
+ self.closeDeadline=self.closeDeadline or self.monotonic()+CLOSE_SECONDS
  for _,entry in self.entries do
   entry.session.closing=true
   task.spawn(function() self:Release(entry.session) end)
  end
- local deadline=os.clock()+25
- while next(self.entries) and os.clock()<deadline do task.wait(0.1) end
+ while next(self.entries) and self.monotonic()<self.closeDeadline do self.wait(0.1) end
 end
 
 return DataService

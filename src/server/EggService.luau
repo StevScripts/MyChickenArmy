@@ -13,6 +13,7 @@ local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
 local Currency=require(Shared.CurrencyLimits)
 local TutorialGuide=require(Shared.TutorialGuide)
+local CARRY_LIMIT=require(script.Parent.PlayerSession).CarryLimit
 local EggService={}
 EggService.__index=EggService
 local CASH_COLLECT_SECONDS=1
@@ -27,6 +28,26 @@ end
 
 function EggService.new(world)
  return setmetatable({world=world,yards={},serial=0,generation=0},EggService)
+end
+
+-- Saved eggCarry must stay loadable. Room counts the bag, rover cargo (it falls back
+-- to the bag) and every claimed in-flight drop. Unclaimed eggs simply wait on the
+-- ground until the player sells; nothing earned is discarded.
+local function carryRoom(session,yard)
+ local count,value=session.eggCarry.count,session.eggCarry.value
+ local rover=yard.rover
+ if rover then count+=rover.cargoCount;value+=rover.cargoValue end
+ for _,drop in yard.drops do
+  if drop.claimAt and not drop.paid then count+=drop.stack or 1;value+=drop.value end
+ end
+ return CARRY_LIMIT-count,CARRY_LIMIT-value
+end
+
+local function addCarry(session,count,value)
+ -- Backstop only: pickups are refused before this bound is reached.
+ local carry=session.eggCarry
+ carry.count=math.min(CARRY_LIMIT,carry.count+count)
+ carry.value=math.min(CARRY_LIMIT,carry.value+value)
 end
 
 function EggService:Board(session)
@@ -147,7 +168,10 @@ function EggService:Lay(session,yard,petId,layer,now)
  -- A visual represents an exact quantity of identical eggs. Work is bounded by
  -- drop count, even when one chicken produces hundreds of thousands per second.
  if count>=Config.EggsPerChicken or #yard.drops>=Config.EggMaxDrops then
-  if not existing then for _,drop in yard.drops do if not drop.claimAt then existing=drop;break end end end
+  -- A stack never grows past what one empty bag can hold, so every drop stays collectable.
+  local function fits(drop) return drop.stack+quantity<=CARRY_LIMIT and drop.value+value<=CARRY_LIMIT end
+  if existing and not fits(existing) then existing=nil end
+  if not existing then for _,drop in yard.drops do if not drop.claimAt and fits(drop) then existing=drop;break end end end
   if existing then
    existing.value+=value;existing.stack+=quantity;yard.revision+=1
    layer.count,layer.value=0,0
@@ -216,12 +240,10 @@ function EggService:Pay(session,yard,drop,now)
    rover.cargoValue+=drop.value
   else
    -- A claim already belongs to this player, even if the robot was toggled off.
-   session.eggCarry.count+=count
-   session.eggCarry.value+=drop.value
+   addCarry(session,count,drop.value)
   end
  else
-  session.eggCarry.count+=count
-  session.eggCarry.value+=drop.value
+  addCarry(session,count,drop.value)
  end
  -- Count committed egg units once, including stacked and rover pickups. The
  -- saved lesson counter survives deposits and is bounded after completion.
@@ -283,8 +305,7 @@ function EggService:PreserveCargo(session,yard,now)
  -- Finish earned claims while this rover still owns them, then transfer once.
  self:SettleClaims(session,yard,now,true)
  if rover.cargoCount>0 or rover.cargoValue>0 then
-  session.eggCarry.count+=rover.cargoCount
-  session.eggCarry.value+=rover.cargoValue
+  addCarry(session,rover.cargoCount,rover.cargoValue)
   rover.cargoCount,rover.cargoValue=0,0
   session:Touch()
  end
@@ -369,8 +390,15 @@ function EggService:Collect(session,position,now)
    end
   end
   table.sort(near,function(a,b)return a.distance<b.distance end)
-  for i=1,math.min(Config.EggPickupBatch,#near) do
-   self:Claim(yard,near[i].drop,now+(i-1)*0.06,"player",position+Vector3.new(0,-0.25,0))
+  local roomCount,roomValue=carryRoom(session,yard)
+  local claimed=0
+  for _,entry in near do
+   if claimed>=Config.EggPickupBatch then break end
+   local drop=entry.drop
+   if (drop.stack or 1)>roomCount or drop.value>roomValue then continue end
+   roomCount-=drop.stack or 1;roomValue-=drop.value
+   self:Claim(yard,drop,now+claimed*0.06,"player",position+Vector3.new(0,-0.25,0))
+   claimed+=1
   end
  end
  local rover=yard.rover
@@ -384,8 +412,15 @@ function EggService:Collect(session,position,now)
    end
   end
   table.sort(near,function(a,b)return a.distance<b.distance end)
-  for i=1,math.min(VacuumConfig.PickupBatch,#near) do
-   self:Claim(yard,near[i].drop,now+(i-1)*VacuumConfig.PickupStagger,"rover",nozzle)
+  local roomCount,roomValue=carryRoom(session,yard)
+  local claimed=0
+  for _,entry in near do
+   if claimed>=VacuumConfig.PickupBatch then break end
+   local drop=entry.drop
+   if (drop.stack or 1)>roomCount or drop.value>roomValue then continue end
+   roomCount-=drop.stack or 1;roomValue-=drop.value
+   self:Claim(yard,drop,now+claimed*VacuumConfig.PickupStagger,"rover",nozzle)
+   claimed+=1
   end
  end
  for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end

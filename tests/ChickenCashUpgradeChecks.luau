@@ -91,7 +91,7 @@ function Checks.Run()
 		local after=Rules.Stats(pet.species,1,pet.level)
 		local shown=s:Snapshot(0).pets[1]
 		assert(shown.eggsPerSecond==quote.eggsPerSecond*2 and after.damage==before.damage*1.25)
-		assert(shown.upgradePrice==3600 and shown.nextIncome~=nil)
+		assert(shown.upgradePrice==9000 and shown.nextIncome~=nil)
 	end)
 	check("Cash-upgraded matching triples still use the current guaranteed Giant fusion",function()
 		local s,a=setup();local b,c=s:AddPet("Duck",1),s:AddPet("Duck",1)

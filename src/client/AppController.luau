@@ -163,9 +163,10 @@ function AppController:TrackRecruit(result)
 	local identity=name
 	if pet and type(pet.eggsPerSecond)=="number" then
 		local width=math.max(1,self.toast.AbsoluteSize.X)
-		identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · "," eggs/s at home",width,self.toast.TextSize,false,true)
+		local rate=if math.floor(pet.eggsPerSecond*10+0.5)==10 then " egg/s" else " eggs/s"
+		identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · ",rate.." at home",width,self.toast.TextSize,false,true)
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then
-			identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · "," eggs/s",width,self.toast.TextSize,false,true)
+			identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · ",rate,width,self.toast.TextSize,false,true)
 		end
 		-- Preserve identity and assignment if a very narrow viewport cannot fit the optional rate.
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then identity=name end
@@ -285,7 +286,7 @@ function AppController:OpenPage(page)
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
 	if page=="Merge" and not self.mergeBrowser then return end
 	if page=="Merge" and (not self.state or self.state.mergeUnlocked~=true) then
-		self:Notify("Unlock the Fuse Machine in the skill tree first.",false)
+		self:Notify("Unlock the Fuse Machine in Upgrades first.",false)
 		self.research:OpenNode("FuseMachine")
 		return
 	end
@@ -405,7 +406,7 @@ function AppController:BuildUI()
 	body.Position=UDim2.fromScale(0,0.175)
 	Theme.Surface(body)
 	self.panelBody=body
-	self.panelHeader,self.panelTitle=Theme.Header(standardPage,"Header","Your Chickens!",Theme.HeaderColors.Army)
+	self.panelHeader,self.panelTitle=Theme.Header(standardPage,"Header","Your Chickens",Theme.HeaderColors.Army)
 	local close=Theme.HeaderClose(self.panelHeader,function() self.audio:Play("Click");self:ClosePanel() end)
 	self.closeButton=close
 	local content=Instance.new("ScrollingFrame")
@@ -580,8 +581,14 @@ function AppController:RenderSettings()
 	if self.intro and self.intro:CanReplay() then
 		self:Button("ReplayIntro", "Replay intro", function() self:ClosePanel();self.intro:Replay() end, Theme.ActionColors.navigation)
 	end
-	self:Text("ControlsHeading", "PC CONTROLS", 13, 24, C.green)
-	self:Text("Controls", "WASD move · Mouse look\nE interact · F buy\nB chickens · U upgrades · O settings · Esc close", 16, 60, C.muted)
+	-- Mirrors the real bindings: Start (B/U/R/O), ResearchExtras (G), native E prompts.
+	local input=UserInputService.PreferredInput
+	if input==Enum.PreferredInput.KeyboardAndMouse then
+		self:Text("ControlsHeading", "KEYBOARD CONTROLS", 13, 24, C.green)
+		self:Text("Controls", "WASD move · Space jump · E interact\nB My Army · U or R Upgrades · O Settings\nG Rally in battle · Esc close", 16, 72, C.muted)
+	elseif input==Enum.PreferredInput.Touch then
+		self:Text("Controls", "Tap the on-screen buttons and prompts to interact.", 16, 36, C.muted)
+	end
 	self:Text("SaveInfo", self.state.saveMessage or "Pets, cash and upgrades are saved between visits.", 12, 32, C.muted)
 	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
 end
@@ -590,7 +597,7 @@ function AppController:RenderTest()
 	self.panelTitle.Text = "Studio Test Tools"
 	if not self.state.debugAllowed then self:Text("Denied", "Test tools are available only to approved testers.", 14, 60);return end
 	if self.confirm and self.confirm.kind == "Reset" then
-		self:Text("ResetWarning", "Reset your saved test flock, coins, upgrades, camp progress and tutorial? This cannot be undone.", 14, 58, C.red)
+		self:Text("ResetWarning", "Reset your saved test flock, cash, upgrades, camp progress and tutorial? This cannot be undone.", 14, 58, C.red)
 		self:Button("ConfirmReset", "Yes, reset my test progress", function()
 			self:Request("Debug", {command = "ResetProtected", argument = "RESET MY TEST SAVE"})
 			self.confirm, self.selected = nil, nil
@@ -615,7 +622,7 @@ function AppController:RenderTest()
 	else
 		self:Text("PurchaseTestUnavailable", "Purchase presets need Studio session-only mode (PetRollPlaytestSessionOnly).", 13, 46, C.muted)
 	end
-	local actions = {{"Coins", "+10,000 test coins"}, {"Unlock", "Clear 2 route camps + test capacity"},
+	local actions = {{"Coins", "+10,000 test cash"}, {"Unlock", "Clear 2 route camps + test capacity"},
 		{"Pair", "Add two common chickens"}, {"FillCommon", "Replace flock with common chickens"},
 		{"FillMixed", "Replace flock with varied chickens"}, {"FillReserves", "Fill flock to 40"}, {"Opponent", "Create a defended test base"},
 		{"EmptyOpponent", "Create an empty test base"}, {"AwayOpponent", "Test opponent returns in 7s"},
@@ -648,10 +655,10 @@ function AppController:RenderPanel(force)
 		self.progression:Render();return
 	end
 	if shopping then
-		self.panelTitle.Text="Shop!";self.shopBrowser:Render(force);return
+		self.panelTitle.Text="Shop";self.shopBrowser:Render(force);return
 	end
 	if indexing then
-		self.panelTitle.Text="Chicken Index!";self.indexBrowser:Render(force);return
+		self.panelTitle.Text="Chicken Index";self.indexBrowser:Render(force);return
 	end
 	if merging then
 		self.panelTitle.Text="Fuse Chickens"
@@ -659,7 +666,7 @@ function AppController:RenderPanel(force)
 		return
 	end
 	if browsing then
-		self.panelTitle.Text="Your Chickens!"
+		self.panelTitle.Text="Your Chickens"
 		self.chickenBrowser:Render(force)
 		return
 	end
@@ -672,7 +679,7 @@ function AppController:RenderPanel(force)
 	end
 	local p=state.progression
 	if p then table.insert(keys,p.rank..":"..p.recruitTier..":"..tostring(p.goal)..":"..tostring(p.requirement)..":"..tostring(state.kingCleared)) end
-	if self.page == "Settings" then table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage)) end
+	if self.page == "Settings" then table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage));table.insert(keys, tostring(UserInputService.PreferredInput)) end
 	if self.page == "Test" then
 		table.insert(keys, tostring(state.shop and state.shop.testAllowed))
 		table.insert(keys, tostring(state.shop and state.shop.testPreset))
@@ -812,6 +819,9 @@ function AppController:Start()
 			return Enum.ContextActionResult.Sink
 		end, false, key)
 	end
+	table.insert(self.connections, UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function()
+		if self.page == "Settings" then self:RenderPanel() end
+	end))
 	table.insert(self.connections, UserInputService.InputBegan:Connect(function(input)
 		if self.commerce.cratePresenting then return end
 		if input.KeyCode == Enum.KeyCode.Escape and (self.panel.Visible or self.research.root.Visible) then self:ClosePanel() end

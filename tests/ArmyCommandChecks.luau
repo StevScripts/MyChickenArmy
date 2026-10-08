@@ -80,7 +80,7 @@ function Checks.Run()
 		local s,ids,w,b,c,p=setup(false);local original=table.clone(w.plots[1].actors)
 		b.RecallForCommand=function() error("Locked command recalled an encounter") end
 		local ok,message=c:CallArmy(p,s,1)
-		assert(not ok and string.find(message,"skill tree",1,true))
+		assert(not ok and string.find(message,"Upgrades",1,true))
 		assert(s.lastArmyCall==nil and not c.following[s.userId] and s.armyState=="Home")
 		assert(not next(s.awayPets) and w.created==5)
 		for _,id in ids do assert(w.plots[1].actors[id]==original[id]) end

@@ -6,6 +6,52 @@ King conquest. This supersedes the September 29 two-phase meter and gradual
 the existing gradual enemy recovery; income contests and Operations retain
 their own rules. Cash upgrades remain independent of conquest.
 
+## Pre-release fixes: October 8, 2026
+
+Owner direction "do what you think is best". Local source only: no Studio
+playtest, save, publish or commit. A Rojo build packages; Luau was not run.
+
+- **Armies come home after a win.** A main-route camp or King capture keeps the
+  flag, holds for a 5-second victory moment (`VICTORY_LINGER_SECONDS` in
+  `BattleService`), then uses the normal `ReturnHome` march, so deployed chickens
+  lay eggs again. Route legs still advance; a stopped route now heads home instead
+  of stranding the squad. The Supply Outpost (disabled) keeps its defended station.
+- **No stationing on held ground.** Targets you own are unavailable ("Conquered")
+  and the server refuses them ("You already hold X. Unclaim it to fight there
+  again."). R Unclaim is unchanged and still restores the garrison against the
+  same squad.
+- **Shared King arena.** A challenger who does not own the King fights a full,
+  fresh court (boss plus six guards); `LiveBattleActors` spawns the rigs because the
+  owned arena has no idle ones. `kingCleared` and King ownership are granted only
+  when that encounter's own boss is dead. The owner's army leaves after the victory
+  moment, which frees the center after the normal vacancy grace.
+- **King bounty.** The $48,000 boss bounty pays in full once per player; later
+  boss kills pay `CombatRewards.BossRepeatFraction` (10%, like Operation replays).
+  "Once" is saved `kingCleared` or an in-memory `kingBountyPaid` set on the first
+  paid boss kill this visit. Persisting `kingBountyPaid` needs a PlayerSession save
+  field (not yet done), so kill-boss-then-lose can repeat once per rejoin.
+- **Fort Roost softened.** Level-1 Robo-Cluck, Mushroom Chicken and two Brown
+  Chickens (power about 107, was about 146). Cluck Camp about 39, Ironbeak HQ about
+  192 and the King about 497 are unchanged.
+- **Prompt hints.** The E prompt's `ObjectText` now carries odds, defenders and
+  bounty, for example "Close fight · 4 defenders · $100–520/kill" (this supersedes
+  the empty `ObjectText` rule below). Unavailable targets show no prompt; a
+  `CampLockedHeading` billboard states the reason ("Buy a chicken at your podium
+  first", "Occupied by an army", "Your army is returning or defending"). The
+  current target and held ground stay quiet.
+- **Odds bands** (`TutorialGuide.Difficulty`, army power over garrison power):
+  below 1.3x Very tough, 1.3x to 2x Close fight, 2x or more Should win. Defenders
+  respawn every 10 to 15 seconds and capture needs every guard down at once, so an
+  even power match usually loses. The starter four Chickens against Cluck Camp
+  (1.33x) read Close fight; five level-1 Uncommons against Fort Roost (1.39x) read
+  Close fight.
+- **Funnel analytics** (production only, Studio keeps the local ring):
+  `ConquestFirstWin` (step Camp1 to Camp3), `KingFirstClear` (step King) and
+  `ConquestFailed` (Defeated, Draw, Blocked or Retreat before that target's first
+  win, at most 20 per visit). Value is seconds since the order; detail adds the
+  power-ratio band (Under1, 1To1.3, 1.3To2, 2Plus). Field 1 is
+  `conquest-2-soft-roost`. Sent by `TutorialService.LogProgress`.
+
 ## Evidence and limits
 
 Source: `/Users/stevin/Desktop/Screen Recording 2026-10-06 at 12.39.28 AM.mov`.

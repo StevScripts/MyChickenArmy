@@ -26,10 +26,12 @@ local ArmyAbilities=require(script.Parent.ArmyAbilities)
 local OperationService=require(script.Parent.OperationService)
 local GameServer={}
 GameServer.__index=GameServer
+local SYNC_COOLDOWN=1 -- Extra Sync requests are answered by the next periodic snapshot.
+local IDLE_SNAPSHOT_SECONDS=1 -- Unchanged idle sessions refresh timers at this slower cadence.
 
 function GameServer.new()
 	local self=setmetatable({sessions={},connections={},playerConnections={},limits={},stepAccumulator=0,
-		snapshotAccumulator=0,recruitObservations={},awayObservations={}},GameServer)
+		snapshotAccumulator=0,recruitObservations={},awayObservations={},syncs={},sent={}},GameServer)
 	self.world=WorldService.new()
 	self.eggs=EggService.new(self.world)
 	self.leaderboards=LeaderboardService.new(self.world,self.sessions)
@@ -78,8 +80,21 @@ function GameServer:Send(player,result)
 	state.marchingTo=if battle and battle.phase=="Travel" then battle.name else nil
 	state.routeGoal=if battle and battle.routeGoal then battle.routeGoalName else nil
 	self.tutorial:Observe(session,state)
-	state.debugAllowed=DebugService.Allowed(player)
+	-- The client "Studio test tools" button follows the same Studio-only gate.
+	state.debugAllowed=RunService:IsStudio() and DebugService.Allowed(player)
+	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation}
 	self.remotes.StateChanged:FireClient(player,{state=state,result=result})
+end
+
+-- The client replaces its whole state per packet, so every send stays a full
+-- snapshot. Only the cadence drops while nothing session-owned has changed.
+function GameServer:SnapshotDue(session,now)
+	local last=self.sent[session.userId]
+	if not last or now-last.at>=IDLE_SNAPSHOT_SECONDS or session.revision~=last.revision then return true end
+	local yard=self.eggs.yards[session.userId]
+	if yard and (yard.revision~=last.eggs or yard.generation~=last.generation) then return true end
+	if session.armyState~="Home" or session.outgoing or session.incoming or session.defending then return true end
+	return session.rollReadyAt>now or session.rollRevealAt>now
 end
 
 function GameServer:Handle(player,request)
@@ -99,7 +114,11 @@ function GameServer:Handle(player,request)
 	local receipt,purchase,crate
 	local selectedBefore=#session:BestPetIds()
 	local selectionBefore=if action=="SetArmy" or action=="SelectBest" then table.concat(session:BestPetIds(),":") else nil
-	if action=="Sync" then self:Send(player,{id=request.id,action="Sync",ok=true});return
+	if action=="Sync" then
+		local sync=self.syncs[player.UserId] or {readyAt=0};self.syncs[player.UserId]=sync
+		if now<sync.readyAt then sync.pending=request.id;return end
+		sync.readyAt,sync.pending=now+SYNC_COOLDOWN,nil
+		self:Send(player,{id=request.id,action="Sync",ok=true});return
 	elseif action=="TutorialSignal" then
 		self.tutorial:Signal(session,request.signal,request.input)
 		self:Send(player);return
@@ -114,7 +133,9 @@ function GameServer:Handle(player,request)
 	elseif action=="AcknowledgeResearch" then
 		session.researchRecap={};ok,message=true,"Research updated."
 	elseif action=="SaveFormation" then
+		-- Yields for text filtering; ArmyService rechecks its own preconditions afterwards.
 		ok,message=ArmyService.SaveFormation(session,request.slot,request.name,request.expectedIds,request.expectedRevision)
+		if self.sessions[player.UserId]~=session or session.closing or session.saveLost then return end
 	elseif action=="ApplyFormation" then
 		ok,message=ArmyService.ApplyFormation(session,request.slot,request.expectedIds,request.expectedRevision)
 	elseif action=="StartOperation" then
@@ -297,12 +318,14 @@ function GameServer:RemovePlayer(player)
  self.commerce:Release(player)
  self.battles:CancelPlayer(player.UserId,os.clock())
  self.eggs:Release(session)
- self.leaderboards:Write(session)
  self.world:Release(session)
  self.sessions[player.UserId],self.limits[player.UserId]=nil,nil
+ self.syncs[player.UserId],self.sent[player.UserId]=nil,nil
  local connection=self.playerConnections[player.UserId]
  if connection then connection:Disconnect();self.playerConnections[player.UserId]=nil end
+ -- Release the profile lease first; the ranking write captures values before yielding.
  self.data:Release(session)
+ task.spawn(function() self.leaderboards:Write(session,true) end)
  self.telemetry:Release(player.UserId)
  self.recruitObservations[player.UserId],self.awayObservations[player.UserId]=nil,nil
  session:Destroy()
@@ -370,7 +393,14 @@ function GameServer:Step(dt)
 	if self.snapshotAccumulator>=Config.SnapshotInterval then
 		self.snapshotAccumulator=0
 		for _,session in self.sessions do self.world:UpdateSession(session) end
-		for _,player in Players:GetPlayers() do self:Send(player) end
+		for _,player in Players:GetPlayers() do
+			local session=self.sessions[player.UserId]
+			local sync=self.syncs[player.UserId]
+			if sync and sync.pending then
+				local id=sync.pending;sync.pending=nil;sync.readyAt=now+SYNC_COOLDOWN
+				self:Send(player,{id=id,action="Sync",ok=true})
+			elseif session and self:SnapshotDue(session,now) then self:Send(player) end
+		end
 		self.remotes.BattleChanged:FireAllClients(self.battles:Snapshots(now))
 	end
 end
@@ -395,12 +425,25 @@ function GameServer:Start()
 	table.insert(self.connections,Players.PlayerRemoving:Connect(function(player) self:RemovePlayer(player) end))
 	for _,player in Players:GetPlayers() do task.spawn(function() self:AddPlayer(player) end) end
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt) self:Step(dt) end))
-	game:BindToClose(function()
-  for _,session in self.sessions do self.tutorial:Release(session);session.closing=true;self.eggs:Release(session) end
-  for _,session in self.sessions do task.spawn(function() self.leaderboards:Write(session) end) end
-  self.data:Close()
- end)
+	game:BindToClose(function() self:Shutdown() end)
  print("[PetRoll] My Chicken Army! "..Config.Version.." ready. Yard chickens lay eggs; collect them for coins.")
+end
+
+-- The only BindToClose path: settle eggs, release every profile within the
+-- DataService close budget, write rankings alongside, then tear down.
+function GameServer:Shutdown()
+	if self.shuttingDown then return end
+	self.shuttingDown=true
+	local closing={}
+	for _,session in self.sessions do
+		self.tutorial:Release(session);session.closing=true;self.eggs:Release(session);table.insert(closing,session)
+	end
+	local closed=false
+	task.spawn(function() self.data:Close();closed=true end)
+	for _,session in closing do task.spawn(function() self.leaderboards:Write(session,true) end) end
+	local deadline=os.clock()+27
+	while not closed and os.clock()<deadline do task.wait(0.1) end
+	if self.started then self:Destroy() end
 end
 
 function GameServer:Destroy()

@@ -11,11 +11,16 @@ eligibility, fees, Giant sizes, level caps and starter-flock protections remain.
 Cash upgrades retain their independent eligibility.
 
 The owned machine stays visible and its locked native prompt reads
-**Fuse Machine · Locked / Unlock in Skill Tree**. Trying it returns the server
-error **“Unlock the Fuse Machine in the skill tree first.”** through the normal
+**Fuse Machine · Locked / Unlock in Upgrades**. Trying it returns the server
+error **“Unlock the Fuse Machine in Upgrades first.”** through the normal
 Error toast and sound. The client opens the tree focused on Fuse Machine unless
 a newer menu/dialogue/crate presentation is already open. It never starts a
 purchase automatically. The Army inspector uses the same server requirement.
+
+October 8: each plot's authored `Fuse_Machine.Highlight` (black fill) is the
+locked look. `MergeStand` caches every Highlight under the machine at bind time;
+`Sync` sets `Enabled = not MergeAccess()` server-side, so it replicates and the
+machine renders normally once unlocked. `Clear` restores the authored state.
 
 `PlayerSession:MergeAccess()` accepts completed FuseMachine research or retained
 `fusionUnlocked` access. New saves stamp `fusionUnlockVersion=2`. Loading an older,

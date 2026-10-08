@@ -3,6 +3,46 @@
 -- The client reads each buyer's current Marketplace price.
 local Config = require(script.Parent.Config)
 local ProcessorConfig = require(script.Parent.EggProcessorConfig)
+local PetCatalog = require(script.Parent.PetCatalog)
+local RarityRank = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6}
+
+-- Fallback matches the October 7 rarity reset; used only if the catalog lookup fails.
+local FALLBACK_GUARANTEED = {
+	"Bucket","Zombie","Tiger","Jungle","Bonsai","Viking","Skeleton","Pirate","Slime","Gentleman",
+	"Knight","Frost","Ninja","Wizard","Storm","Jockey","Toxic","Dragon","Diamond","SolarFlare","Water",
+	"Rainbow","IceDuck","Devil","Heavenly","StormDuck",
+}
+
+-- Every normal-roll Rare+ chicken, weakest first: rarity, income, then hp, then catalog order.
+local function guaranteedSequence(): {string}
+	local entries = {}
+	for index, id in PetCatalog.Order do
+		local pet = PetCatalog[id]
+		local rank = RarityRank[pet.rarity] or 0
+		if rank >= RarityRank.Rare and not pet.crateExclusive and (pet.weight or 0) > 0 then
+			table.insert(entries, {id=id, rank=rank, income=pet.income, hp=pet.hp, index=index})
+		end
+	end
+	table.sort(entries, function(a, b)
+		if a.rank ~= b.rank then return a.rank < b.rank end
+		if a.income ~= b.income then return a.income < b.income end
+		if a.hp ~= b.hp then return a.hp < b.hp end
+		return a.index < b.index
+	end)
+	local sequence = {}
+	for _, entry in entries do table.insert(sequence, entry.id) end
+	return sequence
+end
+local derivedOk, derived = pcall(guaranteedSequence)
+local guaranteed = if derivedOk and #derived > 0 then derived else table.clone(FALLBACK_GUARANTEED)
+-- Never disclose a below-Rare guarantee; tests/ShopIndexChecks asserts the full list.
+for index = #guaranteed, 1, -1 do
+	local pet = PetCatalog[guaranteed[index]]
+	if not pet or (RarityRank[pet.rarity] or 0) < RarityRank.Rare then
+		warn("[PetRoll] Dropped below-Rare guaranteed offer "..tostring(guaranteed[index]))
+		table.remove(guaranteed, index)
+	end
+end
 local ShopCatalog = {
 	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
 	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs"},
@@ -17,10 +57,7 @@ local ShopCatalog = {
 	RestrictedTreatment = "GuaranteedOffers",
 	-- Restricted owners receive these known offers in order; never a random reward.
 	-- The recruit's normal coin purchase is still required after the free reveal.
-	GuaranteedLuck = {interval=10, sequence={
-		"Bucket","Jockey","Cardboard","Cactus","Zombie","Tiger","Viking","Gentleman","Slime","Skeleton","Pirate",
-		"Knight","Frost","Bonsai","Ninja","Wizard","Diamond","Dragon","Rainbow","IceDuck","StormDuck","Storm",
-	}},
+	GuaranteedLuck = {interval=10, sequence=guaranteed},
 	Products = {
 		FinishEggs = {enabled=ProcessorConfig.Enabled, productId=3714566216, name="Finish Processing Now", finishEggs=true, boardOnly=true},
 		PocketCoins = {productId=3712929487, name="Pocket Cash", coins=10000, proposedPrice=49},

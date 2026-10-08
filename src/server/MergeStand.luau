@@ -21,7 +21,7 @@ local function settleVisualJoints(bird)
 end
 
 function MergeStand.new(parent,frame,index,onAction,template,templateOrigin)
- local self=setmetatable({index=index,loaded=false,serial=0,tracks={},birds={},gateParts={},scaleDrivers={}},MergeStand)
+ local self=setmetatable({index=index,loaded=false,serial=0,tracks={},birds={},gateParts={},scaleDrivers={},highlights={}},MergeStand)
  local model=Instance.new("Model");model.Name,model.Parent="MergeStand",parent
  model:SetAttribute("PlotIndex",index);self.model=model
  local authored=parent:FindFirstChild("Fuse_Machine",true)
@@ -36,6 +36,10 @@ function MergeStand.new(parent,frame,index,onAction,template,templateOrigin)
   local shops=parent:FindFirstChild("Shops")
   local old=shops and shops:FindFirstChild("Merge")
   if old then old:Destroy() end
+  -- The authored black Highlight is the locked look; Sync hides it once unlocked.
+  for _,item in machine:GetDescendants() do
+   if item:IsA("Highlight") then table.insert(self.highlights,{highlight=item,enabled=item.Enabled}) end
+  end
  end
  local button=machine and machine:FindFirstChild("Button",true)
  if button and not button:IsA("BasePart") then button=nil end
@@ -100,7 +104,8 @@ function MergeStand:Sync(session)
  local unlocked=session:MergeAccess()
  self.model:SetAttribute("OwnerUserId",session.userId)
  self.prompt.ObjectText=if unlocked then "Fuse Machine" else "Fuse Machine · Locked"
- self.prompt.ActionText=if unlocked then "Fuse Chickens" else "Unlock in Skill Tree"
+ self.prompt.ActionText=if unlocked then "Fuse Chickens" else "Unlock in Upgrades"
+ for _,entry in self.highlights do entry.highlight.Enabled=not unlocked end
  -- Keep the native prompt available so the server can explain locked access.
  self.prompt.Enabled=self.loaded and not self.reveal
 end
@@ -229,6 +234,7 @@ end
 function MergeStand:Clear()
  self:ResetAnimation();self.ownerId,self.loaded=nil,false
  self.model:SetAttribute("OwnerUserId",nil);self.prompt.Enabled=false
+ for _,entry in self.highlights do entry.highlight.Enabled=entry.enabled end
 end
 
 function MergeStand:Destroy()

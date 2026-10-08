@@ -58,3 +58,25 @@ viewport sizes, with no UIScale, UISizeConstraint, UITextSizeConstraint or
 position/size offsets in their generated trees. HUD home/outside states were
 checked in an Edit-mode fixture. These are editor/layout checks, not a physical
 device or live gameplay test. See `assets/ui-aspect-layout-20260930/`.
+
+## October 8 pre-release UI fixes
+
+- **Upgrades never spend on a tap.** Tapping/clicking a hex (or focusing it with
+  a gamepad) opens its detail card. Only the card's **Buy** / **Start research**
+  button spends; running research shows **Cancel research** (two-step confirm)
+  and research hexes show **Pin goal**. Gamepad: A enters the card, A presses,
+  B returns to the hex, Y toggles the goal. Tapping empty map closes the card.
+- **Readable text floor.** `UITheme.ScaleText` keeps TextScaled but attaches one
+  `UITextSizeConstraint` named `ReadableTextSize` (MinTextSize
+  `UITheme.MinTextSize` = 12, MaxTextSize 100) on the next frame. It adds no
+  maximum, so desktop sizing is unchanged; it is skipped when a caller attaches
+  its own measured constraint (Commander Cluck's one-line fit). This is a
+  readability exception to the "no UITextSizeConstraint" rule, limited to a
+  minimum; it does not resize layouts or add breakpoints.
+- **Touch HUD.** When `UserInputService.PreferredInput` is Touch, the cash
+  readout and Route/Flock totals lift above the thumbstick and jump button
+  (cash sits beside the left shortcut column) and Settings grows to a
+  thumb-sized target. Keyboard and gamepad keep the authored corners.
+- **Numbers.** `UITheme.Number` is the one compact formatter (about three
+  significant figures, K/M/B/T: $2.88K, $726K, $3.63M, $1.2B). `UITheme.Money`
+  still shows exact cash where the design wants every digit.

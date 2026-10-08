@@ -90,7 +90,7 @@ function Commands:StartFollowing(session,player)
 end
 
 function Commands:CallArmy(player,session,now)
-	if (session.researchEffects.callArmy or 0)<1 then return false,"Unlock Call Army in the skill tree first." end
+	if (session.researchEffects.callArmy or 0)<1 then return false,"Unlock Call Army in Upgrades first." end
 	if not characterRoot(player) then return false,"Your character will be ready in a moment." end
 	if #session:BestPetIds()==0 then return false,"Select chickens in My Army first." end
 	if now-(session.lastArmyCall or -math.huge)<0.75 then return false,"Your army heard you!" end

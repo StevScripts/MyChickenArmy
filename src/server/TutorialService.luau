@@ -43,6 +43,32 @@ function Tutorial:Emit(record, name, value, step, detail)
 	end)
 end
 
+-- Conquest funnel after the opening guide: first win per main-route camp, the
+-- first King clear and failed attacks before a first win. Same rules as Emit:
+-- Studio keeps the local ring only; production sends best-effort custom events.
+Tutorial.ProgressVersion = "conquest-2-soft-roost"
+local progressWarned = false
+function Tutorial.LogProgress(userId, name, value, step, detail)
+	local event = {name=name, value=value or 1, step=step or "None", detail=detail or "None",
+		version=Tutorial.ProgressVersion, cohort="Conquest"}
+	if RunService:IsStudio() then
+		table.insert(Tutorial.Diagnostics, event)
+		if #Tutorial.Diagnostics > 256 then table.remove(Tutorial.Diagnostics, 1) end
+		return
+	end
+	local player = Players:GetPlayerByUserId(userId)
+	if not player then return end
+	local fields = {
+		[Enum.AnalyticsCustomFieldKeys.CustomField01.Name]=Tutorial.ProgressVersion,
+		[Enum.AnalyticsCustomFieldKeys.CustomField02.Name]=event.step,
+		[Enum.AnalyticsCustomFieldKeys.CustomField03.Name]=event.detail,
+	}
+	task.spawn(function()
+		local ok, why = pcall(function() AnalyticsService:LogCustomEvent(player, name, event.value, fields) end)
+		if not ok and not progressWarned then progressWarned=true; warn("[Conquest] Analytics unavailable: " .. tostring(why)) end
+	end)
+end
+
 function Tutorial:Begin(player, session)
 	local record = {player=player, at=os.clock(), seen={}, starts={}, uiSeen={}, survival={},
 		lastSignals={}, receipts={}, receiptOrder={}, cohort="Unknown", session=session}

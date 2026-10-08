@@ -9,6 +9,22 @@ local Operations=require(Shared.OperationCatalog)
 local Theme=require(script.Parent.UITheme)
 local Extras={}
 Extras.__index=Extras
+-- Matches ArmyService.SaveFormation / ResearchRules.Read: 1-40 bytes of UTF-8.
+local MAX_FORMATION_NAME=40
+
+local function clampName(text)
+	if #text<=MAX_FORMATION_NAME then return text end
+	local last=0
+	-- Cut on a character boundary; invalid UTF-8 falls back to a plain byte cut.
+	local ok=pcall(function()
+		for position,code in utf8.codes(text) do
+			local finish=position+#utf8.char(code)-1
+			if finish>MAX_FORMATION_NAME then break end
+			last=finish
+		end
+	end)
+	return text:sub(1,if ok then last else MAX_FORMATION_NAME)
+end
 
 function Extras.new(app)
 	local self=setmetatable({app=app,tier=1,connections={}},Extras)
@@ -39,7 +55,9 @@ function Extras:UpdateRally()
 	local now=self.app.research:Now()
 	local active=math.max(0,math.ceil((data.rallyActiveUntil or 0)-now))
 	local cooldown=math.max(0,math.ceil(data.rallyReadyAt-now))
-	self.rally.Text=if active>0 then "Rally active · "..active.."s" elseif cooldown>0 then "Rally · "..cooldown.."s" else "Rally ("..(if UserInputService.PreferredInput==Enum.PreferredInput.Gamepad then "LT" else "G")..")"
+	local input=UserInputService.PreferredInput
+	local hint=if input==Enum.PreferredInput.Gamepad then " (LT)" elseif input==Enum.PreferredInput.KeyboardAndMouse then " (G)" else ""
+	self.rally.Text=if active>0 then "Rally active · "..active.."s" elseif cooldown>0 then "Rally · "..cooldown.."s" else "Rally"..hint
 	self.rally.Active,self.rally.Interactable=cooldown==0,cooldown==0
 end
 
@@ -76,7 +94,7 @@ end
 
 function Extras:RenderFormations()
 	local app=self.app;local state=app.state;local data=state.research
-	app.panelTitle.Text="Army Formations!"
+	app.panelTitle.Text="Army Formations"
 	local count=data and data.effects.formations or 0
 	if count==0 then
 		app:Text("Unlock","Research Formation Book to save your selected army.",22,55)
@@ -88,14 +106,21 @@ function Extras:RenderFormations()
 		local preset=data.formations[tostring(slot)]
 		local row=app:Text("Formation"..slot,"",20,45)
 		local name=Instance.new("TextBox")
+		-- Shows the server's saved (filtered) name; input is capped at the server limit.
 		name.Name,name.Text="Name",if preset then preset.name else "Formation "..slot
 		name.PlaceholderText,name.ClearTextOnFocus="Formation name",false
 		name.Font,name.TextScaled,name.TextColor3=Theme.Font,true,Theme.Colors.ink
 		name.BackgroundColor3,name.BorderSizePixel=Theme.Colors.card,0
 		name.Position,name.Size=UDim2.fromScale(.015,.02),UDim2.fromScale(.97,.94)
 		name.Parent=row;Theme.Stroke(name,Theme.Colors.line,1)
+		name:GetPropertyChangedSignal("Text"):Connect(function()
+			local clamped=clampName(name.Text)
+			if clamped~=name.Text then name.Text=clamped end
+		end)
 		app:Button("SaveFormation"..slot,if preset then "Replace with current army" else "Save current army",function()
-			app:Request("SaveFormation",{slot=slot,name=name.Text,expectedIds=state.selectedIds,expectedRevision=data.revision})
+			local text=clampName(name.Text:match("^%s*(.-)%s*$") or "")
+			if text=="" then text="Formation "..slot end
+			app:Request("SaveFormation",{slot=slot,name=text,expectedIds=state.selectedIds,expectedRevision=data.revision})
 		end,Theme.ActionColors.navigation)
 		if preset then
 			app:Button("ApplyFormation"..slot,"Use "..preset.name.." · "..#preset.petIds.." chickens",function()
@@ -108,7 +133,7 @@ end
 
 function Extras:RenderOperations()
 	local app=self.app;local state=app.state;local data=state.operations
-	app.panelTitle.Text="Operations!"
+	app.panelTitle.Text="Operations"
 	if not data then return end
 	if (data.pendingReward or 0)>0 then
 		app:Text("PendingReward","$"..Theme.Money(data.pendingReward).." earned and saved. Spend some cash; this reward pays automatically when your wallet has room.",20,70)

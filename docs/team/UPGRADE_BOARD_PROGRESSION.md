@@ -80,7 +80,7 @@ Implemented now (89 purchases, including seven plot purchases):
 
 - Egg Speed / Egg Value: 25 purchases each. First four prices remain
   $2,880 / $63,000 / $725,760 / $3,628,800. Later purchase `n` costs
-  `1000 * ceil(3628800 * 1.35^(n - 4) / 1000)`.
+  `1000 * ceil(3628800 * 1.6^(n - 4) / 1000)` (raised from 1.35 on October 8 by the owner so cash tracks are no longer all maxed by day 3; purchase 5 is $5,807,000 and purchase 25 is $70,191,201,000).
 - Luck: 20 purchases. First four prices remain
   $1,920 / $42,000 / $483,840 / $2,419,200. Later purchase `n` costs
   `1000 * ceil(2419200 * 1.25^(n - 4) / 1000)`.

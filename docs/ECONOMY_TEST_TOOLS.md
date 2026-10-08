@@ -8,7 +8,7 @@ Open **F8 → Studio Test Tools** (also reachable through Settings).
 | --- | --- |
 | Ignore all owned passes | Disables every paid pass benefit while retaining test progress. |
 | Use my account's passes again | Restores Roblox-verified ownership for this session. |
-| Fresh free player | Starting $2,400, empty yard and podium, first free roll guarantees the $600 starter chicken; no paid benefits or consumables. |
+| Fresh free player | Starting $2,400 with three free level-1 Chickens in the yard, three deployment slots and one podium; the first free roll guarantees a level-1 fourth chicken for $600; no paid benefits or consumables. |
 | Fresh low spend | Same fresh start with only 2x Egg Spawn. |
 | Fresh cash pack | Same fresh start plus one $10,000 Pocket Cash grant, no passes. |
 | Fresh all enabled passes | Fresh start with all eight currently enabled passes, no cash packs. |
@@ -38,3 +38,6 @@ Server owners: `CommerceService` applies effective benefits separately from
 verified ownership; `DebugService` creates disposable starts; `GameServer`
 passes its commerce owner to the debug service. The F8 rows reuse AppController's
 existing themed controls. Ordinary player progression and prices are unchanged.
+
+Every debug command is Studio only. Live servers refuse them and hide the F8
+tools for every account, including IDs listed in `Config.DebugUserIds`.

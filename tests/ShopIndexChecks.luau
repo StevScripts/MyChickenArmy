@@ -103,11 +103,32 @@ function Checks.Run()
 	end)
 	test("Invalid discovery fields cannot partially replace a loaded session",function()
 		local session=Session.new(1001,"Validation",1)
-		local data=session:ToData();data.coins=123;data.discovered={Robot=true}
+		local data=session:ToData();data.coins=123;data.discovered={Robot=true,Duck=7}
 		local coins,pets=session.coins,session.pets
 		assert(not session:LoadData(data))
 		assert(session.coins==coins and session.pets==pets and session.discovered.Duck)
-		return "Art-only/unknown IDs rejected before committing any profile values"
+		data.discovered={Robot=true}
+		assert(session:LoadData(data))
+		assert(session.coins==123 and not session.discovered.Robot and session:ToData().discovered.Robot==true)
+		return "Malformed index rejected before commit; unknown IDs hidden but written back"
+	end)
+	test("Overgrown counters are clamped and removed species are preserved, not fatal",function()
+		local original=Session.new(1001,"Future",1)
+		local data=original:ToData()
+		data.eggCarry={count=2e12,value=5e12};data.enemyKills=3e12;data.coins=2^60
+		table.insert(data.pets,{id="future-1",species="RetiredBird",level=1,favorite=false,collected=0,investment=10,extra={x=1}})
+		data.armySelection={data.pets[1].id,"future-1"}
+		local restored=Session.new(1001,"Restored",1)
+		assert(restored:LoadData(data))
+		assert(restored.eggCarry.count==Session.CarryLimit and restored.eggCarry.value==Session.CarryLimit)
+		assert(restored.coins==2^53-1 and restored.enemyKills==1e12)
+		assert(restored:Count()==original:Count() and not table.find(restored.armySelection,"future-1"))
+		local kept
+		for _,pet in restored:ToData().pets do if pet.id=="future-1" then kept=pet end end
+		assert(kept and kept.species=="RetiredBird" and kept.extra.x==1)
+		data.eggCarry={count=-1,value=5}
+		assert(not Session.new(1001,"Bad",1):LoadData(data))
+		return "Carry/kills/coins clamped; unknown chicken skipped in play and saved back; negatives still rejected"
 	end)
 	test("Unconfigured passes fail closed and never call Marketplace",function()
 		local commerce,player,session,fixture=setup(false)
@@ -150,18 +171,21 @@ function Checks.Run()
 		commerce:Destroy()
 		return "Requests cannot bypass the eight-second check window; verified false can revoke"
 	end)
-	test("Purchase completion and duplicate signals schedule verification, never grants",function()
+	test("Server purchase completion grants for the session; cancellations and unknown passes do not",function()
 		local commerce,player,session,fixture=setup(true)
-		commerce:Load(player,session)
-		fixture:Fire(101,true);fixture:Fire(101,true);fixture:Fire(999,true)
-		assert(not session.entitlements.EggMagnet and #fixture.scheduled==1)
-		fixture:Advance(8);assert(not session.entitlements.EggMagnet and fixture.calls==6)
-		fixture.answers[101]=true
-		fixture:Fire(101,false) -- Claimed cancellation is ignored; actual ownership decides.
-		fixture:Advance(8);assert(session.entitlements.EggMagnet and fixture.calls==9)
-		fixture:Fire(101,true);commerce:Destroy();fixture:Advance(20)
-		assert(fixture.calls==9 and next(session.entitlements)==nil)
-		return "Coalesced refreshes, untrusted booleans ignored, delayed work canceled on destroy"
+		local magnet=100+table.find(ShopCatalog.Order,"EggMagnet")
+		local banner=100+table.find(ShopCatalog.Order,"CommanderBanner")
+		commerce:Load(player,session);local perCycle=fixture.calls
+		fixture:Fire(banner,false);fixture:Fire(999,true)
+		assert(not session.entitlements.CommanderBanner and #fixture.scheduled==1)
+		fixture:Fire(magnet,true);fixture:Fire(magnet,true)
+		assert(session.entitlements.EggMagnet and #fixture.scheduled==1)
+		-- UserOwnsGamePassAsync may still return a cached false right after checkout.
+		fixture:Advance(8);assert(session.entitlements.EggMagnet and fixture.calls==perCycle*2)
+		assert(not session.entitlements.CommanderBanner)
+		commerce:Destroy();fixture:Advance(20)
+		assert(fixture.calls==perCycle*2 and next(session.entitlements)==nil)
+		return "Purchased pass active at once and kept through a stale check; cancellation ignored"
 	end)
 	test("A transient join ownership failure recovers automatically without client interaction",function()
 		local commerce,player,session,fixture=setup(true)
@@ -300,6 +324,27 @@ function Checks.Run()
 		assert(session.coins-before==7*Config.EggPickupBatch)
 		eggs:Destroy();commerce:Destroy()
 		return "15-stud eggs collect only after verified ownership; original coin value and batch remain"
+	end)
+	test("Restricted guaranteed offers are every normal Rare+ chicken, weakest first",function()
+		local Catalog=require(Shared.PetCatalog)
+		local rank={Common=1,Uncommon=2,Rare=3,Epic=4,Legendary=5,Mythic=6}
+		local sequence=ShopCatalog.GuaranteedLuck.sequence
+		assert(#sequence>0)
+		local seen={}
+		for index,id in sequence do
+			local pet=Catalog[id]
+			assert(pet and rank[pet.rarity]>=rank.Rare and not pet.crateExclusive and not seen[id],"Not a Rare+ normal chicken: "..id)
+			seen[id]=true
+			local previous=if index>1 then Catalog[sequence[index-1]] else nil
+			if previous then
+				assert(rank[previous.rarity]<rank[pet.rarity] or (previous.rarity==pet.rarity and previous.income<=pet.income),"Out of order: "..id)
+			end
+		end
+		for _,id in Catalog.Order do
+			local pet=Catalog[id]
+			if rank[pet.rarity]>=rank.Rare and not pet.crateExclusive and pet.weight>0 then assert(seen[id],"Missing "..id) end
+		end
+		return #sequence.." guaranteed offers, all Rare or better, ascending"
 	end)
 	return results
 end

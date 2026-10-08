@@ -71,7 +71,11 @@ variant("Astronaut","Knight","Astronaut Chicken",0,{99,180,255})
 variant("Alien","Wizard","Alien Chicken",0,{164,238,37})
 variant("DarkMatter","StormDuck","Dark Matter Chicken",0,{209,54,255})
 variant("CosmicDragon","StormDuck","Cosmic Dragon",0,{103,155,255})
-Catalog.CosmicDragon.damage = 122
+-- October 8: the rarest crate results out-hit a free Galaxy Overlord (76.5 DPS)
+-- with the same HP: Dark Matter (9%) 101/1.15 = 87.8 DPS (+15%), Cosmic Dragon
+-- (1%) 165/1.6 = 103.1 DPS (+35%). Income and crate odds are unchanged.
+Catalog.DarkMatter.damage = 101
+Catalog.CosmicDragon.damage = 165
 Catalog.CosmicDragon.interval = 1.6
 Catalog.CosmicDragon.attackWindup = 32/60
 for _,id in {"Astronaut","Alien","DarkMatter","CosmicDragon"} do

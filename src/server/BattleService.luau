@@ -16,11 +16,16 @@ local MapLayout=require(Shared.MapLayout)
 local Reinforcements=require(script.Parent.ArmyReinforcements)
 local TerritoryContest=require(script.Parent.TerritoryContest)
 local TerritoryIncome=require(script.Parent.TerritoryIncome)
+local TutorialService=require(script.Parent.TutorialService)
 local BattleService={}
+-- A captured main-route camp or King keeps its flag, but the army only lingers
+-- for the victory moment, then marches home where its chickens lay eggs again.
+local VICTORY_LINGER_SECONDS=5
+local FUNNEL_FAILURE_LIMIT=20
 BattleService.__index=BattleService
 
 function BattleService.new(sessions,world)
-	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},
+	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},funnelFailures={},
   territoryIncome=TerritoryIncome.new((Config.IncomeOutpost and Config.IncomeOutpost.Rate) or 0),
   income={graceUntil=0,retry={},eligibleTime=0,warningAfter=(Config.IncomeOutpost and Config.IncomeOutpost.WarningAfter) or 120}},BattleService)
 end
@@ -31,7 +36,9 @@ end
 
 -- The battle identity (not presence of its defender session) excludes PvP.
 local function killReward(session,unit,rank,isNpc)
- local amount=CombatRewards.ForUnit(unit,rank)
+ -- Full King bounty once: saved kingCleared, or a boss kill earlier this visit.
+ local repeatBoss=isNpc and unit.boss==true and (session.kingCleared==true or session.kingBountyPaid==true)
+ local amount=CombatRewards.ForUnit(unit,rank,repeatBoss)
  if isNpc and not unit.boss and session.entitlements and session.entitlements.DoubleBounty==true then
   amount*=ShopCatalog.BountyMultiplier
  end
@@ -216,9 +223,14 @@ function BattleService:Targets(session,now)
    entry.owned=owner~=nil and owner.userId==session.userId
    entry.canUnclaim=entry.owned
    entry.ownerId=owner and owner.userId
-   if owner then
-    entry.power,entry.count=0,0
-    if entry.available and not entry.via then entry.reason=if entry.owned then "Conquered · station army" else "Capture from "..owner.name end
+   entry.current=previous~=nil and previous.target==entry.id
+   if entry.owned then
+    -- Held ground keeps its flag; armies no longer station there (see Finish).
+    entry.power,entry.count,entry.available=0,0,false
+    if not entry.current then entry.reason="Conquered" end
+   elseif owner and entry.available and not entry.via then
+    -- A rival-held King still has its full court for each new challenger.
+    entry.reason="Defeat the King to take it from "..owner.name
    end
   end
   local kind,index=string.match(entry.id,"^(%a+):([%-]?%d+)$")
@@ -233,7 +245,7 @@ function BattleService:Targets(session,now)
    low,high=math.min(low,amount),math.max(high,amount)
   end
   entry.killRewardMin,entry.killRewardMax=if low==math.huge then 0 else low,high
-  if entry.ownerId then entry.killRewardMin,entry.killRewardMax=0,0 end
+  if entry.owned then entry.killRewardMin,entry.killRewardMax=0,0 end
  end
  local income=self:IncomeSummary(session,now)
  if income then
@@ -508,6 +520,10 @@ function BattleService:Attack(session,targetId,now,keepRoute)
  local routeCamps,routeOutposts=self:RouteProgress(session)
  local route=self:PlanOrder(session,targetId,routeCamps,routeOutposts,keepRoute)
 	if not route then return false,"Target does not exist." end
+	local heldGoal=self.campOwners[self:TerritoryKey(session,requestedTarget)]
+	if heldGoal and heldGoal.userId==session.userId then
+		return false,"You already hold "..CampaignRoute.Name(requestedTarget)..". Unclaim it to fight there again."
+	end
 	targetId=route[1]
 	local previous=self.battles[session.outgoing]
 	local moving=self:CanRedirect(session,previous)
@@ -517,7 +533,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	if #roster==0 then return false,"Add at least one animal to your army first." end
 	local kind,id=string.match(targetId,"^(%a+):([%-]?%d+)$")
 	local index=tonumber(id)
-	local defender,defenders,destination,name,campIndex,routeGoal
+	local defender,defenders,destination,name,campIndex,routeGoal,targetPower
  local isKing=targetId==KingEncounter.Target
  local outpostIndex=if kind=="outpost" and index and Progression.Outposts()[index] then index else nil
  local camps=Progression.Camps(session.promotion)
@@ -527,7 +543,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
   end
   if self:TerritoryBlocked(KingEncounter.Target,previous) then return false,"The center is occupied. Wait for that army to leave." end
   local king=KingEncounter.Definition(session.promotion or 1)
-  defenders,destination,name=king.roster,Vector3.new(0,1.05,0),king.name
+  defenders,destination,name,targetPower=king.roster,Vector3.new(0,1.05,0),king.name,king.power
  elseif outpostIndex then
   local camp=Progression.Outposts()[outpostIndex]
   if self:TerritoryBlocked(targetId,previous) then return false,"This outpost is occupied. Wait for the army to leave." end
@@ -542,10 +558,12 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		destination=self:CampPosition(index,session.plotIndex)
 		name=camp.name
 	else return false,"Target does not exist." end
-	-- Cleared territories have no hostile garrison. A rival must still complete
-	-- the capture meter; the current owner may simply station their army here.
+	-- Only the owner's own ground lacks a hostile garrison (and owners are refused
+	-- above). A rival at a held King fights a full fresh court; the shared arena
+	-- has no idle rigs while owned, so LiveBattleActors spawns them.
 	local territoryOwner=self.campOwners[self:TerritoryKey(session,targetId)]
-	if territoryOwner then defenders={} end
+	if territoryOwner and territoryOwner.userId==session.userId then defenders={} end
+	targetPower=targetPower or Rules.Power(defenders)
 	local battleId=HttpService:GenerateGUID(false)
 	local origin=if moving then previous.destination else self.world:Position(session.plotIndex)
 	local battle=Battle.new(battleId,session.userId,targetId,origin,destination,now)
@@ -556,6 +574,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
  battle.outpostIndex=outpostIndex
  battle.promotion=session.promotion or 1
  battle.campCount=#camps
+ battle.attackPower,battle.targetPower=Rules.Power(roster),targetPower
  battle.campKey=if isKing then KingEncounter.Target elseif outpostIndex then targetId elseif campIndex then campKey(session.plotIndex,campIndex) else nil
  battle.friendlyTerritory=territoryOwner~=nil and territoryOwner.userId==session.userId
  if campIndex and not battle.friendlyTerritory then battle.routeCamps[campIndex]=nil end
@@ -677,10 +696,36 @@ function BattleService:RewardKills(battle,now)
   if battle.incomeSite then continue end
   local rank=if battle.defender and opponent then pvpRank(earner,opponent) else nil
   local amount=killReward(earner,kill,rank,battle.defender==nil)
+  if kill.boss and kill.side=="B" and battle.defender==nil then earner.kingBountyPaid=true end
   if amount<=0 then continue end
   amount=earner:Credit(amount,"battle")
   table.insert(battle.coinDrops,{serial=kill.serial,userId=earner.userId,amount=amount,x=kill.x,z=kill.z,at=now})
   if #battle.coinDrops>40 then table.remove(battle.coinDrops,1) end
+ end
+end
+
+local function oddsBucket(battle)
+ local ratio=(battle.attackPower or 0)/math.max(1,battle.targetPower or 0)
+ return if ratio<1 then "Under1" elseif ratio<1.3 then "1To1.3" elseif ratio<2 then "1.3To2" else "2Plus"
+end
+
+-- Main-route/King funnel: first wins and failed attempts before a first win.
+-- Observation only; detail pairs the result with the army's power-ratio band.
+function BattleService:RecordFunnel(attacker,battle,outcome,bossDown,now)
+ local step=if battle.isKing then "King" elseif battle.campIndex then "Camp"..battle.campIndex else nil
+ if not step then return end
+ local wonBefore=if battle.isKing then attacker.kingCleared==true else attacker.firstWins[battle.campIndex]==true
+ if wonBefore then return end
+ local seconds=math.max(0,now-(battle.startedAt or now))
+ if outcome=="A" then
+  if battle.friendlyTerritory or (battle.isKing and not bossDown) then return end
+  TutorialService.LogProgress(attacker.userId,if battle.isKing then "KingFirstClear" else "ConquestFirstWin",seconds,step,"FirstWin/"..oddsBucket(battle))
+ elseif outcome=="B" or outcome=="Draw" or outcome=="Blocked" or outcome=="Retreat" then
+  self.funnelFailures=self.funnelFailures or {}
+  local count=(self.funnelFailures[attacker.userId] or 0)+1
+  if count>FUNNEL_FAILURE_LIMIT then return end
+  self.funnelFailures[attacker.userId]=count
+  TutorialService.LogProgress(attacker.userId,"ConquestFailed",seconds,step,(if outcome=="B" then "Defeated" else outcome).."/"..oddsBucket(battle))
  end
 end
 
@@ -692,9 +737,14 @@ function BattleService:Finish(battle,outcome,now)
  self:RewardKills(battle,now)
 	local attacker=self.sessions[battle.attacker]
 	local defender=self.sessions[battle.defender]
+ -- The King counts only when this encounter's own boss fell (B units are
+ -- still present here; Hold removes them below).
+ local bossDown=false
+ if battle.isKing then for _,u in battle.units do if u.side=="B" and u.boss and not u.petId and u.hp<=0 then bossDown=true end end end
+ if attacker and battle.defender==nil then self:RecordFunnel(attacker,battle,outcome,bossDown,now) end
  if outcome=="A" and attacker and not battle.friendlyTerritory then
   if battle.isKing then
-   attacker.kingCleared=true
+   if bossDown then attacker.kingCleared=true end
   elseif battle.outpostIndex then
    battle.routeOutposts[battle.outpostIndex]=true
    attacker.frontierWins[battle.outpostIndex]=true
@@ -707,7 +757,7 @@ function BattleService:Finish(battle,outcome,now)
    attacker:UnlockProgress()
   end
  end
- if outcome=="A" and attacker and battle.campKey then
+ if outcome=="A" and attacker and battle.campKey and (bossDown or not battle.isKing) then
   self:SetTerritoryOwner(battle.campKey,attacker,self.campLocations[battle.campKey])
  end
 	battle.paid=true
@@ -721,6 +771,9 @@ function BattleService:Finish(battle,outcome,now)
 	end
 	local hold=outcome=="A" and (battle.campIndex~=nil or battle.isKing or battle.outpostIndex~=nil or battle.incomeSite) and attacker~=nil
 	if hold then battle:Hold(now) else battle:Finish(outcome,now) end
+	-- Conquest armies march home after the victory moment; route legs advance
+	-- instead and the Supply Outpost keeps its defended station.
+	battle.autoReturnAt=if hold and not battle.incomeSite and not battle.routeGoal then now+VICTORY_LINGER_SECONDS else nil
 	if not hold then
 		battle.routeGoal=nil
 		if battle.campKey then self.departingCamps[battle.campKey]=battle.id end
@@ -730,6 +783,7 @@ function BattleService:Finish(battle,outcome,now)
 		attacker.stationedAt=if hold then battle.name else nil
 		attacker.lastResult=if hold and battle.friendlyTerritory then "Army stationed at "..battle.name.."."
 			elseif hold and battle.routeGoal then "You've conquered "..battle.name.."! Marching toward "..battle.routeGoalName.."."
+			elseif hold and battle.autoReturnAt then "You've conquered "..battle.name.."! Your army is heading home to lay eggs."
 			elseif hold then "You've conquered "..battle.name.."!"
 			elseif outcome=="A" then "Victory at "..battle.name.."!"
 			elseif outcome=="B" then "Squad wiped out. Enemy control is recovering; your chickens are returning home."
@@ -1001,7 +1055,7 @@ function BattleService:Step(dt,now)
    session:Touch()
   end
  end
-	local advance={}
+	local advance,homeward={},{}
 	local active={};for _,battle in self.battles do table.insert(active,battle) end
 	for _,battle in active do
   if self.battles[battle.id]~=battle then continue end
@@ -1030,6 +1084,8 @@ function BattleService:Step(dt,now)
 		if outcome then self:Finish(battle,outcome,now) end
 		if battle.phase=="Holding" and battle.routeGoal and now-battle.phaseAt>=Config.RouteRegroupSeconds then
 			table.insert(advance,battle)
+		elseif battle.phase=="Holding" and battle.autoReturnAt and now>=battle.autoReturnAt then
+			table.insert(homeward,battle)
 		end
 	end
 	self:ReleaseClearedCamps(now)
@@ -1040,7 +1096,19 @@ function BattleService:Step(dt,now)
 			local goal=battle.routeGoal
 			battle.routeGoal=nil
    local ok,why=self:Attack(session,goal,now,true)
-			if not ok then session.lastResult="Route stopped. "..why.." Your army is staying here.";session:Touch() end
+			if not ok then
+				battle.autoReturnAt=now -- Never strand a squad (and its egg income) at a stopped route leg.
+				session.lastResult="Route stopped. "..why.." Your army is heading home.";session:Touch()
+			end
+		end
+	end
+	-- The flag stays; the squad leaves through the normal Returning march, which
+	-- also frees a shared arena for the next challenger after the vacancy grace.
+	for _,battle in homeward do
+		local session=self.sessions[battle.attacker]
+		if self.battles[battle.id]==battle and battle.phase=="Holding" and session and session.outgoing==battle.id then
+			battle.autoReturnAt=nil
+			self:ReturnHome(session,now)
 		end
 	end
  if incomeEnabled() and self.world.SetIncomeStatus then self.world:SetIncomeStatus(self:IncomeSummary(nil,now)) end
@@ -1147,6 +1215,7 @@ function BattleService:CancelPlayer(userId,now)
  for key,ownerId in self.releasedTerritories do if ownerId==userId then self.releasedTerritories[key]=nil end end
  if self.income.clockOwner==userId or (self.campOwners["income:1"]==nil and self.income.raidId) then self:CancelIncomeApproach(now);self.income.clockOwner=nil end
  self.income.retry[userId]=nil
+ if self.funnelFailures then self.funnelFailures[userId]=nil end
  if self.income.lostOwners then self.income.lostOwners[userId]=nil end
  if self.income.receipts then self.income.receipts[userId]=nil end
  self.territoryIncome:Release(userId)

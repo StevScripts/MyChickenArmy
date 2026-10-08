@@ -9,7 +9,7 @@ local Economy = {
 	LuckUpgradeSeconds = 120,
 	-- Capped board continuation. Preserve the opening four benchmark prices.
 	IncomeUpgradeMax = 25,
-	IncomePriceGrowth = 1.35,
+	IncomePriceGrowth = 1.6, -- October 8: 1.35 let every cash track max by day 3.
 	LuckUpgradeMax = 20,
 	LuckPriceGrowth = 1.25,
 	UpgradePriceStep = 1000,
@@ -94,7 +94,7 @@ local Config = {
  DebugUserIds={146710616},
  Camps={
   {name="Cluck Camp",position={0,-273},roster={"Duck","Duck","Duck"}},
-  {name="Fort Roost",position={0,-190},roster={{species="Bucket",level=2},{species="Sailor",level=2},{species="Sailor",level=2},{species="Mallard",level=2}}},
+  {name="Fort Roost",position={0,-190},roster={{species="Bucket",level=1},{species="Sailor",level=1},{species="Mallard",level=1},{species="Mallard",level=1}}},
   {name="Ironbeak HQ",position={0,-109},roster={{species="Bucket",level=2},{species="Bucket",level=2},{species="Sailor",level=2},{species="Viking",level=1}}},
  },
 }

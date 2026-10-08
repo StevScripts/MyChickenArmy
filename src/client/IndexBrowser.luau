@@ -13,8 +13,9 @@ local CARD_SIZE=UDim2.fromScale(0.976,0.976)
 local WHITE=Color3.new(1,1,1)
 local BLACK=Color3.new(0,0,0)
 
-local function previewPosition(collected)
-	return UDim2.fromScale(0.5,if collected then 0.44 else 0.5)
+-- Every card now has a caption (name, or rarity and source), so portraits sit high.
+local function previewPosition(_collected)
+	return UDim2.fromScale(0.5,0.44)
 end
 
 function Browser.new(app,parent)
@@ -189,7 +190,7 @@ function Browser:Render(_force)
 	for _,species in Catalog.Order do
 		if discovered[species] then found+=1 end
 	end
-	self.app.panelTitle.Text="Chicken Index!  "..found.."/"..#Catalog.Order
+	self.app.panelTitle.Text="Chicken Index · "..found.."/"..#Catalog.Order
 	for _,species in Catalog.Order do
 		local view=self.cards[species]
 		local portraitScale=MenuLayout.Number(self.app.gui,"Index","PortraitScale",1.15,0.8,1.35)
@@ -199,8 +200,14 @@ function Browser:Render(_force)
 			local newlyCollected=view.collected==false and collected
 			view.collected=collected
 			view.root:SetAttribute("Collected",collected)
-			view.caption.Visible=collected
-			view.name.Text=if collected then Catalog[species].name else ""
+			-- Undiscovered birds stay silhouettes but say how rare they are and
+			-- where they come from (crate-only species have no normal roll weight).
+			local definition=Catalog[species]
+			local crateOnly=definition.crateExclusive==true or (definition.weight or 0)<=0
+			view.caption.Visible=true
+			view.name.RichText=not collected
+			view.name.Text=if collected then definition.name
+				else string.format('<font color="#%s">%s</font> · %s',(Theme.Rarities[definition.rarity] or WHITE):ToHex(),definition.rarity,if crateOnly then "Galaxy Crate only" else "Roll")
 			view.preview.ImageColor3=if collected then WHITE else BLACK
 			view.preview.Position=previewPosition(collected)
 			if collected then

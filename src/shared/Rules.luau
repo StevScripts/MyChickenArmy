@@ -41,9 +41,14 @@ end
 
 -- Current cash-level quote. Keep the historical UpgradePrice below frozen so
 -- changing today's tuning cannot revalue investments reconstructed from old saves.
+-- October 8: each level doubles eggs, so a flat 75% quote paid back in constant
+-- time and ran away. The extra 2.5x per level makes each quote 5x the last
+-- (Common: $1,800, $9,000, $45,000 ...); level 1→2 is unchanged. Exact in floats.
+Rules.ChickenUpgradeGrowth = 2.5
 function Rules.ChickenUpgradePrice(species: string, level: number): number?
 	if level>=Config.MaxPetLevel then return nil end
-	return math.max(1,math.ceil(Rules.RecruitPrice(species,level)*Config.Economy.ChickenUpgradeRecruitFraction))
+	return math.max(1,math.ceil(Rules.RecruitPrice(species,level)*Config.Economy.ChickenUpgradeRecruitFraction
+		*Rules.ChickenUpgradeGrowth^(math.max(1,level)-1)))
 end
 
 -- Develop a species by merging; later offers supply copies one level behind it.

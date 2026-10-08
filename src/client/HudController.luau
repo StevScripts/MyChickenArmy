@@ -3,12 +3,17 @@
 local Theme=require(script.Parent.UITheme)
 local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
+local UserInputService=game:GetService("UserInputService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
 local Hud={}
 Hud.__index=Hud
+
+local function touchPrimary()
+	return UserInputService.PreferredInput==Enum.PreferredInput.Touch
+end
 
 local function callArmyUnlocked(state)
 	local research=state and state.research
@@ -54,6 +59,7 @@ function Hud.new(app,shell)
 	self.objective.AnchorPoint,self.objective.Position,self.objective.Size,self.objective.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self.objective.Visible=false
 	local cash=Theme.Container(shell,"CashReadout")
+	self.cashReadout=cash
 	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.14)
 	Theme.Aspect(cash,3.2)
 	self.money=Theme.Display(cash,"Money","$0",46,Theme.Colors.money)
@@ -66,11 +72,12 @@ function Hud.new(app,shell)
 	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
 	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
 	local totals=Theme.Container(shell,"ArmyTotals")
+	self.totals=totals
 	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.3,0.09)
 	Theme.Aspect(totals,4.2)
 	self.conquered=Theme.Display(totals,"Conquered","Conquered 0/"..#Progression.Camps(1),27,A.gold)
 	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
-	self.flock=Theme.Display(totals,"Flock","Chickens 0/40",25,A.gold)
+	self.flock=Theme.Display(totals,"Flock","Flock 0/40",25,A.gold)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self:BuildSettingsTopbar()
 	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.51))
@@ -84,10 +91,13 @@ function Hud.new(app,shell)
 		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
-	self.save=Theme.Display(shell,"SaveStatus","",12)
-	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(1,0),UDim2.fromScale(0.988,0.035),UDim2.fromScale(0.18,0.035),Enum.TextXAlignment.Right
+	-- Below the status line, clear of the Settings corner; errors also raise a toast.
+	self.save=Theme.Display(shell,"SaveStatus","",21)
+	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self:Layout()
 	self:BindBasePresence()
+	local inputConnection=UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function() self:ApplyInputLayout() end)
+	navigation.Destroying:Once(function() inputConnection:Disconnect() end)
 	return self
 end
 
@@ -97,8 +107,8 @@ function Hud:BindBasePresence()
 	local presenceConnection
 	local function reset()
 		if presenceConnection then presenceConnection:Disconnect();presenceConnection=nil end
-		self.commandsExpanded=false
-		self:UpdateArmyCommands(true)
+		self.outsideBase=false
+		self:RefreshCommands(true)
 	end
 	local function bind(character)
 		reset()
@@ -106,10 +116,8 @@ function Hud:BindBasePresence()
 		if not alive or character~=player.Character or not humanoid then return end
 		local function update()
 			-- Reuse the server's whole-base boundary, including its edge hysteresis.
-			local expanded=humanoid:GetAttribute("OutsideHomeBase")==true
-			if expanded==self.commandsExpanded then return end
-			self.commandsExpanded=expanded
-			self:UpdateArmyCommands(false)
+			self.outsideBase=humanoid:GetAttribute("OutsideHomeBase")==true
+			self:RefreshCommands(false)
 		end
 		presenceConnection=humanoid:GetAttributeChangedSignal("OutsideHomeBase"):Connect(update)
 		update()
@@ -122,6 +130,15 @@ function Hud:BindBasePresence()
 		if presenceConnection then presenceConnection:Disconnect() end
 	end)
 	if player.Character then task.spawn(bind,player.Character) end
+end
+
+-- Call Army / My Base show outside the base, and also inside it whenever the
+-- army is away (at a camp, marching or following), so it can always be recalled.
+function Hud:RefreshCommands(immediate)
+	local expanded=self.outsideBase==true or self.armyAway==true
+	if expanded==self.commandsExpanded and not immediate then return end
+	self.commandsExpanded=expanded
+	self:UpdateArmyCommands(immediate)
 end
 
 function Hud:UpdateArmyCommands(immediate)
@@ -228,11 +245,25 @@ function Hud:Layout()
 	end
 	Theme.Aspect(self.status,19)
 	Theme.Aspect(self.objective,19)
-	Theme.Aspect(self.save,6)
+	Theme.Aspect(self.save,19)
 	Theme.ScaleText(self.navigation)
 	Theme.ScaleText(self.shortcuts)
 	Theme.ScaleText(self.settings)
+	-- Top status lines get the shared readable text floor (wide boxes, no overlap risk).
+	for _,label in {self.status,self.objective,self.save} do Theme.ScaleText(label) end
+	self:ApplyInputLayout()
 	self:UpdateArmyCommands(true)
+end
+
+-- Touch: lift the corner readouts above the thumbstick and jump button (the
+-- cash readout moves beside the left shortcut column) and enlarge Settings to a
+-- thumb-sized target. Keyboard/gamepad keep the authored bottom corners.
+function Hud:ApplyInputLayout()
+	local touch=touchPrimary()
+	self.cashReadout.AnchorPoint=Vector2.new(0,1)
+	self.cashReadout.Position=if touch then UDim2.fromScale(0.105,0.7) else UDim2.fromScale(0.012,0.98)
+	self.totals.Position=if touch then UDim2.fromScale(0.988,0.7) else UDim2.fromScale(0.988,0.98)
+	self.settings.Size=if touch then UDim2.fromScale(0.07,0.125) else UDim2.fromScale(0.04,0.072)
 end
 
 function Hud:Resize(_width, _height, _scale)
@@ -280,8 +311,10 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateTerritory(state)
 	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.Money(value) end)
 	self:UpdateEggLine(state.eggs or {})
-	self.flock.Text="Chickens "..count.."/"..limit
+	self.flock.Text="Flock "..count.."/"..limit
 	local atHome=state.armyState=="Home"
+	local away=state.armyState~=nil and not atHome
+	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
 	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
 	self.status.Visible=not atHome
 	self.status.Text=if atHome then ""
@@ -304,12 +337,16 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
  self.conquered.Text="Route "..(state.routeCampsWon or 0).."/"..#Progression.Camps(1)..(if outpostCount>0 then " · Outposts "..explored.."/"..outpostCount else "")
 	self.conquered.TextColor3=if (state.routeCampsWon or 0)>0 then A.green else A.gold
 	self.save.Text=if state.saveStatus=="error" then "Save unavailable · Settings" elseif state.saveStatus=="loading" then "Loading…" else ""
-	self.save.TextColor3=A.red
+	self.save.TextColor3=if state.saveStatus=="error" then A.red else Theme.Colors.muted
+	if state.saveStatus=="error" and self.lastSaveStatus~="error" then
+		self.app:Notify(state.saveMessage or "Saving is unavailable right now. Check Settings.",false)
+	end
+	self.lastSaveStatus=state.saveStatus
 	if self.lastCount and (count~=self.lastCount or capacity~=self.lastCapacity) then Theme.Motion:Pop(self.army.Visual,1.1) end
 	if self.lastConquered and (state.routeCampsWon or 0)>self.lastConquered then
 		Theme.Motion:Pop(self.conquered,1.13)
 		Theme.Motion:Pop(self.cashIcon,1.14)
-		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,0.94),A.gold)
+		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,if touchPrimary() then 0.66 else 0.94),A.gold)
 	end
 	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,state.routeCampsWon or 0
 end

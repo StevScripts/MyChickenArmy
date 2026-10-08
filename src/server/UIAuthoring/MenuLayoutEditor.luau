@@ -72,7 +72,7 @@ function Editor.Open()
 		else
 			local body=Theme.Frame(canvas,"Main",UDim2.fromScale(1,1))
 			Theme.Surface(body,Theme.PageSurfaces[page] or Theme.Colors.panel)
-			local header,title=Theme.Header(canvas,"Header",if page=="Index" then "Chicken Index!" elseif page=="Odds" then "Roll Odds" else "Settings",Theme.HeaderColors[page] or Theme.ActionColors.navigation)
+			local header,title=Theme.Header(canvas,"Header",if page=="Index" then "Chicken Index" elseif page=="Odds" then "Roll Odds" else "Settings",Theme.HeaderColors[page] or Theme.ActionColors.navigation)
 			header.PageIcon.Visible=page=="Index" or page=="Odds"
 			header.PageIcon.Image=if page=="Index" then Theme.Assets.Index else Theme.Assets.Luck
 			Theme.HeaderClose(header,noop)

@@ -19,7 +19,7 @@ end
 
 function Leaderboards.new(world,sessions,stores)
  local self=setmetatable({world=world,sessions=sessions,boards={},names={},stores=stores,
-  nextUpdate=0,busy=false,alive=true,writing={}},Leaderboards)
+  nextUpdate=0,busy=false,alive=true,writing={},written={},finalAfter={}},Leaderboards)
  self.preview=stores==nil and (RunService:IsStudio() or not Config.SaveEnabled)
  if not self.preview and not self.stores then
   self.stores={}
@@ -83,17 +83,27 @@ function Leaderboards:Build()
  end
 end
 
-function Leaderboards:Write(session)
- if self.preview or not session.loaded or session.saveLost or session.saveStatus=="studio-session"
-  or self.writing[session.userId] then return end
- self.writing[session.userId]=true
+-- final=true is the leave/shutdown write; it also forgets the per-server cache.
+function Leaderboards:Write(session,final)
+ local userId=session.userId
+ if self.preview or not session.loaded or session.saveLost or session.saveStatus=="studio-session" then return end
+ -- A periodic write may still be yielding; run the leave write right after it.
+ if self.writing[userId] then if final then self.finalAfter[userId]=session end return end
+ self.writing[userId]=true
  -- Capture before yielding; clients never submit leaderboard scores.
- local values={Cash=session.coins,EnemyDefeats=session.enemyKills or 0}
+ local values={Cash=math.floor(session.coins),EnemyDefeats=math.floor(session.enemyKills or 0)}
+ local written=self.written[userId] or {};self.written[userId]=written
  for _,def in DEFINITIONS do
-  local ok,err=pcall(function() self.stores[def.key]:SetAsync(tostring(session.userId),math.floor(values[def.key])) end)
-  if not ok then warn("[ChickenLeaderboards] "..def.key.." update deferred: "..tostring(err)) end
+  -- Skip values this server already stored; failed writes stay unrecorded and retry.
+  if written[def.key]==values[def.key] then continue end
+  local ok,err=pcall(function() self.stores[def.key]:SetAsync(tostring(userId),values[def.key]) end)
+  if ok then written[def.key]=values[def.key]
+  else warn("[ChickenLeaderboards] "..def.key.." update deferred: "..tostring(err)) end
  end
- self.writing[session.userId]=nil
+ self.writing[userId]=nil
+ local after=self.finalAfter[userId]
+ if after then self.finalAfter[userId]=nil;self:Write(after,true);return end
+ if final then self.written[userId]=nil end
 end
 
 function Leaderboards:Refresh()

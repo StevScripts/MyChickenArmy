@@ -53,6 +53,7 @@ local TONES={
  Green={Color3.fromRGB(165,255,0),Color3.fromRGB(38,227,0),Color3.fromRGB(40,125,6),Color3.fromRGB(217,255,154)},
  Blue={Color3.fromRGB(0,231,255),Color3.fromRGB(0,154,255),Color3.fromRGB(0,91,157),Color3.fromRGB(179,233,255)},
  Red={Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59),Color3.fromRGB(142,16,40),Color3.fromRGB(255,180,186)},
+ Off={Color3.fromRGB(122,132,138),Color3.fromRGB(86,95,101),Color3.fromRGB(48,54,58),Color3.fromRGB(160,170,176)},
 }
 local Browser={}
 Browser.__index=Browser
@@ -112,7 +113,8 @@ end
 
 local function applyButtonColor(item)
  local color=item:GetAttribute("ArmyAccent")
- local tone=if color==RED then TONES.Red elseif color==CYAN then TONES.Blue else TONES.Green
+ -- Unavailable actions turn gray so they never look pressable.
+ local tone=if not item.Active then TONES.Off elseif color==RED then TONES.Red elseif color==CYAN then TONES.Blue else TONES.Green
  Theme.ApplyReferenceAccent(item,ColorSequence.new(tone[1],tone[2]))
  local visual=item.Visual
  visual.Face.UIGradient.Transparency=NumberSequence.new(if item.Active then 0 else 0.35)
@@ -204,7 +206,7 @@ function Browser.new(app,parent)
  local background=frame(root,"ArmyBackground",UDim2.new(),UDim2.new())
  -- The shared header's window contour also frames this full-height background.
  surface(background,Color3.fromRGB(18,32,41),Color3.fromRGB(18,32,41),INK,3).Enabled=false
- local header,title=Theme.Header(root,"Header","Your Chickens!",GREEN)
+ local header,title=Theme.Header(root,"Header","Your Chickens",GREEN)
  Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
  header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
  self.header,self.title=header,title
@@ -217,11 +219,17 @@ function Browser.new(app,parent)
  self.flockLabel=label(self.toolbar,"FlockLabel","FLOCK",33,UDim2.new(),UDim2.new(),WHITE)
  self.summary=label(self.toolbar,"FlockCount","",36,UDim2.new(),UDim2.new(),WHITE,true)
  self.summary.RichText=true
+ -- Both "+" buttons lead to their cash upgrade in Upgrades; the Robux pass is
+ -- the fallback only once cash Army Size is maxed.
  self.flockPlus=button(self.toolbar,"FlockCapacity","+",function()
   self.app.audio:Play("Click")
-  local limit=self.app.state.collectionLimit or Config.CollectionLimit
-  self.notice,self.noticeUntil="Flock storage is currently limited to "..limit.." chickens.",os.clock()+4
-  self:UpdateAction()
+  local offer=self:CashOffer("PlotSize")
+  if offer and offer.ready and offer.price==nil then
+   local limit=self.app.state.collectionLimit or Config.CollectionLimit
+   self.notice,self.noticeUntil="Your flock is at its maximum of "..limit.." chickens.",os.clock()+4
+   self:UpdateAction();return
+  end
+  self:CancelPointer(true);self.app.research:OpenCash("PlotSize")
  end,GREEN)
  self.flockPlus.Position,self.flockPlus.Size,self.flockPlus.TextSize=UDim2.new(),UDim2.new(),44
  local divider=frame(self.toolbar,"Divider",UDim2.new(),UDim2.new())
@@ -231,6 +239,8 @@ function Browser.new(app,parent)
  self.capacity.RichText=true
  self.capacityPlus=button(self.toolbar,"MoreArmySlots","+",function()
   self.app.audio:Play("Click");self:CancelPointer(true)
+  local offer=self:CashOffer("ArmySize")
+  if not (offer and offer.ready and offer.price==nil) then self.app.research:OpenCash("ArmySize");return end
   self.showCapacity,self.showInfo,self.inspecting=true,false,false;self.placing=nil;self:Render(true)
  end,GREEN)
  self.capacityPlus.Position,self.capacityPlus.Size,self.capacityPlus.TextSize=UDim2.new(),UDim2.new(),44
@@ -254,7 +264,7 @@ function Browser.new(app,parent)
  surface(searchShell,Color3.fromRGB(28,42,49),Color3.fromRGB(24,38,45),Color3.fromRGB(142,175,193),Theme.Border.Card)
  art(searchShell,"SearchIcon",Art.Search,UDim2.new(),UDim2.new())
  local search=Instance.new("TextBox")
- search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search..."
+ search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search…"
  search.BackgroundTransparency,search.BorderSizePixel,search.ClearTextOnFocus=1,0,false
  search.Font,search.TextSize,search.TextColor3=Theme.Font,27,WHITE
  search.PlaceholderColor3,search.TextXAlignment=Color3.fromRGB(129,156,170),Enum.TextXAlignment.Left
@@ -337,13 +347,13 @@ function Browser.new(app,parent)
 
 	self.capacityPage=scrollingPanel(self.body,"MoreArmySlots")
 	self.passTitle=label(self.capacityPage,"Title","Bigger Army",32,UDim2.new(),UDim2.new(),WHITE,true)
-	self.passBadge=label(self.capacityPage,"Type","GAMEPASS / +5 SLOTS",17,UDim2.new(),UDim2.new(),GREEN)
+	self.passBadge=label(self.capacityPage,"Type","Cash Army Size is maxed · Robux pass",17,UDim2.new(),UDim2.new(),GREEN)
 	self.passArt=Theme.Image(self.capacityPage,"BiggerArmy",Theme.Assets.Army,UDim2.new(),UDim2.new())
 	self.passArt.ZIndex=self.capacityPage.ZIndex+1
 	self.passCopy=label(self.capacityPage,"Description","Bring more chickens into battle.",24,UDim2.new(),UDim2.new(),WHITE)
 	self.passCopy.TextWrapped,self.passCopy.TextTruncate=true,Enum.TextTruncate.None
 	self.passNote=label(self.capacityPage,"Availability",
-		"Adds five slots to your army, up to 15 with coin upgrades. View the live price in Shop.",18,
+		"The Bigger Army pass adds five more army slots on top of your cash upgrades. See the price in Shop.",18,
 		UDim2.new(),UDim2.new(),MUTED)
 	self.passNote.TextWrapped,self.passNote.TextTruncate=true,Enum.TextTruncate.None
 	self.passShop=button(self.capacityPage,"ViewInShop","View in Shop",function()
@@ -422,6 +432,11 @@ function Browser.new(app,parent)
 	end)
  self:Resize()
 	return self
+end
+
+function Browser:CashOffer(key)
+	local offers=self.app.state and self.app.state.boardUpgrades
+	return offers and offers[key]
 end
 
 function Browser:CanEdit()
@@ -606,34 +621,33 @@ function Browser:UpdateAction()
 	end
 	local canEdit=self:CanEdit()
 	enabled(self.best,canEdit)
-	self.best.Text=if self.pending and self.pending.action=="SelectBest" then "Selecting..." else "Select Best"
+	self.best.Text=if self.pending and self.pending.action=="SelectBest" then "Selecting…" else "Select Best"
 	self.hint.Text=if self.notice then self.notice
-		elseif self.pending then (if self.pending.action=="Sell" then "Selling chicken..." elseif self.pending.action=="UpgradeChicken" then "Upgrading chicken..." else "Updating army...")
+		elseif self.pending then (if self.pending.action=="Sell" then "Selling chicken…" elseif self.pending.action=="UpgradeChicken" then "Upgrading chicken…" else "Updating army…")
 		elseif self.placing then "Choose a green-checked chicken to replace, or tap Cancel."
-		elseif not canEdit then "Updating army..."
+		elseif not canEdit then "Updating army…"
 		else ""
 	self.hint.Visible=self.hint.Text~=""
 	self.hint.TextColor3=if self.notice then Color3.fromRGB(255,120,132) else MUTED
 	self.detailNotice.Text=if self.notice then self.notice
-		elseif self.pending then "Updating..."
+		elseif self.pending then "Updating…"
 		elseif pet and self:ColossalSlot(pet.id) then "Only 1 Colossal per army."
-		elseif pet and pet.canUpgrade==false and pet.level<Config.MaxPetLevel then pet.upgradeReason or "Return this chicken home to upgrade."
 		else ""
 	self.detailNotice.TextColor3=self.hint.TextColor3
 	local price=pet and pet.upgradePrice
 	local affordable=type(price)=="number" and state.coins>=price
 	enabled(self.upgrade,canEdit and pet~=nil and pet.canUpgrade==true and affordable)
-	self.upgrade.Text=if self.pending and self.pending.action=="UpgradeChicken" then "Upgrading..."
+	self.upgrade.Text=if self.pending and self.pending.action=="UpgradeChicken" then "Upgrading…"
 		elseif pet and pet.level>=Config.MaxPetLevel then "Max Level"
 		elseif type(price)=="number" then 'Upgrade  <font color="#FFDE29">$'..Theme.Money(price)..'</font>' else "Upgrade"
 	enabled(self.assign,canEdit and pet~=nil)
 	self.assign.Text=if pet and pet.selected then "Unequip"
 		elseif pet and self:ColossalSlot(pet.id) then "Replace Colossal"
-		elseif #(state.selectedIds or {})>=state.capacity then "Replace..." else "Equip"
+		elseif #(state.selectedIds or {})>=state.capacity then "Replace…" else "Equip"
 	-- A home reserve can be sold even while the rest of the squad is away.
 	local canSell=self.pending==nil and self:SaleEligible(pet)
 	enabled(self.sell,canSell)
-	self.sell.Text=if self.pending and self.pending.action=="Sell" then "Selling..." else "Sell"
+	self.sell.Text=if self.pending and self.pending.action=="Sell" then "Selling…" else "Sell"
 	local reviewing=self.saleQuote~=nil
 	self.salePanel.Visible=reviewing
 
@@ -645,13 +659,13 @@ function Browser:UpdateAction()
 	if self.saleQuote then
 		local quote=self.saleQuote
 		self.salePrompt.Text="Sell "..quote.name.." permanently?\nHome egg income -$"..Theme.Money(quote.income).."/s."
-		self.saleConfirm.Text=if self.pending then "Selling..." else "Sell for $"..Theme.Money(quote.refund)
+		self.saleConfirm.Text=if self.pending then "Selling…" else "Sell for $"..Theme.Money(quote.refund)
 	end
 	self.mergeHint.Text=""
 	if pet then
 		self.mergeHint.Text=if self.pending and self.pending.action=="UpgradeChicken" then ""
 			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
-			elseif pet.canUpgrade==false then "Return home to upgrade"
+			elseif pet.canUpgrade==false then pet.upgradeReason or "Return this chicken home to upgrade."
 			elseif not affordable then "Not enough cash"
 			else "Upgrades boost damage and egg production"
 	end
@@ -991,7 +1005,7 @@ function Browser:RenderArmyInfo(pets,ids)
 	self.statTiles.Flock.value.Text=tostring(#(state.pets or {}))
 	self.statTiles.Flock.note.Text="owned chickens"
 	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual lineup is selected." else "Best chickens selected automatically."
-	self.infoFooter.Text="Equipped stats only. Best uses damage, health and splash.\nHome flock: "..homeCount.." chickens / "..Theme.Number(state.homeEggsPerSecond or 0).." eggs/s"
+	self.infoFooter.Text="Equipped stats only. Best uses damage, health and splash.\nHome flock: "..homeCount.." chickens / "..Theme.Count(state.homeEggsPerSecond or 0,"egg/s","eggs/s")
 	if #ids==0 then
 		label(self.infoRoster,"Empty","No chickens selected. Return to your flock and equip a team.",18,
 			UDim2.fromScale(0.01,0.01),UDim2.fromScale(0.98,0.12),MUTED)
@@ -1016,7 +1030,7 @@ function Browser:RenderDetail(pet)
  self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or Art.Glow.Common,not self.hideDetailPreview
  local eggs=pet.eggsPerSecond or Rules.EggRate(pet.species,pet.stars,pet.level)
  self.stats.Text=Theme.Number(stats.damage/stats.interval)..' <font color="#CDD6C7">DPS</font>  •  '
-  ..Theme.Number(eggs)..' <font color="#CDD6C7">eggs/s</font>'
+  ..Theme.Number(eggs)..' <font color="#CDD6C7">'..(if Theme.Number(eggs)=="1" then "egg/s" else "eggs/s")..'</font>'
  if self.hideDetailPreview then return end
  self.detailPreview=Preview.Create(self.detail,pet,self.previewSize,self.previewPosition)
  Theme.Aspect(self.detailPreview,1)
@@ -1055,7 +1069,7 @@ function Browser:Render(force)
 	if not self:CanEdit() or (self.placing and not pets[self.placing]) then self.placing,self.placingExpected=nil,nil end
 	local dimensions=self:Resize()
 	self.app.panelTitle.Text=if self.showInfo then "Army Info"
-		elseif self.showCapacity then "More Army Slots" else "Your Chickens!"
+		elseif self.showCapacity then "More Army Slots" else "Your Chickens"
 	self.title.Text=self.app.panelTitle.Text
 	local mode=if state.selectionMode=="Manual" then "Manual lineup" else "Best selected"
 	self.summary.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ordered,state.collectionLimit or Config.CollectionLimit)

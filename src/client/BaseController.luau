@@ -8,6 +8,7 @@ local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Confi
 local Catalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local Progression = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Progression)
 local CampCommand=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CampCommand)
+local Guide=require(game:GetService("ReplicatedStorage").PetRoll.Shared.TutorialGuide)
 local Theme = require(script.Parent.UITheme)
 local GuideArrow = require(script.Parent.GuideArrow)
 local RollPresentationController = require(script.Parent.RollPresentationController)
@@ -51,20 +52,25 @@ function BaseController:CommandFor(part)
 	if string.sub(id,1,5)=="base:" then return nil end
 	for _, entry in state.targets or {} do
 		if entry.id ~= id then continue end
-		if not canMove and not entry.canUnclaim then return nil end
 		local income = if id == "income:1" then state.incomeOutpost else nil
 		if id == "income:1" and not income then return nil end
+		if not canMove and not entry.canUnclaim then
+			-- Status only: feeds the locked heading, never a prompt or an order.
+			return {model = target, targetId = id, title = entry.name, locked = not entry.current,
+				reason = entry.reason or "Your army is busy", color = C.line}
+		end
 		local _, _, _, selectedCount, deployedCount = self.app:Counts()
 		local armyCount = if state.armyState == "Home" or state.armyState == "Following" then selectedCount else deployedCount
 		local available = if income then income.available else entry.available
 		local allowed = canMove and available and armyCount > 0
 		local reason = if not available then (if income then income.reason else entry.reason) elseif armyCount == 0 then "Buy a chicken at your podium first"
 			else ""
-		local ratio = (state.power or 0) / math.max(entry.power or 1, 1)
-		local strength = if (entry.power or 0) == 0 then "Undefended" elseif ratio >= 1.5 then "You look stronger"
-			elseif ratio >= 0.85 then "A close match" else "A tough fight"
-		local text = if allowed then "Send army · " .. strength .. "\n" .. entry.count .. " defenders · $" .. Theme.Money(entry.killRewardMin or 0) .. (if entry.killRewardMax~=entry.killRewardMin then "–"..Theme.Money(entry.killRewardMax or 0) else "") .. "/kill"
-			else reason
+		-- Shared bands (TutorialGuide.Difficulty): <1.3x Very tough, 1.3-2x Close fight, 2x+ Should win.
+		local strength = Guide.Difficulty(state.power, entry.power)
+		local bounty = "$" .. Theme.Money(entry.killRewardMin or 0) .. (if entry.killRewardMax~=entry.killRewardMin then "–"..Theme.Money(entry.killRewardMax or 0) else "") .. "/kill"
+		local hint = if entry.via then "Fights " .. entry.via .. " first"
+			else strength .. " · " .. (entry.count or 0) .. " defenders · " .. bounty
+		local text = if allowed then "Send army · " .. hint else reason
 		if allowed and entry.via then text = "Via " .. entry.via .. "\nEarlier camps are fought in order" end
         if allowed and entry.ownerId and not entry.via then text=if entry.owned then "Station army" else "Capture territory" end
 		if income then
@@ -76,6 +82,10 @@ function BaseController:CommandFor(part)
 		end
 		return {model = target, action = if allowed then "Attack" else nil, targetId = id,
 			canUnclaim=entry.canUnclaim==true,
+			hint = if allowed and not income then hint else nil,
+			-- Unavailable targets explain why on a heading; the current target and
+			-- held ground stay quiet (no inactive prompt over a fight).
+			locked = not allowed and not entry.current and not entry.owned, reason = reason,
 			title = entry.name, text = text, promptAction = income and text,
 			owned=entry.owned and not entry.via, color = if not allowed then C.line elseif entry.owned and not entry.via then C.green else C.red}
 	end
@@ -270,9 +280,10 @@ function BaseController:Start()
 	prompt.Parent=self.commandAnchor
 	local unclaim=Instance.new("ProximityPrompt")
 	unclaim.Name,unclaim.ActionText="UnclaimBasePrompt","Unclaim Base"
-	unclaim.KeyboardKeyCode,unclaim.GamepadKeyCode=Enum.KeyCode.R,Enum.KeyCode.ButtonY
+	-- X, not R: R opens Upgrades globally. A 1 s hold guards against accidental unclaims.
+	unclaim.KeyboardKeyCode,unclaim.GamepadKeyCode=Enum.KeyCode.X,Enum.KeyCode.ButtonY
 	unclaim.Exclusivity,unclaim.Style=Enum.ProximityPromptExclusivity.OnePerButton,Enum.ProximityPromptStyle.Default
-	unclaim.RequiresLineOfSight,unclaim.HoldDuration,unclaim.Enabled=false,0.15,false
+	unclaim.RequiresLineOfSight,unclaim.HoldDuration,unclaim.Enabled=false,1,false
 	unclaim.UIOffset=Vector2.new(0,68)
 	unclaim.Parent=self.commandAnchor
 	self.unclaimPrompt=unclaim
@@ -320,6 +331,14 @@ function BaseController:CreateCommandHeading()
 	local label=Theme.Display(gui,"Attack","⚔ ATTACK",36,C.red)
 	label.Size,label.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
 	self.commandHeading=gui
+	-- Unavailable targets have no native prompt; this heading carries the reason.
+	local locked=Instance.new("BillboardGui")
+	locked.Name,locked.Size,locked.StudsOffsetWorldSpace="CampLockedHeading",UDim2.fromOffset(320,34),Vector3.new(0,5,0)
+	locked.AlwaysOnTop,locked.LightInfluence,locked.MaxDistance=true,0,150
+	locked.Enabled,locked.Parent=false,Players.LocalPlayer.PlayerGui
+	local reason=Theme.Display(locked,"Reason","",26,C.white)
+	reason.Size,reason.TextScaled,reason.TextXAlignment=UDim2.fromScale(1,1),true,Enum.TextXAlignment.Center
+	self.lockedHeading,self.lockedLabel=locked,reason
 	self.commandPromptShown=false
 	table.insert(self.connections,self.commandPrompt.PromptShown:Connect(function()
 		self.commandPromptShown=true
@@ -455,15 +474,13 @@ function BaseController:UpdateObjective()
   elseif guidance.target then target=plot and plot:FindFirstChild(guidance.target) end
  end
  if not guidance then
- for i=1,#Progression.Camps(1) do if not (state.routeCamps or {})[i] then target=lane and lane:FindFirstChild("Camp"..i);break end end
- if not target and state.ownsKing then
-  local frontier=world:FindFirstChild("Outposts")
-  for i=1,#Progression.Outposts() do if not (state.routeOutposts or {})[i] then target=frontier and frontier:FindFirstChild("Outpost"..i);break end end
- end
- if not target and not state.ownsKing then
-  local arena=world:FindFirstChild("KingArena")
-	 target=arena
- end
+  -- Same source as the Commander's next-goal line, so marker and text agree.
+  -- (Optional outposts are disabled; Progression.Outposts() is empty.)
+  local goal=Guide.NextGoal(state,true)
+  local where=goal and goal.target
+  if where and string.sub(where,1,4)=="Camp" then target=lane and lane:FindFirstChild(where)
+  elseif where=="KingArena" then target=world:FindFirstChild("KingArena")
+  elseif where=="RollStation" then target=plot and plot:FindFirstChild("RollStation") end
  end
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
@@ -475,6 +492,7 @@ function BaseController:UpdateObjective()
   and not (self.app.research and self.app.research.root.Visible) and not (self.app.offlineCash and self.app.offlineCash.gui)
   and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming
   and not (self.commandHeading.Enabled and self.nearestCommand and self.nearestCommand.model==target)
+  and not (self.lockedHeading.Enabled and self.lockedHeading.Adornee==anchor)
  self:UpdateGuideTrail(anchor,self.objective.Enabled and guidance~=nil)
  if self.app.commander then self.app.commander:Update() end
 end
@@ -485,6 +503,7 @@ function BaseController:PollCommand()
 	local body=character and character:FindFirstChild("HumanoidRootPart")
 	local world=workspace:FindFirstChild("PetRollWorld")
 	local nearest,bestPart,bestDistance=nil,nil,math.huge
+	local locked,lockedPart,lockedDistance=nil,nil,math.huge
 	if state and body and world and not self.app.panel.Visible and not self.app.dialogueActive and not UserInputService:GetFocusedTextBox() then
 		local candidates={}
 		local arena=world:FindFirstChild("KingArena")
@@ -500,7 +519,7 @@ function BaseController:PollCommand()
 			local part=CampCommand.Anchor(model)
 			if not part then continue end
 			local distance=(body.Position-(part.Position+Vector3.new(0,2.5,0))).Magnitude
-			if distance>bestDistance or not CampCommand.InRange(model,body.Position) then continue end
+			if (distance>bestDistance and distance>lockedDistance) or not CampCommand.InRange(model,body.Position) then continue end
 			local camera=workspace.CurrentCamera
 			local visible=false
 			if camera then local _,onScreen=camera:WorldToViewportPoint(part.Position+Vector3.new(0,2.5,0));visible=onScreen end
@@ -508,17 +527,30 @@ function BaseController:PollCommand()
 			local command=self:CommandFor(model)
 			-- Status sentences are not actions. In particular, never cover an
 			-- ongoing fight with an "already attacking/stationed" prompt.
-			if command and (command.action or command.canUnclaim) then nearest,bestPart,bestDistance=command,part,distance end
+			if command and (command.action or command.canUnclaim) then
+				if distance<=bestDistance then nearest,bestPart,bestDistance=command,part,distance end
+			elseif command and command.locked and (command.reason or "")~="" and distance<lockedDistance then
+				locked,lockedPart,lockedDistance=command,part,distance
+			end
 		end
 	end
 	self.nearestCommand=nearest
+	-- An unavailable target gets no prompt; its heading says why. A usable
+	-- command nearby always wins.
+	local lockedShown=nearest==nil and locked~=nil
+	if lockedShown then
+		self.lockedHeading.Adornee=lockedPart
+		self.lockedLabel.Text="🔒 "..locked.reason
+	end
+	self.lockedHeading.Enabled=lockedShown
 	if nearest then
 		self.commandAnchor.Parent=bestPart
 		-- Center the compact controls; inactive commands remain hidden in combat.
 		self.commandAnchor.Position=Vector3.new(0,2.5,0)
 		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
 		self.commandPrompt.ActionText="Move Troops Here"
-		self.commandPrompt.ObjectText=""
+		-- Odds and bounty, e.g. "Close fight · 4 defenders · $100–520/kill".
+		self.commandPrompt.ObjectText=nearest.hint or ""
 		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)
 		self.unclaimPrompt.MaxActivationDistance=self.commandPrompt.MaxActivationDistance
 		self.unclaimPrompt.ObjectText=""
@@ -544,6 +576,7 @@ function BaseController:Destroy()
 	if self.commandPrompt then self.commandPrompt:Destroy() end
 	if self.commandAnchor then self.commandAnchor:Destroy() end
 	if self.commandHeading then self.commandHeading:Destroy() end
+	if self.lockedHeading then self.lockedHeading:Destroy() end
  if self.objective then self.objective:Destroy() end
  if self.eggObjective then self.eggObjective:Destroy() end
 end

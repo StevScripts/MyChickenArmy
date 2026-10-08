@@ -418,7 +418,7 @@ function Browser:Render(force)
  self.summary.Visible,self.done.Visible=self.mode=="Result",self.mode=="Result"
  self.processing.Visible=self.mode=="Processing"
  self.message.Text=self.notice or self.costNotice or "";self.message.Visible=self.mode=="Main" and self.message.Text~=""
- self.title.Text=if self.mode=="Picker" then "Choose Chicken" elseif self.mode=="Result" then "Fusion Complete!"
+ self.title.Text=if self.mode=="Picker" then "Choose Chicken" elseif self.mode=="Result" then "Fusion Complete"
   else "Fuse Chickens"
  if self.mode=="Main" then self:RenderSlots()
  elseif self.mode=="Picker" then self:RenderPicker()
@@ -456,7 +456,7 @@ function Browser:ShowResult(chicken,recipe)
  self.summaryPortrait=preview(self.app,self.summaryArt,chicken)
  self.summaryName.Text=Catalog[chicken.species].name
  self.summaryLevel.Text=(if chicken.giantSize then Giant.Label(chicken.giantSize).." · " else "").."Lv. "..chicken.level
- self.summaryEggs.Text=Theme.Number(chicken.eggsPerSecond or recipe.afterEggRate).." eggs/s"
+ self.summaryEggs.Text=Theme.Count(chicken.eggsPerSecond or recipe.afterEggRate,"egg/s","eggs/s")
  self.summaryDps.Text=Theme.Number(recipe.afterDps).." DPS"
  self.mode="Result";self.animating=false;self:Render(true)
  Theme.Motion:Pop(self.summaryArt,1.08);self:Focus(self.done)

@@ -150,7 +150,7 @@ function Browser.new(app,parent)
  Theme.Aspect(root,1.4817016124725342)
  local window=Theme.Container(root,"Window")
  self.window=window
- local header=Theme.Header(window,"Header","Shop!",P.gold)
+ local header=Theme.Header(window,"Header","Shop",P.gold)
  header.PageIcon.Visible,header.PageIcon.Image=true,Theme.Assets.Shop
  self.header=header
  self.closeButton=Theme.HeaderClose(header,function()
@@ -408,7 +408,7 @@ function Browser:CreateCash()
  -- The current Figma banner has no extra copy overlay; keep the cash artwork unmuted.
  self.cashShade.Visible,self.cashShade.ZIndex=false,6
  self.cashTitle=text(vault,"Title","Commander's Vault",28,UDim2.fromScale(0.02,0.05),UDim2.fromScale(0.54,0.16))
- self.cashSubtitle=text(vault,"PackSize","Best Value",22,UDim2.fromScale(0.02,0.49),UDim2.fromScale(0.54,0.2),Color3.fromRGB(176,255,1))
+ self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.02,0.49),UDim2.fromScale(0.54,0.2),Color3.fromRGB(176,255,1))
  self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.fromScale(0.02,0.22),UDim2.fromScale(0.54,0.25),FIGMA.text,false)
  self.cashNote.Font=Theme.Font
  vault:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
@@ -518,7 +518,7 @@ function Browser:RenderDetails()
    and type(guarantee.interval)=="number" and guarantee.interval>0
    and type(guarantee.rollsRemaining)=="number" and PetCatalog[guarantee.nextSpecies]~=nil
   self.detailsTitle.Text="2x Luck · Guaranteed Offers"
-  self.detailsDescription.Text="For this account, 2x Luck gives a known Rare+ offer every 10 manual rolls; regular rolls keep their normal odds. Normal coin price applies; higher-level offers cost more. Offers last until reroll or leaving."
+  self.detailsDescription.Text="For this account, 2x Luck gives a known Rare+ offer every 10 manual rolls; regular rolls keep their normal odds. Normal cash price applies; higher-level offers cost more. Offers last until reroll or leaving."
   if available then
    table.insert(rows,{name="Fixed repeating order",value="Level 1 price"})
    for index,species in guarantee.sequence do

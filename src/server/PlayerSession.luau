@@ -16,6 +16,8 @@ local ResearchService = require(script.Parent.ResearchService)
 local TutorialGuide = require(Shared.TutorialGuide)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
+-- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
+PlayerSession.CarryLimit = 1e12
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)
@@ -50,6 +52,7 @@ function PlayerSession:Reset()
  self.incomeLevel=0
  self.promotion,self.recruitTier=1,1
  self.frontierWins,self.kingCleared={},false
+ self.kingBountyPaid=false -- Full King boss bounty is paid once per player (BattleService).
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
  self.tutorial={starterArmy=true,collectedEggCount=0}
  self.fusionUnlocked=false
@@ -57,6 +60,8 @@ function PlayerSession:Reset()
  self.saveMessage=self.saveMessage or "Loading your flock…"
 	self.pets, self.slots, self.firstWins, self.raidPaid = {}, {}, {}, {}
 	self.discovered = {}
+	-- Raw saved entries for species this build does not know; written back unchanged.
+	self.unrecognizedPets, self.unrecognizedDiscovered = {}, {}
 	-- Nil means automatic; an empty list is an intentionally empty manual army.
 	self.armySelection = nil :: {string}?
 	self.campUnlocked, self.rollReadyAt, self.rollRevealAt = 1, 0, 0
@@ -183,7 +188,7 @@ end
 
 function PlayerSession:MergeAccess(): (boolean, string)
 	if self.fusionUnlocked==true or self.research.completed.FuseMachine==true then return true,"" end
-	return false,"Unlock the Fuse Machine in the skill tree first."
+	return false,"Unlock the Fuse Machine in Upgrades first."
 end
 
 function PlayerSession:FindSlot(id: string): number?
@@ -491,7 +496,10 @@ function PlayerSession:ToData()
 	for _,pet in self.pets do table.insert(pets,{id=pet.id,species=pet.species,level=pet.level,favorite=pet.favorite,collected=pet.collected or 0,
 		giantSize=pet.giantSize,
 		investment=pet.investment or Rules.Investment(pet.species,pet.level)}) end
+	for _,raw in self.unrecognizedPets or {} do table.insert(pets,table.clone(raw)) end
 	table.sort(pets,function(a,b) return a.id<b.id end)
+	local discovered=table.clone(self.discovered)
+	for species in self.unrecognizedDiscovered or {} do discovered[species]=true end
 	local wins={}
 	for index,won in self.firstWins do if won then table.insert(wins,index) end end
 	table.sort(wins)
@@ -508,7 +516,7 @@ function PlayerSession:ToData()
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
-		pets=pets,discovered=table.clone(self.discovered),firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,tutorial=table.clone(self.tutorial),
+		pets=pets,discovered=discovered,firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned}
@@ -516,6 +524,14 @@ end
 
 local function numberIn(value,minimum,maximum,integer)
  return type(value)=="number" and value==value and value>=minimum and value<=maximum and (not integer or value%1==0)
+end
+
+-- Counters and balances that only grew too large are repaired to their bound.
+-- Wrong types, NaN, negatives and fractional counters still reject the profile.
+local function clampHigh(value,minimum,maximum,integer)
+ if numberIn(value,minimum,maximum,integer) then return value end
+ if type(value)=="number" and value==value and value>maximum then return maximum end
+ return nil
 end
 
 local function readWins(entries, limit, sparse)
@@ -578,7 +594,8 @@ function PlayerSession:LoadData(data)
   end
  end
  if not numberIn(data.crateCredits or 0,0,1e9,true) then return false,"Invalid saved crate count." end
- if not numberIn(data.guaranteedLuckRolls or 0,0,1e12,true) then return false,"Invalid saved guaranteed-offer progress." end
+ local guaranteedLuckRolls=clampHigh(data.guaranteedLuckRolls or 0,0,1e12,true)
+ if not guaranteedLuckRolls then return false,"Invalid saved guaranteed-offer progress." end
  local automatic={AutoCollectEggs=true,AutoMerge=true}
  if data.commerceAutomatic~=nil then
   if type(data.commerceAutomatic)~="table" then return false,"Invalid automatic settings." end
@@ -611,9 +628,11 @@ function PlayerSession:LoadData(data)
 	if not research then return false,"Invalid saved research." end
 	local offlineCash=OfflineCash.Read(data.offlineCash)
 	if not offlineCash then return false,"Invalid saved offline cash." end
-	if type(carry)~="table" or not numberIn(carry.count,0,1e12,true)
-		or not numberIn(carry.value,0,1e12,true) or ((carry.count==0)~=(carry.value==0))
-		or not numberIn(data.enemyKills or 0,0,1e12,true) then return false,"Invalid saved eggs or defeat count." end
+	local carryCount=if type(carry)=="table" then clampHigh(carry.count,0,PlayerSession.CarryLimit,true) else nil
+	local carryValue=if type(carry)=="table" then clampHigh(carry.value,0,PlayerSession.CarryLimit,true) else nil
+	local enemyKills=clampHigh(data.enemyKills or 0,0,1e12,true)
+	if not carryCount or not carryValue or ((carryCount==0)~=(carryValue==0))
+		or not enemyKills then return false,"Invalid saved eggs or defeat count." end
 	local promotion=if revision>=5 then data.promotion else 1
 	local recruitTier=if revision>=5 then data.recruitTier else 1
 	if not numberIn(promotion,1,Progression.Count(),true) or not numberIn(recruitTier,1,promotion,true) then
@@ -632,7 +651,8 @@ function PlayerSession:LoadData(data)
 	-- Preserve the collection and balance; only deployed capacity is capped at ten.
 	if revision<3 then capacity=math.min(capacity,Config.MaxSlots);grant=capacity end
 	if not numberIn(grant,0,Config.MaxSlots,true) then return false,"Invalid capacity grant." end
-	if not numberIn(data.coins,0,Currency.MaxCoins) or not numberIn(capacity,Config.StartingSlots,Config.MaxSlots,true)
+	local coins=clampHigh(data.coins,0,Currency.MaxCoins)
+	if not coins or not numberIn(capacity,Config.StartingSlots,Config.MaxSlots,true)
 		or not table.find(Config.SlotLevels,capacity) or grant>capacity or not numberIn(data.luck,0,#Config.LuckPrices,true)
 		or not numberIn(data.incomeLevel,0,#Config.IncomePrices,true) or type(data.pets)~="table" or #data.pets>Config.LegacyCollectionLimit
 		or type(data.tutorial)~="table" then return false,"Invalid saved profile." end
@@ -642,11 +662,20 @@ function PlayerSession:LoadData(data)
 		converted=data.eggBagValue or 0
 	end
 	local pets,count={},0
+	local unrecognizedPets,unknownIds={},{}
 	for index,pet in data.pets do
 		count+=1
 		if not numberIn(index,1,#data.pets,true) or type(pet)~="table" or type(pet.id)~="string" or #pet.id<1 or #pet.id>64
-			or not utf8.len(pet.id) or pets[pet.id] or type(pet.species)~="string" or not table.find(Catalog.Order,pet.species)
-			or type(pet.favorite)~="boolean" or not numberIn(pet.collected or 0,0,1e12) then return false,"Invalid saved chicken." end
+			or not utf8.len(pet.id) or pets[pet.id] or unknownIds[pet.id] or type(pet.species)~="string" or #pet.species>64
+			then return false,"Invalid saved chicken." end
+		if not table.find(Catalog.Order,pet.species) then
+			-- A species removed by a later build: skip it here, keep its raw entry for the next save.
+			if legacy then return false,"Invalid saved chicken." end
+			unknownIds[pet.id]=true;table.insert(unrecognizedPets,table.clone(pet))
+			continue
+		end
+		local collected=clampHigh(pet.collected or 0,0,1e12)
+		if type(pet.favorite)~="boolean" or not collected then return false,"Invalid saved chicken." end
 		if legacy then
 			if not numberIn(pet.cash or 0,0,1e10) or not numberIn(pet.eggCount or 0,0,1e6,true)
 				or not numberIn(pet.eggTimer or 0,0,Config.LegacyEggLaySeconds) then return false,"Invalid saved egg value." end
@@ -656,8 +685,9 @@ function PlayerSession:LoadData(data)
 		if not numberIn(level,1,Config.MaxPetLevel,true) then return false,"Invalid saved chicken level." end
 		if pet.giantSize~=nil and not Giant.IsValidSize(pet.giantSize) then return false,"Invalid saved Giant size." end
 		local investment=if revision<5 then Rules.Investment(pet.species,level,true) else pet.investment
-		if not numberIn(investment,0,1e12) then return false,"Invalid saved chicken investment." end
-		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,giantSize=pet.giantSize,favorite=pet.favorite,collected=math.ceil(pet.collected or 0),investment=math.ceil(investment)}
+		investment=clampHigh(investment,0,1e12)
+		if not investment then return false,"Invalid saved chicken investment." end
+		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,giantSize=pet.giantSize,favorite=pet.favorite,collected=math.ceil(collected),investment=math.ceil(investment)}
 	end
 	if count~=#data.pets then return false,"Invalid saved collection." end
 	-- Optional additive field; existing profiles continue selecting their best chickens.
@@ -671,30 +701,35 @@ function PlayerSession:LoadData(data)
 		for index,id in data.armySelection do
 			entries+=1
 			if entries>capacity+ShopCatalog.ArmyBonus or not numberIn(index,1,#data.armySelection,true)
-				or type(id)~="string" or not pets[id] or seen[id] then
+				or type(id)~="string" or not (pets[id] or unknownIds[id]) or seen[id] then
 				return false,"Invalid saved army selection."
 			end
-			seen[id]=true;armySelection[index]=id
+			seen[id]=true
+			if pets[id] then table.insert(armySelection,id) end
 		end
 		if entries~=#data.armySelection then return false,"Invalid saved army selection." end
 	end
 	-- Additive field in the current envelope: older saves seed their owned flock.
 	-- Discovery survives sale/merge; an unbought roll offer never adds an entry.
-	local discovered = {}
+	local discovered, unrecognizedDiscovered = {}, {}
 	if data.discovered ~= nil then
 		if type(data.discovered) ~= "table" then return false,"Invalid saved chicken index." end
 		for species, collected in data.discovered do
-			if type(species) ~= "string" or not table.find(Catalog.Order, species) or type(collected) ~= "boolean" then
+			if type(species) ~= "string" or #species > 64 or type(collected) ~= "boolean" then
 				return false,"Invalid saved chicken index."
 			end
-			if collected then discovered[species] = true end
+			-- Unknown index entries are preserved for the next save, not shown.
+			if collected then
+				if table.find(Catalog.Order, species) then discovered[species] = true else unrecognizedDiscovered[species] = true end
+			end
 		end
 	end
 	for _, pet in pets do discovered[pet.species] = true end
-	if converted>Currency.MaxCoins-data.coins then return false,"Saved coin balance exceeds the supported limit." end
 	local wins=readProgress(data,revision)
 	if not wins then return false,"Invalid saved camp progress." end
 	if data.fusionUnlocked~=nil and type(data.fusionUnlocked)~="boolean" then return false,"Invalid saved fusion access." end
+	-- Additive field: older saves read as unpaid.
+	if data.kingBountyPaid~=nil and type(data.kingBountyPaid)~="boolean" then return false,"Invalid saved King bounty." end
 	if data.fusionUnlockVersion~=nil and data.fusionUnlockVersion~=2 then return false,"Unsupported saved fusion unlock version." end
 	-- Only pre-research saves inherit the old missing-field/camp entitlement.
 	-- Version 2 prevents future captures from granting access after a rejoin.
@@ -731,27 +766,33 @@ function PlayerSession:LoadData(data)
 	if collectedEggCount==nil then
 		-- Existing saves already passed the one-egg lesson when they collected,
 		-- sold or completed it. Only new/unfinished profiles begin counting at zero.
-		collectedEggCount=if tutorial.collectedEggs or carry.count>0 or tutorial.soldEggs
+		collectedEggCount=if tutorial.collectedEggs or carryCount>0 or tutorial.soldEggs
 			or tutorial.wonCamp or tutorial.guideCompleted then TutorialGuide.EggGoal else 0
-	elseif not numberIn(collectedEggCount,0,1e12,true) then
-		return false,"Invalid saved tutorial egg count."
+	else
+		collectedEggCount=clampHigh(collectedEggCount,0,1e12,true)
+		if not collectedEggCount then return false,"Invalid saved tutorial egg count." end
 	end
 	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
 	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
 	local rollEggCount=data.tutorial.rollEggCount
-	if rollEggCount~=nil and not numberIn(rollEggCount,0,1e12,true) then return false,"Invalid saved tutorial egg count." end
+	if rollEggCount~=nil then
+		rollEggCount=clampHigh(rollEggCount,0,1e12,true)
+		if not rollEggCount then return false,"Invalid saved tutorial egg count." end
+	end
 	tutorial.rollEggCount=if rollEggCount==nil then nil else math.min(rollEggCount,TutorialGuide.RollEggGoal)
-	if not numberIn(data.passiveEarned or 0,0,Currency.MaxCoins) or not numberIn(data.battleEarned or 0,0,Currency.MaxCoins) then return false,"Invalid saved earnings." end
+	local passiveEarned=clampHigh(data.passiveEarned or 0,0,Currency.MaxCoins)
+	local battleEarned=clampHigh(data.battleEarned or 0,0,Currency.MaxCoins)
+	if not passiveEarned or not battleEarned then return false,"Invalid saved earnings." end
 	-- Display retained access as completed research without charging or granting
 	-- unrelated Army research. FuseMachine depends only on the existing Start.
 	if fusionUnlocked then research.completed.FuseMachine=true end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.
 	self.purchaseReceipts,self.crateCredits,self.commerceAutomatic=receipts,data.crateCredits or 0,automatic
-	self.guaranteedLuckRolls=(data.guaranteedLuckRolls or 0)%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
+	self.guaranteedLuckRolls=guaranteedLuckRolls%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
 	self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,grant
 	self.eggSpeedLevel,self.plotSizeLevel,self.rollSlotsUnlocked=eggSpeedLevel,plotSizeLevel,rollSlotsUnlocked
-	self.eggCarry={count=carry.count,value=carry.value};self.enemyKills=data.enemyKills or 0
+	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills
 	self.eggProcessor=processor
 	self.offlineCash,self.offlineCashReceipt=offlineCash,nil
 	self.research=research;self.researchEffects=ResearchRules.Effects(research)
@@ -760,13 +801,18 @@ function PlayerSession:LoadData(data)
 	-- Preserve saved ranks and validation; always use the best earned odds now.
 	self.promotion,self.recruitTier=promotion,promotion
  self.frontierWins,self.kingCleared=frontier,king
+ self.kingBountyPaid=data.kingBountyPaid==true
 	-- Preserve old saves: round any historical cents up once, never reset progress.
-	self.coins,self.capacity,self.luck,self.incomeLevel=math.ceil(data.coins+converted),capacity,data.luck,data.incomeLevel
+	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial
 	self.fusionUnlocked=fusionUnlocked
 	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered
-	self.passiveEarned,self.battleEarned=math.ceil(data.passiveEarned or 0),math.ceil(data.battleEarned or 0)
+	self.unrecognizedPets,self.unrecognizedDiscovered=unrecognizedPets,unrecognizedDiscovered
+	if #unrecognizedPets>0 or next(unrecognizedDiscovered) then
+		warn("[PetRoll] Profile "..tostring(self.userId).." keeps "..#unrecognizedPets.." unrecognized saved chickens for a later build.")
+	end
+	self.passiveEarned,self.battleEarned=math.ceil(passiveEarned),math.ceil(battleEarned)
 	self.armyState,self.outgoing,self.incoming,self.defending="Home",nil,nil,nil
 	self.returnAt,self.stationedAt=0,nil
 	self.campUnlocked=1

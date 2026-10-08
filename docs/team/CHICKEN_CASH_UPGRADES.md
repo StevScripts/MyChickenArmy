@@ -18,11 +18,15 @@ input consumption rule, machine fee or saved size change is introduced.
 - Buy one level at a time, up to the existing level 10 maximum, with no camp,
   rank or King prerequisite. The owned chicken must be home and not an active
   defender. Equipped home chickens and favorites can be upgraded.
-- Initial tuning: `ceil(RecruitPrice(species, currentLevel) * 0.75)`, controlled
-  by `Config.Economy.ChickenUpgradeRecruitFraction` and
-  `Rules.ChickenUpgradePrice`. Level-1 Common costs $1,800; Crystal costs $25,200.
-  Quotes double each level with the existing recruit-price curve. This is an
-  initial implementation balance, not a measured 8–9-hour progression result.
+- October 8 price: `ceil(RecruitPrice(species, currentLevel) * 0.75 * 2.5^(currentLevel-1))`,
+  i.e. `Config.Economy.ChickenUpgradeRecruitFraction` times
+  `Rules.ChickenUpgradeGrowth` (2.5) in `Rules.ChickenUpgradePrice`. Each quote is
+  5x the previous one. Common (Chicken): $1,800 / $9,000 / $45,000 / $225,000 ...
+  9→10 $703M. Galaxy Overlord: $216,000 for 1→2, $84.4B for 9→10 (full 1→10
+  investment about $105B, under the 1e12 saved-investment bound). Level 1→2 is
+  unchanged; the September 29 flat quote (doubling per level) paid back in a
+  constant 450 seconds at base egg value, about 10 seconds with upgrades, and ran
+  away. Server quote and Army display both read `Rules.ChickenUpgradePrice`.
 - Preserve the existing level rewards: egg production doubles and combat gains
   another 25% of base per level. Cash leveling does not grant or reroll Giant size.
 - `UpgradeChicken` sends only the owned ID, expected current level and expected
@@ -57,3 +61,27 @@ No Roblox publication, asset upload, Git commit or push was performed.
 Cash leveling and the separately added 100-chicken yard affect earning pace.
 The earlier eight-podium timing model predates both and must be rerun before
 claiming that the combined economy still reaches eight slots in 8–9 hours.
+
+## October 8 progression model
+
+A greedy free-player model ($TMPDIR economy script built from Config, UpgradeCatalog,
+ChickenLuck bands, RecruitPrice/RecruitLevel and ResearchCatalog; 90 active minutes
+on day 1, 60 per later day, 2% offline for 8 hours) gave:
+
+| Milestone | Flat quote (before) | 2.5x growth (after) |
+| --- | --- | --- |
+| 1 hour | $607/s, three Chickens at level 6 | $350/s, 13 recruits at level 2 |
+| Day 1 end | $20.8K/s, three level-10s | $14K/s, 50 chickens, best level 3 |
+| Day 2 end | $712M/s, everything maxed | $59M/s, best level 7 |
+| Day 3 end | $712M/s | $302M/s, no level 10 yet |
+| Day 5 / 7 | $712M/s | $697M/s (44 level-10s) / $1.0B/s |
+| All six cash tracks maxed | day 2, about 2.1 active hours | day 3, about 2.5–3.2 active hours |
+
+The level price alone cannot hold cash-track maxing to day 4–7: recruits keep a
+constant 600-second base payback that Egg Speed/Value divide by up to about 47x,
+and the 16.6B of cash-track prices are small next to that income. Even with no
+leveling at all the model maxes them on day 6. A model run with Egg Speed/Value
+continuation growth raised from 1.35 to 1.6 (`Config.Economy.IncomePriceGrowth`,
+applied October 8 with the owner's approval) plus this level price maxed them on day 5–6. Treat these as model
+results, not measured play.
+

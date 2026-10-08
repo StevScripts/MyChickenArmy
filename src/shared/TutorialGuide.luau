@@ -84,6 +84,73 @@ local function recruit(state, growing)
 	return step(id, if growing then "Buy a chicken ("..count.."/4)" else "Buy the chicken", "RollStation")
 end
 
+-- Army power vs a garrison's power (Rules.PetPower sums). Defenders respawn every
+-- 10-15s and capture needs every guard down at once, so an even match usually
+-- loses: below 1.3x reads Very tough, 1.3-2x a Close fight, 2x+ Should win.
+Guide.CloseFightRatio = 1.3
+Guide.ShouldWinRatio = 2
+function Guide.Difficulty(power, enemyPower)
+	if (enemyPower or 0) <= 0 then return "Undefended" end
+	local ratio = (power or 0) / enemyPower
+	if ratio >= Guide.ShouldWinRatio then return "Should win" end
+	if ratio >= Guide.CloseFightRatio then return "Close fight" end
+	return "Very tough"
+end
+
+local function target(state, id)
+	for _, entry in state.targets or {} do if entry.id == id then return entry end end
+	return nil
+end
+
+-- After the opening guide: one compact, snapshot-derived next goal. Never a
+-- prerequisite; cash upgrades and every target stay available as before.
+-- ignoreSkip: the world NEXT marker predates the guide and stays for skipped players.
+function Guide.NextGoal(state, ignoreSkip)
+	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
+	local t = state.tutorial or {}
+	if t.guideSkipped and not ignoreSkip then return nil end -- Respect a hidden guide; Settings can resume it.
+	local function goal(key, text, where)
+		local result = step("Goal:" .. key, text, where)
+		result.goal = true
+		return result
+	end
+	if state.incoming or state.outgoing then return nil end -- The battle UI owns this moment.
+	if state.armyState == "Returning" or state.armyState == "Recovering" then
+		return goal("Return", "Collect eggs while your army returns", "Yard")
+	end
+	if #(state.pets or {}) == 0 then return goal("Recruit", "Roll a chicken at your podium", "RollStation") end
+	if (state.selectedCount or #(state.selectedIds or {})) == 0 then return goal("Select", "My Army → Select Best", "Army") end
+	local function attack(id, name, where)
+		local entry = target(state, id)
+		if not entry then return nil end
+		if Guide.Difficulty(state.power, entry.power) == "Very tough" then
+			return goal("Grow:" .. id, "Roll or upgrade chickens for " .. name, "RollStation")
+		end
+		return goal("Attack:" .. id, if id == "king:1" then "Challenge the Chicken King" else "Attack " .. name, where)
+	end
+	local camps = state.routeCamps or {}
+	if not state.kingCleared then
+		for index = 1, 10 do
+			local entry = target(state, "camp:" .. index)
+			if not entry then break end
+			if not camps[index] and not entry.owned then return attack(entry.id, entry.name, "Camp" .. index) end
+		end
+		if not state.ownsKing then return attack("king:1", "the King", "KingArena") end
+	end
+	local operations = state.operations or {}
+	local tier = operations.tier or 0
+	if tier <= 0 then return goal("Operations", "Research Operations in Upgrades", "Upgrades") end
+	for level = 1, math.min(tier, 3) do
+		for index = 1, 3 do
+			if not (operations.wins or {})[level .. ":" .. index] then
+				return goal("Operation", "Win an Operation: Upgrades → Operations", "Upgrades")
+			end
+		end
+	end
+	if tier < 3 then return goal("NextOperations", "Research the next Operations tier", "Upgrades") end
+	return nil
+end
+
 function Guide.Resolve(state)
 	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
 	local t, f = state.tutorial or {}, Guide.Facts(state)
@@ -121,7 +188,7 @@ function Guide.Resolve(state)
 	if not f.Expand then
 		local offer = state.nextSlot
 		if offer and (state.coins or 0) < offer.price then return earn(state, offer.price) end
-		return step("Expand", "Upgrades → Army Size 1", "Upgrades")
+		return step("Expand", "Buy Army Size → " .. ((state.nextSlot and state.nextSlot.capacity) or 4) .. " in Upgrades", "Upgrades")
 	end
 	if not f.Select then
 		return step("Select", "My Army → Select Best", "Army")

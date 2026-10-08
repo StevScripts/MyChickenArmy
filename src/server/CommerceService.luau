@@ -1,6 +1,8 @@
 --!strict
--- Roblox owns pass persistence. This service holds only verified session benefits;
--- client refresh requests and purchase-finished booleans never grant ownership.
+-- Roblox owns pass persistence. This service holds only verified session benefits.
+-- Client refresh requests never grant. The server-side PromptGamePassPurchaseFinished
+-- (fired by Roblox, not clients) with wasPurchased=true grants for this session at
+-- once, because UserOwnsGamePassAsync can return a cached false for a while.
 local MarketplaceService = game:GetService("MarketplaceService")
 local PolicyService = game:GetService("PolicyService")
 local RunService = game:GetService("RunService")
@@ -27,8 +29,8 @@ function CommerceService.new(dependencies)
 		delay = dependencies.delay or task.delay,
 		records = {}, destroyed = false,
 	}, CommerceService)
-	self.connection = self.marketplace.PromptGamePassPurchaseFinished:Connect(function(player, passId, _wasPurchased)
-		self:_PurchaseFinished(player, passId)
+	self.connection = self.marketplace.PromptGamePassPurchaseFinished:Connect(function(player, passId, wasPurchased)
+		self:_PurchaseFinished(player, passId, wasPurchased)
 	end)
 	return self
 end
@@ -54,13 +56,19 @@ function CommerceService:_ScheduleRefresh(record)
 	end)
 end
 
-function CommerceService:_PurchaseFinished(player, passId)
+function CommerceService:_PurchaseFinished(player, passId, wasPurchased)
 	if not configured(passId) then return end
 	local record = self.records[player.UserId]
 	if not record or record.player ~= player or not self:_Active(record) then return end
 	for _, key in self.catalog.Order do
 		if self.catalog.Definitions[key].passId == passId then
-			-- Also safe on cancellation: only a fresh ownership check can enable it.
+			if wasPurchased == true then
+				-- Kept for the session even if the follow-up check still reads a cached false.
+				record.purchased[key] = true
+				record.owned[key] = true
+				self:_ApplyBenefits(record)
+			end
+			-- Cancellation grants nothing; a fresh ownership check still runs.
 			record.pending = true
 			self:_ScheduleRefresh(record)
 			return
@@ -81,7 +89,7 @@ function CommerceService:Load(player, session)
 	for _, key in self.catalog.Order do owned[key] = false end
 	local record = {player = player, session = session, owned = owned,
 		ready = false, busy = false, nextAt = -math.huge, pending = false, scheduled = false,
-		retryPending = false, retriesLeft = 0}
+		retryPending = false, retriesLeft = 0, purchased = {}}
 	self.records[player.UserId] = record
 	session.entitlements = owned
 	player:SetAttribute("PetRollCommanderBanner", false)
@@ -162,7 +170,7 @@ function CommerceService:_Refresh(player, session, freshCycle)
 			-- A player can leave, reload or lose the profile lease during this yield.
 			if not self:_Active(record) then record.busy = false; return false, "Shop unavailable." end
 			if ok and type(owns) == "boolean" then
-				record.owned[key] = owns
+				record.owned[key] = owns or record.purchased[key] == true
 			else
 				-- Preserve a previously verified benefit during a transient API failure.
 				-- First-time failures remain false because Load initialized every key.
@@ -197,6 +205,9 @@ function CommerceService:Snapshot(session)
 		policyReady=active and record.policyReady==true or false,
 		paidRandomAllowed=active and record.paidRandomAllowed==true or false,
 		restrictedTreatment=self.catalog.RestrictedTreatment,luckGuarantee=session:LuckGuarantee(),
+		-- Credits bought before a policy change stay saved; nothing is converted without a disclosed equivalent.
+		crateNotice=if active and record.policyReady==true and record.paidRandomAllowed~=true and session.crateCredits>0
+			then "Your Galaxy Crates are saved. Paid random items are unavailable for this account, so they stay unopened." else nil,
 		luckOdds={withoutPass=Rules.Odds(session.luck,session.recruitTier,1,session.researchEffects.rollingLuck),withPass=Rules.Odds(session.luck,session.recruitTier,2,session.researchEffects.rollingLuck)}}
 end
 

@@ -30,4 +30,4 @@ if game:GetService("RunService"):IsStudio() and workspace:GetAttribute("PetRollQ
  end
 end
 if acceptance then task.spawn(function() require(game.ServerStorage.PetRollTests.LiveAcceptance).Run(server) end) end
-game:BindToClose(function() server:Destroy() end)
+-- GameServer:Start binds the single shutdown path (save, rankings, then Destroy).

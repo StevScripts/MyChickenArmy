@@ -18,7 +18,14 @@ function CrateService:Open(session)
  local definition=self.catalog.Crate
  if not definition.enabled then return false,"Crate rewards are being prepared." end
  if not session.loaded or session.closing or session.saveLost then return false,"Wait for your flock to load." end
- if session.paidRandomAllowed~=true then return false,"This random reward is unavailable for your account." end
+ if session.paidRandomAllowed~=true then
+  -- Restricted accounts keep purchased credits intact; no undisclosed substitute is granted.
+  if session.paidRandomRestricted==true and session.crateCredits>0 then
+   return false,"Your Galaxy Crates are saved. Paid random items are unavailable for this account, so they stay unopened."
+  end
+  if session.paidRandomRestricted==true then return false,"This random reward is unavailable for your account." end
+  return false,"Checking crate availability. Try again in a moment."
+ end
  if session.crateCredits<1 then return false,"You have no crates to open." end
  if session:Count()>=session:CollectionLimit() then return false,"Make room in your flock first. Your crate is safe." end
  local total=0

@@ -13,12 +13,15 @@ function DebugService.new(sessions,battles,commerce)
 	return setmetatable({sessions=sessions,battles=battles,commerce=commerce},DebugService)
 end
 
-function DebugService.Allowed(player): boolean
-	return RunService:IsStudio() or table.find(Config.DebugUserIds,player.UserId)~=nil
+-- Every command below writes session/profile/battle state, so all of them are
+-- Studio-only. Config.DebugUserIds grants nothing in live servers: a live
+-- account must never mint cash, grant crate species or move global rankings.
+function DebugService.Allowed(_player): boolean
+	return RunService:IsStudio()
 end
 
 function DebugService:Run(player,session,command,argument,now)
-	if not DebugService.Allowed(player) then return false,"Debug access denied." end
+	if not RunService:IsStudio() or not DebugService.Allowed(player) then return false,"Debug access denied." end
 	if type(command)~="string" then return false,"Invalid debug action." end
 	if command=="TestPurchases" then
 		if not self.commerce then return false,"Purchase tests unavailable." end

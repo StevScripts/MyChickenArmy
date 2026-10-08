@@ -7,6 +7,29 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Next goal after the guide: October 8
+
+The strip no longer disappears for good. "Cluck Camp captured!" still shows for
+eight seconds and sends the Finish signal; after that, and for players who
+finished the guide earlier, the same one-line strip shows `Guide.NextGoal(state)`,
+derived only from the client snapshot:
+
+- army returning: "Collect eggs while your army returns"; no chickens: "Roll a
+  chicken at your podium"; none selected: "My Army → Select Best";
+- next unowned main-route camp, then the King: "Attack Fort Roost" or "Challenge
+  the Chicken King", or "Roll or upgrade chickens for Fort Roost" when the odds
+  band is Very tough (below 1.3x power, see `Guide.Difficulty`);
+- after a saved King clear: "Research Operations in Upgrades", then "Win an
+  Operation: Upgrades → Operations", then "Research the next Operations tier".
+
+It hides during battles, menus, dialogue and toasts, and when the roll or E
+prompt it refers to is on screen. No spotlight, dim or celebration pop. Reduced
+motion skips the typewriter and entrance as before. Saved `guideSkipped` players
+see no strip (Settings Resume is unchanged), but the world NEXT marker now uses
+the same goal for everyone so marker and text agree. Analytics version is
+unchanged; conquest funnel events are documented in `CONQUEST_REFERENCE.md`.
+Local source only; not playtested.
+
 ## Post-roll egg run, plain buy step and completion pop — October 7
 
 The user asked for an egg-collecting step after the first roll, a buy step that does

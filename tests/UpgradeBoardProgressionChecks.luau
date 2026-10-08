@@ -387,7 +387,7 @@ return function(sources, onlyNames)
 			local price = math.ceil(2419200 * 1.25 ^ (level - 4) / 1000) * 1000
 			assert(Config.LuckPrices[level] == price and price > Config.LuckPrices[level - 1])
 		end
-		assert(Config.IncomePrices[5] == 4899000 and Config.IncomePrices[25] == 1980488000)
+		assert(Config.IncomePrices[5] == 5807000 and Config.IncomePrices[25] == 70191201000)
 		assert(Config.LuckPrices[5] == 3024000 and Config.LuckPrices[20] == 85948000)
 	end)
 
