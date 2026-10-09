@@ -7,6 +7,18 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Quieter next goals: October 9 (user decision)
+
+The full Commander card (portrait, typewriter, entrance motion, celebration) now
+belongs only to the guide, ending with "Cluck Camp captured!". Next goals use a
+quiet line in the same top-center slot: about half width, no portrait, no
+typewriter or entrance motion, text prefixed "Next:". Goals end at the first
+King clear (the Operations goals and every post-King line are gone). Settings
+shows "Next goal hints ON/OFF" once the guide is complete or a camp is won; it
+sends `HideGoals`/`ShowGoals`, saved as `tutorial.goalsHidden`, and hides both
+the strip and the world NEXT marker. Guide steps, pointers and analytics are
+unchanged.
+
 ## Next goal after the guide: October 8
 
 The strip no longer disappears for good. "Cluck Camp captured!" still shows for

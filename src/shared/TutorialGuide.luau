@@ -92,6 +92,9 @@ function Guide.NextGoal(state, ignoreSkip)
 	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
 	local t = state.tutorial or {}
 	if t.guideSkipped and not ignoreSkip then return nil end -- Respect a hidden guide; Settings can resume it.
+	-- October 9: goals are opt-out (Settings) and end with the King; after that
+	-- the player sets their own goals.
+	if t.goalsHidden or state.kingCleared then return nil end
 	local function goal(key, text, where)
 		local result = step("Goal:" .. key, text, where)
 		result.goal = true
@@ -120,17 +123,6 @@ function Guide.NextGoal(state, ignoreSkip)
 		end
 		if not state.ownsKing then return attack("king:1", "the King", "KingArena") end
 	end
-	local operations = state.operations or {}
-	local tier = operations.tier or 0
-	if tier <= 0 then return goal("Operations", "Research Operations in Upgrades", "Upgrades") end
-	for level = 1, math.min(tier, 3) do
-		for index = 1, 3 do
-			if not (operations.wins or {})[level .. ":" .. index] then
-				return goal("Operation", "Win an Operation: Upgrades → Operations", "Upgrades")
-			end
-		end
-	end
-	if tier < 3 then return goal("NextOperations", "Research the next Operations tier", "Upgrades") end
 	return nil
 end
 

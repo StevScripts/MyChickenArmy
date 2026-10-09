@@ -26,9 +26,10 @@ function Commander.new(app)
 	local card = Theme.Container(root, "Card")
 	card.AnchorPoint, card.Position, card.Size = Vector2.new(.5,0), CARD_POSITION, UDim2.fromScale(.86,.115)
 	Theme.Aspect(card, 7.4)
-	self.card = card
+	self.card, self.cardAspect = card, card:FindFirstChildOfClass("UIAspectRatioConstraint")
 	local body = Theme.Frame(card,"Instruction",UDim2.fromScale(.9,.78),Theme.OverlayColors.Bottom)
 	body.Position, body.BackgroundTransparency = UDim2.fromScale(.1,.13), .28
+	self.body = body
 	Theme.Stroke(body,Theme.Arcade.border,Theme.Border.Control)
 	self.instruction=Theme.Display(card,"Objective","",27)
 	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.18,.19),UDim2.fromScale(.795,.66)
@@ -74,6 +75,25 @@ function Commander:FitInstruction()
 	for _,limit in self.instructionLimits do limit.MaxTextSize=best end
 end
 
+-- October 9: post-guide goals use a quiet line: half width, no portrait,
+-- no typewriter or entrance motion. The full card belongs to the guide itself.
+local FULL = {card=UDim2.fromScale(.86,.115), aspect=7.4, bodyPosition=UDim2.fromScale(.1,.13), bodySize=UDim2.fromScale(.9,.78),
+	bodyTransparency=.28, textPosition=UDim2.fromScale(.18,.19), textSize=UDim2.fromScale(.795,.66)}
+local QUIET = {card=UDim2.fromScale(.46,.07), aspect=9.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
+	bodyTransparency=.45, textPosition=UDim2.fromScale(.04,.18), textSize=UDim2.fromScale(.92,.64)}
+
+function Commander:SetQuiet(quiet)
+	if self.quiet == quiet then return end
+	self.quiet = quiet
+	local layout = if quiet then QUIET else FULL
+	self.card.Size = layout.card
+	if self.cardAspect then self.cardAspect.AspectRatio = layout.aspect end
+	self.body.Position, self.body.Size, self.body.BackgroundTransparency = layout.bodyPosition, layout.bodySize, layout.bodyTransparency
+	self.instruction.Position, self.instruction.Size = layout.textPosition, layout.textSize
+	self.portrait.Visible = not quiet
+	self:FitInstruction()
+end
+
 function Commander:CancelTypewriter()
 	if not self.typeTweens then return end
 	for _,tween in self.typeTweens do tween:Cancel() end
@@ -107,13 +127,13 @@ function Commander:Present(visible, changed)
 		Theme.Motion:Cancel(self.card,"guide-enter")
 		Theme.Motion:Cancel(self.portrait,"guide-salute");self.portrait.Rotation=0
 		self.card.Position=CARD_POSITION
-	elseif (not self.wasVisible or changed) and not self.app.reducedMotion then
+	elseif (not self.wasVisible or changed) and not self.app.reducedMotion and not self.quiet then
 		Theme.Motion:Cancel(self.card,"guide-enter")
 		self.card.Position=CARD_POSITION+UDim2.fromScale(0,.008)
 		Theme.Motion:Tween(self.card,"guide-enter",{Position=CARD_POSITION},ENTER_SECONDS)
 		self.portrait.Rotation=-6
 		Theme.Motion:Tween(self.portrait,"guide-salute",{Rotation=0},.24)
-	elseif self.app.reducedMotion then
+	elseif self.app.reducedMotion or self.quiet then
 		Theme.Motion:Cancel(self.card,"guide-enter");self.card.Position=CARD_POSITION
 		Theme.Motion:Cancel(self.portrait,"guide-salute");self.portrait.Rotation=0
 	end
@@ -254,7 +274,9 @@ function Commander:Update()
 	-- Let the game's native action prompt take over when the player reaches it.
 	local visible=not app.panel.Visible and not inTree and not blocked and not atTarget
 		and not (app.toastFrame and app.toastFrame.Visible)
-	self:SetInstruction(current.text,visible and self.pendingType)
+	local quiet=current.goal==true
+	self:SetQuiet(quiet)
+	self:SetInstruction(if quiet then "Next: "..current.text else current.text,visible and self.pendingType and not quiet)
 	if visible then self.pendingType=false end
 	self:Present(visible,changed)
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end

@@ -10,7 +10,7 @@ local checkpoints = {30, 60, 180, 300, 600}
 local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, Expand=true,
 	UpgradeChicken=true, SetArmy=true, SelectBest=true, Attack=true, CallArmy=true}
 local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
-	IntroStarted=true, IntroFinished=true, IntroSkipped=true,
+	IntroStarted=true, IntroFinished=true, IntroSkipped=true, HideGoals=true, ShowGoals=true,
 	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true}
 local inputs = {Keyboard=true, Touch=true, Gamepad=true}
 -- Eggs wait for the first-visit film: a long allowance while the client loads,
@@ -199,6 +199,10 @@ function Tutorial:Signal(session, signal, input)
 		if not r.introAt or r.introEnded then return end
 		r.introEnded=true
 		self:Emit(r,"FTUEIntroSeconds",now-r.introAt,"Entry",if signal=="IntroSkipped" then "Skipped" else "Finished")
+	elseif signal=="HideGoals" or signal=="ShowGoals" then
+		-- Settings choice for the post-guide next-goal line; saved, presentation only.
+		local hidden=signal=="HideGoals"
+		if (session.tutorial.goalsHidden==true)~=hidden then session.tutorial.goalsHidden=hidden;session:Touch() end
 	elseif signal=="Resume" then
 		if session.tutorial.guideCompleted then return end
 		session.tutorial.guideSkipped=false;session:Touch()

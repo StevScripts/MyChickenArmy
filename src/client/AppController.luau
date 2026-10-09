@@ -578,6 +578,13 @@ function AppController:RenderSettings()
 	toggle("ToggleMusic", "Music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	toggle("ToggleEffects", "Sound effects", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
 	toggle("ReducedMotion", "Reduced motion", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	-- After the guide, a quiet next-goal line points to the next camp until the King.
+	if tutorial.guideCompleted or tutorial.wonCamp then
+		local hidden=tutorial.goalsHidden==true
+		toggle("ToggleGoals", "Next goal hints", not hidden, function()
+			self:Request("TutorialSignal",{signal=if hidden then "ShowGoals" else "HideGoals"})
+		end)
+	end
 	if self.intro and self.intro:CanReplay() then
 		self:Button("ReplayIntro", "Replay intro", function() self:ClosePanel();self.intro:Replay() end, Theme.ActionColors.navigation)
 	end
@@ -679,7 +686,7 @@ function AppController:RenderPanel(force)
 	end
 	local p=state.progression
 	if p then table.insert(keys,p.rank..":"..p.recruitTier..":"..tostring(p.goal)..":"..tostring(p.requirement)..":"..tostring(state.kingCleared)) end
-	if self.page == "Settings" then table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage));table.insert(keys, tostring(UserInputService.PreferredInput)) end
+	if self.page == "Settings" then table.insert(keys, tostring((state.tutorial or {}).goalsHidden));table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage));table.insert(keys, tostring(UserInputService.PreferredInput)) end
 	if self.page == "Test" then
 		table.insert(keys, tostring(state.shop and state.shop.testAllowed))
 		table.insert(keys, tostring(state.shop and state.shop.testPreset))
