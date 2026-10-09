@@ -30,27 +30,20 @@ the same goal for everyone so marker and text agree. Analytics version is
 unchanged; conquest funnel events are documented in `CONQUEST_REFERENCE.md`.
 Local source only; not playtested.
 
-## Post-roll egg run, plain buy step and completion pop — October 7
+## Plain buy step and completion pop — October 7 (egg run removed October 9)
 
-The user asked for an egg-collecting step after the first roll, a buy step that does
-not quote the price, and a small effect whenever a step completes.
-
-- **Harvest** sits between Roll and Recruit for starter-army profiles: "Collect 10
-  eggs (n/10)". `EggService` counts committed egg units into
-  `tutorial.rollEggCount` (cap `Guide.RollEggGoal` = 10) only between the first roll
-  and the first purchase; `PlayerSession` validates and keeps it. Saves without the
-  field count as done once they have bought or completed the guide. The rolled offer
-  waits on the podium meanwhile; an unaffordable offer still shows the existing
-  "Collect $X more in eggs" step first.
-- The recruit step now reads **"Buy the chicken"** (the podium label and prompt
-  already show the price).
+- The recruit step reads **"Buy the chicken"** (the podium label and prompt already
+  show the price).
 - **Completion pop:** whenever a `Guide.Milestones` fact flips to true while the
   guide is active, `Commander:Celebrate` plays on the card: a green check pops
   beside the Commander, sparks burst, the bar flashes green, the card bumps, and the
   `SkillTreeResearchCompleted` chime plays. If the card is hidden at that moment
   (menu open, standing at a prompt) it plays when the card returns. Reduced motion
   keeps the check and flash without the scale and sparks.
-- `Guide.Version` is now `cluck-6-harvest`; `Harvest` joins the milestone list.
+- A "Collect 10 eggs" step between Roll and Recruit was added on October 7 and
+  removed on October 9 at the user's request ("a bit extra"). Its counter, saved
+  `rollEggCount` field and `Harvest` milestone are gone; saves that stored the field
+  drop it on load. `Guide.Version` is back to `cluck-5-forty-eggs`.
 
 ## Collect 40 eggs and larger one-line instructions — latest October 6 correction
 

@@ -7,6 +7,7 @@ local Debris = game:GetService("Debris")
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog = require(Shared.PetCatalog)
 local Theme = require(script.Parent.UITheme)
+local CombatEffects = require(script.Parent.CombatEffects)
 local C = Theme.Colors
 local HIT_COLOR = Color3.fromRGB(255, 65, 65)
 local HIT_FADE = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -157,6 +158,13 @@ function BattleController:ReleaseView(view)
 	for gui, enabled in view.tags do if gui.Parent then gui.Enabled = enabled end end
 end
 
+-- Where hit effects burst: a little above the rig's pivot, scaled to its height.
+function BattleController:Chest(view)
+	local model=view.model
+	local height=model:GetAttribute("VisualHeight")
+	return model:GetPivot().Position+Vector3.new(0,(if type(height)=="number" then height else 2.5)*0.15,0)
+end
+
 function BattleController:Defeat(view)
 	if not self.app.reducedMotion then self:Ring(view.position, C.paper, false) end
 	view.defeatedAt=os.clock();view.spawnedAt=nil
@@ -261,9 +269,7 @@ function BattleController:KillFeedback(battle)
   end
   Debris:AddItem(anchor,0.9)
   task.delay(0.9,function() self.coinEffects=math.max(0,self.coinEffects-1) end)
-  if os.clock()-(self.lastCoinSound or -10)>0.12 then
-   self.lastCoinSound=os.clock();self.app.audio:Play("Collect",1)
-  end
+  -- No coin sound: the knockout poof already marks the kill.
  end
  self.rewardSerials[battle.id]=newest
 end
@@ -322,18 +328,27 @@ function BattleController:Receive(snapshots)
 			view.position = if view.model.PrimaryPart then view.model.PrimaryPart.Position else Vector3.new(unit.x, 1.2, unit.z)
 			if unit.attackSerial ~= view.attack then
 				view.model:SetAttribute("LocalAttackAt", os.clock())
+				if self:IsNearby(view.position) then self.combat:Swing(view.position) end
 			end
 			if (unit.impactSerial or 0)~=view.impact then
 				if Catalog[unit.species].splash then
 					local dragon = unit.species == "Dragon" or Catalog[unit.species].baseSpecies == "Dragon"
 					self:Ring(Vector3.new(unit.impactX or unit.x,1.2,unit.impactZ or unit.z), if dragon then Color3.fromRGB(255, 151, 62) else C.blue, true)
 				end
-				if self:IsNearby(view.position) then self.app.audio:Play("Impact", 0.9 + math.random() * 0.2) end
 			end
 			-- A victim receipt represents committed damage, not an attack windup or
 			-- a health-stat change. Seed it on binding; don't replay a prior life.
-			if (unit.damageSerial or 0)>view.damage and (unit.spawnSerial or 0)==view.spawnSerial then self:Flash(view) end
-			if unit.hp <= 0 and (view.hp > 0 or not view.unit) then self:Defeat(view)
+			if (unit.damageSerial or 0)>view.damage and (unit.spawnSerial or 0)==view.spawnSerial then
+				self:Flash(view)
+				if self:IsNearby(view.position) then
+					local damage=math.max(0,(view.hp or unit.hp)-unit.hp)
+					self.combat:Hit(self:Chest(view),damage,damage>=(unit.maxHp or 40)*0.25)
+				end
+			end
+			if unit.hp <= 0 and (view.hp > 0 or not view.unit) then
+				-- Only a knockout seen happening gets a poof, not one already down on binding.
+				if view.unit and self:IsNearby(view.position) then self.combat:Knockout(self:Chest(view)) end
+				self:Defeat(view)
 			elseif unit.hp > 0 and (view.hp <= 0 or (unit.spawnSerial or 0)>(view.spawnSerial or 0)) then
 				self:Respawn(view,unit,os.clock())
 			end
@@ -377,6 +392,7 @@ function BattleController:Start(remote)
 	if old then old:Destroy() end
 	self.folder = Instance.new("Folder")
 	self.folder.Name, self.folder.Parent = "PetRollBattleVisuals", workspace
+	self.combat = CombatEffects.new(self.app, self.folder)
 	table.insert(self.connections, remote.OnClientEvent:Connect(function(snapshots) self:Receive(snapshots) end))
 	table.insert(self.connections, RunService.RenderStepped:Connect(function()
 		local now = os.clock()

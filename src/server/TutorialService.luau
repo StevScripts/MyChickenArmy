@@ -13,12 +13,24 @@ local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
 	IntroStarted=true, IntroFinished=true, IntroSkipped=true,
 	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true}
 local inputs = {Keyboard=true, Touch=true, Gamepad=true}
+-- Eggs wait for the first-visit film: a long allowance while the client loads,
+-- then a film-length one once it reports the film started.
+local INTRO_LOAD_HOLD, INTRO_FILM_HOLD = 180, 90
 local function durationBucket(seconds)
 	if seconds<10 then return "Under10" elseif seconds<30 then return "10To29"
 	elseif seconds<60 then return "30To59" elseif seconds<120 then return "60To119" else return "120Plus" end
 end
 -- Bounded, local Studio evidence. No player IDs are sent as analytics categories.
 Tutorial.Diagnostics = {}
+
+-- Mirrors the client's intro eligibility. A mismatch is harmless: a client that
+-- does not play the film reports IntroSkipped, which releases the hold.
+function Tutorial.IntroPending(session)
+	local t = session.tutorial
+	return t.starterArmy == true and not t.introSeen and not t.guideCompleted and not t.guideSkipped
+		and not t.rolled and not t.bought and not t.soldEggs and Guide.CollectedEggCount(t) == 0
+		and session:Count() >= 3
+end
 
 function Tutorial.new(sink)
 	return setmetatable({records={}, sink=sink}, Tutorial)
@@ -118,6 +130,7 @@ function Tutorial:Observe(session, state)
 	if not r.initialized then
 		r.initialized = true
 		r.tutorial=session.tutorial
+		if Tutorial.IntroPending(session) then session.introHoldUntil = now + INTRO_LOAD_HOLD end
 		r.eligible = not session.tutorial.guideCompleted and not facts.Win
 		r.cohort = if session.tutorial.guideStarted then "ReturningGuide" else "FirstGuide"
 		r.seen = table.clone(facts)
@@ -188,9 +201,11 @@ function Tutorial:Signal(session, signal, input)
 		-- Presentation only: mark it watched before it ends so a crash cannot loop it.
 		if session.tutorial.introSeen then return end
 		session.tutorial.introSeen=true;session:Touch()
+		if session.introHoldUntil then session.introHoldUntil = now + INTRO_FILM_HOLD end
 		r.introAt=now
 		self:Emit(r,"FTUEIntro",1,"Entry","Started")
 	elseif signal=="IntroFinished" or signal=="IntroSkipped" then
+		session.introHoldUntil = nil -- eggs start now, even if the film never ran
 		if not r.introAt or r.introEnded then return end
 		r.introEnded=true
 		self:Emit(r,"FTUEIntroSeconds",now-r.introAt,"Entry",if signal=="IntroSkipped" then "Skipped" else "Finished")

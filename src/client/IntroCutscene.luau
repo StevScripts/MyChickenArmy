@@ -174,6 +174,11 @@ function Intro:Begin(): boolean
 	local state = self.app.state
 	if not self.eligible or self.app.reducedMotion or not state or (state.tutorial or {}).introSeen then
 		self.eligible = false
+		-- The server holds a new profile's eggs for the film; tell it there is none.
+		local t = state and state.tutorial or {}
+		if t.starterArmy and not t.introSeen then
+			self.app:Request("TutorialSignal", {signal = "IntroSkipped"})
+		end
 		return false
 	end
 	self:Play("intro")
@@ -253,6 +258,7 @@ function Intro:Hide(model: Instance?, watch: boolean?)
 			item.MaxDistance = 0.001
 		end
 	end
+	hide(model)
 	for _, item in model:GetDescendants() do hide(item) end
 	self.hidden[model] = saved
 	if watch then table.insert(self.watches, model.DescendantAdded:Connect(hide)) end
@@ -499,8 +505,12 @@ end
 -- Everything we film around: our clones, the hidden live models, live eggs.
 function Intro:Ignored(): {Instance}
 	local ignored: {Instance} = {}
-	for _, item in {self.folder, Players.LocalPlayer.Character, workspace:FindFirstChild("PetRollEggVisuals")} do
+	for _, item in {Players.LocalPlayer.Character, workspace:FindFirstChild("PetRollEggVisuals")} do
 		if item then table.insert(ignored, item) end
+	end
+	-- Actors and effects never block a shot, but the staged arena's walls do.
+	for _, item in (if self.folder then self.folder:GetChildren() else {}) do
+		if item.Name ~= "Arena" then table.insert(ignored, item) end
 	end
 	for model in self.hidden do table.insert(ignored, model) end
 	return ignored
@@ -519,6 +529,41 @@ function Intro:Obstacle(from: Vector3, to: Vector3): RaycastResult?
 		table.insert(ignored, hit.Instance)
 	end
 	return nil
+end
+
+-- Puts back something hidden mid-film (Unlock restores everything else).
+function Intro:Show(model: Instance)
+	local saved = self.hidden[model]
+	if not saved then return end
+	for item, value in saved do
+		if item.Parent then
+			if item:IsA("LayerCollector") then (item :: any).MaxDistance = value else (item :: any).LocalTransparencyModifier = value end
+		end
+	end
+	self.hidden[model] = nil
+end
+
+-- Hides, for one shot, whatever still stands between these lens positions and the
+-- targets: the smallest building piece (under 40 studs) that owns each blocking part.
+function Intro:ClearView(lenses: {Vector3}, targets: {Vector3}): {Instance}
+	local cleared = {}
+	for _, lens in lenses do
+		for _, target in targets do
+			for _ = 1, 8 do
+				local hit = self:Obstacle(lens, target)
+				if not hit then break end
+				local piece: Instance = hit.Instance
+				while piece.Parent and piece.Parent:IsA("Model") and piece.Parent ~= workspace do
+					local size = (piece.Parent :: Model):GetExtentsSize()
+					if size.Magnitude > 40 then break end
+					piece = piece.Parent
+				end
+				self:Hide(piece)
+				table.insert(cleared, piece)
+			end
+		end
+	end
+	return cleared
 end
 
 function Intro:Inside(position: Vector3): boolean
@@ -1132,7 +1177,7 @@ function Intro:Finish(skipped: boolean)
 		task.wait(0.27)
 	end
 	self:Unlock()
-	if self.signalled and self.mode == "intro" then
+	if self.mode == "intro" then
 		self.app:Request("TutorialSignal", {signal = if skipped then "IntroSkipped" else "IntroFinished"})
 	end
 	if layer then
@@ -1293,6 +1338,12 @@ function Intro:Run()
 	local rushEnd = self:Pick(kingViews, kingTargets)
 	local kingPush = self:Pick({rushEnd + flat(K - rushEnd).Unit * 4, rushEnd}, kingTargets)
 	local rushPeak = (eye + rushEnd) / 2 + UP * 28
+	-- This shot only: nothing may stand between the rush's final approach and the King.
+	local kingLenses = {kingPush, kingPush - UP * 0.5}
+	for _, u in {0.6, 0.75, 0.9, 1} do
+		table.insert(kingLenses, eye:Lerp(rushPeak, u):Lerp(rushPeak:Lerp(rushEnd, u), u))
+	end
+	local kingClear = self:ClearView(kingLenses, {crownAt(), K + UP * 6, K + UP * 2.5, K + UP * 6 + right * 3, K + UP * 6 - right * 3})
 	local rush = Instance.new("NumberValue")
 	rush.Parent = self.folder
 	rush.Changed:Connect(function(u)
@@ -1313,6 +1364,7 @@ function Intro:Run()
 	self:Sound("KingCrownGlint")
 	self:Dolly(kingPush - UP * 0.5, crownAt() - UP * 3, 1.2, SINE, 54)
 	self:Wait(13.05)
+	for _, piece in kingClear do self:Show(piece) end
 	self:Cut(heroSpot + inward * 5.2 + right * 0.6 + UP * 1.9, heroSpot + UP * 1.7, 55)
 	self:Dolly(heroSpot + inward * 4.2 + right * 0.4 + UP * 1.8, heroSpot + UP * 1.7, 1.8, SINE, 50)
 	self:Wait(13.25)

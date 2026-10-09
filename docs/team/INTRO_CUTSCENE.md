@@ -25,6 +25,15 @@ are granted, and Skip is available the whole time.
   resolves. `TutorialService` sets `tutorial.introSeen` (whitelisted in
   `PlayerSession` load) before the film ends, so a crash cannot loop it.
   `IntroFinished` / `IntroSkipped` log `FTUEIntroSeconds`.
+- **Eggs wait for the film (October 9):** a brand-new profile's yard lays nothing
+  until the film ends or is skipped. `TutorialService` sets a transient
+  `session.introHoldUntil` when it first observes an intro-eligible profile
+  (180s allowance for loading, reset to 90s on `IntroStarted`).
+  `EggService:Produce` returns while `PlayerSession:EggsHeld` is true, so no eggs
+  accrue and none arrive in a burst afterward. `IntroFinished` / `IntroSkipped`
+  release it, and the client also sends `IntroSkipped` when it will not play the
+  film (reduced motion, Studio skip). Nothing is saved; established and returning
+  saves are never held.
 - **Actors are local clones** in `Workspace.PetRollIntro`. The real starters, guards,
   King, character, chicken tags and live egg sprites are hidden locally and restored.
   `DuckAnimator` animates clones through `Moving`/`PreviewSpeed` and the
@@ -39,6 +48,10 @@ are granted, and Skip is available the whole time.
   film (`Intro:HideOthers`), including anything that spawns mid-film. Hidden GUIs
   collapse `MaxDistance` rather than toggling `Enabled`, so server changes during
   the film still land.
+  Lens tests (`Intro:Ignored`) skip actors and effects in `PetRollIntro` but count the
+  staged `Arena` clone's walls. The POV rush to the King also runs `Intro:ClearView`:
+  any building piece (under 40 studs) still between its final approach and the King
+  is hidden for that shot only and restored (`Intro:Show`) at the cut back to the hero.
 - **Geometry** comes from the player's plot, lane and the arena at runtime, so all
   six plots get the same film. Cameras are pulled in front of props, slide out of
   scenery, and the POV, King, standoff and lever shots pick the first candidate view

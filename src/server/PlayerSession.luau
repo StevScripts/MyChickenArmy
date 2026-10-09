@@ -86,6 +86,16 @@ function PlayerSession:Touch()
 	self.revision += 1
 end
 
+-- A brand-new profile lays no eggs until its first-visit film ends or is skipped.
+-- Transient (never saved); the deadline is a fallback so a client that never
+-- reports back cannot leave the yard silent.
+function PlayerSession:EggsHeld(now: number): boolean
+	local deadline = self.introHoldUntil
+	if deadline == nil then return false end
+	if now >= deadline then self.introHoldUntil = nil; return false end
+	return true
+end
+
 function PlayerSession:AddPet(species: string, stars: number)
 	local pet = {id=HttpService:GenerateGUID(false), species=species, stars=1, level=1, favorite=false, collected=0,investment=Catalog[species].price}
 	self.pets[pet.id] = pet
@@ -774,12 +784,6 @@ function PlayerSession:LoadData(data)
 	end
 	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
 	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
-	local rollEggCount=data.tutorial.rollEggCount
-	if rollEggCount~=nil then
-		rollEggCount=clampHigh(rollEggCount,0,1e12,true)
-		if not rollEggCount then return false,"Invalid saved tutorial egg count." end
-	end
-	tutorial.rollEggCount=if rollEggCount==nil then nil else math.min(rollEggCount,TutorialGuide.RollEggGoal)
 	local passiveEarned=clampHigh(data.passiveEarned or 0,0,Currency.MaxCoins)
 	local battleEarned=clampHigh(data.battleEarned or 0,0,Currency.MaxCoins)
 	if not passiveEarned or not battleEarned then return false,"Invalid saved earnings." end
