@@ -11,7 +11,7 @@ Edit mode so it persists. No script edit is needed.
 | VFX / SkillTree | Hover, Purchase, Error, NodeAdded, NodePop, ResearchStarted, ResearchCompleted, ResearchSlotAdded, Open, Close |
 | Collection | Collect, EggPickup, EggDeposit, Money |
 | Rolling | RollLever, RollTick, RollLand, RollReveal, RollRare |
-| Combat | Impact, Victory |
+| Combat | Impact, Victory, plus fight feedback `CombatHit`, `CombatSwing`, `CombatKnockout`, `CombatKnockoutCluck` (recipe: `assets/audio/add_combat_sounds.luau`; played by `client/CombatEffects.luau`, positioned at the fight). Kills no longer play `Collect`. |
 | MyChickenArmyAudio root | CallArmyWhistle |
 | Intro / 1_Island … 8_CampPayoff | First-visit cutscene: one Sound per moment, grouped by scene (AudioCue `Intro_<Name>`). Volume and PlaybackSpeed are read from each Sound. Recipe: `assets/audio/add_intro_sounds.luau`. |
 | VFX | Named chicken effect loops (Galaxy, Rainbow, Glitch, Magma, etc.) and GlitchBurst |

@@ -145,7 +145,7 @@ function Effects:Knockout(position: Vector3)
 	self:Smoke(position)
 	self:Spark(position, true)
 	self:Sound("CombatKnockout", position, 1.1, 0.1)
-	self:Sound("CombatKnockoutBoing", position, 1.3, 0.1)
+	self:Sound("CombatKnockoutCluck", position, 1 + math.random() * 0.15, 0.1)
 end
 
 return Effects

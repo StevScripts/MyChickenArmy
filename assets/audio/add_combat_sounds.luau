@@ -9,8 +9,11 @@ local cues={
  {"CombatHit",9120729337,0.35,1,"A chicken takes a hit (the cutscene's guard hit). Pitch varies 0.95-1.2 in code."},
  {"CombatSwing",9120716440,0.18,1,"A chicken attacks (quick peck/whoosh). Pitch varies 1.25-1.45 in code."},
  {"CombatKnockout",9116405618,0.35,1,"Smoke poof when a chicken is knocked out."},
- {"CombatKnockoutBoing",12222124,0.3,1,"Soft boing layered on the knockout poof."},
+ {"CombatKnockoutCluck",77584650945481,0.4,1,"Chicken cluck layered on the knockout poof (the same clip as UI.Purchase). Pitch varies 1-1.15 in code."},
 }
+-- The October 9 boing was replaced by the cluck at the user's request.
+local legacy=combat:FindFirstChild("CombatKnockoutBoing")
+if legacy then legacy:Destroy() end
 local result={}
 for _,cue in cues do
  local name,id,volume,speed,usage=cue[1],cue[2],cue[3],cue[4],cue[5]

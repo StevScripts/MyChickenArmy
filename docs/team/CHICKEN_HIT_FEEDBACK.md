@@ -28,3 +28,31 @@ These are focused Studio checks, not physical-device performance measurements.
 
 Native APIs: [Highlight](https://create.roblox.com/docs/reference/engine/classes/Highlight)
 and [Tween completion/cancellation](https://create.roblox.com/docs/reference/engine/classes/TweenBase/Completed).
+
+## Feathers, sparks, damage numbers and fight sounds — October 9, 2026
+
+The user found fights flat ("the fighting animations play and the health bars show
+but that's it"), approved a live Studio preview, then asked for it built in. They also
+asked to drop the coin sound when a chicken knocks out an enemy ("doesn't fit in").
+
+`client/CombatEffects.luau` (presentation only, driven by `BattleController` from the
+server's battle snapshots, within the existing 120-stud nearby check):
+
+- **Attack** (`attackSerial` changes): `CombatSwing`, pitch 1.25-1.45.
+- **Hit** (`damageSerial` rises in the same spawn): 5 voxel feathers (8 on a big hit)
+  burst and tumble down, a white-and-gold comic spark, a floating `-N` in the UI kit's
+  lettering (white, dark outline; gold and larger when one hit takes at least 25% of
+  `maxHp`), and `CombatHit`, pitch 0.95-1.2. The existing red highlight still plays.
+- **Knockout** (HP reaches 0 while watched, not on binding an already-down unit):
+  14 feathers, a smoke poof (`smoke_main.dds`), a big spark, `CombatKnockout` and
+  `CombatKnockoutCluck` (the game's existing "chicken cluck" clip, 77584650945481,
+  pitch 1-1.15; it replaced a boing at the user's request).
+- The per-hit `Impact` sound was replaced by `CombatHit`; the kill-receipt `Collect`
+  sound was removed (the `+$` number stays).
+- Budgets: at most 70 feathers and 14 numbers at once; extra effects are skipped.
+  Sounds sit at the fight (rolloff 8-42 studs) with per-cue cooldowns and 4 voices.
+  Reduced Motion keeps sounds and static numbers but no feathers, sparks or smoke.
+
+Validation: a real Cluck Camp fight in Studio produced hits, numbers, knockout poofs
+and the existing rings with no errors; all four sounds loaded. The Combat Sounds were
+added in Studio Edit (save the place).
