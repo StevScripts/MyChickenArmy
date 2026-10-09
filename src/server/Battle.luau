@@ -68,7 +68,11 @@ function Battle:IsConquest(): boolean
 end
 
 function Battle:CaptureDuration(): number
- return if self:IsConquest() then Config.ConquestSeconds else Config.CaptureSeconds
+ if not self:IsConquest() then return Config.CaptureSeconds end
+ -- October 9: route camps fill at 12/20/25s so the tutorial's first win lands
+ -- fast; the King and anything unlisted keep the 25s reference pace.
+ local index=self.campIndex or tonumber(string.match(self.target or "","^camp:(%d+)$"))
+ return (index and Config.ConquestSecondsByCamp[index]) or Config.ConquestSeconds
 end
 
 function Battle:CaptureRemaining()

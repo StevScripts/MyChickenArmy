@@ -788,7 +788,7 @@ function PlayerSession:LoadData(data)
 	local battleEarned=clampHigh(data.battleEarned or 0,0,Currency.MaxCoins)
 	if not passiveEarned or not battleEarned then return false,"Invalid saved earnings." end
 	-- Display retained access as completed research without charging or granting
-	-- unrelated Army research. FuseMachine depends only on the existing Start.
+	-- unrelated research. Earned access keeps FuseMachine even without its R1 chain.
 	if fusionUnlocked then research.completed.FuseMachine=true end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.

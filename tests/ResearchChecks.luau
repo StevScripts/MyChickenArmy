@@ -81,7 +81,10 @@ function Checks.Run()
 	end)
 	check("Fuse Machine completes through research; a new camp win cannot grant it",function()
 		local s=setup();local node=Catalog.Nodes.FuseMachine;local coins=s.coins
-		assert(node.prerequisite=="Start" and node.price==5000 and node.duration==120)
+		assert(node.prerequisite=="R1" and node.price==5000 and node.duration==120)
+		-- Fuse Machine sits behind Lucky Feathers I and Roll Speed.
+		assert(not start(s,"FuseMachine",50))
+		grant(s,"R1")
 		s.firstWins[1]=true
 		assert(not s:MergeAccess())
 		local rejoined=setup();assert(rejoined:LoadData(s:ToData()));assert(not rejoined:MergeAccess())

@@ -5,7 +5,7 @@ Catalog.Order = {"Start", "L1", "L2", "L3", "L4", "L5", "L6", "R1", "R2", "R3", 
 Catalog.Nodes = {
 	["Start"] = {id="Start", name="Start", branch="Start", price=0, duration=0, description="Improve your rolls, egg farm or fighting flock.", q=0, r=0, icon="index"},
 	["CallArmy"] = {id="CallArmy", name="Call Army", branch="Army", price=1000, duration=60, description="Unlock Call Army: recall your selected chickens to follow you.", q=-1, r=2, icon="callArmy", prerequisite="Start", effect="callArmy", value=1},
-	["FuseMachine"] = {id="FuseMachine", name="Fuse Machine", branch="Army", price=5000, duration=120, description="Unlock fusion: combine 3 matching chickens into a Giant one level higher.", q=-3, r=4, icon="fuseMachine", prerequisite="Start", effect="fusion", value=1},
+	["FuseMachine"] = {id="FuseMachine", name="Fuse Machine", branch="Army", price=5000, duration=120, description="Unlock fusion: combine 3 matching chickens into a Giant one level higher.", q=3, r=-4, icon="fuseMachine", prerequisite="R1", effect="fusion", value=1},
 	["A1"] = {id="A1", name="Peck Drills", branch="Army", price=500, duration=30, description="+5% army damage", q=-1, r=0, icon="army", prerequisite="Start", effect="damage", value=0.05},
 	["A2"] = {id="A2", name="Officer Training", branch="Army", price=5000, duration=120, description="+10% army damage", q=-2, r=0, icon="army", prerequisite="A1", effect="damage", value=0.1},
 	["A3"] = {id="A3", name="Elite Flock", branch="Army", price=250000, duration=1800, description="+25% army damage", q=-3, r=0, icon="army", prerequisite="A2", effect="damage", value=0.25},

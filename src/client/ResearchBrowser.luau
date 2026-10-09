@@ -243,12 +243,19 @@ function Browser.new(app,parent)
 		end
 		self.nodes[id]={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,title=title,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,bar=bar,progress=progress,timer=timer,level=level,change=change,
 			badge=badge,badgeStroke=badgeStroke,badgeText=badgeText,clock=clock}
-		-- A tap or click only selects and opens the detail card; spending happens
-		-- on its explicit Buy/Start button (touch, mouse and gamepad alike).
+		-- A tap or click buys (or starts) the node directly; the card is information
+		-- only. Right-click or a long press pins the card for Cancel and Pin goal.
 		button.Activated:Connect(function()
 			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
-			self.app.audio:Play("Click")
-			self:Select(id,true)
+			if not (self.persistent and self.selected==id) then self:Select(id,false) end
+			self:Buy(id)
+			if UserInputService.PreferredInput==Enum.PreferredInput.Touch and not self.persistent then
+				-- Touch has no hover to clear the info card, so it fades on its own.
+				local stamp=os.clock();self.touchTip=stamp
+				task.delay(2.5,function()
+					if self.touchTip==stamp and self.selected==id and not self.persistent then self:DismissTooltip() end
+				end)
+			end
 		end)
 		button.MouseEnter:Connect(function()
 			if self.pinchScale or (self.drag and self.drag.moved) then return end
@@ -270,6 +277,15 @@ function Browser.new(app,parent)
 		button.InputBegan:Connect(function(input)
 			if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
 				local view=self.nodes[id];view.pressInput=input;view.pressed=true;self:RestNode(view)
+				if input.UserInputType==Enum.UserInputType.Touch then
+					-- Long press: pin the card instead of buying on release.
+					task.delay(0.45,function()
+						if view.pressInput==input and view.pressed and not (self.drag and self.drag.moved) and self.root.Visible then
+							self.suppressUntil=os.clock()+0.6
+							self:Select(id,true)
+						end
+					end)
+				end
 			end
 		end)
 	end
@@ -911,28 +927,15 @@ end
 -- Returns the pinned card's primary label/style and the goal toggle label.
 function Browser:TooltipActions(id,cashNode,offer,state,job,completed)
 	local data=self.data
-	if cashNode then
-		if cashNode.tier~=completed+1 then return nil,nil,nil end
-		if self.cashPending[cashNode.upgradeKey] then return "Buying…","off",nil end
-		if state=="Loading" then return "Loading…","off",nil end
-		if state=="Unavailable" then return "Unavailable","off",nil end
-		return "Buy",if state=="Available" then "buy" else "off",nil
-	end
-	local node=Catalog.Nodes[id]
-	if state=="Completed" and not job then
-		if node.effect=="formations" then return "Open Formations","open",nil end
-		if node.effect=="operations" then return "Open Operations","open",nil end
-		return nil,nil,nil
-	end
+	-- Buying, starting and opening happen by tapping the hex itself, so the card
+	-- only carries research management: Cancel and Pin goal.
+	if cashNode then return nil,nil,nil end
+	if state=="Completed" and not job then return nil,nil,nil end
 	local pin=if data.pinned==id then "Clear goal" else "Pin goal"
 	if job then
 		return (if self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"),"cancel",pin
 	end
-	if state=="Locked" then return "Locked","off",pin end
-	local pending=self.pending and self.pending.nodeId==id
-	if pending then return "Starting…","off",pin end
-	local ready=state=="Available" and #data.jobs<data.effects.slots
-	return "Start research",if ready then "buy" else "off",pin
+	return nil,nil,pin
 end
 
 -- Gamepad: A on a hex moves focus into its card; B returns to the hex.
@@ -953,6 +956,17 @@ function Browser:ReleaseActionFocus()
 		local view=self.selected and self.nodes[self.selected]
 		GuiService.SelectedObject=if view and view.button.Visible then view.button else nil
 	end
+end
+
+-- Spends on the node under the pointer: the same path the old card button used.
+function Browser:Buy(id)
+	if self.selected~=id then return end
+	local view=self.nodes[id]
+	if view then
+		view.pulsing=false
+		self:SizeNode(view,MOTION.PressScale,MOTION.PressSeconds,0,function() self:RestNode(view) end)
+	end
+	self:Activate()
 end
 
 function Browser:Primary()
@@ -1191,9 +1205,11 @@ function Browser:Open()
 			if focused==self.primaryAction.button then self:Primary()
 			elseif focused==self.secondaryAction.button then self.app.audio:Play("Click");self:Secondary()
 			elseif self.selected then
-				-- First press opens the card's buttons; only a second, explicit press spends.
-				if not self.persistent then self:Select(self.selected,true) end
-				self:FocusActions(true)
+				-- A buys like a tap; on running research it moves into the card to cancel.
+				if not CashNodes.Nodes[self.selected] and Rules.Job(self.data,self.selected) then
+					if not self.persistent then self:Select(self.selected,true) end
+					self:FocusActions(true)
+				else self:Buy(self.selected) end
 			end
 		elseif inCard and (key==Enum.KeyCode.DPadLeft or key==Enum.KeyCode.DPadRight or key==Enum.KeyCode.Left or key==Enum.KeyCode.Right) then
 			local other=if focused==self.primaryAction.button then self.secondaryAction.button else self.primaryAction.button

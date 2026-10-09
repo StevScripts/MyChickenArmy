@@ -9,6 +9,8 @@ local AppController=require(script.Parent:WaitForChild("PetRoll"):WaitForChild("
 local app=AppController.new()
 app:Start()
 loading:Bind(app)
+-- Device/performance/error reports for server analytics; never blocks the game.
+task.spawn(function() require(script.Parent.PetRoll:WaitForChild("AnalyticsClient")).Start() end)
 if game:GetService("RunService"):IsStudio() and game:GetService("ReplicatedStorage").PetRoll:GetAttribute("AcceptanceTest") then
 	task.spawn(function() require(script.Parent.PetRoll.AcceptanceClient).Run(app) end)
 end

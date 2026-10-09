@@ -82,3 +82,6 @@ grant fusion, even after rejoin. Cash upgrades remain independent. See
 One writer per file. For parallel tasks, assign explicit files and contracts. Workers do not control canonical Studio, Blender, Git history or further agents; the root integrates. Keep changes scoped and preserve user work.
 
 Before editing or syncing, inspect Git and compare any unsynced Studio changes. Record local commits, Roblox saves/publishes and player-data changes separately. A Rojo build verifies packaging, not Luau runtime correctness. Do not claim checks that were not run.
+
+## Analytics (October 9) — observation only
+Funnels, economy, retention and health go to Roblox AnalyticsService (live only) and an agent ledger in DataStores (`PetRollAnalytics_v1`, Studio uses `_Studio`). Names live in `src/server/AnalyticsSchema.luau`; append only, never rename/reorder, bump `Schema.Version`. For any stats question read `docs/analytics/AGENT_GUIDE.md` and run `AnalyticsReport` from Studio Edit. Analytics must never change gameplay.

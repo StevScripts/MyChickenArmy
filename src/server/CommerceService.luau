@@ -67,6 +67,8 @@ function CommerceService:_PurchaseFinished(player, passId, wasPurchased)
 				record.purchased[key] = true
 				record.owned[key] = true
 				self:_ApplyBenefits(record)
+				-- Observation hook (Analytics); never grants or blocks anything.
+				if self.onPassPurchased then pcall(self.onPassPurchased, player, key) end
 			end
 			-- Cancellation grants nothing; a fresh ownership check still runs.
 			record.pending = true

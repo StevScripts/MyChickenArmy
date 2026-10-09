@@ -19,6 +19,7 @@ local CommerceService=require(script.Parent.CommerceService)
 local ProductService=require(script.Parent.ProductService)
 local CrateService=require(script.Parent.CrateService)
 local LoopTelemetry=require(script.Parent.LoopTelemetry)
+local Analytics=require(script.Parent.Analytics)
 local TutorialService=require(script.Parent.TutorialService)
 local UpgradeService=require(script.Parent.UpgradeService)
 local ResearchService=require(script.Parent.ResearchService)
@@ -41,13 +42,21 @@ function GameServer.new()
 	self.battles=BattleService.new(self.sessions,self.world)
 	self.operations=OperationService.new(self.battles,self.world,self.sessions)
 	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
-	self.telemetry=LoopTelemetry.new()
+	-- Local loop observations also feed the agent analytics ledger.
+	self.telemetry=LoopTelemetry.new(function(event) if self.analytics then self.analytics:LoopEvent(event) end end)
 	self.tutorial=TutorialService.new()
 	self.battles.telemetry=self.telemetry
 	self.debug=DebugService.new(self.sessions,self.battles,self.commerce)
  self.data=DataService.new()
  self.products=ProductService.new(self.data,self.sessions)
  self.crates=CrateService.new()
+	-- Observation only (docs/analytics/AGENT_GUIDE.md). Hooks never change gameplay.
+	self.analytics=Analytics.new({tutorial=self.tutorial,battles=self.battles})
+	TutorialService.Transport=function(player,name,value,fields) self.analytics:Custom(player,name,value,fields) end
+	TutorialService.onProgress=function(userId,name,value,step,detail) self.analytics:Progress(userId,name,value,step,detail) end
+	TutorialService.onIncome=function(session,source,amount,balance) self.analytics:Income(session,source,amount,balance) end
+	self.products.onGranted=function(session,productId,product) self.analytics:ProductGranted(session,productId,product) end
+	self.commerce.onPassPurchased=function(player,key) self.analytics:PassPurchased(player,key) end
 	return self
 end
 
@@ -80,6 +89,7 @@ function GameServer:Send(player,result)
 	state.marchingTo=if battle and battle.phase=="Travel" then battle.name else nil
 	state.routeGoal=if battle and battle.routeGoal then battle.routeGoalName else nil
 	self.tutorial:Observe(session,state)
+	self.analytics:Observe(session,state)
 	-- The client "Studio test tools" button follows the same Studio-only gate.
 	state.debugAllowed=RunService:IsStudio() and DebugService.Allowed(player)
 	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation}
@@ -107,6 +117,8 @@ function GameServer:Handle(player,request)
 	rate.tokens-=1
 	local session=self.sessions[player.UserId]
 	if not session then return end
+	-- Device/perf/error stats from AnalyticsClient; accepted while loading too.
+	if request.action=="ClientReport" then self.analytics:ClientReport(session,request.report);return end
 	if not session.loaded or session.closing or session.saveLost then self:Send(player,{id=request.id,ok=false,message=session.saveMessage or "Loading your flock…"});return end
  local action=request.action
 	local ok,message,petId,recruit=false,"Unknown action.",nil,nil
@@ -121,6 +133,7 @@ function GameServer:Handle(player,request)
 		self:Send(player,{id=request.id,action="Sync",ok=true});return
 	elseif action=="TutorialSignal" then
 		self.tutorial:Signal(session,request.signal,request.input)
+		self.analytics:Signal(session,request.signal)
 		self:Send(player);return
 	elseif action=="StartResearch" then
 		ok,message=ResearchService.Start(session,request.nodeId,request.expectedRevision,request.expectedPrice,request.expectedDuration,os.time())
@@ -229,6 +242,7 @@ function GameServer:Handle(player,request)
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
 	end
 	self.tutorial:Action(session,action,ok,balanceBefore,request,selectionBefore)
+	self.analytics:Action(session,action,ok,message,balanceBefore,request,{petId=petId,crate=crate,purchase=purchase})
 	if ok then session.lastResult=message;session:Touch() end
 	if ok and (action=="Buy" or action=="Expand") then
 		self.telemetry:Record("ArmyGrowth",{userId=session.userId,action=action,
@@ -273,6 +287,7 @@ function GameServer:AddPlayer(player)
 	local session=PlayerSession.new(player.UserId,player.DisplayName,index)
 	self.sessions[player.UserId]=session
 	self.tutorial:Begin(player,session)
+	self.analytics:Join(player,session)
 	local function spawn(character)
 		local root=character:WaitForChild("HumanoidRootPart",10)
 		if root and self.sessions[player.UserId]==session then
@@ -294,12 +309,14 @@ function GameServer:AddPlayer(player)
   end
   if not ok then
    warn("[PetRoll] Profile load failed for "..player.UserId..": "..tostring(why))
+   self.analytics:LoadFailed(session,why)
    self:Send(player)
    -- Failed reads never create a writable replacement profile.
    task.delay(3,function() if player.Parent==Players then player:Kick(session.saveMessage) end end)
    return
   end
  end
+ self.analytics:Loaded(session)
  self.world:UpdateSession(session);self:Send(player)
  task.spawn(function()
   if self.sessions[player.UserId]~=session or player.Parent~=Players then return end
@@ -313,6 +330,7 @@ function GameServer:RemovePlayer(player)
  local session=self.sessions[player.UserId]
  if not session or session.closing then return end
  self.tutorial:Release(session)
+ self.analytics:Leave(session)
  session.closing=true
  self.armyCommands:Remove(player.UserId)
  self.commerce:Release(player)
@@ -363,6 +381,7 @@ end
 
 function GameServer:Step(dt)
 	local now=os.clock()
+	self.analytics:Step(dt)
 	self.operations:Step(now)
 	local wallTime=os.time()
 	if wallTime~=(self.researchCheckedAt or 0) then
@@ -411,6 +430,7 @@ function GameServer:Start()
 	assert(self.products:Start(),"Could not initialize purchase delivery")
 	self.world:Build()
 	self.leaderboards:Build()
+	self.analytics:Start()
 	local folder=ReplicatedStorage.PetRoll:FindFirstChild("Remotes")
 	if not folder then folder=Instance.new("Folder");folder.Name="Remotes";folder.Parent=ReplicatedStorage.PetRoll end
 	for _,name in {"RequestAction","StateChanged","BattleChanged"} do
@@ -438,11 +458,13 @@ function GameServer:Shutdown()
 	for _,session in self.sessions do
 		self.tutorial:Release(session);session.closing=true;self.eggs:Release(session);table.insert(closing,session)
 	end
-	local closed=false
+	local closed,analyticsClosed=false,false
 	task.spawn(function() self.data:Close();closed=true end)
+	-- Analytics leaves every session and flushes its ledger beside the save close.
+	task.spawn(function() self.analytics:Close();analyticsClosed=true end)
 	for _,session in closing do task.spawn(function() self.leaderboards:Write(session,true) end) end
 	local deadline=os.clock()+27
-	while not closed and os.clock()<deadline do task.wait(0.1) end
+	while (not closed or not analyticsClosed) and os.clock()<deadline do task.wait(0.1) end
 	if self.started then self:Destroy() end
 end
 
@@ -452,6 +474,8 @@ function GameServer:Destroy()
 	for _,connection in self.playerConnections do connection:Disconnect() end
 	self.products:Destroy();self.leaderboards:Destroy();self.commerce:Destroy();self.eggs:Destroy();self.operations:Destroy();self.battles:Destroy();self.world:Destroy()
 	self.telemetry:Destroy()
+	self.analytics:Destroy()
+	TutorialService.Transport,TutorialService.onProgress,TutorialService.onIncome=nil,nil,nil
  table.clear(self.recruitObservations);table.clear(self.awayObservations)
 	self.started=false
 end

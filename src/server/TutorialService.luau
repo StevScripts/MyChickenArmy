@@ -49,6 +49,8 @@ function Tutorial:Emit(record, name, value, step, detail)
 		[Enum.AnalyticsCustomFieldKeys.CustomField02.Name]=event.step,
 		[Enum.AnalyticsCustomFieldKeys.CustomField03.Name]=event.detail,
 	}
+	-- Analytics owns the experience-wide Roblox rate budget when it is running.
+	if Tutorial.Transport then Tutorial.Transport(record.player, name, event.value, fields); return end
 	task.spawn(function()
 		local ok, why = pcall(function() AnalyticsService:LogCustomEvent(record.player, name, event.value, fields) end)
 		if not ok and not record.warned then record.warned=true; warn("[Tutorial] Analytics unavailable: " .. tostring(why)) end
@@ -63,6 +65,8 @@ local progressWarned = false
 function Tutorial.LogProgress(userId, name, value, step, detail)
 	local event = {name=name, value=value or 1, step=step or "None", detail=detail or "None",
 		version=Tutorial.ProgressVersion, cohort="Conquest"}
+	-- The agent ledger records these in Studio too (Analytics.Progress).
+	if Tutorial.onProgress then pcall(Tutorial.onProgress, userId, name, event.value, event.step, event.detail) end
 	if RunService:IsStudio() then
 		table.insert(Tutorial.Diagnostics, event)
 		if #Tutorial.Diagnostics > 256 then table.remove(Tutorial.Diagnostics, 1) end
@@ -75,6 +79,7 @@ function Tutorial.LogProgress(userId, name, value, step, detail)
 		[Enum.AnalyticsCustomFieldKeys.CustomField02.Name]=event.step,
 		[Enum.AnalyticsCustomFieldKeys.CustomField03.Name]=event.detail,
 	}
+	if Tutorial.Transport then Tutorial.Transport(player, name, event.value, fields); return end
 	task.spawn(function()
 		local ok, why = pcall(function() AnalyticsService:LogCustomEvent(player, name, event.value, fields) end)
 		if not ok and not progressWarned then progressWarned=true; warn("[Conquest] Analytics unavailable: " .. tostring(why)) end
@@ -85,11 +90,9 @@ function Tutorial:Begin(player, session)
 	local record = {player=player, at=os.clock(), seen={}, starts={}, uiSeen={}, survival={},
 		lastSignals={}, receipts={}, receiptOrder={}, cohort="Unknown", session=session}
 	self.records[session.userId] = record
+	-- Every cash credit; Analytics records the full economy (not just the guide).
 	session.onTutorialIncome = function(source, amount, balance)
-		if not record.eligible then return end
-		if source == "eggs" then
-			self:Economy(record, "Source", amount, balance, "EggSale")
-		end
+		if Tutorial.onIncome then Tutorial.onIncome(session, source, amount, balance) end
 	end
 end
 
@@ -104,19 +107,6 @@ function Tutorial:Independent(record, action)
 	if not record.endedAt or record.independent or os.clock()-record.endedAt > 120 then return end
 	record.independent = true
 	self:Emit(record, "FTUEIndependentAction", os.clock()-record.endedAt, "AfterGuide", action)
-end
-
-function Tutorial:Economy(record, flow, amount, balance, kind)
-	if amount <= 0 or self.sink or RunService:IsStudio() or not record.player or record.player.Parent ~= Players then return end
-	task.spawn(function()
-		pcall(function()
-			AnalyticsService:LogEconomyEvent(record.player,
-				if flow=="Source" then Enum.AnalyticsEconomyFlowType.Source else Enum.AnalyticsEconomyFlowType.Sink,
-				"Cash", amount, balance,
-				if flow=="Source" then Enum.AnalyticsEconomyTransactionType.Gameplay.Name else Enum.AnalyticsEconomyTransactionType.Shop.Name,
-				kind, {[Enum.AnalyticsCustomFieldKeys.CustomField01.Name]=Guide.Version})
-		end)
-	end)
 end
 
 function Tutorial:Observe(session, state)
@@ -244,7 +234,6 @@ function Tutorial:Action(session, action, ok, before, request, selectionBefore)
 		if action=="Attack" and type(request.targetId)=="string" and string.sub(request.targetId,1,5)=="camp:" then
 			session.tutorial.guideDeployed=true;session:Touch()
 		end
-		self:Economy(r, "Sink", math.max(0,before-session.coins), session.coins, action)
 	elseif not r.uiSeen["Rejected:"..action] then
 		r.uiSeen["Rejected:"..action]=true
 		self:Emit(r,"FTUEActionRejected",1,r.step,action)

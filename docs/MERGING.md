@@ -2,8 +2,9 @@
 
 ## October 6 skill-tree unlock — current contract
 
-Fuse Machine is an early Army research node (`FuseMachine`), available from
-Start for **$5,000** and **120 base seconds**. Research-speed bonuses use the
+Fuse Machine is a research node (`FuseMachine`) behind Lucky Feathers I and Roll
+Speed (prerequisite `R1`, since October 9), for **$5,000** and **120 base
+seconds**. Research-speed bonuses use the
 existing quote calculation. These are initial tuning values. Completing the
 research unlocks manual fusion; starting or cancelling it does not. New Cluck
 Camp captures no longer grant fusion, including after save/rejoin. Other merge

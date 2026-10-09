@@ -19,3 +19,6 @@ __pycache__/
 
 # Research visual iteration workspace
 .dream-loop/
+
+# Analytics ledger dumps (tools/analytics/pull_ledger.py)
+analytics-data/

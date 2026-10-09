@@ -61,11 +61,14 @@ device or live gameplay test. See `assets/ui-aspect-layout-20260930/`.
 
 ## October 8 pre-release UI fixes
 
-- **Upgrades never spend on a tap.** Tapping/clicking a hex (or focusing it with
-  a gamepad) opens its detail card. Only the card's **Buy** / **Start research**
-  button spends; running research shows **Cancel research** (two-step confirm)
-  and research hexes show **Pin goal**. Gamepad: A enters the card, A presses,
-  B returns to the hex, Y toggles the goal. Tapping empty map closes the card.
+- **Superseded October 9 (user request): tapping a hex buys it.** A tap or click
+  buys a cash tier or starts research directly (completed Formations/Operations
+  hexes open their page); hovering shows the info card, which has no Buy/Start
+  button. On touch the card shows briefly after a tap and fades after 2.5 s.
+  Right-click or a 0.45 s long press pins the card, which only carries
+  **Cancel research** (two-step confirm) and **Pin goal**. Gamepad: A buys like a
+  tap (on running research it enters the card to cancel), B returns, Y toggles
+  the goal. Tapping empty map closes a pinned card.
 - **Readable text floor.** `UITheme.ScaleText` keeps TextScaled but attaches one
   `UITextSizeConstraint` named `ReadableTextSize` (MinTextSize
   `UITheme.MinTextSize` = 12, MaxTextSize 100) on the next frame. It adds no

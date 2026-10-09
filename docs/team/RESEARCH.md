@@ -18,7 +18,9 @@ see [cash upgrades in the tree](CASH_UPGRADES_IN_TREE.md).
 
 ## Fuse Machine unlock — October 6
 
-`FuseMachine` is an early Army research leaf directly off Start at `(-3, 4)`.
+`FuseMachine` sits in the Rolling area at `(3, -4)`, next to Roll Speed, behind
+**Lucky Feathers I → Roll Speed** (prerequisite `R1`; moved October 9 at the user's
+request so it is an earned unlock beside the tree, not a far-off leaf off Start).
 It costs **$5,000**, takes **120 base seconds**, and grants `fusion=1` on completion.
 It uses the existing Merge artwork and leaves all other nodes/coordinates intact.
 The combined map now contains **154 nodes** (63 research/Start plus 91 cash tiers).

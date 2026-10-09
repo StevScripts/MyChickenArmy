@@ -79,7 +79,7 @@ local Config = {
  RouteRegroupSeconds=1.2,CampHalfSize=11.7,CampRespawnGrace=2,
  -- October 6 footage: one continuous conquest meter, approximately 25s.
  -- Supply Outpost/player contests and Operations retain their existing timing.
- RoamStep=0.1,RoamSpeed=2.5,ConquestSeconds=25,CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,
+ RoamStep=0.1,RoamSpeed=2.5,ConquestSeconds=25,ConquestSecondsByCamp={12,20,25},CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,
  KillCoins={Duck=100,Mallard=160,Chunky=280,Sailor=280,Bucket=520,Viking=960,Knight=1760,Wizard=3360,Dragon=7200,IceDuck=9600,StormDuck=14400},
  KillLevelBonus=0.15,
  KingKillCoins=48000,

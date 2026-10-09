@@ -67,7 +67,7 @@ images. Evidence lives in the design workspace's
 | 14.2–15.6 s | Camp unclaim immediately restores the native flag/guards; the same player troops fight again | Clear ownership immediately, preserve each chicken's life, start a fresh conquest |
 | 31–37 s | Released Camp is recaptured; ownership persists while attention moves elsewhere | Session claims outlive army departure |
 | 53–63 s | Deployment, march and combat precede/overlap a rising red meter | Physical living attackers inside the radius advance one continuous meter during combat |
-| 61–85 s | Four-section red bar fills over roughly 24–25 seconds | `Config.ConquestSeconds=25`, retaining research capture bonuses |
+| 61–85 s | Four-section red bar fills over roughly 24–25 seconds | October 9: `Config.ConquestSecondsByCamp={12,20,25}` (Cluck Camp, Fort Roost, Ironbeak HQ); the King and unlisted targets keep `ConquestSeconds=25`. Research capture bonuses still apply |
 | 83–86 s | Guards reappear near the end; the bar does not reset; completion follows the final fight | Respawns retain progress; full progress still requires no living defenders |
 | 85.8–86.2 s | Green conquered status and a short victory announcement | Green owned marker/toast and local glow, ring and star burst |
 | 133–136 s | Separate compact R Unclaim / E Move Troops controls; unclaim restores hostile troops | Native, action-only prompts centered in the camp per the latest user correction; no inactive status prompt over combat |
@@ -158,3 +158,7 @@ native prompts. `ConquestPresentation` and `UIColors` are shared visual values,
 Playtest fixtures used temporary level-4 starter chickens with profile saving
 disabled. No saved-player-data changes, publication, asset uploads, Git commit
 or remote push are part of this change.
+
+October 9 user decisions: the first camp felt slow, so route camps now fill at 12/20/25
+seconds; and the conquest meter and owned label sit at `ConquestPresentation.Elevation=11`
+(was 18) so the bar stays in view while watching the chickens fight.
