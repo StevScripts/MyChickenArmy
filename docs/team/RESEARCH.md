@@ -349,3 +349,13 @@ of the observed presentation and interactions, not recovered Mini War source.
 No server gameplay owner, prices, upgrade effects, saved data or other menu layout
 was changed by this refinement. Existing unrelated restored-GUI/plugin errors
 remain outside its scope.
+
+## Saves survive tree changes: October 9, 2026
+
+Moving FuseMachine under R1 made every save that already held FuseMachine (but not
+R1) fail `ResearchRules.Read`, so those players were kicked with "This save needs
+recovery" (their data was never overwritten). `Read` no longer re-checks
+prerequisites for completed nodes or running jobs, and drops nodes that no longer
+exist instead of rejecting the save. Prerequisites are enforced only when research
+starts (`ResearchService.Start`). Rearranging or removing nodes is now safe for
+existing saves; malformed research data still fails to load.

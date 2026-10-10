@@ -18,6 +18,7 @@ local EggController = require(script.Parent.EggController)
 local EggFeedback = require(script.Parent.EggFeedback)
 local HudController = require(script.Parent.HudController)
 local CommanderGuide = require(script.Parent.CommanderGuide)
+local LeaderboardBoards = require(script.Parent.LeaderboardBoards)
 local IntroCutscene = require(script.Parent.IntroCutscene)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
@@ -585,6 +586,22 @@ function AppController:RenderSettings()
 			self:Request("TutorialSignal",{signal=if hidden then "ShowGoals" else "HideGoals"})
 		end)
 	end
+	-- Testers: a disposable brand-new profile; the real save is kept and returns on rejoin.
+	if self.state.newPlayerTestAllowed then
+		if self.confirm and self.confirm.kind == "NewPlayerTest" then
+			self:Text("NewPlayerTestWarning", "Start fresh as a new player? Your real save is kept. Rejoin to go back.", 14, 44, C.gold)
+			self:Button("ConfirmNewPlayerTest", "Start new-player test", function()
+				self.confirm = nil
+				self:Request("TestNewPlayer")
+				self:ClosePanel()
+			end, Theme.ActionColors.danger)
+			self:Button("CancelNewPlayerTest", "Cancel", function() self.confirm = nil;self:RenderPanel(true) end)
+		else
+			self:Button("TestNewPlayer", if self.state.newPlayerTest then "Restart new-player test" else "Test as a new player", function()
+				self.confirm = {kind = "NewPlayerTest"};self:RenderPanel(true)
+			end, Theme.ActionColors.navigation)
+		end
+	end
 	if self.intro and self.intro:CanReplay() then
 		self:Button("ReplayIntro", "Replay intro", function() self:ClosePanel();self.intro:Replay() end, Theme.ActionColors.navigation)
 	end
@@ -686,7 +703,7 @@ function AppController:RenderPanel(force)
 	end
 	local p=state.progression
 	if p then table.insert(keys,p.rank..":"..p.recruitTier..":"..tostring(p.goal)..":"..tostring(p.requirement)..":"..tostring(state.kingCleared)) end
-	if self.page == "Settings" then table.insert(keys, tostring((state.tutorial or {}).goalsHidden));table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage));table.insert(keys, tostring(UserInputService.PreferredInput)) end
+	if self.page == "Settings" then table.insert(keys, tostring(state.newPlayerTest));table.insert(keys, tostring((state.tutorial or {}).goalsHidden));table.insert(keys, tostring(state.saveStatus));table.insert(keys, tostring(state.saveMessage));table.insert(keys, tostring(UserInputService.PreferredInput)) end
 	if self.page == "Test" then
 		table.insert(keys, tostring(state.shop and state.shop.testAllowed))
 		table.insert(keys, tostring(state.shop and state.shop.testPreset))
@@ -793,6 +810,7 @@ function AppController:Receive(packet)
 		end
 		-- Keep reward motion local to the action, not behind notification text.
 		if result.action=="Sell" then Theme.Motion:Pop(self.hud.cashIcon,1.14) end
+		if result.action=="TestNewPlayer" and self.intro then self.intro:PlayAsNewPlayer() end
 	end
 end
 
@@ -800,6 +818,7 @@ function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
 	self.commander=CommanderGuide.new(self)
+	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)
 	self.eggBoard:Start()
 	self.audio:Start()
@@ -845,6 +864,7 @@ function AppController:Destroy()
 	for _, connection in self.connections do connection:Disconnect() end
 	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
 	if self.commander then self.commander:Destroy() end
+	if self.leaderboards then self.leaderboards:Destroy() end
 	if self.intro then self.intro:Destroy() end
 	if self.animator then self.animator:Destroy() end
 	if self.galaxyCrateVisuals then self.galaxyCrateVisuals:Destroy() end

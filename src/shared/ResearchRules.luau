@@ -55,28 +55,33 @@ function Rules.Read(value)
 	if type(value)~="table" or type(value.completed)~="table" or type(value.jobs)~="table"
 		or not integer(value.revision,0,2^53-1) or not integer(value.rallyReadyAt or 0,0,2^53-1) then return nil end
 	local result=Rules.New();result.revision=value.revision;result.rallyReadyAt=value.rallyReadyAt or 0
+	-- Earned research survives tree changes (October 9: FuseMachine moved under R1
+	-- and every save holding it failed to load). Prerequisites are enforced when
+	-- research starts, never re-checked on load; nodes removed from the catalog
+	-- are dropped instead of rejecting the whole save. Malformed data still fails.
 	local count=0
 	for id,owned in value.completed do
-		count+=1
-		if count>#Catalog.Order or type(id)~="string" or not Catalog.Nodes[id] or owned~=true then return nil end
-		result.completed[id]=true
+		if type(id)~="string" or owned~=true then return nil end
+		if Catalog.Nodes[id] then count+=1;result.completed[id]=true end
 	end
-	for id in result.completed do local node=Catalog.Nodes[id];if node.prerequisite and not result.completed[node.prerequisite] then return nil end end
-	local jobIds,nodeIds={},{};count=0
+	if count>#Catalog.Order then return nil end
+	local jobIds,nodeIds,total,kept={},{},0,{}
 	for index,job in value.jobs do
-		count+=1
-		if count>Catalog.MaxJobs or not integer(index,1,#value.jobs) or type(job)~="table"
+		total+=1
+		if total>Catalog.MaxJobs or not integer(index,1,#value.jobs) or type(job)~="table"
 			or not shortString(job.id,64) or jobIds[job.id] or type(job.nodeId)~="string" then return nil end
-		local node=Catalog.Nodes[job.nodeId]
-		if not node or job.nodeId=="Start" or nodeIds[job.nodeId] or result.completed[job.nodeId]
-			or not result.completed[node.prerequisite] or not integer(job.startedAt,0,2^53-1)
-			or not integer(job.finishAt,job.startedAt+1,2^53-1) or not integer(job.paid,0,1e12) then return nil end
-		jobIds[job.id],nodeIds[job.nodeId]=true,true
-		result.jobs[index]={id=job.id,nodeId=job.nodeId,startedAt=job.startedAt,finishAt=job.finishAt,paid=job.paid}
+		if Catalog.Nodes[job.nodeId] then
+			if job.nodeId=="Start" or nodeIds[job.nodeId] or result.completed[job.nodeId]
+				or not integer(job.startedAt,0,2^53-1)
+				or not integer(job.finishAt,job.startedAt+1,2^53-1) or not integer(job.paid,0,1e12) then return nil end
+			jobIds[job.id],nodeIds[job.nodeId]=true,true
+			table.insert(kept,{id=job.id,nodeId=job.nodeId,startedAt=job.startedAt,finishAt=job.finishAt,paid=job.paid})
+		end
 	end
-	if count~=#value.jobs or count>Rules.Effects(result).slots then return nil end
-	if value.pinned~=nil and (type(value.pinned)~="string" or not Catalog.Nodes[value.pinned]) then return nil end
-	result.pinned=value.pinned
+	if total~=#value.jobs or #kept>Rules.Effects(result).slots then return nil end
+	result.jobs=kept
+	if value.pinned~=nil and type(value.pinned)~="string" then return nil end
+	result.pinned=if value.pinned and Catalog.Nodes[value.pinned] then value.pinned else nil
 	local remainder=value.eggValueRemainder or 0
 	if type(remainder)~="number" or remainder~=remainder or remainder<0 or remainder>=1 then return nil end
 	result.eggValueRemainder=remainder

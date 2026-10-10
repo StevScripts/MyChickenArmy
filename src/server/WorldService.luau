@@ -320,11 +320,13 @@ function WorldService:Build()
 	if Config.Features.Merging and mergeTemplate and mergeTemplate.Parent==workspace then
 		mergeTemplate.Parent=game:GetService("ServerStorage")
 	end
+	Builder.BuildIslandChickenRamps(root)
 	for index = 1, #Config.PlotPositions do
 		-- Authored homes are opt-in: removing a plot for editing must not regenerate it.
 		if not root:GetAttribute("AuthoredMap") or root:FindFirstChild("Plot"..index) then
 			local cf = self:PlotFrame(index)
 			local folder, title = Builder.BuildPlot(root, index, cf)
+			Builder.BuildChickenRamps(folder)
 			local pets = Instance.new("Folder")
 			pets.Name, pets.Parent = "Pets", folder
 			local displays=RollStation.DisplayAnchors(folder)

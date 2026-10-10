@@ -72,7 +72,7 @@ function ProductService:_ProcessReceipt(receipt)
   -- This function must not yield. Recheck presence after waiting for an autosave.
   if not self:CanPurchase(session) then return false,"The player left during delivery." end
   if product.finishEggs==true then
-   return EggProcessor.GrantFinish(session.eggProcessor)
+   if not EggProcessor.GrantFinish(session.eggProcessor) then return false end
   elseif product.coins~=nil and product.crates==nil and integer(product.coins,1,MaxCoins)
    and integer(session.coins,0,MaxCoins-product.coins) then
    -- Exact purchased amount: earned-income passes never multiply paid currency.
@@ -82,6 +82,11 @@ function ProductService:_ProcessReceipt(receipt)
    session.crateCredits+=product.crates
   else
    return false,"This purchase cannot fit safely yet. Spend or open items, then rejoin."
+  end
+  -- Top Supporters leaderboard: the receipt's actual Robux, saved with this grant.
+  local spent=receipt.CurrencySpent
+  if receipt.CurrencyType==Enum.CurrencyType.Robux and integer(spent,1,1e9) then
+   session.robuxSpent=math.min(1e12,(session.robuxSpent or 0)+spent)
   end
   return true
  end)

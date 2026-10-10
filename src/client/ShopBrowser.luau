@@ -99,7 +99,6 @@ end
 
 local function plain(parent,name,value,size,position,bounds,color,center)
  local label=Theme.Label(parent,name,value,size,color or P.muted)
- label.Font=Enum.Font.SourceSans
  label.Position,label.Size,label.ZIndex=position,bounds,7
  label.TextXAlignment=if center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
  label.TextScaled=true

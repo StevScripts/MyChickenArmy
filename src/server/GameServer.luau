@@ -92,6 +92,8 @@ function GameServer:Send(player,result)
 	self.analytics:Observe(session,state)
 	-- The client "Studio test tools" button follows the same Studio-only gate.
 	state.debugAllowed=RunService:IsStudio() and DebugService.Allowed(player)
+	state.newPlayerTestAllowed=GameServer.NewPlayerTestAllowed(player)
+	state.newPlayerTest=session.newPlayerTest==true
 	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation}
 	self.remotes.StateChanged:FireClient(player,{state=state,result=result})
 end
@@ -240,6 +242,10 @@ function GameServer:Handle(player,request)
   ok,message=self.armyCommands:GoBase(player,session,now)
 	elseif action=="Retreat" or action=="ReturnHome" then message="Manage your lineup in My Army. Chickens walk to and from the fight."
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
+	elseif action=="TestNewPlayer" then
+		-- Yields while the real save is released; stop if this session ended meanwhile.
+		ok,message=self:StartNewPlayerTest(player,session,now)
+		if self.sessions[player.UserId]~=session or session.closing then return end
 	end
 	self.tutorial:Action(session,action,ok,balanceBefore,request,selectionBefore)
 	self.analytics:Action(session,action,ok,message,balanceBefore,request,{petId=petId,crate=crate,purchase=purchase})
@@ -271,6 +277,41 @@ function GameServer:Handle(player,request)
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
 	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate})
+end
+
+-- Settings > Test as a new player: Studio, Config.DebugUserIds and the game's owner.
+function GameServer.NewPlayerTestAllowed(player)
+	return RunService:IsStudio() or table.find(Config.DebugUserIds or {},player.UserId)~=nil
+		or (game.CreatorType==Enum.CreatorType.User and game.CreatorId==player.UserId)
+end
+
+-- Turns this session into a disposable brand-new profile. The real save is saved
+-- and released FIRST (abort if that fails); afterwards nothing here saves, buys,
+-- ranks or counts in analytics. Rejoining loads the real save again.
+function GameServer:StartNewPlayerTest(player,session,now)
+	if not GameServer.NewPlayerTestAllowed(player) then return false,"Only testers can start a new-player test." end
+	self.battles:CancelPlayer(session.userId,now)
+	self.armyCommands:Release(session,true)
+	if session.saveStatus~="studio-session" then
+		self.data:Release(session)
+		if self.data.entries[session.userId] then
+			return false,"Couldn't save your real progress first, so the test did not start. Try again."
+		end
+		task.spawn(function() self.leaderboards:Write(session,true) end)
+	end
+	self.analytics:Leave(session) -- a test session never counts as a real player
+	if self.sessions[player.UserId]~=session or session.closing then return false,"Session ended." end
+	session.newPlayerTest=true
+	session.saveStatus="studio-session"
+	session.saveMessage="Testing as a new player. Nothing is saved; rejoin to return to your real save."
+	session:Reset()
+	session.crateCredits,session.guaranteedLuckRolls=0,0
+	session.eggProcessor.finishCredits=0
+	session.commerceAutomatic={AutoCollectEggs=true,AutoMerge=true}
+	self.commerce:SetTestPreset(player,session,"NoPasses")
+	session:RefreshArmy();session:Touch()
+	self.world:UpdateSession(session)
+	return true,"Testing as a new player. Rejoin anytime to return to your real save."
 end
 
 function GameServer:AddPlayer(player)

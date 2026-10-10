@@ -582,12 +582,13 @@ end
 
 function Analytics:Income(session, source: string, amount: number, balance: number)
 	if Schema.IgnoredSources[source] or type(amount) ~= "number" or amount <= 0 then return end
+	-- No state: a new-player test session (or not joined yet) never counts.
 	local st = self:_State(session)
+	if not st then return end
 	local name = if Schema.Sources[source] then source else "other"
 	self.ledger:Count("econ.src." .. name, amount)
 	self.ledger:Count("econ.src." .. name .. ".n")
 	self.ledger:Count("econ.srcTotal", amount)
-	if not st then return end
 	st.econ[name] = (st.econ[name] or 0) + amount
 	st.sessionEarned += amount
 end

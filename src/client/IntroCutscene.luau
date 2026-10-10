@@ -203,6 +203,16 @@ function Intro:CanReplay(): boolean
 		and type(state.plotIndex) == "number" and #(state.pets or {}) > 0
 end
 
+-- Settings > Test as a new player: the real first-visit film, with its signals,
+-- so the server's new-player egg hold and onboarding behave as they would live.
+function Intro:PlayAsNewPlayer(): boolean
+	if self.playing or not self:CanReplay() then return false end
+	self.eligible, self.started = true, true
+	self:Prepare(self.app.state)
+	self:Play("intro")
+	return true
+end
+
 -- Settings > Replay intro: the same film with no save signals.
 function Intro:Replay(): boolean
 	if not self:CanReplay() then return false end

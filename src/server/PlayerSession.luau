@@ -49,6 +49,7 @@ function PlayerSession:Reset()
 	self.eggProcessor = EggProcessor.New()
 	self.eggProcessor.finishCredits = finishCredits
 	self.enemyKills=0
+	self.robuxSpent=0 -- Lifetime Robux spent in game (leaderboard only; never a benefit)
  self.incomeLevel=0
  self.promotion,self.recruitTier=1,1
  self.frontierWins,self.kingCleared={},false
@@ -222,6 +223,14 @@ function PlayerSession:FilterArmyIds(values, capacity: number?)
 end
 
 -- Automatic combat-power ranking. Equal-power purchases preserve the existing squad.
+-- Strongest Army leaderboard: the best army this flock can field (top chickens
+-- within army size), independent of the player's manual selection.
+function PlayerSession:BestArmyPower(): number
+	local roster={}
+	for _,id in self:AutoBestPetIds() do local pet=self.pets[id];if pet then table.insert(roster,pet) end end
+	return Rules.Power(roster)
+end
+
 function PlayerSession:AutoBestPetIds()
 	local ranked={}
 	for id,pet in self.pets do
@@ -519,7 +528,7 @@ function PlayerSession:ToData()
 	return {research=ResearchRules.Copy(self.research),dataRevision=Config.DataRevision,legacyCapacityGrant=self.legacyCapacityGrant or 0,
 		purchaseReceipts=table.clone(self.purchaseReceipts),crateCredits=self.crateCredits,commerceAutomatic=table.clone(self.commerceAutomatic),
 		guaranteedLuckRolls=self.guaranteedLuckRolls,
-		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,
+		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,robuxSpent=self.robuxSpent,
 		eggProcessor=EggProcessor.Copy(self.eggProcessor),
 		offlineCash=table.clone(self.offlineCash),
 		promotion=self.promotion,recruitTier=self.recruitTier,
@@ -641,8 +650,9 @@ function PlayerSession:LoadData(data)
 	local carryCount=if type(carry)=="table" then clampHigh(carry.count,0,PlayerSession.CarryLimit,true) else nil
 	local carryValue=if type(carry)=="table" then clampHigh(carry.value,0,PlayerSession.CarryLimit,true) else nil
 	local enemyKills=clampHigh(data.enemyKills or 0,0,1e12,true)
+	local robuxSpent=clampHigh(data.robuxSpent or 0,0,1e12,true)
 	if not carryCount or not carryValue or ((carryCount==0)~=(carryValue==0))
-		or not enemyKills then return false,"Invalid saved eggs or defeat count." end
+		or not enemyKills or not robuxSpent then return false,"Invalid saved eggs, defeat or Robux count." end
 	local promotion=if revision>=5 then data.promotion else 1
 	local recruitTier=if revision>=5 then data.recruitTier else 1
 	if not numberIn(promotion,1,Progression.Count(),true) or not numberIn(recruitTier,1,promotion,true) then
@@ -796,7 +806,7 @@ function PlayerSession:LoadData(data)
 	self.guaranteedLuckRolls=guaranteedLuckRolls%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
 	self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,grant
 	self.eggSpeedLevel,self.plotSizeLevel,self.rollSlotsUnlocked=eggSpeedLevel,plotSizeLevel,rollSlotsUnlocked
-	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills
+	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills;self.robuxSpent=robuxSpent
 	self.eggProcessor=processor
 	self.offlineCash,self.offlineCashReceipt=offlineCash,nil
 	self.research=research;self.researchEffects=ResearchRules.Effects(research)

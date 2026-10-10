@@ -85,3 +85,4 @@ The server decides coins, ownership, purchases and combat results. Client contro
 Manual three-chicken merging is enabled in `ArmyService`, `MergeStand`, `MergeBrowser` and `MergePresentation` through `Config.Features.Merging`; the separately gated paid `AutoMerging` feature remains off. See `MERGING.md`. A retained module is not proof that a feature is enabled. Crate and legacy UI helpers may likewise be dormant. Check where a module is required and which feature flag enables it before changing it.
 
 Archived/editor/plugin scripts and optional tests are not normal startup code. The map, imported rigs, textures and other Studio-owned assets are intentionally outside this code map. See [EDITING.md](EDITING.md) for sync, save and Git workflows.
+| World leaderboards (Strongest Army, Top Supporters) | `server/LeaderboardService.luau`, `client/LeaderboardBoards.luau`, `server/PlayerSession.luau` (`BestArmyPower`, `robuxSpent`) | See `docs/team/LEADERBOARDS.md` |

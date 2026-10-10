@@ -56,6 +56,25 @@ function CommerceService:_ScheduleRefresh(record)
 	end)
 end
 
+-- Top Supporters leaderboard only: adds the pass's current Robux price to the
+-- player's lifetime total. Never affects ownership or benefits.
+function CommerceService:_RecordPassSpend(record, passId)
+	self.passPrices = self.passPrices or {}
+	task.spawn(function()
+		local price = self.passPrices[passId]
+		if not price then
+			local ok, info = pcall(function() return self.marketplace:GetProductInfo(passId, Enum.InfoType.GamePass) end)
+			price = if ok and type(info) == "table" and type(info.PriceInRobux) == "number" then info.PriceInRobux else nil
+			if price then self.passPrices[passId] = price end
+		end
+		local session = record.session
+		if price and price > 0 and not session.closing and not session.saveLost then
+			session.robuxSpent = math.min(1e12, (session.robuxSpent or 0) + math.floor(price))
+			session:Touch()
+		end
+	end)
+end
+
 function CommerceService:_PurchaseFinished(player, passId, wasPurchased)
 	if not configured(passId) then return end
 	local record = self.records[player.UserId]
@@ -69,6 +88,7 @@ function CommerceService:_PurchaseFinished(player, passId, wasPurchased)
 				self:_ApplyBenefits(record)
 				-- Observation hook (Analytics); never grants or blocks anything.
 				if self.onPassPurchased then pcall(self.onPassPurchased, player, key) end
+				self:_RecordPassSpend(record, passId)
 			end
 			-- Cancellation grants nothing; a fresh ownership check still runs.
 			record.pending = true
@@ -103,7 +123,8 @@ function CommerceService:Refresh(player, session)
 end
 
 function CommerceService:TestAllowed(session)
-	return RunService:IsStudio() and session.saveStatus == "studio-session"
+	-- Studio test sessions, or a live "test as a new player" session (never saved).
+	return (RunService:IsStudio() or session.newPlayerTest == true) and session.saveStatus == "studio-session"
 		and session.loaded == true and not session.closing and not session.saveLost
 end
 

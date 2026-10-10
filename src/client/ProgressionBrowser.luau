@@ -78,7 +78,6 @@ function Browser:Mount(parent)
   Theme.Aspect(card,1.146)
   display(card,"Title",heading,UDim2.fromScale(0.035,0.025),UDim2.fromScale(0.93,0.1))
   local current=display(card,"Current","",UDim2.fromScale(0.035,0.13),UDim2.fromScale(0.93,0.07))
-  current.Font=Enum.Font.SourceSansSemibold
   local art=Theme.Image(card,"Icon",ART[name],UDim2.fromScale(0.58,0.33),UDim2.fromScale(0.5,0.22))
   art.AnchorPoint=Vector2.new(0.5,0)
   Theme.Aspect(art,222/214.071426)

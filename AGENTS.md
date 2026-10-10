@@ -85,3 +85,6 @@ Before editing or syncing, inspect Git and compare any unsynced Studio changes. 
 
 ## Analytics (October 9) — observation only
 Funnels, economy, retention and health go to Roblox AnalyticsService (live only) and an agent ledger in DataStores (`PetRollAnalytics_v1`, Studio uses `_Studio`). Names live in `src/server/AnalyticsSchema.luau`; append only, never rename/reorder, bump `Schema.Version`. For any stats question read `docs/analytics/AGENT_GUIDE.md` and run `AnalyticsReport` from Studio Edit. Analytics must never change gameplay.
+
+## Save compatibility: never invalidate earned progress (October 9)
+Changing catalogs (research prerequisites, removed nodes or species) must never make an existing save fail to load; enforce new rules when the player acts, not in `LoadData`/`*.Read`. A rejected load kicks the player ("This save needs recovery"). See `docs/team/RESEARCH.md`.

@@ -118,7 +118,7 @@ function Shop.new(app,parent)
  self.creditLabel=label(footer,"Credits","",0,0,0.66,0.53,1,1,8)
  self.creditLabel.TextXAlignment=Enum.TextXAlignment.Left
  self.note=label(footer,"Disclosure","One chicken per crate · Chances shown above",0,0.56,0.66,0.4,1,1,8)
- self.note.Font,self.note.TextColor3=Enum.Font.SourceSans,Theme.Colors.muted
+ self.note.TextColor3=Theme.Colors.muted
  self.note.TextXAlignment=Enum.TextXAlignment.Left
  local open=Theme.ActionButton(footer,"OpenCrate","Open 1",function()
   if not self.openButton.Active then return end

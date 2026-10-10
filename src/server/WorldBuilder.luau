@@ -148,6 +148,125 @@ function WorldBuilder.BuildPlot(root,index,cf)
  return require(script.Parent.AuthoredPlot).Build(root,index,cf)
 end
 
+-- October 9: the raised deck's edge (about 1.3 studs) is taller than a chicken
+-- Humanoid can step, so following/returning birds wedged against it beside the
+-- narrow entrance ramp. An invisible, chicken-only slope on every side lets a
+-- bird walk on or off the deck from any direction. Players, cameras and other
+-- groups never collide with it; it is not a WalkSurface, so ground lookups ignore it.
+local RAMP_GROUP="DuckRamps"
+local RAMP_RUN=4
+local function chickenRampGroup()
+ local physics=game:GetService("PhysicsService")
+ for _,name in {RAMP_GROUP,"DuckActors","DuckPlayers","DuckScenery"} do
+  if not physics:IsCollisionGroupRegistered(name) then physics:RegisterCollisionGroup(name) end
+ end
+ for _,group in physics:GetRegisteredCollisionGroups() do
+  physics:CollisionGroupSetCollidable(RAMP_GROUP,group.name,group.name=="DuckActors")
+ end
+end
+
+local function chickenRamp(parent,length,rise,run,base,outward,groundY,overlap)
+ -- A WedgePart rises toward its back face: look outward so the high edge meets the ledge.
+ local center=base+outward*(run/2-(overlap or 0.1))
+ center=Vector3.new(center.X,groundY+rise/2,center.Z)
+ local wedge=Instance.new("WedgePart")
+ wedge.Name="ChickenRamp"
+ wedge.Size=Vector3.new(length,rise,run)
+ wedge.CFrame=CFrame.lookAt(center,center+outward)
+ wedge.Anchored,wedge.CanCollide,wedge.CanTouch,wedge.CastShadow=true,true,false,false
+ wedge.Transparency,wedge.CollisionGroup=1,RAMP_GROUP
+ wedge.Parent=parent
+ return wedge
+end
+
+-- Lowest chicken-walkable ground along a line (the deck may back onto the beach).
+local function lowestGround(points,ignore)
+ local ray=RaycastParams.new()
+ ray.CollisionGroup,ray.RespectCanCollide="DuckActors",true
+ ray.FilterType,ray.FilterDescendantsInstances=Enum.RaycastFilterType.Exclude,ignore
+ local low=math.huge
+ for _,point in points do
+  local hit=workspace:Raycast(Vector3.new(point.X,40,point.Z),Vector3.new(0,-80,0),ray)
+  if hit then low=math.min(low,hit.Position.Y) end
+ end
+ return if low<math.huge then low else MapLayout.FieldY
+end
+
+function WorldBuilder.BuildChickenRamps(plot)
+ local deck=plot:FindFirstChild("Deck")
+ if not deck or not deck:IsA("BasePart") or plot:FindFirstChild("ChickenRamps") then return nil end
+ chickenRampGroup()
+ local top=deck.Position.Y+deck.Size.Y/2
+ local group=model(plot,"ChickenRamps")
+ local frame=deck.CFrame
+ local foundation=plot:FindFirstChild("Foundation")
+ for _,side in {{Vector3.xAxis,deck.Size.X/2,deck.Size.Z},{-Vector3.xAxis,deck.Size.X/2,deck.Size.Z},
+  {Vector3.zAxis,deck.Size.Z/2,deck.Size.X},{-Vector3.zAxis,deck.Size.Z/2,deck.Size.X}} do
+  local normal,half,edge=frame:VectorToWorldSpace(side[1]),side[2],side[3]
+  local along=normal:Cross(Vector3.yAxis).Unit
+  local base=frame.Position+normal*half
+  local samples={}
+  for i=0,12 do table.insert(samples,base+normal*(RAMP_RUN+3)+along*(-edge/2+edge*i/12)) end
+  local ground=math.min(MapLayout.FieldY,lowestGround(samples,{plot,foundation}))
+  local rise=top-ground
+  if rise>0.5 then
+   -- Keep it gentle (about 20 degrees) even where the deck backs onto lower sand.
+   chickenRamp(group,edge+RAMP_RUN*2,rise,math.max(RAMP_RUN,rise*2.75),base,normal,ground)
+  end
+ end
+ return group
+end
+
+-- The grass disc stands about 2.5 studs above the beach sand: a chicken that
+-- follows its owner onto the beach could never climb back. Ring it with the same
+-- chicken-only slope, and let the invisible map border stop chickens too.
+function WorldBuilder.BuildIslandChickenRamps(root)
+ local environment=root:FindFirstChild("Environment")
+ if not environment or root:FindFirstChild("IslandChickenRamps") then return nil end
+ local discs={}
+ for _,part in environment:GetChildren() do
+  if part:IsA("BasePart") and part.Name=="Cylinder" then table.insert(discs,part) end
+ end
+ local border=root:FindFirstChild("MapBorder")
+ if border then
+  for _,wall in border:GetChildren() do if wall:IsA("BasePart") then wall.CollisionGroup="Default" end end
+ end
+ if #discs<2 then return nil end
+ table.sort(discs,function(a,b) return a.Size.X<b.Size.X end)
+ local grass,sand=discs[1],discs[#discs]
+ local rise=(grass.Position.Y+grass.Size.Y/2)-(sand.Position.Y+sand.Size.Y/2)
+ if rise<=0.5 then return nil end
+ chickenRampGroup()
+ local group=model(root,"IslandChickenRamps")
+ local run,segments=math.max(RAMP_RUN,rise*2.75),96
+ local center=Vector3.new(grass.Position.X,0,grass.Position.Z)
+ local top=grass.Position.Y+grass.Size.Y/2
+ local groundY=sand.Position.Y+sand.Size.Y/2
+ -- The disc mesh's collision edge sits inside its bounding size, so find the
+ -- real edge at each segment instead of trusting Size.
+ local ray=RaycastParams.new()
+ ray.FilterType,ray.FilterDescendantsInstances=Enum.RaycastFilterType.Include,{grass}
+ local function edge(direction)
+  local low,high=grass.Size.X*0.35,grass.Size.X*0.51
+  for _=1,16 do
+   local mid=(low+high)/2
+   local point=center+direction*mid
+   local hit=workspace:Raycast(Vector3.new(point.X,top+20,point.Z),Vector3.new(0,-40,0),ray)
+   if hit and hit.Position.Y>top-0.2 then low=mid else high=mid end
+  end
+  return low
+ end
+ for i=0,segments-1 do
+  local angle=(i+0.5)/segments*math.pi*2
+  local outward=Vector3.new(math.cos(angle),0,math.sin(angle))
+  local radius=edge(outward)
+  local length=2*(radius+run)*math.tan(math.pi/segments)+1.5
+  -- Overlap the disc so faceted mesh edges between samples leave no lip.
+  chickenRamp(group,length,rise,run,center+outward*radius,outward,groundY,0.6)
+ end
+ return group
+end
+
 function WorldBuilder.BuildHomeApproach(root,index,cf)
  local group=model(root,"HomeApproach"..index)
  local halfDepth=MapLayout.HomeDeckHalfDepth

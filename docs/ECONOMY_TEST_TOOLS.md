@@ -41,3 +41,14 @@ existing themed controls. Ordinary player progression and prices are unchanged.
 
 Every debug command is Studio only. Live servers refuse them and hide the F8
 tools for every account, including IDs listed in `Config.DebugUserIds`.
+
+## Settings > Test as a new player: October 10, 2026
+
+Testers (Studio, `Config.DebugUserIds`, or the experience owner) see **Test as a
+new player** in Settings, with a one-step confirm. `GameServer:StartNewPlayerTest`
+saves and releases the real profile first and aborts if that fails, writes the final
+real leaderboard values, removes the session from analytics, then resets it to a
+fresh profile with no passes (`NoPasses` preset) and marks it `newPlayerTest` /
+`studio-session`. Nothing in the test is saved, ranked, purchasable or counted;
+rejoining loads the real save. The client plays the real first-visit intro (with its
+signals) so the new-player egg hold and onboarding run as for a real new player.
