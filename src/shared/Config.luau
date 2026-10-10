@@ -30,14 +30,24 @@ local Config = {
 	Features = {Merging = true, AutoMerging = false, IntroCutscene = true},
 	Economy = Economy,
  Version="1.19.0-paced-economy", GameTitle="My Chicken Army!",
- -- Staged rollout: enable territory after the opening/feedback PC check.
- IncomeOutpost={Enabled=false,ContestsEnabled=true,NpcEnabled=true,
-  TargetId="income:1",Name="Supply Outpost",Position={200,1.05,-200},Rate=8,
+ -- October 10: the shared territory contest now runs The Hill inside the King's
+ -- arena (Config.Hill). Only one site exists; its internal key stays "income:1".
+ -- Rate is unused while the Hill is enabled: HillService pays the holder's boost.
+ IncomeOutpost={Enabled=true,ContestsEnabled=true,NpcEnabled=true,
+  TargetId="income:1",Name="The Hill",Position={0,1.05,0},Rate=0,
   GraceSeconds=30,RetrySeconds=60,ContestSeconds=90,
   WarningAfter=120,WarningSeconds=30,RepeatAfter=180,
-  NeutralRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1}},
-  RaidRoster={{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Duck",stars=1,level=1},{species="Mallard",stars=1,level=1}},
+  -- Hill Guards hold an empty Hill; NPC raiders test a lone holder. Ironbeak HQ strength.
+  NeutralRoster={{species="Bucket",stars=1,level=2},{species="Bucket",stars=1,level=2},{species="Sailor",stars=1,level=2},{species="Viking",stars=1,level=1}},
+  RaidRoster={{species="Bucket",stars=1,level=2},{species="Bucket",stars=1,level=2},{species="Sailor",stars=1,level=2},{species="Viking",stars=1,level=1}},
  },
+ -- King of the Hill (docs/team/KING_OF_THE_HILL.md). The arena alternates a Hill
+ -- round with a King break. Holding boosts the holder's whole farm income; the
+ -- player who held longest wins a Hill Roll; ChampionWins total wins earn the
+ -- Hill Champion. KingLockSeconds stops new King fights just before a round.
+ Hill={Enabled=true,RoundSeconds=300,BreakSeconds=300,FirstBreakSeconds=120,KingLockSeconds=45,
+  BoostPerMinute=0.10,BoostMax=0.50,MinWinSeconds=15,RollLuckBonus=2,
+  ChampionWins=10,ChampionSpecies="HillChampion"},
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
  DataRevision=11,StarterFlock={"Duck","Duck","Duck"},
  CommandDistance=14,

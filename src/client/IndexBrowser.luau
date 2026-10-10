@@ -4,6 +4,7 @@ local Theme=require(script.Parent.UITheme)
 local MenuLayout=require(script.Parent.MenuLayout)
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
+local Config=require(Shared.Config)
 local C=Theme.Colors
 local Browser={}
 Browser.__index=Browser
@@ -207,7 +208,8 @@ function Browser:Render(_force)
 			view.caption.Visible=true
 			view.name.RichText=not collected
 			view.name.Text=if collected then definition.name
-				else string.format('<font color="#%s">%s</font> · %s',(Theme.Rarities[definition.rarity] or WHITE):ToHex(),definition.rarity,if crateOnly then "Galaxy Crate only" else "Roll")
+				else string.format('<font color="#%s">%s</font> · %s',(Theme.Rarities[definition.rarity] or WHITE):ToHex(),definition.rarity,
+					if definition.hillExclusive then "Win the Hill "..Config.Hill.ChampionWins.." times" elseif crateOnly then "Galaxy Crate only" else "Roll")
 			view.preview.ImageColor3=if collected then WHITE else BLACK
 			view.preview.Position=previewPosition(collected)
 			if collected then

@@ -65,6 +65,8 @@ function Checks.Run()
  assert(original,"IncomeOutpost configuration missing")
  Config.IncomeOutpost=table.clone(original)
  Config.IncomeOutpost.Enabled=true;Config.IncomeOutpost.ContestsEnabled=true;Config.IncomeOutpost.NpcEnabled=false
+ -- These cover the contest engine itself; HillChecks covers the Hill clock on top.
+ local originalHill=Config.Hill;Config.Hill=table.clone(originalHill);Config.Hill.Enabled=false
  local results={}
  local function test(name,fn)
   local ok,detail=pcall(fn);table.insert(results,{name=name,passed=ok,detail=tostring(detail)})
@@ -269,7 +271,7 @@ function Checks.Run()
   assert(moved[2].marchPath==path and adopted["2"]==actors.one and adopted["3"]==actors.two)
   return "Rig identity, damaged health and live reinforcement route survive side A to B handoff"
  end)
- Config.IncomeOutpost=original
+ Config.IncomeOutpost=original;Config.Hill=originalHill
  return results
 end
 return Checks

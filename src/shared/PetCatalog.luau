@@ -82,6 +82,12 @@ for _,id in {"Astronaut","Alien","DarkMatter","CosmicDragon"} do
  Catalog[id].crateExclusive = true
  table.insert(Catalog.Order,id)
 end
+-- October 10: earned only by winning Config.Hill.ChampionWins Hill rounds. A gold,
+-- crowned classic Chicken (ChickenAssets.HillChampion) with Dark Matter's damage.
+variant("HillChampion","StormDuck","Hill Champion",0,{255,196,48})
+Catalog.HillChampion.damage = 101
+Catalog.HillChampion.hillExclusive = true
+table.insert(Catalog.Order,"HillChampion")
 
 -- October 7 rarity reset: rarer always means stronger, and the most desirable
 -- appearances sit highest. The ten stat tiers keep their legacy economy keys

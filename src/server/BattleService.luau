@@ -247,6 +247,10 @@ function BattleService:Targets(session,now)
   entry.killRewardMin,entry.killRewardMax=if low==math.huge then 0 else low,high
   if entry.owned then entry.killRewardMin,entry.killRewardMax=0,0 end
  end
+ local kingLocked,kingReason=self:HillKingLock(now)
+ if kingLocked then for _,entry in targets do
+  if entry.kind=="King" and not entry.current then entry.available=false;entry.reason=kingReason end
+ end end
  local income=self:IncomeSummary(session,now)
  if income then
   local entry=table.clone(income);entry.id=income.targetId;entry.kind="Income"
@@ -256,8 +260,10 @@ function BattleService:Targets(session,now)
  return targets
 end
 
-local function incomeEnabled()
+-- With the Hill enabled the shared site exists only while a Hill round is open.
+local function incomeEnabled(self)
  return Config.IncomeOutpost and Config.IncomeOutpost.Enabled==true
+  and (not (Config.Hill and Config.Hill.Enabled) or self.hillOpen==true)
 end
 
 local function readySession(session)
@@ -274,7 +280,7 @@ function BattleService:IncomeHolder()
 end
 
 function BattleService:IncomeSummary(session,now)
- if not incomeEnabled() then return nil end
+ if not incomeEnabled(self) then return nil end
  local config,state=Config.IncomeOutpost,self.income
  local owner=self.campOwners["income:1"]
  local ownerSession=owner and self.sessions[owner.userId]
@@ -311,7 +317,8 @@ function BattleService:IncomeSummary(session,now)
   if not canMove then available,reason=false,"Your army is busy · finish the current attack" end
  end
  return {targetId="income:1",name=config.Name,ownerId=owner and owner.userId,ownerName=owner and owner.name,
-  configuredRate=config.Rate,effectiveRate=if readySession(ownerSession) and not active then config.Rate else 0,
+  configuredRate=config.Rate,effectiveRate=if readySession(ownerSession) and not active then math.floor(self:HillRate(ownerSession,now) or config.Rate) else 0,
+  boost=if owner and self.hill then self.hill:Boost(owner.userId,now) else 0,
   contested=active,garrisonOwnerId=if garrison then (if side=="A" then garrison.attacker else garrison.defender) else nil,
   contestId=contest and contest.id,graceEndsAt=clientDeadline(state.graceUntil,now),
   retryEndsAt=clientDeadline(session and state.retry[session.userId],now),
@@ -404,7 +411,7 @@ function BattleService:StartIncomeRaid(owner,now)
 end
 
 function BattleService:StepIncome(dt,now)
- if not incomeEnabled() then return end
+ if not incomeEnabled(self) then return end
  local state,config=self.income,Config.IncomeOutpost
  local owner=self.campOwners["income:1"]
  local session=owner and self.sessions[owner.userId]
@@ -413,7 +420,7 @@ function BattleService:StepIncome(dt,now)
  -- Settle the elapsed simulation slice before this tick can activate, resolve
  -- or transfer a contest. Neither a wall-clock stall nor a client pays catchup.
  if readySession(session) and not active then
-  local amount=self.territoryIncome:Step(session,dt)
+  local amount=self.territoryIncome:Step(session,dt,self:HillRate(session,now))
   if amount>0 then
    state.receipts=state.receipts or {};state.receipts[session.userId]=(state.receipts[session.userId] or 0)+amount
   end
@@ -447,7 +454,7 @@ function BattleService:StepIncome(dt,now)
  state.eligibleTime+=math.max(0,dt)
  if state.eligibleTime>=state.warningAfter then
   state.eligibleTime=0;state.warningUntil=now+config.WarningSeconds;state.warnedOnce=true
-  session.banner="Raid approaching the Supply Outpost. Send your army to defend if you want.";session:Touch()
+  session.banner="Raiders are marching on the Hill. Send your army to defend it.";session:Touch()
   if self.telemetry then self.telemetry:Record("NPCWarning",{userId=session.userId,warningSeconds=config.WarningSeconds}) end
  end
 end
@@ -460,12 +467,12 @@ function BattleService:CommitIncomeDefender(battle,holder,now)
  TerritoryContest.AddPlayer(battle,defender,self.world,now,"B",holder,true)
  self:Remove(holder,battle,"B")
  TerritoryContest.Assign(defender,battle,"B",if battle.incomeActiveAt then "Fighting" else "Deployed")
- defender.banner="Your Supply Outpost is under attack!";defender:Touch()
+ defender.banner="Your Hill is under attack!";defender:Touch()
  self:ReserveIncome(battle)
 end
 
 function BattleService:AttackIncome(session,now)
- if not incomeEnabled() then return false,"Target does not exist." end
+ if not incomeEnabled(self) then return false,"The Hill is closed. Wait for the next round." end
  local summary=self:IncomeSummary(session,now)
  if not summary.available then return false,summary.reason end
  local previous=self.battles[session.outgoing]
@@ -509,7 +516,7 @@ function BattleService:AttackIncome(session,now)
   battle.actors:Sync(now)
   battle.actors:Publish(now)
  end
- return true,if joining then "Army returning to defend the outpost." elseif owned then "Army marching to your outpost." else "Army sent to the Supply Outpost."
+ return true,if joining then "Army returning to defend the Hill." elseif owned then "Army marching to your Hill." else "Army sent to the Hill."
 end
 
 function BattleService:Attack(session,targetId,now,keepRoute)
@@ -542,6 +549,8 @@ function BattleService:Attack(session,targetId,now,keepRoute)
    return false,"Conquer all "..#camps.." home camps before challenging the Chicken King."
   end
   if self:TerritoryBlocked(KingEncounter.Target,previous) then return false,"The center is occupied. Wait for that army to leave." end
+  local kingLocked,kingReason=self:HillKingLock(now)
+  if kingLocked then return false,kingReason end
   local king=KingEncounter.Definition(session.promotion or 1)
   defenders,destination,name,targetPower=king.roster,Vector3.new(0,1.05,0),king.name,king.power
  elseif outpostIndex then
@@ -814,12 +823,12 @@ function BattleService:ReconcileIncomeReturns(contestId,now)
   if session and owner and owner.userId==session.userId then
    battle.friendlyTerritory=true;battle.captureElapsed=Config.CaptureSeconds
    self:ReserveIncome(battle)
-   session.lastResult="Outpost defended. Your army is continuing to station there.";session:Touch()
+   session.lastResult="Hill defended. Your army keeps holding it.";session:Touch()
   else
    battle.paid=true;battle.incomeDeparture=true;battle:Finish("Too late",now)
    if session then
     session.armyState,session.returnAt="Returning",now+Config.ReturnSeconds
-    session.lastResult="The outpost changed hands. Your army is returning home.";session:Touch()
+    session.lastResult="The Hill changed hands. Your army is returning home.";session:Touch()
    end
   end
  end
@@ -838,7 +847,7 @@ function BattleService:ResolveIncomeJoin(join,outcome,now)
   self:ReserveIncome(contest)
   TerritoryContest.Assign(session,contest,"B",if contest.incomeActiveAt then "Fighting" else "Deployed")
   if contest.phase=="Capture" and contest:Alive("B")>0 then contest.phase,contest.phaseAt,contest.capturers="Fight",now,0 end
-  session.lastResult="Your army arrived to defend the outpost.";session:Touch()
+  session.lastResult="Your army arrived to defend the Hill.";session:Touch()
   return
  end
  if outcome=="Join" and session and owner and owner.userId==session.userId and not contest then
@@ -883,8 +892,8 @@ function BattleService:FinishIncome(battle,outcome,now)
   local nextBattle=TerritoryContest.Continue(battle,session,participant.side,self.world,now,holding)
   nextBattle.incomeDeparture=not holding
   self.battles[nextBattle.id]=nextBattle;continuations[participant.side]=nextBattle
-  session.lastResult=if holding then "Supply Outpost secured · +$"..config.Rate.."/s. Swap chickens anytime in My Army."
-   elseif outcome=="A" then "Outpost lost. Your chickens recover at home."
+  session.lastResult=if holding then "You hold the Hill! Your farm earns more the longer you stay."
+   elseif outcome=="A" then "Hill lost. Your chickens recover at home."
    else "Contest ended. Your chickens are returning home."
   session:Touch()
  end
@@ -1111,7 +1120,7 @@ function BattleService:Step(dt,now)
 			self:ReturnHome(session,now)
 		end
 	end
- if incomeEnabled() and self.world.SetIncomeStatus then self.world:SetIncomeStatus(self:IncomeSummary(nil,now)) end
+ if incomeEnabled(self) and self.world.SetIncomeStatus then self.world:SetIncomeStatus(self:IncomeSummary(nil,now)) end
 end
 
 function BattleService:ReturnHome(session,now)
@@ -1128,7 +1137,7 @@ function BattleService:ReturnHome(session,now)
    end
   end
   battle.defender=nil
-  session.lastResult="Army returning home. The challenger can still capture the outpost.";session:Touch()
+  session.lastResult="Army returning home. The challenger can still capture the Hill.";session:Touch()
   return true,"Army returning home."
  end
 	battle.routeGoal=nil
@@ -1219,6 +1228,54 @@ function BattleService:CancelPlayer(userId,now)
  if self.income.lostOwners then self.income.lostOwners[userId]=nil end
  if self.income.receipts then self.income.receipts[userId]=nil end
  self.territoryIncome:Release(userId)
+end
+
+-- King of the Hill (HillService owns the clock). The Hill reuses the shared
+-- territory contest above at the King's arena, so King fights wait for the break.
+function BattleService:HillRate(session,now)
+ if self.hill then return self.hill:Rate(session,now) end
+ return nil
+end
+
+function BattleService:HillKingLock(now)
+ if not self.hill then return false,nil end
+ local locked,reason=self.hill:KingLock(now)
+ if locked then return true,reason end
+ if self.campBusy["income:1"] then return true,"Hill armies are leaving the arena" end
+ return false,nil
+end
+
+-- Opens only on an empty arena. A held King flag gives way to the Hill.
+function BattleService:OpenHill(now)
+ if self.campBusy[KingEncounter.Target] or self.campBusy["income:1"] then return false end
+ if self.campOwners[KingEncounter.Target] then self:SetTerritoryOwner(KingEncounter.Target,nil) end
+ local state,config=self.income,Config.IncomeOutpost
+ state.graceUntil,state.retry,state.contestId,state.raidId,state.warningUntil=0,{},nil,nil,nil
+ state.eligibleTime,state.clockOwner,state.warnedOnce,state.warningAfter=0,nil,false,config.WarningAfter
+ self.hillOpen=true
+ if self.world.SetHillMode then self.world:SetHillMode(true) end
+ return true
+end
+
+-- Ends a round: live contests resolve as cancelled, every Hill army marches home
+-- and the flag clears. The King returns once those armies leave the arena.
+function BattleService:CloseHill(now)
+ local contests={}
+ for _,battle in self.battles do
+  if battle.incomeSite and battle.incomeContest and not battle.paid and not battle.incomeJoin then table.insert(contests,battle) end
+ end
+ for _,battle in contests do
+  if self.battles[battle.id]==battle and not battle.paid then self:FinishIncome(battle,"Cancelled",now) end
+ end
+ for _,session in self.sessions do
+  local battle=self.battles[session.outgoing]
+  if battle and battle.incomeSite and battle.phase~="Returning" then self:ReturnHome(session,now) end
+ end
+ if self.campOwners["income:1"] then self:SetTerritoryOwner("income:1",nil) end
+ self:CancelIncomeApproach(now)
+ self.income.clockOwner=nil
+ self.hillOpen=false
+ if self.world.SetHillMode then self.world:SetHillMode(false) end
 end
 
 function BattleService:Snapshots(now)

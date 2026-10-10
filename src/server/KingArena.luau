@@ -190,11 +190,25 @@ function KingArena:SetBusy(busy, ownerName)
 	if not Builder.ApplyOwnershipFlag(self.folder,self.ownerId) then
 		self.flag.Color = if self.ownerId then Conquest.Owned else Color3.fromRGB(228,59,49)
 	end
-	self.status.Text = if self.ownerId then "⚔ Conquered ⚔\n"..self.ownerName elseif busy then "CHICKEN KING\nContested" else "CHICKEN KING"
+	self.status.Text = if self.ownerId then (if self.hillMode then "⛰ Hill held ⛰\n" else "⚔ Conquered ⚔\n")..self.ownerName
+		elseif busy then (if self.hillMode then "THE HILL\nContested" else "CHICKEN KING\nContested") else "CHICKEN KING"
 	self.status.TextColor3=if self.ownerId then Conquest.Owned else palette.gold
 	-- The living boss already owns its name/health label; only show this marker after capture.
 	self.status.Parent.Enabled = self.ownerId~=nil
-	if not busy and not self.ownerId then
+	if not busy and not self.ownerId and self.hillMode then
+		-- An empty Hill shows its Hill Guards (the same roster an attacker fights).
+		local roster=Config.IncomeOutpost.NeutralRoster
+		for i,pet in roster do
+			local angle=(i-1)*math.pi*2/#roster
+			local radius=MapLayout.King.Radius*(10/29)
+			local at=self.folder.KingSpawn.Position+Vector3.new(math.cos(angle)*radius,0,math.sin(angle)*radius)
+			local guard=PetActor.new(self.folder,"HillGuard"..i,pet.species,pet.stars or 1,at,-at)
+			PetView.Level(guard.model,pet.level or 1);guard:Stop();table.insert(self.guards,guard)
+			local patrol=IdlePatrol.new(guard,self.random,3.4,0.25,1)
+			patrol.angle=angle
+			table.insert(self.guardPatrols,patrol)
+		end
+	elseif not busy and not self.ownerId then
 		self.actor = PetActor.new(self.folder, "ChickenKing", "Duck", 1, self.folder.KingSpawn.Position, Vector3.new(0, 0, -1))
 		KingVisual.Apply(self.actor.model, KingEncounter.Scale)
 		self.actor.footOffset = self.actor.model:GetAttribute("FootOffset")
@@ -221,7 +235,7 @@ function KingArena:Hold(userId, name)
 	self.folder:SetAttribute("ConquerorUserId", userId)
 	self.folder:SetAttribute("Conquered",true)
 	if not Builder.ApplyOwnershipFlag(self.folder,userId) then self.flag.Color = Conquest.Owned end
-	self.status.Text = "⚔ Conquered ⚔\n" .. name
+	self.status.Text = (if self.hillMode then "⛰ Hill held ⛰\n" else "⚔ Conquered ⚔\n") .. name
 	self.status.TextColor3=Conquest.Owned
 	self.status.Parent.Enabled = true
 end
@@ -232,7 +246,48 @@ function KingArena:SetOwner(userId,name)
 	if userId then self:Hold(userId,name) end
 end
 
+-- The Hill takes over the arena during a round: Hill Guards replace the King
+-- and the native command prompt targets the Hill (CommandTarget "income:1").
+function KingArena:SetHillMode(open)
+	if self.hillMode==open then return end
+	self.hillMode=open
+	self.folder:SetAttribute("CommandTarget",if open then Config.IncomeOutpost.TargetId else KingEncounter.Target)
+	self.folder:SetAttribute("HillOpen",open)
+	self:SetBusy(self.busy==true)
+	if self.ownerId then self:Hold(self.ownerId,self.ownerName) end
+end
+
+-- One sign above the arena, readable from the plots, carries the round clock.
+function KingArena:SetHillStatus(status)
+	if not self.hillTimer then
+		self.hillTimer=Builder.Billboard(self.folder,"HillTimer",self.folder.KingSpawn.Position+Vector3.new(0,30,0),"",palette.goldLight,420,1200)
+		local gui=self.hillTimer.Parent :: BillboardGui
+		gui.Size,gui.AlwaysOnTop=UDim2.fromOffset(420,96),true
+		self.hillTimer.TextScaled=true
+	end
+	local remaining=math.max(0,math.ceil(status.remaining or 0))
+	local clock=string.format("%d:%02d",remaining//60,remaining%60)
+	local text
+	if status.phase=="Open" then
+		text="THE HILL · "..clock.."\n"..(if status.holderName then "Held by "..status.holderName else "Hill Guards hold it")
+	elseif status.phase=="Opening" then text="THE HILL\nOpening soon"
+	else text="THE HILL opens in "..clock..(if status.lastWinner then "\nLast winner: "..status.lastWinner else "") end
+	if self.hillTimer.Text~=text then self.hillTimer.Text=text end
+	self.hillTimer.TextColor3=if status.phase=="Open" then Conquest.Owned else palette.goldLight
+end
+
 function KingArena:Step(now)
+	if self.hillMode and not self.busy and not self.ownerId then
+		local center=self.folder.KingSpawn.Position
+		for _,patrol in self.guardPatrols do
+			patrol:Step(now,function()
+				local angle=patrol.angle+self.random:NextNumber(-0.4,0.4)
+				local radius=MapLayout.King.Radius*self.random:NextNumber(0.25,0.4)
+				return Vector3.new(center.X+math.cos(angle)*radius,center.Y,center.Z+math.sin(angle)*radius)
+			end)
+		end
+		return
+	end
 	if self.busy or self.ownerId or not self.kingPatrol then return end
 	local center = self.folder.KingSpawn.Position
 	local kingRadius = MapLayout.King.Radius * 0.16
@@ -260,7 +315,7 @@ function KingArena:SnapshotIntroSet()
 	local CollectionService = game:GetService("CollectionService")
 	local removed = {}
 	local function strip(item: Instance)
-		if item:IsA("BaseScript") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") or item:IsA("Sound") then
+		if item:IsA("BaseScript") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") or item:IsA("Sound") or item.Name == "HillTimer" then
 			table.insert(removed, item);return
 		end
 		local tags = CollectionService:GetTags(item)
@@ -272,7 +327,7 @@ function KingArena:SnapshotIntroSet()
 	strip(set)
 	for _, item in set:GetDescendants() do strip(item) end
 	for _, item in removed do item:Destroy() end
-	for _, name in {"Occupied", "OwnerUserId", "ConquerorUserId", "Conquered"} do set:SetAttribute(name, nil) end
+	for _, name in {"Occupied", "OwnerUserId", "ConquerorUserId", "Conquered", "HillOpen"} do set:SetAttribute(name, nil) end
 	set.Name = "PetRollIntroSet"
 	set.Parent = game:GetService("ReplicatedStorage")
 	return set

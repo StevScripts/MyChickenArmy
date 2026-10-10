@@ -75,10 +75,22 @@ function WorldService:OutpostFrame(index)
  return CFrame.lookAt(p,Vector3.new(0,p.Y,0))
 end
 
+local function hillEnabled() return Config.Hill~=nil and Config.Hill.Enabled==true end
+
 function WorldService:IncomeFrame()
  local p=Config.IncomeOutpost.Position
  local position=Vector3.new(p[1],p[2],p[3])
+ -- The Hill sits at the arena center, where a look-at-center frame is undefined.
+ if Vector3.new(position.X,0,position.Z).Magnitude<1 then return CFrame.new(position) end
  return CFrame.lookAt(position,Vector3.new(0,position.Y,0))
+end
+
+function WorldService:SetHillMode(open)
+ if self.kingArena then self.kingArena:SetHillMode(open) end
+end
+
+function WorldService:SetHillStatus(status)
+ if self.kingArena then self.kingArena:SetHillStatus(status) end
 end
 
 function WorldService:HomePosition(index: number, ordinal: number): Vector3
@@ -280,6 +292,7 @@ function WorldService:CanCommand(player,session,targetId,sessions): boolean
 	local index=tonumber(id)
 	local model
 	if targetId=="king:1" then model=self.kingArena and self.kingArena.folder
+	elseif targetId=="income:1" and hillEnabled() then model=self.kingArena and self.kingArena.folder
 	elseif targetId=="income:1" and Config.IncomeOutpost.Enabled then model=self.incomeOutpost and self.incomeOutpost.folder
 	elseif kind=="camp" and index then
 		local record=self.lanes[session.plotIndex] and self.lanes[session.plotIndex][index]
@@ -385,7 +398,7 @@ function WorldService:Build()
   Builder.ApplyCampPromotion(folder,camp.tier,i.." · "..camp.name)
   self:PopulateCamp(record)
  end
- if Config.IncomeOutpost and Config.IncomeOutpost.Enabled then
+ if Config.IncomeOutpost and Config.IncomeOutpost.Enabled and not hillEnabled() then
   local definition=Config.IncomeOutpost
   local folder,frame,label=Builder.BuildIncomeOutpost(root,self:IncomeFrame(),definition)
   local defenders=Instance.new("Folder");defenders.Name,defenders.Parent="Defenders",folder
@@ -611,7 +624,7 @@ function WorldService:Step(now)
 end
 
 function WorldService:SetTerritoryOwner(location,userId,name)
- if location.king then
+ if location.king or (location.income and hillEnabled()) then
   if self.kingArena then self.kingArena:SetOwner(userId,name) end
   return
  end
@@ -637,6 +650,10 @@ function WorldService:TakeTerritoryDefenders(location)
 end
 
 function WorldService:SetIncomeBusy(busy)
+ if hillEnabled() then
+  if self.kingArena and self.kingArena.busy~=busy then self.kingArena:SetBusy(busy) end
+  return
+ end
  local record=self.incomeOutpost
  if not record or record.busy==busy then return end
  record.busy=busy;attribute(record.folder,"Occupied",busy)

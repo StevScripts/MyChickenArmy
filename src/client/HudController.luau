@@ -295,7 +295,15 @@ function Hud:UpdateTerritory(state)
 	self.territory.Visible = owned == true and not self.app.panel.Visible
 	if not owned then self.territory.Text = "";return end
 	local rate = math.max(0, math.floor(site.effectiveRate or 0))
-	self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +$" .. Theme.Money(rate) .. "/s"
+	local hill = state.hill
+	if hill and hill.enabled then
+		-- King of the Hill: the boost grows the longer you hold; the round clock is shared.
+		local remaining = math.max(0, math.ceil((hill.endsAt or 0) - workspace:GetServerTimeNow()))
+		self.territory.Text = if site.contested then "Hill contested · boost paused"
+			else string.format("Holding the Hill · +%d%% farm · %d:%02d", math.floor((site.boost or 0) * 100 + 0.5), remaining // 60, remaining % 60)
+	else
+		self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +$" .. Theme.Money(rate) .. "/s"
+	end
 	self.territory.TextColor3 = if site.contested then A.red else A.gold
 	if not site.contested then
 		if site.npcApproaching then self.territory.Text ..= " · raid approaching"

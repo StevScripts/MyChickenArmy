@@ -54,6 +54,8 @@ function PlayerSession:Reset()
  self.promotion,self.recruitTier=1,1
  self.frontierWins,self.kingCleared={},false
  self.kingBountyPaid=false -- Full King boss bounty is paid once per player (BattleService).
+ -- King of the Hill (HillService): lifetime round wins, owed Hill Rolls, Champion granted.
+ self.hillWins,self.hillRollCredits,self.hillChampion=0,0,false
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
  self.tutorial={starterArmy=true,collectedEggCount=0}
  self.fusionUnlocked=false
@@ -536,6 +538,7 @@ function PlayerSession:ToData()
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
 		pets=pets,discovered=discovered,firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
+		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned}
@@ -651,6 +654,12 @@ function PlayerSession:LoadData(data)
 	local carryValue=if type(carry)=="table" then clampHigh(carry.value,0,PlayerSession.CarryLimit,true) else nil
 	local enemyKills=clampHigh(data.enemyKills or 0,0,1e12,true)
 	local robuxSpent=clampHigh(data.robuxSpent or 0,0,1e12,true)
+	-- Additive Hill fields (October 10): missing means none earned yet.
+	local hillWins=clampHigh(data.hillWins or 0,0,1e9,true)
+	local hillRollCredits=clampHigh(data.hillRollCredits or 0,0,1e6,true)
+	if not hillWins or not hillRollCredits or (data.hillChampion~=nil and type(data.hillChampion)~="boolean") then
+		return false,"Invalid saved Hill progress."
+	end
 	if not carryCount or not carryValue or ((carryCount==0)~=(carryValue==0))
 		or not enemyKills or not robuxSpent then return false,"Invalid saved eggs, defeat or Robux count." end
 	local promotion=if revision>=5 then data.promotion else 1
@@ -816,6 +825,7 @@ function PlayerSession:LoadData(data)
 	self.promotion,self.recruitTier=promotion,promotion
  self.frontierWins,self.kingCleared=frontier,king
  self.kingBountyPaid=data.kingBountyPaid==true
+ self.hillWins,self.hillRollCredits,self.hillChampion=hillWins,hillRollCredits,data.hillChampion==true
 	-- Preserve old saves: round any historical cents up once, never reset progress.
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial

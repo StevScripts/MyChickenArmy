@@ -82,7 +82,8 @@ function BaseController:CommandFor(part)
 		end
 		return {model = target, action = if allowed then "Attack" else nil, targetId = id,
 			canUnclaim=entry.canUnclaim==true,
-			hint = if allowed and not income then hint else nil,
+			hint = if allowed and income then (if (income.count or 0) > 0 then strength .. " · " .. income.count .. " defenders" else "Undefended")
+				elseif allowed then hint else nil,
 			-- Unavailable targets explain why on a heading; the current target and
 			-- held ground stay quiet (no inactive prompt over a fight).
 			locked = not allowed and not entry.current and not entry.owned, reason = reason,

@@ -25,6 +25,7 @@ local UpgradeService=require(script.Parent.UpgradeService)
 local ResearchService=require(script.Parent.ResearchService)
 local ArmyAbilities=require(script.Parent.ArmyAbilities)
 local OperationService=require(script.Parent.OperationService)
+local HillService=require(script.Parent.HillService)
 local GameServer={}
 GameServer.__index=GameServer
 local SYNC_COOLDOWN=1 -- Extra Sync requests are answered by the next periodic snapshot.
@@ -41,6 +42,7 @@ function GameServer.new()
 	self.upgrades=UpgradeService.new(self.world,self.rolls)
 	self.battles=BattleService.new(self.sessions,self.world)
 	self.operations=OperationService.new(self.battles,self.world,self.sessions)
+	self.hill=HillService.new(self.battles,self.world,self.sessions,os.clock())
 	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
 	-- Local loop observations also feed the agent analytics ledger.
 	self.telemetry=LoopTelemetry.new(function(event) if self.analytics then self.analytics:LoopEvent(event) end end)
@@ -77,6 +79,7 @@ function GameServer:Send(player,result)
 	state.shop.productReady=self.products:CanPurchase(session)
 	state.targets=self.battles:Targets(session,now)
 	state.incomeOutpost=if self.battles.IncomeSummary then self.battles:IncomeSummary(session,now) else nil
+	state.hill=self.hill:Snapshot(session,now)
 	state.mergeOptions=ArmyService.MergeOptions(session)
 	state.operations=self.operations:Snapshot(session)
 	local battle=self.battles.battles[session.outgoing]
@@ -376,6 +379,7 @@ function GameServer:RemovePlayer(player)
  self.armyCommands:Remove(player.UserId)
  self.commerce:Release(player)
  self.battles:CancelPlayer(player.UserId,os.clock())
+ self.hill:Release(player.UserId)
  self.eggs:Release(session)
  self.world:Release(session)
  self.sessions[player.UserId],self.limits[player.UserId]=nil,nil
@@ -439,6 +443,7 @@ function GameServer:Step(dt)
 	end
 	self.armyCommands:Step(now)
 	self.world:Step(now)
+ self.hill:Step(dt,now)
  self.leaderboards:Step(now)
  self.data:Step()
 	self.stepAccumulator+=dt

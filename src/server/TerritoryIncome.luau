@@ -17,7 +17,9 @@ function TerritoryIncome.new(rate: number): Income
 	return setmetatable({rate = rate, carry = {} :: {[number]: Carry}, destroyed = false}, TerritoryIncome)
 end
 
-function TerritoryIncome.Step(self: Income, session: any, eligibleDt: number): number
+-- rateOverride (coins/sec) replaces the fixed rate for this slice; the Hill pays a
+-- boost that depends on the holder's farm and hold time.
+function TerritoryIncome.Step(self: Income, session: any, eligibleDt: number, rateOverride: number?): number
 	if self.destroyed or type(session) ~= "table" then return 0 end
 	local userId = session.userId
 	if not finite(userId) or userId % 1 ~= 0 then return 0 end
@@ -27,8 +29,9 @@ function TerritoryIncome.Step(self: Income, session: any, eligibleDt: number): n
 		return 0
 	end
 	if session.loaded ~= true or type(session.Credit) ~= "function" then return 0 end
-	if not finite(eligibleDt) or eligibleDt <= 0 or self.rate == 0 then return 0 end
-	local earned = self.rate * eligibleDt
+	local rate = if rateOverride ~= nil then rateOverride else self.rate
+	if not finite(eligibleDt) or eligibleDt <= 0 or not finite(rate) or rate <= 0 then return 0 end
+	local earned = rate * eligibleDt
 	if not finite(earned) then return 0 end
 
 	local entry = self.carry[userId]
