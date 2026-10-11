@@ -40,11 +40,11 @@ Champion chicken at 10 wins, rendered as a crowned gold copy of the classic Chic
 | Clock, boost, winner, rewards, per-player HUD snapshot | `src/server/HillService.luau` |
 | Fights, raids, holder, payout hook, King lock, open/close | `BattleService` (`HillRate`, `HillKingLock`, `OpenHill`, `CloseHill`; the existing `income:1` contest) |
 | Payout slice with a per-tick rate | `TerritoryIncome.Step(session, dt, rateOverride)` |
-| Arena presentation: Hill Guards, flag text, timer sign, prompt target swap | `KingArena:SetHillMode`, `KingArena:SetHillStatus` |
-| `income:1` world calls routed to the arena | `WorldService` (`IncomeFrame`, `CanCommand`, `SetIncomeBusy`, `SetTerritoryOwner`, `SetHillMode`, `SetHillStatus`) |
+| Arena presentation: Hill Guards, flag text, prompt target swap | `KingArena:SetHillMode` |
+| `income:1` world calls routed to the arena | `WorldService` (`IncomeFrame`, `CanCommand`, `SetIncomeBusy`, `SetTerritoryOwner`, `SetHillMode`) |
 | Saved fields | `PlayerSession`: `hillWins`, `hillRollCredits`, `hillChampion` (additive; missing = 0/false) |
 | Chicken | `PetCatalog.HillChampion` (`hillExclusive`), `ChickenAppearanceAssets.HillChampion`, Studio model `ReplicatedStorage.PetRoll.ChickenAssets.HillChampion` |
-| HUD | `HudController:UpdateTerritory` ("Holding the Hill · +30% farm · 2:41"); prompt hint in `BaseController:CommandFor` |
+| HUD | `src/client/HillHud.luau` (see below), driven from `HudController:UpdateTerritory`; prompt hint in `BaseController:CommandFor` |
 | Index | "Win the Hill 10 times" caption in `IndexBrowser` |
 | Telemetry | `HillRoundWon` loop event (userId, seconds, wins, round) |
 | Checks | `tests/HillChecks.luau`; `IncomeTerritoryChecks` disables the Hill clock to test the contest engine alone |
@@ -53,3 +53,28 @@ The Champion model is Studio-owned: the Duck mesh with its SurfaceAppearance tin
 gold (255,196,48), a 5-part gold crown placed on `Original_HatSocket`, and the
 Golden Emperor's sparkle attachment. It has no captured portrait, so menus use the
 live model preview (`ChickenPreview`).
+
+## HUD (October 10, Mini War event pattern)
+
+The user rejected a world sign over the arena and pointed at Mini War's event UI
+(a big outlined boss title with a wide percentage bar top-center, a warm world
+tint, and a small icon plus countdown at bottom-left). `HillHud` follows it with
+the game's own `Theme.Display` lettering and `Theme.SegmentedBar`:
+
+- **During a round (top-center, no panel):** the "slim boss bar" the user picked
+  from three in-game mockups (A slim bar, B studded plate, C scoreboard): an
+  outlined title, a square studded meter on the kit's slate conquest track that
+  drains over the round with the clock inside it, and one short line under it. The title and bar
+  follow the player's situation: KING OF THE HILL / MARCHING TO THE HILL (gold),
+  CAPTURING THE HILL (red), YOU HOLD THE HILL (Army green, "+30% farm income · You
+  lead 1:12"), HILL UNDER ATTACK! (red). A subtle warm `ColorCorrectionEffect`
+  (`Lighting.PetRollHillTint`) fades in for the round.
+- **Between rounds (bottom-left):** a helmet icon chip "Hill in 3:12" just above
+  the cash readout.
+- **Who sees it:** players who have won all home camps or cleared the King, or who
+  took part in a round or have won one. It hides under menus and dialogue.
+- **Top-slot rules while the title shows:** the Commander's quiet next-goal line
+  waits (lessons still show), the army status line hides, and toasts drop from 24%
+  to 30% screen height.
+- Studio playtest verified: chip, idle, marching, capturing and holding states,
+  status/toast clearance, and a full round with the winner's Hill Roll.

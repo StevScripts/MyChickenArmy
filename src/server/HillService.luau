@@ -153,7 +153,6 @@ function HillService:Step(dt,now)
    end
   end
  end
- if self.world.SetHillStatus then self.world:SetHillStatus(self:Status(now)) end
 end
 
 function HillService:Status(now)
@@ -167,13 +166,21 @@ function HillService:Status(now)
   lastWinner=self.lastWinner}
 end
 
--- Per-player snapshot for the HUD.
+-- Per-player snapshot for the HUD (HillHud): the top banner during a round and
+-- the bottom "Next Hill" line during a break. No world sign; the HUD owns it.
 function HillService:Snapshot(session,now)
  local status=self:Status(now)
+ local battles=self.battles
+ local own=battles.battles[session.outgoing]
+ local contest=battles.battles[battles.income.contestId]
+ status.engaged=own~=nil and own.incomeSite==true and own.phase~="Returning"
+ status.contested=contest~=nil and contest.incomeActiveAt~=nil and not contest.paid
+ status.holding=self.holderId==session.userId
  status.mySeconds=math.floor(self.seconds[session.userId] or 0)
  status.myBoost=self:Boost(session.userId,now)
  status.wins=session.hillWins or 0
  status.championWins=Config.Hill.ChampionWins
+ status.roundSeconds=Config.Hill.RoundSeconds
  status.champion=session.hillChampion==true
  status.enabled=Config.Hill.Enabled
  return status

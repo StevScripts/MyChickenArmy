@@ -257,25 +257,6 @@ function KingArena:SetHillMode(open)
 	if self.ownerId then self:Hold(self.ownerId,self.ownerName) end
 end
 
--- One sign above the arena, readable from the plots, carries the round clock.
-function KingArena:SetHillStatus(status)
-	if not self.hillTimer then
-		self.hillTimer=Builder.Billboard(self.folder,"HillTimer",self.folder.KingSpawn.Position+Vector3.new(0,30,0),"",palette.goldLight,420,1200)
-		local gui=self.hillTimer.Parent :: BillboardGui
-		gui.Size,gui.AlwaysOnTop=UDim2.fromOffset(420,96),true
-		self.hillTimer.TextScaled=true
-	end
-	local remaining=math.max(0,math.ceil(status.remaining or 0))
-	local clock=string.format("%d:%02d",remaining//60,remaining%60)
-	local text
-	if status.phase=="Open" then
-		text="THE HILL · "..clock.."\n"..(if status.holderName then "Held by "..status.holderName else "Hill Guards hold it")
-	elseif status.phase=="Opening" then text="THE HILL\nOpening soon"
-	else text="THE HILL opens in "..clock..(if status.lastWinner then "\nLast winner: "..status.lastWinner else "") end
-	if self.hillTimer.Text~=text then self.hillTimer.Text=text end
-	self.hillTimer.TextColor3=if status.phase=="Open" then Conquest.Owned else palette.goldLight
-end
-
 function KingArena:Step(now)
 	if self.hillMode and not self.busy and not self.ownerId then
 		local center=self.folder.KingSpawn.Position
@@ -315,7 +296,7 @@ function KingArena:SnapshotIntroSet()
 	local CollectionService = game:GetService("CollectionService")
 	local removed = {}
 	local function strip(item: Instance)
-		if item:IsA("BaseScript") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") or item:IsA("Sound") or item.Name == "HillTimer" then
+		if item:IsA("BaseScript") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") or item:IsA("Sound") then
 			table.insert(removed, item);return
 		end
 		local tags = CollectionService:GetTags(item)

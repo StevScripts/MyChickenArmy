@@ -89,9 +89,6 @@ function WorldService:SetHillMode(open)
  if self.kingArena then self.kingArena:SetHillMode(open) end
 end
 
-function WorldService:SetHillStatus(status)
- if self.kingArena then self.kingArena:SetHillStatus(status) end
-end
 
 function WorldService:HomePosition(index: number, ordinal: number): Vector3
 	local layout=HomePlot.ForPlot(index)

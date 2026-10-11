@@ -241,6 +241,8 @@ function Commander:Update()
 		end
 	end
 	if not current then current=Guide.NextGoal(state) end
+	-- A live Hill round takes the top slot; quiet next-goal lines wait (lessons never do).
+	if current and current.goal and app.hud and app.hud.hill and app.hud.hill.bannerVisible then current=nil end
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
 	if self.facts and current and not current.goal then

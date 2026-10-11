@@ -5,6 +5,7 @@ local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
+local HillHud=require(script.Parent.HillHud)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
@@ -79,6 +80,7 @@ function Hud.new(app,shell)
 	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self.flock=Theme.Display(totals,"Flock","Flock 0/40",25,A.gold)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
+	self.hill=HillHud.new(app,shell,cash)
 	self:BuildSettingsTopbar()
 	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.51))
 	shortcuts.BackgroundTransparency=1
@@ -290,20 +292,19 @@ function Hud:UpdateOpening(state)
 end
 
 function Hud:UpdateTerritory(state)
+	if self.hill then
+		self.hill:Update(state)
+		-- The Hill title owns the top line during a round; the army status returns after.
+		self.status.Visible=self.status.Text~="" and not self.hill.bannerVisible
+	end
 	local site = state and state.incomeOutpost
 	local owned = site and site.ownerId == state.userId
 	self.territory.Visible = owned == true and not self.app.panel.Visible
 	if not owned then self.territory.Text = "";return end
+	-- The Hill banner (HillHud) carries the holder's boost and clock instead.
+	if state.hill and state.hill.enabled then self.territory.Visible = false;return end
 	local rate = math.max(0, math.floor(site.effectiveRate or 0))
-	local hill = state.hill
-	if hill and hill.enabled then
-		-- King of the Hill: the boost grows the longer you hold; the round clock is shared.
-		local remaining = math.max(0, math.ceil((hill.endsAt or 0) - workspace:GetServerTimeNow()))
-		self.territory.Text = if site.contested then "Hill contested · boost paused"
-			else string.format("Holding the Hill · +%d%% farm · %d:%02d", math.floor((site.boost or 0) * 100 + 0.5), remaining // 60, remaining % 60)
-	else
-		self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +$" .. Theme.Money(rate) .. "/s"
-	end
+	self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +$" .. Theme.Money(rate) .. "/s"
 	self.territory.TextColor3 = if site.contested then A.red else A.gold
 	if not site.contested then
 		if site.npcApproaching then self.territory.Text ..= " · raid approaching"
@@ -324,7 +325,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
 	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
-	self.status.Visible=not atHome
+	self.status.Visible=not atHome and not (self.hill and self.hill.bannerVisible)
 	self.status.Text=if atHome then ""
 		elseif state.armyState=="Following" then "Army following you"
 		elseif state.armyState=="Returning" then "Returning home"

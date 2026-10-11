@@ -75,7 +75,9 @@ end
 
 
 function AppController:NoticePosition()
-	return UDim2.fromScale(0.5,if self.panel.Visible then 0.14 else 0.24)
+	-- A live Hill round's title and bar fill the top; notices sit just below them.
+	local hill=self.hud and self.hud.hill and self.hud.hill.bannerVisible
+	return UDim2.fromScale(0.5,if self.panel.Visible then 0.14 elseif hill then 0.3 else 0.24)
 end
 
 function AppController:SizeNotice()

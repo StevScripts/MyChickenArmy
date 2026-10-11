@@ -23,7 +23,6 @@ local function setup()
  function world:SetCampBusy() end
  function world:SetOutpostBusy() end
  function world:SetHillMode(open) self.mode=open end
- function world:SetHillStatus(status) self.status=status end
  function world:CampPosition(index,plot) return self:Position(plot).Unit*Config.CampRadii[index] end
  function world:CampFrame(index,plot) return CFrame.new(self:CampPosition(index,plot)) end
  local sessions={[a.userId]=a,[b.userId]=b}
