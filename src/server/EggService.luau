@@ -18,6 +18,9 @@ local EggService={}
 EggService.__index=EggService
 local CASH_COLLECT_SECONDS=1
 local CASH_MIN_HORIZONTAL_SPEED=0.5 -- Ignore standing jitter and vertical pad travel.
+-- Eggs still landing in the bag right after a sale wait for the next pass instead of
+-- firing a second payout (pop and sound) a split second later.
+local DEPOSIT_DEBOUNCE_SECONDS=0.5
 
 local function onCashPad(pad,position)
  if not position or not pad or not pad:IsA("BasePart") then return false end
@@ -275,6 +278,8 @@ function EggService:Deposit(session,position,now)
   or at.Y< -1 or at.Y>pad.Size.Y/2+5 then return false end
  local carry=session.eggCarry
  if carry.value<=0 then return false end
+ local yard=self:Yard(session)
+ if now-(yard.lastPlayerDepositAt or -math.huge)<DEPOSIT_DEBOUNCE_SECONDS then return false end
  local count,value=carry.count,carry.value
  -- No yield between ledger transfer and clearing the bag.
  local accepted,credited,queued=self:AcceptDeposit(session,count,value)
@@ -282,7 +287,7 @@ function EggService:Deposit(session,position,now)
  session.eggCarry={count=0,value=0}
  session:Touch()
  if not queued then session.tutorial.soldEggs=true end
- local yard=self:Yard(session)
+ yard.lastPlayerDepositAt=now
  self:RecordDeposit(yard,count,credited,now,"player",pad.Position,queued)
  return true,credited
 end

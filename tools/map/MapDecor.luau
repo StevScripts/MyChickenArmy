@@ -8,7 +8,7 @@
 
 local SEED = 20261010
 local DENSITY = 1 -- 1 = default fill for the whole island
-local SIZE = 0.65 -- props sit under the scale of the home bases and camps
+local SIZE = 0.455 -- props sit under the scale of the home bases and camps (Oct 12: 0.65 x 0.7, user asked for smaller props)
 
 local ServerStorage = game:GetService("ServerStorage")
 local map = workspace:WaitForChild("MyChickenArmyMap")

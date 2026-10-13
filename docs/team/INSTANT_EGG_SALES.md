@@ -100,3 +100,16 @@ Compatibility: retained selling levels refund the historical cash cost once.
 Unused Finish Now credits and late undelivered receipts receive 100,000 cash
 each; preserve pending compensation at the wallet ceiling. Existing delivered
 receipt IDs stay acknowledged without another reward. No live profiles accessed.
+
+## 0.5 s deposit debounce — October 12, 2026
+
+The user saw the egg sale "activating twice sometimes". Cause: eggs still flying into
+the bag (Auto Collect, vacuum or late pickups) landed a moment after a sale while the
+player stood on the pad, so `EggService:Deposit` paid a second time a few frames later,
+each with its own `+$` pop and sound. `EggService` now keeps `yard.lastPlayerDepositAt`
+and ignores player deposits within `DEPOSIT_DEBOUNCE_SECONDS` (0.5 s) of the last one;
+those eggs stay in the bag and pay on the next pass after the window, so nothing is
+lost. Rover deposits and the cash-pad `ClaimReady` (1 s cooldown) are unchanged.
+`tests/PlotEggDepositChecks.luau` covers the window. Its pre-existing final "Old plot
+strands carried eggs" assertion predates every plot having a deposit pad and fails
+independently of this change.

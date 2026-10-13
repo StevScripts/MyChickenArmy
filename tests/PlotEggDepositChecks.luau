@@ -25,6 +25,10 @@ return function()
   assert(eggs:Deposit(session,pad.Position+Vector3.new(0,3,0),2),"On-pad deposit rejected")
   assert(session.coins==initial+123 and session.eggCarry.count==0 and session.eggCarry.value==0,"Deposit wrong payout")
   assert(not eggs:Deposit(session,pad.Position,2.1) and session.coins==initial+123,"Repeated overlap paid twice")
+  -- Eggs landing right after a sale wait out the 0.5 s debounce, then pay once.
+  eggs:Pay(session,yard,{id="late",value=40,stack=1},2.2)
+  assert(not eggs:Deposit(session,pad.Position,2.3) and session.eggCarry.value==40,"Debounce paid a second sale early")
+  assert(eggs:Deposit(session,pad.Position,2.55) and session.coins==initial+163 and session.eggCarry.value==0,"Debounced eggs never paid")
   local bad=table.clone(saved);bad.eggCarry={count=1,value=0/0}
   assert(not restored:LoadData(bad),"NaN bag accepted")
   bad.eggCarry={count=0,value=10};assert(not restored:LoadData(bad),"Inconsistent bag accepted")
@@ -37,7 +41,7 @@ return function()
   local legacy=Session.new(-819,"Old plot",2);legacy.loaded=true;legacy.eggCarry={count=2,value=55}
   local legacyCoins=legacy.coins;eggs:Pay(legacy,eggs:Yard(legacy),{id="legacy",value=10,stack=1},3)
   assert(legacy.coins==legacyCoins+65 and legacy.eggCarry.value==0,"Old plot strands carried eggs")
-  return "11 deposit, ownership, persistence and recovery checks passed"
+  return "13 deposit, ownership, persistence, debounce and recovery checks passed"
  end)
  pad:Destroy();eggs:Destroy()
  assert(ok,result)
