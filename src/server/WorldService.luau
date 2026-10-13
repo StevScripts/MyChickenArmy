@@ -28,6 +28,17 @@ local MAX_WANDERING = 12
 local MAX_VISIBLE = Config.LegacyCollectionLimit
 local FOOT_Y = HomePlot.FootY
 
+-- The authored plot sign carries a sample picture. Owners get their Roblox headshot;
+-- an open plot shows no picture.
+local function setPortrait(title, userId)
+	local portrait = title and title:FindFirstChildWhichIsA("ImageLabel")
+	if not portrait then return end
+	local image = if userId and userId > 0 then "rbxthumb://type=AvatarHeadShot&id=" .. userId .. "&w=150&h=150" else ""
+	if portrait.Image ~= image then portrait.Image = image end
+	portrait.ScaleType = Enum.ScaleType.Fit
+	portrait.Visible = image ~= ""
+end
+
 local function attribute(instance, name, value)
 	if instance:GetAttribute(name) ~= value then instance:SetAttribute(name, value) end
 end
@@ -349,6 +360,7 @@ function WorldService:Build()
 			local station=stations[1]
 			local conquestTitle=if folder:GetAttribute("AuthoredPlot") then nil else Builder.Sign(folder,"ConquestSign",cf*CFrame.new(21,4.8,-26),
 				#starterCamps.." CAMPS → CHICKEN KING",Builder.Palette.ink,15,3.5)
+			setPortrait(title, nil)
 			local plot={folder=folder,pets=pets,title=title,station=station,stations=stations,actors={},roaming={},
 				homeOrdinals={},index=index,connections={},conquestTitle=conquestTitle}
 			plot.upgrades=PlotUpgradeService.new(folder,index,cf)
@@ -506,6 +518,7 @@ function WorldService:UpdateSession(session)
 	local bannerTier=OperationRewards.Apply(session,plot,self:PlotFrame(session.plotIndex))
 	local title = session.name .. "'S ARMY"..(if bannerTier==3 then "\nROYAL COMMANDER" else "")
 	if plot.title.Text ~= title then plot.title.Text = title end
+	setPortrait(plot.title, session.userId)
 	local won=0
 	for index in camps do if session.firstWins[index] then won+=1 end end
  if plot.conquestTitle then plot.conquestTitle.Text=if earnedTrophy then "CHICKEN CROWN" else won.."/"..#camps.." CAMPS → KING" end
@@ -703,6 +716,7 @@ function WorldService:Release(session)
 		if plot.trophy then plot.trophy:Destroy(); plot.trophy = nil end
 		attribute(plot.folder, "ConquestCompleted", nil)
 		plot.title.Text = "HOME " .. session.plotIndex .. " · OPEN"
+		setPortrait(plot.title, nil)
 		if plot.conquestTitle then plot.conquestTitle.Text = #Progression.Camps(1).." CAMPS → CHICKEN KING" end
 		for _, name in {"CommandTarget", "OwnerUserId", "ArmyState", "HomeCount", "HiddenHomeCount", "Promotion"} do plot.folder:SetAttribute(name, nil) end
 		for index, record in self.lanes[session.plotIndex] do

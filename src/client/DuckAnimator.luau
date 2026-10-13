@@ -67,6 +67,7 @@ function DuckAnimator:_step(dt: number)
 	local now = os.clock()
 	local camera = workspace.CurrentCamera
 	local tier = self.effectQuality:Step(dt)
+	local cullDistance = self.effectQuality:CullDistance()
 	for model, record in self.records do
 		if not model:IsDescendantOf(workspace) then
 			if record.blender then record.blender:Destroy() end
@@ -79,7 +80,7 @@ function DuckAnimator:_step(dt: number)
 		-- Galaxy uses the same shared animated material at medium/high quality.
 		local textureTier = if tier == "static" or (tier == "masked" and model:GetAttribute("GalaxyMaskPreview") == true)
 			then "static" else "animated"
-		if record.fx then record.fx:Step(now, self.reducedMotion, camera, textureTier) end
+		if record.fx then record.fx:Step(now, self.reducedMotion, camera, textureTier, cullDistance) end
 		if record.glitch then record.glitch:Step(now, self.reducedMotion, camera) end
 		if record.blender then
 			record.blender:Step(now, self.reducedMotion or model:GetAttribute("ReducedMotion") == true)

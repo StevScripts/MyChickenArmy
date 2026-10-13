@@ -135,6 +135,14 @@ function Quality.GetTier(self: any): Tier
 	return TIERS[self.state.tier]
 end
 
+-- How far chicken particle effects draw. Low graphics keep the original 110 studs;
+-- higher settings (or Automatic once it has earned the tier) see them from further away.
+Quality.CullDistances = {static = 110, animated = 220, masked = 400}
+
+function Quality.CullDistance(self: any): number
+	return Quality.CullDistances[self:GetTier()] or 110
+end
+
 function Quality.Destroy(self: any)
 	if self.destroyed then return end
 	self.destroyed = true

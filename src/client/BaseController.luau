@@ -214,6 +214,52 @@ end
 
 function BaseController:RefreshPromptOwnership()
 	for _, entry in self.promptFilters do entry.apply() end
+	self:UpdateOwnSign()
+end
+
+-- Your own plot's sign stays visible from anywhere on the map. The real sign is a
+-- 100-stud billboard that can also stream out when you travel, so this keeps a local
+-- copy on its own anchor (your name and headshot) and hides the real one for you only.
+-- Other players' signs are unchanged.
+function BaseController:UpdateOwnSign()
+	local state = self.app.state
+	local index = state and state.plotIndex
+	local world = workspace:FindFirstChild("PetRollWorld")
+	local plot = index and world and world:FindFirstChild("Plot" .. index)
+	local sign = plot and plot:FindFirstChild("Your Plot", true)
+	local real = sign and sign:IsA("BasePart") and sign:FindFirstChildWhichIsA("BillboardGui") or nil
+	if self.ownSignIndex ~= index then
+		if self.ownSign then self.ownSign:Destroy();self.ownSign = nil end
+		if self.hiddenSign and self.hiddenSign.Parent then self.hiddenSign.Enabled = true end
+		self.hiddenSign, self.ownSignIndex = nil, index
+	end
+	if not index then return end
+	if real and sign then
+		if not self.ownSign then
+			local anchor = Instance.new("Part")
+			anchor.Name, anchor.Anchored, anchor.CanCollide, anchor.CanQuery, anchor.CanTouch = "OwnPlotSign", true, false, false, false
+			anchor.Transparency, anchor.Size, anchor.CastShadow = 1, Vector3.one, false
+			local copy = real:Clone()
+			copy.Adornee, copy.MaxDistance, copy.Enabled = anchor, math.huge, true
+			-- A pixel floor keeps it readable from across the island; up close it matches the original.
+			copy.Size = UDim2.new(real.Size.X.Scale * 0.6, 110, real.Size.Y.Scale * 0.6, 22)
+			copy.Parent = anchor
+			anchor.Parent = workspace
+			self.ownSign = anchor
+		end
+		self.ownSign.CFrame = sign.CFrame
+		local text = real:FindFirstChildWhichIsA("TextLabel", true)
+		local mine = self.ownSign:FindFirstChildWhichIsA("TextLabel", true)
+		if text and mine and mine.Text ~= text.Text then mine.Text = text.Text end
+		local portrait = mine and mine:FindFirstChildWhichIsA("ImageLabel")
+		if portrait then
+			local userId = Players.LocalPlayer.UserId
+			portrait.Image = if userId > 0 then "rbxthumb://type=AvatarHeadShot&id=" .. userId .. "&w=150&h=150" else ""
+			portrait.ScaleType, portrait.Visible = Enum.ScaleType.Fit, portrait.Image ~= ""
+		end
+		if real.Enabled then real.Enabled = false end
+		self.hiddenSign = real
+	end
 end
 
 function BaseController:UpdateMergeStand()
@@ -237,6 +283,13 @@ function BaseController:Start()
 		end
 	end
 	table.insert(self.connections, player.CharacterAdded:Connect(restoreCamera))
+	-- The real sign can stream back in as a fresh copy; keep it hidden behind ours.
+	task.spawn(function()
+		while self.alive do
+			self:UpdateOwnSign()
+			task.wait(0.5)
+		end
+	end)
 	if player.Character then task.spawn(restoreCamera, player.Character) end
 	local old = workspace:FindFirstChild("PetRollLocalEffects")
 	if old then old:Destroy() end
@@ -564,6 +617,7 @@ end
 
 function BaseController:Destroy()
 	self.alive = false
+	if self.ownSign then self.ownSign:Destroy();self.ownSign = nil end
 	self:StopGuideMotion()
 	if self.guideStart then self.guideStart:Destroy() end
 	if self.guideEnd then self.guideEnd:Destroy() end

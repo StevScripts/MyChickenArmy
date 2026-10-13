@@ -214,7 +214,7 @@ function Special._visible(self: any, visible: boolean)
 	end
 end
 
-function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?, textureTier: string?)
+function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?, textureTier: string?, cullDistance: number?)
 	if self.destroyed then return end
 	local model = self.model
 	if not model.Parent then self:Destroy(); return end
@@ -264,7 +264,8 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		-- respawn hiding. Its mesh controller separately checks external alpha.
 		and (body.LocalTransparencyModifier < 0.5 or appearance == "Glitch")
 		and body.Transparency < 0.98 and camera ~= nil
-		and (camera.CFrame.Position - root.Position).Magnitude <= CULL_DISTANCE
+		-- Particles follow the graphics-quality distance; animated textures above keep 110.
+		and (camera.CFrame.Position - root.Position).Magnitude <= (cullDistance or CULL_DISTANCE)
 	if appearance == "Glitch" and model:GetAttribute("GlitchMeshStatus") ~= "ready" then visible = false end
 	-- Only nearby visible VFX get spatial audio. Empty authored IDs are silent.
 	if self.audio and not dragon then

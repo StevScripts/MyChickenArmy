@@ -76,7 +76,7 @@ function RareVFX:_scale(ratio: number)
 	end
 end
 
-function RareVFX:Step(now: number, reduced: boolean, camera: Camera?)
+function RareVFX:Step(now: number, reduced: boolean, camera: Camera?, _textureTier: string?, cullDistance: number?)
 	if now < self.nextUpdate then return end
 	self.nextUpdate = now + 1 / 20
 	local model = self.model
@@ -95,7 +95,7 @@ function RareVFX:Step(now: number, reduced: boolean, camera: Camera?)
 	local visible = not reduced and not model:GetAttribute("ReducedMotion")
 		and not model:GetAttribute("Defeated") and not model:GetAttribute("PresentationHidden")
 		and root.LocalTransparencyModifier < 0.5
-		and camera ~= nil and (camera.CFrame.Position - root.Position).Magnitude <= Presets.CullDistance
+		and camera ~= nil and (camera.CFrame.Position - root.Position).Magnitude <= (cullDistance or Presets.CullDistance)
 	if visible ~= self.visible then
 		for i, node in self.preset.nodes do
 			local item = self.instances[i]
