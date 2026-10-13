@@ -15,7 +15,8 @@ end
 
 function Rules.Effects(research)
 	local result={damage=0,health=0,march=0,armor=0,recovery=0,bossDamage=0,rallySeconds=0,callArmy=0,fusion=0,
-		production=0,eggValue=0,pickupStuds=0,bounty=0,offlineHours=8,rollingLuck=0,rollingSpeed=0,speed=0,slots=1,capture=0,walk=0,formations=0,operations=0}
+		production=0,eggValue=0,pickupStuds=0,bounty=0,offlineHours=8,rollingLuck=0,rollingSpeed=0,speed=0,slots=1,capture=0,walk=0,formations=0,operations=0,
+		holdCap=0} -- holdCap 0 means Config.Territories.HoldLimit.
 	for id,owned in (research and research.completed) or {} do
 		local node=Catalog.Nodes[id]
 		if owned and node and node.effect then result[node.effect]=math.max(result[node.effect] or 0,node.value) end

@@ -343,8 +343,12 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local explored=0
  for _,won in state.frontierWins or {} do if won then explored+=1 end end
  local outpostCount=#Progression.Outposts()
- self.conquered.Text="Route "..(state.routeCampsWon or 0).."/"..#Progression.Camps(1)..(if outpostCount>0 then " · Outposts "..explored.."/"..outpostCount else "")
-	self.conquered.TextColor3=if (state.routeCampsWon or 0)>0 then A.green else A.gold
+ -- Territories held now (limit from research) and the live egg-value bonus they pay.
+ local held=state.holdCount or 0
+ local bonus=math.floor((state.territoryBonus or 0)*100+0.5)
+ self.conquered.Text="Held "..held.."/"..(state.holdLimit or 8)..(if bonus>0 then " · +"..bonus.."% eggs" else "")
+  ..(if outpostCount>0 then " · Outposts "..explored.."/"..outpostCount else "")
+	self.conquered.TextColor3=if held>0 then A.green else A.gold
 	self.save.Text=if state.saveStatus=="error" then "Save unavailable · Settings" elseif state.saveStatus=="loading" then "Loading…" else ""
 	self.save.TextColor3=if state.saveStatus=="error" then A.red else Theme.Colors.muted
 	if state.saveStatus=="error" and self.lastSaveStatus~="error" then
@@ -352,12 +356,12 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	end
 	self.lastSaveStatus=state.saveStatus
 	if self.lastCount and (count~=self.lastCount or capacity~=self.lastCapacity) then Theme.Motion:Pop(self.army.Visual,1.1) end
-	if self.lastConquered and (state.routeCampsWon or 0)>self.lastConquered then
+	if self.lastConquered and held>self.lastConquered then
 		Theme.Motion:Pop(self.conquered,1.13)
 		Theme.Motion:Pop(self.cashIcon,1.14)
 		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,if touchPrimary() then 0.66 else 0.94),A.gold)
 	end
-	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,state.routeCampsWon or 0
+	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,held
 end
 
 return Hud

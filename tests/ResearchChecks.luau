@@ -39,8 +39,8 @@ function Checks.Run()
 	local function check(name,fn)
 		local ok,err=pcall(fn);table.insert(results,{name=name,passed=ok,error=if not ok then tostring(err) else nil})
 	end
-	check("63 unique nodes have acyclic paths, coordinates and implemented effects",function()
-		assert(#Catalog.Order==63)
+	check("65 unique nodes have acyclic paths, coordinates and implemented effects",function()
+		assert(#Catalog.Order==65)
 		local ids,coordinates={},{}
 		local effects=Research.Effects(Research.New())
 		for _,id in Catalog.Order do

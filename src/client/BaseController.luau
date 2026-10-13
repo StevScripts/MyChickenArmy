@@ -41,15 +41,21 @@ end
 function BaseController:CommandFor(part)
 	local state = self.app.state
 	if not state then return nil end
+	-- A returning squad can turn around; the server says when it must recover first.
 	local canMove=state.armyState=="Home" or state.armyState=="Following" or state.armyState=="Deployed"
-		or state.armyState=="Traveling" or state.armyState=="Fighting"
+		or state.armyState=="Traveling" or state.armyState=="Fighting" or state.armyState=="Returning"
 	local target = part
 	while target and target ~= workspace and not target:GetAttribute("CommandTarget") do target = target.Parent end
 	if not target or target == workspace then return nil end
 	local id = target:GetAttribute("CommandTarget")
-	local foreignCamp = string.sub(id, 1, 5) == "camp:" and target:GetAttribute("LaneOwnerIndex") ~= nil and target:GetAttribute("LaneOwnerIndex") ~= state.plotIndex
-	if foreignCamp then return nil end
 	if string.sub(id,1,5)=="base:" then return nil end
+	-- Camps on another commander's lane are "camp:P:N" in the target list.
+	if string.match(id, "^camp:%d+$") then
+		local holder = target
+		while holder and holder ~= workspace and holder:GetAttribute("LaneOwnerIndex") == nil do holder = holder.Parent end
+		local lane = holder and holder ~= workspace and holder:GetAttribute("LaneOwnerIndex")
+		if lane and lane ~= state.plotIndex then id = "camp:" .. lane .. ":" .. string.sub(id, 6) end
+	end
 	for _, entry in state.targets or {} do
 		if entry.id ~= id then continue end
 		local income = if id == "income:1" then state.incomeOutpost else nil
@@ -68,8 +74,10 @@ function BaseController:CommandFor(part)
 		-- Shared bands (TutorialGuide.Difficulty): <1.3x Very tough, 1.3-2x Close fight, 2x+ Should win.
 		local strength = Guide.Difficulty(state.power, entry.power)
 		local bounty = "$" .. Theme.Money(entry.killRewardMin or 0) .. (if entry.killRewardMax~=entry.killRewardMin then "–"..Theme.Money(entry.killRewardMax or 0) else "") .. "/kill"
+		-- Held territories pay egg value while the flag stands (Mini War style).
+		local pays = if (entry.holdBonus or 0) > 0 then " · +" .. math.floor(entry.holdBonus * 100 + 0.5) .. "% eggs" else ""
 		local hint = if entry.via then "Fights " .. entry.via .. " first"
-			else strength .. " · " .. (entry.count or 0) .. " defenders · " .. bounty
+			else strength .. " · " .. (entry.count or 0) .. " defenders · " .. bounty .. pays
 		local text = if allowed then "Send army · " .. hint else reason
 		if allowed and entry.via then text = "Via " .. entry.via .. "\nEarlier camps are fought in order" end
         if allowed and entry.ownerId and not entry.via then text=if entry.owned then "Station army" else "Capture territory" end
@@ -566,8 +574,10 @@ function BaseController:PollCommand()
 		if income then table.insert(candidates,income) end
 		local frontier=world:FindFirstChild("Outposts")
   if frontier then for _,camp in frontier:GetChildren() do table.insert(candidates,camp) end end
-  local lane=world:FindFirstChild("Lane"..state.plotIndex)
-		if lane then for _,camp in lane:GetChildren() do table.insert(candidates,camp) end end
+		-- Every lane's camps: any commander's camp can be attacked.
+		for _,lane in world:GetChildren() do
+			if string.match(lane.Name,"^Lane%d+$") then for _,camp in lane:GetChildren() do table.insert(candidates,camp) end end
+		end
 		for i=1,#Config.PlotPositions do local plot=world:FindFirstChild("Plot"..i);if plot then table.insert(candidates,plot) end end
 		for _,model in candidates do
 			local part=CampCommand.Anchor(model)

@@ -1,7 +1,7 @@
 --!strict
 -- Permanent cash-and-time research. Existing cash upgrade eligibility is separate.
 local Catalog = {}
-Catalog.Order = {"Start", "L1", "L2", "L3", "L4", "L5", "L6", "R1", "R2", "R3", "R4", "R5", "R6", "CallArmy", "FuseMachine", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13", "E14", "E15", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17"}
+Catalog.Order = {"Start", "L1", "L2", "L3", "L4", "L5", "L6", "R1", "R2", "R3", "R4", "R5", "R6", "CallArmy", "FuseMachine", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13", "E14", "E15", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17", "H1", "H2"}
 Catalog.Nodes = {
 	["Start"] = {id="Start", name="Start", branch="Start", price=0, duration=0, description="Improve your rolls, egg farm or fighting flock.", q=0, r=0, icon="index"},
 	["CallArmy"] = {id="CallArmy", name="Call Army", branch="Army", price=1000, duration=60, description="Unlock Call Army: recall your selected chickens to follow you.", q=-1, r=2, icon="callArmy", prerequisite="Start", effect="callArmy", value=1},
@@ -53,6 +53,9 @@ Catalog.Nodes = {
 	["S14"] = {id="S14", name="Command Archive", branch="Command", price=25000000, duration=14400, description="Save 3 loadouts total", q=3, r=0, icon="index", prerequisite="S13", effect="formations", value=3},
 	["S15"] = {id="S15", name="Operations Board", branch="Command", price=2500000, duration=3600, description="Unlock a separate set of Veteran Operations", q=3, r=-3, icon="index", prerequisite="S4", effect="operations", value=1},
 	["S16"] = {id="S16", name="Elite Operations", branch="Command", price=25000000, duration=28800, description="Unlock the Elite Operations set", q=4, r=-4, icon="index", prerequisite="S15", effect="operations", value=2},
+	-- October 13: Mini War-style territory limit (Config.Territories.HoldLimit 8).
+	["H1"] = {id="H1", name="Flag Bearers", branch="Command", price=5000000, duration=7200, description="Hold up to 9 territories at once", q=3, r=-5, icon="index", prerequisite="S8", effect="holdCap", value=9},
+	["H2"] = {id="H2", name="Banner Legion", branch="Command", price=50000000, duration=28800, description="Hold up to 10 territories at once", q=3, r=-6, icon="index", prerequisite="H1", effect="holdCap", value=10},
 	["S17"] = {id="S17", name="Royal Operations", branch="Command", price=250000000, duration=172800, description="Unlock the Royal Operations set", q=5, r=-5, icon="index", prerequisite="S16", effect="operations", value=3},
 	-- Collection progression inspired by the supplied Slime RNG tree. Our tuning
 	-- shifts favored chicken bands and podium frequency; it never changes fusion or slot caps.

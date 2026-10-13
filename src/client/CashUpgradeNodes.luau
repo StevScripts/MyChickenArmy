@@ -119,6 +119,7 @@ local positions={
 	S5={3,3},S6={2,3},S7={2,4},S8={3,4},
 	S9={4,1},S10={5,1},S11={5,2},S12={1,2},
 	S13={1,3},S14={1,4},S15={3,2},S16={4,3},S17={4,4},
+	H1={4,5},H2={3,6},
 }
 for id,position in positions do Cash.ResearchPositions[id]={q=position[1],r=position[2]} end
 for _,node in Cash.Nodes do table.freeze(node) end

@@ -16,6 +16,10 @@ purchase. The user rejected a separate cash island. These purchases apply
 immediately and remain independent of research slots/prerequisites;
 see [cash upgrades in the tree](CASH_UPGRADES_IN_TREE.md).
 
+## Territory limit nodes: October 13
+
+Two Command nodes raise the Mini War-style hold limit (`Config.Territories.HoldLimit`, 8): **Flag Bearers** (H1, after Rapid Occupation S8, $5M, 2h) holds 9 and **Banner Legion** (H2, $50M, 8h) holds 10. Effect `holdCap` (0 means the config limit). Display positions 4,5 and 3,6. See [any-lane attacks](ANY_LANE_ATTACKS.md).
+
 ## Fuse Machine unlock — October 6
 
 `FuseMachine` sits in the Rolling area at `(3, -4)`, next to Roll Speed, behind

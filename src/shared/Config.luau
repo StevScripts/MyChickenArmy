@@ -87,6 +87,10 @@ local Config = {
  -- Camp defenders meet nearby troops before either side reaches pecking range.
  DefenderAggroRadius=18,
  RouteRegroupSeconds=1.2,CampHalfSize=11.7,CampRespawnGrace=2,
+ -- October 13 (Mini War-style territory): each held camp adds egg value while its
+ -- flag stands (Camp 1/2/3, then the King). Bonuses stack; a camp under attack
+ -- pays ContestedShare. HoldLimit is raised only by research (effect holdCap).
+ Territories={CampBonus={0.05,0.15,0.20},KingBonus=0.25,ContestedShare=0.5,HoldLimit=8},
  -- October 6 footage: one continuous conquest meter, approximately 25s.
  -- Supply Outpost/player contests and Operations retain their existing timing.
  RoamStep=0.1,RoamSpeed=2.5,ConquestSeconds=25,ConquestSecondsByCamp={12,20,25},CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,

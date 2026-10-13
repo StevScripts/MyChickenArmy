@@ -204,7 +204,8 @@ function EggService:Produce(session,dt,now)
  if session:EggsHeld(now) then return end
  local yard=self:Yard(session)
  local production=session:EggProductionMultiplier()
- local unitValue=Rules.EggUnitValue(session.incomeLevel)*(1+session.researchEffects.eggValue)
+ -- Held territories raise live egg value only (offline uses OfflineCash.Rate).
+ local unitValue=Rules.EggUnitValue(session.incomeLevel)*(1+session.researchEffects.eggValue)*(1+(session.territoryBonus or 0))
  for id,pet in session.pets do
   local layer=yard.layers[id]
   if not layer then

@@ -1,7 +1,7 @@
 --!strict
--- Only main-path blockers are prerequisites. Side territories are independent.
--- Every lane runs Camp 1 → 2 → 3. A camp counts as cleared once the commander
--- has beaten it on that lane (saved), holds it now, or took it on this push.
+-- October 13: any camp on any commanded lane can be attacked in any order.
+-- Only the King keeps prerequisites: until it is open (one full lane beaten)
+-- an order marches through the commander's own unbeaten camps first.
 local Progression=require(script.Parent.Progression)
 local Config=require(script.Parent.Config)
 local Route={}
@@ -19,21 +19,17 @@ function Route.CampId(index,plot,ownPlot)
  return if plot==nil or plot==ownPlot then "camp:"..index else "camp:"..plot..":"..index
 end
 
--- options.lanes[plot] holds another lane's cleared camps; a lane without an
--- entry has no commander and cannot be attacked. options.kingOpen sends the
--- army straight to the King once any lane has been fully beaten.
+-- options.lanes[plot] is set for every other lane that has a commander; a lane
+-- without an entry cannot be attacked. options.kingOpen sends the army
+-- straight to the King once any lane has been fully beaten.
 function Route.Plan(target,clearedCamps,clearedOutposts,options)
  if type(target)~="string" then return nil end
  if target=="income:1" then return if Config.IncomeOutpost and Config.IncomeOutpost.Enabled then {target} else nil end
  local campIndex,lane=Route.Camp(target)
  if campIndex then
   if not Progression.Camps(1)[campIndex] then return nil end
-  local cleared=if lane then options and options.lanes and options.lanes[lane] else clearedCamps
-  if not cleared then return nil end
-  local result={}
-  for i=1,campIndex-1 do if not cleared[i] then table.insert(result,Route.CampId(i,lane)) end end
-  table.insert(result,target)
-  return result
+  if lane and not (options and options.lanes and options.lanes[lane]) then return nil end
+  return {target}
  end
  local kind,raw=target:match("^(%a+):([%-]?%d+)$")
  local index=tonumber(raw)

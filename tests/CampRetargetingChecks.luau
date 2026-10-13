@@ -8,6 +8,7 @@ local Checks={}
 
 local function setup()
  local s=Session.new(-926,"Camp redirect fixture",1);s.loaded=true
+ s.tutorial.wonCamp=true -- Past the October 13 Cluck Camp-first gate.
  local world={busy={},restored={},owners={}}
  function world:Position() return Vector3.new(10000,1,-100) end
  function world:CampPosition(i) return Vector3.new(10000,1,i*80) end
@@ -68,7 +69,7 @@ function Checks.Run()
 
  for _,phase in {"Travel","Fight","Capture","Holding"} do
   test("Redirect from "..phase.." preserves each chicken's life and cancels attacks",function()
-   local s,service=setup()
+   local s,service=setup();s.firstWins={true} -- Camp 2 is open once Camp 1 was beaten.
    assert(service:Attack(s,"camp:1",0))
    local old=current(service,s);old.phase=phase
    local a,b=old.units[1],old.units[2]
@@ -84,7 +85,7 @@ function Checks.Run()
    assert(moved.spawnSerial==serial and not moved.pendingAttack and not moved.targetId)
    assert(dead.petId==b.petId and dead.hp==0 and dead.respawnAt==9)
    assert(s.armyState=="Traveling" and s.awayPets[a.petId] and s.awayPets[b.petId])
-   assert(not s.firstWins[1],"Abandoning an unfinished camp granted conquest")
+   assert(not service.campOwners["1:1"],"Abandoning an unfinished camp granted conquest")
   end)
  end
 
@@ -101,7 +102,7 @@ function Checks.Run()
  end)
 
  test("Switching repeatedly does not duplicate chickens or pay a kill twice",function()
-  local s,service=setup();assert(service:Attack(s,"camp:1",0))
+  local s,service=setup();s.firstWins={true};assert(service:Attack(s,"camp:1",0))
   local b=current(service,s);local count=#s:Lineup()
   b.kills={{serial=1,side="B",species="Duck",level=1,x=0,z=0}}
   local coins=s.coins
@@ -193,11 +194,11 @@ function Checks.Run()
  end)
 
  test("Abandoned unfinished camps recover without granting cleared-route protection",function()
-  local s,service,world=setup();assert(service:Attack(s,"camp:1",0));arrive(service,s,1)
+  local s,service,world=setup();s.firstWins={true};assert(service:Attack(s,"camp:1",0));arrive(service,s,1)
   assert(service:Attack(s,"camp:2",2));service:ReleaseClearedCamps(100)
   assert(not world.restored[1]);arrive(service,s,101)
   service:ReleaseClearedCamps(101+Config.CampRespawnGrace+.01)
-  assert(world.restored[1]==1 and not s.firstWins[1] and not service.campOwners["1:1"])
+  assert(world.restored[1]==1 and not service.campOwners["1:1"])
  end)
 
  test("Returning and shared-defender armies cannot create a second outgoing battle",function()
@@ -234,13 +235,17 @@ function Checks.Run()
    model.target="camp:2";assert(controller:CommandFor(model).action=="Attack")
    model.target="camp:1";assert(controller:CommandFor(model).action==nil)
   end
-  app.state.armyState="Returning";assert(controller:CommandFor(model)==nil)
+  -- A returning army may turn around when the server lists the camp as available.
+  app.state={armyState="Returning",plotIndex=1,targets={{id="camp:2",name="Camp",available=true,power=1}}}
+  model.target="camp:2";assert(controller:CommandFor(model).action=="Attack")
+  app.state.targets[1].available=false;app.state.targets[1].reason="Your army is recovering or defending"
+  assert(controller:CommandFor(model).action==nil)
  end)
 
  test("Physical actor handoff reuses player models and immediately clears attack flags",function()
   local Actors=require(Server.LiveBattleActors)
   local Growth=require(Shared.ChickenGrowth)
-  local s,service,world=setup();assert(service:Attack(s,"camp:1",0))
+  local s,service,world=setup();s.firstWins={true};assert(service:Attack(s,"camp:1",0))
   local old=current(service,s);old.phase="Fight"
   local root=Instance.new("Folder") -- Unparented, disposable models; no live world/physics.
   local ok,why=pcall(function()

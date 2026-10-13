@@ -10,6 +10,7 @@ local FlockLayout = require(Shared.FlockLayout)
 local HomePlot = require(Shared.HomePlotLayout)
 local MapLayout = require(Shared.MapLayout)
 local CampCommand=require(Shared.CampCommand)
+local CampaignRoute=require(Shared.CampaignRoute)
 local UIColors = require(Shared.UIColors)
 local PetActor = require(script.Parent.PetActor)
 local IdlePatrol = require(script.Parent.IdlePatrol)
@@ -296,14 +297,18 @@ end
 -- Match the physical prompt's entrance position; all client attack requests pass here.
 function WorldService:CanCommand(player,session,targetId,sessions): boolean
 	if type(targetId)~="string" then return false end
- local kind,id=targetId:match("^(%a+):([%-]?%d+)$")
+ local kind=targetId:match("^(%a+):")
+ local id=targetId:match("^%a+:([%-]?%d+)$")
 	local index=tonumber(id)
 	local model
 	if targetId=="king:1" then model=self.kingArena and self.kingArena.folder
 	elseif targetId=="income:1" and hillEnabled() then model=self.kingArena and self.kingArena.folder
 	elseif targetId=="income:1" and Config.IncomeOutpost.Enabled then model=self.incomeOutpost and self.incomeOutpost.folder
-	elseif kind=="camp" and index then
-		local record=self.lanes[session.plotIndex] and self.lanes[session.plotIndex][index]
+	elseif kind=="camp" then
+		-- "camp:N" is the commander's own lane; "camp:P:N" is camp N on lane P.
+		local campIndex,plot=CampaignRoute.Camp(targetId)
+		plot=plot or session.plotIndex
+		local record=campIndex and self.lanes[plot] and self.lanes[plot][campIndex]
 		model=record and record.folder
 	elseif kind=="outpost" and index then
   local record=self.outposts[index];model=record and record.folder

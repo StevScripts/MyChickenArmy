@@ -34,60 +34,56 @@ function Checks.Run()
  local function test(name,fn)
   local ok,result=pcall(fn);table.insert(results,{name=name,passed=ok,detail=tostring(result)})
  end
- test("Old saves cannot skip prerequisites in a new server session",function()
-  for _,target in {"camp:2","king:1"} do
-   local s,service=setup()
-   local entry;for _,t in service:Targets(s,0) do if t.id==target then entry=t end end
-   assert(entry and entry.available and entry.via==Route.Name("camp:1"))
-   assert(service:Attack(s,target,0))
-   local b=service.battles[s.outgoing]
-   assert(b.target=="camp:1" and b.routeGoal==target)
-   assert(next(b.routeCamps)==nil and s.firstWins[2] and s.kingCleared)
-  end
-  return "Camp 2 and King orders begin at Camp 1; saved unlocks retained"
+ -- October 13 (Mini War style): camps go in any order; only an unopened King
+ -- marches through unbeaten home camps (LaneConquestChecks covers other lanes).
+ local function fresh()
+  local s,service=setup();s.firstWins={};s.kingCleared=false;s.campUnlocked=1;s.tutorial.wonCamp=true
+  return s,service
+ end
+ test("Camp orders are direct; an unopened King goes through unbeaten home camps",function()
+  local s,service=fresh();s.firstWins={true}
+  local camp;for _,t in service:Targets(s,0) do if t.id=="camp:3" then camp=t end end
+  assert(camp and camp.available and not camp.via)
+  assert(service:Attack(s,"camp:3",0) and service.battles[s.outgoing].target=="camp:3")
+  local k,service2=fresh();k.firstWins={true}
+  local king;for _,t in service2:Targets(k,0) do if t.id=="king:1" then king=t end end
+  assert(king and king.available and king.via==Route.Name("camp:2"))
+  assert(service2:Attack(k,"king:1",0))
+  local b=service2.battles[k.outgoing];assert(b.target=="camp:2" and b.routeGoal=="king:1")
+  return "Camp 3 is direct; the King order begins at Camp 2"
  end)
- test("King order captures Camp 1 then Camp 2 before moving to King",function()
-  local s,service=setup();assert(service:Attack(s,"king:1",0))
-  local time=1
-  for index=1,2 do
-   local b=service.battles[s.outgoing];assert(b.target=="camp:"..index)
-   prepareCapture(b,time)
-   assert(not b.routeCamps[index],"Defender deaths counted as conquest")
-   service:Step(.1,time+.1)
-   assert(s.outgoing==b.id and b.phase=="Capture" and not b.routeCamps[index],"Partial capture skipped ahead")
-   service:Step(.1,time+.2)
-   assert(b.phase=="Holding" and b.routeCamps[index],"Full capture did not clear prerequisite")
-   service:Step(.1,time+.2+Config.RouteRegroupSeconds+.01)
-   local nextBattle=service.battles[s.outgoing]
-   assert(nextBattle~=b and nextBattle.routeCamps[index])
-   time+=10
-   -- The old camp repopulates behind the army without reversing this forward push.
-   for _,u in nextBattle.units do if u.side=="A" then u.x,u.z=nextBattle.destination.X,nextBattle.destination.Z end end
-   service:ReleaseClearedCamps(time);service:ReleaseClearedCamps(time+Config.CampRespawnGrace+.01)
-   assert(service.campOwners["1:"..index]==nil,"Vacated camp stayed conquered")
+ test("King opens straight away once the home lane or an earlier King is won",function()
+  for _,profile in {{wins={true,true,true},king=false},{wins={},king=true}} do
+   local s,service=fresh();s.firstWins,s.kingCleared=profile.wins,profile.king
+   assert(service:KingOpen(s))
+   assert(service:Attack(s,"king:1",0) and service.battles[s.outgoing].target=="king:1")
   end
-  assert(service.battles[s.outgoing].target=="king:1")
-  return "Camp 1 → full capture → Camp 2 → full capture → King, with no backward loop"
+  local s,service=fresh();s.firstWins={true,true}
+  assert(not service:KingOpen(s))
+  assert(service:Attack(s,"king:1",0))
+  local b=service.battles[s.outgoing];assert(b.target=="camp:3" and b.routeGoal=="king:1")
+  return "Full home lane or saved King clear goes direct; otherwise the missing camp first"
  end)
- test("Recall and defeat reset the path but preserve earned progression",function()
+ test("Recall and defeat keep beaten camps counted",function()
   for _,outcome in {"Recall","B"} do
-   local s,service=setup();assert(service:Attack(s,"camp:2",0))
-   local b=service.battles[s.outgoing];prepareCapture(b,1);service:Finish(b,"A",1)
-   assert(b.routeCamps[1])
+   local s,service=fresh();assert(service:Attack(s,"camp:1",0))
+   local b=service.battles[s.outgoing];assert(b.target=="camp:1")
+   prepareCapture(b,1);service:Finish(b,"A",1)
+   assert(s.firstWins[1] and b.routeCamps[1])
+   assert(service:Unclaim(s,"camp:1",2))
    assert(service:Attack(s,"camp:2",3));b=service.battles[s.outgoing]
    if outcome=="Recall" then assert(service:ReturnHome(s,4)) else service:Finish(b,"B",4) end
    for i=1,1000 do service:Step(.1,4+i*.1);if s.armyState=="Home" then break end end
    assert(s.armyState=="Home","Army did not return home")
-   local camps,outposts=service:RouteProgress(s)
-   assert(not camps[1] and not camps[2] and next(outposts)==nil)
+   local camps=service:RouteProgress(s)
+   assert(camps[1] and not camps[2])
    assert(service:Attack(s,"camp:2",105))
-   assert(service.battles[s.outgoing].target=="camp:1")
-   assert(s.firstWins[1] and s.firstWins[2] and s.frontierWins[6] and s.kingCleared)
+   assert(service.battles[s.outgoing].target=="camp:2")
   end
-  return "A new home push starts at Camp 1; permanent unlocks survive both return outcomes"
+  return "After a recall or a loss, Camp 1 still counts as beaten"
  end)
  test("An occupied prerequisite blocks the order instead of being skipped",function()
-  local s,service=setup();service.campBusy["1:1"]="occupied"
+  local s,service=fresh();service.campBusy["1:1"]="occupied"
   local ok=service:Attack(s,"king:1",0)
   assert(not ok and s.outgoing==nil)
   for _,t in service:Targets(s,0) do if t.id=="king:1" then assert(not t.available) end end

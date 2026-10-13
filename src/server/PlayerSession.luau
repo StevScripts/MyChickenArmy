@@ -62,6 +62,11 @@ function PlayerSession:Reset()
  self.saveStatus=self.saveStatus or "loading"
  self.saveMessage=self.saveMessage or "Loading your flock…"
 	self.pets, self.slots, self.firstWins, self.raidPaid = {}, {}, {}, {}
+	-- Camps beaten once on other commanders' lanes: {[ownerUserId string]=bitmask, bit i-1 = camp i}.
+	self.laneCamps = {}
+	-- Live egg-value bonus from held territories (BattleService). Never saved,
+	-- never part of the offline rate: holdings end when the player leaves.
+	self.territoryBonus = 0
 	self.discovered = {}
 	-- Raw saved entries for species this build does not know; written back unchanged.
 	self.unrecognizedPets, self.unrecognizedDiscovered = {}, {}
@@ -476,7 +481,7 @@ function PlayerSession:Snapshot(now: number)
 	local campsWon=0
 	for i=1,#Progression.Camps(1) do if self.firstWins[i] then campsWon+=1 end end
 	local eggProduction=self:EggProductionMultiplier()
-	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")
+	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")*(1+(self.territoryBonus or 0))
 	return {research=ResearchService.Snapshot(self,os.time()),nextSlot=self:NextSlot(),
 		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=Config.MaxSlots+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
 			levelCap=rank.levelCap,ready=false,
@@ -491,7 +496,7 @@ function PlayerSession:Snapshot(now: number)
 		offlineCash=if self.offlineCashReceipt then table.clone(self.offlineCashReceipt) else nil,
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		mergeUnlocked=mergeUnlocked,mergeRequirement=mergeRequirement,
-		campsWon=campsWon,allCampsWon=self:Completed(),
+		campsWon=campsWon,allCampsWon=self:Completed(),territoryBonus=self.territoryBonus or 0,
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
 		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
 		starterRecruitPrice=if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0,
@@ -537,7 +542,7 @@ function PlayerSession:ToData()
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
-		pets=pets,discovered=discovered,firstWins=wins,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
+		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
@@ -556,6 +561,38 @@ local function clampHigh(value,minimum,maximum,integer)
  return nil
 end
 
+-- Additive October 13 field. Never rejects a profile: malformed entries are
+-- dropped and at most 100 lanes are kept (the most beaten). laneWins is the
+-- same day's first draft (highest camp, in-order lanes) read as camps 1..N.
+local function readLaneCamps(masks, counts)
+	local camps=#Progression.Camps(1)
+	local full=2^camps-1
+	local merged={}
+	local function valid(key) return type(key)=="string" and #key<=20 and key:match("^%-?%d+$")~=nil end
+	if type(counts)=="table" then
+		for key,count in counts do
+			if valid(key) and numberIn(count,1,camps,true) then merged[key]=2^count-1 end
+		end
+	end
+	if type(masks)=="table" then
+		for key,mask in masks do
+			if valid(key) and numberIn(mask,1,full,true) then merged[key]=bit32.bor(merged[key] or 0,mask) end
+		end
+	end
+	local kept={}
+	for key,mask in merged do
+		local beaten=0;for i=1,camps do if bit32.btest(mask,2^(i-1)) then beaten+=1 end end
+		table.insert(kept,{key=key,mask=mask,beaten=beaten})
+	end
+	table.sort(kept,function(a,b) return if a.beaten~=b.beaten then a.beaten>b.beaten else a.key<b.key end)
+	local result={}
+	for index,entry in kept do
+		if index>100 then break end
+		result[entry.key]=entry.mask
+	end
+	return result
+end
+
 local function readWins(entries, limit, sparse)
 	if type(entries)~="table" or #entries>limit then return nil end
 	local wins,count={},0
@@ -572,9 +609,10 @@ end
 
 -- Revision 6 uses stable main-route IDs; appended camps can extend this list.
 -- Earlier campaign layouts retain only IDs 1/2: their old third camp is not
--- the new Bucket Bastion and must never grant its first win.
+-- the new Bucket Bastion and must never grant its first win. Before October 13
+-- a mid-march redirect could win a later camp first; those gaps load as saved.
 local function readProgress(data, revision)
-	if revision>=6 then return readWins(data.firstWins,#Progression.Camps(1)) end
+	if revision>=6 then return readWins(data.firstWins,#Progression.Camps(1),true) end
  if revision>=4 then
   local old=readWins(data.firstWins,3)
   if not old then return nil end
@@ -829,6 +867,7 @@ function PlayerSession:LoadData(data)
 	-- Preserve old saves: round any historical cents up once, never reset progress.
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial
+	self.laneCamps=readLaneCamps(data.laneCamps,data.laneWins)
 	self.fusionUnlocked=fusionUnlocked
 	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered

@@ -74,6 +74,7 @@ function GameServer:Send(player,result)
  state.ownsKing=kingOwner~=nil and kingOwner.userId==session.userId
  state.routeCampsWon=0
  for i=1,#Progression.Camps(1) do if routeCamps[i] then state.routeCampsWon+=1 end end
+ state.holdCount,state.holdLimit=self.battles:HoldCount(session),self.battles:HoldLimit(session)
 	state.eggs=self.eggs:Snapshot(session,now)
 	state.shop=self.commerce:Snapshot(session)
 	state.shop.productReady=self.products:CanPurchase(session)
