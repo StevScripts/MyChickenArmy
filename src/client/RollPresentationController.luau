@@ -9,6 +9,8 @@ local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
 local PetView = require(Shared.PetView)
 local UIColors = require(Shared.UIColors)
+local Mutations = require(Shared.MutationCatalog)
+local MutationVFX = require(script.Parent.SpecialChickenVFX)
 local RollPresentationController = {}
 RollPresentationController.__index = RollPresentationController
 
@@ -25,6 +27,8 @@ local ROLL_ZOOM_DIRECTION = Enum.EasingDirection.In
 local ROLL_ZOOM_OUT_SECONDS = 0.35
 local ROLL_ZOOM_OUT_EASING = Enum.EasingStyle.Back
 local ROLL_ZOOM_OUT_DIRECTION = Enum.EasingDirection.Out
+-- Mutation tag: pops in this long after the species lands; Rainbow and rarer also flash.
+local MUTATION_BADGE_DELAY = 0.3
 
 function RollPresentationController.new(app)
  return setmetatable({app=app, records={}, connections={}, scanAt=0}, RollPresentationController)
@@ -160,6 +164,8 @@ function RollPresentationController:Preview(record, species, mystery: boolean?)
  -- Suppress species effects during the mystery shuffle, then restore them for
  -- the revealed offer, including when it reuses the last cached shuffle bird.
  model:SetAttribute("ReducedMotion",mystery == true)
+ -- The shuffle never teases a mutation; the reveal sets the real one.
+ if mystery then model:SetAttribute("Mutation",nil) end
 	-- The expensive silhouette material is reserved for revealed offers. Roaming
 	-- Galaxies all use the shared animated world texture.
 	model:SetAttribute("GalaxyMaskPreview",not mystery and species=="StormDuck")
@@ -184,6 +190,81 @@ function RollPresentationController:Preview(record, species, mystery: boolean?)
  return model
 end
 
+-- The revealed offer's mutation: the station attribute (every viewer) or, on the
+-- local player's own podium, the matching offer in their snapshot.
+function RollPresentationController:MutationFor(station, offerId)
+ local saved=station:GetAttribute("RevealedMutation")
+ if Mutations.IsValid(saved) then return saved end
+ if station:GetAttribute("OwnerId")~=Players.LocalPlayer.UserId then return nil end
+ for _,offer in (self.app.state and self.app.state.offers) or {} do
+  if offer.id==offerId then return if Mutations.IsValid(offer.mutation) then offer.mutation else nil end
+ end
+ return nil
+end
+
+function RollPresentationController:HideBadge(record)
+ local badge=record.badge
+ if not badge then return end
+ for _,tween in badge.tweens do tween:Cancel() end
+ table.clear(badge.tweens)
+ badge.gui.Enabled=false
+ badge.mutation=nil
+end
+
+-- A world tag above the revealed chicken. TweenService pops it in; Rainbow and
+-- rarer add a short colored flash and sparkle burst. Reduced motion shows it still.
+function RollPresentationController:ShowBadge(record, mutation, animate)
+ local def=Mutations.Get(mutation)
+ if not def then self:HideBadge(record);return end
+ local badge=record.badge
+ if badge and badge.mutation==mutation then return end
+ if not badge then
+  local gui=Instance.new("BillboardGui")
+  gui.Name,gui.Size,gui.LightInfluence="MutationBadge",UDim2.fromScale(4.4,1.2),0
+  gui.AlwaysOnTop,gui.MaxDistance,gui.Enabled=true,80,false
+  gui.Adornee,gui.Parent=record.top,self.folder
+  local holder=Instance.new("Frame")
+  holder.Name,holder.BackgroundTransparency,holder.Size="Pop",1,UDim2.fromScale(1,1)
+  holder.AnchorPoint,holder.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+  holder.Parent=gui
+  local scale=Instance.new("UIScale");scale.Parent=holder
+  local flash=Instance.new("Frame")
+  flash.Name,flash.BorderSizePixel,flash.BackgroundTransparency="Flash",0,1
+  flash.AnchorPoint,flash.Position,flash.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1,1)
+  flash.ZIndex,flash.Parent=1,holder
+  local corner=Instance.new("UICorner");corner.CornerRadius,corner.Parent=UDim.new(0.5,0),flash
+  badge={gui=gui,holder=holder,scale=scale,flash=flash,tag=nil,tweens={},mutation=nil}
+  record.badge=badge
+ end
+ self:HideBadge(record)
+ if badge.tag then badge.tag:Destroy() end
+ badge.tag=MutationVFX.Badge(badge.holder,mutation)
+ if badge.tag then badge.tag.Size=UDim2.fromScale(1,1) end
+ badge.mutation=mutation
+ -- Sit just above the revealed chicken's head.
+ local height=(record.preview and record.preview:GetAttribute("VisualHeight")) or 3
+ badge.gui.StudsOffsetWorldSpace=Vector3.new(0,record.foot.Y-record.top.Position.Y+height+1,0)
+ badge.gui.Enabled=true
+ badge.flash.BackgroundColor3,badge.flash.BackgroundTransparency,badge.flash.Size=def.color,1,UDim2.fromScale(1,1)
+ if not animate or self.app.reducedMotion then badge.scale.Scale=1;return end
+ badge.scale.Scale=0
+ local pop=TweenService:Create(badge.scale,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Scale=1})
+ table.insert(badge.tweens,pop);pop:Play()
+ if Mutations.Rank(mutation)>=Mutations.Rank("Rainbow") then
+  badge.flash.BackgroundTransparency=0.1
+  local flash=TweenService:Create(badge.flash,TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+   {BackgroundTransparency=1,Size=UDim2.fromScale(1.9,2.6)})
+  table.insert(badge.tweens,flash);flash:Play()
+  if record.burst then
+   record.burst.Color=ColorSequence.new(def.color,Color3.new(1,1,1))
+   record.burst:Emit(18)
+  end
+  self:Sound(record,"RollRare",1.25,0.4,nil)
+ else
+  self:Sound(record,"Pop",1.3,0.3,0.3)
+ end
+end
+
 function RollPresentationController:Sound(record, name, pitch, volume, duration)
  -- One shared shuffle soundtrack; secondary rare reveals share the capped voice key.
  if (record.station:GetAttribute("RollSlot") or 1)>1 and name~="RollRare" then return end
@@ -196,6 +277,7 @@ end
 
 function RollPresentationController:Reset(record)
  if record.preview then record.preview.Parent=nil;record.preview=nil end
+ self:HideBadge(record)
  for part, value in record.hidden do if part.Parent then part.LocalTransparencyModifier=value end end
  table.clear(record.hidden)
  record.serverPet=nil
@@ -243,6 +325,7 @@ function RollPresentationController:StepRecord(record, now)
    record.sequence[i]=Rules.Draw(luck,random:NextNumber(),tier,paidLuck,researchLuck)
   end
   if rollId and elapsed<0.3 then self:Sound(record,"RollLever",0.9,0.55,0.3) end
+  self:HideBadge(record)
  end
 
  -- Hide only the static server offer. Cosmetics never hide inventory or army pets.
@@ -306,6 +389,7 @@ function RollPresentationController:StepRecord(record, now)
    local fresh=elapsed<duration+0.65
    record.result=result;record.landedAt=if fresh then now else now-10
    record.finishPlayed=not fresh
+   record.revealFresh=fresh
    self:Preview(record,species)
    if fresh then self:Sound(record,"Pop",1.12,0.45,0.35) end
   end
@@ -326,6 +410,12 @@ function RollPresentationController:StepRecord(record, now)
    else hop=0.08*(1-math.exp(-(age-0.42)*3))*(1+math.sin(age*2)) end
   end
   PetView.Move(record.preview,record.foot,record.frame.LookVector,hop)
+  -- The mutation can arrive a moment after the species (snapshot vs attributes).
+  local mutation=self:MutationFor(station,result)
+  if record.preview and record.preview:GetAttribute("Mutation")~=mutation then record.preview:SetAttribute("Mutation",mutation) end
+  if mutation and age>=MUTATION_BADGE_DELAY then
+   self:ShowBadge(record,mutation,record.revealFresh==true and age<MUTATION_BADGE_DELAY+1.5)
+  elseif not mutation then self:HideBadge(record) end
   record.top.Color=tint:Lerp(GOLD,math.max(0,1-age/0.55)*0.55)
   if record.light then
    record.light.Color=if rank>=4 then GOLD else tint
@@ -333,6 +423,7 @@ function RollPresentationController:StepRecord(record, now)
   end
  else
   if record.preview then record.preview.Parent=nil;record.preview=nil end
+  self:HideBadge(record)
   record.top.Color=BLUE
   if record.light then record.light.Brightness=0 end
  end
@@ -360,6 +451,7 @@ function RollPresentationController:Start(world)
    if not station:IsDescendantOf(world) then
     self:Reset(record)
     for _,model in record.cache do model:Destroy() end
+    if record.badge then record.badge.gui:Destroy() end
     record.glow:Destroy();self.records[station]=nil
    else self:StepRecord(record,now) end
   end

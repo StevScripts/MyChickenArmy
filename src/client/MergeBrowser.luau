@@ -8,6 +8,8 @@ local Catalog=require(Shared.PetCatalog)
 local Theme=require(script.Parent.UITheme)
 local Selection=require(script.Parent.MergeSelection)
 local Giant=require(Shared.GiantChicken)
+local Mutations=require(Shared.MutationCatalog)
+local MutationVFX=require(script.Parent.SpecialChickenVFX)
 local Presentation=require(script.Parent.MergePresentation)
 local Browser={}
 Browser.__index=Browser
@@ -309,6 +311,7 @@ function Browser:RenderSlots()
   slot.title.Text=if filled then Catalog[recipe.species].name else ""
   slot.empty.Visible=false;slot.action.Text=if filled then "Remove" else "+\nAdd"
   local pet=if filled then self.app:Pet(self.selection.slots[i]) else nil
+  self:MutationBadge(slot,"badge",slot.box,pet and pet.mutation,UDim2.fromScale(0.55,0.15),UDim2.fromScale(0.43,0.12))
   slot.level.Text=if pet and pet.giantSize then string.format("Lv. %d · %.1f studs",pet.level,pet.giantSize) elseif filled then "Lv. "..recipe.level else ""
   slot.outline.Color=LINE
   local tint=if filled then PURPLE else PIPE_IDLE
@@ -323,6 +326,11 @@ function Browser:RenderSlots()
   if recipe then self.resultPortrait=preview(self.app,self.resultArt,recipe) end
   self.resultArtKey=artKey
  end
+ -- The Giant keeps the best input mutation (ArmyService uses the same Best).
+ local inputs={}
+ for _,id in self.selection.slots do table.insert(inputs,self.app:Pet(id) or false) end
+ self.keptMutation=if recipe then Mutations.Best(inputs) else nil
+ self:MutationBadge(self,"resultBadge",self.result,self.keptMutation,UDim2.fromScale(0.52,0.15),UDim2.fromScale(0.45,0.12))
  self.resultEmpty.Visible=recipe==nil
  self.resultOutline.Color=LINE
  self.resultTitle.Text=if recipe then Catalog[recipe.species].name else ""
@@ -338,6 +346,19 @@ function Browser:RenderSlots()
  end
  self.count.Text=self.selection:Count().."/3"
  self:UpdateAction()
+end
+
+-- One mutation tag per holder, rebuilt only when its mutation changes.
+function Browser:MutationBadge(holder,field,parent,mutation,position,size)
+ local key=if Mutations.IsValid(mutation) then mutation else ""
+ if holder[field.."Key"]==key then return end
+ if holder[field] then holder[field]:Destroy();holder[field]=nil end
+ holder[field.."Key"]=key
+ local badge=MutationVFX.Badge(parent,mutation)
+ if not badge then return end
+ badge.Position,badge.Size=position,size
+ holder[field]=badge
+ if self.root.Visible then Theme.Motion:Pop(badge,1.12) end
 end
 
 function Browser:UpdateAction()
@@ -425,6 +446,7 @@ function Browser:Render(force)
  self.costNotice=if recipe and recipe.price and self.selection:Count()==3 and (self.app.state.coins or 0)<recipe.price
   then "Fusion cost: $"..Theme.Money(recipe.price) else nil
  self:Resize()
+ self.message.RichText=true
  self.main.Visible,self.action.Visible=self.mode=="Main",self.mode=="Main"
  self.tradeoff.Visible=self.mode=="Main" and self.selection:Count()==3
  self.picker.Visible=self.mode=="Picker"
@@ -433,7 +455,13 @@ function Browser:Render(force)
  self.message.Text=self.notice or self.costNotice or "";self.message.Visible=self.mode=="Main" and self.message.Text~=""
  self.title.Text=if self.mode=="Picker" then "Choose Chicken" elseif self.mode=="Result" then "Fusion Complete"
   else "Fuse Chickens"
- if self.mode=="Main" then self:RenderSlots()
+ if self.mode=="Main" then
+  self:RenderSlots()
+  local kept=Mutations.Get(self.keptMutation)
+  if not self.notice and not self.costNotice and kept then
+   self.message.Text=string.format('Keeps the best mutation: <font color="#%s">%s</font>',kept.color:ToHex(),kept.name)
+   self.message.Visible=true
+  end
  elseif self.mode=="Picker" then self:RenderPicker()
  elseif self.mode=="Processing" then
   self.processingText.Text=if self.pending and self.pending.checking then "Checking your flock…" else "Fusing…"
@@ -468,7 +496,9 @@ function Browser:ShowResult(chicken,recipe)
  if self.summaryPortrait then self.summaryPortrait:Destroy() end
  self.summaryPortrait=preview(self.app,self.summaryArt,chicken)
  self.summaryName.Text=Catalog[chicken.species].name
+ local kept=Mutations.Get(chicken.mutation)
  self.summaryLevel.Text=(if chicken.giantSize then Giant.Label(chicken.giantSize).." · " else "").."Lv. "..chicken.level
+  ..(if kept then " · "..kept.name else "")
  self.summaryEggs.Text=Theme.Count(chicken.eggsPerSecond or recipe.afterEggRate,"egg/s","eggs/s")
  self.summaryDps.Text=Theme.Number(recipe.afterDps).." DPS"
  self.mode="Result";self.animating=false;self:Render(true)
