@@ -29,7 +29,7 @@ local Config = {
 	-- Manual three-chicken merging is enabled; paid automation is a separate rollout.
 	Features = {Merging = true, AutoMerging = false, IntroCutscene = true},
 	Economy = Economy,
- Version="1.19.0-paced-economy", GameTitle="My Chicken Army!",
+ Version="1.20.0-launch", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's
  -- arena (Config.Hill). Only one site exists; its internal key stays "income:1".
  -- Rate is unused while the Hill is enabled: HillService pays the holder's boost.
