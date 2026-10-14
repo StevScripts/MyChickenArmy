@@ -280,11 +280,12 @@ function Battle:ReachedCamp(unit): boolean
 end
 
 function Battle:StepReinforcements(dt: number, now: number)
-	if self.finiteRoster then return end
+	-- Finite rosters (Invasions) never respawn the fallen, but marching stragglers
+	-- still walk in and join once they reach the landing zone.
 	for _,unit in self.units do
 		if not unit.petId and unit.side~="A" then continue end
 		if unit.hp<=0 then
-			if not unit.petId then continue end
+			if not unit.petId or self.finiteRoster then continue end
 			if self.incomeContest and self.rosterLocked and not unit.retiring then continue end
 			unit.respawnAt=unit.respawnAt or now+Config.AttackerRespawnSeconds*(unit.recoveryMultiplier or 1)
 			if now<unit.respawnAt then continue end

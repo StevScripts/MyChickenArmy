@@ -10,15 +10,15 @@ Catalog.Order={"1:1","1:2","1:3","2:1","2:2","2:3","3:1","3:2","3:3"}
 -- (80K HP, 900 splash) is beatable by ten free level-10 Galaxy Overlords with
 -- full combat research and stays the hardest fight (needs level 9+).
 Catalog.Encounters={
-	["1:1"]={name="Veteran Patrol",tier=1,description="A balanced patrol. Break its front line.",firstCash=2500000,replayCash=250000,groups={{"Bucket",3,4},{"Viking",3,4}}},
-	["1:2"]={name="Iron Roost",tier=1,description="Durable defenders protect a heavy hitter.",firstCash=7500000,replayCash=750000,groups={{"Bucket",4,6},{"Knight",3,2}}},
-	["1:3"]={name="Veteran Command",tier=1,description="A mixed formation with splash support.",firstCash=15000000,replayCash=1500000,groups={{"Knight",4,4},{"Viking",4,4},{"Wizard",3,2}}},
-	["2:1"]={name="Shadow Battery",tier=2,description="Splash attackers behind an armored screen.",firstCash=25000000,replayCash=2500000,groups={{"Bucket",6,4},{"Wizard",5,4},{"Knight",5,2}}},
-	["2:2"]={name="Last Line",tier=2,description="Survive a larger formation of veteran fighters.",firstCash=75000000,replayCash=7500000,groups={{"Knight",6,6},{"Viking",6,4},{"IceDuck",4,2}}},
-	["2:3"]={name="Elite Commander",tier=2,description="Defeat the commander and its honor guard.",firstCash=150000000,replayCash=15000000,groups={{"Knight",6,4},{"Wizard",6,3}},boss={species="Dragon",hp=26000,damage=320,interval=1.6,splash=true}},
-	["3:1"]={name="Royal Vanguard",tier=3,description="Elite guards with relentless splash support.",firstCash=250000000,replayCash=25000000,groups={{"Knight",8,5},{"IceDuck",7,4},{"Dragon",7,2}}},
-	["3:2"]={name="Crown's Shield",tier=3,description="A royal army built to outlast your strongest flock.",firstCash=750000000,replayCash=75000000,groups={{"IceDuck",8,5},{"Dragon",8,4},{"StormDuck",7,2}}},
-	["3:3"]={name="Royal Chicken King",tier=3,description="The final commander and its Royal Guard.",firstCash=2500000000,replayCash=250000000,groups={{"IceDuck",9,4},{"Dragon",9,3},{"StormDuck",8,2}},boss={species="Duck",hp=80000,damage=900,interval=1.8,splash=true}},
+	["1:1"]={name="Scout Landing",tier=1,description="A loyalist scout party drops in. Break its front line.",firstCash=2500000,replayCash=250000,groups={{"Bucket",3,4},{"Viking",3,4}}},
+	["1:2"]={name="Iron Drop",tier=1,description="Armored loyalists land around a heavy hitter.",firstCash=7500000,replayCash=750000,groups={{"Bucket",4,6},{"Knight",3,2}}},
+	["1:3"]={name="Veteran Assault",tier=1,description="A full loyalist squad with splash support.",firstCash=15000000,replayCash=1500000,groups={{"Knight",4,4},{"Viking",4,4},{"Wizard",3,2}}},
+	["2:1"]={name="Shadow Battery",tier=2,description="Splash gunners drop behind an armored screen.",firstCash=25000000,replayCash=2500000,groups={{"Bucket",6,4},{"Wizard",5,4},{"Knight",5,2}}},
+	["2:2"]={name="Iron Fleet",tier=2,description="A larger loyalist wave of veteran fighters.",firstCash=75000000,replayCash=7500000,groups={{"Knight",6,6},{"Viking",6,4},{"IceDuck",4,2}}},
+	["2:3"]={name="Dragon Commander",tier=2,description="The loyalist commander rides in with its honor guard.",firstCash=150000000,replayCash=15000000,groups={{"Knight",6,4},{"Wizard",6,3}},boss={species="Dragon",hp=26000,damage=320,interval=1.6,splash=true}},
+	["3:1"]={name="Royal Vanguard",tier=3,description="The armada's elite guard lands first.",firstCash=250000000,replayCash=25000000,groups={{"Knight",8,5},{"IceDuck",7,4},{"Dragon",7,2}}},
+	["3:2"]={name="Crown's Shield",tier=3,description="The armada's shield wall, built to outlast your flock.",firstCash=750000000,replayCash=75000000,groups={{"IceDuck",8,5},{"Dragon",8,4},{"StormDuck",7,2}}},
+	["3:3"]={name="The King Returns",tier=3,description="The Chicken King himself leads the armada.",firstCash=2500000000,replayCash=250000000,groups={{"IceDuck",9,4},{"Dragon",9,3},{"StormDuck",8,2}},boss={species="Duck",hp=80000,damage=900,interval=1.8,splash=true}},
 }
 
 function Catalog.Roster(id)

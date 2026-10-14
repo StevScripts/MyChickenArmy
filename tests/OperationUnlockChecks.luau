@@ -19,6 +19,7 @@ local PAST_GATE={
  ["Select an army first."]=true,
  ["Wait for your character to return."]=true,
  ["The Operation arena is not available in this place."]=true,
+ ["No landing zone near this base."]=true, -- October 14 Invasions (stub world has no root)
 }
 
 local function setup(kingCleared,research)
@@ -103,7 +104,7 @@ function Checks.Run()
   local state={kingCleared=true,tutorial={guideCompleted=true},pets={{id="a"}},selectedCount=1,armyState="Home",
    operations=service:Snapshot(s)}
   local goal=Guide.NextGoal(state)
-  assert(goal and goal.goal and goal.text:find("Veteran Patrol",1,true),"Goal: "..tostring(goal and goal.text))
+  assert(goal and goal.goal and goal.text:find("Scout Landing",1,true),"Goal: "..tostring(goal and goal.text))
   assert(not string.find(goal.id,"Goal:Attack:",1,true),"Goal reused the attack prompt id")
   state.outgoing="fight";assert(Guide.NextGoal(state)==nil,"Goal shown during a fight");state.outgoing=nil
   state.tutorial.goalsHidden=true;assert(Guide.NextGoal(state)==nil,"Hidden goals shown");state.tutorial.goalsHidden=nil

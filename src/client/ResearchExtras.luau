@@ -35,7 +35,7 @@ function Extras.new(app)
 	-- needs an entry besides the completed S15 node. Shares Rally's slot; Rally only
 	-- shows while Fighting and this only while the army is home.
 	-- October 13: an icon button like the left HUD column (mission map art).
-	self.operations=Theme.IconButton(app.hudLayer,"OperationsShortcut","Operations",Theme.Assets.Operations,function() app.audio:Play("Click");app:OpenPage("Operations") end)
+	self.operations=Theme.IconButton(app.hudLayer,"OperationsShortcut","Invasions",Theme.Assets.Operations,function() app.audio:Play("Click");app:OpenPage("Operations") end)
 	self.operations.AnchorPoint,self.operations.Position,self.operations.Size=Vector2.new(1,.5),UDim2.fromScale(.988,.56),UDim2.fromScale(.082,.16)
 	Theme.Aspect(self.operations,136/132);self.operations.Visual.Label.TextScaled=true
 	Theme.ScaleText(self.operations);self.operations.Visible=false

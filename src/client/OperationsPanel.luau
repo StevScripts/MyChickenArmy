@@ -1,8 +1,11 @@
 --!strict
--- Operations mission select (October 13 redesign). Tower-defense map-select
--- pattern: tier tabs, three mission cards, and a detail pane with the enemy
--- squad, power comparison, rewards and one big Deploy. The server validates
--- every Start/Leave; this module only presents state.operations.
+-- Invasions (formerly Operations). October 14 story: after the Chicken King
+-- falls, his loyalists land by airship beside the player's base; the army marches
+-- out to repel them. Tier tabs, three invasion cards and a detail pane with the
+-- enemy squad, power comparison, rewards and one big Defend. This module also
+-- plays the short airship-arrival camera shot and the occasional "airships
+-- spotted" alert. The server validates every Start/Leave.
+local TweenService=game:GetService("TweenService")
 local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
 local UserInputService=game:GetService("UserInputService")
@@ -135,7 +138,7 @@ function Panel:BuildShell()
 		Theme.Aspect(panel,1.72)
 	end
 	self.panelSize,self.panelPosition=panel.Size,panel.Position
-	local header=Theme.Header(panel,"Header","Operations",BLUE)
+	local header=Theme.Header(panel,"Header","Invasions",BLUE)
 	header.PageIcon.Image,header.PageIcon.Visible=Theme.Assets.Operations,true
 	Theme.LayoutHeader(header)
 	local main=Theme.Container(panel,"Main")
@@ -240,7 +243,7 @@ function Panel:BuildMissions(content,data)
 			self:Refresh()
 		end)
 	end
-	local note=label(content,"Rule","Your selected army fights alone · no reinforcements",.025,.825,.36,.05,MUTED,Enum.TextXAlignment.Center)
+	local note=label(content,"Rule","The King's loyalists land beside your base · your army marches out alone",.025,.825,.36,.05,MUTED,Enum.TextXAlignment.Center)
 	note.TextWrapped=true
 	local formations=Theme.Button(content,"Formations","Formations",function() self.app:OpenPage("Formations") end,BLUE)
 	formations.Position,formations.Size=UDim2.fromScale(.065,.885),UDim2.fromScale(.28,.095)
@@ -328,14 +331,14 @@ function Panel:BuildDetail(content,data,state)
 	-- Main action.
 	if data.activeId then
 		local active=Operations.Encounters[data.activeId]
-		label(detail,"Active",(if active then active.name else "An Operation").." is in progress",0,.82,.42,.17,WHITE)
+		label(detail,"Active",(if active then active.name else "An Invasion").." is under way",0,.82,.42,.17,WHITE)
 		local leave=Theme.ActionButton(detail,"Leave","Leave",function() app:Request("LeaveOperation") end,Theme.ActionColors.danger)
 		leave.Position,leave.Size=UDim2.fromScale(.45,.83),UDim2.fromScale(.55,.16)
 		self.deploy=leave
 		return
 	end
 	local home=state.armyState=="Home" or state.armyState=="Following"
-	local deploy=Theme.ActionButton(detail,"Deploy",if not home then "Army busy" elseif cleared then "Replay" else "Deploy",function()
+	local deploy=Theme.ActionButton(detail,"Deploy",if not home then "Army busy" elseif cleared then "Defend again" else "Defend",function()
 		if not home then return end
 		app:Request("StartOperation",{operationId=id,expectedRevision=state.research and state.research.revision})
 	end,if home then GREEN else Theme.ActionColors.disabled)
@@ -371,8 +374,75 @@ function Panel:Dismiss(immediate: boolean?)
 	Theme.Motion:Tween(panel,"operations-fade",{GroupTransparency=1},.16,nil,nil,finish)
 end
 
+-- A short camera shot of the airship arriving over the landing zone, then back to
+-- the player. Any key, click or tap skips it; reduced motion skips it entirely.
+local ARRIVAL_SHOT_SECONDS=4.6
+function Panel:PlayArrival(center)
+	local camera=workspace.CurrentCamera
+	if self.app.reducedMotion or not camera or type(center)~="table" or self.arrivalPlaying then return end
+	local landing=Vector3.new(center.x,center.y,center.z)
+	local seaward=Vector3.new(landing.X,0,landing.Z)
+	seaward=if seaward.Magnitude>1e-3 then seaward.Unit else Vector3.new(0,0,1)
+	local side=seaward:Cross(Vector3.yAxis)
+	-- Stand inland of the landing zone, looking out to sea at the incoming ship.
+	local eye=landing-seaward*60+side*30+Vector3.new(0,26,0)
+	local shot=CFrame.lookAt(eye,landing+seaward*40+Vector3.new(0,30,0))
+	self.arrivalPlaying=true
+	local previousType,previous=camera.CameraType,camera.CFrame
+	camera.CameraType=Enum.CameraType.Scriptable
+	local moveIn=TweenService:Create(camera,TweenInfo.new(.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{CFrame=shot})
+	moveIn:Play()
+	local finished=false
+	local skip
+	local function finish()
+		if finished then return end
+		finished=true
+		if skip then skip:Disconnect() end
+		moveIn:Cancel()
+		local back=TweenService:Create(camera,TweenInfo.new(.5,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{CFrame=previous})
+		back:Play()
+		back.Completed:Once(function()
+			camera.CameraType=if previousType==Enum.CameraType.Scriptable then Enum.CameraType.Custom else previousType
+			self.arrivalPlaying=false
+		end)
+	end
+	skip=UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.Keyboard or input.UserInputType==Enum.UserInputType.MouseButton1
+			or input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.Gamepad1 then finish() end
+	end)
+	task.delay(ARRIVAL_SHOT_SECONDS,finish)
+end
+
+-- Every so often, while an Invasion is available and the army is home, a scout
+-- reports airships and the HUD Invasions icon pulses. Cosmetic only.
+local ALERT_FIRST_SECONDS,ALERT_EVERY_SECONDS=180,600
+function Panel:StepAlert(state)
+	local data=state.operations
+	local now=os.clock()
+	self.nextAlertAt=self.nextAlertAt or now+ALERT_FIRST_SECONDS
+	if now<self.nextAlertAt then return end
+	local ready=data and (tonumber(data.tier) or 0)>=1 and not data.activeId and state.armyState=="Home"
+		and (state.tutorial or {}).guideCompleted==true and not self.gui
+	if not ready then return end
+	self.nextAlertAt=now+ALERT_EVERY_SECONDS
+	self.app:Notify("Loyalist airships spotted near your base! Tap Invasions to repel them.","info")
+	local icon=self.app.researchExtras and self.app.researchExtras.operations
+	local visual=icon and icon:FindFirstChild("Visual")
+	if visual and not self.app.reducedMotion then
+		local pulse=TweenService:Create(visual,TweenInfo.new(.35,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,5,true),{Size=UDim2.fromScale(1.15,1.15)})
+		pulse:Play()
+		pulse.Completed:Once(function() visual.Size=UDim2.fromScale(1,1) end)
+	end
+end
+
 function Panel:Render(state,result)
 	if type(state)~="table" then return end
+	local data=state.operations
+	local active=data and data.activeId
+	-- A new Invasion just started: show the airship arriving.
+	if active and active~=self.lastActive and data.center then self:PlayArrival(data.center) end
+	self.lastActive=active
+	self:StepAlert(state)
 	-- A successful deploy sends the army off; the menu gets out of the way.
 	if result and result.ok and result.action=="StartOperation" then self:Dismiss();return end
 	self:Refresh()

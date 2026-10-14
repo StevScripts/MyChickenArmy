@@ -171,8 +171,8 @@ function GameServer:Handle(player,request)
 		ok,message=self.operations:Start(session,request.operationId,request.expectedRevision,now)
 	elseif action=="LeaveOperation" then
 		local operation=self.battles.battles[session.outgoing]
-		if operation and operation.operationId then self.operations:Resolve(operation,"Abandoned",now);ok,message=true,"Operation ended."
-		else message="You are not in an Operation." end
+		if operation and operation.operationId then self.operations:Resolve(operation,"Abandoned",now);ok,message=true,"Invasion abandoned. Your army is marching home."
+		else message="You are not repelling an Invasion." end
 	elseif action=="EggCashCollect" then
 		-- Old clients cannot bypass server-owned movement/one-second collection.
 		return

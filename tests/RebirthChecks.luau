@@ -185,7 +185,7 @@ function Checks.Run()
   oserver.battles.battles.op1={id="op1",attacker=o.userId,operationId="Raid1"}
   o.outgoing,o.armyState="op1","Fighting"
   done,message=Rebirth.Rebirth(o,0,oserver)
-  assert(not done and message=="Finish your Operation first.",message)
+  assert(not done and message=="Finish your Invasion first.",message)
   -- Stale or missing expected rank.
   local r,_,rserver=setup()
   done,message=Rebirth.Rebirth(r,1,rserver)
