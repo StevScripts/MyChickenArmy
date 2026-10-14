@@ -21,8 +21,11 @@ local WHITE=Color3.new(1,1,1)
 local MUTED=Color3.fromRGB(64,67,65)
 local RED=Color3.fromRGB(255,107,83)
 local HOLD_SECONDS=2
-local KEEP={"Chickens, levels and Giants","Research","Index","Plot size","Roll podiums","Army size","Passes"}
-local RESET={"Cash","Egg Laying Speed","Egg Value","Luck","Camps and King"}
+-- October 13 redesign (simulator rebirth pattern): rank → next rank, two
+-- before → after reward pills, one reset line, a cost bar and the hold button.
+local RESET_LINE="Resets cash, Egg Speed, Egg Value, Luck and camps"
+local KEEP_LINE="Keeps chickens, Giants, research, plot and army size"
+local ENEMY_RED=Color3.fromRGB(232,62,48)
 
 local NUMERALS={{1000,"M"},{900,"CM"},{500,"D"},{400,"CD"},{100,"C"},{90,"XC"},{50,"L"},{40,"XL"},{10,"X"},{9,"IX"},{5,"V"},{4,"IV"},{1,"I"}}
 -- Fallback title while only the foundation stub quote is available.
@@ -209,6 +212,7 @@ function Panel:Open()
 	self.app:SetMenuBlur("rebirth",true)
 	self.app:ClosePanel()
 	self.app.offlineCash:Dismiss(true)
+	if self.app.dailyReward then self.app.dailyReward:Dismiss(true) end
 	self.previousSelection=GuiService.SelectedObject
 	self.message,self.messageColor=nil,nil
 	self:Build()
@@ -272,38 +276,58 @@ function Panel:Build()
 	self.panelSize,self.panelPosition=panel.Size,panel.Position
 	local header,title=Theme.Header(panel,"Header","Re-enlist",GREEN)
 	self.title=title
+	-- The shared header's icon slot carries the Re-enlist badge (title shifts right).
+	header.PageIcon.Image,header.PageIcon.Visible=Theme.Assets.Reenlist,true
+	Theme.LayoutHeader(header)
 	local main=Theme.Container(panel,"Main")
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Theme.PageSurfaces.Army)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	local columns=Theme.Container(main,"Columns")
-	columns.Position,columns.Size=UDim2.fromScale(.04,.03),UDim2.fromScale(.92,.49)
-	local function column(name,heading,items,x,color,mark)
-		local holder=Theme.Container(columns,name)
-		holder.Position,holder.Size=UDim2.fromScale(x,0),UDim2.fromScale(.48,1)
-		local head=label(holder,"Heading",heading,0,0,1,.15,color)
-		head.TextXAlignment=Enum.TextXAlignment.Left
-		local list=Theme.Container(holder,"List")
-		list.Position,list.Size=UDim2.fromScale(0,.17),UDim2.fromScale(1,.83)
-		local layout=Instance.new("UIListLayout")
-		layout.SortOrder,layout.Parent=Enum.SortOrder.LayoutOrder,list
-		for index,text in items do
-			local row=label(list,"Row"..index,mark.." "..text,0,0,1,1/#KEEP,Color3.fromRGB(224,230,233))
-			row.TextXAlignment,row.LayoutOrder=Enum.TextXAlignment.Left,index
-		end
+	-- Rank row: current badge → next badge.
+	local function rankCard(name,x,accent)
+		local card=Theme.Frame(main,name,UDim2.fromScale(.34,.3),Color3.fromRGB(24,30,26))
+		card.Position=UDim2.fromScale(x,.04)
+		card:SetAttribute("OwnsPopupStyle",true)
+		Theme.Stroke(card,accent,3)
+		local badge=Theme.Image(card,"Badge",Theme.Assets.RecruitBadge,UDim2.fromScale(.5,.66),UDim2.fromScale(.25,.04))
+		Theme.Aspect(badge,1)
+		local name=label(card,"Rank","",.04,.7,.92,.26,accent)
+		return card,badge,name
 	end
-	column("Keep","You keep",KEEP,0,GREEN,"✓")
-	column("Reset","You reset",RESET,.52,RED,"×")
-	self.eggs=label(main,"EggGain","",.04,.54,.92,.065,GREEN)
-	self.enemies=label(main,"EnemyScale","",.04,.605,.92,.055,Color3.fromRGB(255,170,150))
-	self.cost=label(main,"Cost","",.04,.665,.92,.06,GOLD)
-	local track,fill=bar(main,"CostProgress",Color3.fromRGB(16,40,12),GREEN)
-	track.Position,track.Size=UDim2.fromScale(.25,.73),UDim2.fromScale(.5,.02)
-	Theme.Stroke(track,Color3.new(0,0,0),1)
-	self.costTrack,self.costFill=track,fill
-	self.status=label(main,"Message","",.04,.755,.92,.045,RED)
+	local _,nowBadge,nowName=rankCard("Current",.06,Color3.fromRGB(196,206,200))
+	local nextCard,nextBadge,nextName=rankCard("Next",.6,GOLD)
+	local arrow=label(main,"Arrow","→",.42,.1,.16,.18,WHITE)
+	self.nowBadge,self.nowName,self.nextCard,self.nextBadge,self.nextName,self.arrow=nowBadge,nowName,nextCard,nextBadge,nextName,arrow
+	-- Reward pills: icon, "×1.00 → ×1.25", caption.
+	local function pill(name,x,icon,color,caption)
+		local frame=Theme.Frame(main,name,UDim2.fromScale(.43,.2),color)
+		frame.Position=UDim2.fromScale(x,.38)
+		frame:SetAttribute("OwnsPopupStyle",true)
+		Theme.Gradient(frame,color:Lerp(WHITE,.18),color:Lerp(Color3.new(0,0,0),.28))
+		Theme.Stroke(frame,Color3.new(0,0,0),3)
+		local art=Theme.Image(frame,"Icon",icon,UDim2.fromScale(.26,1.1),UDim2.fromScale(-.02,-.05))
+		Theme.Aspect(art,1);art.ZIndex=6
+		local value=label(frame,"Value","",.26,.04,.72,.6,WHITE)
+		local note=label(frame,"Caption",caption,.26,.62,.72,.32,Color3.fromRGB(240,248,240))
+		return value,note
+	end
+	self.eggValue,self.eggNote=pill("Eggs",.05,Assets.egg,Color3.fromRGB(64,176,36),"Egg value forever")
+	self.enemyValue,self.enemyNote=pill("Enemies",.52,Theme.Assets.EnemyStrength,ENEMY_RED,"Camps and King strength")
+	local reset=label(main,"Resets",RESET_LINE,.05,.605,.9,.06,Color3.fromRGB(255,120,104))
+	local keep=label(main,"Keeps",KEEP_LINE,.05,.665,.9,.05,Color3.fromRGB(176,236,150))
+	reset.TextXAlignment,keep.TextXAlignment=Enum.TextXAlignment.Center,Enum.TextXAlignment.Center
+	-- Cost bar: progress toward the next rank, or the King requirement.
+	local track,fill=bar(main,"CostProgress",Color3.fromRGB(14,24,14),GREEN)
+	track.Position,track.Size=UDim2.fromScale(.06,.735),UDim2.fromScale(.88,.08)
+	Theme.Stroke(track,Color3.new(0,0,0),3)
+	Theme.ApplyReferenceAccent(fill,Theme.ReferenceGradients.Army)
+	local lock=Theme.Image(track,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.07,1.5),UDim2.fromScale(.005,-.25))
+	Theme.Aspect(lock,1);lock.ZIndex=8
+	local costText=label(track,"Label","",.08,.05,.84,.9,WHITE)
+	costText.ZIndex,costText.TextXAlignment=8,Enum.TextXAlignment.Center
+	self.costTrack,self.costFill,self.costText,self.costLock=track,fill,costText,lock
 	local actions=Theme.Container(main,"Actions")
-	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(.5,1),UDim2.fromScale(.5,.975),UDim2.fromScale(.6,.16)
+	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(.5,1),UDim2.fromScale(.5,.975),UDim2.fromScale(.6,.13)
 	-- Hold control stays at least 44 points tall on the smallest phones.
 	local minimum=Instance.new("UISizeConstraint")
 	minimum.MinSize,minimum.Parent=Vector2.new(0,44),actions
@@ -344,22 +368,46 @@ function Panel:RenderPanel()
 	if not self.gui or not self.panel or self.closing then return end
 	local quote=self.quote
 	if type(quote)~="table" then return end
+	local rank=tonumber(quote.rank) or 0
 	local nextTitle=quote.nextTitle
 	self.title.Text=if nextTitle then "Re-enlist as "..nextTitle else "Re-enlist"
+	-- Rank row.
+	self.nowName.Text=quote.title or Panel.Title(rank)
+	self.nowBadge.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
+	self.nextName.Text=nextTitle or "Max rank"
+	self.nextBadge.Image=Theme.Assets.Reenlist
+	self.nextBadge.ImageTransparency=if nextTitle then 0 else .5
+	-- Reward pills.
 	local now=tonumber(quote.multiplierNow) or 1
-	self.eggs.Text=if quote.multiplierNext then "Eggs "..multiplier(now,2).." → "..multiplier(quote.multiplierNext,2).." forever"
-		else "Eggs "..multiplier(now,2).." forever"
-	self.enemies.Text=if quote.enemyScaleNext then "Enemies get stronger ("..multiplier(quote.enemyScaleNext,1)..")" else ""
+	self.eggValue.Text=if quote.multiplierNext then multiplier(now,2).." → "..multiplier(quote.multiplierNext,2) else multiplier(now,2)
+	-- EnemyScale is linear in rank, so the current scale follows from the next one.
+	local scaleNext=tonumber(quote.enemyScaleNext)
+	local scaleNow=if scaleNext then 1+(scaleNext-1)*rank/(rank+1) else 1
+	self.enemyValue.Text=if scaleNext then multiplier(scaleNow,1).." → "..multiplier(scaleNext,1) else multiplier(scaleNow,1)
+	-- Cost bar: King requirement first, then cash progress; server errors replace the label.
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	self.cost.Text=if cost then "Costs "..money(cost) else ""
-	self.costTrack.Visible=cost~=nil and coins<cost
-	self.costFill.Size=UDim2.fromScale(if cost and cost>0 then math.clamp(coins/cost,0,1) else 0,1)
+	local needKing=quote.kingCleared==false
+	local progress=if needKing then 0 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 1
+	self.costFill.Size=UDim2.fromScale(progress,1)
+	self.costLock.Visible=needKing
+	if self.message then
+		self.costText.Text,self.costText.TextColor3=self.message,self.messageColor or RED
+	elseif needKing then
+		self.costText.Text,self.costText.TextColor3="Defeat the Chicken King first",WHITE
+	elseif cost then
+		self.costText.Text,self.costText.TextColor3=money(math.min(coins,cost)).." / "..money(cost),WHITE
+	else
+		self.costText.Text,self.costText.TextColor3="Highest rank reached",GOLD
+	end
 	local can=self:CanConfirm()
-	self.status.Text=self.message or ""
-	self.status.TextColor3=self.messageColor or RED
 	local hold=self.hold
 	hold.Active=can or self.pending~=nil
-	hold.Text=if self.pending then "Re-enlisting…" elseif can then "Hold to re-enlist" else (quote.reason or "Not ready yet")
+	-- Readable refusal from the quote fields (the server reason has raw digits).
+	local reason=quote.reason or "Not ready yet"
+	if needKing then reason="Defeat the Chicken King"
+	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more"
+	elseif quote.armyHome==false then reason="Bring your army home first" end
+	hold.Text=if self.pending then "Re-enlisting…" elseif can then "Hold to re-enlist" else reason
 	local tint=if can or self.pending then GREEN else Theme.ActionColors.disabled
 	if hold.BackgroundColor3~=tint then
 		hold.BackgroundColor3=tint

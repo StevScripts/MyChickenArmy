@@ -26,6 +26,7 @@ local EggProcessorController = require(script.Parent.EggProcessorController)
 local OfflineCashController = require(script.Parent.OfflineCashController)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
+local OperationsPanel = require(script.Parent.OperationsPanel)
 local ChickenBrowser = require(script.Parent.ChickenBrowser)
 local MergeBrowser = if Config.Features.Merging then require(script.Parent.MergeBrowser) else nil
 local ShopBrowser = require(script.Parent.ShopBrowser)
@@ -57,6 +58,7 @@ function AppController.new()
 	-- Launch sprint panels (docs/team/launch); foundation stubs render nothing.
 	self.rebirthPanel=RebirthPanel.new(self)
 	self.dailyReward=DailyRewardController.new(self)
+	self.operationsPanel=OperationsPanel.new(self)
 	self.base, self.battle = BaseController.new(self), BattleController.new(self)
 	return self
 end
@@ -290,6 +292,8 @@ end
 
 function AppController:OpenPage(page)
 	if self.commerce.cratePresenting then return end
+	-- October 13: Operations is its own mission-select window (OperationsPanel).
+	if page=="Operations" then self.operationsPanel:Open();return end
 	if page=="Upgrades" or page=="Research" then self.research:Open();return end
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
@@ -816,6 +820,7 @@ function AppController:Receive(packet)
 	-- After the offline receipt so the daily popup can wait for it.
 	self.rebirthPanel:Render(state,result)
 	self.dailyReward:Render(state,result)
+	self.operationsPanel:Render(state,result)
 	if self.commander then self.commander:Update() end
 	if result and result.ok then
 		local changed=if (result.action=="Expand" or result.action=="Income" or result.action=="Luck")
@@ -894,7 +899,7 @@ function AppController:Destroy()
 	self.researchExtras:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
-	self.rebirthPanel:Destroy();self.dailyReward:Destroy()
+	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy()
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
 	table.clear(self.menuBlurOwners)
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()

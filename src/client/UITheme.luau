@@ -58,6 +58,10 @@ Theme.Assets = {
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
 	-- October 13: Re-enlist HUD icon (assets/generated/reenlist-icon-20261013, version 1).
 	Reenlist="rbxassetid://106238480346679",
+	-- October 13 Re-enlist/Operations redesign art (assets/generated/rebirth-ops-ui-20261013).
+	Operations="rbxassetid://138069376166114", EnemyStrength="rbxassetid://99274612272661",
+	TierVeteran="rbxassetid://109811392018031", TierElite="rbxassetid://98084499968311", TierRoyal="rbxassetid://102050567074631",
+	RecruitBadge="rbxassetid://126710710110391", Padlock="rbxassetid://119808966455913",
 }
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a

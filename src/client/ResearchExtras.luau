@@ -34,9 +34,11 @@ function Extras.new(app)
 	-- October 14 launch: a King clear opens Operations without research, so the page
 	-- needs an entry besides the completed S15 node. Shares Rally's slot; Rally only
 	-- shows while Fighting and this only while the army is home.
-	self.operations=Theme.Button(app.hudLayer,"OperationsShortcut","Operations",function() app:OpenPage("Operations") end,Theme.ActionColors.navigation)
-	self.operations.AnchorPoint,self.operations.Position,self.operations.Size=Vector2.new(1,.5),UDim2.fromScale(.985,.58),UDim2.fromScale(.16,.07)
-	Theme.Aspect(self.operations,3.9);Theme.ScaleText(self.operations);self.operations.Visible=false
+	-- October 13: an icon button like the left HUD column (mission map art).
+	self.operations=Theme.IconButton(app.hudLayer,"OperationsShortcut","Operations",Theme.Assets.Operations,function() app.audio:Play("Click");app:OpenPage("Operations") end)
+	self.operations.AnchorPoint,self.operations.Position,self.operations.Size=Vector2.new(1,.5),UDim2.fromScale(.988,.56),UDim2.fromScale(.082,.16)
+	Theme.Aspect(self.operations,136/132);self.operations.Visual.Label.TextScaled=true
+	Theme.ScaleText(self.operations);self.operations.Visible=false
 	self.goal=Theme.Button(app.hudLayer,"ResearchGoal","",function()
 		local data=app.state and app.state.research
 		if data and data.pinned then app:OpenPage("Research");app.research:Center(data.pinned);app.research:Select(data.pinned,true) end
@@ -60,6 +62,7 @@ function Extras:UpdateRally()
 	self.operations.Visible=operations~=nil and (operations.tier or 0)>=1 and not operations.activeId
 		and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming and not state.outgoing
 		and not self.app.panel.Visible and not (self.app.research and self.app.research.root.Visible) and not self.app.dialogueActive
+		and not (self.app.operationsPanel and self.app.operationsPanel.gui)
 	self.rally.Visible=data~=nil and data.effects.rallySeconds>0 and state.armyState=="Fighting" and not self.app.panel.Visible
 	if not self.rally.Visible then return end
 	local now=self.app.research:Now()
