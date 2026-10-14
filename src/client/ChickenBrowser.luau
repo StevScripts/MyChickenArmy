@@ -9,6 +9,8 @@ local Config=require(Shared.Config)
 local Rules=require(Shared.Rules)
 local Catalog=require(Shared.PetCatalog)
 local Giant=require(Shared.GiantChicken)
+local Mutations=require(Shared.MutationCatalog)
+local MutationVFX=require(script.Parent.SpecialChickenVFX)
 -- Approved Figma 456:3625, 1536 x 1024. Only this browser owns these local tokens.
 local WHITE=Color3.fromRGB(249,251,242)
 local MUTED=Color3.fromRGB(181,205,223)
@@ -604,6 +606,8 @@ function Browser:Send(action,payload)
 end
 
 function Browser:Receive(result)
+	-- Every snapshot passes through here: keep the world mutation looks current.
+	MutationVFX.SetOwnedMutations(self.app.state and self.app.state.pets)
 	if self.pending and result and result.id==self.pending.id then
 		local pending=self.pending
 		self.pending=nil
@@ -955,6 +959,11 @@ function Browser:Card(parent,pet,slot,order)
   surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),Theme.Border.Control)
   art(badge,"Check",Art.Check,UDim2.fromScale(0.75,0.65),UDim2.fromScale(0.1,0.15))
  end
+ -- Mutation tag under the rarity ribbon, clear of the equipped check.
+ local mutation=MutationVFX.Badge(card,pet.mutation)
+ if mutation then
+  mutation.Position,mutation.Size=UDim2.fromScale(92/210,36/220),UDim2.fromScale(112/210,28/220)
+ end
  card.Activated:Connect(function()
   if os.clock()<self.suppressUntil then return end
   if self.placing then self:TogglePet(pet.id) else self:Inspect(pet.id) end
@@ -999,7 +1008,9 @@ function Browser:RenderArmyInfo(pets,ids)
 		portrait.ZIndex=row.ZIndex+1
 		label(row,"Name",Catalog[pet.species].name,26,
 			UDim2.fromScale(118/1462,13/84),UDim2.fromScale(990/1462,30/84),WHITE,true)
-		label(row,"Status","Lv. "..pet.level.." / "..(if pet.deployed then "Away" else "In Army"),15,
+		local mutation=Mutations.Get(pet.mutation)
+		label(row,"Status","Lv. "..pet.level.." / "..(if pet.deployed then "Away" else "In Army")
+			..(if mutation then " / "..mutation.name else ""),15,
 			UDim2.fromScale(118/1462,49/84),UDim2.fromScale(990/1462,23/84),GREEN)
 		local damage=label(row,"DPS",Theme.Number(stats.damage/stats.interval).." DPS",25,
 			UDim2.fromScale(1138/1462,27/84),UDim2.fromScale(150/1462,32/84),WHITE,true)
@@ -1027,6 +1038,7 @@ end
 
 function Browser:RenderDetail(pet)
  if self.detailPreview then self.detailPreview:Destroy();self.detailPreview=nil end
+ if self.detailMutation then self.detailMutation:Destroy();self.detailMutation=nil end
  if not pet or not self.inspecting or not self.detail.Visible then
   self.name.Text,self.metadata.Text="Choose a chicken",""
   self.stats.Text=""
@@ -1044,6 +1056,17 @@ function Browser:RenderDetail(pet)
  local eggs=pet.eggsPerSecond or Rules.EggRate(pet.species,pet.stars,pet.level)
  self.stats.Text=Theme.Number(stats.damage/stats.interval)..' <font color="#CDD6C7">DPS</font>  •  '
   ..Theme.Number(eggs)..' <font color="#CDD6C7">'..(if Theme.Number(eggs)=="1" then "egg/s" else "eggs/s")..'</font>'
+ -- The snapshot's eggs/s already includes the mutation; this tag says why.
+ local mutation=Mutations.Get(pet.mutation)
+ if mutation then
+  self.detailMutation=MutationVFX.Badge(self.detail,pet.mutation,"MutationEggs",
+   string.format("Eggs ×%g (%s)",mutation.multiplier,mutation.name))
+  if self.detailMutation then
+   local preview,at=self.previewSize,self.previewPosition
+   self.detailMutation.Size=UDim2.fromScale(preview.X.Scale*0.62,preview.Y.Scale*40/414)
+   self.detailMutation.Position=UDim2.fromScale(at.X.Scale+preview.X.Scale*0.19,at.Y.Scale+preview.Y.Scale*0.01)
+  end
+ end
  if self.hideDetailPreview then return end
  self.detailPreview=Preview.Create(self.detail,pet,self.previewSize,self.previewPosition)
  Theme.Aspect(self.detailPreview,1)
@@ -1093,7 +1116,7 @@ function Browser:Render(force)
 		tostring(state.homeEggsPerSecond),self.query,self.sort,self.placing or ""}
 	table.insert(keys,tostring(state.research and state.research.revision))
 	for _,pet in state.pets or {} do
-		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap))
+		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap)..":"..tostring(pet.mutation))
 	end
 	local key=table.concat(keys,"|")
 	if key==self.key and not force then self:UpdateAction();return end
@@ -1102,7 +1125,8 @@ function Browser:Render(force)
 	clear(self.grid);self.slots,self.cards={},{}
 	local visible={}
 	for _,pet in ordered do
-		local searchText=string.lower(Catalog[pet.species].name.." "..Catalog[pet.species].rarity.." "..pet.species)
+		local searchText=string.lower(Catalog[pet.species].name.." "..Catalog[pet.species].rarity.." "..pet.species
+			..(if Mutations.IsValid(pet.mutation) then " "..pet.mutation else ""))
 		if self.query=="" or string.find(searchText,self.query,1,true) then table.insert(visible,pet) end
 	end
 	local row
