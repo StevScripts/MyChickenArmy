@@ -302,6 +302,7 @@ function AppController:OpenPage(page)
 	if self.research then self.research:Close() end
 	self:SetMenuBlur("main",true)
 	self.offlineCash:Dismiss(true)
+	self.dailyReward:Dismiss(true)
 	if self.mergeBrowser and self.page=="Merge" and page~="Merge" then self.mergeBrowser:Close() end
 	local switching=self.panel.Visible and not self.panelClosing
 	self.panelClosing=false

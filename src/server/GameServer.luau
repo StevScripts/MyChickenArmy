@@ -382,11 +382,15 @@ function GameServer:AddPlayer(player)
   end
  end
  self.analytics:Loaded(session)
- DailyService.Check(session,os.time(),self)
  self.world:UpdateSession(session);self:Send(player)
  task.spawn(function()
   if self.sessions[player.UserId]~=session or player.Parent~=Players then return end
   self.commerce:Load(player,session)
+  -- The login streak waits for verified passes so 2x Cash counts in its reward.
+  if self.sessions[player.UserId]==session and not session.closing then
+   session.dailyReady=true
+   DailyService.Check(session,os.time(),self)
+  end
   if self.sessions[player.UserId]==session and player.Parent==Players and not session.closing then self:Send(player) end
  end)
  print("[PetRoll] Ready for "..player.Name.." on plot "..index)
@@ -460,7 +464,7 @@ function GameServer:Step(dt)
 	if now>=(self.nextDailyCheckAt or 0) then
 		self.nextDailyCheckAt=now+DAILY_CHECK_SECONDS
 		for _,session in self.sessions do
-			if session.loaded and not session.closing and not session.saveLost then DailyService.Check(session,wallTime,self) end
+			if session.dailyReady and session.loaded and not session.closing and not session.saveLost then DailyService.Check(session,wallTime,self) end
 		end
 	end
 	if Config.Features.Merging and now>=(self.nextAutomaticAt or 0) then
