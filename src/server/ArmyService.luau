@@ -165,6 +165,9 @@ function ArmyService.MergeOptions(session, automatic: boolean?)
 	for key,pets in groups do
 		if #pets<3 then continue end
 		table.sort(pets,function(a,b)
+			-- Mutated chickens first, so the picker's default triple keeps the best mutation.
+			local ma,mb=MutationCatalog.Rank(a.mutation),MutationCatalog.Rank(b.mutation)
+			if ma~=mb then return ma>mb end
 			local sa,sb=session:FindSlot(a.id) or math.huge,session:FindSlot(b.id) or math.huge
 			if sa~=sb then return sa<sb end
 			return a.id<b.id

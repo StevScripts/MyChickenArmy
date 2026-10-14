@@ -88,7 +88,7 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local selected=table.find(after,pet.id)~=nil
 	local assignment=if not selected then "Reserve" elseif #after>#before then "Added" else "Replacement"
 	local pending=selected and context and context.phase~="Returning" and context.battleId or nil
-	local status=if not selected then "Reserve · eggs +$"..session:DisplayedPetIncome(pet.species,pet.stars,pet.level).."/s at home."
+	local status=if not selected then "Reserve · eggs +$"..session:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation).."/s at home."
 		elseif session.armyState=="Returning" then "Ready when your army gets home."
 		elseif session:IsArmyLocked() and pending then "Joining your army on foot."
 		elseif session:IsArmyLocked() then "Ready for your next deployment."

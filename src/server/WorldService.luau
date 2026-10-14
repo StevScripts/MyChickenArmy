@@ -210,6 +210,7 @@ function WorldService:RestoreActor(session, petId: string, actor)
 	actor.model:SetAttribute("OwnerUserId", session.userId)
 	actor.model:SetAttribute("OwnerId", session.userId)
 	actor.model:SetAttribute("PetId", petId)
+	actor.model:SetAttribute("Mutation", pet.mutation) -- M1 visuals for every viewer
 	actor.model:SetAttribute("Recruiting", false)
 	PetView.Level(actor.model,pet.level or 1,pet.giantSize)
 	if PetView.Flash then PetView.Flash(actor.model, false) end
@@ -573,6 +574,7 @@ function WorldService:UpdateSession(session)
 		for name, value in {PetId = pet.id, OwnerId = session.userId, OwnerUserId = session.userId, AtHome = true,
 			InArmy = best[pet.id] == true} do attribute(actor.model, name, value) end
 		PetView.Level(actor.model, pet.level or 1, pet.giantSize)
+		attribute(actor.model, "Mutation", pet.mutation)
 		actor.model:SetAttribute("DeploymentSlot", nil)
 		actor.model:SetAttribute("StoredCash", nil)
 		if PetView.Cash then PetView.Cash(actor.model, 0, false) end

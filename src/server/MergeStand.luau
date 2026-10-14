@@ -152,6 +152,7 @@ function MergeStand:Celebrate(pet,actor,onReleased)
  actor:Stop()
  local bird=actor.model
  PetView.Level(bird,pet.level or 1,pet.giantSize)
+ bird:SetAttribute("Mutation",pet.mutation)
  local foot=(self.entry*CFrame.new(0,0,1.65)).Position
  local offset=bird:GetAttribute("FootOffset")
  local rootAt=foot+Vector3.new(0,offset,0)

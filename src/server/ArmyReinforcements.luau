@@ -52,7 +52,7 @@ function Reinforcements.Sync(session,battle,world,now)
   end
   local home=world:ReturnPosition(session,id,slot)
   local start=world:PetPosition(session.plotIndex,id) or home
-  battle:AddArmy(side,{{id=id,species=pet.species,stars=pet.stars,level=pet.level,giantSize=pet.giantSize,slot=slot}},start)
+  battle:AddArmy(side,{{id=id,species=pet.species,stars=pet.stars,level=pet.level,giantSize=pet.giantSize,mutation=pet.mutation,slot=slot}},start)
   local u=battle.units[#battle.units]
   u.x,u.z,u.startX,u.startZ=start.X,start.Z,start.X,start.Z
   u.homeX,u.homeZ=home.X,home.Z;u.reinforcing=true

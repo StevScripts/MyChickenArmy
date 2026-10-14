@@ -205,11 +205,17 @@ function GameServer:Handle(player,request)
 	elseif action=="Roll" or action=="Buy" then
 		if not self.world:CanUseStation(player,session,request.stationIndex,action,request.offerId) then
 			message="Walk up to your own pet rolling station."
-		elseif action=="Roll" then ok,message=self.rolls:Roll(session,now)
+		elseif action=="Roll" then
+			ok,message=self.rolls:Roll(session,now)
+			if ok then for _,offer in session.offers or {} do
+				if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
+			end end
 		else
 			local battle=self.battles.battles[session.outgoing]
 			ok,message,petId,recruit=self.rolls:Buy(session,request.offerId,now,battle and {
 				battleId=battle.id,phase=battle.phase})
+			local bought=ok and petId and session.pets[petId]
+			if bought and bought.mutation then self.analytics:LaunchCount(session,"mutation.buy."..bought.mutation) end
 		end
 	elseif action=="SetArmy" then ok,message=ArmyService.SetSelection(session,request.petIds,request.expectedIds)
 	elseif action=="SelectBest" then ok,message=ArmyService.SelectBest(session)
@@ -231,10 +237,20 @@ function GameServer:Handle(player,request)
   elseif action=="OpenMerge" then ok,message=true,"Choose matching chickens to merge."
   elseif action=="MergeAll" then
    ok,message,receipt=ArmyService.MergeAll(session,request.triples)
-   if ok then petId=receipt.results[1].petId;self.world:CelebrateMerge(session,petId) end
+   if ok then
+    petId=receipt.results[1].petId;self.world:CelebrateMerge(session,petId)
+    for _,result in receipt.results do
+     local giant=session.pets[result.petId]
+     if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
+    end
+   end
   else
    ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
-   if ok then self.world:CelebrateMerge(session,petId) end
+   if ok then
+    self.world:CelebrateMerge(session,petId)
+    local giant=session.pets[petId]
+    if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
+   end
   end
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)

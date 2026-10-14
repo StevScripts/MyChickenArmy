@@ -29,6 +29,7 @@ function LiveBattleActors:Adopt(unit,actor)
  actor.model:SetAttribute("InArmy",true)
  actor.model:SetAttribute("BattleId",self.battle.id);actor.model:SetAttribute("UnitId",unit.id)
  actor.model:SetAttribute("PetId",unit.petId);actor.model:SetAttribute("Side",unit.side)
+ actor.model:SetAttribute("Mutation",unit.mutation)
  actor.model:SetAttribute("OwnerUserId",if unit.side=="A" then self.battle.attacker else self.battle.defender)
  actor.model:SetAttribute("OwnerId",if unit.side=="A" then self.battle.attacker else self.battle.defender)
  self.actors[unit.id]=actor

@@ -230,6 +230,7 @@ function RollStation:Sync(session)
 	self.rollStartedAt = self.revealAt - duration
 	self.model:SetAttribute("RevealedOfferId", nil)
 	self.model:SetAttribute("RevealedSpecies", nil)
+	self.model:SetAttribute("RevealedMutation", nil)
 	-- Publish a shared cosmetic clock, not the hidden result. Clients animate locally.
 	self.model:SetAttribute("RollStartedAt", workspace:GetServerTimeNow() - (os.clock() - self.rollStartedAt))
 	self.model:SetAttribute("RollDuration", duration)
@@ -268,6 +269,7 @@ function RollStation:Step(now, force)
 			self:SetPet(self.offer.species); self.landed = true
 			self.model:SetAttribute("RevealedSpecies", self.offer.species)
 			self.model:SetAttribute("RevealedOfferId", self.offer.id)
+			self.model:SetAttribute("RevealedMutation", self.offer.mutation)
 		end
 		self.label.Text = def.name
 		self.rarityLabel.Text = def.rarity
@@ -294,7 +296,7 @@ function RollStation:Clear()
 	self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
-	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
+	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
 	self.model:SetAttribute("Rolling", false)
 end
 
