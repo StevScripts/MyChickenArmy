@@ -112,7 +112,7 @@ function Checks.Run()
   end)
  end)
 
- test("With neutral stubs, income and offline rate match main",function()
+ test("Without mutations, income and offline rate match main",function()
   local s=baselineSession()
   near(s:Income(),1062,"Income")
   near(s:DisplayedPetIncome("Knight",1,3),835.1999999999999,"Displayed income")
@@ -125,7 +125,12 @@ function Checks.Run()
  test("With neutral stubs, roll offers match main for a fixed seed",function()
   local s=baselineSession()
   s.rollSlotCount=4;s.debugRandom=Random.new(42)
-  assert(Rolls.new():Roll(s,0))
+  -- M1 adds a mutation draw per offer; stub it so the species stream matches main.
+  local roll=Mutations.Roll
+  Mutations.Roll=function() return nil end
+  local ok,why=pcall(function() assert(Rolls.new():Roll(s,0)) end)
+  Mutations.Roll=roll
+  assert(ok,why)
   local offers={}
   for i,o in s.offers do offers[i]=o.species..":"..o.level..":"..o.price;assert(o.mutation==nil) end
   assert(table.concat(offers,",")=="Duck:1:2400,Viking:1:33600,Bee:1:9600,Penguin:1:4800","Offers: "..table.concat(offers,","))
