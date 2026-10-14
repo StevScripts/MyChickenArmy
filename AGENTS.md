@@ -83,6 +83,9 @@ One writer per file. For parallel tasks, assign explicit files and contracts. Wo
 
 Before editing or syncing, inspect Git and compare any unsynced Studio changes. Record local commits, Roblox saves/publishes and player-data changes separately. A Rojo build verifies packaging, not Luau runtime correctness. Do not claim checks that were not run.
 
+## Reference vault (October 13)
+UI references, games studied, idea notes and the dev journal live in the Obsidian vault `~/Documents/ObsidianVaults/Roblox-Journal/` (read its `AGENTS.md`). Before UI work, check `UI References/` for the matching `screen:`. Vault notes are inspiration only; this repo's rules win.
+
 ## Analytics (October 9) — observation only
 Funnels, economy, retention and health go to Roblox AnalyticsService (live only) and an agent ledger in DataStores (`PetRollAnalytics_v1`, Studio uses `_Studio`). Names live in `src/server/AnalyticsSchema.luau`; append only, never rename/reorder, bump `Schema.Version`. For any stats question read `docs/analytics/AGENT_GUIDE.md` and run `AnalyticsReport` from Studio Edit. Analytics must never change gameplay.
 
