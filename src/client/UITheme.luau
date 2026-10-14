@@ -56,6 +56,8 @@ Theme.Assets = {
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",
 	ArmyHud="rbxassetid://107457338807219", CallArmy="rbxassetid://125964672530167", MyBase="rbxassetid://76117843071069",
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
+	-- October 13: Re-enlist HUD icon (assets/generated/reenlist-icon-20261013, version 1).
+	Reenlist="rbxassetid://106238480346679",
 }
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a
