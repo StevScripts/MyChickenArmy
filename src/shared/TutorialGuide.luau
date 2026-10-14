@@ -92,13 +92,19 @@ function Guide.NextGoal(state, ignoreSkip)
 	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
 	local t = state.tutorial or {}
 	if t.guideSkipped and not ignoreSkip then return nil end -- Respect a hidden guide; Settings can resume it.
-	-- October 9: goals are opt-out (Settings) and end with the King; after that
-	-- the player sets their own goals.
-	if t.goalsHidden or state.kingCleared then return nil end
+	-- October 9: goals are opt-out (Settings). October 14 launch: after the King
+	-- they point once at Veteran Operations (a King clear unlocks them), then end.
+	if t.goalsHidden then return nil end
 	local function goal(key, text, where)
 		local result = step("Goal:" .. key, text, where)
 		result.goal = true
 		return result
+	end
+	if state.kingCleared then
+		if state.incoming or state.outgoing then return nil end
+		local wins = (state.operations or {}).wins or {}
+		if wins["1:1"] or wins["1:2"] or wins["1:3"] then return nil end
+		return goal("Operations", "Win Veteran Patrol in Operations", "Operations")
 	end
 	if state.incoming or state.outgoing then return nil end -- The battle UI owns this moment.
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
