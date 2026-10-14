@@ -85,7 +85,7 @@ local function veteran(userId,plot)
  s.passiveEarned,s.battleEarned=5e9,7e6
  s.daily={streak=3,lastDay=20740,best=5}
  s.research.completed.L1=true;s.research.completed.CallArmy=true;s.research.completed.FuseMachine=true
- s.research.revision=5;s.research.operationWins={Raid1=true}
+ s.research.revision=5;s.research.operationWins={["1:1"]=true} -- a real Operation id (lead fix)
  s.researchEffects=ResearchRules.Effects(s.research);s.fusionUnlocked=true
  s.discovered.Knight=true
  local knight=s:AddPet("Knight",1);knight.level=4;knight.favorite=true;knight.giantSize=6.5

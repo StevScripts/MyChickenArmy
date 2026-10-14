@@ -390,7 +390,9 @@ function PlayerSession:Credit(amount: number, source: string)
 	assert(type(amount)=="number" and amount==amount and amount>=0 and amount<math.huge and amount%1==0,"Coin credits must be nonnegative whole numbers")
 	if amount==0 then return 0 end
 	if not self:CanCredit(amount,source) then return 0 end
-	amount=self:EarnedAmount(amount,source)
+	-- Whole coins only: the Re-enlist multiplier (×1.25…) can make fractions, and
+	-- receipt delivery requires a whole wallet (ProductService).
+	amount=math.floor(self:EarnedAmount(amount,source))
 	self.coins += amount
 	-- Lifetime display counters may outgrow a repeatedly spent wallet. Saturate
 	-- only those counters at the numeric boundary; never make a save unreadable.

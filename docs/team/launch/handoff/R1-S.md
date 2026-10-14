@@ -147,3 +147,10 @@ Suggested starting point for ProgressionSimulation:
 - `CostGrowth` about 3 to 4.
 
 Also, at 0.5× per rank the enemy scaling barely slows a kept level 10 army, so `EnemyHealthPerRank` can likely go to 1.0 or more without hurting anyone.
+
+## Lead result (October 13)
+
+- Merged. Lead follow-ups: `PlayerSession:Credit` now floors after `EarnedAmount` (request 3; whole wallets keep cash-pack delivery working), FoundationChecks updated for live ranks (request 1), RebirthChecks fixture used a non-existent Operation id `Raid1` (made the round trip fail with "Invalid saved research"); changed to `1:1`.
+- Studio Run-mode server: RebirthChecks 9/9, FoundationChecks 9/9, LaneConquest 11/11, OperationUnlock 6/6, LaunchShop 5/5; Persistence 17/6 and Research 27/4 equal the pre-launch baseline.
+- Disposable playtest through `GameServer:Handle`: King clear + $1B → Veteran I, coins $2,400, Egg Speed/Value/camps/King reset, chickens and levels kept, tutorial unchanged, Cluck Camp power 38 → 57, a repeated request with the old rank refused.
+- Not done tonight: DataService:RequestSave (spawned Save is acceptable), Hill release, separate damage scale, tuning (owner decision; see the tuning note).
