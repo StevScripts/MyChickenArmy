@@ -57,6 +57,8 @@ Step 6  Tomorrow: finish M1 and H1, publish 2, restart all servers.
 
 ## How to start a worker session
 
+**Normally the lead does this for you:** it launches each worker as a background subagent in its own worktree ([`02_LEAD.md`](02_LEAD.md) §4). Only use the manual way below if that isn't available.
+
 Open a new Claude Code session on the worker's worktree folder (the lead creates them in step 2; their paths are in [`02_LEAD.md`](02_LEAD.md) §4). Paste this as the first message, changing the file name:
 
 ```

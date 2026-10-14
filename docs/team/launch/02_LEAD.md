@@ -156,6 +156,10 @@ Commit: `Launch foundation: rebirth/daily/mutation/event hooks with neutral stub
 
 ## 4. Worktrees for the workers
 
+**Preferred: spawn the workers yourself.** Launch each worker as a background subagent with worktree isolation (`isolation: "worktree"`), giving it the start prompt from [`00_START_HERE.md`](00_START_HERE.md) with its own doc. They run in parallel while you keep integrating, and the owner doesn't have to open sessions by hand. Start O1 as soon as `main` is clean, and the other workers right after the foundation commit. Workers must not spawn agents of their own.
+
+**Fallback: manual worktrees** if subagents aren't available. The owner opens one session per folder:
+
 ```bash
 cd ~/Documents/Projects/MyChickenArmy
 git worktree add ../mca-r1s -b launch/r1-rebirth-server main
