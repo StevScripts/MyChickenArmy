@@ -88,6 +88,16 @@ variant("HillChampion","StormDuck","Hill Champion",0,{255,196,48})
 Catalog.HillChampion.damage = 101
 Catalog.HillChampion.hillExclusive = true
 table.insert(Catalog.Order,"HillChampion")
+-- Launch H1 (docs/team/launch/15_H1_HALLOWEEN.md): the Halloween 2026 limited
+-- chicken, in Magma Chicken's Epic band. Zero normal weight keeps every roll
+-- probability unchanged; only EventService offers it while Config.Event runs.
+-- Owned copies stay forever. baseSpecies picks the procedural fallback recipe
+-- until the authored ChickenAssets.Pumpkin model exists.
+variant("Pumpkin","Knight","Pumpkin Chicken",0,{255,140,26})
+Catalog.Pumpkin.baseSpecies = "Knight"
+Catalog.Pumpkin.limited = "Halloween2026"
+Catalog.Pumpkin.limitedLabel = "Limited (Halloween 2026)"
+table.insert(Catalog.Order,(table.find(Catalog.Order,"Toxic") or #Catalog.Order)+1,"Pumpkin") -- after the last Epic in the Index
 
 -- October 7 rarity reset: rarer always means stronger, and the most desirable
 -- appearances sit highest. The ten stat tiers keep their legacy economy keys

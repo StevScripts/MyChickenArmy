@@ -5,10 +5,16 @@
 -- Workspace.MyChickenArmyMap.01_Environment.Decor, keeping clear of roads,
 -- home plots, main camps and the King arena. Deterministic for a given SEED.
 -- Re-running replaces the previous Decor folder. Save the place afterwards.
+-- HALLOWEEN = true also rebuilds 01_Environment.Decor_Halloween: about 40 blocky
+-- pumpkins (some carved, with a warm light) beside roads, home plots and camps.
+-- Delete that one folder after the event; normal Decor never depends on it.
+-- With HALLOWEEN = false an existing Decor_Halloween folder is left untouched.
 
 local SEED = 20261010
 local DENSITY = 1 -- 1 = default fill for the whole island
 local SIZE = 0.455 -- props sit under the scale of the home bases and camps (Oct 12: 0.65 x 0.7, user asked for smaller props)
+local HALLOWEEN = false -- launch H1 (docs/team/launch/15_H1_HALLOWEEN.md): Halloween 2026 pumpkins
+local HALLOWEEN_COUNT = 40
 
 local ServerStorage = game:GetService("ServerStorage")
 local map = workspace:WaitForChild("MyChickenArmyMap")
@@ -182,6 +188,50 @@ do -- flower patch (walk-through)
 	end
 end
 
+-- Halloween pumpkins (launch H1). Kit only; they are scattered further down when
+-- HALLOWEEN is true. Voxel style like the other props: a stepped orange body,
+-- darker ribs, a green stem and leaf. The carved face sits on -Z (the front), so
+-- CFrame.lookAt can turn it toward a road or plot; its PointLight is warm and
+-- shadowless. No kitRng draws, so the other props stay exactly as before.
+local PUMPKIN, RIB, STEM, VINE = C(255, 140, 26), C(214, 98, 14), C(96, 120, 42), C(110, 170, 40)
+local GLOW = C(255, 196, 82)
+local function pumpkinModel(name: string, height: number, carved: boolean)
+	local m = model(name)
+	local h = height
+	block(m, Vector3.new(4.4, 0.5, 4.4), CFrame.new(0, 0.25, 0), RIB)
+	local wide = block(m, Vector3.new(6, h, 4.6), CFrame.new(0, 0.5 + h / 2, 0), PUMPKIN, {studs = true})
+	local deep = block(m, Vector3.new(4.6, h, 6), CFrame.new(0, 0.5 + h / 2, 0), PUMPKIN, {studs = true})
+	block(m, Vector3.new(4.4, 0.6, 4.4), CFrame.new(0, 0.8 + h, 0), PUMPKIN, {studs = true})
+	-- Ribs: darker grooves near the edges of every face, clear of the face.
+	for _, x in {-1.95, 1.95} do
+		for _, z in {-3, 3} do block(m, Vector3.new(0.55, h - 0.5, 0.2), CFrame.new(x, 0.5 + h / 2, z), RIB, {collide = false}) end
+	end
+	for _, z in {-1.95, 1.95} do
+		for _, x in {-3, 3} do block(m, Vector3.new(0.2, h - 0.5, 0.55), CFrame.new(x, 0.5 + h / 2, z), RIB, {collide = false}) end
+	end
+	local top = 1.1 + h
+	block(m, Vector3.new(0.9, 1.5, 0.9), CFrame.new(0.2, top + 0.75, 0.1) * Y(0, 0, math.rad(-8)), STEM, {collide = false})
+	block(m, Vector3.new(1.9, 0.3, 1.1), CFrame.new(1.1, top + 0.2, 0.5) * Y(0, math.rad(25), math.rad(8)), VINE, {collide = false})
+	if carved then
+		local front, glow = -3.05, {collide = false, material = Enum.Material.Neon}
+		local eyeY, mouthY = 0.5 + h * 0.66, 0.5 + h * 0.3
+		for _, x in {-1.05, 1.05} do -- stepped triangle eyes
+			block(m, Vector3.new(1.1, 0.5, 0.2), CFrame.new(x, eyeY, front), GLOW, glow)
+			block(m, Vector3.new(0.5, 0.45, 0.2), CFrame.new(x, eyeY + 0.47, front), GLOW, glow)
+		end
+		block(m, Vector3.new(0.5, 0.4, 0.2), CFrame.new(0, 0.5 + h * 0.48, front), GLOW, glow)
+		block(m, Vector3.new(2.9, 0.6, 0.2), CFrame.new(0, mouthY, front), GLOW, glow)
+		for _, x in {-0.75, 0.75} do block(m, Vector3.new(0.5, 0.35, 0.2), CFrame.new(x, mouthY - 0.47, front), GLOW, glow) end -- jagged grin
+		local light = Instance.new("PointLight")
+		light.Color, light.Brightness, light.Range, light.Shadows = C(255, 150, 60), 2, 12, false
+		light.Parent = wide
+	end
+	m.PrimaryPart = deep
+end
+pumpkinModel("Pumpkin1", 4, false)
+pumpkinModel("Pumpkin2", 3, false) -- squat
+pumpkinModel("PumpkinCarved1", 4, true)
+
 -- ---------------------------------------------------------------- blockers
 local segs = {}
 for _, p in map["02_Roads"]:GetDescendants() do
@@ -302,9 +352,80 @@ end)
 tries(60, function() put(tree(rng:NextNumber() < 0.5), randomPoint(), rng:NextNumber(0.85, 1.2), 4.5) end)
 tries(60, function() put("Bush" .. rng:NextInteger(1, 3), randomPoint(), rng:NextNumber(0.9, 1.3), 3) end)
 
+-- ---------------------------------------------------------------- Halloween
+-- Runs after the normal scatter with its own RNG, so normal Decor is identical
+-- with or without it. Pumpkins sit just outside the same road/plot/camp/King
+-- clearances that free() enforces, carved faces turned toward what they border.
+local halloweenSummary = ""
+if HALLOWEEN then
+	local oldHalloween = envRoot:FindFirstChild("Decor_Halloween")
+	if oldHalloween then oldHalloween:Destroy() end
+	local spooky = Instance.new("Folder")
+	spooky.Name = "Decor_Halloween"
+	spooky:SetAttribute("Source", "tools/map/MapDecor.luau")
+	spooky:SetAttribute("Event", "Halloween2026")
+	spooky.Parent = envRoot
+	local hrng = Random.new(SEED + 31)
+	local pumpkins, carvedCount = 0, 0
+	local function pumpkin(p: Vector2, facing: Vector2): boolean
+		local carved = hrng:NextNumber() < 0.45
+		local name = if carved then "PumpkinCarved1" else "Pumpkin" .. hrng:NextInteger(1, 2)
+		local scale = hrng:NextNumber(1, 1.45) * SIZE
+		local r = 3.4 * scale
+		if not free(p, r) then return false end
+		local m = (kit :: any)[name]:Clone()
+		m:ScaleTo(scale)
+		local at = Vector3.new(p.X, GROUND, p.Y)
+		local look = Vector3.new(facing.X, GROUND, facing.Y)
+		local yaw = math.rad(hrng:NextNumber(-25, 25))
+		m:PivotTo((if (look - at).Magnitude > 0.1 then CFrame.lookAt(at, look) else CFrame.new(at)) * CFrame.Angles(0, yaw, 0))
+		for _, light in m:GetDescendants() do
+			if light:IsA("PointLight") then light.Range = 20 * scale end -- explicit, whatever ScaleTo does to lights
+		end
+		m.Parent = spooky
+		table.insert(placed, {p = p, r = r})
+		pumpkins += 1
+		if carved then carvedCount += 1 end
+		return true
+	end
+	local function besideRoad(): (Vector2?, Vector2?)
+		if #segs == 0 then return nil, nil end
+		local s = segs[hrng:NextInteger(1, #segs)]
+		local ab = s[2] - s[1]
+		if ab.Magnitude < 1 then return nil, nil end
+		local onRoad = s[1] + ab * hrng:NextNumber(0.05, 0.95)
+		local side = if hrng:NextNumber() < 0.5 then -1 else 1
+		local normal = Vector2.new(-ab.Y, ab.X).Unit * side
+		return onRoad + normal * (16 + 3.4 * SIZE * 1.45 + hrng:NextNumber(1, 6)), onRoad
+	end
+	local function besideBox(): (Vector2?, Vector2?)
+		if #boxes == 0 then return nil, nil end
+		local b = boxes[hrng:NextInteger(1, #boxes)]
+		local mn, mx = b[1], b[2]
+		local gap = 3.4 * SIZE * 1.45 + hrng:NextNumber(1, 5)
+		local edge = hrng:NextInteger(1, 4)
+		local u = hrng:NextNumber(0.1, 0.9)
+		local p = if edge == 1 then Vector2.new(mn.X + (mx.X - mn.X) * u, mn.Y - gap)
+			elseif edge == 2 then Vector2.new(mn.X + (mx.X - mn.X) * u, mx.Y + gap)
+			elseif edge == 3 then Vector2.new(mn.X - gap, mn.Y + (mx.Y - mn.Y) * u)
+			else Vector2.new(mx.X + gap, mn.Y + (mx.Y - mn.Y) * u)
+		return p, (mn + mx) / 2
+	end
+	for _ = 1, HALLOWEEN_COUNT * 25 do
+		if pumpkins >= HALLOWEEN_COUNT then break end
+		local p, facing
+		if hrng:NextNumber() < 0.5 then p, facing = besideBox() else p, facing = besideRoad() end
+		if p and facing and pumpkin(p, facing) and pumpkins < HALLOWEEN_COUNT and hrng:NextNumber() < 0.35 then
+			-- A small patch: one more pumpkin a few studs along, facing the same way.
+			pumpkin(p + Vector2.new(hrng:NextNumber(-4, 4), hrng:NextNumber(-4, 4)), facing)
+		end
+	end
+	halloweenSummary = string.format(" Halloween: %d pumpkins (%d carved) in Decor_Halloween.", pumpkins, carvedCount)
+end
+
 local parts = 0
 for _, d in folder:GetDescendants() do if d:IsA("BasePart") then parts += 1 end end
 local list = {}
 for k, v in counts do table.insert(list, k .. "=" .. v) end
 table.sort(list)
-return string.format("Decor: %d props, %d parts. %s", #placed, parts, table.concat(list, " "))
+return string.format("Decor: %d props, %d parts. %s", #placed, parts, table.concat(list, " ")) .. halloweenSummary
