@@ -14,6 +14,8 @@ local OfflineCash = require(script.Parent.OfflineCash)
 local ResearchRules = require(Shared.ResearchRules)
 local ResearchService = require(script.Parent.ResearchService)
 local TutorialGuide = require(Shared.TutorialGuide)
+local MutationCatalog = require(Shared.MutationCatalog)
+local RebirthService = require(script.Parent.RebirthService)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 -- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
@@ -56,6 +58,11 @@ function PlayerSession:Reset()
  self.kingBountyPaid=false -- Full King boss bounty is paid once per player (BattleService).
  -- King of the Hill (HillService): lifetime round wins, owed Hill Rolls, Champion granted.
  self.hillWins,self.hillRollCredits,self.hillChampion=0,0,false
+ -- Launch fields (docs/team/launch): Re-enlist rank and the 7-day login streak.
+ -- dailyGranted is live only: the reward granted this session, for the popup.
+ self.rebirths=0
+ self.daily={streak=0,lastDay=0,best=0}
+ self.dailyGranted=nil
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
  self.tutorial={starterArmy=true,collectedEggCount=0}
  self.fusionUnlocked=false
@@ -107,8 +114,9 @@ function PlayerSession:EggsHeld(now: number): boolean
 	return true
 end
 
-function PlayerSession:AddPet(species: string, stars: number)
+function PlayerSession:AddPet(species: string, stars: number, mutation: string?)
 	local pet = {id=HttpService:GenerateGUID(false), species=species, stars=1, level=1, favorite=false, collected=0,investment=Catalog[species].price}
+	if MutationCatalog.IsValid(mutation) then pet.mutation = mutation end
 	self.pets[pet.id] = pet
 	if table.find(Catalog.Order, species) then self.discovered[species] = true end
 	return pet
@@ -153,7 +161,9 @@ end
 
 function PlayerSession:EarnedAmount(amount: number, source: string): number
  local earned=source=="eggs" or source=="battle" or source=="territory"
- return amount * (if earned and self.entitlements.DoubleCash then 2 else 1)
+ -- Re-enlist pays a permanent egg multiplier (1 at rank 0); offline cash routes here too.
+ local rebirth=if source=="eggs" then RebirthService.Multiplier(self.rebirths or 0) else 1
+ return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth
 end
 
 function PlayerSession:Count(): number
@@ -327,7 +337,7 @@ function PlayerSession:Lineup()
 	end
 	for _,id in self:FilterArmyIds(ids) do
 		local pet=self.pets[id]
-		table.insert(result, {id=pet.id, species=pet.species, stars=pet.stars, level=pet.level, giantSize=pet.giantSize, slot=self:FindSlot(id)})
+		table.insert(result, {id=pet.id, species=pet.species, stars=pet.stars, level=pet.level, giantSize=pet.giantSize, mutation=pet.mutation, slot=self:FindSlot(id)})
 	end
 	return result
 end
@@ -350,10 +360,11 @@ function PlayerSession:PetIncome(id: string): number
 	local pet=self.pets[id]
 	if not pet then return 0 end
 	return Rules.Income(pet.species,pet.stars,pet.level,self.incomeLevel)*(1+self.researchEffects.eggValue)
+		*MutationCatalog.Multiplier(pet.mutation)
 end
 
-function PlayerSession:DisplayedPetIncome(species: string, stars: number, level: number?): number
- local raw=Rules.Income(species,stars,level,self.incomeLevel)*(1+self.researchEffects.eggValue)
+function PlayerSession:DisplayedPetIncome(species: string, stars: number, level: number?, mutation: string?): number
+ local raw=Rules.Income(species,stars,level,self.incomeLevel)*(1+self.researchEffects.eggValue)*MutationCatalog.Multiplier(mutation)
  return self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs")
 end
 
@@ -429,7 +440,7 @@ function PlayerSession:GlobalUpgrade(kind: string)
 end
 
 -- Compare a reveal to the best owned squad, including pending replacements while away.
-function PlayerSession:OfferAdvice(species: string, level: number?): (string, boolean)
+function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?): (string, boolean)
 	local best=self:AutoBestPetIds()
 	if #best<self:Capacity() then
 		return "Fills an army slot",true
@@ -438,7 +449,7 @@ function PlayerSession:OfferAdvice(species: string, level: number?): (string, bo
 	if weakest and Rules.PetPower(species,1,level)>Rules.PetPower(weakest.species,weakest.stars,weakest.level) then
 		return "Stronger next squad",true
 	end
-	local income=self:DisplayedPetIncome(species,1,level)
+	local income=self:DisplayedPetIncome(species,1,level,mutation)
 	return "Lays eggs worth $"..income.."/s at home",false
 end
 
@@ -457,11 +468,11 @@ function PlayerSession:Snapshot(now: number)
 		local canSell,reason=saleEligibility(self,pet.id,selected)
 		local canUpgrade,upgradeReason=self:ChickenUpgradeEligibility(pet.id)
 		table.insert(pets,{id=pet.id,species=pet.species,stars=pet.stars,level=pet.level,favorite=pet.favorite,
-			giantSize=pet.giantSize,
+			giantSize=pet.giantSize,mutation=pet.mutation,
 			slot=self:FindSlot(pet.id),selected=selected[pet.id]==true,deployed=deployed[pet.id]==true,
-			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level),home=self:IsPetHome(pet.id),
+			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation),home=self:IsPetHome(pet.id),
 			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level),
-			nextIncome=if (pet.level or 1)<Config.MaxPetLevel then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1) else nil,
+			nextIncome=if (pet.level or 1)<Config.MaxPetLevel then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1,pet.mutation) else nil,
 			upgradePrice=Rules.ChickenUpgradePrice(pet.species,pet.level or 1),canUpgrade=canUpgrade,upgradeReason=upgradeReason,
 			levelCap=rank.levelCap,upgradeLocked=not canUpgrade,
 			investment=pet.investment,refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))})
@@ -476,7 +487,7 @@ function PlayerSession:Snapshot(now: number)
 		local value=self.offers and self.offers[slot]
 		if value then
 			local offer=table.clone(value);offer.slot=slot
-			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level)
+			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation)
 			table.insert(offers,offer)
 		end
 	end
@@ -512,7 +523,10 @@ function PlayerSession:Snapshot(now: number)
 		offer=offer,offers=offers,rollSlotCount=self.rollSlotCount or 1,rollRemaining=math.max(0,self.rollReadyAt-now),odds=Rules.Odds(self.luck,self.recruitTier,self:PaidLuckMultiplier(),self.researchEffects.rollingLuck),luck=self.luck,
 		campUnlocked=self.campUnlocked,armyState=self.armyState,outgoing=self.outgoing,incoming=self.incoming,stationedAt=self.stationedAt,
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
-		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner}
+		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner,
+		rebirth=RebirthService.Quote(self),
+		daily={streak=self.daily.streak,lastDay=self.daily.lastDay,best=self.daily.best,
+			granted=if self.dailyGranted then table.clone(self.dailyGranted) else nil}}
 end
 
 -- The data envelope/lease belongs to DataService. This object owns its serializable player values.
@@ -523,7 +537,7 @@ function PlayerSession:ToData()
  end
 	local pets={}
 	for _,pet in self.pets do table.insert(pets,{id=pet.id,species=pet.species,level=pet.level,favorite=pet.favorite,collected=pet.collected or 0,
-		giantSize=pet.giantSize,
+		giantSize=pet.giantSize,mutation=pet.mutation,
 		investment=pet.investment or Rules.Investment(pet.species,pet.level)}) end
 	for _,raw in self.unrecognizedPets or {} do table.insert(pets,table.clone(raw)) end
 	table.sort(pets,function(a,b) return a.id<b.id end)
@@ -549,7 +563,8 @@ function PlayerSession:ToData()
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
-		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned}
+		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
+		rebirths=self.rebirths,daily=table.clone(self.daily)}
 end
 
 local function numberIn(value,minimum,maximum,integer)
@@ -594,6 +609,23 @@ local function readLaneCamps(masks, counts)
 		result[entry.key]=entry.mask
 	end
 	return result
+end
+
+-- Additive launch fields (docs/team/LAUNCH_CHANGE_PLAN.md §3). Never reject a profile.
+local function readRebirths(value): number
+	if not numberIn(value,0,2^53-1,true) then return 0 end
+	-- A rank above a later, lower MaxRank keeps the highest rank instead of resetting.
+	return math.min(value,Config.Rebirth.MaxRank)
+end
+
+local function readDaily(value)
+	local daily={streak=0,lastDay=0,best=0}
+	if type(value)~="table" then return daily end
+	for key in daily do
+		local n=value[key]
+		if numberIn(n,0,2^53-1,true) then daily[key]=n end
+	end
+	return daily
 end
 
 local function readWins(entries, limit, sparse)
@@ -757,7 +789,9 @@ function PlayerSession:LoadData(data)
 		local investment=if revision<5 then Rules.Investment(pet.species,level,true) else pet.investment
 		investment=clampHigh(investment,0,1e12)
 		if not investment then return false,"Invalid saved chicken investment." end
-		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,giantSize=pet.giantSize,favorite=pet.favorite,collected=math.ceil(collected),investment=math.ceil(investment)}
+		-- Additive launch field: an unknown or malformed mutation is dropped, never the chicken.
+		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,giantSize=pet.giantSize,favorite=pet.favorite,collected=math.ceil(collected),investment=math.ceil(investment),
+			mutation=if MutationCatalog.IsValid(pet.mutation) then pet.mutation else nil}
 	end
 	if count~=#data.pets then return false,"Invalid saved collection." end
 	-- Optional additive field; existing profiles continue selecting their best chickens.
@@ -867,6 +901,10 @@ function PlayerSession:LoadData(data)
  self.frontierWins,self.kingCleared=frontier,king
  self.kingBountyPaid=data.kingBountyPaid==true
  self.hillWins,self.hillRollCredits,self.hillChampion=hillWins,hillRollCredits,data.hillChampion==true
+ -- Additive launch fields: missing or malformed values read as their defaults.
+ self.rebirths=readRebirths(data.rebirths)
+ self.daily=readDaily(data.daily)
+ self.dailyGranted=nil
 	-- Preserve old saves: round any historical cents up once, never reset progress.
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial

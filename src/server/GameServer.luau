@@ -27,10 +27,13 @@ local ArmyAbilities=require(script.Parent.ArmyAbilities)
 local OperationService=require(script.Parent.OperationService)
 local HillService=require(script.Parent.HillService)
 local AdminService=require(script.Parent.AdminService)
+local RebirthService=require(script.Parent.RebirthService)
+local DailyService=require(script.Parent.DailyService)
 local GameServer={}
 GameServer.__index=GameServer
 local SYNC_COOLDOWN=1 -- Extra Sync requests are answered by the next periodic snapshot.
 local IDLE_SNAPSHOT_SECONDS=1 -- Unchanged idle sessions refresh timers at this slower cadence.
+local DAILY_CHECK_SECONDS=60 -- Catches the UTC day boundary for players who stay online.
 
 function GameServer.new()
 	local self=setmetatable({sessions={},connections={},playerConnections={},limits={},stepAccumulator=0,
@@ -237,6 +240,7 @@ function GameServer:Handle(player,request)
 		ok,message=self.eggs:Upgrade(player,session,request.expectedLevel,request.expectedPrice)
 	elseif action=="Expand" then ok,message=ArmyService.Expand(session)
 	elseif action=="Promote" then ok,message=ArmyService.Promote(session)
+	elseif action=="Rebirth" then ok,message=RebirthService.Rebirth(session,request.expectedRank,self)
 	elseif action=="Income" then ok,message=ArmyService.UpgradeIncome(session)
  elseif action=="Luck" then ok,message=self.rolls:UpgradeLuck(session)
  elseif action=="Attack" then
@@ -378,6 +382,7 @@ function GameServer:AddPlayer(player)
   end
  end
  self.analytics:Loaded(session)
+ DailyService.Check(session,os.time(),self)
  self.world:UpdateSession(session);self:Send(player)
  task.spawn(function()
   if self.sessions[player.UserId]~=session or player.Parent~=Players then return end
@@ -450,6 +455,12 @@ function GameServer:Step(dt)
 		self.researchCheckedAt=wallTime
 		for _,session in self.sessions do
 			if session.loaded and not session.closing and not session.saveLost then ResearchService.Complete(session,wallTime) end
+		end
+	end
+	if now>=(self.nextDailyCheckAt or 0) then
+		self.nextDailyCheckAt=now+DAILY_CHECK_SECONDS
+		for _,session in self.sessions do
+			if session.loaded and not session.closing and not session.saveLost then DailyService.Check(session,wallTime,self) end
 		end
 	end
 	if Config.Features.Merging and now>=(self.nextAutomaticAt or 0) then

@@ -4,6 +4,8 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
+local MutationCatalog = require(Shared.MutationCatalog)
+local EventService = require(script.Parent.EventService)
 local RollService = {}
 RollService.__index = RollService
 
@@ -31,11 +33,14 @@ function RollService:Roll(session, now: number)
 		-- The disclosed guarantee advances once per lever pull, not once per display.
 		local forced=if slot==1 then session.debugNext or guaranteed else nil
 		local species=if starter then "Duck" else forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
+		-- Launch hooks (neutral stubs until H1/M1): never the starter or a forced first slot.
+		if not starter and not forced then species=EventService.MaybeReplace(session,species,rng,slot,os.time()) end
 		local level=if starter then 1 else Rules.RecruitLevel(session.pets,species,session.promotion)
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
 			level=level,price=if starter then Config.Economy.StarterRecruitPrice else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
 			chance=if starter or (slot==1 and guaranteed) then 1 else odds[species]}
+		if not starter then offers[slot].mutation=MutationCatalog.Roll(rng,session.rebirths or 0) end
 	end
 	session.offers,session.offer=offers,offers[1]
 	session.debugNext=nil
@@ -70,7 +75,7 @@ function RollService:Buy(session, offerId, now: number?, context)
 	-- This transaction does not yield: an offer cannot be bought twice.
 	session.coins -= price
  session.tutorial.bought=true
-	local pet = session:AddPet(species, 1)
+	local pet = session:AddPet(species, 1, offer.mutation)
 	pet.level, pet.investment = level, price
 	session.offers[slot]=nil
 	session.offer=nil

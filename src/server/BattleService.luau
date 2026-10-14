@@ -10,6 +10,7 @@ local FlockLayout=require(Shared.FlockLayout)
 local Battle=require(script.Parent.Battle)
 local LiveBattleActors=require(script.Parent.LiveBattleActors)
 local KingEncounter=require(script.Parent.KingEncounter)
+local RebirthService=require(script.Parent.RebirthService)
 local CampaignRoute=require(Shared.CampaignRoute)
 local March=require(Shared.ArmyMarch)
 local MapLayout=require(Shared.MapLayout)
@@ -25,6 +26,29 @@ local FUNNEL_FAILURE_LIMIT=20
 -- Saved "beaten once" records for other commanders' lanes (PlayerSession.laneCamps).
 local LANE_WIN_LIMIT=100
 BattleService.__index=BattleService
+
+-- Re-enlist enemy scaling (docs/team/launch). A lane's camps use its owner's rank;
+-- the King uses the attacker's. EnemyScale is 1 at rank 0, leaving rosters untouched.
+local function enemyScale(owner): number
+ return if owner then RebirthService.EnemyScale(owner.rebirths or 0) else 1
+end
+local function scaledRoster(roster,scale: number)
+ if scale==1 then return roster end
+ local result={}
+ for i,pet in roster do
+  local unit=table.clone(pet)
+  local stats=table.clone(pet.combatStats or Rules.Stats(pet.species,pet.stars or 1,pet.level))
+  stats.hp*=scale;stats.damage*=scale
+  unit.combatStats=stats
+  result[i]=unit
+ end
+ return result
+end
+-- Rules.Power reads species stats, so scaled odds multiply it (hp and damage both scale).
+local function scaledPower(roster,scale: number): number
+ return math.floor(Rules.Power(roster)*scale)
+end
+BattleService.EnemyScale=enemyScale
 
 function BattleService.new(sessions,world)
 	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},funnelFailures={},
@@ -292,9 +316,10 @@ function BattleService:Unclaim(session,targetId,now)
  if active and battle.attacker==session.userId and (battle.phase=="Holding" or battle.friendlyTerritory) then
   -- Unclaim does not recall/heal/replace the player's squad. A fresh garrison
   -- fights those same units, which can win the territory back themselves.
-  local roster=if location.king then KingEncounter.Definition(battle.promotion).roster
+  local laneOwner=if location.plot==session.plotIndex then session else self:LaneOwner(location.plot)
+  local roster=if location.king then KingEncounter.Definition(battle.promotion,enemyScale(session)).roster
    elseif location.outpost then Progression.OutpostRoster(location.outpost)
-   else Progression.Roster(battle.lanePromotion or battle.promotion,location.index)
+   else scaledRoster(Progression.Roster(battle.lanePromotion or battle.promotion,location.index),enemyScale(laneOwner))
   battle:CancelAttacks()
   battle.paid,battle.friendlyTerritory,battle.outcome=false,false,nil
   battle.phase=if battle.phase=="Travel" then "Travel" else "Fight"
@@ -332,7 +357,7 @@ function BattleService:Targets(session,now)
    local id=CampaignRoute.CampId(i,owner.plotIndex,session.plotIndex)
    lanePromotion[id]=promotion
    table.insert(targets,{id=id,name=self:TargetName(session,id),kind="Camp",holdBonus=self:HoldBonus(campKey(owner.plotIndex,i)),
-    power=Rules.Power(Progression.Roster(promotion,i)),count=#camp.roster,
+    power=scaledPower(Progression.Roster(promotion,i),enemyScale(owner)),count=#camp.roster,
     lanePlot=owner.plotIndex,laneOwnerId=owner.userId,laneOwnerName=if owner==session then nil else owner.name,
     available=false,reason="Ready"})
   end
@@ -347,7 +372,7 @@ function BattleService:Targets(session,now)
    reason=if not unlocked then Progression.Requirement(camp.tier)
     elseif self.campBusy[key] then "Occupied · wait for the army to leave" else "Explore this territory"})
  end
- local king=KingEncounter.Definition(4)
+ local king=KingEncounter.Definition(4,enemyScale(session))
  local occupied=self.battles[self.campBusy[KingEncounter.Target]]
  local unlocked=self:KingOpen(session) or Progression.KingUnlocked(routeCamps,routeOutposts,false)
  table.insert(targets,{id=KingEncounter.Target,name=king.name.." · FINAL BOSS",
@@ -718,6 +743,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	local kind,id=string.match(targetId,"^(%a+):([%-]?%d+)$")
 	local index=tonumber(id)
 	local defender,defenders,destination,name,campIndex,routeGoal,targetPower
+	local defenderScale=1
  local isKing=targetId==KingEncounter.Target
  local outpostIndex=if kind=="outpost" and index and Progression.Outposts()[index] then index else nil
  local camps=Progression.Camps(session.promotion)
@@ -731,7 +757,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
   if self:TerritoryBlocked(KingEncounter.Target,previous) then return false,"The center is occupied. Wait for that army to leave." end
   local kingLocked,kingReason=self:HillKingLock(now)
   if kingLocked then return false,kingReason end
-  local king=KingEncounter.Definition(session.promotion or 1)
+  local king=KingEncounter.Definition(session.promotion or 1,enemyScale(session))
   defenders,destination,name,targetPower=king.roster,Vector3.new(0,1.05,0),king.name,king.power
  elseif outpostIndex then
   local camp=Progression.Outposts()[outpostIndex]
@@ -743,7 +769,8 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		name=self:TargetName(session,targetId)
 		if self:TerritoryBlocked(campKey(lanePlot,campTarget),previous) then return false,name.." is occupied." end
 		campIndex=campTarget
-		defenders=Progression.Roster(lanePromotion,campTarget)
+		defenderScale=enemyScale(laneOwner)
+		defenders=scaledRoster(Progression.Roster(lanePromotion,campTarget),defenderScale)
 		destination=self:CampPosition(campTarget,lanePlot)
 	else return false,"Target does not exist." end
 	-- Only the owner's own ground lacks a hostile garrison (and owners are refused
@@ -751,7 +778,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	-- has no idle rigs while owned, so LiveBattleActors spawns them.
 	local territoryOwner=self.campOwners[self:TerritoryKey(session,targetId)]
 	if territoryOwner and territoryOwner.userId==session.userId then defenders={} end
-	targetPower=targetPower or Rules.Power(defenders)
+	targetPower=targetPower or scaledPower(defenders,defenderScale)
 	local battleId=HttpService:GenerateGUID(false)
 	local origin=if turning then armyCenter(previous) elseif moving then previous.destination else self.world:Position(session.plotIndex)
 	local battle=Battle.new(battleId,session.userId,targetId,origin,destination,now)

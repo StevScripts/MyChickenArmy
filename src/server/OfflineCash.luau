@@ -6,6 +6,7 @@ local Tuning = require(Shared.OfflineCashConfig)
 local Currency = require(Shared.CurrencyLimits)
 local Processor = require(script.Parent.EggProcessor)
 local ProcessorConfig = require(Shared.EggProcessorConfig)
+local MutationCatalog = require(Shared.MutationCatalog)
 local OfflineCash = {}
 
 function OfflineCash.Read(value)
@@ -25,10 +26,11 @@ function OfflineCash.Rate(session)
 	-- permanently remove them from the next night's earning rate.
 	local eggsPerSecond = 0
 	for _, pet in session.pets do
-		eggsPerSecond += Rules.EggRate(pet.species, pet.stars, pet.level)
+		eggsPerSecond += Rules.EggRate(pet.species, pet.stars, pet.level) * MutationCatalog.Multiplier(pet.mutation)
 	end
 	eggsPerSecond *= session:EggProductionMultiplier()
 	-- Use the existing income and pass owners. No extra multiplier at award time.
+	-- EarnedAmount already applies the Re-enlist egg multiplier.
 	local sellerRate = Processor.Rate(session.eggProcessor, session.entitlements.DoubleEggSpawn)
 	local sellingRate = if ProcessorConfig.Enabled then math.min(eggsPerSecond, sellerRate) else eggsPerSecond
 	local raw = sellingRate * Rules.EggUnitValue(session.incomeLevel) * (1+(session.researchEffects and session.researchEffects.eggValue or 0))

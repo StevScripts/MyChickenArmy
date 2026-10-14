@@ -48,6 +48,13 @@ local Config = {
  Hill={Enabled=true,RoundSeconds=300,BreakSeconds=300,FirstBreakSeconds=120,KingLockSeconds=45,
   BoostPerMinute=0.10,BoostMax=0.50,MinWinSeconds=15,RollLuckBonus=2,
   ChampionWins=10,ChampionSpecies="HillChampion"},
+ -- Launch sprint (docs/team/LAUNCH_CHANGE_PLAN.md §6, §8). Tuning is config-only.
+ -- Re-enlist: cost BaseCost*CostGrowth^(rank-1); eggs +EggBonusPerRank per rank;
+ -- camps and the King +EnemyHealthPerRank/EnemyDamagePerRank per rank.
+ Rebirth={Enabled=true,MaxRank=15,BaseCost=1e9,CostGrowth=8,
+  EggBonusPerRank=0.25,EnemyHealthPerRank=0.5,EnemyDamagePerRank=0.5},
+ -- Limited event; StartsAt/EndsAt are unix seconds. Off until worker H1 ships it.
+ Event={Enabled=false,Id="Halloween2026",StartsAt=0,EndsAt=0,Species="Pumpkin",OfferChance=0.02},
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
  DataRevision=11,StarterFlock={"Duck","Duck","Duck"},
  CommandDistance=14,

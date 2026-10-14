@@ -5,6 +5,7 @@ local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
 local Catalog = require(Shared.PetCatalog)
 local Giant = require(Shared.GiantChicken)
+local MutationCatalog = require(Shared.MutationCatalog)
 local sizeRandom = Random.new()
 local Progression = require(Shared.Progression)
 local ArmyService = {}
@@ -234,6 +235,8 @@ local function consumeTriple(session,triple)
 	end
 	a.level=level+1
 	a.giantSize=giantSize
+	-- The Giant keeps the best input mutation (nil from the foundation stub).
+	a.mutation=MutationCatalog.Best({a,b,c}) or a.mutation
 end
 
 function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)

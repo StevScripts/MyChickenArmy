@@ -6,7 +6,9 @@
 -- data stay comparable. Studio never sends Roblox analytics (Roblox ignores it).
 local Schema = {}
 
-Schema.Version = 1
+-- 2 (October 14 launch): onboarding step 20 Rebirth1, daily source, Rebirth
+-- sink/feature, launch counters and the bigCash/longSeconds buckets.
+Schema.Version = 2
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -60,6 +62,7 @@ Schema.Onboarding = {
 	{id = "Camp2",         about = "Fort Roost first win."},
 	{id = "Camp3",         about = "Ironbeak HQ first win."},
 	{id = "King",          about = "Chicken King first clear."},
+	{id = "Rebirth1",      about = "First re-enlist (Veteran I)."},
 }
 -- Roblox auto-completes every earlier step when a later one is logged, so
 -- Analytics sends steps strictly in this order. A missing step is passed over
@@ -95,6 +98,7 @@ Schema.Sources = {
 	sale      = {transaction = "Shop",        sku = "ChickenSale"},
 	offline   = {transaction = "TimedReward", sku = "OfflineEarnings"},
 	robux     = {transaction = "IAP",         sku = "CashPack"},
+	daily     = {transaction = "TimedReward", sku = "DailyStreak"},
 }
 Schema.IgnoredSources = {debug = true}
 Schema.Sinks = {
@@ -110,6 +114,8 @@ Schema.Sinks = {
 	StartResearch  = {transaction = "Gameplay", sku = "Research"},
 	EggSellerUpgrade = {transaction = "Shop",   sku = "EggSeller"},
 	StartOperation = {transaction = "Gameplay", sku = "Operation"},
+	-- The whole wallet removed by a re-enlist (the cost plus the cash reset).
+	Rebirth        = {transaction = "Gameplay", sku = "Rebirth"},
 }
 Schema.Rarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"}
 
@@ -120,8 +126,31 @@ Schema.Features = {
 	SaveFormation = "Formations", ApplyFormation = "Formations", StartOperation = "Operations",
 	OpenCrate = "Crate", Sell = "SellChicken", SetCommerceToggle = "PassToggle", Rally = "Rally",
 	CallArmy = "CallArmy", PreparePurchase = "ShopPrompt", Favorite = "Favorite", Attack = "Attack",
-	UnclaimTerritory = "Territory",
+	UnclaimTerritory = "Territory", Rebirth = "Rebirth",
 }
+
+-- Launch sprint ledger names (docs/team/launch). Workers record them through
+-- Analytics:LaunchCount / LaunchHist / LaunchFirst, which drop any other name.
+-- A trailing ".<N>" or ".<id>" suffix is allowed on every prefix below.
+-- act.Rebirth / act.Rebirth.fail and feature.first.Rebirth come from Analytics:Action.
+Schema.LaunchCounters = {
+	["rebirth.count"] = true,     -- every successful re-enlist
+	["rebirth.rank"] = true,      -- rebirth.rank.<N>: first time a player reaches rank N (LaunchFirst)
+	["daily.claim"] = true,       -- daily.claim.<1..7>: streak reward slot granted
+	["daily.reset"] = true,       -- a streak of 2+ broken by a missed day
+	["mutation.offer"] = true,    -- mutation.offer.<id>
+	["mutation.buy"] = true,      -- mutation.buy.<id>
+	["mutation.fuse"] = true,     -- mutation.fuse.<id>
+	["event.offer"] = true,       -- event.offer.<species>
+	["event.buy"] = true,         -- event.buy.<species>
+}
+-- Histogram name (prefix) -> bucket kind.
+Schema.LaunchHistograms = {
+	["rebirth.playSeconds"] = "longSeconds", -- rebirth.playSeconds.<N>: total play when rank N was reached
+	["rebirth.cashAtRebirth"] = "bigCash",
+	["daily.streak"] = "count",
+}
+-- Analytics profile field: highest re-enlist rank seen (profile.rebirths).
 
 -- Every Roblox custom event name this game may send (Roblox cap: 100).
 -- FTUE*/Conquest* come from TutorialService; the rest from Analytics.
@@ -145,6 +174,8 @@ Schema.Buckets = {
 	count   = {0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 100},
 	memory  = {500, 1000, 1500, 2000, 3000, 4000},
 	days    = {1, 2, 3, 4, 5, 6, 7, 14, 30, 60, 90},
+	bigCash = {1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15},
+	longSeconds = {1800, 3600, 5400, 7200, 10800, 14400, 21600, 28800, 43200, 72000, 108000, 172800, 360000},
 }
 
 function Schema.Bucket(kind: string, value: number): string

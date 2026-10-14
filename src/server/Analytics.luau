@@ -75,7 +75,8 @@ function Analytics.MergeProfile(old: any, ours: any): any
 		result.first, result.firstDay, result.firstVersion = old.first, old.firstDay, old.firstVersion
 		result.tracked = old.tracked
 	end
-	for _, name in {"onb", "features", "ret"} do
+	result.rebirths = math.max(old.rebirths or 0, ours.rebirths or 0)
+	for _, name in {"onb", "features", "ret", "launch"} do
 		local merged = table.clone(ours[name] or {})
 		for key, value in old[name] or {} do
 			if merged[key] == nil then merged[key] = value
@@ -376,6 +377,7 @@ function Analytics:Observe(session, state)
 	if wins[2] then self:_Reach(st, I.Camp2) end
 	if wins[3] then self:_Reach(st, I.Camp3) end
 	if session.kingCleared then self:_Reach(st, I.King) end
+	if (session.rebirths or 0) >= 1 then self:_Reach(st, I.Rebirth1) end
 end
 
 function Analytics:Signal(session, signal: any)
@@ -793,6 +795,7 @@ function Analytics:Leave(session)
 	if st.profile then
 		st.profile.play = math.floor(self:_Play(st))
 		st.profile.lastSeen = self.wall()
+		st.profile.rebirths = math.max(st.profile.rebirths or 0, session.rebirths or 0)
 		local profile, userId = st.profile, st.userId
 		self.saving += 1
 		task.spawn(function()
@@ -800,6 +803,52 @@ function Analytics:Leave(session)
 			self.saving -= 1
 		end)
 	end
+end
+
+-- Launch sprint hooks (docs/team/launch). Observation only; names must be listed
+-- in Schema.LaunchCounters / Schema.LaunchHistograms, anything else is dropped.
+
+local function launchPrefix(list: {[string]: any}, name: any): string?
+	if type(name) ~= "string" or #name > 64 then return nil end
+	if list[name] ~= nil then return name end
+	local prefix = string.match(name, "^(.+)%.[%w_]+$")
+	return if prefix and list[prefix] ~= nil then prefix else nil
+end
+
+function Analytics:LaunchCount(session, name: string, n: number?)
+	if not self:_State(session) or not launchPrefix(Schema.LaunchCounters, name) then return end
+	self.ledger:Count(name, n)
+end
+
+function Analytics:LaunchHist(session, name: string, value: number)
+	local prefix = launchPrefix(Schema.LaunchHistograms, name)
+	if not self:_State(session) or not prefix then return end
+	self.ledger:Hist(name, Schema.LaunchHistograms[prefix], value)
+end
+
+-- Counts `name` once per player (kept in the analytics profile). Returns true the
+-- first time. Before the profile resolves, the session alone dedupes.
+function Analytics:LaunchFirst(session, name: string): boolean
+	local st = self:_State(session)
+	if not st or not launchPrefix(Schema.LaunchCounters, name) then return false end
+	st.launchSeen = st.launchSeen or {}
+	if st.launchSeen[name] then return false end
+	local profile = st.profile
+	if profile then
+		profile.launch = profile.launch or {}
+		if profile.launch[name] then st.launchSeen[name] = true; return false end
+		profile.launch[name] = math.floor(self:_Play(st))
+	end
+	st.launchSeen[name] = true
+	self.ledger:Count(name)
+	return true
+end
+
+-- Total play seconds for this player (profile play plus this session), for
+-- histograms such as rebirth.playSeconds.<N>.
+function Analytics:PlaySeconds(session): number?
+	local st = self:_State(session)
+	return if st then math.floor(self:_Play(st)) else nil
 end
 
 -- Server loop --------------------------------------------------------------------
