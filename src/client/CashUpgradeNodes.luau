@@ -125,7 +125,7 @@ for id,position in positions do Cash.ResearchPositions[id]={q=position[1],r=posi
 -- Re-enlist sits after the cash tracks as its own hex. It is deliberately outside
 -- Order/Nodes/ByKey: it has no tiers or upgradeKey, and RebirthPanel draws it from
 -- the live server quote (state.rebirth) as a fixed overlay on the research screen.
-Cash.Reenlist=table.freeze({id="Reenlist",name="Re-enlist",icon="army",
+Cash.Reenlist=table.freeze({id="Reenlist",name="Rebirth",icon="army",
 	description="Reset cash and the war for a permanent egg bonus. Chickens, levels and research stay."})
 for _,node in Cash.Nodes do table.freeze(node) end
 for _,ids in Cash.ByKey do table.freeze(ids) end

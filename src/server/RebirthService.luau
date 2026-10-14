@@ -182,7 +182,7 @@ function RebirthService.Rebirth(session, expectedRank, server): (boolean, string
 		if quote.reason == ARMY_AWAY and operationRunning(session, server) then
 			return false, "Finish your Operation first."
 		end
-		return false, quote.reason or "You can't re-enlist right now."
+		return false, quote.reason or "You can't rebirth right now."
 	end
 	-- 4. No Operation and no battle that still holds part of the army.
 	if operationRunning(session, server) then return false, "Finish your Operation first." end
@@ -216,7 +216,7 @@ function RebirthService.Rebirth(session, expectedRank, server): (boolean, string
 	-- 9. Observation only.
 	record(server, session, nextRank, coinsBefore)
 	-- 10.
-	return true, "Re-enlisted as " .. RebirthService.Title(nextRank)
+	return true, "Rebirth complete: " .. RebirthService.Title(nextRank)
 end
 
 return RebirthService

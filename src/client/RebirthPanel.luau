@@ -181,7 +181,7 @@ function Panel:RenderHex()
 	view.title.TextOutline.Transparency=if locked then .35 else 0
 	view.status.Text=if not complete then (quote.reason or "Coming soon")
 		elseif not king then "Defeat the Chicken King"
-		elseif eligible then "Tap to re-enlist"
+		elseif eligible then "Tap to rebirth"
 		else quote.reason or (if cost then money(cost) else "")
 	view.status.TextColor3=if eligible then WHITE elseif locked then Color3.fromRGB(176,176,176) else RED
 	view.track.Visible=king and (cost~=nil or eligible)
@@ -274,7 +274,7 @@ function Panel:Build()
 		Theme.Aspect(panel,1.4)
 	end
 	self.panelSize,self.panelPosition=panel.Size,panel.Position
-	local header,title=Theme.Header(panel,"Header","Re-enlist",GREEN)
+	local header,title=Theme.Header(panel,"Header","Rebirth",GREEN)
 	self.title=title
 	-- The shared header's icon slot carries the Re-enlist badge (title shifts right).
 	header.PageIcon.Image,header.PageIcon.Visible=Theme.Assets.Reenlist,true
@@ -331,7 +331,7 @@ function Panel:Build()
 	-- Hold control stays at least 44 points tall on the smallest phones.
 	local minimum=Instance.new("UISizeConstraint")
 	minimum.MinSize,minimum.Parent=Vector2.new(0,44),actions
-	local hold=Theme.ActionButton(actions,"Confirm","Hold to re-enlist",function() end,GREEN)
+	local hold=Theme.ActionButton(actions,"Confirm","Hold to rebirth",function() end,GREEN)
 	hold.Position,hold.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,1)
 	Theme.Studs(hold.Visual.Face,.07,28,0)
 	hold.Visual.Caption.Position,hold.Visual.Caption.Size=UDim2.fromScale(.04,.1),UDim2.fromScale(.92,.8)
@@ -370,7 +370,7 @@ function Panel:RenderPanel()
 	if type(quote)~="table" then return end
 	local rank=tonumber(quote.rank) or 0
 	local nextTitle=quote.nextTitle
-	self.title.Text=if nextTitle then "Re-enlist as "..nextTitle else "Re-enlist"
+	self.title.Text=if nextTitle then "Rebirth to "..nextTitle else "Rebirth"
 	-- Rank row.
 	self.nowName.Text=quote.title or Panel.Title(rank)
 	self.nowBadge.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
@@ -407,7 +407,7 @@ function Panel:RenderPanel()
 	if needKing then reason="Defeat the Chicken King"
 	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more"
 	elseif quote.armyHome==false then reason="Bring your army home first" end
-	hold.Text=if self.pending then "Re-enlisting…" elseif can then "Hold to re-enlist" else reason
+	hold.Text=if self.pending then "Rebirthing…" elseif can then "Hold to rebirth" else reason
 	local tint=if can or self.pending then GREEN else Theme.ActionColors.disabled
 	if hold.BackgroundColor3~=tint then
 		hold.BackgroundColor3=tint
@@ -528,7 +528,7 @@ function Panel:Render(state,result)
 	if result and result.action=="Rebirth" and self.pending and result.id==self.pending.id then
 		self.pending=nil
 		if not result.ok then
-			self.message,self.messageColor=result.message or "Couldn't re-enlist. Try again.",RED
+			self.message,self.messageColor=result.message or "Couldn't rebirth. Try again.",RED
 			if self.holdFill then self.holdFill.Size=UDim2.fromScale(0,1) end
 		end
 	end

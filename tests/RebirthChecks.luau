@@ -214,7 +214,7 @@ function Checks.Run()
   local coinsBefore=s.coins
   local ok,message=Rebirth.Rebirth(s,0,server)
   assert(ok,message)
-  assert(message=="Re-enlisted as Veteran I",message)
+  assert(message=="Rebirth complete: Veteran I",message)
   local after=s:ToData()
   -- Reset fields.
   assert(after.coins==Config.StartingCoins,"coins "..tostring(after.coins))

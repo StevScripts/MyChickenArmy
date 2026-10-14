@@ -102,7 +102,7 @@ function Hud.new(app,shell)
 		button.LayoutOrder=i
 	end
 	-- Re-enlist: its own HUD icon (the hex on the Upgrades screen stays too).
-	self.reenlist=Theme.IconButton(shortcuts,"Reenlist","Re-enlist",Theme.Assets.Reenlist or Theme.Assets.ArmyHud,function()
+	self.reenlist=Theme.IconButton(shortcuts,"Reenlist","Rebirth",Theme.Assets.Reenlist or Theme.Assets.ArmyHud,function()
 		app.audio:Play("Click")
 		if app.rebirthPanel then app.rebirthPanel:Open() end
 	end)
@@ -356,7 +356,7 @@ function Hud:UpdateRebirth(state)
 	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
 		self.rebirthToastShown=true
 		local nextTitle=if type(quote.nextTitle)=="string" then quote.nextTitle else RebirthPanel.Title(rank+1)
-		self.app:Notify("Re-enlist ready: "..nextTitle.."!",true)
+		self.app:Notify("Rebirth ready: "..nextTitle.."!",true)
 	end
 end
 
