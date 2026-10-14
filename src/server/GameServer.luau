@@ -209,13 +209,17 @@ function GameServer:Handle(player,request)
 			ok,message=self.rolls:Roll(session,now)
 			if ok then for _,offer in session.offers or {} do
 				if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
+				if offer.event then self.analytics:LaunchCount(session,"event.offer."..offer.species) end
 			end end
 		else
+			local eventSpecies
+			for _,offer in session.offers or {} do if offer.id==request.offerId and offer.event then eventSpecies=offer.species end end
 			local battle=self.battles.battles[session.outgoing]
 			ok,message,petId,recruit=self.rolls:Buy(session,request.offerId,now,battle and {
 				battleId=battle.id,phase=battle.phase})
 			local bought=ok and petId and session.pets[petId]
 			if bought and bought.mutation then self.analytics:LaunchCount(session,"mutation.buy."..bought.mutation) end
+			if bought and eventSpecies then self.analytics:LaunchCount(session,"event.buy."..eventSpecies) end
 		end
 	elseif action=="SetArmy" then ok,message=ArmyService.SetSelection(session,request.petIds,request.expectedIds)
 	elseif action=="SelectBest" then ok,message=ArmyService.SelectBest(session)

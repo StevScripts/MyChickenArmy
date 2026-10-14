@@ -56,8 +56,9 @@ local Config = {
  -- One enemy scale applies to health and damage (EnemyDamagePerRank is unused).
  Rebirth={Enabled=true,MaxRank=10,BaseCost=5e9,CostGrowth=4,
   EggBonusPerRank=0.25,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
- -- Limited event; StartsAt/EndsAt are unix seconds. Off until worker H1 ships it.
- Event={Enabled=false,Id="Halloween2026",StartsAt=0,EndsAt=0,Species="Pumpkin",OfferChance=0.02},
+ -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
+ -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
+ Event={Enabled=false,Id="Halloween2026",StartsAt=1791936000,EndsAt=1793491200,Species="Pumpkin",OfferChance=0.02},
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
  DataRevision=11,StarterFlock={"Duck","Duck","Duck"},
  CommandDistance=14,

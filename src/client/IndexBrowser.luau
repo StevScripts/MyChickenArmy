@@ -209,7 +209,7 @@ function Browser:Render(_force)
 			view.name.RichText=not collected
 			view.name.Text=if collected then definition.name
 				else string.format('<font color="#%s">%s</font> · %s',(Theme.Rarities[definition.rarity] or WHITE):ToHex(),definition.rarity,
-					if definition.hillExclusive then "Win the Hill "..Config.Hill.ChampionWins.." times" elseif crateOnly then "Galaxy Crate only" else "Roll")
+					if definition.hillExclusive then "Win the Hill "..Config.Hill.ChampionWins.." times" elseif definition.limitedLabel then definition.limitedLabel elseif crateOnly then "Galaxy Crate only" else "Roll")
 			view.preview.ImageColor3=if collected then WHITE else BLACK
 			view.preview.Position=previewPosition(collected)
 			if collected then

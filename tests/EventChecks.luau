@@ -158,7 +158,8 @@ function Checks.Run()
     local offer=s.offers[slot]
     assert(offer.species==SPECIES,"Slot "..slot.." was "..offer.species)
     assert(offer.level==1 and offer.price==Rules.RecruitPrice("Knight",1),"Price "..tostring(offer.price))
-    assert(offer.chance==0,"Event offer chance field: "..tostring(offer.chance)) -- see handoff: odds[Pumpkin] is 0
+    -- Lead request 3: event offers disclose the event chance and carry event=true.
+    assert(offer.chance==1 and offer.event==true,"Event offer chance field: "..tostring(offer.chance))
    end
    -- Recruit level follows owned copies like any species.
    local owned=s:AddPet(SPECIES,1);owned.level=3

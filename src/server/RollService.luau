@@ -34,12 +34,15 @@ function RollService:Roll(session, now: number)
 		local forced=if slot==1 then session.debugNext or guaranteed else nil
 		local species=if starter then "Duck" else forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
 		-- Launch hooks (neutral stubs until H1/M1): never the starter or a forced first slot.
+		local drawn=species
 		if not starter and not forced then species=EventService.MaybeReplace(session,species,rng,slot,os.time()) end
+		local event=species~=drawn
 		local level=if starter then 1 else Rules.RecruitLevel(session.pets,species,session.promotion)
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
 			level=level,price=if starter then Config.Economy.StarterRecruitPrice else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
-			chance=if starter or (slot==1 and guaranteed) then 1 else odds[species]}
+			chance=if starter or (slot==1 and guaranteed) then 1 elseif event then Config.Event.OfferChance else odds[species],
+			event=event or nil}
 		if not starter then offers[slot].mutation=MutationCatalog.Roll(rng,session.rebirths or 0) end
 	end
 	session.offers,session.offer=offers,offers[1]
