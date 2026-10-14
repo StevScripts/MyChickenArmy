@@ -23,7 +23,6 @@ end
 -- Candidates are found once from the authored map (under PetRollWorld at runtime):
 -- island ground (the huge flat base part) with no map parts (roads, camps, plots,
 -- props) within ZoneClearance.
-InvasionLayout.ZoneRadius = 14 -- the visible ring
 InvasionLayout.ZoneClearance = 28 -- half-size of the empty box around a candidate
 InvasionLayout.MinSeparation = 90 -- two active invasions never land this close
 local GRID, INNER, OUTER = 24, 70, 420

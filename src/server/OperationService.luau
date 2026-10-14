@@ -9,6 +9,8 @@ local Catalog=require(Shared.OperationCatalog)
 local Battle=require(script.Parent.Battle)
 local LiveActors=require(script.Parent.LiveBattleActors)
 local Airship=require(script.Parent.InvasionAirship)
+local Camp=require(script.Parent.InvasionCamp)
+local FlockLayout=require(Shared.FlockLayout)
 local InvasionLayout=require(Shared.InvasionLayout)
 local March=require(Shared.ArmyMarch)
 local Config=require(Shared.Config)
@@ -31,44 +33,19 @@ function Service.LockedMessage(tier): string
 end
 
 -- October 14 Invasions: the Chicken King's loyalists land by airship on a random
--- open patch of the island (InvasionLayout.Pick), marked by a glowing ring. The army
+-- open patch of the island (InvasionLayout.Pick) and set up a camp there (InvasionCamp).
+-- Supply crates parachute down and the loyalists step out of them. The army
 -- marches there on foot with the normal travel code, fights the finite roster, and
 -- walks home. No arena clone, no teleport, no cutscene. Other players see the
--- landing but cannot join it. After TIME_LIMIT seconds, on Leave or on a loss, the
+-- landing but cannot join it. After Service.TimeLimit seconds, on Leave or a loss, the
 -- loyalists fade away one by one and nothing is paid.
-local ARRIVAL_SECONDS=3.2 -- Airship inbound (3 s) before the loyalists drop.
-local HOVER_SECONDS=2.2
+local CRATE_FALL_SECONDS=2
+-- The airship flies in, releases the crates, and the loyalists appear as they land.
+local ARRIVAL_SECONDS=Airship.InboundSeconds+CRATE_FALL_SECONDS+.1
+local HOVER_SECONDS=CRATE_FALL_SECONDS+.8
 Service.TimeLimit=180
 local FADE_SPREAD,FADE_SECONDS=8,.9
 local rng=Random.new()
-
-local function zoneRing(parent,landing,userId)
-	local zone=Instance.new("Model")
-	zone.Name="InvasionZone"..userId
-	zone:SetAttribute("OwnerUserId",userId)
-	local radius=InvasionLayout.ZoneRadius
-	local function disc(name,size,color,transparency)
-		local item=Instance.new("Part")
-		item.Name,item.Shape,item.Material,item.Color=name,Enum.PartType.Cylinder,Enum.Material.Neon,color
-		item.Size,item.Transparency=Vector3.new(.2,size,size),transparency
-		item.Anchored,item.CanCollide,item.CanQuery,item.CanTouch,item.CastShadow=true,false,false,false,false
-		item.CFrame=CFrame.new(landing+Vector3.new(0,.12,0))*CFrame.Angles(0,0,math.rad(90))
-		item.Parent=zone
-		return item
-	end
-	-- A bright rim around a faint fill reads as a ring from the ground and the air.
-	local rim=disc("Rim",radius*2,Color3.fromRGB(190,90,255),.15)
-	local fill=disc("Fill",radius*2-2.4,Color3.fromRGB(70,20,110),.35)
-	fill.CFrame*=CFrame.new(.03,0,0)
-	zone.PrimaryPart=rim
-	-- The commander's guide arrow and "INVASION" marker point here.
-	local marker=Instance.new("Attachment")
-	marker.Name,marker.Parent="Marker",rim
-	marker.WorldPosition=landing+Vector3.new(0,.3,0)
-	zone.Parent=parent
-	TweenService:Create(rim,TweenInfo.new(.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Transparency=.55}):Play()
-	return zone
-end
 
 -- Detach the loyalist rigs from the battle and fade them out one at a time.
 local function fadeInvaders(battle,parent)
@@ -149,10 +126,24 @@ function Service:Start(session,id,expectedRevision,now)
 	local seaward=Vector3.new(landing.X,0,landing.Z)
 	seaward=if seaward.Magnitude>1e-3 then seaward.Unit else away
 	battle.airship=Airship.Arrive(self.world.root,landing,seaward,HOVER_SECONDS)
-	battle.zone=zoneRing(self.world.root,landing,session.userId)
+	local camp=Camp.Build(self.world.root,frame,session.userId)
+	battle.zone=camp
+	-- One crate behind each column of the loyalist formation.
+	local enemies=Catalog.Roster(id)
+	local columns,rows=FlockLayout.Dimensions(#enemies)
+	local spots={}
+	for c=1,columns do
+		local x=(c-1-(columns-1)/2)*FlockLayout.SpacingX
+		local z=-3-(rows-1)*FlockLayout.SpacingZ/2-2.8-(c%2)*.8
+		table.insert(spots,(frame*CFrame.new(x,.15,z)).Position)
+	end
+	task.delay(Airship.InboundSeconds,function()
+		if self.battles.battles[battle.id]~=battle or battle.paid or not camp.Parent then return end
+		Airship.DropCrates(camp,landing+Vector3.new(0,Airship.HoverHeight,0)+Airship.HatchOffset,spots,CRATE_FALL_SECONDS)
+	end)
 	task.delay(ARRIVAL_SECONDS,function()
 		if self.battles.battles[battle.id]~=battle or battle.paid then return end
-		battle:AddArmy("B",Catalog.Roster(id),landing)
+		battle:AddArmy("B",enemies,landing)
 		if battle.actors then battle.actors:Sync(os.clock());battle.actors:Publish(os.clock()) end
 	end)
 	session:Touch();self.world:UpdateSession(session)
@@ -192,9 +183,9 @@ function Service:Resolve(battle,outcome,now)
 				else definition.name.." ended. Your army is marching home; no completion reward."
 		session:Touch()
 	end
-	-- The loyalists (standing or fallen) fade away; the ring goes with them.
+	-- The loyalists (standing or fallen) fade away, then their camp packs up.
 	fadeInvaders(battle,self.world.root or workspace)
-	if battle.zone then battle.zone:Destroy();battle.zone=nil end
+	if battle.zone then Camp.FadeOut(battle.zone,FADE_SPREAD*.6);battle.zone=nil end
 	-- The army walks home through the normal Returning flow (BattleService restores
 	-- the rigs and the session on arrival). A leaving player is simply removed.
 	if session and not session.closing and session.outgoing==battle.id then

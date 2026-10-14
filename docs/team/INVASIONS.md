@@ -16,20 +16,26 @@ Elite = the loyalist fleet, Royal = the King's armada, ending with "The King Ret
 2. Pick an invasion and press **Defend**. The server picks a **random open spot anywhere
    on the island** (`InvasionLayout.Pick`: island ground with no roads, camps, plots or
    props within 28 studs, scanned once and cached; never within 90 studs of another live
-   Invasion; the plot's old fixed spot is only the fallback). It drops a glowing purple
-   **ring** there (`InvasionZone<userId>`) and spawns the loyalist airship
-   (`src/server/InvasionAirship.luau`, code-built, TweenService only), which flies in
-   and hovers while the loyalists drop into the ring (`Catalog.Roster`).
+   Invasion; the plot's old fixed spot is only the fallback). It builds a loyalist
+   **landing camp** there (`src/server/InvasionCamp.luau`, `InvasionZone<userId>`): a
+   jagged dirt clearing with scorch marks and a crown emblem, a gold-capped palisade
+   along the back, four purple crown banners facing the arriving army, a tent, supplies
+   and a purple signal fire whose smoke column shows the spot from across the island.
+   The blocky loyalist airship (`src/server/InvasionAirship.luau`: stepped balloon,
+   gold bands, crowns, wooden gondola, engines) flies in and drops one parachute
+   **supply crate** per enemy column; when the crates land they puff dust and pop open,
+   and the loyalists appear (`Catalog.Roster`). Same studded Plastic style as the
+   authored camps; nothing collides. TweenService only.
 3. No cutscene and no teleport (owner, October 14). The commander gets the normal guide
-   beam plus an **"INVASION m:ss"** marker over the ring (`BaseController:UpdateObjective`),
+   beam plus an **"INVASION m:ss"** marker over the camp (`BaseController:UpdateObjective`),
    which outranks every other goal while the Invasion is active.
-4. The army waits about 3.5 s, then marches out with the normal camp travel code,
+4. The army waits about 5.4 s (until the crates land), then marches out with the normal camp travel code,
    fights the finite roster and walks home through the normal Returning flow. Other
-   players see the ring and the loyalists but cannot join.
+   players see the camp and the loyalists but cannot join.
    **Time limit: 3 minutes** (`OperationService.TimeLimit=180`). On time-out, Leave,
    a loss or the player leaving the game, there is no reward and the loyalists **fade
    away one by one** over about 8 s (`fadeInvaders`). After a win the fallen loyalists
-   fade the same way. The ring disappears when the Invasion ends.
+   fade the same way. The camp then puts out its fire and fades away.
 5. Rewards, first-clear tracking, banners, research gates (S15 "Coastal Watch", S16
    "Elite Invasions", S17 "Royal Invasions") and the King-clear unlock are unchanged.
    Only display names changed; ids (`operationId`, `StartOperation`, analytics names,
