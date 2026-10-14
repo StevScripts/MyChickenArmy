@@ -13,7 +13,7 @@ Two all-time global boards on every home plot, replacing Most Cash and Chickens 
   `PromptGamePassPurchaseFinished` reports a purchase (`CommerceService:_RecordPassSpend`).
   Purchases made before this update, or passes bought outside the game, are not counted.
 - **Server** (`LeaderboardService`): writes changed values about once a minute and on leave
-  (never a zero entry), reads the top 8, resolves display names, and publishes JSON to
+  (never a zero entry), reads the top 100, resolves display names, and publishes JSON to
   `ReplicatedStorage.PetRoll.Leaderboards.<Key>` (StringValues). Studio shows a local
   preview of players in the session.
 - **Client** (`LeaderboardBoards`): draws a SurfaceGui (Left face, 500×750 canvas) on each
@@ -24,3 +24,10 @@ Two all-time global boards on every home plot, replacing Most Cash and Chickens 
   old "MOST CASH" title billboards stay disabled.
 - **Map**: the two boards were authored on Plot1 and copied to Plots 2–6 at the same
   Deck-relative position (verified within 0.001 studs). Save the place to keep them.
+
+## Scrolling (October 13)
+
+Each board shows 8 large rows; the rows sit in a ScrollingFrame (mouse wheel or
+drag, colored scroll bar) and the server publishes the top 100 (one
+`GetSortedAsync` page). Fewer than 8 ranks still show dim empty slots. Rows past 8
+are created as entries arrive.

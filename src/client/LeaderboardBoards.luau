@@ -12,7 +12,8 @@ local Boards = {}
 Boards.__index = Boards
 
 local CANVAS = Vector2.new(500, 750) -- Screen part's Left face is 7.15 x 10.73 studs
--- Title and ranks only. Read from ~20 studs: 8 large rows; empty ranks stay dim slots.
+-- Title and ranks only. Read from ~20 studs: 8 large rows fill the screen; the
+-- list scrolls (mouse wheel or drag) when the server sends more ranks.
 local ROWS = 8
 local ROW_TOP, ROW_HEIGHT, ROW_GAP = 132, 70, 6
 local EMPTY_TILE = Color3.fromRGB(58, 62, 70)
@@ -116,26 +117,15 @@ function Boards:Attach(key: string, screen: BasePart)
 	title.ZIndex = 6
 
 
+	local list = Instance.new("ScrollingFrame")
+	list.Name, list.Position, list.Size = "Rows", px(12, ROW_TOP), UDim2.new(1, -24, 1, -(ROW_TOP + 12))
+	list.BackgroundTransparency, list.BorderSizePixel, list.Active = 1, 0, true
+	list.ScrollingDirection, list.ScrollBarThickness = Enum.ScrollingDirection.Y, 8
+	list.ScrollBarImageColor3, list.VerticalScrollBarInset = style.color, Enum.ScrollBarInset.Always
+	list.CanvasSize, list.AutomaticCanvasSize = UDim2.new(), Enum.AutomaticSize.None
+	list.Parent = root
 	local rows = {}
-	for i = 1, ROWS do
-		local y = ROW_TOP + (i - 1) * (ROW_HEIGHT + ROW_GAP)
-		local row = frame(root, "Row" .. i, px(12, y), UDim2.new(1, -24, 0, ROW_HEIGHT), Theme.OverlayColors.Top:Lerp(Color3.new(1, 1, 1), 0.08),
-			if i % 2 == 0 then 0.2 else 0.05)
-		local outline = Theme.Stroke(row, Theme.Arcade.border, 2)
-		local tile = frame(row, "Rank", px(0, 0), px(ROW_HEIGHT, ROW_HEIGHT), EMPTY_TILE)
-		Theme.Stroke(tile, Theme.Arcade.border, 2)
-		local rank = display(tile, "Number", tostring(i), 46, px(0, 0), UDim2.fromScale(1, 1), nil, Enum.TextXAlignment.Center)
-		local avatar = Instance.new("ImageLabel")
-		avatar.Name, avatar.Position, avatar.Size = "Avatar", px(ROW_HEIGHT + 8, 4), px(ROW_HEIGHT - 8, ROW_HEIGHT - 8)
-		avatar.BackgroundColor3, avatar.BackgroundTransparency, avatar.ZIndex = Color3.fromRGB(34, 37, 42), 0, 3
-		local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0.5, 0); corner.Parent = avatar
-		avatar.Parent = row
-		local name = display(row, "Name", "", 38, px(ROW_HEIGHT * 2 + 8, 0), UDim2.new(1, -(ROW_HEIGHT * 2 + 8) - 168, 1, 0))
-		local value = display(row, "Value", "", 38, UDim2.new(1, -168, 0, 0), UDim2.new(0, 158, 1, 0), style.valueColor, Enum.TextXAlignment.Right)
-		rows[i] = {frame = row, outline = outline, tile = tile, rank = rank, avatar = avatar, name = name, value = value}
-	end
-
-	local view = {key = key, style = style, gui = gui, screen = screen, title = title, rows = rows}
+	local view = {key = key, style = style, gui = gui, screen = screen, title = title, rows = rows, list = list}
 	self.views[screen] = view
 	-- Hide the board's old authored title billboard locally.
 	for _, item in (screen.Parent :: Instance):GetDescendants() do
@@ -147,6 +137,25 @@ function Boards:Attach(key: string, screen: BasePart)
 		self.views[screen] = nil
 	end))
 	self:Render(view)
+end
+
+function Boards:Row(view, i: number)
+	local row = frame(view.list, "Row" .. i, px(0, (i - 1) * (ROW_HEIGHT + ROW_GAP)), UDim2.new(1, -10, 0, ROW_HEIGHT),
+		Theme.OverlayColors.Top:Lerp(Color3.new(1, 1, 1), 0.08), if i % 2 == 0 then 0.2 else 0.05)
+	local outline = Theme.Stroke(row, Theme.Arcade.border, 2)
+	local tile = frame(row, "Rank", px(0, 0), px(ROW_HEIGHT, ROW_HEIGHT), EMPTY_TILE)
+	Theme.Stroke(tile, Theme.Arcade.border, 2)
+	local rank = display(tile, "Number", tostring(i), if i >= 100 then 30 else 46, px(0, 0), UDim2.fromScale(1, 1), nil, Enum.TextXAlignment.Center)
+	local avatar = Instance.new("ImageLabel")
+	avatar.Name, avatar.Position, avatar.Size = "Avatar", px(ROW_HEIGHT + 8, 4), px(ROW_HEIGHT - 8, ROW_HEIGHT - 8)
+	avatar.BackgroundColor3, avatar.BackgroundTransparency, avatar.ZIndex = Color3.fromRGB(34, 37, 42), 0, 3
+	local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0.5, 0); corner.Parent = avatar
+	avatar.Parent = row
+	local name = display(row, "Name", "", 38, px(ROW_HEIGHT * 2 + 8, 0), UDim2.new(1, -(ROW_HEIGHT * 2 + 8) - 168, 1, 0))
+	local value = display(row, "Value", "", 38, UDim2.new(1, -168, 0, 0), UDim2.new(0, 158, 1, 0), view.style.valueColor, Enum.TextXAlignment.Right)
+	local entry = {frame = row, outline = outline, tile = tile, rank = rank, avatar = avatar, name = name, value = value}
+	view.rows[i] = entry
+	return entry
 end
 
 function Boards:Thumbnail(userId: number, avatar: ImageLabel)
@@ -171,7 +180,13 @@ function Boards:Render(view)
 	view.title.Text = data.title or ""
 	local entries = type(data.entries) == "table" and data.entries or {}
 	local me = Players.LocalPlayer.UserId
-	for i, row in view.rows do
+	-- Eight slots always show (empty ranks stay dim); more ranks extend the scroll.
+	local count = math.max(ROWS, #entries)
+	for i = 1, count do if not view.rows[i] then self:Row(view, i) end end
+	for i, row in view.rows do row.frame.Visible = i <= count end
+	view.list.CanvasSize = UDim2.fromOffset(0, count * (ROW_HEIGHT + ROW_GAP) - ROW_GAP)
+	for i = 1, count do
+		local row = view.rows[i]
 		local entry = entries[i]
 		row.avatar.Visible = entry ~= nil
 		row.frame.BackgroundTransparency = if entry then (if i % 2 == 0 then 0.2 else 0.05) else 0.6

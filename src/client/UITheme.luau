@@ -31,7 +31,7 @@ Theme.NavigationColors = {
 Theme.PageColors = {
 	Base=Theme.NavigationColors.HotPink,
 	Army=Theme.NavigationColors.Cyan, Upgrades=Theme.NavigationColors.Orange, Sell=Theme.Arcade.sell, Merge=Theme.Arcade.purple,
-	Settings=Theme.Arcade.blue, Test=Theme.Arcade.blue, Odds=Theme.NavigationColors.Orange, Recruits=Theme.NavigationColors.Orange,
+	Settings=Theme.Arcade.blue, Test=Theme.Arcade.blue, Admin=Theme.Arcade.blue, Odds=Theme.NavigationColors.Orange, Recruits=Theme.NavigationColors.Orange,
 	Shop=Theme.Arcade.gold, Index=Theme.Arcade.blue,
 }
 Theme.HeaderColors = table.clone(Theme.PageColors)

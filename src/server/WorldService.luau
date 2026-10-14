@@ -266,6 +266,9 @@ function WorldService:UpdatePlayerSpeed(player, index: number)
 	local outside=math.abs(position.X)>deck.Size.X/2+padding or math.abs(position.Z)>deck.Size.Z/2+padding
 	local speed=if outside then Config.PlayerTravelWalkSpeed else Config.PlayerHomeWalkSpeed
 	speed*=1+(plot.researchWalk or 0)
+	-- Admin speed command (AdminService); cleared by "speed reset" or respawn.
+	local adminSpeed=humanoid:GetAttribute("AdminWalkSpeed")
+	if type(adminSpeed)=="number" then speed=adminSpeed end
 	if humanoid.WalkSpeed~=speed then humanoid.WalkSpeed=speed end
 	attribute(humanoid,"OutsideHomeBase",outside)
 end

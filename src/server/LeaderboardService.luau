@@ -11,9 +11,10 @@ local HttpService=game:GetService("HttpService")
 local UserService=game:GetService("UserService")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Config=require(ReplicatedStorage.PetRoll.Shared.Config)
+local AdminConfig=require(script.Parent.AdminConfig)
 local Leaderboards={}
 Leaderboards.__index=Leaderboards
-Leaderboards.Top=8
+Leaderboards.Top=100 -- Boards scroll (LeaderboardBoards); 100 is one GetSortedAsync page.
 Leaderboards.Definitions={
  {key="ArmyPower",title="STRONGEST ARMY"},
  {key="RobuxSpent",title="TOP SUPPORTERS"},
@@ -73,6 +74,14 @@ function Leaderboards:Write(session,final)
  local written=self.written[userId] or {};self.written[userId]=written
  for _,def in Leaderboards.Definitions do
   local value=values[def.key]
+  -- Admin-assisted armies (AdminService) leave the Strongest Army board once.
+  if def.key=="ArmyPower" and session.adminAssisted and AdminConfig.KeepRankingsClean then
+   if written[def.key]~=-1 then
+    local ok=pcall(function() self.stores[def.key]:RemoveAsync(tostring(userId)) end)
+    if ok then written[def.key]=-1 end
+   end
+   continue
+  end
   -- Skip unchanged values and never create a zero entry (no empty supporters).
   if written[def.key]==value or (value<=0 and written[def.key]==nil) then continue end
   local ok,err=pcall(function() self.stores[def.key]:SetAsync(tostring(userId),value) end)

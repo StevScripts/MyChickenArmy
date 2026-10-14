@@ -60,6 +60,17 @@ local function scroll(parent,name)
  item.ZIndex,item.Parent=parent.ZIndex+2,parent
  return item
 end
+-- AutomaticCanvasSize undercounts aspect-constrained Scale rows: the canvas stays
+-- one window tall and nothing scrolls. The canvas follows the layout's measured
+-- content instead (same workaround as ShopBrowser).
+local function fitCanvas(scroll,layout)
+ scroll.AutomaticCanvasSize=Enum.AutomaticSize.None
+ local function fit() scroll.CanvasSize=UDim2.fromOffset(0,math.ceil(layout.AbsoluteContentSize.Y)) end
+ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
+ fit()
+ -- A list rebuilt while hidden misses that signal; renders re-fit on the next frame.
+ return function() task.defer(fit) end
+end
 local function preview(app,parent,pet)
  local item=app:Preview(parent,pet,UDim2.fromScale(1,1))
  item.ZIndex=parent.ZIndex+2
@@ -134,6 +145,7 @@ function Browser.new(app,parent)
  self.grid=scroll(self.picker,"EligibleChickens");self.grid.AutomaticCanvasSize=Enum.AutomaticSize.Y
  local layout=Instance.new("UIListLayout",self.grid)
  layout.SortOrder,layout.FillDirection,layout.Padding=Enum.SortOrder.LayoutOrder,Enum.FillDirection.Vertical,UDim.new(0,0)
+ self.fitGrid=fitCanvas(self.grid,layout)
  self.emptyIcon=Theme.Image(self.picker,"EmptyIcon",Theme.Assets.Merge,UDim2.new());self.emptyIcon.ZIndex=self.picker.ZIndex+3
  self.empty=label(self.picker,"Empty","No matching trio yet",30);self.empty.TextWrapped=true
  self.hint=label(self.picker,"Hint","Keep collecting chickens.",23,MUTED);self.hint.TextWrapped=true
@@ -400,6 +412,7 @@ function Browser:RenderPicker()
  self.empty.Text=if self.query~="" then "No matches" else "No matching trio yet"
  self.hint.Text=if self.query~="" then "Try another name." else "Collect 3 matching chickens."
  self.back.Text=if empty and self.query~="" then "Clear search" else "Back"
+ self.fitGrid()
 end
 
 function Browser:Render(force)

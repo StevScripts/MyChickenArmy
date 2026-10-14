@@ -26,6 +26,7 @@ local ResearchService=require(script.Parent.ResearchService)
 local ArmyAbilities=require(script.Parent.ArmyAbilities)
 local OperationService=require(script.Parent.OperationService)
 local HillService=require(script.Parent.HillService)
+local AdminService=require(script.Parent.AdminService)
 local GameServer={}
 GameServer.__index=GameServer
 local SYNC_COOLDOWN=1 -- Extra Sync requests are answered by the next periodic snapshot.
@@ -52,6 +53,7 @@ function GameServer.new()
  self.data=DataService.new()
  self.products=ProductService.new(self.data,self.sessions)
  self.crates=CrateService.new()
+	self.admin=AdminService.new(self)
 	-- Observation only (docs/analytics/AGENT_GUIDE.md). Hooks never change gameplay.
 	self.analytics=Analytics.new({tutorial=self.tutorial,battles=self.battles})
 	TutorialService.Transport=function(player,name,value,fields) self.analytics:Custom(player,name,value,fields) end
@@ -98,6 +100,9 @@ function GameServer:Send(player,result)
 	state.debugAllowed=RunService:IsStudio() and DebugService.Allowed(player)
 	state.newPlayerTestAllowed=GameServer.NewPlayerTestAllowed(player)
 	state.newPlayerTest=session.newPlayerTest==true
+	-- Admin panel access only; every admin command is checked again on the server.
+	local adminRank=self.admin:Rank(player)
+	state.admin=if adminRank then {rank=adminRank} else nil
 	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation}
 	self.remotes.StateChanged:FireClient(player,{state=state,result=result})
 end
@@ -246,6 +251,7 @@ function GameServer:Handle(player,request)
   ok,message=self.armyCommands:GoBase(player,session,now)
 	elseif action=="Retreat" or action=="ReturnHome" then message="Manage your lineup in My Army. Chickens walk to and from the fight."
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
+	elseif action=="Admin" then ok,message=self.admin:Run(player,request.text)
 	elseif action=="TestNewPlayer" then
 		-- Yields while the real save is released; stop if this session ended meanwhile.
 		ok,message=self:StartNewPlayerTest(player,session,now)
@@ -281,6 +287,16 @@ function GameServer:Handle(player,request)
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
 	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate})
+end
+
+-- Sends fresh state without a request result (admin rank changes).
+function GameServer:PushState(player)
+	if self.sessions[player.UserId] then self:Send(player,nil) end
+end
+
+-- Answers a chat admin command as a normal notification.
+function GameServer:Reply(player,ok,message)
+	if self.sessions[player.UserId] then self:Send(player,{id=0,ok=ok,message=message,action="Admin"}) end
 end
 
 -- Settings > Test as a new player: Studio, Config.DebugUserIds and the game's owner.
@@ -488,8 +504,9 @@ function GameServer:Start()
 		self:Handle(player,{action=action,id=0,stationIndex=index,offerId=offerId})
 	end
 	table.insert(self.connections,folder.RequestAction.OnServerEvent:Connect(function(player,request) self:Handle(player,request) end))
-	table.insert(self.connections,Players.PlayerAdded:Connect(function(player) self:AddPlayer(player) end))
-	table.insert(self.connections,Players.PlayerRemoving:Connect(function(player) self:RemovePlayer(player) end))
+	self.admin:Start()
+	table.insert(self.connections,Players.PlayerAdded:Connect(function(player) self.admin:PlayerAdded(player);self:AddPlayer(player) end))
+	table.insert(self.connections,Players.PlayerRemoving:Connect(function(player) self.admin:PlayerRemoving(player);self:RemovePlayer(player) end))
 	for _,player in Players:GetPlayers() do task.spawn(function() self:AddPlayer(player) end) end
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt) self:Step(dt) end))
 	game:BindToClose(function() self:Shutdown() end)
@@ -516,6 +533,7 @@ function GameServer:Shutdown()
 end
 
 function GameServer:Destroy()
+	self.admin:Destroy()
 	for _,session in self.sessions do self.tutorial:Release(session);session.closing=true;self.eggs:Release(session) end
 	for _,connection in self.connections do connection:Disconnect() end
 	for _,connection in self.playerConnections do connection:Disconnect() end

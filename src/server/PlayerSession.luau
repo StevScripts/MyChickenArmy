@@ -67,6 +67,9 @@ function PlayerSession:Reset()
 	-- Live egg-value bonus from held territories (BattleService). Never saved,
 	-- never part of the offline rate: holdings end when the player leaves.
 	self.territoryBonus = 0
+	-- Set when an admin gives chickens, research, camp wins or army size
+	-- (AdminService); keeps the Strongest Army board earned. Saved.
+	self.adminAssisted = false
 	self.discovered = {}
 	-- Raw saved entries for species this build does not know; written back unchanged.
 	self.unrecognizedPets, self.unrecognizedDiscovered = {}, {}
@@ -542,7 +545,7 @@ function PlayerSession:ToData()
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
-		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
+		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
@@ -868,6 +871,8 @@ function PlayerSession:LoadData(data)
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial
 	self.laneCamps=readLaneCamps(data.laneCamps,data.laneWins)
+	-- Additive field; anything but true reads as false.
+	self.adminAssisted=data.adminAssisted==true
 	self.fusionUnlocked=fusionUnlocked
 	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered

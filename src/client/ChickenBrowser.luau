@@ -181,6 +181,17 @@ local function pointOf(input)
 	return Vector2.new(input.Position.X,input.Position.Y)
 end
 
+-- AutomaticCanvasSize undercounts aspect-constrained Scale rows: the canvas stays
+-- one window tall and nothing scrolls. The canvas follows the layout's measured
+-- content instead (same workaround as ShopBrowser).
+local function fitCanvas(scroll,layout)
+ scroll.AutomaticCanvasSize=Enum.AutomaticSize.None
+ local function fit() scroll.CanvasSize=UDim2.fromOffset(0,math.ceil(layout.AbsoluteContentSize.Y)) end
+ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
+ fit()
+ -- A list rebuilt while hidden misses that signal; renders re-fit on the next frame.
+ return function() task.defer(fit) end
+end
 
 local function scrollingPanel(parent,name)
  local item=Instance.new("ScrollingFrame")
@@ -304,6 +315,7 @@ function Browser.new(app,parent)
  local layout=Instance.new("UIListLayout")
  layout.SortOrder,layout.FillDirection=Enum.SortOrder.LayoutOrder,Enum.FillDirection.Vertical
  layout.Padding,layout.Parent=UDim.new(0,0),grid
+ self.fitGrid=fitCanvas(grid,layout)
  self.hint=label(inventory,"InteractionHint","",23,UDim2.new(),UDim2.new(),MUTED)
  self.hint.BackgroundColor3,self.hint.BackgroundTransparency=Color3.fromRGB(20,32,41),0.05
  self.hint.ZIndex,self.hint.Visible=inventory.ZIndex+20,false
@@ -341,6 +353,7 @@ function Browser.new(app,parent)
 	roster.ScrollingDirection,roster.ZIndex,roster.Parent=Enum.ScrollingDirection.Y,self.armyInfo.ZIndex+1,self.armyInfo
 	local list=Instance.new("UIListLayout")
 	list.SortOrder,list.Padding,list.Parent=Enum.SortOrder.LayoutOrder,UDim.new(0,0),roster
+	self.fitRoster=fitCanvas(roster,list)
 	self.infoRoster=roster
 	self.infoFooter=label(self.armyInfo,"StatsScope","",16,UDim2.new(),UDim2.new(),MUTED)
 	self.infoFooter.TextWrapped,self.infoFooter.TextTruncate=true,Enum.TextTruncate.None
@@ -1122,6 +1135,7 @@ function Browser:Render(force)
 	if self.showInfo then self:RenderArmyInfo(pets,ids) end
 	self:RenderDetail(pets[self.app.selected])
 	self:Highlight(nil,false);self:UpdateAction()
+	self.fitGrid();self.fitRoster()
 end
 
 return Browser

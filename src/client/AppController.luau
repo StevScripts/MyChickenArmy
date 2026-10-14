@@ -30,6 +30,7 @@ local ShopBrowser = require(script.Parent.ShopBrowser)
 local IndexBrowser = require(script.Parent.IndexBrowser)
 local ResearchBrowser = require(script.Parent.ResearchBrowser)
 local ResearchExtras = require(script.Parent.ResearchExtras)
+local AdminPanel = require(script.Parent.AdminPanel)
 local CommerceController = require(script.Parent.CommerceController)
 local BaseController = require(script.Parent.BaseController)
 local BattleController = require(script.Parent.BattleController)
@@ -432,6 +433,7 @@ function AppController:BuildUI()
 	self.progression:Mount(panel)
 	self.research=ResearchBrowser.new(self,frames)
 	self.researchExtras=ResearchExtras.new(self)
+	self.adminPanel=AdminPanel.new(self)
 	self.toastFrame,self.toast=Theme.Notification(other)
 	self:FitPanel()
 	self.hud:Resize()
@@ -616,6 +618,7 @@ function AppController:RenderSettings()
 		self:Text("Controls", "Tap the on-screen buttons and prompts to interact.", 16, 36, C.muted)
 	end
 	self:Text("SaveInfo", self.state.saveMessage or "Pets, cash and upgrades are saved between visits.", 12, 32, C.muted)
+	if self.state.admin then self:Button("OpenAdmin", "Admin commands  ·  F2", function() self:OpenPage("Admin") end, Theme.ActionColors.navigation) end
 	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
 end
 
@@ -726,6 +729,7 @@ function AppController:RenderPanel(force)
 	elseif self.page == "Settings" then self:RenderSettings()
 	elseif self.page == "Formations" then self.researchExtras:RenderFormations()
 	elseif self.page == "Operations" then self.researchExtras:RenderOperations()
+	elseif self.page == "Admin" then self.adminPanel:Render()
 	else self:RenderTest() end
 	self:FitContentCanvas()
 	self.content.CanvasPosition = scroll
@@ -760,6 +764,8 @@ function AppController:Receive(packet)
 		self.audio:Play("UIPurchase",nil,{noFallback=true})
 	end
 	self.researchExtras:Receive(state,result)
+	-- Admin replies go to the Admin page's output when it is open.
+	if self.adminPanel and self.adminPanel:Receive(result) then result=nil end
 	if result and not self.mergeBrowser and (result.action=="OpenMerge" or result.action=="Merge" or result.action=="MergeAll") then result=nil end
 	local shownRecruit, newRecruit = false, false
 	local shownProduction,newProduction=false,false
@@ -837,12 +843,13 @@ function AppController:Start()
 	self.base:Start()
 	self.battle:Start(self.remotes:WaitForChild("BattleChanged"))
 	table.insert(self.connections, self.remotes:WaitForChild("StateChanged").OnClientEvent:Connect(function(packet) self:Receive(packet) end))
-	for _, entry in {{"Army", Enum.KeyCode.B}, {"Upgrades", Enum.KeyCode.U}, {"Research", Enum.KeyCode.R}, {"Settings", Enum.KeyCode.O}, {"Test", Enum.KeyCode.F8}} do
+	for _, entry in {{"Army", Enum.KeyCode.B}, {"Upgrades", Enum.KeyCode.U}, {"Research", Enum.KeyCode.R}, {"Settings", Enum.KeyCode.O}, {"Test", Enum.KeyCode.F8}, {"Admin", Enum.KeyCode.F2}} do
 		local page, key = entry[1], entry[2]
 		ContextActionService:BindAction("PetRoll" .. page, function(_, inputState)
 			if inputState ~= Enum.UserInputState.Begin or UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
 			if self.commerce.cratePresenting then return Enum.ContextActionResult.Sink end
 			if page == "Test" and (not self.state or not self.state.debugAllowed) then return Enum.ContextActionResult.Pass end
+			if page == "Admin" and (not self.state or not self.state.admin) then return Enum.ContextActionResult.Pass end
 			self:TogglePage(page)
 			return Enum.ContextActionResult.Sink
 		end, false, key)
@@ -864,7 +871,7 @@ function AppController:Destroy()
 	Theme.Motion:Reset()
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	for _, connection in self.connections do connection:Disconnect() end
-	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test"} do ContextActionService:UnbindAction("PetRoll" .. page) end
+	for _, page in {"Army", "Upgrades", "Research", "Settings", "Test", "Admin"} do ContextActionService:UnbindAction("PetRoll" .. page) end
 	if self.commander then self.commander:Destroy() end
 	if self.leaderboards then self.leaderboards:Destroy() end
 	if self.intro then self.intro:Destroy() end
