@@ -108,6 +108,8 @@ function GameServer:Send(player,result)
 	-- Admin panel access only; every admin command is checked again on the server.
 	local adminRank=self.admin:Rank(player)
 	state.admin=if adminRank then {rank=adminRank} else nil
+	state.researchSkipAllowed=self:ResearchSkipAllowed(player)
+	GameServer.ShowRebirths(player,session.rebirths)
 	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation}
 	self.remotes.StateChanged:FireClient(player,{state=state,result=result})
 end
@@ -155,6 +157,10 @@ function GameServer:Handle(player,request)
 		ok,message=ResearchService.Start(session,request.nodeId,request.expectedRevision,request.expectedPrice,request.expectedDuration,os.time())
 	elseif action=="CancelResearch" then
 		ok,message=ResearchService.Cancel(session,request.jobId,request.expectedRevision,os.time())
+	elseif action=="SkipResearch" then
+		if self:ResearchSkipAllowed(player) then
+			ok,message=ResearchService.Skip(session,request.jobId,request.expectedRevision,os.time())
+		else ok,message=false,"Only admins can skip research time." end
 	elseif action=="Rally" then
 		ok,message=ArmyAbilities.Rally(session,self.battles,os.time())
 	elseif action=="PinResearch" then
@@ -332,6 +338,21 @@ end
 function GameServer.NewPlayerTestAllowed(player)
 	return RunService:IsStudio() or table.find(Config.DebugUserIds or {},player.UserId)~=nil
 		or (game.CreatorType==Enum.CreatorType.User and game.CreatorId==player.UserId)
+end
+
+-- October 14: Rebirths show in the Roblox player list (leaderstats), display only.
+function GameServer.ShowRebirths(player,rebirths)
+	local stats=player:FindFirstChild("leaderstats")
+	if not stats then stats=Instance.new("Folder");stats.Name="leaderstats";stats.Parent=player end
+	local value=stats:FindFirstChild("Rebirths")
+	if not value then value=Instance.new("IntValue");value.Name="Rebirths";value.Parent=stats end
+	local rank=tonumber(rebirths) or 0
+	if value.Value~=rank then value.Value=rank end
+end
+
+-- Skip research time: Studio, or any admin rank from AdminService (live servers too).
+function GameServer:ResearchSkipAllowed(player)
+	return RunService:IsStudio() or self.admin:Rank(player)~=nil
 end
 
 -- Turns this session into a disposable brand-new profile. The real save is saved

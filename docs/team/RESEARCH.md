@@ -363,3 +363,13 @@ prerequisites for completed nodes or running jobs, and drops nodes that no longe
 exist instead of rejecting the save. Prerequisites are enforced only when research
 starts (`ResearchService.Start`). Rearranging or removing nodes is now safe for
 existing saves; malformed research data still fails to load.
+
+## Finish now (Studio and admins), October 14, 2026
+
+A running research's info card shows **Finish now** in place of Pin goal when
+`state.researchSkipAllowed` is true: in Studio, or for any player with an
+`AdminService` rank (live servers included). The `SkipResearch` request is checked
+again on the server (`GameServer:ResearchSkipAllowed`) and calls
+`ResearchService.Skip`, which sets the job's `finishAt` to now and completes it
+through the normal `Complete` path. The cash already paid stays spent; nothing else
+about research changes for ordinary players.

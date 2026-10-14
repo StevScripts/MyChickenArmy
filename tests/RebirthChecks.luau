@@ -117,9 +117,9 @@ function Checks.Run()
  end
 
  test("Cost, multiplier and enemy scale match the table; rank 16 is unavailable",function()
-  -- October 13 retune: $5B ×4 per rank, +0.25 eggs, +1.0 enemies (Config.Rebirth).
-  local costs={5e9,20e9,80e9,320e9,1280e9}
-  local multipliers={1.25,1.5,1.75,2,2.25}
+  -- October 14 pacing: explicit Config.Rebirth.Costs, +1.0 eggs, +1.0 enemies.
+  local costs={5e9,5e12,1e14,5e14,1.2e15}
+  local multipliers={2,3,4,5,6}
   local scales={2,3,4,5,6}
   for rank=1,5 do
    assert(Rebirth.Cost(rank)==costs[rank],"Cost "..rank..": "..tostring(Rebirth.Cost(rank)))
@@ -131,19 +131,19 @@ function Checks.Run()
   assert((Rebirth.Cost(Config.Rebirth.MaxRank) :: number)<=require(Shared.CurrencyLimits).MaxCoins,"Max rank costs more than the coin cap")
   assert(Rebirth.Cost(Config.Rebirth.MaxRank+1)==nil and Rebirth.Cost(16)==nil,"Rank 16 is available")
   assert(Rebirth.Cost(0)==nil and Rebirth.Cost(1.5)==nil)
-  assert(Rebirth.Title(0)=="Recruit" and Rebirth.Title(1)=="Veteran I" and Rebirth.Title(4)=="Veteran IV"
-   and Rebirth.Title(9)=="Veteran IX" and Rebirth.Title(10)=="Veteran X")
+  assert(Rebirth.Title(0)=="No rebirths yet" and Rebirth.Title(1)=="Rebirth 1" and Rebirth.Title(4)=="Rebirth 4"
+   and Rebirth.Title(9)=="Rebirth 9" and Rebirth.Title(10)=="Rebirth 10")
  end)
 
  test("The quote has every field R1-C renders",function()
   local s=setup()
   local q=Rebirth.Quote(s)
-  assert(q.enabled==true and q.rank==0 and q.nextRank==1 and q.title=="Recruit" and q.nextTitle=="Veteran I")
+  assert(q.enabled==true and q.rank==0 and q.nextRank==1 and q.title=="No rebirths yet" and q.nextTitle=="Rebirth 1")
   assert(q.cost==Rebirth.Cost(1) and q.coins==s.coins and q.kingCleared==true and q.armyHome==true)
   assert(q.eligible==true and q.reason==nil,"Not eligible: "..tostring(q.reason))
-  assert(q.multiplierNow==1 and q.multiplierNext==1.25 and q.enemyScaleNext==Rebirth.EnemyScale(1))
+  assert(q.multiplierNow==1 and q.multiplierNext==2 and q.enemyScaleNext==Rebirth.EnemyScale(1))
   local snap=s:Snapshot(0)
-  assert(snap.rebirth and snap.rebirth.eligible==true and snap.rebirth.nextTitle=="Veteran I")
+  assert(snap.rebirth and snap.rebirth.eligible==true and snap.rebirth.nextTitle=="Rebirth 1")
  end)
 
  test("Refusals: disabled, max rank, no King, cash, army away, Operation, stale rank",function()
@@ -163,9 +163,9 @@ function Checks.Run()
   -- Max rank.
   local m,_,mserver=setup();m.rebirths=Config.Rebirth.MaxRank;m.coins=1e15
   local q=Rebirth.Quote(m)
-  assert(q.nextRank==nil and q.cost==nil and q.nextTitle==nil and q.reason=="Max rank reached")
+  assert(q.nextRank==nil and q.cost==nil and q.nextTitle==nil and q.reason=="Max Rebirth reached")
   local done,message=Rebirth.Rebirth(m,Config.Rebirth.MaxRank,mserver)
-  assert(not done and message=="Max rank reached",message)
+  assert(not done and message=="Max Rebirth reached",message)
   -- No King clear.
   local k,_,kserver=setup();k.kingCleared=false
   done,message=Rebirth.Rebirth(k,0,kserver)
@@ -179,7 +179,7 @@ function Checks.Run()
   assert(aserver.battles:Attack(a,"camp:1",0))
   assert(not Rebirth.Quote(a).armyHome)
   done,message=Rebirth.Rebirth(a,0,aserver)
-  assert(not done and message=="Bring your army home first",message)
+  assert(not done and message=="Bring your army back to your base first",message)
   -- Operation running.
   local o,_,oserver=setup()
   oserver.battles.battles.op1={id="op1",attacker=o.userId,operationId="Raid1"}
@@ -189,7 +189,7 @@ function Checks.Run()
   -- Stale or missing expected rank.
   local r,_,rserver=setup()
   done,message=Rebirth.Rebirth(r,1,rserver)
-  assert(not done and message=="Your rank changed. Try again.",message)
+  assert(not done and message=="Your Rebirth changed. Try again.",message)
   done=Rebirth.Rebirth(r,nil,rserver);assert(not done)
   -- Not loaded / save lost.
   local l,_,lserver=setup();l.saveLost=true
@@ -214,7 +214,7 @@ function Checks.Run()
   local coinsBefore=s.coins
   local ok,message=Rebirth.Rebirth(s,0,server)
   assert(ok,message)
-  assert(message=="Rebirth complete: Veteran I",message)
+  assert(message=="Rebirth complete: Rebirth 1",message)
   local after=s:ToData()
   -- Reset fields.
   assert(after.coins==Config.StartingCoins,"coins "..tostring(after.coins))
@@ -248,20 +248,33 @@ function Checks.Run()
   assert(calls:find("count:rebirth.count",1,true) and calls:find("first:rebirth.rank.1",1,true)
    and calls:find("hist:rebirth.playSeconds.1:4321",1,true)
    and calls:find("hist:rebirth.cashAtRebirth:"..coinsBefore,1,true),calls)
-  -- Next quote: Veteran II needs a new King clear.
+  -- Next quote (October 14): Rebirth 2 needs cash only, no new King clear.
   local q=Rebirth.Quote(s)
-  assert(q.rank==1 and q.title=="Veteran I" and q.nextTitle=="Veteran II" and q.cost==Rebirth.Cost(2))
-  assert(q.reason=="Defeat the Chicken King first")
+  assert(q.rank==1 and q.title=="Rebirth 1" and q.nextTitle=="Rebirth 2" and q.cost==Rebirth.Cost(2))
+  assert(q.kingRequired==false and q.reason~="Defeat the Chicken King first",tostring(q.reason))
+ end)
+
+ test("Rebirth removes only cash-bought chicken levels (October 14)",function()
+  local s,_,server=setup()
+  local knight,dragon
+  for _,pet in s.pets do if pet.species=="Knight" then knight=pet elseif pet.species=="Dragon" then dragon=pet end end
+  knight.cashLevels=2 -- Lv 4: two bought with cash, two from fusion/rolls.
+  assert(Rebirth.Quote(s).cashLevels==2,"quote cashLevels")
+  local ok,message=Rebirth.Rebirth(s,0,server)
+  assert(ok,message)
+  assert(knight.level==2 and knight.cashLevels==nil and knight.giantSize==6.5,"knight "..knight.level)
+  assert(dragon.level==3,"dragon keeps its level")
+  assert(knight.investment<=Rules.Investment(knight.species,2),"refund value follows the new level")
  end)
 
  test("The same expected rank twice re-enlists only once",function()
   local s,_,server=setup()
-  s.coins=1e12 -- Enough for several ranks.
+  s.coins=1e13 -- Enough for Rebirth 1 and Rebirth 2 ($5T).
   assert(Rebirth.Rebirth(s,0,server))
-  s.kingCleared=true;s.coins=1e12
+  s.coins=1e13
   local ok,message=Rebirth.Rebirth(s,0,server)
-  assert(not ok and message=="Your rank changed. Try again.",message)
-  assert(s.rebirths==1 and s.coins==1e12)
+  assert(not ok and message=="Your Rebirth changed. Try again.",message)
+  assert(s.rebirths==1 and s.coins==1e13)
   assert(server.data.saves==1)
   -- With the fresh rank it goes through.
   assert(Rebirth.Rebirth(s,1,server))
@@ -272,18 +285,18 @@ function Checks.Run()
   local s,_,server=setup()
   local rate0=Offline.Rate(s)
   assert(Rebirth.Rebirth(s,0,server))
-  near(s:EarnedAmount(100,"eggs"),125,"Egg earnings")
+  near(s:EarnedAmount(100,"eggs"),200,"Egg earnings")
   -- A real deposit through EggService credits the multiplied value.
   local coins=s.coins
   local accepted,credited=server.eggs:AcceptDeposit(s,1,100)
-  assert(accepted and credited==125 and s.coins==coins+125,"Deposit paid "..tostring(credited))
+  assert(accepted and credited==200 and s.coins==coins+200,"Deposit paid "..tostring(credited))
   -- Cash packs add product coins directly (ProductService); other sources are flat.
   assert(s:EarnedAmount(100,"robux")==100 and s:EarnedAmount(100,"sale")==100
    and s:EarnedAmount(100,"offline")==100 and s:EarnedAmount(100,"battle")==100)
   -- The offline rate carries the multiplier (compare at equal upgrades).
   local probe=veteran(-969,3);probe.eggSpeedLevel,probe.incomeLevel=0,0
   local flat=Offline.Rate(probe);probe.rebirths=1
-  near(Offline.Rate(probe),flat*1.25,"Offline rate multiplier")
+  near(Offline.Rate(probe),flat*2,"Offline rate multiplier")
   assert(rate0>0)
  end)
 
@@ -339,8 +352,8 @@ function Checks.Run()
   assert(ok,why)
   assert(loaded.rebirths==1 and loaded.coins==Config.StartingCoins and loaded.kingCleared==false)
   assert(loaded:Count()==s:Count() and loaded.research.completed.FuseMachine==true)
-  assert(Rebirth.Quote(loaded).title=="Veteran I")
-  near(loaded:EarnedAmount(100,"eggs"),125)
+  assert(Rebirth.Quote(loaded).title=="Rebirth 1")
+  near(loaded:EarnedAmount(100,"eggs"),200)
  end)
 
  local failed=0

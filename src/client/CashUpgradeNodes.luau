@@ -92,13 +92,7 @@ local positions={
 	H1={4,5},H2={3,6},
 }
 for id,position in positions do Cash.ResearchPositions[id]={q=position[1],r=position[2]} end
--- Re-enlist sits after the cash tracks as its own hex. It is deliberately outside
--- Order/Nodes/ByKey: it has no tiers or upgradeKey, and RebirthPanel draws it from
--- the live server quote (state.rebirth) as a fixed overlay on the research screen.
-Cash.Reenlist=table.freeze({id="Reenlist",name="Rebirth",icon="army",
-	-- Matches RebirthService: Egg Speed, Egg Value and Luck reset with Cash and the
-	-- war; chicken levels, research, plot and Army Size are kept.
-	description="Reset Cash, Egg Speed, Egg Value, Luck and the war for a permanent egg bonus. Chickens, chicken levels, research, plot and Army Size stay."})
+-- October 14: Rebirth is no longer drawn on this screen; it opens from the HUD.
 for _,node in Cash.Nodes do table.freeze(node) end
 for _,position in Cash.ResearchPositions do table.freeze(position) end
 table.freeze(Cash.Order);table.freeze(Cash.Nodes);table.freeze(Cash.ByKey);table.freeze(Cash.ResearchPositions)

@@ -37,7 +37,8 @@ Internal ids (`Duck`, `Reenlist`, `Operations`, `Merge`, `E7`…) are unchanged.
 - **HUD.** "Camps held 0/8" (was "Held"), compact cash from $1M ($8.05B), Call Army hidden
   until researched, Army menu titled My Army.
 - **Upgrades tree.** "Upgrades" title, square X like other menus, OWNED badge and dark
-  fill on finished nodes, Farm / Army / Rolls / Command jump tabs.
+  fill on finished nodes. The Farm / Army / Rolls / Command jump tabs were removed
+  later the same day at the user's request (clutter); drag, zoom and X/Home recentering remain.
 - **Progression traps.** A Rebirth keeps Veteran Invasions open (`OperationService.Tier`).
   The King's 45-second pre-Hill lock is removed (`Config.Hill.KingLockSeconds=0`); the
   round itself still uses the arena, and the refusal says when the King opens.
@@ -88,3 +89,37 @@ The open place was several commits behind and had 25 duplicate modules (two copi
 one name, so `require` could load either). All 212 mapped scripts were written to match
 the repo, three missing Invasion modules were created, and the extra copies were moved to
 `ServerStorage.DuplicateScriptBackup_20261014`. Nothing was published or saved.
+
+## Rebirth changes (later October 14, owner decision)
+
+- Rebirth opens only from the HUD Rebirth button; its hex is gone from the Upgrades tree
+  (`RebirthPanel` no longer builds it; `CashUpgradeNodes.Reenlist` removed).
+- Only Rebirth 1 needs a Chicken King clear (`RebirthService.Quote` `kingRequired`);
+  later ranks need cash and the army at home.
+- Each rank adds +100% egg cash (`Config.Rebirth.EggBonusPerRank=1.0`: ×2, ×3, ×4…).
+- The panel names the mutation the next rank unlocks (`quote.unlockNext`: Rainbow at 1,
+  Shadow at 3, Cosmic at 5), and the completion toast repeats it.
+- Rebirths show in the Roblox player list (`leaderstats.Rebirths`).
+- The Next-goal hint points at the HUD button, not Upgrades.
+
+Simulation with these rules (cost $5B ×4): Rebirth 1 at 1.74 h, Rebirth 2 at 2.03 h,
+Rebirth 3 at 2.30 h, Rebirth 5 by 3 h. Post-rebirth income is high enough that a
+cost-growth change alone cannot reach the 4–8 h / 10–20 h targets; resetting chicken cash
+levels on Rebirth is the structural lever. Not changed.
+
+## Rebirth pacing fix (October 14, owner request)
+
+- Chickens record levels bought with cash (`pet.cashLevels`, set in
+  `ArmyService.UpgradeChicken`, carried through fusion as the inputs' maximum, saved as
+  an optional field; a missing or bad value loads as none). Rebirth removes exactly those
+  levels and lowers the refund value to match (`RebirthService` `resetCashLevels`).
+  Fused and rolled levels, Giants, sizes and mutations stay. Levels bought before this
+  change were never counted, so they stay too. The Quote reports `cashLevels` for the panel.
+- Costs come from `Config.Rebirth.Costs`: $5B, $5T, $100T, $500T, $1.2Q, $2Q, $3Q,
+  $4.2Q, $6Q, $8.5Q (all under the coin cap).
+- Simulation (`tests/ProgressionSimulation.luau`, one free-player seed): Rebirth 1 at
+  1.85 h, Rebirth 2 at 4.3 h (target 4–8 h). Rebirth 3 was not reached within 20 h at
+  $300T (cash $231T and rising); at the chosen $100T it should land inside the 10–20 h
+  band, but that exact run was not repeated.
+- `tests/RebirthChecks.luau` updated for the new costs, ×2 egg bonus, Rebirth names and
+  cash-level reset: 10/10 pass in Studio Edit against fresh module clones.

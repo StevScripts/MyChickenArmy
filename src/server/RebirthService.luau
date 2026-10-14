@@ -9,6 +9,8 @@ local Config = require(Shared.Config)
 local CampaignRoute = require(Shared.CampaignRoute)
 local OfflineCash = require(script.Parent.OfflineCash)
 local KingEncounter = require(script.Parent.KingEncounter)
+local MutationCatalog = require(Shared.MutationCatalog)
+local Rules = require(Shared.Rules)
 local RebirthService = {}
 
 local ARMY_AWAY = "Bring your army back to your base first"
@@ -43,10 +45,44 @@ function RebirthService.EnemyScale(rank: number): number
 	return 1 + settings().EnemyHealthPerRank * clampRank(rank)
 end
 
+-- The mutation a rank first allows on rolls (MutationCatalog unlockRank), for the panel.
+function RebirthService.Unlock(rank: number): {name: string, multiplier: number}?
+	for _, id in MutationCatalog.Order do
+		local def = MutationCatalog.Defs[id]
+		if def.unlockRank == rank and rank > 0 then return {name = def.name, multiplier = def.multiplier} end
+	end
+	return nil
+end
+
+-- Chicken levels bought with cash (pet.cashLevels). Rebirth removes them; levels from
+-- fusion and higher-level rolls stay, as do Giants, sizes and mutations.
+local function cashLevels(session): number
+	local total = 0
+	for _, pet in session.pets or {} do total += pet.cashLevels or 0 end
+	return total
+end
+
+local function resetCashLevels(session)
+	for _, pet in session.pets or {} do
+		local bought = pet.cashLevels or 0
+		if bought > 0 then
+			local level = math.max(1, (pet.level or 1) - bought)
+			-- Refunds follow what the chicken is now worth, never more than was paid.
+			local investment = pet.investment or Rules.Investment(pet.species, pet.level)
+			pet.level = level
+			pet.investment = math.min(investment, Rules.Investment(pet.species, level))
+		end
+		pet.cashLevels = nil
+	end
+end
+
 -- Cash to reach `rank`; nil outside 1..MaxRank.
 function RebirthService.Cost(rank: number): number?
 	local rules = settings()
 	if type(rank) ~= "number" or rank ~= rank or rank % 1 ~= 0 or rank < 1 or rank > rules.MaxRank then return nil end
+	-- October 14 pacing: an explicit table (every entry below the coin cap) wins over the curve.
+	local listed = rules.Costs and rules.Costs[rank]
+	if type(listed) == "number" then return listed end
 	return math.floor(rules.BaseCost * rules.CostGrowth ^ (rank - 1) + 0.5)
 end
 
@@ -63,10 +99,12 @@ function RebirthService.Quote(session)
 	local coins = session.coins or 0
 	local home = armyHome(session)
 	local kingCleared = session.kingCleared == true
+	-- October 14: only the first Rebirth needs a King clear; later ranks cost cash only.
+	local kingRequired = rank == 0
 	local reason: string?
 	if not rules.Enabled then reason = "Coming soon"
 	elseif not nextRank or not cost then reason = "Max Rebirth reached"
-	elseif not kingCleared then reason = "Defeat the Chicken King first"
+	elseif kingRequired and not kingCleared then reason = "Defeat the Chicken King first"
 	elseif coins < cost then reason = "Need $" .. string.format("%d", math.ceil(cost - coins)) .. " more"
 	elseif not home then reason = ARMY_AWAY
 	end
@@ -79,6 +117,9 @@ function RebirthService.Quote(session)
 		cost = cost,
 		coins = coins,
 		kingCleared = kingCleared,
+		kingRequired = kingRequired,
+		cashLevels = cashLevels(session),
+		unlockNext = if nextRank then RebirthService.Unlock(nextRank) else nil,
 		armyHome = home,
 		eligible = reason == nil,
 		reason = reason,
@@ -193,6 +234,7 @@ function RebirthService.Rebirth(session, expectedRank, server): (boolean, string
 	-- 6. The reset. No yields from here to the save request.
 	session.coins = Config.StartingCoins
 	session.eggSpeedLevel, session.incomeLevel, session.luck = 0, 0, 0
+	resetCashLevels(session)
 	session.firstWins, session.frontierWins, session.laneCamps = {}, {}, {}
 	session.campUnlocked = 1 -- Derived from firstWins (PlayerSession:LoadData).
 	session.kingCleared, session.kingBountyPaid = false, false

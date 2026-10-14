@@ -1,6 +1,6 @@
 --!strict
--- Re-enlist (rebirth) presentation: the Upgrades-screen hex and the hold-to-confirm
--- panel. The server quote (state.rebirth) is authoritative; this module never
+-- Rebirth presentation: the hold-to-confirm panel, opened from the HUD Rebirth
+-- button (October 14: no longer a hex on the Upgrades screen). The server quote (state.rebirth) is authoritative; this module never
 -- changes saved state. AppController calls Render(state, result) on every packet.
 -- Contract: docs/team/launch/12_R1_REBIRTH_CLIENT.md.
 local GuiService=game:GetService("GuiService")
@@ -8,26 +8,28 @@ local ContextActionService=game:GetService("ContextActionService")
 local UserInputService=game:GetService("UserInputService")
 local TweenService=game:GetService("TweenService")
 local Theme=require(script.Parent.UITheme)
+local MutationCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.MutationCatalog)
+local Config=require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local MenuLayout=require(script.Parent.MenuLayout)
 local Assets=require(script.Parent.ResearchAssets)
-local CashNodes=require(script.Parent.CashUpgradeNodes)
 local Panel={}
 Panel.__index=Panel
 
-local HEX=CashNodes.Reenlist
 local GREEN=Theme.ReferenceColors.Army
 local GOLD=Theme.ReferenceColors.Base
 local WHITE=Color3.new(1,1,1)
-local MUTED=Color3.fromRGB(64,67,65)
 local RED=Color3.fromRGB(255,107,83)
 local HOLD_SECONDS=2
--- October 13 redesign (simulator rebirth pattern): rank → next rank, two
--- before → after reward pills, one reset line, a cost bar and the hold button.
--- Matches RebirthService:Rebirth step 6 (coins, eggSpeedLevel, incomeLevel, luck,
--- camp wins and the King); everything else is kept.
-local RESET_LINE="Resets Cash, Egg Speed, Egg Value, Luck, camps and the King"
-local KEEP_LINE="Keeps chickens, Giants, research, plot and Army size"
+-- The warning matches RebirthService:Rebirth step 6 (coins, eggSpeedLevel,
+-- incomeLevel, luck, camp wins, the King and bought chicken levels); the rest is kept.
+-- quote.cashLevels counts the cash-bought chicken levels this rebirth removes.
+local function warningLine(levels: number): string
+	local tail=if levels>0 then " and "..levels.." bought chicken level"..(if levels==1 then "" else "s") else ""
+	return "WARNING: Resets Cash, Egg Speed, Egg Value, Luck, camps"..tail..". Your chickens stay!"
+end
 local ENEMY_RED=Color3.fromRGB(232,62,48)
+local ORANGE=Color3.fromRGB(255,150,40)
+local PILL=Color3.fromRGB(24,30,26)
 
 -- Player-facing rank names are "Rebirth 1", "Rebirth 2", … (October 14 glossary;
 -- "Veteran/Elite/Royal" are Invasion tier names only). The server quote's
@@ -85,129 +87,8 @@ local function bar(parent,name,track,fillColor)
 end
 
 function Panel.new(app)
-	return setmetatable({app=app,connections={},hexConnections={},quote=nil,lastRank=nil,
+	return setmetatable({app=app,connections={},quote=nil,lastRank=nil,
 		pending=nil,holding=false,holdToken=0},Panel)
-end
-
--- Hex ----------------------------------------------------------------------
--- A fixed overlay on the research screen (same hex art and states as the cash
--- tiers), so it stays visible regardless of map pan/zoom and occupies no map cell.
-function Panel:BuildHex()
-	local research=self.app.research
-	if self.hex or not research or not research.root then return end
-	local root=research.root
-	local button=Instance.new("ImageButton")
-	button.Name,button.Image,button.BackgroundTransparency="ReenlistHex","",1
-	button.AnchorPoint,button.Position,button.Size=Vector2.new(1,0),UDim2.fromScale(.985,.12),UDim2.fromScale(.16,.25)
-	button.AutoButtonColor,button.Selectable,button.Visible,button.ZIndex=false,true,false,6
-	button:SetAttribute("HoverAudioCue","SkillTreeHover")
-	button.Parent=root
-	Theme.Aspect(button,144/164)
-	local visual=Theme.Container(button,"Visual")
-	visual.AnchorPoint,visual.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
-	local halos={}
-	for i=1,6 do
-		local spread=(7-i)*.018
-		local halo=Theme.Image(visual,"Halo"..i,Assets.hexMask,UDim2.fromScale(1+spread,1+spread),UDim2.fromScale(.5,.5))
-		halo.AnchorPoint,halo.ZIndex=Vector2.new(.5,.5),1
-		table.insert(halos,halo)
-	end
-	local outline=Theme.Image(visual,"Outline",Assets.hexMask,UDim2.fromScale(1,1));outline.ZIndex=2
-	local fill=Theme.Image(visual,"Fill",Assets.hexFill,UDim2.fromScale(.951,.951),UDim2.fromScale(.0245,.0245));fill.ZIndex=3
-	local gradient=Theme.Gradient(fill,WHITE,Color3.fromRGB(226,244,221))
-	local icon=Theme.Image(visual,"Icon",Assets[HEX.icon],UDim2.fromScale(.56,.38),UDim2.fromScale(.22,.15));icon.ZIndex=4
-	local title=label(visual,"Title",HEX.name,.025,.53,.95,.11);title.ZIndex=5
-	title.TextOutline.Thickness=.035
-	local status=label(visual,"Status","",.1,.645,.8,.085);status.ZIndex=5
-	status.TextOutline.Thickness=.035
-	local track=Theme.Frame(visual,"Progress",UDim2.fromScale(.6,.055),Color3.fromRGB(16,40,12))
-	track.Position,track.ZIndex=UDim2.fromScale(.2,.75),5
-	Theme.Stroke(track,Color3.new(0,0,0),1)
-	local progress=Theme.Frame(track,"Fill",UDim2.fromScale(0,1),GREEN);progress.ZIndex=6
-	local badge=Theme.Frame(visual,"RankBadge",UDim2.fromScale(.56,.115),Color3.fromRGB(22,84,30))
-	badge.AnchorPoint,badge.Position,badge.ZIndex=Vector2.new(.5,0),UDim2.fromScale(.5,.04),6
-	Theme.Stroke(badge,Color3.fromRGB(179,255,155),1.5)
-	local badgeText=label(badge,"Text","",.06,.02,.88,.96);badgeText.ZIndex=7
-	badgeText.TextOutline.Thickness=.02
-	-- Gamepad: the research map's D-pad only walks its own hexes, so L2 opens this one.
-	local hint=label(visual,"GamepadHint","L2",.36,.84,.28,.08,WHITE);hint.ZIndex=5
-	hint.TextOutline.Thickness=.035
-	self.hex={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,
-		title=title,status=status,track=track,progress=progress,badge=badge,badgeText=badgeText,hint=hint}
-	table.insert(self.hexConnections,button.Activated:Connect(function()
-		-- A map drag that started on the hex must not also open the panel.
-		if os.clock()<(research.suppressUntil or 0) then return end
-		self.app.audio:Play("Click")
-		self:Open()
-	end))
-	local function syncShortcut()
-		local want=root.Visible and button.Visible
-		if want==self.shortcutBound then return end
-		self.shortcutBound=want
-		if want then
-			ContextActionService:BindActionAtPriority("PetRollReenlistShortcut",function(_,inputState)
-				if inputState==Enum.UserInputState.Begin then self.app.audio:Play("Click");self:Open() end
-				return Enum.ContextActionResult.Sink
-			end,false,3600,Enum.KeyCode.ButtonL2)
-		else ContextActionService:UnbindAction("PetRollReenlistShortcut") end
-	end
-	self.syncShortcut=syncShortcut
-	table.insert(self.hexConnections,root:GetPropertyChangedSignal("Visible"):Connect(syncShortcut))
-	table.insert(self.hexConnections,button:GetPropertyChangedSignal("Visible"):Connect(syncShortcut))
-end
-
-function Panel:Pulse(view,on)
-	if view.pulse then view.pulse:Cancel();view.pulse:Destroy();view.pulse=nil end
-	view.visual.Size=UDim2.fromScale(1,1)
-	if not on or self.app.reducedMotion then return end
-	view.pulse=TweenService:Create(view.visual,TweenInfo.new(.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Size=UDim2.fromScale(1.04,1.04)})
-	view.pulse:Play()
-end
-
-function Panel:RenderHex()
-	self:BuildHex()
-	local view,quote=self.hex,self.quote
-	if not view then return end
-	local visible=type(quote)=="table" and enabled(quote)
-	view.button.Visible=visible
-	if not visible then self:Pulse(view,false);return end
-	local complete=full(quote)
-	local king=complete and quote.kingCleared==true
-	local eligible=complete and quote.eligible==true
-	local locked=not king
-	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	local ratio=if eligible then 1 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 0
-	local color=if eligible then GREEN elseif locked then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
-	view.fill.Image=if eligible then Assets.hexMask else Assets.hexFill
-	view.fill.ImageColor3=color
-	view.gradient.Enabled=eligible
-	view.outline.ImageColor3=if eligible then Color3.fromRGB(179,255,155) elseif locked then MUTED else GREEN:Lerp(Color3.new(0,0,0),.5)
-	for i,halo in view.halos do
-		halo.ImageColor3=GREEN
-		halo.ImageTransparency=if locked then 1 elseif eligible then 1-(.045+i*.016) else 1-(.01+i*.004)
-	end
-	view.icon.ImageTransparency=if locked then .65 else 0
-	view.title.TextTransparency=if locked then .35 else 0
-	view.title.TextOutline.Transparency=if locked then .35 else 0
-	view.status.Text=if not complete then (quote.reason or "Coming soon")
-		elseif not king then "Defeat the Chicken King"
-		elseif eligible then "Ready to rebirth"
-		elseif cost and coins<cost then "Need "..money(cost-coins).." more"
-		else quote.reason or (if cost then money(cost) else "")
-	view.status.TextColor3=if eligible then WHITE elseif locked then Color3.fromRGB(176,176,176) else RED
-	view.track.Visible=king and (cost~=nil or eligible)
-	view.progress.Size=UDim2.fromScale(ratio,1)
-	view.progress.BackgroundColor3=if eligible then Color3.fromRGB(176,255,1) else GREEN
-	local nextTitle=nextName(quote)
-	view.badge.Visible=nextTitle~=nil
-	view.badgeText.Text=nextTitle or ""
-	view.hint.Visible=UserInputService.GamepadEnabled
-	view.button:SetAttribute("ReenlistState",if eligible then "Eligible" elseif locked then "Locked" else "Progress")
-	if (view.pulsing==true)~=eligible or self.app.reducedMotion~=view.reduced then
-		view.pulsing,view.reduced=eligible,self.app.reducedMotion
-		self:Pulse(view,eligible)
-	end
-	if self.syncShortcut then self.syncShortcut() end
 end
 
 -- Panel --------------------------------------------------------------------
@@ -300,55 +181,61 @@ function Panel:Build()
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Theme.PageSurfaces.Army)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	-- Rank row: current badge → next badge.
-	local function rankCard(name,x,accent)
-		local card=Theme.Frame(main,name,UDim2.fromScale(.34,.3),Color3.fromRGB(24,30,26))
-		card.Position=UDim2.fromScale(x,.04)
-		card:SetAttribute("OwnsPopupStyle",true)
-		Theme.Stroke(card,accent,3)
-		local badge=Theme.Image(card,"Badge",Theme.Assets.RecruitBadge,UDim2.fromScale(.5,.66),UDim2.fromScale(.25,.04))
-		Theme.Aspect(badge,1)
-		local name=label(card,"Rank","",.04,.7,.92,.26,accent)
-		return card,badge,name
+	-- October 14 layout (owner picks R2/R3 rows + R4 warning and tiles): red warning,
+	-- before → after rows, "next rank brings" tiles, then the cash bar beside the button.
+	self.warning=label(main,"Warning",warningLine(0),.05,.02,.9,.1,RED)
+	local function row(name,y,icon)
+		local function pill(side,x)
+			local frame=Theme.Frame(main,name..side,UDim2.fromScale(.36,.1),PILL)
+			frame.Position=UDim2.fromScale(x,y)
+			frame:SetAttribute("OwnsPopupStyle",true)
+			Theme.Stroke(frame,Color3.new(0,0,0),3)
+			local art=Theme.Image(frame,"Icon",icon,UDim2.fromScale(.24,1.3),UDim2.fromScale(-.07,-.15))
+			Theme.Aspect(art,1);art.ZIndex=7
+			return label(frame,"Value","",.19,.1,.77,.8,WHITE),art
+		end
+		local now,nowIcon=pill("Now",.08)
+		local nxt,nextIcon=pill("Next",.56)
+		label(main,name.."Arrow","→",.445,y,.11,.1,ORANGE)
+		return {now=now,next=nxt,nowIcon=nowIcon,nextIcon=nextIcon}
 	end
-	local _,nowBadge,nowName=rankCard("Current",.06,Color3.fromRGB(196,206,200))
-	local nextCard,nextBadge,nextName=rankCard("Next",.6,GOLD)
-	local arrow=label(main,"Arrow","→",.42,.1,.16,.18,WHITE)
-	self.nowBadge,self.nowName,self.nextCard,self.nextBadge,self.nextName,self.arrow=nowBadge,nowName,nextCard,nextBadge,nextName,arrow
-	-- Reward pills: icon, "×1.00 → ×1.25", caption.
-	local function pill(name,x,icon,color,caption)
-		local frame=Theme.Frame(main,name,UDim2.fromScale(.43,.2),color)
-		frame.Position=UDim2.fromScale(x,.38)
+	self.cashRow=row("Cash",.14,Theme.Assets.Cash)
+	self.eggRow=row("Eggs",.27,Assets.egg)
+	self.rankRow=row("Rank",.4,Theme.Assets.RecruitBadge)
+	-- Tiles: the mutation this rank first allows (quote.unlockNext) and the camp scale.
+	self.bringsLine=label(main,"Brings","NEXT RANK BRINGS",.04,.515,.92,.055,GOLD)
+	local function tile(name,color,top)
+		local frame=Theme.Frame(main,name,UDim2.fromScale(.15,.2),color)
+		frame.Position=UDim2.fromScale(.425,.58)
 		frame:SetAttribute("OwnsPopupStyle",true)
-		Theme.Gradient(frame,color:Lerp(WHITE,.18),color:Lerp(Color3.new(0,0,0),.28))
+		Theme.Aspect(frame,1)
+		Theme.Gradient(frame,color:Lerp(WHITE,.15),color:Lerp(Color3.new(0,0,0),.35))
 		Theme.Stroke(frame,Color3.new(0,0,0),3)
-		local art=Theme.Image(frame,"Icon",icon,UDim2.fromScale(.26,1.1),UDim2.fromScale(-.02,-.05))
-		Theme.Aspect(art,1);art.ZIndex=6
-		local value=label(frame,"Value","",.26,.04,.72,.6,WHITE)
-		local note=label(frame,"Caption",caption,.26,.62,.72,.32,Color3.fromRGB(240,248,240))
-		return value,note
+		label(frame,"Top",top,.04,.03,.92,.2,WHITE)
+		local caption=label(frame,"Caption","",.04,.76,.92,.2,WHITE)
+		return frame,caption
 	end
-	self.eggValue,self.eggNote=pill("Eggs",.05,Assets.egg,Color3.fromRGB(64,176,36),"Egg value forever")
-	self.enemyValue,self.enemyNote=pill("Enemies",.52,Theme.Assets.EnemyStrength,ENEMY_RED,"Camps and King strength")
-	local reset=label(main,"Resets",RESET_LINE,.05,.605,.9,.06,Color3.fromRGB(255,120,104))
-	local keep=label(main,"Keeps",KEEP_LINE,.05,.665,.9,.05,Color3.fromRGB(176,236,150))
-	reset.TextXAlignment,keep.TextXAlignment=Enum.TextXAlignment.Center,Enum.TextXAlignment.Center
-	-- Cost bar: progress toward the next rank, or the King requirement.
-	local track,fill=bar(main,"CostProgress",Color3.fromRGB(14,24,14),GREEN)
-	track.Position,track.Size=UDim2.fromScale(.06,.735),UDim2.fromScale(.88,.08)
+	local mutationTile,mutationCaption=tile("MutationTile",Color3.fromRGB(255,118,214),"MUTATION")
+	self.mutationName=label(mutationTile,"Name","",.04,.28,.92,.42,WHITE)
+	local campTile,campCaption=tile("CampTile",ENEMY_RED,"CAMPS")
+	local campIcon=Theme.Image(campTile,"Icon",Theme.Assets.EnemyStrength,UDim2.fromScale(.5,.5),UDim2.fromScale(.25,.24))
+	Theme.Aspect(campIcon,1);campIcon.ZIndex=6
+	self.mutationTile,self.mutationCaption,self.campTile,self.campCaption=mutationTile,mutationCaption,campTile,campCaption
+	-- Cost bar (R2): cash icon, progress toward the next rank, then the button.
+	local track,fill=bar(main,"CostProgress",Color3.fromRGB(14,24,14),GOLD)
+	track.Position,track.Size=UDim2.fromScale(.1,.845),UDim2.fromScale(.52,.1)
 	Theme.Stroke(track,Color3.new(0,0,0),3)
-	Theme.ApplyReferenceAccent(fill,Theme.ReferenceGradients.Army)
-	local lock=Theme.Image(track,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.07,1.5),UDim2.fromScale(.005,-.25))
-	Theme.Aspect(lock,1);lock.ZIndex=8
+	local costIcon=Theme.Image(main,"CostIcon",Theme.Assets.Cash,UDim2.fromScale(.1,.17),UDim2.fromScale(.035,.81))
+	Theme.Aspect(costIcon,1);costIcon.ZIndex=9
 	local costText=label(track,"Label","",.08,.05,.84,.9,WHITE)
-	costText.ZIndex,costText.TextXAlignment=8,Enum.TextXAlignment.Center
-	self.costTrack,self.costFill,self.costText,self.costLock=track,fill,costText,lock
+	costText.ZIndex=8
+	self.costTrack,self.costFill,self.costText,self.costIcon=track,fill,costText,costIcon
 	local actions=Theme.Container(main,"Actions")
-	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(.5,1),UDim2.fromScale(.5,.975),UDim2.fromScale(.6,.13)
+	actions.Position,actions.Size=UDim2.fromScale(.65,.825),UDim2.fromScale(.31,.14)
 	-- Hold control stays at least 44 points tall on the smallest phones.
 	local minimum=Instance.new("UISizeConstraint")
 	minimum.MinSize,minimum.Parent=Vector2.new(0,44),actions
-	local hold=Theme.ActionButton(actions,"Confirm","Hold to rebirth",function() end,GREEN)
+	local hold=Theme.ActionButton(actions,"Confirm","Hold to Rebirth",function() end,GREEN)
 	hold.Position,hold.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,1)
 	Theme.Studs(hold.Visual.Face,.07,28,0)
 	hold.Visual.Caption.Position,hold.Visual.Caption.Size=UDim2.fromScale(.04,.1),UDim2.fromScale(.92,.8)
@@ -388,25 +275,49 @@ function Panel:RenderPanel()
 	local rank=tonumber(quote.rank) or 0
 	local nextTitle=nextName(quote)
 	self.title.Text=nextTitle or "Rebirth"
-	-- Rank row.
-	self.nowName.Text=Panel.Title(rank)
-	self.nowBadge.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
-	self.nextName.Text=nextTitle or "Max rank"
-	self.nextBadge.Image=Theme.Assets.Reenlist
-	self.nextBadge.ImageTransparency=if nextTitle then 0 else .5
-	-- Reward pills.
-	local now=tonumber(quote.multiplierNow) or 1
-	self.eggValue.Text=if quote.multiplierNext then multiplier(now,2).." → "..multiplier(quote.multiplierNext,2) else multiplier(now,2)
-	-- EnemyScale is linear in rank, so the current scale follows from the next one.
-	local scaleNext=tonumber(quote.enemyScaleNext)
-	local scaleNow=if scaleNext then 1+(scaleNext-1)*rank/(rank+1) else 1
-	self.enemyValue.Text=if scaleNext then multiplier(scaleNow,1).." → "..multiplier(scaleNext,1) else multiplier(scaleNow,1)
-	-- Cost bar: King requirement first, then cash progress; server errors replace the label.
+	local max=nextTitle==nil
+	self.warning.Text=warningLine(tonumber(quote.cashLevels) or 0)
+	-- Cash row: everything you hold now → the fresh starting cash.
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	local needKing=quote.kingCleared==false
+	self.cashRow.now.Text=money(coins)
+	self.cashRow.next.Text=if max then money(coins) else money(Config.StartingCoins)
+	self.cashRow.next.TextColor3=if max then WHITE else RED
+	-- Egg row.
+	local now=tonumber(quote.multiplierNow) or 1
+	self.eggRow.now.Text=multiplier(now,2)
+	self.eggRow.next.Text=if quote.multiplierNext then multiplier(quote.multiplierNext,2) else multiplier(now,2)
+	self.eggRow.next.TextColor3=if max then WHITE else Color3.fromRGB(140,255,110)
+	-- Rank row.
+	self.rankRow.now.Text=Panel.Title(rank)
+	self.rankRow.nowIcon.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
+	self.rankRow.next.Text=nextTitle or "Max rank"
+	self.rankRow.next.TextColor3=GOLD
+	self.rankRow.nextIcon.Image=Theme.Assets.Reenlist
+	-- Tiles. EnemyScale is linear in rank, so the next camp scale is enough.
+	local unlock=quote.unlockNext
+	local def=if type(unlock)=="table" and unlock.name then MutationCatalog.Defs[unlock.name] else nil
+	self.mutationTile.Visible=def~=nil and not max
+	if def then
+		self.mutationName.Text=def.name
+		self.mutationCaption.Text="×"..tostring(def.multiplier).." eggs"
+		self.mutationTile.BackgroundColor3=def.color
+		Theme.Gradient(self.mutationTile,def.color:Lerp(WHITE,.15),def.color:Lerp(Color3.new(0,0,0),.35))
+	end
+	local scaleNext=tonumber(quote.enemyScaleNext)
+	self.campTile.Visible=scaleNext~=nil and not max
+	self.campCaption.Text=if scaleNext then multiplier(scaleNext,1).." stronger" else ""
+	local width,gap=.15,.03
+	local tiles={}
+	for _,item in {self.mutationTile,self.campTile} do if item.Visible then table.insert(tiles,item) end end
+	local start=.5-(#tiles*width+(#tiles-1)*gap)/2
+	for index,item in tiles do item.Position=UDim2.fromScale(start+(index-1)*(width+gap),.58) end
+	self.bringsLine.Text=if max then "Highest rank reached" else "NEXT RANK BRINGS"
+	-- Cost bar: King requirement first, then cash progress; server errors replace the label.
+	-- Only the first Rebirth needs the King (quote.kingRequired; older quotes lack it).
+	local needKing=quote.kingCleared==false and quote.kingRequired~=false
 	local progress=if needKing then 0 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 1
 	self.costFill.Size=UDim2.fromScale(progress,1)
-	self.costLock.Visible=needKing
+	self.costIcon.Image=if needKing then Theme.Assets.Padlock else Theme.Assets.Cash
 	if self.message then
 		self.costText.Text,self.costText.TextColor3=self.message,self.messageColor or RED
 	elseif needKing then
@@ -421,10 +332,10 @@ function Panel:RenderPanel()
 	hold.Active=can or self.pending~=nil
 	-- Readable refusal from the quote fields (the server reason has raw digits).
 	local reason=quote.reason or "Not ready yet"
-	if needKing then reason="Defeat the Chicken King"
+	if needKing then reason="Locked"
 	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more"
 	elseif quote.armyHome==false then reason="Bring your Army home first" end
-	hold.Text=if self.pending then "Rebirthing…" elseif can then "Hold to rebirth" else reason
+	hold.Text=if self.pending then "Rebirthing…" elseif can then "Hold to Rebirth" else reason
 	local tint=if can or self.pending then GREEN else Theme.ActionColors.disabled
 	if hold.BackgroundColor3~=tint then
 		hold.BackgroundColor3=tint
@@ -531,7 +442,11 @@ function Panel:Celebrate(quote)
 	if not self.app.reducedMotion and self.app.gui and self.app.gui:FindFirstChild("Shell") then
 		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(.5,.45),GREEN)
 	end
-	self.app:Notify(title.." complete!",true)
+	local rank=tonumber(quote.rank) or 0
+	local unlocked
+	for _,id in MutationCatalog.Order do if MutationCatalog.Defs[id].unlockRank==rank and rank>0 then unlocked=MutationCatalog.Defs[id].name end end
+	local eggs=multiplier(tonumber(quote.multiplierNow) or 1,2)
+	self.app:Notify(title.." complete! Eggs "..eggs..(if unlocked then " · "..unlocked.." mutations unlocked" else ""),true)
 end
 
 function Panel:Render(state,result)
@@ -555,20 +470,11 @@ function Panel:Render(state,result)
 		self:Dismiss()
 		self:Celebrate(quote)
 	end
-	self:RenderHex()
 	self:RenderPanel()
 end
 
 function Panel:Destroy()
 	self:Dismiss(true)
-	ContextActionService:UnbindAction("PetRollReenlistShortcut")
-	for _,connection in self.hexConnections do connection:Disconnect() end
-	table.clear(self.hexConnections)
-	if self.hex then
-		self:Pulse(self.hex,false)
-		self.hex.button:Destroy()
-		self.hex=nil
-	end
 end
 
 return Panel

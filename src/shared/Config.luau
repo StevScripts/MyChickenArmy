@@ -55,8 +55,14 @@ local Config = {
  -- October 13 owner retune (kept chicken levels made the 1e9×8 ladder too fast):
  -- $5B, $20B, $80B, $320B, $1.28T… MaxRank 10 keeps every cost below the coin cap.
  -- One enemy scale applies to health and damage (EnemyDamagePerRank is unused).
+ -- October 14 owner decision: the King is required only for Rebirth 1, and each rank
+ -- adds +100% egg cash (x2, x3, x4…; was +25%). Rebirth also removes cash-bought chicken
+ -- levels. Costs (explicit, all below the 2^53 coin cap) were tuned with
+ -- tests/ProgressionSimulation: Rebirth 1 ≈ 1.8 h, Rebirth 2 ≈ 4.3 h, Rebirth 3 in the
+ -- 10–20 h band. BaseCost/CostGrowth remain the fallback for ranks without an entry.
  Rebirth={Enabled=true,MaxRank=10,BaseCost=5e9,CostGrowth=4,
-  EggBonusPerRank=0.25,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
+  Costs={5e9,5e12,1e14,5e14,1.2e15,2e15,3e15,4.2e15,6e15,8.5e15},
+  EggBonusPerRank=1.0,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
  Event={Enabled=false,Id="Halloween2026",StartsAt=1791936000,EndsAt=1793491200,Species="Pumpkin",OfferChance=0.02},

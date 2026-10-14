@@ -62,6 +62,21 @@ function Service.Cancel(session,jobId,expectedRevision,now)
 	return false,"This research job has already finished or been cancelled."
 end
 
+-- Studio/admin only (GameServer checks access): finishes a running job now. The
+-- original payment stays spent, exactly as if the timer had run out.
+function Service.Skip(session,jobId,expectedRevision,now)
+	Service.Complete(session,now)
+	local research=session.research
+	if type(jobId)~="string" or #jobId>64 or research.revision~=expectedRevision then return false,"Research changed. Choose the job again." end
+	for _,job in research.jobs do if job.id==jobId then
+		job.finishAt=now
+		local node=Catalog.Nodes[job.nodeId]
+		Service.Complete(session,now)
+		return true,(if node then node.name else "Research").." finished."
+	end end
+	return false,"This research job has already finished or been cancelled."
+end
+
 function Service.Pin(session,nodeId)
 	if nodeId~=nil and (type(nodeId)~="string" or not Catalog.Nodes[nodeId]) then return false,"Choose a research goal." end
 	session.research.pinned=nodeId;session:Touch();return true,if nodeId then "Research goal pinned." else "Research goal cleared."

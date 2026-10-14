@@ -156,13 +156,16 @@ function Guide.NextGoal(state, ignoreSkip)
 			return goal("Operations", "Repel the Scout Landing in Invasions", "Operations")
 		end
 	end
-	if state.kingCleared then
+	-- October 14: only Rebirth 1 needs the King, and Rebirth opens from its HUD button.
+	if state.kingCleared or rebirths >= 1 then
 		local cost = rebirth.cost
 		if rebirth.enabled ~= false and rebirth.nextRank and type(cost) == "number" and cost > 0
 			and (state.coins or 0) >= cost * 0.5 then
-			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready in Upgrades", "Upgrades") end
-			return goal("Rebirth", "Rebirth: $" .. shortCash(state.coins) .. " / $" .. shortCash(cost), "Upgrades")
+			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready: open Rebirth on the left", nil) end
+			return goal("Rebirth", "Rebirth: $" .. shortCash(state.coins) .. " / $" .. shortCash(cost), nil)
 		end
+	end
+	if state.kingCleared then
 		if rivalCamp(state) then return goal("Rival", "Take a rival's camp for bonus egg value", nil) end
 		return nil
 	end

@@ -67,12 +67,6 @@ local function setRim(view,rim)
 	if not view.flash or view.flash.PlaybackState~=Enum.PlaybackState.Playing then view.outline.ImageColor3=rim end
 end
 local TOOLTIP_WIDTH=.218
--- Jump tabs pan to a ResearchCatalog branch; they never hide or filter nodes.
-local BRANCH_TABS={
-	{name="Farm",branch="Economy"},{name="Army",branch="Army"},
-	{name="Rolls",branch="Rolling"},{name="Command",branch="Command"},
-}
-local PAN_SECONDS=.35
 local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
 local MOTION={
@@ -336,7 +330,6 @@ function Browser.new(app,parent)
 	self.title=title
 	self.banner=label(root,"OfflineMessage","Your research works offline!",.3,.068,.4,.03,Color3.fromRGB(200,214,205))
 	self.banner.ZIndex=5
-	self:BuildBranchTabs()
 	local money=Theme.Container(root,"ResearchBalance")
 	money.AnchorPoint,money.Position,money.Size=Vector2.new(0,1),UDim2.fromScale(.012,.975),UDim2.fromScale(.26,.105)
 	Theme.Aspect(money,3.6);money.ZIndex=5
@@ -365,81 +358,6 @@ function Browser.new(app,parent)
 		if elapsed>=.25 then elapsed=0;if self.root.Visible then self:Step() end end
 	end))
 	return self
-end
-
-function Browser:BuildBranchTabs()
-	local row=Theme.Container(self.root,"BranchTabs")
-	row.AnchorPoint,row.Position,row.Size,row.ZIndex=Vector2.new(.5,0),UDim2.fromScale(.5,.097),UDim2.fromScale(.46,.07),6
-	Theme.Aspect(row,11)
-	local layout=Instance.new("UIListLayout")
-	layout.FillDirection,layout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
-	layout.HorizontalAlignment,layout.VerticalAlignment=Enum.HorizontalAlignment.Center,Enum.VerticalAlignment.Center
-	layout.Padding=UDim.new(.02,0);layout.Parent=row
-	self.tabs,self.tabButtons,self.tabLookup=row,{},{}
-	for index,tab in BRANCH_TABS do
-		local button=Theme.Button(row,"Tab"..tab.name,tab.name,function()
-			if not self.root.Visible then return end
-			self.app.audio:Play("Click");self:JumpBranch(index)
-		end,Theme.ActionColors.navigation)
-		button.Size,button.LayoutOrder,button.ZIndex=UDim2.fromScale(.235,1),index,6
-		button:SetAttribute("Branch",tab.branch)
-		self.tabButtons[index],self.tabLookup[button]=button,index
-	end
-end
-
-function Browser:SetActiveBranch(index)
-	self.activeBranch=index
-	for i,button in self.tabButtons do
-		button.BackgroundColor3=if i==index then Theme.ActionColors.selected else Theme.ActionColors.navigation
-	end
-end
-
--- Smoothly centre a branch's revealed nodes (all of them if none are revealed).
-function Browser:JumpBranch(index)
-	local tab=BRANCH_TABS[index];if not tab then return end
-	local sum,count,all,allCount=Vector2.zero,0,Vector2.zero,0
-	for _,id in Catalog.Order do
-		local node=displayNodes[id]
-		if node.branch==tab.branch then
-			local p=point(node)
-			all+=p;allCount+=1
-			if self.nodes[id].button.Visible then sum+=p;count+=1 end
-		end
-	end
-	if allCount==0 then return end
-	local target=if count>0 then sum/count else all/allCount
-	local root=self.root.AbsoluteSize
-	if root.X<=0 or root.Y<=0 then return end
-	self:DismissTooltip()
-	self:SetActiveBranch(index)
-	local offset=target-Vector2.new(.5,.5)
-	self.pan=Vector2.new(-offset.X*root.Y/root.X*(1440/930)*self.zoom,-offset.Y*self.zoom)
-	self:ClampPan()
-	cancelTween(self,"panTween")
-	local goal=UDim2.fromScale(.5+self.pan.X,.5+self.pan.Y)
-	if self.app.reducedMotion then self.map.Position=goal;return end
-	self.panTween=TweenService:Create(self.map,TweenInfo.new(PAN_SECONDS,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Position=goal})
-	self.panTween:Play()
-end
-
--- Gamepad: leave the tab row for the revealed node nearest the view's centre.
-function Browser:FocusNodes()
-	local root=self.root.AbsoluteSize
-	local center=Vector2.new(.5,.5)
-	if root.X>0 and root.Y>0 then
-		center=Vector2.new(.5-self.pan.X/(root.Y/root.X*(1440/930)*self.zoom),.5-self.pan.Y/self.zoom)
-	end
-	local best,score=nil,math.huge
-	for _,id in displayOrder do
-		local view=self.nodes[id]
-		if view.button.Visible and view.kind~="Hidden" then
-			local delta=point(displayNodes[id])-center
-			local value=Vector2.new(delta.X*1440,delta.Y*930).Magnitude
-			if value<score then best,score=id,value end
-		end
-	end
-	best=best or "Start"
-	self:Select(best,true);GuiService.SelectedObject=self.nodes[best].button
 end
 
 function Browser:BuildTooltip()
@@ -702,7 +620,7 @@ function Browser:Receive(state,result)
 		end
 		return true
 	end
-	local handled=self.root.Visible and result and (result.action=="StartResearch" or result.action=="CancelResearch" or result.action=="PinResearch")
+	local handled=self.root.Visible and result and (result.action=="StartResearch" or result.action=="CancelResearch" or result.action=="PinResearch" or result.action=="SkipResearch")
 	if handled and (not result.ok or result.action~="StartResearch") then
 		self:Feedback(result.message or "Research changed. Try again.",if result.ok then CYAN else RED,if not result.ok then attempted else nil)
 	end
@@ -1025,6 +943,8 @@ function Browser:TooltipActions(id,cashNode,offer,state,job,completed)
 	if state=="Completed" and not job then return nil,nil,nil end
 	local pin=if data.pinned==id then "Clear goal" else "Pin goal"
 	if job then
+		-- Studio/admins only: the second button finishes the timer (server rechecks access).
+		if self:CanSkip() then pin="Finish now" end
 		return (if self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"),"cancel",pin
 	end
 	return nil,nil,pin
@@ -1128,7 +1048,17 @@ function Browser:CancelSelected()
 	self.confirmCancel=nil
 end
 
+function Browser:CanSkip(): boolean
+	local state=self.app.state
+	return state~=nil and state.researchSkipAllowed==true
+end
+
 function Browser:Secondary()
+	local job=self.selected and self.data and not CashNodes.Nodes[self.selected] and Rules.Job(self.data,self.selected)
+	if job and self:CanSkip() then
+		self.app:Request("SkipResearch",{jobId=job.id,expectedRevision=self.data.revision})
+		return
+	end
 	if self.selected and self.data and not CashNodes.Nodes[self.selected] and self.data.completed[self.selected]~=true then
 		self.app:Request("PinResearch",{nodeId=if self.data.pinned==self.selected then nil else self.selected})
 	end
@@ -1152,8 +1082,6 @@ function Browser:ClampPan()
 end
 
 function Browser:Transform()
-	-- Direct pan/zoom input takes over from a branch-tab pan in progress.
-	cancelTween(self,"panTween")
 	if not self:ClampPan() then return end
 	self.map.Size=UDim2.fromScale(self.zoom*1440/930,self.zoom)
 	self.map.Position=UDim2.fromScale(.5+self.pan.X,.5+self.pan.Y)
@@ -1204,7 +1132,7 @@ function Browser:BindInput()
 	local function moveDrag(input)
 		local drag=self.drag;if not drag then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y);local delta=p-drag.at
-		if delta.Magnitude>8 and not drag.moved then drag.moved=true;self:ReleasePress(nil,true);self:DismissTooltip();self:SetActiveBranch(nil) end
+		if delta.Magnitude>8 and not drag.moved then drag.moved=true;self:ReleasePress(nil,true);self:DismissTooltip() end
 		if drag.moved then
 			local size=self.root.AbsoluteSize
 			self.pan=drag.pan+Vector2.new(delta.X/math.max(1,size.X),delta.Y/math.max(1,size.Y))
@@ -1216,12 +1144,8 @@ function Browser:BindInput()
 		local mouse=input.UserInputType==Enum.UserInputType.MouseButton1
 		if not mouse and input.UserInputType~=Enum.UserInputType.Touch then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y)
-		if not inside(self.root,p) or inside(self.exit,p) or inside(self.tabs,p) or (self.tip.Visible and self.persistent and inside(self.tip,p)) then return end
+		if not inside(self.root,p) or inside(self.exit,p) or (self.tip.Visible and self.persistent and inside(self.tip,p)) then return end
 		if self.drag then self.drag=nil;self.suppressUntil=os.clock()+.4;return end
-		if self.panTween then
-			cancelTween(self,"panTween")
-			self.pan=Vector2.new(self.map.Position.X.Scale-.5,self.map.Position.Y.Scale-.5)
-		end
 		self.drag={input=input,at=p,pan=self.pan,moved=false,mouse=mouse}
 	end)
 	connect(UserInputService.InputChanged,function(input)
@@ -1256,7 +1180,6 @@ end
 
 function Browser:Focus()
 	self:DismissTooltip()
-	self:SetActiveBranch(nil)
 	self.zoom=1
 	self:Center("Start")
 	if UserInputService.GamepadEnabled then self:Select("Start",true);GuiService.SelectedObject=self.nodes.Start.button end
@@ -1304,24 +1227,8 @@ function Browser:Open()
 		local key=input.KeyCode
 		local focused=GuiService.SelectedObject
 		local inCard=focused~=nil and (focused==self.primaryAction.button or focused==self.secondaryAction.button)
-		local tabIndex=if focused then self.tabLookup[focused] else nil
-		local horizontal=if key==Enum.KeyCode.DPadLeft or key==Enum.KeyCode.Left then -1 elseif key==Enum.KeyCode.DPadRight or key==Enum.KeyCode.Right then 1 else 0
 		if key==Enum.KeyCode.ButtonB or key==Enum.KeyCode.Escape then
-			if inCard then self:FocusActions(false) elseif tabIndex then self:FocusNodes() else self:Close() end
-		elseif tabIndex and key==Enum.KeyCode.ButtonA then
-			self.app.audio:Play("Click");self:JumpBranch(tabIndex)
-		elseif tabIndex and horizontal~=0 then
-			GuiService.SelectedObject=self.tabButtons[math.clamp(tabIndex+horizontal,1,#BRANCH_TABS)]
-		elseif tabIndex and (key==Enum.KeyCode.DPadDown or key==Enum.KeyCode.Down) then
-			self:FocusNodes()
-		elseif tabIndex and (key==Enum.KeyCode.DPadUp or key==Enum.KeyCode.Up) then
-			-- Already on the top row.
-		elseif key==Enum.KeyCode.ButtonL2 or key==Enum.KeyCode.ButtonR2 then
-			-- Triggers step through the branch tabs from anywhere.
-			local step=if key==Enum.KeyCode.ButtonR2 then 1 else -1
-			local index=((self.activeBranch or (if step>0 then 0 else 1))+step-1)%#BRANCH_TABS+1
-			self.app.audio:Play("Click");self:JumpBranch(index)
-			if tabIndex then GuiService.SelectedObject=self.tabButtons[index] end
+			if inCard then self:FocusActions(false) else self:Close() end
 		elseif key==Enum.KeyCode.ButtonA then
 			if focused==self.primaryAction.button then self:Primary()
 			elseif focused==self.secondaryAction.button then self.app.audio:Play("Click");self:Secondary()
@@ -1344,15 +1251,10 @@ function Browser:Open()
 		else
 			local directions={[Enum.KeyCode.DPadLeft]=Vector2.new(-1,0),[Enum.KeyCode.DPadRight]=Vector2.new(1,0),[Enum.KeyCode.DPadUp]=Vector2.new(0,-1),[Enum.KeyCode.DPadDown]=Vector2.new(0,1),
 				[Enum.KeyCode.Left]=Vector2.new(-1,0),[Enum.KeyCode.Right]=Vector2.new(1,0),[Enum.KeyCode.Up]=Vector2.new(0,-1),[Enum.KeyCode.Down]=Vector2.new(0,1)}
-			if directions[key] and not self:Navigate(directions[key]) and directions[key].Y<0 then
-				-- Up past the top node reaches the branch tabs.
-				self:DismissTooltip()
-				GuiService.SelectedObject=self.tabButtons[self.activeBranch or 1]
-			end
+			if directions[key] then self:Navigate(directions[key]) end
 		end
 		return Enum.ContextActionResult.Sink
 	end,false,3500,Enum.KeyCode.ButtonB,Enum.KeyCode.ButtonA,Enum.KeyCode.ButtonY,Enum.KeyCode.Escape,Enum.KeyCode.ButtonX,Enum.KeyCode.Home,Enum.KeyCode.ButtonL1,Enum.KeyCode.ButtonR1,
-		Enum.KeyCode.ButtonL2,Enum.KeyCode.ButtonR2,
 		Enum.KeyCode.DPadLeft,Enum.KeyCode.DPadRight,Enum.KeyCode.DPadUp,Enum.KeyCode.DPadDown,Enum.KeyCode.Left,Enum.KeyCode.Right,Enum.KeyCode.Up,Enum.KeyCode.Down)
 	if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.nodes[self.selected or "Start"].button end
 end
@@ -1363,7 +1265,6 @@ function Browser:Close()
 	self.root.Visible=false;self.app.hudLayer.Visible=true;self.drag=nil
 	self.message.Visible=false;self.feedbackVersion=(self.feedbackVersion or 0)+1
 	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil
-	cancelTween(self,"panTween")
 	for _,view in self.nodes do
 		self:ResetNodeMotion(view)
 		-- Re-render the stable saved state even if a tint was interrupted.

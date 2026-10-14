@@ -1,5 +1,30 @@
 # Re-enlist and Operations UI (October 13, 2026 redesign)
 
+## October 14 redesign (owner picks)
+
+The owner rejected the October 13 layouts and picked references (saved in the Obsidian vault as
+`UI References/` notes with `verdict: adopt`):
+
+- **Rebirth** (`RebirthPanel.luau`): Arm Wrestle Simulator / Roller Skate Racing rows plus Steal a
+  Brainrot's warning and tiles. Top: one red WARNING line built from the quote (`cashLevels` adds
+  "and N bought chicken levels"). Three before → after rows with icons: Cash (now → starting
+  cash, red), Eggs (×now → ×next, green), Rank (badge → next badge). "NEXT RANK BRINGS" tiles: the
+  mutation from `unlockNext` (its catalog color) and the camp scale (`enemyScaleNext`). Bottom: cash
+  bar (padlock icon while the King is required) beside the 2-second "Hold to Rebirth" button; the
+  button says "Locked" or "Need $X more" when not eligible. Max rank: "Highest rank reached", no tiles.
+- **Invasions** (`OperationsPanel.luau`): Anime Vanguards stage select. Columns: Select Tier (emblem,
+  name, "Cleared: n/3" or Locked) with Formations under it; Select Invasion (number, name, green
+  CLEAR! stamp, emblem watermark) with Defend / Defend again / Army busy / Leave under it; Invasion
+  Info (enemy power, verdict, name, enemy army portraits, You vs Enemy bar, FIRST CLEAR REWARD, and a
+  Rewards row: replay cash chip and tier banner chip). Locked tiers show the research requirement and
+  View in Upgrades inside the info column.
+
+Server requests, hold-to-confirm, gamepad bindings and menu exclusivity are unchanged. Checked in
+Studio Play on a desktop viewport with client-only sample data (locked, unlocked, cleared, eligible,
+no-mutation and max-rank states); no phone or gamepad pass yet.
+
+The sections below describe the superseded October 13 version.
+
 Owner request: redesign both screens after looking at how other Roblox games present rebirths and
 mission select. Art: `assets/generated/rebirth-ops-ui-20261013/` (ids in its README, keys in
 `UITheme.Assets`).

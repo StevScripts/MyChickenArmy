@@ -1,8 +1,8 @@
 --!strict
 -- Invasions (formerly Operations). October 14 story: after the Chicken King
 -- falls, his loyalists land by airship somewhere on the island; the army marches
--- out to repel them. Tier tabs, three invasion cards and a detail pane with the
--- enemy squad, power comparison, rewards and one big Defend. This module also
+-- out to repel them. Three columns (October 14, Anime Vanguards style): tiers,
+-- the tier's three invasions with Defend, and Invasion Info. This module also
 -- shows the occasional "loyalists are gathering" alert. The server validates every Start/Leave.
 local TweenService=game:GetService("TweenService")
 local GuiService=game:GetService("GuiService")
@@ -190,26 +190,33 @@ function Panel:Refresh(force: boolean?)
 	end
 end
 
+-- October 14 layout (owner pick I1, Anime Vanguards stage select): Select Tier |
+-- Select Invasion | Invasion Info. The middle column carries the main action.
+local function heading(parent,name,text,x,w)
+	return label(parent,name,text,x,.025,w,.07,WHITE)
+end
+
 function Panel:BuildTabs(content,data)
 	local open=tonumber(data.tier) or 0
+	heading(content,"TierHeading","Select Tier",.03,.27)
 	for index,name in Operations.Tiers do
 		local color=Operations.Colors[index]
 		local locked=open<index
 		local selected=self.tier==index
-		local tab=card(content,"Tab"..name,.025+(index-1)*.32,.03,.305,.14,
-			if selected then color:Lerp(Color3.new(0,0,0),.15) else CARD,if selected then WHITE else color:Lerp(Color3.new(0,0,0),.25))
-		if selected then Theme.Gradient(tab,color:Lerp(WHITE,.12),color:Lerp(Color3.new(0,0,0),.35)) end
-		local emblem=Theme.Image(tab,"Emblem",EMBLEMS[index],UDim2.fromScale(.22,1.15),UDim2.fromScale(.02,-.075))
+		local tab=card(content,"Tab"..name,.02,.11+(index-1)*.215,.28,.195,
+			if selected then color:Lerp(CARD,.45) else CARD,if selected then color:Lerp(WHITE,.35) else Color3.new(0,0,0))
+		if selected then tab.UIStroke.Thickness=4;Theme.Gradient(tab,color:Lerp(WHITE,.1),color:Lerp(Color3.new(0,0,0),.45)) end
+		local emblem=Theme.Image(tab,"Emblem",EMBLEMS[index],UDim2.fromScale(.3,.9),UDim2.fromScale(.03,.05))
 		Theme.Aspect(emblem,1);emblem.ZIndex=6
 		emblem.ImageTransparency=if locked then .55 else 0
-		label(tab,"Name",name,.25,.1,.5,.8,if locked then MUTED else WHITE)
+		label(tab,"Name",name,.34,.08,.62,.46,if locked then MUTED else color:Lerp(WHITE,.35))
+		local cleared=0
+		for i=1,3 do if (data.wins or {})[index..":"..i] then cleared+=1 end end
+		label(tab,"Progress",if locked then "Locked" else "Cleared: "..cleared.."/3",.34,.56,.62,.32,
+			if locked then MUTED elseif cleared==3 then GREEN else WHITE)
 		if locked then
-			local lock=Theme.Image(tab,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.16,.8),UDim2.fromScale(.8,.1))
-			Theme.Aspect(lock,1);lock.ZIndex=6
-		else
-			local cleared=0
-			for i=1,3 do if (data.wins or {})[index..":"..i] then cleared+=1 end end
-			label(tab,"Progress",cleared.."/3",.74,.15,.23,.7,if cleared==3 then GREEN else WHITE,Enum.TextXAlignment.Right)
+			local lock=Theme.Image(tab,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.2,.6),UDim2.fromScale(.77,.2))
+			Theme.Aspect(lock,1);lock.ZIndex=7
 		end
 		hitArea(tab,"Select",function()
 			self.app.audio:Play("Click")
@@ -217,30 +224,36 @@ function Panel:BuildTabs(content,data)
 			self:Refresh()
 		end)
 	end
+	local formations=Theme.Button(content,"Formations","Formations",function() self.app:OpenPage("Formations") end,BLUE)
+	formations.Position,formations.Size=UDim2.fromScale(.02,.81),UDim2.fromScale(.28,.16)
 end
 
 function Panel:BuildMissions(content,data)
 	local tier=self.tier
 	local color=Operations.Colors[tier]
 	local locked=(tonumber(data.tier) or 0)<tier
+	heading(content,"MissionHeading","Select Invasion",.33,.3)
 	for index=1,3 do
 		local id=tier..":"..index
 		local definition=Operations.Encounters[id]
 		local cleared=(data.wins or {})[id]==true
 		local selected=self.selected==index
-		local row=card(content,"Mission"..index,.025,.2+(index-1)*.205,.36,.185,
-			if selected then color:Lerp(CARD,.55) else CARD,if selected then color else Color3.new(0,0,0))
+		local row=card(content,"Mission"..index,.32,.11+(index-1)*.215,.31,.195,
+			if selected then color:Lerp(CARD,.6) else CARD,if selected then color:Lerp(WHITE,.35) else Color3.new(0,0,0))
 		if selected then row.UIStroke.Thickness=4 end
-		local emblem=Theme.Image(row,"Emblem",EMBLEMS[tier],UDim2.fromScale(.24,.84),UDim2.fromScale(.025,.08))
-		Theme.Aspect(emblem,1);emblem.ZIndex=6
-		emblem.ImageTransparency=if locked then .55 else 0
-		label(row,"Name",definition.name,.28,.08,if locked then .56 else .7,.46,if locked then MUTED else WHITE)
-		local status=if locked then "Locked" elseif cleared then "✓ Cleared" elseif definition.boss then "Boss · "..Theme.Number(Operations.Power(id)).." power"
-			else Theme.Number(Operations.Power(id)).." power"
-		label(row,"Status",status,.28,.56,.7,.34,if cleared and not locked then GREEN else MUTED)
+		Theme.Gradient(row,WHITE,Color3.fromRGB(150,150,150))
+		local emblem=Theme.Image(row,"Emblem",EMBLEMS[tier],UDim2.fromScale(.36,1.3),UDim2.fromScale(.66,-.15))
+		Theme.Aspect(emblem,1);emblem.ZIndex=3;emblem.ImageTransparency=if locked then .85 else .65
+		local stamped=cleared and not locked
+		label(row,"Number",(if definition.boss then "Boss · " else "Invasion ")..index,if stamped then .4 else .05,.1,.55,.3,GOLD)
+		label(row,"Name",definition.name,.05,.4,.9,.48,if locked then MUTED else WHITE)
+		if stamped then
+			local stamp=label(row,"Clear","CLEAR!",-.02,-.12,.4,.48,GREEN)
+			stamp.ZIndex,stamp.Rotation=9,-6
+		end
 		if locked then
-			local lock=Theme.Image(row,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.12,.5),UDim2.fromScale(.85,.25))
-			Theme.Aspect(lock,1);lock.ZIndex=6
+			local lock=Theme.Image(row,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.14,.6),UDim2.fromScale(.82,.2))
+			Theme.Aspect(lock,1);lock.ZIndex=7
 		end
 		hitArea(row,"Select",function()
 			self.app.audio:Play("Click")
@@ -248,34 +261,38 @@ function Panel:BuildMissions(content,data)
 			self:Refresh()
 		end)
 	end
-	local note=label(content,"Rule","Loyalist airships land somewhere on the island",.025,.825,.36,.05,MUTED,Enum.TextXAlignment.Center)
-	note.TextWrapped=true
-	local formations=Theme.Button(content,"Formations","Formations",function() self.app:OpenPage("Formations") end,BLUE)
-	formations.Position,formations.Size=UDim2.fromScale(.065,.885),UDim2.fromScale(.28,.095)
 end
 
 -- Enemy squad portraits: one tile per group (×count, Lv), the boss first.
-function Panel:BuildSquad(parent,id)
+function Panel:BuildSquad(parent,id,y,h)
 	local definition=Operations.Encounters[id]
 	local tiles={}
 	if definition.boss then table.insert(tiles,{species=definition.boss.species,boss=true}) end
 	for _,group in definition.groups do table.insert(tiles,{species=group[1],level=group[2],count=group[3]}) end
-	local strip=card(parent,"Squad",0,.22,1,.3,Color3.fromRGB(16,20,24))
-	label(strip,"Heading","ENEMY ARMY",.02,.02,.4,.2,MUTED)
-	local width=math.min(.2,.94/math.max(1,#tiles))
-	local gap=.015
+	local width=math.min(.23,.92/math.max(1,#tiles))
+	local gap=.02
 	local start=(1-(#tiles*width+(#tiles-1)*gap))/2
 	for index,tile in tiles do
-		local slot=card(strip,"Enemy"..index,start+(index-1)*(width+gap),.22,width,.74,
+		local slot=card(parent,"Enemy"..index,start+(index-1)*(width+gap),y,width,h,
 			if tile.boss then Color3.fromRGB(70,20,20) else Color3.fromRGB(34,42,48),if tile.boss then RED else Color3.new(0,0,0))
 		local portrait=Theme.Image(slot,"Portrait",Portraits[tile.species] or Theme.Assets.Army,UDim2.fromScale(.8,.8),UDim2.fromScale(.1,.02))
 		Theme.Aspect(portrait,1);portrait.ZIndex=6
 		local definitionName=Catalog[tile.species] and Catalog[tile.species].name or tile.species
 		portrait:SetAttribute("Species",definitionName)
-		local caption=if tile.boss then "BOSS" else "×"..tile.count.."  Lv "..tile.level
-		local tag=label(slot,"Count",caption,.04,.74,.92,.24,if tile.boss then Color3.fromRGB(255,120,104) else WHITE,Enum.TextXAlignment.Center)
+		local caption=if tile.boss then "BOSS" else "×"..tile.count.." Lv "..tile.level
+		local tag=label(slot,"Count",caption,.04,.72,.92,.26,if tile.boss then Color3.fromRGB(255,120,104) else WHITE,Enum.TextXAlignment.Center)
 		tag.ZIndex=7
 	end
+end
+
+-- A square reward chip (I1 "Rewards" row): icon with a caption under it.
+local function rewardChip(parent,name,x,y,w,h,icon,text,color)
+	local chip=card(parent,name,x,y,w,h,color:Lerp(CARD,.55),color)
+	local art=Theme.Image(chip,"Icon",icon,UDim2.fromScale(.66,.66),UDim2.fromScale(.17,.04))
+	Theme.Aspect(art,1);art.ZIndex=6
+	local caption=label(chip,"Caption",text,.04,.68,.92,.3,WHITE,Enum.TextXAlignment.Center)
+	caption.ZIndex=7
+	return chip
 end
 
 function Panel:BuildDetail(content,data,state)
@@ -284,74 +301,72 @@ function Panel:BuildDetail(content,data,state)
 	local color=Operations.Colors[tier]
 	local id=tier..":"..self.selected
 	local definition=Operations.Encounters[id]
-	local detail=Theme.Container(content,"Detail")
-	detail.Position,detail.Size=UDim2.fromScale(.41,.2),UDim2.fromScale(.565,.78)
+	local locked=(tonumber(data.tier) or 0)<tier
+	local cleared=(data.wins or {})[id]==true
 	self.deploy=nil
-	label(detail,"Title",definition.name,0,0,.75,.12,color)
-	label(detail,"Description",definition.description,0,.12,1,.08,MUTED)
-	self:BuildSquad(detail,id)
-	-- A tier the player hasn't opened: lock card instead of the fight details.
-	if (tonumber(data.tier) or 0)<tier then
-		local lock=card(detail,"Locked",0,.55,1,.45,Color3.fromRGB(20,24,28),color:Lerp(Color3.new(0,0,0),.3))
-		local padlock=Theme.Image(lock,"Padlock",Theme.Assets.Padlock,UDim2.fromScale(.2,.7),UDim2.fromScale(.03,.15))
+	-- Right column: Invasion Info.
+	local info=card(content,"Detail",.65,.025,.33,.95,Color3.fromRGB(16,20,24),color)
+	label(info,"Heading","Invasion Info",.04,.015,.92,.08,WHITE,Enum.TextXAlignment.Center)
+	local enemy=Operations.Power(id)
+	local mine=tonumber(state.power) or 0
+	-- Same wording and thresholds as camps (TutorialGuide.Difficulty).
+	local verdict=TutorialGuide.Difficulty(mine,enemy)
+	label(info,"Recommended","Enemy power: "..Theme.Number(enemy),.04,.1,.92,.055,GOLD,Enum.TextXAlignment.Center)
+	label(info,"Verdict",if locked then "Locked" else verdict,.04,.155,.92,.055,
+		if locked then MUTED elseif verdict=="Very tough" then RED elseif verdict=="Close fight" then GOLD else GREEN,Enum.TextXAlignment.Center)
+	label(info,"Title",definition.name,.04,.225,.92,.07,color:Lerp(WHITE,.35),Enum.TextXAlignment.Center)
+	self:BuildSquad(info,id,.31,.2)
+	if locked then
+		local padlock=Theme.Image(info,"Padlock",Theme.Assets.Padlock,UDim2.fromScale(.22,.16),UDim2.fromScale(.39,.55))
 		Theme.Aspect(padlock,1);padlock.ZIndex=6
 		local node=Research.Nodes[UNLOCK_NODES[tier]]
 		local text=if tier==1 then "Defeat the Chicken King or unlock "..node.name.." in Upgrades" else "Unlock "..node.name.." in Upgrades"
-		label(lock,"Requirement",text,.25,.1,.72,.42,WHITE)
-		local view=Theme.Button(lock,"ViewResearch","View in Upgrades",function()
+		label(info,"Requirement",text,.06,.7,.88,.11,WHITE,Enum.TextXAlignment.Center)
+		local view=Theme.Button(info,"ViewResearch","View in Upgrades",function()
 			app:OpenPage("Research");app.research:Center(node.id);app.research:Select(node.id,true)
 		end,BLUE)
-		view.Position,view.Size=UDim2.fromScale(.25,.56),UDim2.fromScale(.5,.32)
-		return
+		view.Position,view.Size=UDim2.fromScale(.1,.83),UDim2.fromScale(.8,.12)
+	else
+		-- Power comparison: your selected army against the enemy squad.
+		local compare=card(info,"Power",.05,.535,.9,.065,Color3.fromRGB(16,20,24))
+		local share=if mine+enemy>0 then mine/(mine+enemy) else .5
+		local yours=Theme.Frame(compare,"Yours",UDim2.fromScale(share,1),GREEN)
+		Theme.ApplyReferenceAccent(yours,Theme.ReferenceGradients.Army)
+		local theirs=Theme.Frame(compare,"Theirs",UDim2.fromScale(1-share,1),RED)
+		theirs.Position=UDim2.fromScale(share,0)
+		Theme.Gradient(theirs,RED:Lerp(WHITE,.15),RED:Lerp(Color3.new(0,0,0),.3))
+		local you=label(compare,"You","You "..Theme.Number(mine),.03,.05,.45,.9,WHITE)
+		local them=label(compare,"Them","Enemy",.52,.05,.45,.9,WHITE,Enum.TextXAlignment.Right)
+		you.ZIndex,them.ZIndex=8,8
+		-- First clear reward (I1's red line), then the Rewards row.
+		label(info,"FirstClear",if cleared then "FIRST CLEAR: DONE" else "FIRST CLEAR REWARD: "..money(definition.firstCash),
+			.04,.625,.92,.055,if cleared then GREEN else Color3.fromRGB(255,96,80),Enum.TextXAlignment.Center)
+		label(info,"RewardsHeading","Rewards",.04,.69,.92,.05,WHITE,Enum.TextXAlignment.Center)
+		rewardChip(info,"Cash",.13,.75,.34,.2,Theme.Assets.Cash,money(definition.replayCash).." replay",GOLD)
+		rewardChip(info,"Banner",.53,.75,.34,.2,EMBLEMS[tier],if tier==3 then "Banner + title" else "Banner (all 3)",color)
 	end
-	-- Saved reward waiting for wallet room.
+	-- Middle column action, under the invasion list (I1's CONFIRM/LEAVE row).
+	if locked then return end
 	if (data.pendingReward or 0)>0 then
-		label(detail,"Pending",money(data.pendingReward).." earned and saved. Spend some cash; it pays automatically when your wallet has room.",
-			0,.56,1,.2,GOLD)
+		label(content,"Pending",money(data.pendingReward).." saved; it pays when your wallet has room.",.32,.75,.31,.05,GOLD,Enum.TextXAlignment.Center)
 	end
-	-- Power comparison: your selected army against the enemy squad.
-	local enemy=Operations.Power(id)
-	local mine=tonumber(state.power) or 0
-	local compare=card(detail,"Power",0,.555,1,.11,Color3.fromRGB(16,20,24))
-	local share=if mine+enemy>0 then mine/(mine+enemy) else .5
-	local yours=Theme.Frame(compare,"Yours",UDim2.fromScale(share,1),GREEN)
-	Theme.ApplyReferenceAccent(yours,Theme.ReferenceGradients.Army)
-	local theirs=Theme.Frame(compare,"Theirs",UDim2.fromScale(1-share,1),RED)
-	theirs.Position=UDim2.fromScale(share,0)
-	Theme.Gradient(theirs,RED:Lerp(WHITE,.15),RED:Lerp(Color3.new(0,0,0),.3))
-	local you=label(compare,"You","You "..Theme.Number(mine),.02,.05,.46,.9,WHITE)
-	local them=label(compare,"Them","Enemy "..Theme.Number(enemy),.52,.05,.46,.9,WHITE,Enum.TextXAlignment.Right)
-	you.ZIndex,them.ZIndex=8,8
-	-- Same wording and thresholds as camps (TutorialGuide.Difficulty).
-	local verdict=TutorialGuide.Difficulty(mine,enemy)
-	label(detail,"Verdict",verdict,.76,0,.24,.12,if verdict=="Very tough" then RED elseif verdict=="Close fight" then GOLD else GREEN,Enum.TextXAlignment.Right)
-	-- Rewards row.
-	local cleared=(data.wins or {})[id]==true
-	local reward=card(detail,"Reward",0,.69,.62,.12,Color3.fromRGB(30,40,22),GOLD)
-	local cash=Theme.Image(reward,"Cash",Theme.Assets.Cash,UDim2.fromScale(.16,1.1),UDim2.fromScale(.01,-.05))
-	Theme.Aspect(cash,1);cash.ZIndex=6
-	label(reward,"Amount",money(if cleared then definition.replayCash else definition.firstCash)..(if cleared then " replay" else " first clear"),
-		.18,.08,.8,.84,GOLD)
-	local bannerName=Operations.Tiers[tier].." banner"..(if tier==3 then " + Royal title" else "")
-	label(detail,"Banner","Clear all 3: "..bannerName,.64,.69,.36,.12,MUTED,Enum.TextXAlignment.Right).TextWrapped=true
-	-- Main action.
 	if data.activeId then
 		local active=Operations.Encounters[data.activeId]
 		local left=self.expiresAt and math.max(0,math.ceil(self.expiresAt-os.clock()))
-		label(detail,"Active",(if active then active.name else "An Invasion").." is under way"
-			..(if left then (" · %d:%02d left"):format(left//60,left%60) else ""),0,.82,.42,.17,WHITE)
-		local leave=Theme.ActionButton(detail,"Leave","Leave",function() app:Request("LeaveOperation") end,Theme.ActionColors.danger)
-		leave.Position,leave.Size=UDim2.fromScale(.45,.83),UDim2.fromScale(.55,.16)
+		label(content,"Active",(if active then active.name else "An Invasion").." under way"
+			..(if left then (" · %d:%02d"):format(left//60,left%60) else ""),.32,.75,.31,.05,WHITE,Enum.TextXAlignment.Center)
+		local leave=Theme.ActionButton(content,"Leave","Leave",function() app:Request("LeaveOperation") end,Theme.ActionColors.danger)
+		leave.Position,leave.Size=UDim2.fromScale(.32,.81),UDim2.fromScale(.31,.16)
 		self.deploy=leave
 		return
 	end
 	local home=state.armyState=="Home" or state.armyState=="Following"
-	local deploy=Theme.ActionButton(detail,"Deploy",if not home then "Army busy" elseif cleared then "Defend again" else "Defend",function()
+	local deploy=Theme.ActionButton(content,"Deploy",if not home then "Army busy" elseif cleared then "Defend again" else "Defend",function()
 		if not home then return end
 		app:Request("StartOperation",{operationId=id,expectedRevision=state.research and state.research.revision})
 	end,if home then GREEN else Theme.ActionColors.disabled)
 	deploy.Active=home
-	deploy.Position,deploy.Size=UDim2.fromScale(.2,.83),UDim2.fromScale(.6,.16)
+	deploy.Position,deploy.Size=UDim2.fromScale(.32,.81),UDim2.fromScale(.31,.16)
 	self.deploy=deploy
 end
 

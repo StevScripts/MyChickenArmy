@@ -467,7 +467,7 @@ local function context(state)
 	local limit=if blocked then options.blockedPaybackSeconds else options.maxPaybackSeconds
 	local saving=false
 	local coins=s.coins
-	if s.kingCleared and s.rebirths<options.targetRank then
+	if (s.kingCleared or s.rebirths>=1) and s.rebirths<options.targetRank then
 		local cost=Rebirth.Cost(s.rebirths+1)
 		local need=if cost then cost-coins else 0
 		if need>0 then
@@ -556,7 +556,8 @@ end
 
 local function tryRebirth(state,now)
 	local s,options=state.session,state.options
-	if not s.kingCleared or s.rebirths>=options.targetRank or state.deploy then return end
+	-- October 14: only Rebirth 1 needs a King clear.
+	if (not s.kingCleared and s.rebirths==0) or s.rebirths>=options.targetRank or state.deploy then return end
 	local cost=Rebirth.Cost(s.rebirths+1)
 	if not cost then return end
 	-- Sell the yard first when that makes the rank affordable.

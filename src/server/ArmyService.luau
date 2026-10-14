@@ -137,6 +137,8 @@ function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
 	-- Replayed requests retain the old expected level and cannot charge twice.
 	session.coins-=price
 	pet.level,pet.investment=level+1,investment
+	-- October 14: Rebirth removes levels bought with cash (fusion and roll levels stay).
+	pet.cashLevels=(pet.cashLevels or 0)+1
 	session.tutorial.upgraded=true
 	session:RefreshArmy();session:Touch()
 	return true,Catalog[pet.species].name.." upgraded to Lv. "..pet.level.."!",pet.id
@@ -223,7 +225,9 @@ local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expect
 	if investment~=investment or investment<0 or investment>1e12 then
 		return nil,"This fusion exceeds the saved investment limit."
 	end
-	return {first=a,second=b,third=c,level=level,investment=investment,price=price}
+	-- The result keeps the inputs' cash-bought levels (all three share one level).
+	local cashLevels=math.max(a.cashLevels or 0,b.cashLevels or 0,c.cashLevels or 0)
+	return {first=a,second=b,third=c,level=level,investment=investment,price=price,cashLevels=cashLevels}
 end
 
 local function consumeTriple(session,triple)
@@ -258,6 +262,7 @@ local function consumeTriple(session,triple)
 	-- Validate everything before mutation, without yielding. Existing saves already
 	-- store the retained ID, level and investment; no new progression currency.
 	a.investment=triple.investment
+	a.cashLevels=if triple.cashLevels>0 then triple.cashLevels else nil
 	session.pets[b.id],session.pets[c.id]=nil,nil
 	if session.armySelection then
 		for index=#session.armySelection,1,-1 do

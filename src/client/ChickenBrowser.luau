@@ -695,7 +695,7 @@ function Browser:UpdateAction()
 			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
 			elseif pet.canUpgrade==false then pet.upgradeReason or "Return this chicken home to upgrade."
 			elseif not affordable then "Not enough cash"
-			else "Upgrades boost damage and egg production"
+			else "Boosts damage and eggs · bought levels reset on Rebirth"
 	end
 end
 
