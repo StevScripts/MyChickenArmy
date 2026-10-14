@@ -368,8 +368,8 @@ function PlayerSession:DisplayedPetIncome(species: string, stars: number, level:
  return self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs")
 end
 
-function PlayerSession:PetEggRate(species: string, stars: number, level: number?): number
- return Rules.EggRate(species,stars,level)*self:EggProductionMultiplier()
+function PlayerSession:PetEggRate(species: string, stars: number, level: number?, mutation: string?): number
+ return Rules.EggRate(species,stars,level)*self:EggProductionMultiplier()*MutationCatalog.Multiplier(mutation)
 end
 
 function PlayerSession:Income(): number
@@ -471,7 +471,7 @@ function PlayerSession:Snapshot(now: number)
 			giantSize=pet.giantSize,mutation=pet.mutation,
 			slot=self:FindSlot(pet.id),selected=selected[pet.id]==true,deployed=deployed[pet.id]==true,
 			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation),home=self:IsPetHome(pet.id),
-			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level),
+			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level,pet.mutation),
 			nextIncome=if (pet.level or 1)<Config.MaxPetLevel then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1,pet.mutation) else nil,
 			upgradePrice=Rules.ChickenUpgradePrice(pet.species,pet.level or 1),canUpgrade=canUpgrade,upgradeReason=upgradeReason,
 			levelCap=rank.levelCap,upgradeLocked=not canUpgrade,

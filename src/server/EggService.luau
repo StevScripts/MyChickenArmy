@@ -13,6 +13,7 @@ local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
 local Currency=require(Shared.CurrencyLimits)
 local TutorialGuide=require(Shared.TutorialGuide)
+local MutationCatalog=require(Shared.MutationCatalog)
 local CARRY_LIMIT=require(script.Parent.PlayerSession).CarryLimit
 local EggService={}
 EggService.__index=EggService
@@ -216,7 +217,8 @@ function EggService:Produce(session,dt,now)
   if not session:IsPetHome(id) then continue end
   -- Speed changes affect future production only; partial eggs survive upgrades
   -- and time away. Price each completed egg once, at the shared current value.
-  local accrued=layer.fraction+Rules.EggRate(pet.species,pet.stars,pet.level)*production*dt
+  -- Launch: a mutation multiplies this chicken's eggs (1 with the foundation stub).
+  local accrued=layer.fraction+Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation)*production*dt
   local quantity=math.floor(accrued+1e-7)
   layer.fraction=math.max(0,accrued-quantity)
   local priced=quantity*unitValue+session.research.eggValueRemainder
