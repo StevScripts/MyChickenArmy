@@ -72,7 +72,7 @@ Latest September 28 clarification: only chickens with saved `giantSize >= 20` ar
 
 October 6 Fuse Machine research replaces the October 5 Cluck Camp unlock. New
 access requires completed `FuseMachine` research ($5,000, 120 base seconds,
-Start prerequisite, Army branch). Locked use shows the normal Error notice:
+Lucky Feathers I (`R1`) prerequisite since October 9, Army branch). Locked use shows the normal Error notice:
 "Unlock the Fuse Machine in Upgrades first." Preserve earned access through
 `fusionUnlocked` and versioned save migration (`fusionUnlockVersion=2`); mark its
 research complete for legacy owners without charging. New camp wins must not
@@ -82,6 +82,14 @@ grant fusion, even after rejoin. Cash upgrades remain independent. See
 One writer per file. For parallel tasks, assign explicit files and contracts. Workers do not control canonical Studio, Blender, Git history or further agents; the root integrates. Keep changes scoped and preserve user work.
 
 Before editing or syncing, inspect Git and compare any unsynced Studio changes. Record local commits, Roblox saves/publishes and player-data changes separately. A Rojo build verifies packaging, not Luau runtime correctness. Do not claim checks that were not run.
+
+## Player-facing words (October 14)
+Use one name per concept in every player-facing string: Army, Flock, chickens, Camp
+(home is "base"), Cash, Fuse, Upgrades (the tree screen), Invasions, "Rebirth N", and
+Should win / Close fight / Very tough. Never pets, coins, merge, squad/troops,
+Operations or device-specific "Press E"/"Tap". Internal ids stay. Menus open through
+`AppController:CloseOtherMenus` so only one shows at a time. See
+`docs/team/UX_AUDIT_FIXES_20261014.md`.
 
 ## Reference vault (October 13)
 UI references, games studied, idea notes and the dev journal live in the Obsidian vault `~/Documents/ObsidianVaults/Roblox-Journal/` (read its `AGENTS.md`). Before UI work, check `UI References/` for the matching `screen:`. Vault notes are inspiration only; this repo's rules win.

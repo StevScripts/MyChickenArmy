@@ -80,7 +80,7 @@ function EggService:Upgrade(player,session,level,price)
  local state=session.eggProcessor
  if not ProcessorConfig.ValidLevel(state.level+1) then return false,"Invalid selling upgrade level." end
  local cost=ProcessorConfig.Price(state.level)
- if not cost then return false,"This price exceeds the supported currency range." end
+ if not cost then return false,"Selling Speed is fully upgraded." end
  if level~=state.level or price~=cost then return false,"The upgrade changed. Try again." end
  if session.coins<cost then return false,"Not enough cash for this upgrade." end
  session.coins-=cost;state.level+=1;session:Touch()
@@ -318,12 +318,26 @@ function EggService:PreserveCargo(session,yard,now)
  yard.revision+=1
 end
 
+-- The vacuum parks while the opening guide teaches collecting and selling, so the
+-- player learns both by hand. It resumes once those lessons pass, the guide
+-- completes or the player skips it. Counting rules are unchanged.
+local function incomeLessonActive(session)
+ local t=session.tutorial
+ if type(t)~="table" or t.guideSkipped or t.guideCompleted then return false end
+ if t.soldEggs==true and TutorialGuide.CollectedEggCount(t)>=TutorialGuide.EggGoal then return false end
+ -- Facts only reads the flock size, so placeholders stand in for the chickens.
+ return TutorialGuide.IncomeLessonActive({tutorial=t,pets=table.create(session:Count(),true),
+  firstWins=session.firstWins,kingCleared=session.kingCleared})
+end
+EggService.IncomeLessonActive=incomeLessonActive
+
 function EggService:UpdateRover(session,yard,dt,now)
  local pad,ownerId=self.world:EggDeposit(session.plotIndex)
  local enabled=session:AutomaticEnabled("AutoCollectEggs")
   or (RunService:IsStudio() and session.commerceTestPreset==nil
    and workspace:GetAttribute(VacuumConfig.StudioTestAttribute)==true)
  enabled=enabled and pad~=nil and pad:IsA("BasePart") and ownerId==session.userId
+  and not incomeLessonActive(session)
  if not enabled then
   if yard.rover and yard.rover.enabled then self:PreserveCargo(session,yard,now) end
   return

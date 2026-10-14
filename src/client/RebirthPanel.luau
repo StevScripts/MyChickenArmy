@@ -23,20 +23,19 @@ local RED=Color3.fromRGB(255,107,83)
 local HOLD_SECONDS=2
 -- October 13 redesign (simulator rebirth pattern): rank → next rank, two
 -- before → after reward pills, one reset line, a cost bar and the hold button.
-local RESET_LINE="Resets cash, Egg Speed, Egg Value, Luck and camps"
-local KEEP_LINE="Keeps chickens, Giants, research, plot and army size"
+-- Matches RebirthService:Rebirth step 6 (coins, eggSpeedLevel, incomeLevel, luck,
+-- camp wins and the King); everything else is kept.
+local RESET_LINE="Resets Cash, Egg Speed, Egg Value, Luck, camps and the King"
+local KEEP_LINE="Keeps chickens, Giants, research, plot and Army size"
 local ENEMY_RED=Color3.fromRGB(232,62,48)
 
-local NUMERALS={{1000,"M"},{900,"CM"},{500,"D"},{400,"CD"},{100,"C"},{90,"XC"},{50,"L"},{40,"XL"},{10,"X"},{9,"IX"},{5,"V"},{4,"IV"},{1,"I"}}
--- Fallback title while only the foundation stub quote is available.
+-- Player-facing rank names are "Rebirth 1", "Rebirth 2", … (October 14 glossary;
+-- "Veteran/Elite/Royal" are Invasion tier names only). The server quote's
+-- title/nextTitle strings are ignored for display; only the rank numbers count.
 function Panel.Title(rank: number): string
 	rank=math.max(0,math.floor(rank or 0))
-	if rank==0 then return "Recruit" end
-	local text=""
-	for _,pair in NUMERALS do
-		while rank>=pair[1] do text..=pair[2];rank-=pair[1] end
-	end
-	return "Veteran "..text
+	if rank==0 then return "No rebirths yet" end
+	return "Rebirth "..rank
 end
 
 -- The foundation stub carries only {rank, eligible, reason}; the full quote adds
@@ -49,6 +48,17 @@ local function enabled(quote): boolean
 	if type(quote)~="table" then return false end
 	if quote.enabled==nil then return true end
 	return quote.enabled==true
+end
+
+-- The next rank's name, or nil at the maximum (the server omits nextTitle/nextRank).
+local function nextName(quote): string?
+	if type(quote)~="table" then return nil end
+	local rank=tonumber(quote.rank) or 0
+	if full(quote) then
+		if quote.nextTitle==nil and quote.nextRank==nil then return nil end
+		return Panel.Title(tonumber(quote.nextRank) or rank+1)
+	end
+	return Panel.Title(rank+1)
 end
 
 local function multiplier(value,decimals)
@@ -181,13 +191,14 @@ function Panel:RenderHex()
 	view.title.TextOutline.Transparency=if locked then .35 else 0
 	view.status.Text=if not complete then (quote.reason or "Coming soon")
 		elseif not king then "Defeat the Chicken King"
-		elseif eligible then "Tap to rebirth"
+		elseif eligible then "Ready to rebirth"
+		elseif cost and coins<cost then "Need "..money(cost-coins).." more"
 		else quote.reason or (if cost then money(cost) else "")
 	view.status.TextColor3=if eligible then WHITE elseif locked then Color3.fromRGB(176,176,176) else RED
 	view.track.Visible=king and (cost~=nil or eligible)
 	view.progress.Size=UDim2.fromScale(ratio,1)
 	view.progress.BackgroundColor3=if eligible then Color3.fromRGB(176,255,1) else GREEN
-	local nextTitle=if complete then quote.nextTitle else Panel.Title((tonumber(quote.rank) or 0)+1)
+	local nextTitle=nextName(quote)
 	view.badge.Visible=nextTitle~=nil
 	view.badgeText.Text=nextTitle or ""
 	view.hint.Visible=UserInputService.GamepadEnabled
@@ -210,9 +221,15 @@ function Panel:Open()
 	self.fromResearch=research~=nil and research.root.Visible
 	-- Acquire the blur before closing the other menu so its exit cannot clear it.
 	self.app:SetMenuBlur("rebirth",true)
-	self.app:ClosePanel()
-	self.app.offlineCash:Dismiss(true)
-	if self.app.dailyReward then self.app.dailyReward:Dismiss(true) end
+	-- One modal at a time (also closes Invasions and the Upgrades tree; Close
+	-- reopens the tree when Rebirth came from it).
+	if self.app.CloseOtherMenus then self.app:CloseOtherMenus("rebirth")
+	else
+		self.app:ClosePanel()
+		self.app.offlineCash:Dismiss(true)
+		if self.app.dailyReward then self.app.dailyReward:Dismiss(true) end
+		if self.app.operationsPanel then self.app.operationsPanel:Dismiss(true) end
+	end
 	self.previousSelection=GuiService.SelectedObject
 	self.message,self.messageColor=nil,nil
 	self:Build()
@@ -369,10 +386,10 @@ function Panel:RenderPanel()
 	local quote=self.quote
 	if type(quote)~="table" then return end
 	local rank=tonumber(quote.rank) or 0
-	local nextTitle=quote.nextTitle
-	self.title.Text=if nextTitle then "Rebirth to "..nextTitle else "Rebirth"
+	local nextTitle=nextName(quote)
+	self.title.Text=nextTitle or "Rebirth"
 	-- Rank row.
-	self.nowName.Text=quote.title or Panel.Title(rank)
+	self.nowName.Text=Panel.Title(rank)
 	self.nowBadge.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
 	self.nextName.Text=nextTitle or "Max rank"
 	self.nextBadge.Image=Theme.Assets.Reenlist
@@ -406,7 +423,7 @@ function Panel:RenderPanel()
 	local reason=quote.reason or "Not ready yet"
 	if needKing then reason="Defeat the Chicken King"
 	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more"
-	elseif quote.armyHome==false then reason="Bring your army home first" end
+	elseif quote.armyHome==false then reason="Bring your Army home first" end
 	hold.Text=if self.pending then "Rebirthing…" elseif can then "Hold to rebirth" else reason
 	local tint=if can or self.pending then GREEN else Theme.ActionColors.disabled
 	if hold.BackgroundColor3~=tint then
@@ -508,13 +525,13 @@ function Panel:Dismiss(immediate)
 end
 
 function Panel:Celebrate(quote)
-	local title=quote.title or Panel.Title(tonumber(quote.rank) or 0)
+	local title=Panel.Title(tonumber(quote.rank) or 0)
 	self.app.audio:Play("Victory",nil,{noFallback=true})
 	-- UIMotion skips the burst under reduced motion.
 	if not self.app.reducedMotion and self.app.gui and self.app.gui:FindFirstChild("Shell") then
 		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(.5,.45),GREEN)
 	end
-	self.app:Notify("You are now "..title,true)
+	self.app:Notify(title.." complete!",true)
 end
 
 function Panel:Render(state,result)

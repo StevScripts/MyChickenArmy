@@ -862,6 +862,13 @@ function Theme.Money(value)
 	return (if whole<0 then "-" else "")..grouped
 end
 
+-- HUD wallet: exact whole cash below a million, then compact ($8.05B) so it fits.
+function Theme.CompactMoney(value)
+	local whole=math.floor(value or 0)
+	if math.abs(whole)<1000000 then return Theme.Money(whole) end
+	return Theme.Number(whole)
+end
+
 function Theme.SegmentedBar(parent,name,size,segments)
 	local track=Theme.Frame(parent,name,size,Theme.Arcade.border)
 	Theme.Round(track,7);Theme.Stroke(track,Theme.Arcade.border,3)

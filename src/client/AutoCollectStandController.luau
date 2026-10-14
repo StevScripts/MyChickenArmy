@@ -16,6 +16,9 @@ local BOB_SECONDS = 1.8
 local BOB_HEIGHT = 0.24
 local MOTION_DISTANCE = 80
 local PRICE_REFRESH_SECONDS = 120
+local LABEL_DISTANCE = 55
+-- {top, height} as billboard scale; small gaps keep outlines from touching.
+local LABEL_ROWS = {Title = {0, 0.4}, Price = {0.43, 0.33}, Hint = {0.79, 0.21}}
 
 function Stand.new(app)
 	local ray = RaycastParams.new()
@@ -36,6 +39,7 @@ function Stand:Bind(source)
 		or not offer or not offer:IsA("BillboardGui") or not plot then return end
 	local gui = offer:Clone()
 	gui.Adornee, gui.Enabled, gui.ResetOnSpawn = anchor, true, false
+	self:Layout(gui)
 	gui.Parent = self.playerGui
 	local view = {source=source, pad=pad, padFrame=pad.CFrame, preview=preview,
 		previewFrame=preview:GetPivot(), gui=gui, offer=offer, offerEnabled=offer.Enabled,
@@ -63,6 +67,28 @@ function Stand:Bind(source)
 	table.insert(view.connections, source.AncestryChanged:Connect(function()
 		if not source:IsDescendantOf(self.world) then self:Unbind(source) end
 	end))
+end
+
+-- The authored world-sized billboard shrinks with distance while its labels kept
+-- a 10px minimum, so far away the three lines grew past their rows and overlapped.
+-- Re-stack the local clone only: title, status, hint in fixed non-overlapping
+-- rows that scale freely, hidden beyond reading distance.
+function Stand:Layout(gui)
+	gui.Size, gui.MaxDistance, gui.ClipsDescendants = UDim2.fromScale(6.2, 2.3), LABEL_DISTANCE, true
+	-- A layout object would override the explicit rows below.
+	for _, item in gui:GetChildren() do
+		if item:IsA("UIGridStyleLayout") then item:Destroy() end
+	end
+	for name, row in LABEL_ROWS do
+		local label = gui:FindFirstChild(name)
+		if not label or not label:IsA("TextLabel") then continue end
+		label.AnchorPoint, label.AutomaticSize = Vector2.zero, Enum.AutomaticSize.None
+		label.Position, label.Size = UDim2.fromScale(0, row[1]), UDim2.fromScale(1, row[2])
+		label.TextScaled, label.TextWrapped = true, false
+		label.TextXAlignment, label.TextYAlignment = Enum.TextXAlignment.Center, Enum.TextYAlignment.Center
+		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+		if limit then limit.MinTextSize = 1 end
+	end
 end
 
 function Stand:SetMotion(view, enabled)

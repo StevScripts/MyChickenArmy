@@ -1,6 +1,7 @@
 --!strict
 -- Draws every plot's world leaderboards (Leaderboard1 = Strongest Army,
--- Leaderboard2 = Top Supporters) from rankings the server publishes in
+-- Leaderboard2 = Top Rebirths since October 14; its SurfaceGui keeps the old
+-- Leaderboard_RobuxSpent name) from rankings the server publishes in
 -- ReplicatedStorage.PetRoll.Leaderboards. Presentation only; uses the shared
 -- UITheme kit: studded gradient header, dark content, outlined display text.
 local Players = game:GetService("Players")
@@ -19,7 +20,7 @@ local ROW_TOP, ROW_HEIGHT, ROW_GAP = 132, 70, 6
 local EMPTY_TILE = Color3.fromRGB(58, 62, 70)
 local STYLE = {
 	ArmyPower = {model = "Leaderboard1", color = Theme.PageColors.Army, icon = Theme.Assets.Army, valueColor = Theme.Arcade.gold},
-	RobuxSpent = {model = "Leaderboard2", color = Theme.PageColors.Shop, icon = Theme.Assets.Shop, valueColor = Theme.Arcade.green, money = true},
+	Rebirths = {model = "Leaderboard2", surface = "RobuxSpent", color = Theme.ReferenceColors.Army, icon = Theme.Assets.Reenlist, valueColor = Theme.Arcade.green},
 }
 local MEDALS = {Theme.Arcade.gold, Color3.fromRGB(198, 208, 220), Color3.fromRGB(219, 134, 64)}
 
@@ -89,7 +90,7 @@ function Boards:Attach(key: string, screen: BasePart)
 	if self.views[screen] then return end
 	local style = STYLE[key]
 	local gui = Instance.new("SurfaceGui")
-	gui.Name, gui.Adornee, gui.Face = "Leaderboard_" .. key, screen, Enum.NormalId.Left
+	gui.Name, gui.Adornee, gui.Face = "Leaderboard_" .. (style.surface or key), screen, Enum.NormalId.Left
 	gui.SizingMode, gui.CanvasSize = Enum.SurfaceGuiSizingMode.FixedSize, CANVAS
 	gui.LightInfluence, gui.MaxDistance, gui.ResetOnSpawn = 0, 160, false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling

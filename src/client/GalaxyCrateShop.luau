@@ -11,9 +11,9 @@ Shop.Height=0.405
 local WHITE=Color3.new(1,1,1)
 local BLACK=Color3.fromRGB(3,1,4)
 local PACKS={
- {key="OuterSpaceCrate10",quantity=10,top=Color3.fromRGB(255,234,18),bottom=Color3.fromRGB(255,168,23),border=Color3.fromRGB(173,121,0),rim=Color3.fromRGB(255,246,162)},
- {key="OuterSpaceCrate3",quantity=3,top=Color3.fromRGB(156,255,19),bottom=Color3.fromRGB(21,216,11),border=Color3.fromRGB(47,116,0),rim=Color3.fromRGB(208,255,138)},
  {key="OuterSpaceCrate1",quantity=1,top=Color3.fromRGB(156,255,19),bottom=Color3.fromRGB(21,216,11),border=Color3.fromRGB(47,116,0),rim=Color3.fromRGB(208,255,138)},
+ {key="OuterSpaceCrate3",quantity=3,top=Color3.fromRGB(156,255,19),bottom=Color3.fromRGB(21,216,11),border=Color3.fromRGB(47,116,0),rim=Color3.fromRGB(208,255,138)},
+ {key="OuterSpaceCrate10",quantity=10,top=Color3.fromRGB(255,234,18),bottom=Color3.fromRGB(255,168,23),border=Color3.fromRGB(173,121,0),rim=Color3.fromRGB(255,246,162)},
 }
 local STATUS={pending="Check Roblox",preparing="Checking…",unconfigured="Coming soon",loading="Loading…",
  offsale="Off sale",error="Retry price",checking="Checking…",ownership="Retry check",profile="Check save",

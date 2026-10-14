@@ -14,7 +14,7 @@ function RollService.new()
 end
 
 function RollService:Roll(session, now: number)
-	if now < session.rollReadyAt then return false, "Roll is cooling down." end
+	if now < session.rollReadyAt then return false, "Roll ready in " .. math.max(1, math.ceil(session.rollReadyAt - now)) .. "s." end
 	local starter = session:StarterRecruitPending()
 	-- Rank metadata remains compatible with saved sessions; rolls use the full roster.
 	session.recruitTier=session.promotion
@@ -91,12 +91,12 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local selected=table.find(after,pet.id)~=nil
 	local assignment=if not selected then "Reserve" elseif #after>#before then "Added" else "Replacement"
 	local pending=selected and context and context.phase~="Returning" and context.battleId or nil
-	local status=if not selected then "Reserve · eggs +$"..session:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation).."/s at home."
+	local status=if not selected then "Reserve · eggs +$"..session:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation).."/s at your base."
 		elseif session.armyState=="Returning" then "Ready when your army gets home."
 		elseif session:IsArmyLocked() and pending then "Joining your army on foot."
 		elseif session:IsArmyLocked() then "Ready for your next deployment."
-		elseif assignment=="Added" then "Squad "..#before.." → "..#after.."."
-		else "Stronger squad."
+		elseif assignment=="Added" then "Army "..#before.." → "..#after.."."
+		else "Your army got stronger."
 	return true, "Bought " .. Catalog[species].name .. " Lv " .. level .. ". "..status, pet.id, {
 		assignment=assignment,selectedBefore=#before,selectedAfter=#after,
 		pendingBattleId=pending,deferredUntilContestEnds=false,

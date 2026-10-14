@@ -204,7 +204,7 @@ function GameServer:Handle(player,request)
 		ok,message=self.commerce:SetAutomatic(session,request.key,request.enabled)
 	elseif action=="Roll" or action=="Buy" then
 		if not self.world:CanUseStation(player,session,request.stationIndex,action,request.offerId) then
-			message="Walk up to your own pet rolling station."
+			message="Walk up to your own roll machine."
 		elseif action=="Roll" then
 			ok,message=self.rolls:Roll(session,now)
 			if ok then for _,offer in session.offers or {} do
@@ -234,11 +234,11 @@ function GameServer:Handle(player,request)
 	elseif action=="OpenSell" then message="Select a reserve chicken in the Army menu to sell it."
 	elseif action=="OpenMerge" or action=="Merge" or action=="MergeAll" then
   local unlocked,requirement=session:MergeAccess()
-  if not Config.Features.Merging then message="Merging is unavailable."
+  if not Config.Features.Merging then message="Fuse is unavailable."
   elseif not unlocked then message=requirement
   elseif not self.world:CanUseMergeStand(player,session,request.stationIndex) then
-   message="Walk to the merge stand at your base."
-  elseif action=="OpenMerge" then ok,message=true,"Choose matching chickens to merge."
+   message="Walk to the Fuse Machine at your base."
+  elseif action=="OpenMerge" then ok,message=true,"Choose three matching chickens to fuse."
   elseif action=="MergeAll" then
    ok,message,receipt=ArmyService.MergeAll(session,request.triples)
    if ok then
@@ -269,16 +269,16 @@ function GameServer:Handle(player,request)
 	elseif action=="Income" then ok,message=ArmyService.UpgradeIncome(session)
  elseif action=="Luck" then ok,message=self.rolls:UpgradeLuck(session)
  elseif action=="Attack" then
-  if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Approach the camp and press E to send your army."
+  if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Walk to the camp and use Send Army."
   else ok,message=self.armyCommands:Attack(session,request.targetId,now) end
  elseif action=="UnclaimTerritory" then
-  if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Approach your conquered base to unclaim it."
+  if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Walk to your captured camp to unclaim it."
   else ok,message=self.battles:Unclaim(session,request.targetId,now) end
  elseif action=="CallArmy" then
   ok,message=self.armyCommands:CallArmy(player,session,now)
  elseif action=="GoBase" then
   ok,message=self.armyCommands:GoBase(player,session,now)
-	elseif action=="Retreat" or action=="ReturnHome" then message="Manage your lineup in My Army. Chickens walk to and from the fight."
+	elseif action=="Retreat" or action=="ReturnHome" then message="Choose your Army in the Army menu. Chickens walk to and from the fight."
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
 	elseif action=="Admin" then ok,message=self.admin:Run(player,request.text)
 	elseif action=="TestNewPlayer" then
@@ -550,7 +550,7 @@ function GameServer:Start()
 	for _,player in Players:GetPlayers() do task.spawn(function() self:AddPlayer(player) end) end
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt) self:Step(dt) end))
 	game:BindToClose(function() self:Shutdown() end)
- print("[PetRoll] My Chicken Army! "..Config.Version.." ready. Yard chickens lay eggs; collect them for coins.")
+ print("[PetRoll] My Chicken Army! "..Config.Version.." ready. Yard chickens lay eggs; collect them for cash.")
 end
 
 -- The only BindToClose path: settle eggs, release every profile within the

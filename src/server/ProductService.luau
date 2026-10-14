@@ -71,12 +71,18 @@ function ProductService:_ProcessReceipt(receipt)
  local saved=self.data:CommitPurchase(session,receipt.PurchaseId,receipt.ProductId,function()
   -- This function must not yield. Recheck presence after waiting for an autosave.
   if not self:CanPurchase(session) then return false,"The player left during delivery." end
+  local cash=product.coins
+  if product.incomeMinutes~=nil and product.coins~=nil and type(session.PackIncome)=="function" then
+   -- Above the floor, a payout near the wallet cap trims instead of waiting.
+   cash=math.max(product.coins,math.min(ShopCatalog.CashPackAmount(product,session:PackIncome()),MaxCoins-session.coins))
+  end
   if product.finishEggs==true then
    if not EggProcessor.GrantFinish(session.eggProcessor) then return false end
   elseif product.coins~=nil and product.crates==nil and integer(product.coins,1,MaxCoins)
-   and integer(session.coins,0,MaxCoins-product.coins) then
-   -- Exact purchased amount: earned-income passes never multiply paid currency.
-   session.coins+=product.coins
+   and integer(cash,product.coins,MaxCoins) and integer(session.coins,0,MaxCoins-cash) then
+   -- Minutes of current income, never below the listed floor. Earned-income
+   -- passes never multiply paid currency (PackIncome excludes 2x Cash).
+   session.coins+=cash
   elseif product.crates~=nil and product.coins==nil and integer(product.crates,1,MaxCrates)
    and integer(session.crateCredits,0,MaxCrates-product.crates) then
    session.crateCredits+=product.crates

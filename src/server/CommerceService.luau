@@ -14,6 +14,11 @@ CommerceService.__index = CommerceService
 local RefreshSeconds = 8
 local AutomaticRetries = 2
 
+-- Income behind cash pack payouts (ProductService delivers the same rule).
+local function packIncome(session): number?
+	return if type(session.PackIncome)=="function" then session:PackIncome() else nil
+end
+
 local function configured(id)
 	return type(id) == "number" and id > 0 and id < math.huge and id % 1 == 0
 end
@@ -221,6 +226,11 @@ function CommerceService:Snapshot(session)
 	local active = record and record.session == session and self:_Active(record)
 	for _, key in self.catalog.Order do owned[key] = active and session.entitlements[key] == true or false end
 	local testing = active and self:TestAllowed(session)
+	-- Current cash pack payouts for the Shop display (minutes of income, with a floor).
+	local cashPacks, income = {}, packIncome(session)
+	for key, product in self.catalog.Products do
+		if product.coins and not product.crates then cashPacks[key] = ShopCatalog.CashPackAmount(product, income) end
+	end
 	return {owned = owned, ready = active and (record.ready == true or record.testPreset ~= nil) or false,
 		testAllowed = testing == true, testPreset = if testing then record.testPreset or "Account" else nil,
 		checking = active and (record.busy or record.scheduled) == true or false,
@@ -231,6 +241,7 @@ function CommerceService:Snapshot(session)
 		-- Credits bought before a policy change stay saved; nothing is converted without a disclosed equivalent.
 		crateNotice=if active and record.policyReady==true and record.paidRandomAllowed~=true and session.crateCredits>0
 			then "Your Galaxy Crates are saved. Paid random items are unavailable for this account, so they stay unopened." else nil,
+		cashPacks=cashPacks,
 		luckOdds={withoutPass=Rules.Odds(session.luck,session.recruitTier,1,session.researchEffects.rollingLuck),withPass=Rules.Odds(session.luck,session.recruitTier,2,session.researchEffects.rollingLuck)}}
 end
 
@@ -245,7 +256,7 @@ function CommerceService:SetAutomatic(session,key,enabled)
 end
 
 function CommerceService:PreparePurchase(player,session,key,productReady)
- if self:TestAllowed(session) then return false,"Studio session: use F8 purchase presets; checkout is disabled." end
+ if self:TestAllowed(session) then return false,"Purchases are disabled in a test session." end
  if type(key)~="string" or #key>48 then return false,"Unknown shop item." end
  local definition=self.catalog.Definitions[key] or self.catalog.Products[key]
  local record=self.records[player.UserId]
@@ -254,7 +265,7 @@ function CommerceService:PreparePurchase(player,session,key,productReady)
   if not record.ready then return false,"Please wait while passes are checked." end
   if record.owned[key] then return false,"You already own this pass." end
  elseif not productReady then return false,"Purchases need a safely loaded, saved profile." end
- if definition.coins and session.coins>Currency.MaxCoins-definition.coins then return false,"Spend some coins before buying this pack." end
+ if definition.coins and session.coins>Currency.MaxCoins-definition.coins then return false,"Spend some cash before buying this pack." end
  if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
  if definition.crates and session.crateCredits>1e9-definition.crates then return false,"Open some crates before buying more." end
  if definition.crates and not self.catalog.Crate.enabled then return false,"Crate rewards are being prepared." end

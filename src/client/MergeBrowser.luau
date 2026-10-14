@@ -9,6 +9,7 @@ local Theme=require(script.Parent.UITheme)
 local Selection=require(script.Parent.MergeSelection)
 local Giant=require(Shared.GiantChicken)
 local Rules=require(Shared.Rules)
+local Config=require(Shared.Config)
 local Mutations=require(Shared.MutationCatalog)
 local MutationVFX=require(script.Parent.SpecialChickenVFX)
 local Presentation=require(script.Parent.MergePresentation)
@@ -344,8 +345,8 @@ function Browser:RenderSlots()
   else "Lv. "..level
  local pity=tonumber(self.app.state and self.app.state.giantPity) or 0
  local left=math.max(1,Giant.PityLimit-pity)
- self.tradeoff.Text=if not recipe then "3 matching chickens → 1 level higher"
-  elseif kind=="Colossal" then "Stays Colossal · army +"..math.floor(Giant.ColossalArmyDamage*100+0.5).."% damage"
+ self.tradeoff.Text=if not recipe then "Fusing is the only way to get Giants"..(if pity>0 then " · one guaranteed in "..left else "")
+  elseif kind=="Colossal" then "Stays Colossal · Army +"..math.floor(Giant.ColossalArmyDamage*100+0.5).."% damage"
   elseif kind=="ColossalChance" then string.format("3 Giants · %g%% Colossal chance",Giant.ColossalFromGiantsChance*100)
   elseif kind=="Giant" then "Stays a Giant · ×"..Giant.HealthMultiplier.." HP, ×"..Giant.DamageMultiplier.." damage"
   elseif left<=1 then "GIANT guaranteed this fusion!"
@@ -383,6 +384,23 @@ function Browser:UpdateAction()
  Theme.ApplyReferenceAccent(self.action,if ready then ACCENT else ColorSequence.new(Color3.fromRGB(50,24,66),Color3.fromRGB(37,17,49)))
  self.action.Visual.Face.InsetHighlight.UIStroke.Color=if ready then Color3.fromRGB(224,167,255) else LINE
  self.action.Visual.Caption.TextColor3=if ready then WHITE else MUTED
+end
+
+-- ArmyService only offers trios below the camp-earned fusion level cap (sent per
+-- chicken as levelCap). When 3+ matching chickens sit at that cap, say why they
+-- are missing from the picker. Returns nil when nothing is held back.
+function Browser:CapHint(): string?
+ local groups={}
+ local cap
+ for _,pet in self.app.state.pets or {} do
+  local limit=tonumber(pet.levelCap)
+  if limit and limit<Config.MaxPetLevel and (pet.level or 1)>=limit and not pet.favorite then
+   local key=pet.species..":"..tostring(pet.level)..":"..tostring(pet.stars)
+   groups[key]=(groups[key] or 0)+1
+   if groups[key]>=3 then cap=limit end
+  end
+ end
+ return if cap then "Win more camps to fuse past Lv "..cap else nil
 end
 
 function Browser:RenderPicker()
@@ -437,7 +455,7 @@ function Browser:RenderPicker()
  local empty=#available==0
  self.empty.Visible,self.hint.Visible,self.emptyIcon.Visible=empty,empty,empty
  self.empty.Text=if self.query~="" then "No matches" else "No matching trio yet"
- self.hint.Text=if self.query~="" then "Try another name." else "Collect 3 matching chickens."
+ self.hint.Text=if self.query~="" then "Try another name." else self:CapHint() or "Collect 3 matching chickens."
  self.back.Text=if empty and self.query~="" then "Clear search" else "Back"
  self.fitGrid()
 end
@@ -445,7 +463,7 @@ end
 function Browser:Render(force)
  if not self.app.state then return end
  if not self.pending and not self.animating and self.selection:Reconcile(self.app.state.mergeOptions) then
-  self.notice="Your flock changed. Choose available chickens.";self.key=""
+  self.notice="Your Flock changed. Choose available chickens.";self.key=""
  end
  if self.pending then self.mode="Processing" end
  local recipe=self.selection:Recipe(self.app.state.mergeOptions)
@@ -454,7 +472,8 @@ function Browser:Render(force)
  self:Resize()
  self.message.RichText=true
  self.main.Visible,self.action.Visible=self.mode=="Main",self.mode=="Main"
- self.tradeoff.Visible=self.mode=="Main" and self.selection:Count()==3
+ -- Always visible in the main view: the Giant line before a trio is chosen.
+ self.tradeoff.Visible=self.mode=="Main"
  self.picker.Visible=self.mode=="Picker"
  self.summary.Visible,self.done.Visible=self.mode=="Result",self.mode=="Result"
  self.processing.Visible=self.mode=="Processing"
@@ -467,10 +486,13 @@ function Browser:Render(force)
   if not self.notice and not self.costNotice and kept then
    self.message.Text=string.format('Keeps the best mutation: <font color="#%s">%s</font>',kept.color:ToHex(),kept.name)
    self.message.Visible=true
+  elseif not self.notice and not self.costNotice and self.selection:Count()==0 then
+   local capped=self:CapHint()
+   if capped then self.message.Text,self.message.Visible=capped,true end
   end
  elseif self.mode=="Picker" then self:RenderPicker()
  elseif self.mode=="Processing" then
-  self.processingText.Text=if self.pending and self.pending.checking then "Checking your flock…" else "Fusing…"
+  self.processingText.Text=if self.pending and self.pending.checking then "Checking your Flock…" else "Fusing…"
   self.processingHint.Text=if self.pending and self.pending.checking then "You can close this while we check." else ""
  end
  self.root:SetAttribute("FusePhase",self.mode)
@@ -533,7 +555,7 @@ function Browser:Receive(result)
   return
  else
   if self.presentation then self.presentation:Destroy();self.presentation=nil end
-  self.notice=if result.ok then "Fusion was not completed. Choose your chickens again." else (result.message or "Your flock changed. Choose available chickens.")
+  self.notice=if result.ok then "Fusion was not completed. Choose your chickens again." else (result.message or "Your Flock changed. Choose available chickens.")
   self.mode="Main"
  end
  self:Render(true)

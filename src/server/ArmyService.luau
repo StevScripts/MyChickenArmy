@@ -40,13 +40,13 @@ function ArmyService.SetSelection(session,petIds,expectedIds)
 	-- Atomic and non-yielding: never accept client power, capacity, stats or ownership.
 	session.armySelection=ids
 	session:RefreshArmy();session:Touch()
-	return true,"Army updated. Your manual lineup will stay selected."
+	return true,"Army updated."
 end
 
 function ArmyService.SelectBest(session)
 	session.armySelection=nil
 	session:RefreshArmy();session:Touch()
-	return true,"Best chickens selected. Automatic selection is on."
+	return true,"Best chickens selected."
 end
 
 local function formationSlot(session,slot)
@@ -112,7 +112,7 @@ end
 
 function ArmyService.Favorite(session, petId)
 	local pet = if type(petId)=="string" then session.pets[petId] else nil
-	if not pet then return false, "Select an owned animal." end
+	if not pet then return false, "Select one of your chickens." end
 	pet.favorite = not pet.favorite
 	session:Touch()
 	return true, if pet.favorite then "Chicken protected from selling." else "Chicken unprotected."
@@ -208,7 +208,7 @@ local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expect
 	local a,b,c=session.pets[firstId],session.pets[secondId],session.pets[thirdId]
 	for _,pet in {a or false,b or false,c or false} do
 		if not mergeEligible(session,pet) then
-			return nil,"Choose unprotected home chickens below your merge level cap."
+			return nil,"Choose unprotected chickens at your base below your Fuse level cap."
 		end
 	end
 	local level,stars=a.level or 1,a.stars or 1
@@ -221,7 +221,7 @@ local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expect
 	local investment=(a.investment or Rules.Investment(a.species,level))
 		+(b.investment or Rules.Investment(b.species,level))+(c.investment or Rules.Investment(c.species,level))
 	if investment~=investment or investment<0 or investment>1e12 then
-		return nil,"This merge exceeds the saved investment limit."
+		return nil,"This fusion exceeds the saved investment limit."
 	end
 	return {first=a,second=b,third=c,level=level,investment=investment,price=price}
 end
@@ -284,7 +284,7 @@ end
 ArmyService.FusionMessage=fusionMessage
 
 function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
-	if not Config.Features.Merging then return false,"Merging is unavailable." end
+	if not Config.Features.Merging then return false,"Fuse is unavailable." end
 	local unlocked,requirement=session:MergeAccess()
 	if not unlocked then return false,requirement end
 	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
@@ -302,27 +302,27 @@ function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expect
 end
 
 function ArmyService.MergeAll(session,triples)
-	if not Config.Features.Merging then return false,"Merging is unavailable." end
+	if not Config.Features.Merging then return false,"Fuse is unavailable." end
 	local unlocked,requirement=session:MergeAccess()
 	if not unlocked then return false,requirement end
 	local limit=math.floor(Config.LegacyCollectionLimit/3)
-	if type(triples)~="table" or #triples<1 or #triples>limit then return false,"Choose matching groups to merge." end
+	if type(triples)~="table" or #triples<1 or #triples>limit then return false,"Choose matching groups to fuse." end
 	local validated,seen,count,total={},{},0,0
 	for index,request in triples do
 		count+=1
 		if count>limit or type(index)~="number" or index%1~=0 or index<1 or index>#triples or type(request)~="table" then
-			return false,"Invalid merge selection."
+			return false,"Invalid Fuse selection."
 		end
 		local triple,reason=mergeTriple(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
 		if not triple then return false,reason end
 		for _,pet in {triple.first,triple.second,triple.third} do
-			if seen[pet.id] then return false,"Each chicken can only merge once." end
+			if seen[pet.id] then return false,"Each chicken can only fuse once." end
 			seen[pet.id]=true
 		end
 		validated[index]=triple
 		total+=triple.price
 	end
-	if count~=#triples then return false,"Invalid merge selection." end
+	if count~=#triples then return false,"Invalid Fuse selection." end
 	if session:Count()-2*count<session:StarterFlockMinimum() then return false,"Keep your starter army for the first mission." end
 	local canSpend,spendReason=session:CanSpendCash(total)
 	if not canSpend then return false,spendReason end
@@ -336,13 +336,13 @@ function ArmyService.MergeAll(session,triples)
 	end
 	session.tutorial.upgraded=true;session:RefreshArmy();session:Touch()
 	local extra=if colossals>0 then " · "..colossals.." COLOSSAL!" elseif giants>0 then " · "..giants.." new GIANT"..(if giants>1 then "S" else "").."!" else ""
-	return true,"Merged "..count.." groups"..extra,{count=count,results=results,price=total}
+	return true,"Fused "..count.." "..(if count==1 then "group" else "groups")..extra,{count=count,results=results,price=total}
 end
 
 function ArmyService.AutoMerge(session)
-	if not Config.Features.Merging or not Config.Features.AutoMerging then return false,"Auto Merge is unavailable." end
+	if not Config.Features.Merging or not Config.Features.AutoMerging then return false,"Auto Fuse is unavailable." end
 	if not session.loaded or session.closing or session.saveLost or not session:AutomaticEnabled("AutoMerge") then
-		return false,"Auto Merge is off."
+		return false,"Auto Fuse is off."
 	end
 	local triples={}
 	local limit=math.floor(Config.LegacyCollectionLimit/3)
@@ -354,7 +354,7 @@ function ArmyService.AutoMerge(session)
 		end
 		if #triples>=limit then break end
 	end
-	if #triples==0 then return false,"No matching home chickens are ready." end
+	if #triples==0 then return false,"No matching chickens at your base are ready." end
 	return ArmyService.MergeAll(session,triples)
 end
 
@@ -388,7 +388,7 @@ end
 
 function ArmyService.Expand(session)
  local nextSlot=session:NextSlot()
- if not nextSlot then return false,"Your squad can already deploy "..session:Capacity().." chickens." end
+ if not nextSlot then return false,"Your army already has "..session:Capacity().." slots." end
  if not nextSlot.unlocked then return false,nextSlot.requirement.." first." end
  local canSpend,reason=session:CanSpendCash(nextSlot.price,"ArmySize")
  if not canSpend then return false,reason end
@@ -404,7 +404,7 @@ function ArmyService.Expand(session)
   end
  end
  session:RefreshArmy();session:Touch()
- return true,"Deployment capacity increased to "..session:Capacity().." chickens."
+ return true,"Army Size increased to "..session:Capacity().." chickens."
 end
 
 function ArmyService.UpgradeIncome(session)
@@ -420,7 +420,7 @@ end
 
 -- Older clients may still request promotion; cash upgrades do not require conquest.
 function ArmyService.Promote(_session)
- return false,"Promotion is unavailable. Buy available upgrades with cash; camps are not required."
+ return false,"Buy upgrades with cash in Upgrades."
 end
 
 return ArmyService

@@ -34,9 +34,14 @@ local function rolls(n: number): string
 	return n.." "..(if n==1 then "roll" else "rolls")
 end
 
-local function tileText(reward): string
-	if reward.minutes>0 and reward.rolls>0 then return reward.minutes.." min + "..rolls(reward.rolls) end
-	if reward.minutes>0 then return reward.minutes.." min cash" end
+-- The client has no income rate, so only today's tile (whose cash the server
+-- already granted) shows a dollar amount; other days describe minutes of income.
+local function tileText(reward,cash: number?): string
+	local money = if cash and cash>0 then "$"..Theme.Number(cash) else nil
+	if reward.minutes>0 and reward.rolls>0 then
+		return (money or reward.minutes.." min income").." + "..rolls(reward.rolls)
+	end
+	if reward.minutes>0 then return money or reward.minutes.." min of income" end
 	return rolls(reward.rolls)
 end
 
@@ -123,7 +128,7 @@ local function label(parent,name,value,size,color)
 end
 
 -- One day tile. States: done (ticked), today (highlighted), future (dim).
-local function tile(parent,index,today)
+local function tile(parent,index,today,todayCash)
 	local reward = TILES[index]
 	local item = Theme.Frame(parent,"Day"..index,UDim2.fromScale(0.13,if index==today then 1 else 0.9),Color3.new(1,1,1))
 	item.LayoutOrder = index
@@ -140,7 +145,7 @@ local function tile(parent,index,today)
 	Theme.Aspect(art,1)
 	local icon = if reward.minutes>0 then ShopArt.CashPile(art,CASH_TIER[index]) else Theme.Image(art,"Roll",Theme.Assets.Luck,UDim2.fromScale(1,1))
 	icon.Name,icon.ZIndex = "Icon",5
-	local text = label(item,"Reward",tileText(reward),18)
+	local text = label(item,"Reward",tileText(reward,if index==today then todayCash else nil),18)
 	text.Position,text.Size = UDim2.fromScale(0.05,0.68),UDim2.fromScale(0.9,0.29)
 	if done then
 		local tick = label(item,"Done","✓",40,DONE)
@@ -159,7 +164,13 @@ function Controller:Show(granted)
 	self:Dismiss(true)
 	-- Acquire before closing the main panel so its exit cannot clear our blur.
 	app:SetMenuBlur("daily",true)
-	app:ClosePanel()
+	-- One modal at a time: AppController closes every other menu.
+	if app.CloseOtherMenus then app:CloseOtherMenus("daily")
+	else
+		app:ClosePanel()
+		if app.operationsPanel then app.operationsPanel:Dismiss(true) end
+		if app.rebirthPanel then app.rebirthPanel:Dismiss(true) end
+	end
 	self.previousSelection = GuiService.SelectedObject
 	local gui = if app.editPreview then Theme.Container(app.other,"DailyStreak")
 		else Theme.InsetContainer(app.other,"DailyStreak",Enum.ScreenInsets.CoreUISafeInsets)
@@ -188,12 +199,16 @@ function Controller:Show(granted)
 	self.panelSize,self.panelPosition = panel.Size,panel.Position
 	local streak = math.max(1,granted.streak or 1)
 	local today = math.clamp(granted.slot or 1,1,#TILES)
-	local header = Theme.Header(panel,"Header","Day "..streak.." streak!",GOLD)
+	-- The header names the highlighted tile; a longer streak (past Day 7 the
+	-- tiles loop) is stated in the lead-in so the two never disagree.
+	local header = Theme.Header(panel,"Header","Day "..today.." reward!",GOLD)
 	local main = Theme.Container(panel,"Main")
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,GOLD:Lerp(Color3.new(0,0,0),0.55))
 	main.UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
-	local lead = label(main,"LeadIn","Come back every day for bigger rewards!",28)
+	local leadText = if streak>=2 then streak.."-day streak! Come back tomorrow for more."
+		else "Come back every day for bigger rewards!"
+	local lead = label(main,"LeadIn",leadText,28)
 	lead.Position,lead.Size = UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.1)
 	-- One row of seven at every width; tiles shrink with the native frame.
 	local row = Theme.Container(main,"Days")
@@ -204,14 +219,14 @@ function Controller:Show(granted)
 	list.Padding,list.Parent = UDim.new(0.012,0),row
 	local todayTile
 	for index=1,#TILES do
-		local item = tile(row,index,today)
+		local item = tile(row,index,today,granted.cash)
 		if index==today then todayTile = item end
 	end
 	local amount = label(main,"Amount",rewardText(granted),54,Color3.new(1,1,1))
 	amount.Position,amount.Size = UDim2.fromScale(0.04,0.6),UDim2.fromScale(0.92,0.15)
 	local gradient = Instance.new("UIGradient")
 	gradient.Color,gradient.Rotation,gradient.Parent = Theme.ReferenceGradients.Army,90,amount
-	local note = if (granted.rolls or 0)>0 then "✓ Free rolls join your flock when it has room" else "✓ Added to your cash"
+	local note = if (granted.rolls or 0)>0 then "✓ Free rolls join your Flock when it has room" else "✓ Added to your Cash"
 	local saved = label(main,"Saved",note,24,GREEN)
 	saved.Position,saved.Size = UDim2.fromScale(0.08,0.765),UDim2.fromScale(0.84,0.055)
 	local function close()

@@ -187,11 +187,17 @@ function Browser:Render(_force)
 			if state.discovered[species]==true then discovered[species]=true end
 		end
 	end
-	local found=0
+	-- Event-only chickens (Catalog .limited) appear only while their event runs
+	-- or once owned/discovered; otherwise they are hidden and not counted.
+	local eventOn=Config.Event and Config.Event.Enabled==true
+	local found,total=0,0
 	for _,species in Catalog.Order do
+		local shown=discovered[species]==true or not Catalog[species].limited or eventOn
+		self.cards[species].root.Visible=shown
+		if shown then total+=1 end
 		if discovered[species] then found+=1 end
 	end
-	self.app.panelTitle.Text="Chicken Index · "..found.."/"..#Catalog.Order
+	self.app.panelTitle.Text="Chicken Index · "..found.."/"..total
 	for _,species in Catalog.Order do
 		local view=self.cards[species]
 		local portraitScale=MenuLayout.Number(self.app.gui,"Index","PortraitScale",1.15,0.8,1.35)

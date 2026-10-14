@@ -24,6 +24,11 @@ local texturesRequested = false
 -- Only this many mutated chickens run particles at once; the rest keep the tint.
 local MAX_MUTATION_PARTICLES = 24
 local TINT_SCAN_SECONDS = 1
+-- October 14: a Giant/Colossal's scaled-up aura (e.g. a Colossal Galaxy Overlord's
+-- smoke) buried home stations. At home (no BattleId) Giants keep a faint aura:
+-- fewer, fainter particles. Battle restores the authored effect.
+local CALM_RATE = 0.2
+local CALM_OPACITY = 0.45
 local MUTATION_TINT: {[string]: Color3} = {
 	Golden = Color3.fromRGB(255, 214, 112),
 	Shadow = Color3.fromRGB(92, 78, 120),
@@ -150,6 +155,14 @@ local function scaleSequence(sequence: NumberSequence, scale: number): NumberSeq
 	return NumberSequence.new(keys)
 end
 
+local function fainter(sequence: NumberSequence): NumberSequence
+	local keys = {}
+	for _, key in sequence.Keypoints do
+		table.insert(keys, NumberSequenceKeypoint.new(key.Time, 1 - (1 - key.Value) * CALM_OPACITY, key.Envelope * CALM_OPACITY))
+	end
+	return NumberSequence.new(keys)
+end
+
 function Special.new(model: Model, audio: any?)
 	if model:GetAttribute("ChickenVisualV3") ~= true and model:GetAttribute("GalaxyDragonAnimation") ~= true then return nil end
 	return setmetatable({model = model, audio = audio, sound = nil, appearance = nil, body = nil, root = nil,
@@ -157,7 +170,7 @@ function Special.new(model: Model, audio: any?)
 		nextUpdate = 0, phase = phaseFor(model.Name), unit = 0, lastBurst = nil,
 		galaxy = nil, rainbow = nil, ownsGlitch = false,
 		mutation = nil, shells = {}, tints = {}, tintColor = nil, tintScanAt = 0,
-		mutationParticles = false, budgeted = false, orbits = false}, Special)
+		mutationParticles = false, budgeted = false, orbits = false, calm = false, authored = {}}, Special)
 end
 
 function Special._glitch(self: any, scale: number, alpha: number, twitch: number)
@@ -202,6 +215,8 @@ end
 
 function Special._clear(self: any)
 	if self.sound then self.sound:Destroy();self.sound=nil end
+	self:_calm(false)
+	table.clear(self.authored)
 	for _, effect in self.imported do
 		if effect.Parent then
 			effect.Enabled = false
@@ -262,7 +277,7 @@ function Special._emitter(self: any, anchor: Instance, key: string, color: Color
 	emitter.Enabled = false
 	emitter.Parent = anchor
 	table.insert(self.emitters, {instance = emitter, size = size, speed = speed, acceleration = acceleration,
-		rate = rate, burst = if key == "Code" and not mutation then 7 else 0, mutation = mutation == true})
+		rate = rate, transparency = transparency, burst = if key == "Code" and not mutation then 7 else 0, mutation = mutation == true})
 	if mutation then self.mutationParticles = true end
 	return emitter
 end
@@ -362,6 +377,10 @@ function Special._attach(self: any, body: MeshPart, root: BasePart, appearance: 
 		if (effect:IsA("ParticleEmitter") or effect:IsA("Beam") or effect:IsA("Trail") or effect:IsA("Light"))
 			and effect:GetAttribute("ImportedEffectEnabled") == true then
 			table.insert(self.imported, effect)
+			-- ScaleTo never touches Rate/Transparency, so these stay authored.
+			if effect:IsA("ParticleEmitter") then
+				self.authored[effect] = {rate = effect.Rate, transparency = effect.Transparency}
+			end
 		end
 	end
 	self.ownsGlitch = appearance == "Glitch"
@@ -423,6 +442,23 @@ function Special._place(self: any)
 		local world = center + root.CFrame:VectorToWorldSpace(offset * unit)
 		-- Neutral root orientation keeps rising smoke vertical despite bone axes.
 		record.instance.CFrame = body.CFrame:ToObjectSpace(CFrame.new(world) * root.CFrame.Rotation)
+	end
+end
+
+-- Plain property swap; no per-frame work. Size is left alone because ScaleTo
+-- owns it on imported emitters and _place owns it on generated ones.
+function Special._calm(self: any, calm: boolean)
+	if calm == self.calm then return end
+	self.calm = calm
+	for effect, saved in self.authored do
+		if effect.Parent then
+			effect.Rate = if calm then saved.rate * CALM_RATE else saved.rate
+			effect.Transparency = if calm then fainter(saved.transparency) else saved.transparency
+		end
+	end
+	for _, record in self.emitters do
+		record.instance.Rate = if calm then record.rate * CALM_RATE else record.rate
+		record.instance.Transparency = if calm then fainter(record.transparency) else record.transparency
 	end
 end
 
@@ -501,6 +537,8 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		-- Particles follow the graphics-quality distance; animated textures above keep 110.
 		and (camera.CFrame.Position - root.Position).Magnitude <= (cullDistance or CULL_DISTANCE)
 	if appearance == "Glitch" and model:GetAttribute("GlitchMeshStatus") ~= "ready" then visible = false end
+	local giant = model:GetAttribute("GiantSize")
+	self:_calm(type(giant) == "number" and giant > 0 and model:GetAttribute("BattleId") == nil)
 	-- Only nearby visible VFX get spatial audio. Empty authored IDs are silent.
 	if self.audio and not dragon then
 		local audible=visible and (camera.CFrame.Position-root.Position).Magnitude<=42

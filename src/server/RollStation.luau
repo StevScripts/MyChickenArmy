@@ -257,7 +257,10 @@ function RollStation:Step(now, force)
 	-- timing and audio belong together in RollPresentationController.
 	if not force and now - self.lastVisualAt < 0.1 then return end
 	self.lastVisualAt = now
-	self.offerGui.Enabled = canBuy
+	-- Low clutter: only the lever's own podium (slot 1) shows a hint while it is
+	-- empty; other empty podiums stay unlabeled.
+	local idle = self.slot == 1 and self.loaded and self.offer == nil
+	self.offerGui.Enabled = canBuy or idle
 	if rolling then
 		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	elseif self.offer then
@@ -280,7 +283,7 @@ function RollStation:Step(now, force)
 		self.top.Color = tint
 
 	else
-		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
+		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = if idle then "Pull the lever to roll" else "", "", ""
 		self.top.Color, self.light.Brightness = Color3.fromRGB(67, 181, 222), 0
 	end
 

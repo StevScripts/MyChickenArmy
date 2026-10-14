@@ -1,10 +1,9 @@
 --!strict
 -- Invasions (formerly Operations). October 14 story: after the Chicken King
--- falls, his loyalists land by airship beside the player's base; the army marches
+-- falls, his loyalists land by airship somewhere on the island; the army marches
 -- out to repel them. Tier tabs, three invasion cards and a detail pane with the
 -- enemy squad, power comparison, rewards and one big Defend. This module also
--- plays the short airship-arrival camera shot and the occasional "airships
--- spotted" alert. The server validates every Start/Leave.
+-- shows the occasional "loyalists are gathering" alert. The server validates every Start/Leave.
 local TweenService=game:GetService("TweenService")
 local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
@@ -16,6 +15,7 @@ local Catalog=require(Shared.PetCatalog)
 local Theme=require(script.Parent.UITheme)
 local MenuLayout=require(script.Parent.MenuLayout)
 local Portraits=require(script.Parent.ChickenPortraits)
+local TutorialGuide=require(Shared.TutorialGuide)
 local Panel={}
 Panel.__index=Panel
 
@@ -54,8 +54,9 @@ local function hitArea(parent,name,callback)
 	return button
 end
 
+-- Rewards of $1M or more read compactly ("$1.25M"); smaller amounts stay exact.
 local function money(value)
-	return "$"..Theme.Money(tonumber(value) or 0)
+	return "$"..Theme.CompactMoney(tonumber(value) or 0)
 end
 
 function Panel.new(app)
@@ -90,10 +91,14 @@ function Panel:Open()
 	self.tier=self.tier or self:DefaultTier(data)
 	self.selected=self.selected or self:DefaultMission(data,self.tier)
 	app:SetMenuBlur("operations",true)
-	app:ClosePanel()
-	if app.research and app.research.root.Visible then app.research:Close() end
-	app.offlineCash:Dismiss(true)
-	if app.dailyReward then app.dailyReward:Dismiss(true) end
+	-- One modal at a time: AppController closes every other menu (incl. Rebirth).
+	if app.CloseOtherMenus then app:CloseOtherMenus("operations")
+	else
+		app:ClosePanel()
+		if app.research and app.research.root.Visible then app.research:Close() end
+		app.offlineCash:Dismiss(true)
+		if app.dailyReward then app.dailyReward:Dismiss(true) end
+	end
 	self.previousSelection=GuiService.SelectedObject
 	self:BuildShell()
 	self:Refresh(true)
@@ -243,7 +248,7 @@ function Panel:BuildMissions(content,data)
 			self:Refresh()
 		end)
 	end
-	local note=label(content,"Rule","The King's loyalists land beside your base · your army marches out alone",.025,.825,.36,.05,MUTED,Enum.TextXAlignment.Center)
+	local note=label(content,"Rule","Loyalist airships land somewhere on the island",.025,.825,.36,.05,MUTED,Enum.TextXAlignment.Center)
 	note.TextWrapped=true
 	local formations=Theme.Button(content,"Formations","Formations",function() self.app:OpenPage("Formations") end,BLUE)
 	formations.Position,formations.Size=UDim2.fromScale(.065,.885),UDim2.fromScale(.28,.095)
@@ -256,7 +261,7 @@ function Panel:BuildSquad(parent,id)
 	if definition.boss then table.insert(tiles,{species=definition.boss.species,boss=true}) end
 	for _,group in definition.groups do table.insert(tiles,{species=group[1],level=group[2],count=group[3]}) end
 	local strip=card(parent,"Squad",0,.22,1,.3,Color3.fromRGB(16,20,24))
-	label(strip,"Heading","ENEMY SQUAD",.02,.02,.4,.2,MUTED)
+	label(strip,"Heading","ENEMY ARMY",.02,.02,.4,.2,MUTED)
 	local width=math.min(.2,.94/math.max(1,#tiles))
 	local gap=.015
 	local start=(1-(#tiles*width+(#tiles-1)*gap))/2
@@ -291,9 +296,9 @@ function Panel:BuildDetail(content,data,state)
 		local padlock=Theme.Image(lock,"Padlock",Theme.Assets.Padlock,UDim2.fromScale(.2,.7),UDim2.fromScale(.03,.15))
 		Theme.Aspect(padlock,1);padlock.ZIndex=6
 		local node=Research.Nodes[UNLOCK_NODES[tier]]
-		local text=if tier==1 then "Defeat the Chicken King or research "..node.name else "Research "..node.name.." to unlock"
+		local text=if tier==1 then "Defeat the Chicken King or unlock "..node.name.." in Upgrades" else "Unlock "..node.name.." in Upgrades"
 		label(lock,"Requirement",text,.25,.1,.72,.42,WHITE)
-		local view=Theme.Button(lock,"ViewResearch","View research",function()
+		local view=Theme.Button(lock,"ViewResearch","View in Upgrades",function()
 			app:OpenPage("Research");app.research:Center(node.id);app.research:Select(node.id,true)
 		end,BLUE)
 		view.Position,view.Size=UDim2.fromScale(.25,.56),UDim2.fromScale(.5,.32)
@@ -317,8 +322,9 @@ function Panel:BuildDetail(content,data,state)
 	local you=label(compare,"You","You "..Theme.Number(mine),.02,.05,.46,.9,WHITE)
 	local them=label(compare,"Them","Enemy "..Theme.Number(enemy),.52,.05,.46,.9,WHITE,Enum.TextXAlignment.Right)
 	you.ZIndex,them.ZIndex=8,8
-	local verdict=if mine>=enemy*1.25 then "Should win" elseif mine>=enemy*.8 then "Close fight" else "Very risky"
-	label(detail,"Verdict",verdict,.76,0,.24,.12,if mine>=enemy*1.25 then GREEN elseif mine>=enemy*.8 then GOLD else RED,Enum.TextXAlignment.Right)
+	-- Same wording and thresholds as camps (TutorialGuide.Difficulty).
+	local verdict=TutorialGuide.Difficulty(mine,enemy)
+	label(detail,"Verdict",verdict,.76,0,.24,.12,if verdict=="Very tough" then RED elseif verdict=="Close fight" then GOLD else GREEN,Enum.TextXAlignment.Right)
 	-- Rewards row.
 	local cleared=(data.wins or {})[id]==true
 	local reward=card(detail,"Reward",0,.69,.62,.12,Color3.fromRGB(30,40,22),GOLD)
@@ -377,7 +383,8 @@ function Panel:Dismiss(immediate: boolean?)
 end
 
 -- Every so often, while an Invasion is available and the army is home, a scout
--- reports airships and the HUD Invasions icon pulses. Cosmetic only.
+-- reports gathering loyalists and the HUD Invasions icon pulses. Cosmetic only;
+-- nothing attacks until the player chooses Defend.
 local ALERT_FIRST_SECONDS,ALERT_EVERY_SECONDS=180,600
 function Panel:StepAlert(state)
 	local data=state.operations
@@ -393,7 +400,7 @@ end
 
 -- The scout report itself (also reachable from Studio test tools).
 function Panel:ShowAlert()
-	self.app:Notify("Loyalist airships spotted on the island! Tap Invasions to repel them.","info")
+	self.app:Notify("Loyalists are gathering. Open Invasions to repel them.","info")
 	local icon=self.app.researchExtras and self.app.researchExtras.operations
 	local visual=icon and icon:FindFirstChild("Visual")
 	if visual and not self.app.reducedMotion then

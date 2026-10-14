@@ -34,6 +34,19 @@ function Guide.Facts(state)
 	}
 end
 
+-- The opening Collect/Sell lessons are underway: the guide has not been skipped
+-- or completed, its recruit-first route (legacy openings) is done, and either
+-- lesson is unfinished. The Auto Collect vacuum pauses meanwhile so a pass
+-- cannot finish the lessons by itself (EggService).
+function Guide.IncomeLessonActive(state)
+	local t = state.tutorial or {}
+	if t.guideSkipped or t.guideCompleted then return false end
+	local f = Guide.Facts(state)
+	if f.Win or (f.Collect and f.Sell) then return false end
+	if #(state.pets or {}) == 0 or (not t.starterArmy and not f.Recruit) then return false end
+	return true
+end
+
 local function step(id, text, target)
 	return {id=id, text=text, target=target}
 end
@@ -85,6 +98,33 @@ local function target(state, id)
 	return nil
 end
 
+-- Compact cash for one-line goals: 950, 12.5K, 3M, 1.2B.
+local CASH_STEPS: {number} = {1e12, 1e9, 1e6, 1e3}
+local CASH_SUFFIXES: {string} = {"T", "B", "M", "K"}
+local function shortCash(value: number?): string
+	local amount = math.max(0, math.floor(value or 0))
+	for index, size in CASH_STEPS do
+		if amount >= size then
+			local scaled = math.floor(amount / size * 10) / 10
+			return (if scaled % 1 == 0 then tostring(math.floor(scaled)) else tostring(scaled)) .. CASH_SUFFIXES[index]
+		end
+	end
+	return tostring(amount)
+end
+
+-- An open camp on another commander's lane, unless one is already held.
+local function rivalCamp(state)
+	if (state.holdCount or 0) >= (state.holdLimit or math.huge) then return nil end
+	local open = nil
+	for _, entry in state.targets or {} do
+		if entry.kind == "Camp" and entry.laneOwnerName ~= nil then
+			if entry.owned then return nil end
+			if entry.available and not open then open = entry end
+		end
+	end
+	return open
+end
+
 -- After the opening guide: one compact, snapshot-derived next goal. Never a
 -- prerequisite; cash upgrades and every target stay available as before.
 -- ignoreSkip: the world NEXT marker predates the guide and stays for skipped players.
@@ -93,20 +133,39 @@ function Guide.NextGoal(state, ignoreSkip)
 	local t = state.tutorial or {}
 	if t.guideSkipped and not ignoreSkip then return nil end -- Respect a hidden guide; Settings can resume it.
 	-- October 9: goals are opt-out (Settings). October 14 launch: after the King
-	-- they point once at Veteran Invasions (a King clear unlocks them), then end.
+	-- (or a Rebirth, which keeps them open) they point once at Veteran Invasions.
 	if t.goalsHidden then return nil end
 	local function goal(key, text, where)
 		local result = step("Goal:" .. key, text, where)
 		result.goal = true
 		return result
 	end
-	if state.kingCleared then
-		if state.incoming or state.outgoing then return nil end
-		local wins = (state.operations or {}).wins or {}
-		if wins["1:1"] or wins["1:2"] or wins["1:3"] then return nil end
-		return goal("Operations", "Repel the Scout Landing in Invasions", "Operations")
-	end
 	if state.incoming or state.outgoing then return nil end -- The battle UI owns this moment.
+	local rebirth = state.rebirth or {}
+	local rebirths = tonumber(rebirth.rank) or 0
+	-- After the first capture: point once at the Fuse Machine when it can be researched now.
+	if not state.mergeUnlocked and ((state.campsWon or 0) > 0 or state.kingCleared) then
+		local fuse = ((state.research or {}).offers or {}).FuseMachine
+		if fuse and fuse.status == "Available" then
+			return goal("Fuse", "Research the Fuse Machine in Upgrades", "Upgrades")
+		end
+	end
+	if state.kingCleared or rebirths >= 1 then
+		local wins = (state.operations or {}).wins or {}
+		if not (wins["1:1"] or wins["1:2"] or wins["1:3"]) then
+			return goal("Operations", "Repel the Scout Landing in Invasions", "Operations")
+		end
+	end
+	if state.kingCleared then
+		local cost = rebirth.cost
+		if rebirth.enabled ~= false and rebirth.nextRank and type(cost) == "number" and cost > 0
+			and (state.coins or 0) >= cost * 0.5 then
+			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready in Upgrades", "Upgrades") end
+			return goal("Rebirth", "Rebirth: $" .. shortCash(state.coins) .. " / $" .. shortCash(cost), "Upgrades")
+		end
+		if rivalCamp(state) then return goal("Rival", "Take a rival's camp for bonus egg value", nil) end
+		return nil
+	end
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
 		return goal("Return", "Collect eggs while your army returns", "Yard")
 	end
@@ -116,19 +175,22 @@ function Guide.NextGoal(state, ignoreSkip)
 		local entry = target(state, id)
 		if not entry then return nil end
 		if Guide.Difficulty(state.power, entry.power) == "Very tough" then
+			-- The cheapest helpful step first: Egg Value while it is affordable, then chickens.
+			local value = (state.boardUpgrades or {}).EggValue
+			if value and value.price and value.canSpend and value.unlocked ~= false then
+				return goal("Value", "Buy Egg Value in Upgrades to grow faster", "Upgrades")
+			end
 			return goal("Grow:" .. id, "Roll or upgrade chickens for " .. name, "RollStation")
 		end
 		return goal("Attack:" .. id, if id == "king:1" then "Challenge the Chicken King" else "Attack " .. name, where)
 	end
 	local camps = state.routeCamps or {}
-	if not state.kingCleared then
-		for index = 1, 10 do
-			local entry = target(state, "camp:" .. index)
-			if not entry then break end
-			if not camps[index] and not entry.owned then return attack(entry.id, entry.name, "Camp" .. index) end
-		end
-		if not state.ownsKing then return attack("king:1", "the King", "KingArena") end
+	for index = 1, 10 do
+		local entry = target(state, "camp:" .. index)
+		if not entry then break end
+		if not camps[index] and not entry.owned then return attack(entry.id, entry.name, "Camp" .. index) end
 	end
+	if not state.ownsKing then return attack("king:1", "the King", "KingArena") end
 	return nil
 end
 
@@ -174,7 +236,7 @@ function Guide.Resolve(state)
 	if not f.Select then
 		return step("Select", "My Army → Select Best", "Army")
 	end
-	return step("Deploy", "Cluck Camp → Move Troops Here", "Camp1")
+	return step("Deploy", "Cluck Camp → Send Army", "Camp1")
 end
 
 return Guide

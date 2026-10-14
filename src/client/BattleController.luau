@@ -40,7 +40,7 @@ local function capturePresentation(battle)
 		else (if territory then "Capturing · " else "Your control · ")..math.floor(value*100+0.001).."%"
 	return {completed=completed,paused=paused,value=value,stage=if enemy then "Enemy" else "Player",title=title,
 		color=if enemy and not completed then Theme.Arcade.red else Theme.Arcade.green,
-		detail=if reclaiming then battle.reclaimReason or "Squad defeated · returning home" elseif paused then (if territory then "Fighting pauses capture" elseif battle.waitingForArmy then "Waiting for your chickens to return" else "Defeat defenders to resume")
+		detail=if reclaiming then battle.reclaimReason or "Army defeated · returning home" elseif paused then (if territory then "Fighting pauses capture" elseif battle.waitingForArmy then "Waiting for your chickens to return" else "Defeat defenders to resume")
 			else battle.name or "Base",
 		active=reclaiming or battle.phase=="Capture" or (battle.captureStarted and battle.phase=="Fight")}
 end

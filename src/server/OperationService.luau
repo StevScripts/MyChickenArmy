@@ -26,7 +26,9 @@ end
 -- October 14 launch: a King clear opens Veteran Operations without research.
 -- Research S15 still opens them on its own; S16/S17 remain the Elite/Royal gates.
 function Service.Tier(session): number
-	return math.max(session.researchEffects.operations or 0, if session.kingCleared then 1 else 0)
+	-- Rebirth resets kingCleared; a rebirthed player keeps Veteran Invasions.
+	return math.max(session.researchEffects.operations or 0,
+		if session.kingCleared or (session.rebirths or 0)>=1 then 1 else 0)
 end
 function Service.LockedMessage(tier): string
 	return if tier==1 then "Defeat the Chicken King or research Coastal Watch first." else "Research this Invasion tier first."

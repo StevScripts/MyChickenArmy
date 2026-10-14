@@ -12,7 +12,7 @@ Champion chicken at 10 wins, rendered as a crowned gold copy of the classic Chic
 - **Clock** (`Config.Hill`): the first round opens 2 minutes after a server starts,
   then 5 minutes of Hill and 5 minutes of break repeat. A round waits to open
   until any King fight in the arena has finished. New King fights are refused for
-  the last 45 seconds of a break and during a round ("The Hill opens in 0:40").
+  during a round only (October 14: `KingLockSeconds=0`, the 45-second pre-round lock is removed; the Hill and King share one arena, so the round itself still locks it). The refusal names the wait ("The Hill fight is using the arena — the King opens in 2:10").
 - **Hill Guards:** an empty Hill is held by Ironbeak HQ-strength NPCs
   (`IncomeOutpost.NeutralRoster`). There's no unlock, so army strength is the gate.
 - **Holding:** a capture makes you the holder. Rivals who attack fight your chickens.

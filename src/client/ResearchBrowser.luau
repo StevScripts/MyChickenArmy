@@ -54,6 +54,11 @@ local RED=Color3.fromRGB(255,77,86)
 -- instant cash buys are gold with an INSTANT badge.
 local RESEARCH_RIM=Color3.fromRGB(0,226,250)
 local INSTANT_RIM=Color3.fromRGB(255,201,30)
+-- Owned/maxed tiles read as "done": a deep green fill, quiet rim, no glow and an
+-- OWNED (or MAX) badge, so only tiles you can still buy stay bright.
+local DONE_FILL=Color3.fromRGB(32,104,42)
+local DONE_RIM=Color3.fromRGB(104,178,96)
+local DONE_BADGE,DONE_BADGE_RIM=Color3.fromRGB(22,84,30),Color3.fromRGB(179,255,155)
 -- Only tiles you can buy right now glow at full strength; the rest sit back.
 local function dim(color) return color:Lerp(Color3.new(0,0,0),.5) end
 local function haloStrength(i,buyable) return 1-(if buyable then .045+i*.016 else .01+i*.004) end
@@ -62,6 +67,12 @@ local function setRim(view,rim)
 	if not view.flash or view.flash.PlaybackState~=Enum.PlaybackState.Playing then view.outline.ImageColor3=rim end
 end
 local TOOLTIP_WIDTH=.218
+-- Jump tabs pan to a ResearchCatalog branch; they never hide or filter nodes.
+local BRANCH_TABS={
+	{name="Farm",branch="Economy"},{name="Army",branch="Army"},
+	{name="Rolls",branch="Rolling"},{name="Command",branch="Command"},
+}
+local PAN_SECONDS=.35
 local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
 local MOTION={
@@ -316,8 +327,16 @@ function Browser.new(app,parent)
 		gradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.55,.15),NumberSequenceKeypoint.new(1,1)})
 		gradient.Parent=fade
 	end
-	self.banner=label(root,"OfflineMessage","Your research works offline!",.225,.03,.55,.044)
+	-- Screen title in the shared header lettering; the offline line is its subtitle.
+	local title=Theme.Display(root,"Title","Upgrades",50,WHITE)
+	title.Position,title.Size,title.ZIndex=UDim2.fromScale(.3,.01),UDim2.fromScale(.4,.06),5
+	title.TextScaled,title.TextXAlignment=true,Enum.TextXAlignment.Center
+	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,.055
+	title.TextShadow.TextTransparency,title.TextShadow.TextOutline.Enabled=.35,false
+	self.title=title
+	self.banner=label(root,"OfflineMessage","Your research works offline!",.3,.068,.4,.03,Color3.fromRGB(200,214,205))
 	self.banner.ZIndex=5
+	self:BuildBranchTabs()
 	local money=Theme.Container(root,"ResearchBalance")
 	money.AnchorPoint,money.Position,money.Size=Vector2.new(0,1),UDim2.fromScale(.012,.975),UDim2.fromScale(.26,.105)
 	Theme.Aspect(money,3.6);money.ZIndex=5
@@ -325,32 +344,12 @@ function Browser.new(app,parent)
 	self.researchers=label(money,"Researchers","Researchers: 0/1",.085,0,.915,.34,CYAN);self.researchers.TextXAlignment=Enum.TextXAlignment.Left
 	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.13,.53),UDim2.fromScale(0,.44))
 	self.cash=label(money,"Cash","$0",.15,.37,.85,.63,Theme.Colors.money);self.cash.TextXAlignment=Enum.TextXAlignment.Left
-	self.exit=Instance.new("TextButton")
-	self.exit.Name,self.exit.Text,self.exit.AutoButtonColor="Exit","",false
-	self.exit.BackgroundColor3,self.exit.BorderSizePixel=Color3.fromRGB(239,5,31),0
-	self.exit.AnchorPoint,self.exit.Position,self.exit.Size,self.exit.ZIndex=Vector2.new(.5,1),UDim2.fromScale(.5,.955),UDim2.fromScale(.155,.09),6
-	self.exit.Parent=root;self.exit.BackgroundTransparency=1;Theme.Aspect(self.exit,3.03)
-	for i=1,6 do
-		local spread=(7-i)*.045
-		local halo=Theme.Frame(self.exit,"RedHalo"..i,UDim2.fromScale(1+spread/3.03,1+spread),Color3.fromRGB(255,0,35))
-		halo.Position,halo.AnchorPoint,halo.BackgroundTransparency,halo.ZIndex=UDim2.fromScale(.5,.5),Vector2.new(.5,.5),.965,1
-		round(halo,.14)
-	end
-	local exitFace=Theme.Frame(self.exit,"Face",UDim2.fromScale(1,1),WHITE);exitFace.ZIndex=2;round(exitFace,.14)
-	exitFace.AnchorPoint,exitFace.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
-	self.exitMotion={button=self.exit,visual=exitFace}
-	self.exit.MouseEnter:Connect(function() self.exitMotion.hovered=true;self:RestNode(self.exitMotion) end)
-	self.exit.MouseLeave:Connect(function() self.exitMotion.hovered=false;self.exitMotion.pressed=false;self:RestNode(self.exitMotion) end)
-	self.exit.InputBegan:Connect(function(input)
-		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
-			self.exitMotion.pressInput=input;self.exitMotion.pressed=true;self:RestNode(self.exitMotion)
-		end
-	end)
-	Theme.Stroke(exitFace,Color3.fromRGB(85,0,10),3).LineJoinMode=Enum.LineJoinMode.Round
-	Theme.Gradient(exitFace,Color3.fromRGB(212,0,18),Color3.fromRGB(255,7,38))
-	local studs=Theme.Studs(exitFace,.045,28,0);studs:SetAttribute("StudScaleHeight",13);studs.ZIndex=3
-	local exitText=label(exitFace,"Caption","Exit",.08,.07,.84,.81);exitText.ZIndex=4;exitText.TextOutline.Thickness=.07
-	self.exit.Activated:Connect(function() self.app.audio:Play("Click");self:Close() end)
+	-- The shared square close X (Theme.HeaderClose's button and accent), in the
+	-- top-right corner like every other menu; large enough for a thumb on phones.
+	self.exit=Theme.ActionButton(root,"Exit","X",function() self.app.audio:Play("Click");self:Close() end,Theme.ActionColors.danger)
+	Theme.ApplyReferenceAccent(self.exit,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
+	self.exit.AnchorPoint,self.exit.Position,self.exit.Size,self.exit.ZIndex=Vector2.new(1,0),UDim2.fromScale(.985,.012),UDim2.fromScale(.14,.105),6
+	Theme.Aspect(self.exit,120/115)
 	self.message=label(root,"Feedback","",.15,.17,.70,.055,CYAN)
 	self.message.ZIndex,self.message.Visible=12,false
 
@@ -366,6 +365,81 @@ function Browser.new(app,parent)
 		if elapsed>=.25 then elapsed=0;if self.root.Visible then self:Step() end end
 	end))
 	return self
+end
+
+function Browser:BuildBranchTabs()
+	local row=Theme.Container(self.root,"BranchTabs")
+	row.AnchorPoint,row.Position,row.Size,row.ZIndex=Vector2.new(.5,0),UDim2.fromScale(.5,.097),UDim2.fromScale(.46,.07),6
+	Theme.Aspect(row,11)
+	local layout=Instance.new("UIListLayout")
+	layout.FillDirection,layout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
+	layout.HorizontalAlignment,layout.VerticalAlignment=Enum.HorizontalAlignment.Center,Enum.VerticalAlignment.Center
+	layout.Padding=UDim.new(.02,0);layout.Parent=row
+	self.tabs,self.tabButtons,self.tabLookup=row,{},{}
+	for index,tab in BRANCH_TABS do
+		local button=Theme.Button(row,"Tab"..tab.name,tab.name,function()
+			if not self.root.Visible then return end
+			self.app.audio:Play("Click");self:JumpBranch(index)
+		end,Theme.ActionColors.navigation)
+		button.Size,button.LayoutOrder,button.ZIndex=UDim2.fromScale(.235,1),index,6
+		button:SetAttribute("Branch",tab.branch)
+		self.tabButtons[index],self.tabLookup[button]=button,index
+	end
+end
+
+function Browser:SetActiveBranch(index)
+	self.activeBranch=index
+	for i,button in self.tabButtons do
+		button.BackgroundColor3=if i==index then Theme.ActionColors.selected else Theme.ActionColors.navigation
+	end
+end
+
+-- Smoothly centre a branch's revealed nodes (all of them if none are revealed).
+function Browser:JumpBranch(index)
+	local tab=BRANCH_TABS[index];if not tab then return end
+	local sum,count,all,allCount=Vector2.zero,0,Vector2.zero,0
+	for _,id in Catalog.Order do
+		local node=displayNodes[id]
+		if node.branch==tab.branch then
+			local p=point(node)
+			all+=p;allCount+=1
+			if self.nodes[id].button.Visible then sum+=p;count+=1 end
+		end
+	end
+	if allCount==0 then return end
+	local target=if count>0 then sum/count else all/allCount
+	local root=self.root.AbsoluteSize
+	if root.X<=0 or root.Y<=0 then return end
+	self:DismissTooltip()
+	self:SetActiveBranch(index)
+	local offset=target-Vector2.new(.5,.5)
+	self.pan=Vector2.new(-offset.X*root.Y/root.X*(1440/930)*self.zoom,-offset.Y*self.zoom)
+	self:ClampPan()
+	cancelTween(self,"panTween")
+	local goal=UDim2.fromScale(.5+self.pan.X,.5+self.pan.Y)
+	if self.app.reducedMotion then self.map.Position=goal;return end
+	self.panTween=TweenService:Create(self.map,TweenInfo.new(PAN_SECONDS,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Position=goal})
+	self.panTween:Play()
+end
+
+-- Gamepad: leave the tab row for the revealed node nearest the view's centre.
+function Browser:FocusNodes()
+	local root=self.root.AbsoluteSize
+	local center=Vector2.new(.5,.5)
+	if root.X>0 and root.Y>0 then
+		center=Vector2.new(.5-self.pan.X/(root.Y/root.X*(1440/930)*self.zoom),.5-self.pan.Y/self.zoom)
+	end
+	local best,score=nil,math.huge
+	for _,id in displayOrder do
+		local view=self.nodes[id]
+		if view.button.Visible and view.kind~="Hidden" then
+			local delta=point(displayNodes[id])-center
+			local value=Vector2.new(delta.X*1440,delta.Y*930).Magnitude
+			if value<score then best,score=id,value end
+		end
+	end
+	best=best or "Start"
+	self:Select(best,true);GuiService.SelectedObject=self.nodes[best].button
 end
 
 function Browser:BuildTooltip()
@@ -531,7 +605,6 @@ function Browser:ReleasePress(input,clearHover)
 		end
 	end
 	for _,view in self.nodes do release(view) end
-	release(self.exitMotion)
 end
 
 function Browser:ResetNodeMotion(view)
@@ -652,11 +725,11 @@ function Browser:Render()
 		local owned,active=state=="Completed",state=="Researching"
 		local preview=state=="Locked" and not hidden
 		local buyable=state=="Available" and #data.jobs<data.effects.slots
-		local rim=if owned then Color3.fromRGB(179,255,155) elseif active then Color3.fromRGB(170,255,255) elseif preview then Color3.fromRGB(34,40,37) elseif hidden then MUTED elseif buyable then RESEARCH_RIM else dim(RESEARCH_RIM)
+		local rim=if owned then DONE_RIM elseif active then Color3.fromRGB(170,255,255) elseif preview then Color3.fromRGB(34,40,37) elseif hidden then MUTED elseif buyable then RESEARCH_RIM else dim(RESEARCH_RIM)
 		if view.lastState~=state or view.lastHidden~=hidden then
 			cancelTween(view,"flash")
 			view.fill.Image=if owned or active then Assets.hexMask else Assets.hexFill
-			local color=if owned then GREEN elseif active then CYAN elseif preview then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
+			local color=if owned then DONE_FILL elseif active then CYAN elseif preview then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
 			view.fillColor=color
 			cancelTween(view,"tint")
 			if view.button.Visible and view.lastState and not self.app.reducedMotion then
@@ -667,20 +740,21 @@ function Browser:Render()
 		setRim(view,rim)
 		for i,halo in view.halos do
 			halo.ImageColor3=if owned then GREEN else CYAN
-			halo.ImageTransparency=if preview then 1 elseif hidden then .99 else haloStrength(i,buyable or active)
+			halo.ImageTransparency=if preview or owned then 1 elseif hidden then .99 else haloStrength(i,buyable or active)
 		end
 		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
 		view.icon.ImageTransparency,view.title.TextTransparency=if preview then .83 else 0,if preview then .77 else 0
 		view.title.TextOutline.Transparency=if preview then .8 else 0
 		if view.level then view.level.Visible=false end
-		-- Timed research: cyan clock badge with how long it takes.
-		view.badge.Visible=not hidden and not owned and not active and (offer.duration or node.duration or 0)>0
-		view.badge.BackgroundColor3=Color3.fromRGB(4,46,58)
-		view.badgeStroke.Color=RESEARCH_RIM
+		-- Timed research: cyan clock badge with how long it takes; green OWNED once done.
+		view.badge.Visible=not hidden and not active and ((owned and id~="Start") or (not owned and (offer.duration or node.duration or 0)>0))
+		view.badge.BackgroundColor3=if owned then DONE_BADGE else Color3.fromRGB(4,46,58)
+		view.badgeStroke.Color=if owned then DONE_BADGE_RIM else RESEARCH_RIM
 		badgeFade(view,if preview then .7 else 0)
-		view.clock.Visible=true
-		view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.28,.02),UDim2.fromScale(.66,.96)
-		view.badgeText.Text=shortTime(offer.duration or node.duration)
+		view.clock.Visible=not owned
+		if owned then view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.06,.02),UDim2.fromScale(.88,.96)
+		else view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.28,.02),UDim2.fromScale(.66,.96) end
+		view.badgeText.Text=if owned then "OWNED" else shortTime(offer.duration or node.duration)
 		view.badgeText.TextColor3=WHITE
 		view.cost.Visible=not hidden and not owned and not active and not preview
 		view.price.Text=priceText(offer.price)
@@ -716,21 +790,20 @@ function Browser:RenderCash(reveals)
 	for _,id in CashNodes.Order do
 		local node,view=CashNodes.Nodes[id],self.nodes[id]
 		local offer=self.cashOffers and self.cashOffers[node.upgradeKey]
-		local completed=if offer then CashNodes.Completed(node.upgradeKey,offer) else 0
-		local owned,nextTier=node.tier<=completed,node.tier==completed+1
+		-- One hex per track: it always shows the next tier, or MAX once the track is full.
+		local tier,maxed,completed=CashNodes.Shown(node.upgradeKey,offer)
+		local owned,nextTier=maxed,not maxed
 		local luck=node.upgradeKey=="Luck"
-		local maxed=owned and node.tier==node.maxTier
-		local visible=node.tier<=completed+2
-		local hidden=not owned and not nextTier
+		local visible,hidden=true,false
 		local state=if owned then "Completed" elseif hidden then "Hidden" else cashStatus(offer,self.coins or 0)
 		local waiting=nextTier and self.cashPending[node.upgradeKey]~=nil
 		local unavailable=state=="Unavailable"
 		local buyable=nextTier and state=="Available" and not waiting
-		local rim=if owned then Color3.fromRGB(179,255,155) elseif hidden or unavailable then MUTED elseif buyable then INSTANT_RIM else dim(INSTANT_RIM)
+		local rim=if owned then DONE_RIM elseif hidden or unavailable then MUTED elseif buyable then INSTANT_RIM else dim(INSTANT_RIM)
 		if view.lastState~=state then
 			cancelTween(view,"flash")
 			view.fill.Image=if owned then Assets.hexMask else Assets.hexFill
-			local color=if owned then GREEN elseif unavailable then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
+			local color=if owned then DONE_FILL elseif unavailable then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
 			view.fillColor=color
 			cancelTween(view,"tint")
 			if view.button.Visible and view.lastState and not self.app.reducedMotion then
@@ -741,7 +814,7 @@ function Browser:RenderCash(reveals)
 		setRim(view,rim)
 		for i,halo in view.halos do
 			halo.ImageColor3=if owned then GREEN else INSTANT_RIM
-			halo.ImageTransparency=if unavailable then 1 elseif hidden then .99 else haloStrength(i,buyable)
+			halo.ImageTransparency=if unavailable or owned then 1 elseif hidden then .99 else haloStrength(i,buyable)
 		end
 		view.title.Text=node.tileName
 		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
@@ -755,17 +828,17 @@ function Browser:RenderCash(reveals)
 		view.title.Position=UDim2.fromScale(.025,if nextTier then .53 else .665)
 		view.title.Size=UDim2.fromScale(.95,if nextTier then .1 else .12)
 		view.change.Position,view.change.Size=UDim2.fromScale(.07,.635),UDim2.fromScale(.86,.13)
-		-- Level badge instead of a timer: gold for the level you can buy, green once earned.
+		-- Level badge instead of a timer: gold with the owned level, green MAX once full.
 		view.badge.Visible=not hidden
 		view.clock.Visible=false
 		view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.06,.02),UDim2.fromScale(.88,.96)
 		if nextTier then
 			view.badge.BackgroundColor3,view.badgeStroke.Color=INSTANT_RIM,Color3.fromRGB(120,72,0)
-			view.badgeText.Text="LV "..node.tier.."/"..node.maxTier
+			view.badgeText.Text="LV "..completed.."/"..node.maxTier
 			view.badgeText.TextColor3=Color3.fromRGB(60,32,0)
 		else
-			view.badge.BackgroundColor3,view.badgeStroke.Color=Color3.fromRGB(22,84,30),Color3.fromRGB(179,255,155)
-			view.badgeText.Text=if maxed then "MAX" else "LV "..node.tier
+			view.badge.BackgroundColor3,view.badgeStroke.Color=DONE_BADGE,DONE_BADGE_RIM
+			view.badgeText.Text="MAX"
 			view.badgeText.TextColor3=WHITE
 		end
 		badgeFade(view,if unavailable then .5 else 0)
@@ -780,13 +853,13 @@ function Browser:RenderCash(reveals)
 		view.price.Position=UDim2.fromScale(if view.cashIcon.Visible then .28 else 0,0)
 		view.price.Size=UDim2.fromScale(if view.cashIcon.Visible then .72 else 1,1)
 		view.price.TextXAlignment=if view.cashIcon.Visible then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center
-		view.price.Text=if waiting then "…" elseif state=="Loading" then "Loading" elseif unavailable then "No space" else priceText(if nextTier and offer then offer.price or node.price else node.price)
+		view.price.Text=if waiting then "…" elseif state=="Loading" then "Loading" elseif unavailable then "No space" else priceText(if offer and offer.price then offer.price else tier.price)
 		view.price.TextColor3=if state=="Unaffordable" or unavailable then RED elseif waiting then CYAN else GREEN
 		if visible and (not view.button.Visible or view.lastHidden and not hidden) then table.insert(reveals,{id=id,new=not view.button.Visible}) end
 		view.button.Visible,view.button.Selectable=visible,visible and not hidden
 		view.lastState,view.lastHidden,view.kind=state,hidden,state
 		view.button:SetAttribute("UpgradeKey",node.upgradeKey)
-		view.button:SetAttribute("CashUpgradeTier",node.tier)
+		view.button:SetAttribute("CashUpgradeTier",tier.tier)
 		view.button:SetAttribute("CashUpgradeState",state)
 	end
 	if ownReveals then self:RevealNodes(reveals) end
@@ -799,7 +872,7 @@ function Browser:Step()
 		self.motionReduced=reduced
 		if reduced then
 			for _,view in self.nodes do self:ResetNodeMotion(view) end
-			self:ResetNodeMotion(self.exitMotion);self:StopProgress(self.tipMotion)
+			self:StopProgress(self.tipMotion)
 		end
 	end
 	for _,job in self.data.jobs do
@@ -858,26 +931,25 @@ function Browser:RenderTooltip()
 	local node=displayNodes[id]
 	local cashNode=CashNodes.Nodes[id]
 	local offer=if cashNode then self.cashOffers[cashNode.upgradeKey] else data.offers[id]
-	local completed=if cashNode and offer then CashNodes.Completed(cashNode.upgradeKey,offer) else 0
-	local owned=cashNode and cashNode.tier<=completed
+	local tier,maxed,completed
+	if cashNode then tier,maxed,completed=CashNodes.Shown(cashNode.upgradeKey,offer) else completed=0 end
+	local owned=cashNode and maxed
 	local state=if owned then "Completed" elseif cashNode then cashStatus(offer,self.coins or 0) else offer.status
 	local job=if cashNode then nil else Rules.Job(data,id)
 	local effect=node.description
 	if cashNode then
-		local baseBenefit=if node.benefit:lower():find("base",1,true) then node.benefit else "Base upgrade: "..node.benefit
+		local baseBenefit=if tier.benefit:lower():find("base",1,true) then tier.benefit else "Base upgrade: "..tier.benefit
 		if cashNode.upgradeKey=="Luck" then
 			local limit=if offer and offer.maxLevel then offer.maxLevel else node.maxTier
 			local progress=tostring(completed).."/"..limit
 			if owned then
-				if cashNode.tier==node.maxTier then
-					local odds=luckOdds(offer,false)
-					effect="Cash Luck "..progress.." · MAX."
-					if odds then effect..=" Epic+ per chicken: "..odds..". Bonuses included." end
-					local topOdds=luckOdds(offer,false,true)
-					if topOdds then effect..=" Strongest chickens: "..topOdds.."." end
-					if offer and offer.windowText then effect..=" Favored bands: "..offer.windowText.."." else effect..=" "..baseBenefit end
-					effect..=" All normal chickens remain possible."
-				else effect="Cash tier "..node.tier.."/"..limit.." purchased. "..baseBenefit end
+				local odds=luckOdds(offer,false)
+				effect="Cash Luck "..progress.." · MAX."
+				if odds then effect..=" Epic+ per chicken: "..odds..". Bonuses included." end
+				local topOdds=luckOdds(offer,false,true)
+				if topOdds then effect..=" Strongest chickens: "..topOdds.."." end
+				if offer and offer.windowText then effect..=" Favored bands: "..offer.windowText.."." else effect..=" "..baseBenefit end
+				effect..=" All normal chickens remain possible."
 			elseif not offer or not offer.ready then effect="Waiting for your flock to load."
 			else
 				local topBand=useTopLuckOdds(offer)
@@ -889,7 +961,7 @@ function Browser:RenderTooltip()
 			end
 			local eventOdds=Browser.EventOdds(workspace:GetServerTimeNow())
 			if eventOdds then effect..=" "..eventOdds.."." end
-		elseif owned then effect=baseBenefit
+		elseif owned then effect=baseBenefit.." Fully upgraded."
 		elseif not offer or not offer.ready then effect="Waiting for your flock to load."
 		elseif state=="Unavailable" then
 			effect=baseBenefit.." "..(if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.")
@@ -899,7 +971,7 @@ function Browser:RenderTooltip()
 		end
 	end
 	if state=="Unaffordable" and offer and offer.spendReason and offer.spendReason~="" then effect..=" "..offer.spendReason end
-	local title,titleRows=wrap(node.name,22)
+	local title,titleRows=wrap(if tier then tier.name else node.name,22)
 	local description,rows=wrap(effect,23)
 	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" else job~=nil or state~="Completed"
 	local primaryText,primaryStyle,pinText=self:TooltipActions(id,cashNode,offer,state,job,completed)
@@ -1025,9 +1097,8 @@ function Browser:PurchaseCash(id)
 	local key=node.upgradeKey
 	if self.cashPending[key] then return end
 	local offer=self.cashOffers and self.cashOffers[key]
-	local completed=if offer then CashNodes.Completed(key,offer) else 0
-	-- Old tier clicks inspect that earned benefit; only the exact next node buys.
-	if node.tier~=completed+1 then return end
+	-- A maxed track only inspects; otherwise the hex always buys its next tier.
+	if CashNodes.Completed(key,offer)>=node.maxTier then return end
 	local state=cashStatus(offer,self.coins or 0)
 	if state~="Available" then
 		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash"
@@ -1063,7 +1134,7 @@ function Browser:Secondary()
 	end
 end
 
-function Browser:Transform()
+function Browser:ClampPan()
 	-- Bound navigation by node positions so touch users cannot lose the map.
 	local root=self.root.AbsoluteSize
 	if root.X>0 and root.Y>0 then
@@ -1073,10 +1144,17 @@ function Browser:Transform()
 				local p=point(displayNodes[id]);minX=math.min(minX,p.X);minY=math.min(minY,p.Y);maxX=math.max(maxX,p.X);maxY=math.max(maxY,p.Y)
 			end
 		end
-		if minX==math.huge then return end
+		if minX==math.huge then return false end
 		local sx,sy=root.Y/root.X*1440/930*self.zoom,self.zoom
 		self.pan=Vector2.new(math.clamp(self.pan.X,-.3-(maxX-.5)*sx,.3-(minX-.5)*sx),math.clamp(self.pan.Y,-.3-(maxY-.5)*sy,.3-(minY-.5)*sy))
 	end
+	return true
+end
+
+function Browser:Transform()
+	-- Direct pan/zoom input takes over from a branch-tab pan in progress.
+	cancelTween(self,"panTween")
+	if not self:ClampPan() then return end
 	self.map.Size=UDim2.fromScale(self.zoom*1440/930,self.zoom)
 	self.map.Position=UDim2.fromScale(.5+self.pan.X,.5+self.pan.Y)
 	self:PlaceTooltip()
@@ -1118,6 +1196,7 @@ function Browser:Navigate(direction)
 		end
 	end
 	if best then self:Center(best);self:Select(best,true);GuiService.SelectedObject=self.nodes[best].button end
+	return best~=nil
 end
 
 function Browser:BindInput()
@@ -1125,7 +1204,7 @@ function Browser:BindInput()
 	local function moveDrag(input)
 		local drag=self.drag;if not drag then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y);local delta=p-drag.at
-		if delta.Magnitude>8 and not drag.moved then drag.moved=true;self:ReleasePress(nil,true);self:DismissTooltip() end
+		if delta.Magnitude>8 and not drag.moved then drag.moved=true;self:ReleasePress(nil,true);self:DismissTooltip();self:SetActiveBranch(nil) end
 		if drag.moved then
 			local size=self.root.AbsoluteSize
 			self.pan=drag.pan+Vector2.new(delta.X/math.max(1,size.X),delta.Y/math.max(1,size.Y))
@@ -1137,8 +1216,12 @@ function Browser:BindInput()
 		local mouse=input.UserInputType==Enum.UserInputType.MouseButton1
 		if not mouse and input.UserInputType~=Enum.UserInputType.Touch then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y)
-		if not inside(self.root,p) or inside(self.exit,p) or (self.tip.Visible and self.persistent and inside(self.tip,p)) then return end
+		if not inside(self.root,p) or inside(self.exit,p) or inside(self.tabs,p) or (self.tip.Visible and self.persistent and inside(self.tip,p)) then return end
 		if self.drag then self.drag=nil;self.suppressUntil=os.clock()+.4;return end
+		if self.panTween then
+			cancelTween(self,"panTween")
+			self.pan=Vector2.new(self.map.Position.X.Scale-.5,self.map.Position.Y.Scale-.5)
+		end
 		self.drag={input=input,at=p,pan=self.pan,moved=false,mouse=mouse}
 	end)
 	connect(UserInputService.InputChanged,function(input)
@@ -1173,6 +1256,7 @@ end
 
 function Browser:Focus()
 	self:DismissTooltip()
+	self:SetActiveBranch(nil)
 	self.zoom=1
 	self:Center("Start")
 	if UserInputService.GamepadEnabled then self:Select("Start",true);GuiService.SelectedObject=self.nodes.Start.button end
@@ -1200,8 +1284,9 @@ end
 function Browser:Open()
 	if self.root.Visible then self:Focus();return end
 	self.app.audio:Play("SkillTreeOpen",nil,{noFallback=true})
-	self.app:ClosePanel()
-	self.app.offlineCash:Dismiss(true)
+	-- Never stack over Invasions, Rebirth, Daily or another panel.
+	if self.app.CloseOtherMenus then self.app:CloseOtherMenus("research")
+	else self.app:ClosePanel();self.app.offlineCash:Dismiss(true) end
 	self.previousSelection=GuiService.SelectedObject
 	self.previousInsets=self.app.gui.ScreenInsets
 	self.previousSafeAreaCompatibility=self.app.gui.SafeAreaCompatibility
@@ -1219,8 +1304,24 @@ function Browser:Open()
 		local key=input.KeyCode
 		local focused=GuiService.SelectedObject
 		local inCard=focused~=nil and (focused==self.primaryAction.button or focused==self.secondaryAction.button)
+		local tabIndex=if focused then self.tabLookup[focused] else nil
+		local horizontal=if key==Enum.KeyCode.DPadLeft or key==Enum.KeyCode.Left then -1 elseif key==Enum.KeyCode.DPadRight or key==Enum.KeyCode.Right then 1 else 0
 		if key==Enum.KeyCode.ButtonB or key==Enum.KeyCode.Escape then
-			if inCard then self:FocusActions(false) else self:Close() end
+			if inCard then self:FocusActions(false) elseif tabIndex then self:FocusNodes() else self:Close() end
+		elseif tabIndex and key==Enum.KeyCode.ButtonA then
+			self.app.audio:Play("Click");self:JumpBranch(tabIndex)
+		elseif tabIndex and horizontal~=0 then
+			GuiService.SelectedObject=self.tabButtons[math.clamp(tabIndex+horizontal,1,#BRANCH_TABS)]
+		elseif tabIndex and (key==Enum.KeyCode.DPadDown or key==Enum.KeyCode.Down) then
+			self:FocusNodes()
+		elseif tabIndex and (key==Enum.KeyCode.DPadUp or key==Enum.KeyCode.Up) then
+			-- Already on the top row.
+		elseif key==Enum.KeyCode.ButtonL2 or key==Enum.KeyCode.ButtonR2 then
+			-- Triggers step through the branch tabs from anywhere.
+			local step=if key==Enum.KeyCode.ButtonR2 then 1 else -1
+			local index=((self.activeBranch or (if step>0 then 0 else 1))+step-1)%#BRANCH_TABS+1
+			self.app.audio:Play("Click");self:JumpBranch(index)
+			if tabIndex then GuiService.SelectedObject=self.tabButtons[index] end
 		elseif key==Enum.KeyCode.ButtonA then
 			if focused==self.primaryAction.button then self:Primary()
 			elseif focused==self.secondaryAction.button then self.app.audio:Play("Click");self:Secondary()
@@ -1243,10 +1344,15 @@ function Browser:Open()
 		else
 			local directions={[Enum.KeyCode.DPadLeft]=Vector2.new(-1,0),[Enum.KeyCode.DPadRight]=Vector2.new(1,0),[Enum.KeyCode.DPadUp]=Vector2.new(0,-1),[Enum.KeyCode.DPadDown]=Vector2.new(0,1),
 				[Enum.KeyCode.Left]=Vector2.new(-1,0),[Enum.KeyCode.Right]=Vector2.new(1,0),[Enum.KeyCode.Up]=Vector2.new(0,-1),[Enum.KeyCode.Down]=Vector2.new(0,1)}
-			if directions[key] then self:Navigate(directions[key]) end
+			if directions[key] and not self:Navigate(directions[key]) and directions[key].Y<0 then
+				-- Up past the top node reaches the branch tabs.
+				self:DismissTooltip()
+				GuiService.SelectedObject=self.tabButtons[self.activeBranch or 1]
+			end
 		end
 		return Enum.ContextActionResult.Sink
 	end,false,3500,Enum.KeyCode.ButtonB,Enum.KeyCode.ButtonA,Enum.KeyCode.ButtonY,Enum.KeyCode.Escape,Enum.KeyCode.ButtonX,Enum.KeyCode.Home,Enum.KeyCode.ButtonL1,Enum.KeyCode.ButtonR1,
+		Enum.KeyCode.ButtonL2,Enum.KeyCode.ButtonR2,
 		Enum.KeyCode.DPadLeft,Enum.KeyCode.DPadRight,Enum.KeyCode.DPadUp,Enum.KeyCode.DPadDown,Enum.KeyCode.Left,Enum.KeyCode.Right,Enum.KeyCode.Up,Enum.KeyCode.Down)
 	if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.nodes[self.selected or "Start"].button end
 end
@@ -1257,12 +1363,13 @@ function Browser:Close()
 	self.root.Visible=false;self.app.hudLayer.Visible=true;self.drag=nil
 	self.message.Visible=false;self.feedbackVersion=(self.feedbackVersion or 0)+1
 	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil
+	cancelTween(self,"panTween")
 	for _,view in self.nodes do
 		self:ResetNodeMotion(view)
 		-- Re-render the stable saved state even if a tint was interrupted.
 		view.lastState,view.lastHidden=nil,nil
 	end
-	self:ResetNodeMotion(self.exitMotion);self:StopProgress(self.tipMotion)
+	self:StopProgress(self.tipMotion)
 	if self.previousInsets then self.app.gui.ScreenInsets=self.previousInsets;self.previousInsets=nil end
 	if self.previousSafeAreaCompatibility then self.app.gui.SafeAreaCompatibility=self.previousSafeAreaCompatibility;self.previousSafeAreaCompatibility=nil end
 	self:DismissTooltip()

@@ -33,15 +33,11 @@ function Hud.new(app,shell)
 		app.audio:Play("Click")
 		app:Request(action)
 	end
-	self.callArmy=Theme.IconButton(navigation,"CallArmy","Unlock Call Army",Theme.Assets.CallArmy or "",function()
-		if callArmyUnlocked(app.state) then app:Request("CallArmy");return end
-		app.audio:Play("Click")
-		app:OpenPage("Research")
-		app.research:Center("CallArmy")
-		app.research:Select("CallArmy",true)
+	-- Hidden until the CallArmy research completes (no locked teaser on the HUD).
+	self.callArmy=Theme.IconButton(navigation,"CallArmy","Call Army",Theme.Assets.CallArmy or "",function()
+		if callArmyUnlocked(app.state) then app:Request("CallArmy") end
 	end)
-	self.callArmy.TextColor3=Theme.Colors.muted
-	self.callArmy.Visual.Icon.ImageColor3=Color3.new(0.65,0.65,0.65)
+	self.callUnlocked=false
 	self.myBase=Theme.IconButton(navigation,"MyBase","My Base",Theme.Assets.MyBase or "",function() command("GoBase") end)
 	self.army.ZIndex=2
 	self.commandsExpanded=false
@@ -74,7 +70,7 @@ function Hud.new(app,shell)
 	self.income.TextWrapped,self.income.Visible=false,false
 	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
 	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
-	-- Re-enlist rank ("Veteran II") sits just above the money; hidden at rank 0.
+	-- Rebirth rank ("Rebirth 2") sits just above the money; hidden at rank 0.
 	self.rank=Theme.Display(cash,"RebirthRank","",24,Theme.ReferenceColors.Army)
 	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.26)
 	self.rank.Visible=false
@@ -82,7 +78,7 @@ function Hud.new(app,shell)
 	self.totals=totals
 	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.3,0.09)
 	Theme.Aspect(totals,4.2)
-	self.conquered=Theme.Display(totals,"Conquered","Conquered 0/"..#Progression.Camps(1),27,A.gold)
+	self.conquered=Theme.Display(totals,"Conquered","Camps held 0/8",27,A.gold)
 	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self.flock=Theme.Display(totals,"Flock","Flock 0/40",25,A.gold)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
@@ -164,16 +160,17 @@ function Hud:UpdateArmyCommands(immediate)
 	Theme.Motion:Tween(self.army,"baseSize",{Size=UDim2.fromScale(0.38*armyFactor,armyFactor)},
 		seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
 	for index,button in {self.callArmy,self.myBase} do
+		local shown=expanded and (button~=self.callArmy or self.callUnlocked==true)
 		button.Visible=true
 		button.Interactable,button.Selectable=false,false
 		if GuiService.SelectedObject==button then GuiService.SelectedObject=self.army end
 		local x=if index==1 then 0.14 else 0.86
-		Theme.Motion:Tween(button,"basePosition",{Position=UDim2.fromScale(if expanded then x else 0.5,
-			if expanded then 0.66 else 0.52)},seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
-		Theme.Motion:Tween(button,"baseSize",{Size=UDim2.fromScale(if expanded then 0.28 else 0,if expanded then 0.7 else 0)},
+		Theme.Motion:Tween(button,"basePosition",{Position=UDim2.fromScale(if shown then x else 0.5,
+			if shown then 0.66 else 0.52)},seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
+		Theme.Motion:Tween(button,"baseSize",{Size=UDim2.fromScale(if shown then 0.28 else 0,if shown then 0.7 else 0)},
 			seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut,function()
-				button.Visible=expanded
-				button.Interactable,button.Selectable=expanded,expanded
+				button.Visible=shown
+				button.Interactable,button.Selectable=shown,shown
 			end)
 	end
 end
@@ -272,14 +269,20 @@ function Hud:Layout()
 end
 
 -- Touch: lift the corner readouts above the thumbstick and jump button (the
--- cash readout moves beside the left shortcut column) and enlarge Settings to a
--- thumb-sized target. Keyboard/gamepad keep the authored bottom corners.
+-- cash readout moves beside the left shortcut column; the Camps held/Flock lines
+-- sit above the right-side Invasions icon, which spans about 0.48-0.64) and
+-- enlarge Settings to a thumb-sized target that ends above the research goal chip
+-- (top 0.12). Keyboard/gamepad keep the authored bottom corners.
+-- settingsBottom: lowest screen Y scale the Settings button can reach (for neighbours).
 function Hud:ApplyInputLayout()
 	local touch=touchPrimary()
 	self.cashReadout.AnchorPoint=Vector2.new(0,1)
 	self.cashReadout.Position=if touch then UDim2.fromScale(0.105,0.7) else UDim2.fromScale(0.012,0.98)
-	self.totals.Position=if touch then UDim2.fromScale(0.988,0.7) else UDim2.fromScale(0.988,0.98)
-	self.settings.Size=if touch then UDim2.fromScale(0.07,0.125) else UDim2.fromScale(0.04,0.072)
+	self.totals.Position=if touch then UDim2.fromScale(0.988,0.47) else UDim2.fromScale(0.988,0.98)
+	self.settings.Size=if touch then UDim2.fromScale(0.065,0.105) else UDim2.fromScale(0.04,0.072)
+	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
+	-- The Hill chip rides just above the cash readout wherever it sits.
+	if self.hill then self.hill:Place() end
 end
 
 function Hud:Resize(_width, _height, _scale)
@@ -305,12 +308,16 @@ function Hud:UpdateOpening(state)
 	self.objective.Visible=guidance~=nil and not self.app.panel.Visible and self.app.commander==nil
 end
 
+-- Top-centre priority: lesson card > army status > next-goal line. The Hill
+-- title also owns the top line while it shows; the army status returns after.
+function Hud:SyncStatus()
+	local commander=self.app.commander
+	local lesson=commander~=nil and commander.lessonVisible==true
+	self.status.Visible=self.statusWanted==true and not (self.hill and self.hill.bannerVisible) and not lesson
+end
+
 function Hud:UpdateTerritory(state)
-	if self.hill then
-		self.hill:Update(state)
-		-- The Hill title owns the top line during a round; the army status returns after.
-		self.status.Visible=self.status.Text~="" and not self.hill.bannerVisible
-	end
+	if self.hill then self.hill:Update(state) end
 	local site = state and state.incomeOutpost
 	local owned = site and site.ownerId == state.userId
 	self.territory.Visible = owned == true and not self.app.panel.Visible
@@ -348,14 +355,14 @@ function Hud:UpdateRebirth(state)
 			self.reenlistPulse:Play()
 		end
 	end
-	self.rank.Text=if type(quote.title)=="string" then quote.title else RebirthPanel.Title(rank)
+	self.rank.Text=RebirthPanel.Title(rank)
 	-- The Hill countdown chip uses the same spot above the cash readout.
 	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waiting and self.hill.waiting.Visible)
 	if self.lastRank and rank>self.lastRank then Theme.Motion:Pop(self.rank,1.15) end
 	self.lastRank=rank
 	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
 		self.rebirthToastShown=true
-		local nextTitle=if type(quote.nextTitle)=="string" then quote.nextTitle else RebirthPanel.Title(rank+1)
+		local nextTitle=RebirthPanel.Title(rank+1)
 		self.app:Notify("Rebirth ready: "..nextTitle.."!",true)
 	end
 end
@@ -364,14 +371,13 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateOpening(state)
 	self:UpdateTerritory(state)
 	self:UpdateRebirth(state)
-	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.Money(value) end)
+	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.CompactMoney(value) end)
 	self:UpdateEggLine(state.eggs or {})
 	self.flock.Text="Flock "..count.."/"..limit
 	local atHome=state.armyState=="Home"
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
 	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
-	self.status.Visible=not atHome and not (self.hill and self.hill.bannerVisible)
 	self.status.Text=if atHome then ""
 		elseif state.armyState=="Following" then "Army following you"
 		elseif state.armyState=="Returning" then "Returning home"
@@ -379,20 +385,20 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 		elseif state.marchingTo then "Marching to "..state.marchingTo
 		else "Army deployed"
 	local callUnlocked=callArmyUnlocked(state)
-	self.callArmy.Text=if callUnlocked then "Call Army" else "Unlock Call Army"
-	self.callArmy.TextColor3=if not callUnlocked then Theme.Colors.muted
-		elseif state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
-	self.callArmy.Visual.Icon.ImageColor3=if callUnlocked then Color3.new(1,1,1) else Color3.new(0.65,0.65,0.65)
+	if callUnlocked~=self.callUnlocked then self.callUnlocked=callUnlocked;self:UpdateArmyCommands(false) end
+	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
 	if state.armyState~="Returning" and (state.recoveringCount or 0)+(state.reinforcingCount or 0)>0 then
 		self.status.Text=(state.recoveringCount or 0)+(state.reinforcingCount or 0).." reinforcing"
 	end
+	self.statusWanted=not atHome and self.status.Text~=""
+	self:SyncStatus()
 	local explored=0
  for _,won in state.frontierWins or {} do if won then explored+=1 end end
  local outpostCount=#Progression.Outposts()
  -- Territories held now (limit from research) and the live egg-value bonus they pay.
  local held=state.holdCount or 0
  local bonus=math.floor((state.territoryBonus or 0)*100+0.5)
- self.conquered.Text="Held "..held.."/"..(state.holdLimit or 8)..(if bonus>0 then " · +"..bonus.."% eggs" else "")
+ self.conquered.Text="Camps held "..held.."/"..(state.holdLimit or 8)..(if bonus>0 then " · +"..bonus.."% eggs" else "")
   ..(if outpostCount>0 then " · Outposts "..explored.."/"..outpostCount else "")
 	self.conquered.TextColor3=if held>0 then A.green else A.gold
 	self.save.Text=if state.saveStatus=="error" then "Save unavailable · Settings" elseif state.saveStatus=="loading" then "Loading…" else ""
@@ -405,7 +411,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	if self.lastConquered and held>self.lastConquered then
 		Theme.Motion:Pop(self.conquered,1.13)
 		Theme.Motion:Pop(self.cashIcon,1.14)
-		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,if touchPrimary() then 0.66 else 0.94),A.gold)
+		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,if touchPrimary() then 0.43 else 0.94),A.gold)
 	end
 	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,held
 end

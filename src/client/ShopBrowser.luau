@@ -57,8 +57,8 @@ local PASSES={
  {key="AutoCollectEggs",name="Auto Collect Eggs",description="Collect eggs without walking over them.",color=Color3.fromRGB(255,188,32),top=Color3.fromRGB(233,103,10),rim=Color3.fromRGB(255,232,174),title=Color3.fromRGB(255,244,216),icon="EggMagnet",background="orange"},
  {key="DoubleCash",name="2x Cash",description="Earn twice as much cash.",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),rim=Color3.fromRGB(233,255,160),title=Color3.fromRGB(242,255,216),icon="Cash",background="cash",double=true},
  {key="DoubleEggSpawn",name="2x Egg Spawn",description="Chickens lay eggs twice as often.",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),rim=Color3.fromRGB(188,239,255),title=Color3.fromRGB(227,250,255),icon="Eggs",background="eggs",double=true},
- {key="AutoMerge",name="Auto Merge",description="Merge matching chickens for you.",color=Color3.fromRGB(8,207,243),top=Color3.fromRGB(0,110,228),rim=Color3.fromRGB(179,240,255),title=Color3.fromRGB(222,248,255),icon="AutoMerge",background="cyan"},
- {key="BiggerArmy",name="Bigger Army",description="+5 deployment slots. Field 15 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
+ {key="AutoMerge",name="Auto Fuse",description="Fuse matching chickens for you.",color=Color3.fromRGB(8,207,243),top=Color3.fromRGB(0,110,228),rim=Color3.fromRGB(179,240,255),title=Color3.fromRGB(222,248,255),icon="AutoMerge",background="cyan"},
+ {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 15 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
  {key="DoubleLuck",name="2x Luck",description="2x Luck strength. Favor stronger chickens.",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),rim=Color3.fromRGB(255,236,173),title=Color3.fromRGB(255,242,205),icon="DoubleLuck",background="gold",double=true},
 }
 local EXISTING_STYLES={
@@ -68,9 +68,9 @@ local EXISTING_STYLES={
 }
 local PASS_COPY={
  AutoCollectEggs="Collect eggs into your bag.",DoubleCash="2x earned egg and combat cash.",
- AutoMerge="Merge eligible home chickens.",BiggerArmy="+5 slots. Up to 15 chickens.",DoubleLuck="2x Luck strength. Favor stronger chickens.",
+ AutoMerge="Fuse eligible home chickens.",BiggerArmy="+5 slots. Up to 15 chickens.",DoubleLuck="2x Luck strength. Favor stronger chickens.",
 }
--- Quantities match the server catalog; checkout prices always come from Roblox.
+-- Placeholder quantities; RenderCashAmounts shows the live payout. Checkout prices always come from Roblox.
 local CASH_TIERS={
  {key="ArmyChest",name="Cash Sack",tier=3,amount="1M Cash",art={62.5,46,176}},
  {key="CoopStash",name="Coop Stash",tier=2,amount="100K Cash",art={62.5,46,176}},
@@ -534,7 +534,7 @@ function Browser:RenderDetails()
   end
  elseif shop and shop.policyReady==true and shop.paidRandomAllowed==true then
   self.detailsTitle.Text="2x Luck · roll chances"
-  self.detailsDescription.Text="Doubles Luck strength, shifting favored results toward stronger chickens. Each chicken's chance changes differently. Current cash Luck and research are included; crates are unaffected."
+  self.detailsDescription.Text="Doubles Luck strength, shifting favored results toward stronger chickens. Each chicken's chance changes differently. Current Cash Luck and Upgrades are included; crates are unaffected."
   local odds=shop and shop.luckOdds
   available=odds and type(odds.withoutPass)=="table" and type(odds.withPass)=="table"
   if available then
@@ -816,8 +816,19 @@ function Browser:Resize()
  self:UpdateSection()
 end
 
+-- October 14: cash packs pay minutes of income (at least the catalog amount); show the server's live payout.
+function Browser:RenderCashAmounts()
+ local packs=self.app.state and self.app.state.shop and self.app.state.shop.cashPacks or {}
+ local function amount(key)
+  local product=Catalog.Products[key]
+  return Theme.Number(packs[key] or (product and product.coins) or 0).." Cash"
+ end
+ for _,view in self.cashViews do view.note.Text=amount(view.key) end
+ if self.cashNote then self.cashNote.Text=amount("CommandersVault") end
+end
+
 function Browser:Render(_force)
- self:RenderExisting();self:ApplyPresentation();self:Resize();self:UpdateSection()
+ self:RenderExisting();self:RenderCashAmounts();self:ApplyPresentation();self:Resize();self:UpdateSection()
 end
 
 function Browser:Destroy()

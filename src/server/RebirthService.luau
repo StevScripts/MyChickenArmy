@@ -11,7 +11,7 @@ local OfflineCash = require(script.Parent.OfflineCash)
 local KingEncounter = require(script.Parent.KingEncounter)
 local RebirthService = {}
 
-local ARMY_AWAY = "Bring your army home first"
+local ARMY_AWAY = "Bring your army back to your base first"
 
 local function settings()
 	return Config.Rebirth
@@ -23,18 +23,12 @@ local function clampRank(rank: any): number
 	return math.min(math.floor(rank), settings().MaxRank)
 end
 
-local ROMAN = {{10, "X"}, {9, "IX"}, {5, "V"}, {4, "IV"}, {1, "I"}}
-local function roman(n: number): string
-	local result = ""
-	for _, pair in ROMAN do
-		while n >= pair[1] do result ..= pair[2]; n -= pair[1] end
-	end
-	return result
-end
-
+-- Player-facing names are "Rebirth 1", "Rebirth 2", … (October 14 glossary);
+-- Veteran/Elite/Royal are Invasion tier names only. Matches RebirthPanel.Title.
+-- The saved rank stays a plain number.
 function RebirthService.Title(rank: number): string
 	local r = clampRank(rank)
-	return if r == 0 then "Recruit" else "Veteran " .. roman(r)
+	return if r == 0 then "No rebirths yet" else "Rebirth " .. r
 end
 
 -- Earned ranks keep their bonus and their stronger enemies even while Enabled is
@@ -71,7 +65,7 @@ function RebirthService.Quote(session)
 	local kingCleared = session.kingCleared == true
 	local reason: string?
 	if not rules.Enabled then reason = "Coming soon"
-	elseif not nextRank or not cost then reason = "Max rank reached"
+	elseif not nextRank or not cost then reason = "Max Rebirth reached"
 	elseif not kingCleared then reason = "Defeat the Chicken King first"
 	elseif coins < cost then reason = "Need $" .. string.format("%d", math.ceil(cost - coins)) .. " more"
 	elseif not home then reason = ARMY_AWAY
@@ -175,7 +169,7 @@ function RebirthService.Rebirth(session, expectedRank, server): (boolean, string
 		return false, "Your flock is not ready yet."
 	end
 	-- 2. A double tap or stale panel can't re-enlist twice.
-	if expectedRank ~= session.rebirths then return false, "Your rank changed. Try again." end
+	if expectedRank ~= session.rebirths then return false, "Your Rebirth changed. Try again." end
 	-- 3. Disabled, max rank, King, cash, army home (the quote's own order).
 	local quote = RebirthService.Quote(session)
 	if not quote.eligible then

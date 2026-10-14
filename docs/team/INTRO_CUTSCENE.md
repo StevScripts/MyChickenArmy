@@ -1,6 +1,6 @@
 # First-visit intro cutscene, October 6, 2026
 
-A wordless ~50 second story, "One Chicken Isn't an Army", plays once for brand-new
+A ~50 second story with five short captions (October 14; `Intro:Caption`), "One Chicken Isn't an Army", plays once for brand-new
 `starterArmy` profiles as the loading veil fades. It sets up every Commander Cluck
 step before the guide appears. Presentation only: no cash, chickens or progress
 are granted, and Skip is available the whole time.

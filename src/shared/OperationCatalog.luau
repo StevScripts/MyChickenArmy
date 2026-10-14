@@ -12,7 +12,7 @@ Catalog.Order={"1:1","1:2","1:3","2:1","2:2","2:3","3:1","3:2","3:3"}
 Catalog.Encounters={
 	["1:1"]={name="Scout Landing",tier=1,description="A loyalist scout party drops in. Break its front line.",firstCash=2500000,replayCash=250000,groups={{"Bucket",3,4},{"Viking",3,4}}},
 	["1:2"]={name="Iron Drop",tier=1,description="Armored loyalists land around a heavy hitter.",firstCash=7500000,replayCash=750000,groups={{"Bucket",4,6},{"Knight",3,2}}},
-	["1:3"]={name="Veteran Assault",tier=1,description="A full loyalist squad with splash support.",firstCash=15000000,replayCash=1500000,groups={{"Knight",4,4},{"Viking",4,4},{"Wizard",3,2}}},
+	["1:3"]={name="Veteran Assault",tier=1,description="A full loyalist army with splash support.",firstCash=15000000,replayCash=1500000,groups={{"Knight",4,4},{"Viking",4,4},{"Wizard",3,2}}},
 	["2:1"]={name="Shadow Battery",tier=2,description="Splash gunners drop behind an armored screen.",firstCash=25000000,replayCash=2500000,groups={{"Bucket",6,4},{"Wizard",5,4},{"Knight",5,2}}},
 	["2:2"]={name="Iron Fleet",tier=2,description="A larger loyalist wave of veteran fighters.",firstCash=75000000,replayCash=7500000,groups={{"Knight",6,6},{"Viking",6,4},{"IceDuck",4,2}}},
 	["2:3"]={name="Dragon Commander",tier=2,description="The loyalist commander rides in with its honor guard.",firstCash=150000000,replayCash=15000000,groups={{"Knight",6,4},{"Wizard",6,3}},boss={species="Dragon",hp=26000,damage=320,interval=1.6,splash=true}},
@@ -40,7 +40,8 @@ function Catalog.Power(id)
 	local power=0
 	for _,pet in Catalog.Roster(id) or {} do
 		local stats=pet.combatStats or Rules.Stats(pet.species,pet.stars,pet.level)
-		power+=math.sqrt(stats.hp*stats.damage/stats.interval)
+		-- Same formula as Rules.PetPower, including its splash factor.
+		power+=math.sqrt(stats.hp*stats.damage/stats.interval)*(if stats.splash then 1.35 else 1)
 	end
 	return math.floor(power)
 end

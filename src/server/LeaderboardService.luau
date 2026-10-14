@@ -1,9 +1,10 @@
 --!strict
 -- Global rankings are a projection of authoritative sessions, never a money source.
--- October 9: Strongest Army (best possible army power) and Top Supporters (lifetime
--- Robux spent), both all-time. The server writes OrderedDataStores and publishes
--- the top rows to ReplicatedStorage.PetRoll.Leaderboards; the client module
--- LeaderboardBoards draws them on every plot's Leaderboard1/Leaderboard2 screen.
+-- October 9: Strongest Army (best possible army power), all-time. October 14:
+-- Top Rebirths (session.rebirths) replaces the displayed Top Supporters board;
+-- Robux spent is still recorded to its unchanged store but never published.
+-- The server writes OrderedDataStores and publishes the top rows to
+-- ReplicatedStorage.PetRoll.Leaderboards; the client module LeaderboardBoards draws them on every plot's Leaderboard1/Leaderboard2 screen.
 local Players=game:GetService("Players")
 local DataStoreService=game:GetService("DataStoreService")
 local RunService=game:GetService("RunService")
@@ -17,7 +18,9 @@ Leaderboards.__index=Leaderboards
 Leaderboards.Top=100 -- Boards scroll (LeaderboardBoards); 100 is one GetSortedAsync page.
 Leaderboards.Definitions={
  {key="ArmyPower",title="STRONGEST ARMY"},
- {key="RobuxSpent",title="TOP SUPPORTERS"},
+ {key="Rebirths",title="TOP REBIRTHS"},
+ -- Hidden: keeps writing <SaveName>_Global_RobuxSpent_v1, never read or shown.
+ {key="RobuxSpent",title="TOP SUPPORTERS",hidden=true},
 }
 
 local function valueOf(session,key)
@@ -25,6 +28,7 @@ local function valueOf(session,key)
   local ok,power=pcall(function() return session:BestArmyPower() end)
   return if ok and type(power)=="number" then math.floor(power) else 0
  end
+ if key=="Rebirths" then return math.floor(tonumber(session.rebirths) or 0) end
  return math.floor(session.robuxSpent or 0)
 end
 
@@ -54,6 +58,7 @@ function Leaderboards:Build()
  local folder=root:FindFirstChild("Leaderboards")
  if not folder then folder=Instance.new("Folder");folder.Name="Leaderboards";folder.Parent=root end
  for _,def in Leaderboards.Definitions do
+  if def.hidden then continue end
   local value=folder:FindFirstChild(def.key) or Instance.new("StringValue")
   value.Name=def.key;value.Parent=folder
   self.values[def.key]=value
@@ -115,6 +120,7 @@ end
 function Leaderboards:Refresh()
  for _,def in Leaderboards.Definitions do
   if not self.alive then return end
+  if def.hidden then continue end
   local raw={}
   if self.preview then
    for _,session in self.sessions do if session.loaded and not session.saveLost and session.userId>0 then

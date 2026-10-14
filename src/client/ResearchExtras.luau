@@ -28,10 +28,11 @@ end
 
 function Extras.new(app)
 	local self=setmetatable({app=app,tier=1,connections={}},Extras)
-	self.rally=Theme.Button(app.hudLayer,"Rally","Rally",function() app:Request("Rally") end,Theme.ActionColors.purchase)
+	-- A battle command, not a purchase: the Army colour.
+	self.rally=Theme.Button(app.hudLayer,"Rally","Rally",function() app:Request("Rally") end,Theme.Arcade.army)
 	self.rally.AnchorPoint,self.rally.Position,self.rally.Size=Vector2.new(1,.5),UDim2.fromScale(.985,.58),UDim2.fromScale(.16,.07)
 	Theme.Aspect(self.rally,3.9);Theme.ScaleText(self.rally);self.rally.Visible=false
-	-- October 14 launch: a King clear opens Operations without research, so the page
+	-- October 14 launch: a King clear opens Invasions without research, so the page
 	-- needs an entry besides the completed S15 node. Shares Rally's slot; Rally only
 	-- shows while Fighting and this only while the army is home.
 	-- October 13: an icon button like the left HUD column (mission map art).
@@ -45,6 +46,9 @@ function Extras.new(app)
 	end,Theme.ActionColors.navigation)
 	self.goal.AnchorPoint,self.goal.Position,self.goal.Size=Vector2.new(1,0),UDim2.fromScale(.985,.12),UDim2.fromScale(.24,.045)
 	Theme.Aspect(self.goal,7);Theme.ScaleText(self.goal);self.goal.Visible=false
+	self:ApplyInputLayout()
+	-- Deferred so HudController:ApplyInputLayout has updated settingsBottom first.
+	table.insert(self.connections,UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function() task.defer(function() self:ApplyInputLayout() end) end))
 	local elapsed=0
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
 		elapsed+=dt;if elapsed>=.25 then elapsed=0;self:UpdateRally() end
@@ -54,6 +58,15 @@ function Extras.new(app)
 		app:Request("Rally");return Enum.ContextActionResult.Sink
 	end,false,Enum.KeyCode.G,Enum.KeyCode.ButtonL2)
 	return self
+end
+
+-- Touch enlarges Settings (HudController:ApplyInputLayout exposes its lowest
+-- screen Y as hud.settingsBottom); keep the goal chip just below it. The lifted
+-- totals sit above the Invasions icon / Rally slot, so those stay put.
+function Extras:ApplyInputLayout()
+	local hud=self.app.hud
+	local bottom=tonumber(hud and hud.settingsBottom) or .084
+	self.goal.Position=UDim2.fromScale(.985,math.max(.12,bottom+.012))
 end
 
 function Extras:UpdateRally()
@@ -110,11 +123,11 @@ function Extras:RenderFormations()
 	app.panelTitle.Text="Army Formations"
 	local count=data and data.effects.formations or 0
 	if count==0 then
-		app:Text("Unlock","Research Formation Book to save your selected army.",22,55)
-		app:Button("ResearchFormations","View Formation Book",function() app:OpenPage("Research");app.research:Center("S12");app.research:Select("S12",true) end)
+		app:Text("Unlock","Unlock Formation Book in Upgrades to save your Army.",22,55)
+		app:Button("ResearchFormations","View in Upgrades",function() app:OpenPage("Research");app.research:Center("S12");app.research:Select("S12",true) end)
 		return
 	end
-	app:Text("Help","Save your current army, then switch back to it here. Missing chickens are skipped; capacity and the one-Colossal limit still apply.",18,65)
+	app:Text("Help","Save your current Army, then switch back to it here. Missing chickens are skipped; capacity and the one-Colossal limit still apply.",18,65)
 	for slot=1,count do
 		local preset=data.formations[tostring(slot)]
 		local row=app:Text("Formation"..slot,"",20,45)
@@ -130,7 +143,7 @@ function Extras:RenderFormations()
 			local clamped=clampName(name.Text)
 			if clamped~=name.Text then name.Text=clamped end
 		end)
-		app:Button("SaveFormation"..slot,if preset then "Replace with current army" else "Save current army",function()
+		app:Button("SaveFormation"..slot,if preset then "Replace with current Army" else "Save current Army",function()
 			local text=clampName(name.Text:match("^%s*(.-)%s*$") or "")
 			if text=="" then text="Formation "..slot end
 			app:Request("SaveFormation",{slot=slot,name=text,expectedIds=state.selectedIds,expectedRevision=data.revision})
@@ -146,7 +159,7 @@ end
 
 function Extras:RenderOperations()
 	local app=self.app;local state=app.state;local data=state.operations
-	app.panelTitle.Text="Operations"
+	app.panelTitle.Text="Invasions"
 	if not data then return end
 	if (data.pendingReward or 0)>0 then
 		app:Text("PendingReward","$"..Theme.Money(data.pendingReward).." earned and saved. Spend some cash; this reward pays automatically when your wallet has room.",20,70)
@@ -154,10 +167,10 @@ function Extras:RenderOperations()
 	end
 	if data.activeId then
 		app:Text("Current",Operations.Encounters[data.activeId].name.." is in progress.",24,48)
-		app:Button("Leave","Leave Operation · no completion reward",function() app:Request("LeaveOperation") end,Theme.ActionColors.danger)
+		app:Button("Leave","Leave Invasion · no completion reward",function() app:Request("LeaveOperation") end,Theme.ActionColors.danger)
 		return
 	end
-	app:Text("Rules","Deploy your selected army to a separate arena. Defeat every enemy and capture the center. Your starting lineup fights without reinforcements; leaving ends the challenge.",18,80)
+	app:Text("Rules","Send your Army to repel the loyalists. Defeat every enemy to win. Your Army fights without reinforcements; leaving ends the Invasion.",18,80)
 	local tabs=app:Text("Tiers","",20,45)
 	for index,name in Operations.Tiers do
 		local button=Theme.Button(tabs,name,name,function() self.tier=index;app:RenderPanel(true) end,Operations.Colors[index])
@@ -167,21 +180,21 @@ function Extras:RenderOperations()
 	-- data.tier is the server's combined tier: research, or a King clear for Veteran.
 	if (data.tier or 0)<self.tier then
 		local researchId=({"S15","S16","S17"})[self.tier]
-		app:Text("Locked",if self.tier==1 then "Defeat the Chicken King or research "..Research.Nodes[researchId].name
-			else "Research "..Research.Nodes[researchId].name.." to open these challenges.",22,55)
-		app:Button("UnlockOperations","View research",function() app:OpenPage("Research");app.research:Center(researchId);app.research:Select(researchId,true) end)
+		app:Text("Locked",if self.tier==1 then "Defeat the Chicken King or unlock "..Research.Nodes[researchId].name.." in Upgrades"
+			else "Unlock "..Research.Nodes[researchId].name.." in Upgrades to open these Invasions.",22,55)
+		app:Button("UnlockOperations","View in Upgrades",function() app:OpenPage("Research");app.research:Center(researchId);app.research:Select(researchId,true) end)
 		return
 	end
 	for index=1,3 do
 		local id=self.tier..":"..index;local definition=Operations.Encounters[id];local cleared=data.wins[id]
 		app:Text("Title"..index,(if cleared then "✓ " else "")..definition.name,25,40,Operations.Colors[self.tier])
 		app:Text("Details"..index,definition.description.."\nEnemy power "..Theme.Money(Operations.Power(id)),18,50)
-		app:Button("Start"..index,(if cleared then "Replay" else "Deploy").." · $"..Theme.Money(if cleared then definition.replayCash else definition.firstCash).." reward",function()
+		app:Button("Start"..index,(if cleared then "Defend again" else "Defend").." · $"..Theme.CompactMoney(if cleared then definition.replayCash else definition.firstCash).." reward",function()
 			app:Request("StartOperation",{operationId=id,expectedRevision=state.research.revision})
 		end,Theme.ActionColors.purchase)
 	end
 	app:Text("Banner","Clear all three to earn the "..Operations.Tiers[self.tier].." banner"..(if self.tier==3 then " and Royal Commander title." else "."),19,50)
-	app:Button("Formations","Manage army formations",function() app:OpenPage("Formations") end)
+	app:Button("Formations","Manage Army formations",function() app:OpenPage("Formations") end)
 end
 
 function Extras:Destroy()

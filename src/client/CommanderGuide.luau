@@ -138,6 +138,16 @@ function Commander:Present(visible, changed)
 		Theme.Motion:Cancel(self.portrait,"guide-salute");self.portrait.Rotation=0
 	end
 	self.card.Visible,self.wasVisible=visible,visible
+	-- Top-centre priority: a lesson card hides the army status line (HudController).
+	self.lessonVisible=visible and not self.quiet
+	local app=self.app
+	if app.hud and app.hud.SyncStatus then app.hud:SyncStatus() end
+	-- Notices sit below the card, so move a showing one when the card appears, hides or resizes.
+	local layout=if visible then (if self.quiet then "quiet" else "lesson") else "hidden"
+	if layout~=self.noticeLayout then
+		self.noticeLayout=layout
+		if app.PlaceNotice then app:PlaceNotice() end
+	end
 end
 
 -- A quick "done!" each time a lesson completes: a green check pops beside the
@@ -243,6 +253,8 @@ function Commander:Update()
 	if not current then current=Guide.NextGoal(state) end
 	-- A live Hill round takes the top slot; quiet next-goal lines wait (lessons never do).
 	if current and current.goal and app.hud and app.hud.hill and app.hud.hill.bannerVisible then current=nil end
+	-- Lesson card > army status > next-goal line: a quiet goal waits while the army status shows.
+	if current and current.goal and app.hud and app.hud.statusWanted then current=nil end
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
 	if self.facts and current and not current.goal then
@@ -274,8 +286,8 @@ function Commander:Update()
 			or ((id=="Deploy" or string.sub(id,1,12)=="Goal:Attack:") and prompt.Name=="ArmyCommandPrompt") then atTarget=true end
 	end
 	-- Let the game's native action prompt take over when the player reaches it.
+	-- Notices no longer hide the card; AppController:NoticePosition places them below it.
 	local visible=not app.panel.Visible and not inTree and not blocked and not atTarget
-		and not (app.toastFrame and app.toastFrame.Visible)
 	local quiet=current.goal==true
 	self:SetQuiet(quiet)
 	self:SetInstruction(if quiet then "Next: "..current.text else current.text,visible and self.pendingType and not quiet)

@@ -219,7 +219,7 @@ function Browser.new(app,parent)
  local background=frame(root,"ArmyBackground",UDim2.new(),UDim2.new())
  -- The shared header's window contour also frames this full-height background.
  surface(background,Color3.fromRGB(18,32,41),Color3.fromRGB(18,32,41),INK,3).Enabled=false
- local header,title=Theme.Header(root,"Header","Your Chickens",GREEN)
+ local header,title=Theme.Header(root,"Header","My Army",GREEN)
  Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
  header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
  self.header,self.title=header,title
@@ -239,7 +239,7 @@ function Browser.new(app,parent)
   local offer=self:CashOffer("PlotSize")
   if offer and offer.ready and offer.price==nil then
    local limit=self.app.state.collectionLimit or Config.CollectionLimit
-   self.notice,self.noticeUntil="Your flock is at its maximum of "..limit.." chickens.",os.clock()+4
+   self.notice,self.noticeUntil="Your Flock is at its maximum of "..limit.." chickens.",os.clock()+4
    self:UpdateAction();return
   end
   self:CancelPointer(true);self.app.research:OpenCash("PlotSize")
@@ -298,10 +298,16 @@ function Browser.new(app,parent)
  art(sort,"Chevron",Art.Chevron,UDim2.new(),UDim2.new())
  sort.Activated:Connect(function()
   self.app.audio:Play("Click")
-  if self.placing then self.placing,self.placingExpected=nil,nil
-  else self.sort=if self.sort=="Best" then "Name" else "Best" end
+  self.sort=if self.sort=="Best" then "Name" else "Best"
   self.grid.CanvasPosition=Vector2.zero;self:Render(true)
  end)
+ -- Replace mode gets its own Cancel beside the search box; the sort control stays.
+ self.placeCancel=button(self.inventoryPanel,"CancelReplace","Cancel",function()
+  self.app.audio:Play("Click")
+  self.placing,self.placingExpected=nil,nil
+  self:Render(true)
+ end,RED)
+ self.placeCancel.Visible=false
  local grid=Instance.new("ScrollingFrame")
  grid.Name,grid.BackgroundTransparency,grid.BorderSizePixel="ChickenInventory",1,0
  grid.Position,grid.Size=UDim2.new(),UDim2.new()
@@ -368,7 +374,7 @@ function Browser.new(app,parent)
 	self.passCopy=label(self.capacityPage,"Description","Bring more chickens into battle.",24,UDim2.new(),UDim2.new(),WHITE)
 	self.passCopy.TextWrapped,self.passCopy.TextTruncate=true,Enum.TextTruncate.None
 	self.passNote=label(self.capacityPage,"Availability",
-		"The Bigger Army pass adds five more army slots on top of your cash upgrades. See the price in Shop.",18,
+		"The Bigger Army pass adds five more Army slots on top of your Cash upgrades. See the price in Shop.",18,
 		UDim2.new(),UDim2.new(),MUTED)
 	self.passNote.TextWrapped,self.passNote.TextTruncate=true,Enum.TextTruncate.None
 	self.passShop=button(self.capacityPage,"ViewInShop","View in Shop",function()
@@ -402,7 +408,7 @@ function Browser.new(app,parent)
  self.actionLayout=Instance.new("UIListLayout")
  self.actionLayout.FillDirection,self.actionLayout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
  self.actionLayout.Parent=self.actions
- self.assign=button(self.actions,"AssignChicken","Equip",function() self:AssignSelected() end,GREEN)
+ self.assign=button(self.actions,"AssignChicken","Add to Army",function() self:AssignSelected() end,GREEN)
  fitInspectorLine(self.assign,42,14)
  self.sell=button(self.actions,"SellChicken","Sell",function() self:ReviewSale() end,RED)
  self.assign.LayoutOrder,self.sell.LayoutOrder=1,2
@@ -410,7 +416,7 @@ function Browser.new(app,parent)
  self.mergeHint=label(self.detail,"MergeHint","",23,UDim2.new(),UDim2.new(),MUTED)
  self.mergeHint.TextXAlignment=Enum.TextXAlignment.Center
  fitInspectorLine(self.mergeHint,23,12)
- self.detailBack=button(self.body,"BackToFlock","Back to flock",function()
+ self.detailBack=button(self.body,"BackToFlock","Back to Flock",function()
   self.app.audio:Play("Click");self.inspecting=false;self.app.selected=nil
   self.saleQuote=nil;self:Render(true)
  end,CYAN)
@@ -529,11 +535,15 @@ function Browser:Resize()
  rect(self.best,975,13,294,64,width,85)
  rect(self.infoButton,1280,13,180,64,width,85)
  rect(self.inventoryPanel,6,92,903,inventoryHeight,width,bodyHeight)
- rect(self.searchShell,16,12,584,60,903,inventoryHeight)
- rect(self.searchShell.SearchIcon,16,12,38,38,584,60)
+ -- While replacing, the search box narrows to make room for Cancel.
+ local searchWidth=if self.placing then 410 else 584
+ rect(self.searchShell,16,12,searchWidth,60,903,inventoryHeight)
+ rect(self.searchShell.SearchIcon,16,12,38,38,searchWidth,60)
  Theme.Aspect(self.searchShell.SearchIcon,1)
- rect(self.search,75,0,480,60,584,60)
+ rect(self.search,75,0,searchWidth-104,60,searchWidth,60)
  Theme.ScaleText(self.search)
+ self.placeCancel.Visible=self.placing~=nil
+ rect(self.placeCancel,436,12,164,60,903,inventoryHeight)
  rect(self.sortButton,614,12,270,60,903,inventoryHeight)
  rect(self.sortButton.Caption,18,0,195,60,270,60)
  rect(self.sortButton.Chevron,221,18,34,24,270,60)
@@ -634,21 +644,24 @@ function Browser:UpdateAction()
 	local pet=self.app:Pet(self.app.selected)
 	if self.saleQuote and not self.pending and not self:SaleQuoteValid() then
 		self.saleQuote=nil
-		self.notice,self.noticeUntil="Your flock changed. Review the chicken again.",os.clock()+4
+		self.notice,self.noticeUntil="Your Flock changed. Review the chicken again.",os.clock()+4
 	end
 	local canEdit=self:CanEdit()
 	enabled(self.best,canEdit)
 	self.best.Text=if self.pending and self.pending.action=="SelectBest" then "Selecting…" else "Select Best"
 	self.hint.Text=if self.notice then self.notice
-		elseif self.pending then (if self.pending.action=="Sell" then "Selling chicken…" elseif self.pending.action=="UpgradeChicken" then "Upgrading chicken…" else "Updating army…")
-		elseif self.placing then "Choose a green-checked chicken to replace, or tap Cancel."
-		elseif not canEdit then "Updating army…"
+		elseif self.pending then (if self.pending.action=="Sell" then "Selling chicken…" elseif self.pending.action=="UpgradeChicken" then "Upgrading chicken…" else "Updating Army…")
+		elseif self.placing then "Choose a green-checked chicken to replace, or choose Cancel."
+		elseif not canEdit then "Updating Army…"
 		else ""
 	self.hint.Visible=self.hint.Text~=""
 	self.hint.TextColor3=if self.notice then Color3.fromRGB(255,120,132) else MUTED
+	-- A home reserve can be sold even while the rest of the Army is away.
+	local canSell=self.pending==nil and self:SaleEligible(pet)
 	self.detailNotice.Text=if self.notice then self.notice
 		elseif self.pending then "Updating…"
-		elseif pet and self:ColossalSlot(pet.id) then "Only 1 Colossal per army."
+		elseif pet and self:ColossalSlot(pet.id) then "Only 1 Colossal per Army."
+		elseif pet and not canSell then self:SaleBlockedReason(pet)
 		else ""
 	self.detailNotice.TextColor3=self.hint.TextColor3
 	local price=pet and pet.upgradePrice
@@ -658,11 +671,9 @@ function Browser:UpdateAction()
 		elseif pet and pet.level>=Config.MaxPetLevel then "Max Level"
 		elseif type(price)=="number" then 'Upgrade  <font color="#FFDE29">$'..Theme.Money(price)..'</font>' else "Upgrade"
 	enabled(self.assign,canEdit and pet~=nil)
-	self.assign.Text=if pet and pet.selected then "Unequip"
+	self.assign.Text=if pet and pet.selected then "Remove from Army"
 		elseif pet and self:ColossalSlot(pet.id) then "Replace Colossal"
-		elseif #(state.selectedIds or {})>=state.capacity then "Replace…" else "Equip"
-	-- A home reserve can be sold even while the rest of the squad is away.
-	local canSell=self.pending==nil and self:SaleEligible(pet)
+		elseif #(state.selectedIds or {})>=state.capacity then "Replace…" else "Add to Army"
 	enabled(self.sell,canSell)
 	self.sell.Text=if self.pending and self.pending.action=="Sell" then "Selling…" else "Sell"
 	local reviewing=self.saleQuote~=nil
@@ -702,6 +713,16 @@ function Browser:SaleEligible(pet)
 		and pet.refund>=0 and pet.refund<math.huge
 end
 
+-- Why Sell is disabled, short and in glossary words; the server's saleReason
+-- covers anything else (e.g. the starter-flock minimum).
+function Browser:SaleBlockedReason(pet): string
+	if pet.favorite then return "Favorited chickens can't be sold." end
+	if pet.deployed or pet.home==false then return "Sell this chicken once it's back home." end
+	if pet.selected then return "Remove this chicken from your Army to sell it." end
+	if pet.canSell==false and type(pet.saleReason)=="string" then return pet.saleReason end
+	return ""
+end
+
 function Browser:SaleQuoteValid()
 	local quote=self.saleQuote
 	if not quote or self.app.selected~=quote.id or not self.app.state then return false end
@@ -724,7 +745,7 @@ function Browser:ConfirmSale()
 	if self.pending or not self.root.Visible or not self.parent.Visible then return end
 	if not self:SaleQuoteValid() then
 		self.saleQuote=nil
-		self.notice,self.noticeUntil="Your flock changed. Review the chicken again.",os.clock()+4
+		self.notice,self.noticeUntil="Your Flock changed. Review the chicken again.",os.clock()+4
 		self:UpdateAction();return
 	end
 	local quote=self.saleQuote
@@ -792,7 +813,7 @@ function Browser:Drop(id,slot,toFlock,expected)
 	local colossals=0
 	for _,petId in ids do local pet=self.app:Pet(petId);if pet and Giant.IsColossal(pet.giantSize) then colossals+=1 end end
 	if colossals>Giant.MaxArmyColossals then
-		self.notice,self.noticeUntil="Only 1 Colossal per army. Replace your equipped Colossal.",os.clock()+4
+		self.notice,self.noticeUntil="Only 1 Colossal per Army. Replace the Colossal in your Army.",os.clock()+4
 		self:UpdateAction();return
 	end
 	self.placing,self.placingExpected=nil,nil
@@ -1021,17 +1042,17 @@ function Browser:RenderArmyInfo(pets,ids)
 	end
 	local state=self.app.state
 	self.statTiles.Damage.value.Text=Theme.Number(dps)
-	self.statTiles.Damage.note.Text=if state.research and state.research.effects.damage>0 then "includes +"..math.round(state.research.effects.damage*100).."% research" else "damage per second"
+	self.statTiles.Damage.note.Text=if state.research and state.research.effects.damage>0 then "includes +"..math.round(state.research.effects.damage*100).."% from Upgrades" else "damage per second"
 	self.statTiles.Health.value.Text=Theme.Number(hp)
-	self.statTiles.Health.note.Text=if state.research and state.research.effects.health>0 then "includes +"..math.round(state.research.effects.health*100).."% research" else "maximum hit points"
+	self.statTiles.Health.note.Text=if state.research and state.research.effects.health>0 then "includes +"..math.round(state.research.effects.health*100).."% from Upgrades" else "maximum hit points"
 	self.statTiles.Deployed.value.Text=#ids.." / "..state.capacity
-	self.statTiles.Deployed.note.Text="army slots in use"
+	self.statTiles.Deployed.note.Text="Army slots in use"
 	self.statTiles.Flock.value.Text=tostring(#(state.pets or {}))
 	self.statTiles.Flock.note.Text="owned chickens"
-	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual lineup is selected." else "Best chickens selected automatically."
-	self.infoFooter.Text="Equipped stats only. Best uses damage, health and splash.\nHome flock: "..homeCount.." chickens / "..Theme.Count(state.homeEggsPerSecond or 0,"egg/s","eggs/s")
+	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual Army is selected." else "Best chickens selected automatically."
+	self.infoFooter.Text="Army stats only. Best uses damage, health and splash.\nHome Flock: "..homeCount.." chickens / "..Theme.Count(state.homeEggsPerSecond or 0,"egg/s","eggs/s")
 	if #ids==0 then
-		label(self.infoRoster,"Empty","No chickens selected. Return to your flock and equip a team.",18,
+		label(self.infoRoster,"Empty","No chickens in your Army. Return to your Flock and add some.",18,
 			UDim2.fromScale(0.01,0.01),UDim2.fromScale(0.98,0.12),MUTED)
 	end
 end
@@ -1107,12 +1128,12 @@ function Browser:Render(force)
 	if not self:CanEdit() or (self.placing and not pets[self.placing]) then self.placing,self.placingExpected=nil,nil end
 	local dimensions=self:Resize()
 	self.app.panelTitle.Text=if self.showInfo then "Army Info"
-		elseif self.showCapacity then "More Army Slots" else "Your Chickens"
+		elseif self.showCapacity then "More Army Slots" else "My Army"
 	self.title.Text=self.app.panelTitle.Text
-	local mode=if state.selectionMode=="Manual" then "Manual lineup" else "Best selected"
+	local mode=if state.selectionMode=="Manual" then "Manual Army" else "Best selected"
 	self.summary.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ordered,state.collectionLimit or Config.CollectionLimit)
 	self.capacity.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ids,state.capacity)
-	self.sortButton.Text=if self.placing then "Cancel" elseif self.sort=="Name" then "Name A-Z" else "Best first"
+	self.sortButton.Text=if self.sort=="Name" then "Name A-Z" else "Best first"
 	local keys={dimensions,self.app.selected or "",table.concat(ids,","),tostring(state.capacity),mode,
 		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
 		tostring(state.homeEggsPerSecond),self.query,self.sort,self.placing or ""}
@@ -1127,8 +1148,10 @@ function Browser:Render(force)
 	clear(self.grid);self.slots,self.cards={},{}
 	local visible={}
 	for _,pet in ordered do
-		local searchText=string.lower(Catalog[pet.species].name.." "..Catalog[pet.species].rarity.." "..pet.species
-			..(if Mutations.IsValid(pet.mutation) then " "..pet.mutation else ""))
+		-- Player-facing words only: never internal species IDs such as "Duck".
+		local mutation=Mutations.Get(pet.mutation)
+		local searchText=string.lower(Catalog[pet.species].name.." "..Catalog[pet.species].rarity
+			..(if mutation then " "..mutation.name else ""))
 		if self.query=="" or string.find(searchText,self.query,1,true) then table.insert(visible,pet) end
 	end
 	local row
@@ -1145,7 +1168,7 @@ function Browser:Render(force)
 		local holder=frame(self.grid,"EmptyRow",UDim2.fromScale(1,1))
   Theme.Aspect(holder,877/220)
 		local empty=label(holder,"Empty",if self.query~="" then "No matching chickens"
-			else "Your flock is empty. Roll chickens at the lever in your yard!",
+			else "Your Flock is empty. Roll chickens at the lever in your yard!",
 			18,UDim2.new(),UDim2.fromScale(1,1),MUTED)
 		empty.TextWrapped,empty.TextTruncate=true,Enum.TextTruncate.None
 		empty.TextXAlignment=Enum.TextXAlignment.Center

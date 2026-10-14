@@ -111,12 +111,12 @@ function BattleService:TargetName(session,target)
  return (if owner then owner.name.."'s " else "")..CampaignRoute.Name(target)
 end
 
--- A victorious, recalled or retreating squad can turn around on its way home.
--- A squad sent home by a loss recovers first.
-local TURN_AROUND={A=true,Recall=true,Retreat=true}
+-- A victorious, recalled, retreating or defeated squad can turn around on its way
+-- home. After a wipe the fallen keep their respawn timers and rejoin from home.
+local TURN_AROUND={A=true,Recall=true,Retreat=true,B=true}
 function BattleService:CanTurnAround(battle)
  return battle.phase=="Returning" and TURN_AROUND[battle.outcome or ""]==true
-  and not battle.incomeSite and not battle.incomeDeparture and battle:Alive("A")>0
+  and not battle.incomeSite and not battle.incomeDeparture and (battle.outcome=="B" or battle:Alive("A")>0)
 end
 
 -- Only this player's outgoing NPC encounter can be redirected. Shared income
@@ -128,10 +128,11 @@ function BattleService:CanRedirect(session,battle)
   and (battle.phase=="Travel" or battle.phase=="Fight" or battle.phase=="Capture" or battle.phase=="Holding")
 end
 
+-- A defeated squad may retry the camp it just lost; its guards start fresh.
 function BattleService:TerritoryBlocked(key,previous)
  local reserved=self.campBusy[key]
  return reserved~=nil and not (previous and reserved==previous.id
-  and self.departingCamps[key]==previous.id and key~=previous.campKey)
+  and self.departingCamps[key]==previous.id and (key~=previous.campKey or previous.outcome=="B"))
 end
 
 -- Camps go in any order (Mini War style). Only an unopened King still marches
@@ -702,7 +703,7 @@ end
 
 function BattleService:Attack(session,targetId,now,keepRoute)
 	if type(targetId)~="string" or #targetId>60 then return false,"Invalid target." end
-	if targetId:sub(1,5)=="base:" then return false,"Home bases are safe. Challenge a camp instead." end
+	if targetId:sub(1,5)=="base:" then return false,"Player bases are safe. Attack a camp instead." end
 	if targetId=="income:1" then return self:AttackIncome(session,now) end
 	targetId=self:OrderId(session,targetId)
 	local requestedTarget=targetId
@@ -739,7 +740,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		return true,"Taking "..previous.name..", then onward to "..previous.routeGoalName.."."
 	end
 	local roster=session:Lineup()
-	if #roster==0 then return false,"Add at least one animal to your army first." end
+	if #roster==0 then return false,"Add at least one chicken to your army first." end
 	local kind,id=string.match(targetId,"^(%a+):([%-]?%d+)$")
 	local index=tonumber(id)
 	local defender,defenders,destination,name,campIndex,routeGoal,targetPower
@@ -761,7 +762,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
   defenders,destination,name,targetPower=king.roster,Vector3.new(0,1.05,0),king.name,king.power
  elseif outpostIndex then
   local camp=Progression.Outposts()[outpostIndex]
-  if self:TerritoryBlocked(targetId,previous) then return false,"This outpost is occupied. Wait for the army to leave." end
+  if self:TerritoryBlocked(targetId,previous) then return false,"This camp is occupied. Wait for that army to leave." end
   defenders=Progression.OutpostRoster(outpostIndex)
   destination=self.world:OutpostFrame(outpostIndex).Position
   name=camp.name
@@ -1022,13 +1023,13 @@ function BattleService:Finish(battle,outcome,now)
 			elseif hold and battle.autoReturnAt then "You've conquered "..battle.name.."!"..bonusText.." Your army is heading home to lay eggs."
 			elseif hold then "You've conquered "..battle.name.."!"..bonusText
 			elseif outcome=="A" then "Victory at "..battle.name.."!"
-			elseif outcome=="B" then "Squad wiped out. Enemy control is recovering; your chickens are returning home."
-			elseif outcome=="Draw" then "Draw — all pets are returning."
-			else outcome.." — returning home. Kill cash kept."
+			elseif outcome=="B" then "Army defeated. Your chickens respawn at home; send them again whenever you're ready."
+			elseif outcome=="Draw" then "Draw — your chickens are returning home."
+			else outcome.." — returning home. You keep the cash you earned."
 		attacker:Touch()
 	end
 	if defender then
-		defender.banner=if outcome=="A" then "Base defeated. Your pets and cash are safe."
+		defender.banner=if outcome=="A" then "Base defeated. Your chickens and cash are safe."
 			elseif outcome=="B" then "Base defended!" else "Raid ended: "..outcome
 		if defender.defending==battle.id then
 			defender.defending=nil
@@ -1258,7 +1259,7 @@ function BattleService:Step(dt,now)
   local session=self.sessions[battle.attacker]
   if session and session.outgoing==battle.id then
    session.returnAt=now
-   if not battle:Returned(now) then session.banner="The route was blocked. Your squad recovered at the yard." end
+   if not battle:Returned(now) then session.banner="The route was blocked. Your army recovered at your base." end
   end
   if session and battle:Returned(now) and battle.actors and self.world.RestoreActor then
    for _,u in battle.units do if u.side=="A" and u.petId then
@@ -1354,7 +1355,7 @@ end
 function BattleService:ReturnHome(session,now)
 	local battle=self.battles[session.outgoing]
 	if not battle or battle.phase=="Returning" then return false,"Your army is already home or returning." end
-	if battle.operationId then self.operations:Resolve(battle,"Abandoned",now);return true,"Operation ended. Your army is home." end
+	if battle.operationId then self.operations:Resolve(battle,"Abandoned",now);return true,"Invasion abandoned. Your army is marching home." end
  if battle.incomeContest and battle.defender==session.userId then
   local continuation=TerritoryContest.Continue(battle,session,"B",self.world,now,false)
   continuation.incomeDeparture=true;self.battles[continuation.id]=continuation
@@ -1482,17 +1483,29 @@ function BattleService:CancelPlayer(userId,now)
 end
 
 -- King of the Hill (HillService owns the clock). The Hill reuses the shared
--- territory contest above at the King's arena, so King fights wait for the break.
+-- territory contest above at the King's arena: for the whole round Hill Guards
+-- replace the King's court and the arena prompt targets the Hill, so King fights
+-- wait for the break. There is no pre-round lock (Config.Hill.KingLockSeconds=0);
+-- a King fight still running at the bell only delays the round's start.
 function BattleService:HillRate(session,now)
  if self.hill then return self.hill:Rate(session,now) end
  return nil
 end
 
+local function hillClock(seconds)
+ seconds=math.max(0,math.ceil(seconds))
+ return string.format("%d:%02d",seconds//60,seconds%60)
+end
+
 function BattleService:HillKingLock(now)
- if not self.hill then return false,nil end
- local locked,reason=self.hill:KingLock(now)
- if locked then return true,reason end
- if self.campBusy["income:1"] then return true,"Hill armies are leaving the arena" end
+ local hill=self.hill
+ if not hill then return false,nil end
+ if hill:KingLock(now) then
+  -- Open: the rest of this round. Opening (or the bell): a full round ahead.
+  local wait=if hill.phase=="Open" then hill.endsAt-now else Config.Hill.RoundSeconds
+  return true,"The Hill fight is using the arena — the King opens in "..hillClock(wait)
+ end
+ if self.campBusy["income:1"] then return true,"Hill armies are leaving the arena — the King opens in a moment" end
  return false,nil
 end
 

@@ -265,6 +265,32 @@ function RollPresentationController:ShowBadge(record, mutation, animate)
  end
 end
 
+-- RollStation (server) labels only slot 1's empty podium. The local player's
+-- other owned, unlocked empty podiums get the same hint locally so they never
+-- read as blank boxes. Same look as the server's OfferLabel text line.
+function RollPresentationController:SetIdleHint(record, visible: boolean)
+ local hint=record.idleHint
+ if not visible then
+  if hint then hint.Enabled=false end
+  return
+ end
+ if not hint then
+  hint=Instance.new("BillboardGui")
+  hint.Name,hint.Size,hint.StudsOffsetWorldSpace="EmptyPodiumHint",UDim2.fromOffset(340,34),Vector3.new(0,4.5,0)
+  hint.AlwaysOnTop,hint.MaxDistance,hint.LightInfluence=true,38,0
+  hint.Adornee,hint.Parent=record.top,self.folder
+  local label=Instance.new("TextLabel")
+  label.Name,label.BackgroundTransparency,label.Size="Text",1,UDim2.fromScale(1,1)
+  label.Font,label.TextSize,label.TextColor3=Enum.Font.SourceSansBold,28,UIColors.Text
+  label.Text,label.Parent="Pull the lever to roll",hint
+  local stroke=Instance.new("UIStroke")
+  stroke.Color,stroke.Thickness,stroke.Transparency=UIColors.Border,2,0.05
+  stroke.Parent=label
+  record.idleHint=hint
+ end
+ hint.Enabled=true
+end
+
 function RollPresentationController:Sound(record, name, pitch, volume, duration)
  -- One shared shuffle soundtrack; secondary rare reveals share the capped voice key.
  if (record.station:GetAttribute("RollSlot") or 1)>1 and name~="RollRare" then return end
@@ -302,6 +328,7 @@ function RollPresentationController:StepRecord(record, now)
  local near=camera and (camera.CFrame.Position-record.foot).Magnitude<100
  if not near or not station:GetAttribute("OwnerId") then
   if record.active then self:Reset(record) end
+  self:SetIdleHint(record,false)
   return
  end
  record.active=true
@@ -343,6 +370,10 @@ function RollPresentationController:StepRecord(record, now)
   end
  end
 
+ -- Empty-podium hint: own podiums beyond slot 1 (the server labels slot 1).
+ self:SetIdleHint(record,not rolling and serverPet==nil
+  and (station:GetAttribute("RollSlot") or 1)>1 and station:GetAttribute("Unlocked")~=false
+  and station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId)
  if rolling then
   local progress=math.clamp(elapsed/duration,0,1)
   local stage=0
@@ -452,6 +483,7 @@ function RollPresentationController:Start(world)
     self:Reset(record)
     for _,model in record.cache do model:Destroy() end
     if record.badge then record.badge.gui:Destroy() end
+    if record.idleHint then record.idleHint:Destroy() end
     record.glow:Destroy();self.records[station]=nil
    else self:StepRecord(record,now) end
   end

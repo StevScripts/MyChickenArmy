@@ -63,7 +63,7 @@ function BaseController:CommandFor(part)
 		if not canMove and not entry.canUnclaim then
 			-- Status only: feeds the locked heading, never a prompt or an order.
 			return {model = target, targetId = id, title = entry.name, locked = not entry.current,
-				reason = entry.reason or "Your army is busy", color = C.line}
+				reason = entry.reason or "Your Army is busy", color = C.line}
 		end
 		local _, _, _, selectedCount, deployedCount = self.app:Counts()
 		local armyCount = if state.armyState == "Home" or state.armyState == "Following" then selectedCount else deployedCount
@@ -78,9 +78,9 @@ function BaseController:CommandFor(part)
 		local pays = if (entry.holdBonus or 0) > 0 then " · +" .. math.floor(entry.holdBonus * 100 + 0.5) .. "% eggs" else ""
 		local hint = if entry.via then "Fights " .. entry.via .. " first"
 			else strength .. " · " .. (entry.count or 0) .. " defenders · " .. bounty .. pays
-		local text = if allowed then "Send army · " .. hint else reason
+		local text = if allowed then "Send Army · " .. hint else reason
 		if allowed and entry.via then text = "Via " .. entry.via .. "\nEarlier camps are fought in order" end
-        if allowed and entry.ownerId and not entry.via then text=if entry.owned then "Station army" else "Capture territory" end
+        if allowed and entry.ownerId and not entry.via then text=if entry.owned then "Station Army" else "Capture territory" end
 		if income then
 			text = if allowed then income.action or "Conquer" else reason or "Territory busy"
 			local deadline = if (income.retryEndsAt or 0) > workspace:GetServerTimeNow() then income.retryEndsAt else income.graceEndsAt
@@ -326,7 +326,7 @@ function BaseController:Start()
 		end))
 	end
 	local prompt=Instance.new("ProximityPrompt")
-	prompt.Name,prompt.KeyboardKeyCode,prompt.ActionText="ArmyCommandPrompt",Enum.KeyCode.E,"Send army"
+	prompt.Name,prompt.KeyboardKeyCode,prompt.ActionText="ArmyCommandPrompt",Enum.KeyCode.E,"Send Army"
 	prompt.MaxActivationDistance,prompt.HoldDuration,prompt.RequiresLineOfSight=Config.CommandDistance,0.15,false
 	prompt.Exclusivity,prompt.Enabled=Enum.ProximityPromptExclusivity.OnePerButton,false
 	prompt.Style=Enum.ProximityPromptStyle.Default
@@ -341,7 +341,8 @@ function BaseController:Start()
 	self.commandAnchor.Name,self.commandAnchor.Position="ArmyCommandAnchor",Vector3.new(0,2.5,0)
 	prompt.Parent=self.commandAnchor
 	local unclaim=Instance.new("ProximityPrompt")
-	unclaim.Name,unclaim.ActionText="UnclaimBasePrompt","Unclaim Base"
+	-- The instance name stays (docs/tests); the player-facing words follow the glossary.
+	unclaim.Name,unclaim.ActionText="UnclaimBasePrompt","Release Camp"
 	-- X, not R: R opens Upgrades globally. A 1 s hold guards against accidental unclaims.
 	unclaim.KeyboardKeyCode,unclaim.GamepadKeyCode=Enum.KeyCode.X,Enum.KeyCode.ButtonY
 	unclaim.Exclusivity,unclaim.Style=Enum.ProximityPromptExclusivity.OnePerButton,Enum.ProximityPromptStyle.Default
@@ -619,7 +620,7 @@ function BaseController:PollCommand()
 		-- Center the compact controls; inactive commands remain hidden in combat.
 		self.commandAnchor.Position=Vector3.new(0,2.5,0)
 		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
-		self.commandPrompt.ActionText="Move Troops Here"
+		self.commandPrompt.ActionText="Send Army"
 		-- Odds and bounty, e.g. "Close fight · 4 defenders · $100–520/kill".
 		self.commandPrompt.ObjectText=nearest.hint or ""
 		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)

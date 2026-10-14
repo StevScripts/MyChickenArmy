@@ -6,6 +6,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
@@ -43,6 +44,8 @@ local AppController = {}
 AppController.__index = AppController
 local C = Theme.Colors
 local MenuLayout = require(script.Parent.MenuLayout)
+-- Routine army commands confirm themselves on the HUD (status line, Army count); only failures notify.
+local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true}
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -83,9 +86,26 @@ end
 
 
 function AppController:NoticePosition()
+	if self.panel.Visible then return UDim2.fromScale(0.5,0.14) end
 	-- A live Hill round's title and bar fill the top; notices sit just below them.
 	local hill=self.hud and self.hud.hill and self.hud.hill.bannerVisible
-	return UDim2.fromScale(0.5,if self.panel.Visible then 0.14 elseif hill then 0.3 else 0.24)
+	local y=if hill then 0.3 else 0.24
+	-- The Commander card stays up during notices; the notice (bottom-anchored) sits below it.
+	local commander=self.commander
+	local card=commander and commander.root.Visible and commander.card.Visible and commander.card
+	local parent=self.toastFrame.Parent
+	if card and parent and parent.AbsoluteSize.Y>0 then
+		local bottom=card.AbsolutePosition.Y+card.AbsoluteSize.Y-parent.AbsolutePosition.Y
+		y=math.max(y,(bottom+self.toastFrame.AbsoluteSize.Y)/parent.AbsoluteSize.Y+0.012)
+	end
+	return UDim2.fromScale(0.5,y)
+end
+
+-- Re-place a showing notice after the layout above it changes (never revives a leaving one).
+function AppController:PlaceNotice()
+	if self.toastFrame and self.toastFrame.Visible and not self.noticeLeaving then
+		Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),true)
+	end
 end
 
 function AppController:SizeNotice()
@@ -98,6 +118,18 @@ function AppController:Notify(text, ok)
 	if not text or text == "" then return end
 	local kind=if type(ok)=="string" and Theme.NotificationStyles[ok] then ok
 		elseif ok==false then "error" elseif ok==true then "success" else "info"
+	local urgent=kind=="error" or kind=="warning"
+	if not urgent and os.clock()<(self.noticeHoldUntil or 0) then
+		-- An error keeps its full reading time; routine notices wait their turn.
+		local queue=self.noticeQueue or {}
+		self.noticeQueue=queue
+		local last=queue[#queue]
+		if not (last and last.text==text and last.kind==kind) then
+			table.insert(queue,{text=text,kind=kind})
+			if #queue>3 then table.remove(queue,1) end
+		end
+		return
+	end
 	if kind=="error" then
 		self.audio:Play("Error",nil,{voiceKey="ErrorNotification",cooldown=0.25})
 	end
@@ -107,13 +139,24 @@ function AppController:Notify(text, ok)
 	local serial = self.toastSerial
 	Theme.SetNotification(self.toast,text,kind)
 	self:SizeNotice()
+	self.noticeLeaving=false
 	Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),repeated)
 	Theme.NotificationFlair(self.toastFrame,self.toast,kind,repeated)
 	if self.toastDelay then task.cancel(self.toastDelay) end
-	local duration=math.clamp(#text/24+1,if kind=="error" or kind=="warning" then 5 else 4,8)
+	local duration=math.clamp(#text/24+1,if urgent then 5 else 4,8)
+	self.noticeHoldUntil=if urgent then os.clock()+duration else 0
 	self.toastDelay=task.delay(duration, function()
 		self.toastDelay=nil
-		if self.alive and serial == self.toastSerial then Theme.NotificationLeave(self.toastFrame) end
+		if not self.alive or serial ~= self.toastSerial then return end
+		self.noticeHoldUntil=0
+		local queue=self.noticeQueue
+		if queue and #queue>0 then
+			local nextNotice=table.remove(queue,1)
+			self:Notify(nextNotice.text,nextNotice.kind)
+			return
+		end
+		self.noticeLeaving=true
+		Theme.NotificationLeave(self.toastFrame)
 	end)
 end
 
@@ -166,7 +209,7 @@ function AppController:TrackRecruit(result)
 		classification = "Reserve"
 	else
 		classification = if assignment == "Added" and type(recruit.selectedBefore) == "number" and type(recruit.selectedAfter) == "number"
-			then "Squad " .. recruit.selectedBefore .. " → " .. recruit.selectedAfter else assignment
+			then "Army " .. recruit.selectedBefore .. " → " .. recruit.selectedAfter else assignment
 		if recruit.deferredUntilContestEnds then classification ..= " · joins after this contest"
 		elseif recruit.pendingBattleId then classification ..= " · marching" end
 	end
@@ -253,7 +296,7 @@ function AppController:ObserveRecruitUnit(battle, unit, model)
 		self.base:PulseModel(model, C.blue)
 		if os.clock() - (self.lastRecruitArrivalNotice or -10) > 1.2 then
 			self.lastRecruitArrivalNotice = os.clock()
-			self:Notify((Catalog[pet.species] and Catalog[pet.species].name or "Chicken") .. " joined your army", true)
+			self:Notify((Catalog[pet.species] and Catalog[pet.species].name or "Chicken") .. " joined your Army", true)
 		end
 	end
 	if not intent.contributionAcknowledged and (unit.impactSerial or 0) > 0 then
@@ -303,10 +346,9 @@ function AppController:OpenPage(page)
 		self.research:OpenNode("FuseMachine")
 		return
 	end
-	if self.research then self.research:Close() end
+	-- Take the blur first so closing the other menu cannot clear it.
 	self:SetMenuBlur("main",true)
-	self.offlineCash:Dismiss(true)
-	self.dailyReward:Dismiss(true)
+	self:CloseOtherMenus("main")
 	if self.mergeBrowser and self.page=="Merge" and page~="Merge" then self.mergeBrowser:Close() end
 	local switching=self.panel.Visible and not self.panelClosing
 	self.panelClosing=false
@@ -327,7 +369,7 @@ function AppController:OpenPage(page)
 	self:FitPanel()
 	self:RenderPanel(true)
 	Theme.Motion:OpenPanel(self.panel,self.backdrop,switching)
-	if self.toastFrame.Visible then Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition()) end
+	self:PlaceNotice()
 	if UserInputService.GamepadEnabled then GuiService.SelectedObject=if page=="Upgrades" then self.progression.closeButton elseif page=="Merge" and self.mergeBrowser then self.mergeBrowser.closeButton else self.closeButton end
 	ContextActionService:BindActionAtPriority("PetRollClosePanel",function(_,state)
 		if state==Enum.UserInputState.Begin then self:ClosePanel() end
@@ -335,8 +377,31 @@ function AppController:OpenPage(page)
 	end,false,2500,Enum.KeyCode.ButtonB)
 end
 
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily".
+-- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
+-- closed menu releases only its own blur owner, so the shared blur stays on.
+-- Safe with nothing open. The offline receipt is always dismissed (already paid).
+function AppController:CloseOtherMenus(keep: string?)
+	if keep~="main" then self:CloseMainPanel() end
+	if keep~="research" and self.research and self.research.root.Visible then self.research:Close() end
+	local operations=self.operationsPanel
+	if keep~="operations" and operations and operations.gui then operations:Dismiss(true) end
+	local rebirth=self.rebirthPanel
+	if keep~="rebirth" and rebirth and rebirth.gui then
+		-- Replaced, not closed by the player: do not reopen the Upgrades screen behind it.
+		rebirth.fromResearch=false
+		rebirth:Dismiss(true)
+	end
+	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
+	if self.offlineCash then self.offlineCash:Dismiss(true) end
+end
+
 function AppController:ClosePanel()
 	if self.research and self.research.root.Visible then self.research:Close();return end
+	self:CloseMainPanel()
+end
+
+function AppController:CloseMainPanel()
 	if not self.panel.Visible or self.panelClosing then return end
 	self.panelClosing=true
 	self:SetMenuBlur("main",false)
@@ -347,7 +412,7 @@ function AppController:ClosePanel()
 	end
 	Theme.Motion:ClosePanel(self.panel,self.backdrop,function()
 		self.panelClosing=false
-		if self.toastFrame.Visible then Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition()) end
+		self:PlaceNotice()
 	end)
 	self.confirm = nil
 end
@@ -420,7 +485,7 @@ function AppController:BuildUI()
 	body.Position=UDim2.fromScale(0,0.175)
 	Theme.Surface(body)
 	self.panelBody=body
-	self.panelHeader,self.panelTitle=Theme.Header(standardPage,"Header","Your Chickens",Theme.HeaderColors.Army)
+	self.panelHeader,self.panelTitle=Theme.Header(standardPage,"Header","My Army",Theme.HeaderColors.Army)
 	local close=Theme.HeaderClose(self.panelHeader,function() self.audio:Play("Click");self:ClosePanel() end)
 	self.closeButton=close
 	local content=Instance.new("ScrollingFrame")
@@ -627,7 +692,7 @@ function AppController:RenderSettings()
 	elseif input==Enum.PreferredInput.Touch then
 		self:Text("Controls", "Tap the on-screen buttons and prompts to interact.", 16, 36, C.muted)
 	end
-	self:Text("SaveInfo", self.state.saveMessage or "Pets, cash and upgrades are saved between visits.", 12, 32, C.muted)
+	self:Text("SaveInfo", self.state.saveMessage or "Chickens, Cash and upgrades are saved between visits.", 12, 32, C.muted)
 	if self.state.admin then self:Button("OpenAdmin", "Admin commands  ·  F2", function() self:OpenPage("Admin") end, Theme.ActionColors.navigation) end
 	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
 end
@@ -679,10 +744,10 @@ function AppController:RenderTest()
 		{"FillMixed", "Replace flock with varied chickens"}, {"FillReserves", "Fill flock to 40"}, {"Opponent", "Create a defended test base"},
 		{"EmptyOpponent", "Create an empty test base"}, {"AwayOpponent", "Test opponent returns in 7s"},
 		{"BotAttack", "Test opponent attacks my base"}, {"Seed", "Use repeatable test rolls"}}
-	self:Button("DebugKnockout", "Knock out one active fighter · test 5s respawn", function() self:Request("Debug", {command="Knockout"}) end)
+	self:Button("DebugKnockout", "Knock out one Army chicken · test 5s respawn", function() self:Request("Debug", {command="Knockout"}) end)
 	for _, item in actions do self:Button("Debug" .. item[1], item[2], function() self:Request("Debug", {command = item[1]}) end) end
 	for rank=1,4 do self:Button("DebugPromotion"..rank,"Test rank "..rank.." · keep territory wins",function() self:Request("Debug",{command="Promotion",argument=rank}) end) end
-	for _, count in {3, 6, 10} do self:Button("DebugCapacity" .. count, "Set army capacity to " .. count, function() self:Request("Debug", {command = "Capacity", argument = count}) end) end
+	for _, count in {3, 6, 10} do self:Button("DebugCapacity" .. count, "Set Army size to " .. count, function() self:Request("Debug", {command = "Capacity", argument = count}) end) end
 	for _, id in Catalog.Order do
 		self:Button("DebugGrant" .. id, "Give one " .. Catalog[id].name, function() self:Request("Debug", {command = "Grant", argument = id}) end)
 	end
@@ -718,7 +783,7 @@ function AppController:RenderPanel(force)
 		return
 	end
 	if browsing then
-		self.panelTitle.Text="Your Chickens"
+		self.panelTitle.Text="My Army"
 		self.chickenBrowser:Render(force)
 		return
 	end
@@ -803,7 +868,7 @@ function AppController:Receive(packet)
 		local lockedOpenMerge=not result.ok and result.action=="OpenMerge" and state.mergeUnlocked==false
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
 		if lockedOpenMerge or (not researchFeedback and not shownProduction and not shownCrate
-			and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit))) then self:Notify(result.message,result.ok) end
+			and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit or QUIET_SUCCESS[result.action]))) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
@@ -823,7 +888,8 @@ function AppController:Receive(packet)
 	self.hud:Update(state, count, limit, capacity, selectedCount, deployedCount)
 	self.base:UpdateObjective()
 	self:StepRecruitFeedback()
-	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner);self.lastBanner = state.banner end
+	-- Rank-ups arrive as the server's own message (e.g. "Fusion up to Lv 5 unlocked!"); show it as sent.
+	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner,true);self.lastBanner = state.banner end
 	if old and state.lastResult ~= old.lastResult and not packet.result then
 		local kind=if state.lastResult:match("^You've conquered ") then "conquest" else nil
 		self:Notify(state.lastResult,kind)
@@ -889,7 +955,7 @@ function AppController:Start()
 		if input.KeyCode == Enum.KeyCode.Escape and (self.panel.Visible or self.research.root.Visible) then self:ClosePanel() end
 	end))
 	self:Request("Sync")
-	print("[PetRoll] My Chicken Army! client ready")
+	if RunService:IsStudio() then print("[PetRoll] My Chicken Army! client ready") end
 end
 
 function AppController:Destroy()

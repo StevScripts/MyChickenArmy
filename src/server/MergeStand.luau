@@ -6,6 +6,7 @@ local PetView=require(Shared.PetView)
 local Builder=require(script.Parent.WorldBuilder)
 local HomePlot=require(Shared.HomePlotLayout)
 local MergeGate=require(script.Parent.MergeGate)
+local UIColors=require(Shared.UIColors)
 local MergeStand={}
 MergeStand.__index=MergeStand
 
@@ -18,6 +19,30 @@ local function settleVisualJoints(bird)
    joint.Part1.CFrame=root.CFrame*joint.C0*joint.Transform*joint.C1:Inverse()
   end
  end
+end
+
+-- Two stacked world-sized lines (RollStation offer-label style) explain the
+-- authored black locked Highlight. Server-owned: the plot belongs to its owner.
+local function lockedLabel(parent,at)
+ local anchor=Builder.Part(parent,"LockedLabelAnchor",Vector3.one,at,Builder.Palette.white,false)
+ anchor.Transparency,anchor.CanQuery,anchor.CastShadow=1,false,false
+ local gui=Instance.new("BillboardGui")
+ gui.Name,gui.Size,gui.MaxDistance="LockedLabel",UDim2.fromScale(15,4),70
+ gui.AlwaysOnTop,gui.LightInfluence,gui.Enabled,gui.Parent=false,0,false,anchor
+ local function line(name,text,top,height,color,maxSize)
+  local label=Instance.new("TextLabel")
+  label.Name,label.BackgroundTransparency,label.Text=name,1,text
+  label.Position,label.Size=UDim2.fromScale(0,top),UDim2.fromScale(1,height)
+  label.Font,label.TextColor3,label.TextScaled,label.TextWrapped=Enum.Font.SourceSansBold,color,true,false
+  local stroke=Instance.new("UIStroke")
+  stroke.Color,stroke.Thickness,stroke.Transparency,stroke.Parent=UIColors.Border,2,0.05,label
+  local limit=Instance.new("UITextSizeConstraint")
+  limit.MinTextSize,limit.MaxTextSize,limit.Parent=1,maxSize,label
+  label.Parent=gui
+ end
+ line("Title","Fuse Machine · Locked",0,0.56,UIColors.Text,64)
+ line("Hint","Research it in Upgrades",0.6,0.4,UIColors.Rewards,46)
+ return gui
 end
 
 function MergeStand.new(parent,frame,index,onAction,template,templateOrigin)
@@ -76,6 +101,12 @@ function MergeStand.new(parent,frame,index,onAction,template,templateOrigin)
   self.doorSize=size
   self.gate=MergeGate.new(gate,self.entry)
  end
+ local labelAt=at*CFrame.new(0,4,0)
+ if machine then
+  local bounds,size=machine:GetBoundingBox()
+  labelAt=CFrame.new(bounds.Position+Vector3.new(0,size.Y/2+1.6,0))
+ end
+ self.lockedLabel=lockedLabel(model,labelAt)
  local attachment=Instance.new("Attachment",self.counter);attachment.Position=Vector3.new(0,1,0)
  if self.entry then attachment.Position=self.counter.CFrame:PointToObjectSpace(self.entry.Position+Vector3.new(0,2.2,0)) end
  local sparkles=Instance.new("ParticleEmitter")
@@ -106,6 +137,7 @@ function MergeStand:Sync(session)
  self.prompt.ObjectText=if unlocked then "Fuse Machine" else "Fuse Machine · Locked"
  self.prompt.ActionText=if unlocked then "Fuse Chickens" else "Unlock in Upgrades"
  for _,entry in self.highlights do entry.highlight.Enabled=not unlocked end
+ self.lockedLabel.Enabled=self.loaded and not unlocked
  -- Keep the native prompt available so the server can explain locked access.
  self.prompt.Enabled=self.loaded and not self.reveal
 end
@@ -235,6 +267,7 @@ end
 function MergeStand:Clear()
  self:ResetAnimation();self.ownerId,self.loaded=nil,false
  self.model:SetAttribute("OwnerUserId",nil);self.prompt.Enabled=false
+ self.lockedLabel.Enabled=false
  for _,entry in self.highlights do entry.highlight.Enabled=entry.enabled end
 end
 

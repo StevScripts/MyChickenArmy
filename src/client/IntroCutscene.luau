@@ -1,5 +1,6 @@
 --!strict
--- First-visit wordless story, "One Chicken Isn't an Army": a starter chicken
+-- First-visit story, "One Chicken Isn't an Army" (no dialogue; five short
+-- bottom-bar captions since October 14): a starter chicken
 -- marches on Cluck Camp alone, gets launched home, and the Commander guide
 -- becomes its plan. Presentation only. Every actor is a local clone; the server
 -- records introSeen and never grants anything for watching or skipping.
@@ -1066,6 +1067,36 @@ end
 
 -- Screen chrome and player input --------------------------------------------
 
+-- Bottom-bar caption: nil fades it out; new text fades the old line out first.
+-- TweenService owns the fades (tracked, so Unlock cancels them); reduced motion
+-- swaps the text instantly.
+function Intro:Caption(text: string?)
+	local caption, outline = self.caption, self.captionOutline
+	if not caption or not caption.Parent then return end
+	self.captionSerial += 1
+	local serial = self.captionSerial
+	local function fade(goal: number, seconds: number)
+		if self.app.reducedMotion then
+			caption.TextTransparency = goal
+			if outline then outline.Transparency = goal end
+			return
+		end
+		self:Tween(caption, seconds, {TextTransparency = goal}, QUAD, OUT)
+		if outline then self:Tween(outline, seconds, {Transparency = goal}, QUAD, OUT) end
+	end
+	local shown = caption.TextTransparency < 1
+	if not text then fade(1, 0.35); return end
+	self:Spawn(function()
+		if shown and not self.app.reducedMotion then
+			fade(1, 0.2)
+			task.wait(0.22)
+			if serial ~= self.captionSerial or not caption.Parent then return end
+		end
+		caption.Text = text
+		fade(0, 0.4)
+	end)
+end
+
 function Intro:Lock()
 	local app = self.app
 	local camera = workspace.CurrentCamera
@@ -1110,6 +1141,17 @@ function Intro:Lock()
 	aspect.AspectRatio, aspect.Parent = 3.2, skip
 	Theme.Stroke(skip, Color3.new(1, 1, 1), 2)
 	skip.Activated:Connect(function() if self.playing then app.audio:Play("Click");self:Finish(true) end end)
+	-- One caption line, centred in the bottom bar and clear of SKIP on the right.
+	local caption = Theme.Label(skipColumn, "Caption", "", 30, Color3.new(1, 1, 1))
+	caption.AnchorPoint, caption.Position = Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 1 - BAR_HEIGHT / 2)
+	caption.Size, caption.ZIndex = UDim2.fromScale(0.68, BAR_HEIGHT * 0.5), 96
+	caption.TextXAlignment, caption.TextScaled, caption.TextWrapped = Enum.TextXAlignment.Center, true, false
+	caption.TextTransparency = 1
+	local captionLimit = Instance.new("UITextSizeConstraint")
+	captionLimit.MaxTextSize, captionLimit.Parent = 34, caption
+	local captionOutline = caption:FindFirstChild("TextOutline") :: UIStroke?
+	if captionOutline then captionOutline.Color, captionOutline.Transparency = Color3.new(0, 0, 0), 1 end
+	self.caption, self.captionOutline, self.captionSerial = caption, captionOutline, 0
 	-- Shell and the guide stay hidden until the story hands over to play.
 	local shell = app.gui:FindFirstChild("Shell")
 	if shell then shell.Visible = false end
@@ -1294,6 +1336,7 @@ function Intro:Run()
 	-- 1. The Island: a slow aerial into the King's arena, then the King himself.
 	self:Cut(K - inward * 170 + right * 40 + UP * 120, K, 60, K + UP * 25)
 	self:Tween(self.cover, 1, {BackgroundTransparency = 1}, QUAD, OUT)
+	self:Caption("This is the Chicken King. He rules the island.")
 	self:Dolly(K - inward * 80 + right * 14 + UP * 42, K + UP * 3, 4.2, SINE, 58, K + UP * 25)
 	self:Wait(4.2)
 	local crownTop = K + UP * (if king then (king:GetAttribute("VisualHeight") or 15) + 1 else 12)
@@ -1310,6 +1353,7 @@ function Intro:Run()
 
 	-- 2. The Dreamer: home, an egg, and a crown on the horizon worth chasing.
 	self:Wait(7.4)
+	self:Caption("One little chicken dreams of beating him…")
 	self:Cut(heroSpot + right * 7 + inward * 3 + UP * 2.5, heroSpot + UP * 1, 60)
 	self:Dolly(heroSpot + right * 5.5 + inward * 2.4 + UP * 2.1, heroSpot + UP * 1, 2.5, SINE)
 	self:Wait(7.8)
@@ -1391,6 +1435,7 @@ function Intro:Run()
 
 	-- 3. The Journey: out the gate alone, then the walk up to Cluck Camp.
 	self:Wait(14.85)
+	self:Caption(nil)
 	local gateFocus = gateOut - inward * 5 + UP * 1.5
 	self:Cut(gateOut + inward * 15 + right * 5 + UP * 2.6, gateFocus, 55)
 	self:Dolly(gateOut + inward * 12.5 + right * 4.2 + UP * 2.3, gateFocus, 3.6, SINE)
@@ -1517,6 +1562,7 @@ function Intro:Run()
 	-- The hit and the launch happen on the same beat.
 	self:Wait(t + 4.62)
 	local hit = t + 4.62
+	self:Caption("…but one chicken isn't an army.")
 	self:Mood(hero, "shocked", 0.06)
 	bump(hero, "HitSerial")
 	self:StopTrack(0.15)
@@ -1599,6 +1645,7 @@ function Intro:Run()
 	self:Dizzy(hero, 4.2)
 	self:Wait(hit + 4.9)
 	local f = hit + 4.9
+	self:Caption(nil)
 	local friends = {self:Stage(scene.chickens[2], "FriendLeft"), self:Stage(scene.chickens[3], "FriendRight")}
 	self:Place(friends[1], ground(heroSpot - right * 12 - inward * 3), right)
 	self:Place(friends[2], ground(heroSpot + right * 12 - inward * 3), -right)
@@ -1627,6 +1674,7 @@ function Intro:Run()
 	-- 6. The Missing Chicken: three in a row and a gap where a fourth belongs.
 	self:Wait(f + 3.5)
 	local m = f + 3.5
+	self:Caption("Recruit more chickens!")
 	local function foot(model: Model): Vector3
 		return model:GetPivot().Position - UP * (model:GetAttribute("FootOffset") or 1.25)
 	end
@@ -1741,6 +1789,7 @@ function Intro:Run()
 	-- 7. One More: the new friend fills the gap, and the squad is ready.
 	self:Wait(p + 3.7)
 	local j = p + 3.7
+	self:Caption("Build your army and take the island!")
 	-- Jump down off the podium onto the yard, then walk to the gap.
 	local toSlot = flat(slots[4] - podium).Unit
 	local padReach = if pad and pad:IsA("BasePart") then math.max(pad.Size.X, pad.Size.Z) / 2 else 1.5
@@ -1784,6 +1833,7 @@ function Intro:Run()
 
 	-- Hand off: rise into the normal follow camera, then give back control.
 	self:Wait(c + 1.8)
+	self:Caption(nil)
 	local body = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if body then
 		local behind = body.Position - flat(body.CFrame.LookVector).Unit * 13 + UP * 6

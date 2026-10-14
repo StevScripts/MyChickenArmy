@@ -44,8 +44,9 @@ local Config = {
  -- King of the Hill (docs/team/KING_OF_THE_HILL.md). The arena alternates a Hill
  -- round with a King break. Holding boosts the holder's whole farm income; the
  -- player who held longest wins a Hill Roll; ChampionWins total wins earn the
- -- Hill Champion. KingLockSeconds stops new King fights just before a round.
- Hill={Enabled=true,RoundSeconds=300,BreakSeconds=300,FirstBreakSeconds=120,KingLockSeconds=45,
+ -- Hill Champion. King fights are refused only while a round holds the arena;
+ -- KingLockSeconds=0 (Oct 14) drops the old 45s pre-round lock.
+ Hill={Enabled=true,RoundSeconds=300,BreakSeconds=300,FirstBreakSeconds=120,KingLockSeconds=0,
   BoostPerMinute=0.10,BoostMax=0.50,MinWinSeconds=15,RollLuckBonus=2,
   ChampionWins=10,ChampionSpecies="HillChampion"},
  -- Launch sprint (docs/team/LAUNCH_CHANGE_PLAN.md §6, §8). Tuning is config-only.

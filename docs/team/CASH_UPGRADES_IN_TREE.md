@@ -1,5 +1,19 @@
 # Cash upgrades moved into the tree — October 2, 2026
 
+## One hex per track — October 14 (user decision; supersedes the tier hexes below)
+
+Buying a cash upgrade no longer reveals a new hex further out. Each of the six
+tracks is a single gold hex in its root cell beside Start. The hex stays put and
+updates in place: `LV n/max` shows the owned count, the body shows the live
+current → next value and the price is the live server quote. When the track is
+full the hex turns green with a `MAX` badge and tapping it only inspects. The
+tooltip title names the next tier ("Luck 7/20", "Flock Size → 100").
+
+Node IDs are now `Cash<Key>` (e.g. `CashLuck`); `CashUpgradeNodes.Shown` returns
+the presented tier. Prices, maxima, saved levels, server validation, research
+positions and the `CashUpgrade` request are unchanged. The older sections below
+describe the retired per-tier layout.
+
 The user asked to move the six physical-board upgrades into the full-screen tree
 and remove the board. This changes their location, not their economy or unlock rules.
 

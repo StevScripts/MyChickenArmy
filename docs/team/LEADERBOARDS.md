@@ -5,7 +5,8 @@ Two all-time global boards on every home plot, replacing Most Cash and Chickens 
 | Model | Board | Value | Store |
 |---|---|---|---|
 | `PlotN.Leaderboard1` | STRONGEST ARMY | `PlayerSession:BestArmyPower()`: `Rules.Power` of the top chickens within army size (auto-best, not the manual selection) | `<SaveName>_Global_ArmyPower_v1` |
-| `PlotN.Leaderboard2` | TOP SUPPORTERS | `session.robuxSpent`: lifetime Robux spent in game | `<SaveName>_Global_RobuxSpent_v1` |
+| `PlotN.Leaderboard2` | TOP REBIRTHS (October 14) | `session.rebirths` | Rebirths store in `LeaderboardService` |
+| (hidden) | TOP SUPPORTERS, retired from display October 14 | `session.robuxSpent`, still recorded | `<SaveName>_Global_RobuxSpent_v1` (kept) |
 
 - **Robux tracking** (new saved field `robuxSpent`, display only, never a benefit):
   developer products add the receipt's `CurrencySpent` inside the purchase commit

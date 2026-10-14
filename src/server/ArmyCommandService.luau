@@ -93,19 +93,21 @@ function Commands:CallArmy(player,session,now)
 	if (session.researchEffects.callArmy or 0)<1 then return false,"Unlock Call Army in Upgrades first." end
 	if not characterRoot(player) then return false,"Your character will be ready in a moment." end
 	if #session:BestPetIds()==0 then return false,"Select chickens in My Army first." end
-	if now-(session.lastArmyCall or -math.huge)<0.75 then return false,"Your army heard you!" end
+	-- A quick repeat is not a failure: the first call already worked.
+	if now-(session.lastArmyCall or -math.huge)<0.75 then return true,"Your army heard you!" end
 	session.lastArmyCall=now
 	if self.following[session.userId] then self:Sync(session);return true,"Your army is following you." end
 	local ok,why=self.battles:RecallForCommand(session,now,true)
 	if not ok then return false,why end
 	self:StartFollowing(session,player)
-	return true,"Army called! Your selected chickens will follow you."
+	return true,"Army called! Your chickens will follow you."
 end
 
 function Commands:GoBase(player,session,now)
 	local root,_,character=characterRoot(player)
 	if not root then return false,"Your character will be ready in a moment." end
-	if now-(session.lastGoBase or -math.huge)<2 then return false,"Your base teleport is recharging." end
+	local goBaseWait=(session.lastGoBase or -math.huge)+2-now
+	if goBaseWait>0 then return false,"Base teleport ready in "..math.max(1,math.ceil(goBaseWait)).."s." end
 	local ok,why=self.battles:RecallForCommand(session,now,false)
 	if not ok then return false,why end
 	session.lastGoBase=now

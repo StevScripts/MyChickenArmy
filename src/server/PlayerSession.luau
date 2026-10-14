@@ -312,10 +312,10 @@ local function saleEligibility(session,id,selected): (boolean,string)
 	if minimum>0 and session:Count()<=minimum then
 		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
-	if pet.favorite then return false,"Favorite protected — unfavorite this chicken before selling." end
-	if not session:IsPetHome(id) then return false,"This chicken is deployed or traveling." end
-	if selected[id] then return false,"Selected for your army. Remove this chicken from the army before selling." end
-	return true,"Reserve chicken — available to sell."
+	if pet.favorite then return false,"Favorite chickens can't be sold." end
+	if not session:IsPetHome(id) then return false,"Your Army is away with this chicken." end
+	if selected[id] then return false,"Remove it from your Army first." end
+	return true,"Ready to sell."
 end
 
 function PlayerSession:SaleEligibility(id): (boolean,string)
@@ -327,7 +327,7 @@ function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
 	if not pet then return false,"Choose a chicken from your own flock." end
 	if (pet.level or 1)>=Config.MaxPetLevel then return false,"Max level reached." end
 	if not self:IsPetHome(id) or (self.incoming and self:FindSlot(id)) then
-		return false,"This chicken must return home before upgrading."
+		return false,"This chicken must return to your base before upgrading."
 	end
 	return true,""
 end
@@ -380,6 +380,15 @@ function PlayerSession:Income(): number
 	return income
 end
 
+-- Egg cash per second as the HUD shows it, but without 2x Cash: earned-income
+-- passes never multiply paid cash packs (ShopCatalog.CashPackAmount).
+function PlayerSession:PackIncome(): number
+	local rate=self:Income()*self:EggProductionMultiplier()*RebirthService.Multiplier(self.rebirths or 0)
+		*(1+(self.territoryBonus or 0))
+	if rate~=rate or rate<0 or rate==math.huge then return 0 end
+	return rate
+end
+
 function PlayerSession:IsArmyLocked(): boolean
 	return self.armyState ~= "Home"
 end
@@ -416,8 +425,9 @@ function PlayerSession:UnlockProgress()
  if earned<=self.promotion then return false end
  self.promotion,self.recruitTier=earned,earned
  -- A victory may happen while the player is rolling. Preserve that reveal and offer;
- -- Conquest ranks do not unlock cash upgrades or change roll odds.
- self.banner=Progression.Get(earned).name.." reached!"
+ -- Conquest ranks do not unlock cash upgrades or change roll odds. Rank names are
+ -- internal; the notice names the real unlock (the Fuse level cap).
+ self.banner="Fusion up to Lv "..Progression.Get(earned).levelCap.." unlocked!"
  self:Touch()
  return true
 end
@@ -432,7 +442,7 @@ function PlayerSession:NextSlot()
  if not rule then return nil end
  -- Deployment upgrades depend on cash and the configured track, never conquest.
  return {capacity=rule.capacity,displayCapacity=rule.capacity+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),price=rule.price,unlocked=true,
-  requirement="Buy one more deployment slot"}
+  requirement="Buy one more Army slot"}
 end
 
 function PlayerSession:GlobalUpgrade(kind: string)
@@ -451,7 +461,7 @@ function PlayerSession:OfferAdvice(species: string, level: number?, mutation: st
 	end
 	local weakest=self.pets[best[#best]]
 	if weakest and Rules.PetPower(species,1,level)>Rules.PetPower(weakest.species,weakest.stars,weakest.level,weakest.giantSize) then
-		return "Stronger next squad",true
+		return "Makes your army stronger",true
 	end
 	local income=self:DisplayedPetIncome(species,1,level,mutation)
 	return "Lays eggs worth $"..income.."/s at home",false
