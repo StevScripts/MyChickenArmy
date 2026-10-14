@@ -31,6 +31,12 @@ function Extras.new(app)
 	self.rally=Theme.Button(app.hudLayer,"Rally","Rally",function() app:Request("Rally") end,Theme.ActionColors.purchase)
 	self.rally.AnchorPoint,self.rally.Position,self.rally.Size=Vector2.new(1,.5),UDim2.fromScale(.985,.58),UDim2.fromScale(.16,.07)
 	Theme.Aspect(self.rally,3.9);Theme.ScaleText(self.rally);self.rally.Visible=false
+	-- October 14 launch: a King clear opens Operations without research, so the page
+	-- needs an entry besides the completed S15 node. Shares Rally's slot; Rally only
+	-- shows while Fighting and this only while the army is home.
+	self.operations=Theme.Button(app.hudLayer,"OperationsShortcut","Operations",function() app:OpenPage("Operations") end,Theme.ActionColors.navigation)
+	self.operations.AnchorPoint,self.operations.Position,self.operations.Size=Vector2.new(1,.5),UDim2.fromScale(.985,.58),UDim2.fromScale(.16,.07)
+	Theme.Aspect(self.operations,3.9);Theme.ScaleText(self.operations);self.operations.Visible=false
 	self.goal=Theme.Button(app.hudLayer,"ResearchGoal","",function()
 		local data=app.state and app.state.research
 		if data and data.pinned then app:OpenPage("Research");app.research:Center(data.pinned);app.research:Select(data.pinned,true) end
@@ -50,6 +56,10 @@ end
 
 function Extras:UpdateRally()
 	local state=self.app.state;local data=state and state.research
+	local operations=state and state.operations
+	self.operations.Visible=operations~=nil and (operations.tier or 0)>=1 and not operations.activeId
+		and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming and not state.outgoing
+		and not self.app.panel.Visible and not (self.app.research and self.app.research.root.Visible) and not self.app.dialogueActive
 	self.rally.Visible=data~=nil and data.effects.rallySeconds>0 and state.armyState=="Fighting" and not self.app.panel.Visible
 	if not self.rally.Visible then return end
 	local now=self.app.research:Now()
@@ -151,9 +161,11 @@ function Extras:RenderOperations()
 		button.Position,button.Size=UDim2.fromScale((index-1)*.335,0),UDim2.fromScale(.32,1)
 		Theme.ScaleText(button)
 	end
-	if data.tier<self.tier then
+	-- data.tier is the server's combined tier: research, or a King clear for Veteran.
+	if (data.tier or 0)<self.tier then
 		local researchId=({"S15","S16","S17"})[self.tier]
-		app:Text("Locked","Research "..Research.Nodes[researchId].name.." to open these challenges.",22,55)
+		app:Text("Locked",if self.tier==1 then "Defeat the Chicken King or research "..Research.Nodes[researchId].name
+			else "Research "..Research.Nodes[researchId].name.." to open these challenges.",22,55)
 		app:Button("UnlockOperations","View research",function() app:OpenPage("Research");app.research:Center(researchId);app.research:Select(researchId,true) end)
 		return
 	end
@@ -172,7 +184,7 @@ end
 function Extras:Destroy()
 	ContextActionService:UnbindAction("PetRollRally")
 	for _,connection in self.connections do connection:Disconnect() end
-	self.rally:Destroy();self.goal:Destroy()
+	self.rally:Destroy();self.operations:Destroy();self.goal:Destroy()
 end
 
 return Extras

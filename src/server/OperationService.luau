@@ -18,6 +18,15 @@ function Service.new(battles,world,sessions)
 	return self
 end
 
+-- October 14 launch: a King clear opens Veteran Operations without research.
+-- Research S15 still opens them on its own; S16/S17 remain the Elite/Royal gates.
+function Service.Tier(session): number
+	return math.max(session.researchEffects.operations or 0, if session.kingCleared then 1 else 0)
+end
+function Service.LockedMessage(tier): string
+	return if tier==1 then "Defeat the Chicken King or research Operations Board first." else "Research this Operations set first."
+end
+
 function Service:CreateArena(session)
 	local authored=ServerStorage:FindFirstChild("MyChickenArmyMap") or workspace:FindFirstChild("MyChickenArmyMap")
 	local section=authored and authored:FindFirstChild("06_ChickenKing")
@@ -49,7 +58,7 @@ end
 
 function Service:Start(session,id,expectedRevision,now)
 	local definition=if type(id)=="string" then Catalog.Encounters[id] else nil
-	if not definition or session.researchEffects.operations<definition.tier then return false,"Research this Operations set first." end
+	if not definition or Service.Tier(session)<definition.tier then return false,Service.LockedMessage(definition and definition.tier) end
 	if expectedRevision~=session.research.revision then return false,"Your Operations changed. Choose again." end
 	if session.research.pendingOperationReward>0 then return false,"Spend some cash to receive your saved Operation reward before deploying again." end
 	if session.outgoing or session.incoming or session:IsArmyLocked() or session.armyState~="Home" then return false,"Bring your army home before starting an Operation." end
@@ -157,7 +166,7 @@ end
 
 function Service:Snapshot(session)
 	local battle=self.battles.battles[session.outgoing]
-	return {tier=session.researchEffects.operations,wins=table.clone(session.research.operationWins),pendingReward=session.research.pendingOperationReward,
+	return {tier=Service.Tier(session),wins=table.clone(session.research.operationWins),pendingReward=session.research.pendingOperationReward,
 		activeId=battle and battle.operationId,encounterId=battle and battle.operationId and battle.id,
 		center=battle and battle.operationId and {x=battle.destination.X,y=battle.destination.Y,z=battle.destination.Z},
 		result=session.operationResult,bannerTier=Catalog.BannerTier(session.research.operationWins)}
