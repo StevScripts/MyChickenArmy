@@ -4,6 +4,7 @@ local Theme=require(script.Parent.UITheme)
 local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
+local TweenService=game:GetService("TweenService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
 local HillHud=require(script.Parent.HillHud)
 local RebirthPanel=require(script.Parent.RebirthPanel)
@@ -87,17 +88,25 @@ function Hud.new(app,shell)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self.hill=HillHud.new(app,shell,cash)
 	self:BuildSettingsTopbar()
-	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.51))
+	-- Four slots (Re-enlist shows once it matters); the list centers whatever is visible.
+	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.68))
 	shortcuts.BackgroundTransparency=1
-	shortcuts.AnchorPoint,shortcuts.Position=Vector2.new(0,0.5),UDim2.fromScale(0.012,0.5)
+	shortcuts.AnchorPoint,shortcuts.Position=Vector2.new(0,0.5),UDim2.fromScale(0.012,0.43)
 	self.shortcuts=shortcuts
 	local shortcutLayout=Instance.new("UIListLayout")
-	shortcutLayout.SortOrder,shortcutLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0.03,0)
+	shortcutLayout.SortOrder,shortcutLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0.0225,0)
+	shortcutLayout.VerticalAlignment=Enum.VerticalAlignment.Center
 	shortcutLayout.Parent=shortcuts
 	for i,page in {"Shop","Index","Upgrades"} do
 		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
+	-- Re-enlist: its own HUD icon (the hex on the Upgrades screen stays too).
+	self.reenlist=Theme.IconButton(shortcuts,"Reenlist","Re-enlist",Theme.Assets.Reenlist or Theme.Assets.ArmyHud,function()
+		app.audio:Play("Click")
+		if app.rebirthPanel then app.rebirthPanel:Open() end
+	end)
+	self.reenlist.LayoutOrder,self.reenlist.Visible=4,false
 	-- Below the status line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
@@ -228,7 +237,7 @@ end
 -- The composition is authored once; viewport changes are handled by Roblox.
 function Hud:Layout()
 	Theme.Aspect(self.navigation,558/272)
-	Theme.Aspect(self.shortcuts,136/408)
+	Theme.Aspect(self.shortcuts,136/544)
 	self.army.AnchorPoint,self.army.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,1)
 	for _,button in {self.callArmy,self.army,self.myBase} do
 		local primary=button==self.army
@@ -241,9 +250,9 @@ function Hud:Layout()
 		label.TextScaled,label.ZIndex=true,4
 	end
 	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.86),UDim2.fromScale(1,0.135)
-	for _,page in {"Shop","Index","Upgrades"} do
+	for _,page in {"Shop","Index","Upgrades","Reenlist"} do
 		local button=self.shortcuts:FindFirstChild(page)
-		button.Size=UDim2.fromScale(1,0.3133)
+		button.Size=UDim2.fromScale(1,0.235)
 		Theme.Aspect(button,136/132)
 		button.Visual.Label.TextScaled=true
 	end
@@ -324,8 +333,21 @@ end
 -- server quote ships; every field is optional here.
 function Hud:UpdateRebirth(state)
 	local quote=state and state.rebirth
-	if type(quote)~="table" then self.rank.Visible=false;return end
+	if type(quote)~="table" then self.rank.Visible=false;self.reenlist.Visible=false;return end
 	local rank=tonumber(quote.rank) or 0
+	-- The Re-enlist icon appears once it matters: the King is beaten or a rank is earned.
+	local showIcon=quote.enabled~=false and (rank>=1 or quote.kingCleared==true)
+	if self.reenlist.Visible~=showIcon then self.reenlist.Visible=showIcon end
+	local pulse=showIcon and quote.eligible==true and not self.app.reducedMotion
+	if pulse~=(self.reenlistPulse~=nil) then
+		local visual=self.reenlist.Visual
+		if self.reenlistPulse then self.reenlistPulse:Cancel();self.reenlistPulse=nil end
+		visual.Size=UDim2.fromScale(1,1)
+		if pulse then
+			self.reenlistPulse=TweenService:Create(visual,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Size=UDim2.fromScale(1.08,1.08)})
+			self.reenlistPulse:Play()
+		end
+	end
 	self.rank.Text=if type(quote.title)=="string" then quote.title else RebirthPanel.Title(rank)
 	-- The Hill countdown chip uses the same spot above the cash readout.
 	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waiting and self.hill.waiting.Visible)
@@ -334,7 +356,7 @@ function Hud:UpdateRebirth(state)
 	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
 		self.rebirthToastShown=true
 		local nextTitle=if type(quote.nextTitle)=="string" then quote.nextTitle else RebirthPanel.Title(rank+1)
-		self.app:Notify("You can re-enlist as "..nextTitle..". Open Upgrades.",true)
+		self.app:Notify("Re-enlist ready: "..nextTitle.."!",true)
 	end
 end
 
