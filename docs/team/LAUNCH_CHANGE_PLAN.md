@@ -254,6 +254,8 @@ To re-enlist the player must:
 1. Have cleared the Chicken King **in the current run** (`kingCleared == true`).
 2. Pay a cash cost that rises with each rank.
 
+**October 13 owner retune (live config):** `BaseCost=5e9`, `CostGrowth=4`, `MaxRank=10`, `EnemyHealthPerRank=1.0` (one scale for health and damage). Costs $5B, $20B, $80B, $320B, $1.28T…; enemies ×2, ×3, ×4…; eggs unchanged (+0.25 per rank). The table below is the original proposal. `ProgressionSimulation` is broken on main (removed `AccrueIncome`), so this is a hand estimate, not a simulated one.
+
 Starting table (must be confirmed with `tests/ProgressionSimulation.luau`, see 6.9):
 
 | Re-enlist to | Cash cost | Egg multiplier after | Enemy strength after |

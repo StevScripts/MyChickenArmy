@@ -51,8 +51,11 @@ local Config = {
  -- Launch sprint (docs/team/LAUNCH_CHANGE_PLAN.md §6, §8). Tuning is config-only.
  -- Re-enlist: cost BaseCost*CostGrowth^(rank-1); eggs +EggBonusPerRank per rank;
  -- camps and the King +EnemyHealthPerRank/EnemyDamagePerRank per rank.
- Rebirth={Enabled=true,MaxRank=15,BaseCost=1e9,CostGrowth=8,
-  EggBonusPerRank=0.25,EnemyHealthPerRank=0.5,EnemyDamagePerRank=0.5},
+ -- October 13 owner retune (kept chicken levels made the 1e9×8 ladder too fast):
+ -- $5B, $20B, $80B, $320B, $1.28T… MaxRank 10 keeps every cost below the coin cap.
+ -- One enemy scale applies to health and damage (EnemyDamagePerRank is unused).
+ Rebirth={Enabled=true,MaxRank=10,BaseCost=5e9,CostGrowth=4,
+  EggBonusPerRank=0.25,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
  -- Limited event; StartsAt/EndsAt are unix seconds. Off until worker H1 ships it.
  Event={Enabled=false,Id="Halloween2026",StartsAt=0,EndsAt=0,Species="Pumpkin",OfferChance=0.02},
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,

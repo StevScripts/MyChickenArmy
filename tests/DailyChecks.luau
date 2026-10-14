@@ -27,6 +27,7 @@ end
 
 local function newSession(id)
  local s=Session.new(id,"Daily",1);s.loaded=true
+ s.tutorial.guideCompleted=true -- The streak starts after the main tutorial.
  return s
 end
 
@@ -184,6 +185,21 @@ function Checks.Run()
   assert(Daily.Check(loaded,at(1,20),server)==nil,"Rejoin same day re-granted")
   local granted=Daily.Check(loaded,at(2),server)
   assert(granted and granted.slot==3 and loaded.daily.streak==3)
+ end)
+
+ test("Nothing is claimed until the main tutorial is done",function()
+  local s,server=newSession(-973),stubServer()
+  s.tutorial.guideCompleted=false
+  local coins=s.coins
+  assert(Daily.Check(s,at(0),server)==nil,"Granted during the tutorial")
+  assert(s.daily.lastDay==0 and s.daily.streak==0 and s.coins==coins and s.dailyGranted==nil)
+  -- Finishing the guide later the same day grants Day 1 that day.
+  s.tutorial.guideCompleted=true
+  local granted=Daily.Check(s,at(0,10),server)
+  assert(granted and granted.slot==1 and s.daily.streak==1)
+  -- A pre-guide save that already won Cluck Camp counts as done.
+  local old=newSession(-974);old.tutorial.guideCompleted=false;old.tutorial.wonCamp=true
+  assert(Daily.Check(old,at(0),server),"Pre-guide veteran got nothing")
  end)
 
  test("The stub server without analytics or world is safe",function()

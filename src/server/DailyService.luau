@@ -39,10 +39,19 @@ function DailyService.CashFor(session, minutes: number): number
 	return math.floor(math.min(DailyService.Income(session) * minutes * 60, headroom))
 end
 
+-- October 13 owner decision: the streak starts once the main tutorial is done
+-- (the guide completes on the first camp win; wonCamp covers pre-guide saves).
+-- Until then no day is claimed, so Day 1 is granted the day the guide finishes.
+function DailyService.TutorialDone(session): boolean
+	local tutorial = session.tutorial
+	return type(tutorial) == "table" and (tutorial.guideCompleted == true or tutorial.wonCamp == true)
+end
+
 -- Returns the grant table when a reward was granted, otherwise nil.
 function DailyService.Check(session, now: number, server)
 	-- Same guard as other transactions: never write a profile that isn't ready or is leaving.
 	if not session or not session.loaded or session.closing or session.saveLost then return nil end
+	if not DailyService.TutorialDone(session) then return nil end
 	local daily = session.daily
 	if type(daily) ~= "table" or type(now) ~= "number" or now ~= now then return nil end
 	local today = math.floor(now / DailyService.DaySeconds)

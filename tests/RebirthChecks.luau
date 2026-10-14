@@ -117,9 +117,10 @@ function Checks.Run()
  end
 
  test("Cost, multiplier and enemy scale match the table; rank 16 is unavailable",function()
-  local costs={1e9,8e9,64e9,512e9,4096e9}
+  -- October 13 retune: $5B ×4 per rank, +0.25 eggs, +1.0 enemies (Config.Rebirth).
+  local costs={5e9,20e9,80e9,320e9,1280e9}
   local multipliers={1.25,1.5,1.75,2,2.25}
-  local scales={1.5,2,2.5,3,3.5}
+  local scales={2,3,4,5,6}
   for rank=1,5 do
    assert(Rebirth.Cost(rank)==costs[rank],"Cost "..rank..": "..tostring(Rebirth.Cost(rank)))
    near(Rebirth.Multiplier(rank),multipliers[rank],"Multiplier "..rank)
@@ -127,19 +128,20 @@ function Checks.Run()
   end
   assert(Rebirth.Multiplier(0)==1 and Rebirth.EnemyScale(0)==1,"Rank 0 must be neutral")
   assert(Rebirth.Cost(Config.Rebirth.MaxRank)~=nil)
+  assert((Rebirth.Cost(Config.Rebirth.MaxRank) :: number)<=require(Shared.CurrencyLimits).MaxCoins,"Max rank costs more than the coin cap")
   assert(Rebirth.Cost(Config.Rebirth.MaxRank+1)==nil and Rebirth.Cost(16)==nil,"Rank 16 is available")
   assert(Rebirth.Cost(0)==nil and Rebirth.Cost(1.5)==nil)
   assert(Rebirth.Title(0)=="Recruit" and Rebirth.Title(1)=="Veteran I" and Rebirth.Title(4)=="Veteran IV"
-   and Rebirth.Title(9)=="Veteran IX" and Rebirth.Title(14)=="Veteran XIV" and Rebirth.Title(15)=="Veteran XV")
+   and Rebirth.Title(9)=="Veteran IX" and Rebirth.Title(10)=="Veteran X")
  end)
 
  test("The quote has every field R1-C renders",function()
   local s=setup()
   local q=Rebirth.Quote(s)
   assert(q.enabled==true and q.rank==0 and q.nextRank==1 and q.title=="Recruit" and q.nextTitle=="Veteran I")
-  assert(q.cost==1e9 and q.coins==s.coins and q.kingCleared==true and q.armyHome==true)
+  assert(q.cost==Rebirth.Cost(1) and q.coins==s.coins and q.kingCleared==true and q.armyHome==true)
   assert(q.eligible==true and q.reason==nil,"Not eligible: "..tostring(q.reason))
-  assert(q.multiplierNow==1 and q.multiplierNext==1.25 and q.enemyScaleNext==1.5)
+  assert(q.multiplierNow==1 and q.multiplierNext==1.25 and q.enemyScaleNext==Rebirth.EnemyScale(1))
   local snap=s:Snapshot(0)
   assert(snap.rebirth and snap.rebirth.eligible==true and snap.rebirth.nextTitle=="Veteran I")
  end)
@@ -248,7 +250,7 @@ function Checks.Run()
    and calls:find("hist:rebirth.cashAtRebirth:"..coinsBefore,1,true),calls)
   -- Next quote: Veteran II needs a new King clear.
   local q=Rebirth.Quote(s)
-  assert(q.rank==1 and q.title=="Veteran I" and q.nextTitle=="Veteran II" and q.cost==8e9)
+  assert(q.rank==1 and q.title=="Veteran I" and q.nextTitle=="Veteran II" and q.cost==Rebirth.Cost(2))
   assert(q.reason=="Defeat the Chicken King first")
  end)
 

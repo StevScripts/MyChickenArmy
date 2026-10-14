@@ -33,7 +33,9 @@ local GameServer={}
 GameServer.__index=GameServer
 local SYNC_COOLDOWN=1 -- Extra Sync requests are answered by the next periodic snapshot.
 local IDLE_SNAPSHOT_SECONDS=1 -- Unchanged idle sessions refresh timers at this slower cadence.
-local DAILY_CHECK_SECONDS=60 -- Catches the UTC day boundary for players who stay online.
+-- Catches the UTC day boundary for players who stay online, and the first
+-- claim soon after the main tutorial completes. Check exits early when idle.
+local DAILY_CHECK_SECONDS=10
 
 function GameServer.new()
 	local self=setmetatable({sessions={},connections={},playerConnections={},limits={},stepAccumulator=0,
