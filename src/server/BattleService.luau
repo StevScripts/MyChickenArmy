@@ -473,7 +473,7 @@ function BattleService:IncomeSummary(session,now)
  local power,count=0,0
  if garrison then for _,unit in garrison.units do
   if unit.side==side and unit.hp>0 and not unit.retiring then
-   count+=1;power+=Rules.PetPower(unit.species,unit.stars,unit.level)
+   count+=1;power+=Rules.PetPower(unit.species,unit.stars,unit.level,unit.giantSize)
   end
  end end
  if not owner and not garrison then power=Rules.Power(config.NeutralRoster);count=#config.NeutralRoster end

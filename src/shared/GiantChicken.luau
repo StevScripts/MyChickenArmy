@@ -1,6 +1,21 @@
 --!strict
--- Fusion guarantees Giant. Rarity weights only the saved visual size, not stats.
+-- October 14 Giants (docs/team/GIANT_CHICKEN_DESIGN.md): every fusion is a level-up
+-- merge; it has a chance (with a guarantee) to make a Giant. Giants fight harder
+-- (Rules.Stats), a Giant input keeps the result a Giant, and three Giants can make
+-- a Colossal that boosts its whole army. Rarity still sets the visual size band.
 local Giant = {}
+-- Chance for a fusion of three normal chickens: Base + PerLevel × input level.
+Giant.BaseChance = 0.10
+Giant.ChancePerLevel = 0.02
+-- After this many fusions in a row without a Giant, the next one is guaranteed.
+Giant.PityLimit = 8
+-- Three Giant inputs: chance the result becomes a Colossal (otherwise a Giant).
+Giant.ColossalFromGiantsChance = 0.25
+-- Combat: Giants have more health and damage and stomp (splash) like Wizards.
+Giant.HealthMultiplier = 2
+Giant.DamageMultiplier = 1.5
+-- A fielded Colossal adds this much damage to every chicken on its side.
+Giant.ColossalArmyDamage = 0.10
 Giant.MinSize = 4
 Giant.MaxSize = 27.5
 Giant.ColossalMinSize = 20
@@ -59,6 +74,50 @@ end
 
 function Giant.Label(size: number): string
 	return string.format("%s · %.1f studs",Giant.Kind(size),size)
+end
+
+function Giant.IsGiant(pet: any): boolean
+	return type(pet)=="table" and Giant.IsValidSize(pet.giantSize)
+end
+
+-- Chance that three normal chickens of this input level fuse into a Giant.
+function Giant.Chance(level: number?): number
+	local rank=math.max(1,math.floor(tonumber(level) or 1))
+	return math.clamp(Giant.BaseChance+Giant.ChancePerLevel*rank,0,1)
+end
+
+-- The outcome kind a fusion of these inputs can produce, for previews:
+-- "Colossal" (an input is already Colossal), "ColossalChance" (three Giants),
+-- "Giant" (at least one Giant input), or "Chance" (no Giant inputs).
+function Giant.FusionKind(inputs): string
+	local giants,colossal=0,false
+	for _,pet in inputs do
+		if Giant.IsGiant(pet) then giants+=1 end
+		if type(pet)=="table" and Giant.IsColossal(pet.giantSize) then colossal=true end
+	end
+	if colossal then return "Colossal" end
+	if giants>=3 then return "ColossalChance" end
+	if giants>=1 then return "Giant" end
+	return "Chance"
+end
+
+-- A fresh Colossal: 20 studs up to the global maximum, biased toward 20.
+function Giant.ColossalSize(quantile: number, inheritedSize: number?): number
+	assert(quantile==quantile and quantile>=0 and quantile<=1, "Invalid size roll")
+	local rolled=Giant.ColossalMinSize+(Giant.MaxSize-Giant.ColossalMinSize)*quantile^2
+	local inherited=if Giant.IsValidSize(inheritedSize) then inheritedSize :: number else Giant.ColossalMinSize
+	return math.clamp(math.max(math.floor(rolled*10+0.5)/10,inherited),Giant.ColossalMinSize,Giant.MaxSize)
+end
+
+-- An ordinary Giant from a fusion: the rarity band without the old Colossal tail
+-- (Colossals now come only from three Giants), never smaller than an input.
+function Giant.OrdinarySize(rarity: string, quantile: number, inheritedSize: number?): number
+	assert(quantile==quantile and quantile>=0 and quantile<=1, "Invalid size roll")
+	local band=Giant.Bands[rarity] or Giant.Bands.Common
+	local maximum=math.min(band.max,Giant.ColossalMinSize-0.1)
+	local rolled=band.min+(maximum-band.min)*quantile^band.exponent
+	local inherited=if Giant.IsValidSize(inheritedSize) then inheritedSize :: number else Giant.MinSize
+	return math.clamp(math.max(math.floor(rolled*10+0.5)/10,inherited),Giant.MinSize,Giant.MaxSize)
 end
 
 return Giant

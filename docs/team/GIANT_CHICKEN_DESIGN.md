@@ -1,5 +1,34 @@
 # Giant chicken fusion
 
+## October 14 redesign (current rules)
+
+Owner request: Giants felt pointless (every fusion made one, size did nothing, and
+re-fusing a Giant was just another merge). Research: Pet Simulator 99 (10 copies make a
+Golden, 10 Goldens a Rainbow, about +50% stronger), Merge a Mini Army (merging gives more
+health, damage and income), Grow a Garden (rare heavy hatches have stronger abilities),
+Bee Swarm Simulator (rare Gifted bees give a hive-wide bonus), Adopt Me (Neon is mostly
+cosmetic plus trade value). Without trading, a special variant needs a real gameplay payoff.
+
+| Rule | Value (`src/shared/GiantChicken.luau`) |
+|---|---|
+| Normal fusion | three matching chickens → one, +1 level, normal size |
+| Giant chance | `BaseChance` 10% + `ChancePerLevel` 2% × input level (Lv1 12%, Lv5 20%, Lv9 28%) |
+| Guarantee | the `PityLimit` (8th) fusion in a row without a Giant; saved `giantPity` (additive, junk reads 0) |
+| Giant input | at least one Giant input → the result is a Giant (size ≥ largest input); guarantee unchanged |
+| Three Giants | `ColossalFromGiantsChance` 25% → Colossal (20–27.5 studs, biased to 20), otherwise a Giant |
+| Colossal input | stays Colossal |
+| Giant combat | ×2 health, ×1.5 damage, stomp (splash) via `Rules.Stats(..., giantSize)`; power and Select Best include it |
+| Colossal aura | +10% damage for every chicken on its side while it stands (`Battle:ApplyResearch`); still one Colossal per army |
+| Sizes | ordinary Giants use the rarity bands below without the old fresh-Colossal tail |
+
+Existing saved Giants keep their size and get the new perks. Fuse screen shows the odds and
+the guarantee ("12% Giant chance · guaranteed in 3", "Stays a Giant", "3 Giants · 25% Colossal
+chance"); the Army inspector shows "GIANT · ×2 HP ×1.5 dmg · stomp" or "COLOSSAL · army +10%
+dmg". Analytics: `giant.fuse.<Fused|NewGiant|Giant|NewColossal|Colossal>`. Checks:
+`tests/GiantChecks.luau`.
+
+The sections below are the September 28 history (guaranteed Giants, size-only), kept for context.
+
 Implemented September 28, 2026. Current size contract alongside
 [MERGING.md](../MERGING.md); supersedes the earlier design-only note and
 separate Giant-acquisition chance. Later September 28 feedback adds a cash fee

@@ -143,6 +143,7 @@ Schema.LaunchCounters = {
 	["mutation.fuse"] = true,     -- mutation.fuse.<id>
 	["event.offer"] = true,       -- event.offer.<species>
 	["event.buy"] = true,         -- event.buy.<species>
+	["giant.fuse"] = true,        -- giant.fuse.<Fused|NewGiant|Giant|NewColossal|Colossal> (October 14)
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {

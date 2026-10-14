@@ -5,6 +5,7 @@ local Rules=require(Shared.Rules)
 local FlockLayout=require(Shared.FlockLayout)
 local MapLayout=require(Shared.MapLayout)
 local March=require(Shared.ArmyMarch)
+local Giant=require(Shared.GiantChicken)
 local Battle={}
 Battle.__index=Battle
 
@@ -22,7 +23,7 @@ end
 function Battle:AddArmy(side: string, roster, home: Vector3)
 	for i,pet in roster do
 		self.serial+=1
-		local stats=pet.combatStats or Rules.Stats(pet.species,pet.stars,pet.level)
+		local stats=pet.combatStats or Rules.Stats(pet.species,pet.stars,pet.level,pet.giantSize)
 		local slot=pet.slot or i
 		local hx,hz=FlockLayout.Home(slot)
 		local homeX,homeZ=home.X+hx,home.Z+hz
@@ -50,11 +51,17 @@ end
 -- Apply from unchanged base stats, preserving health fraction through upgrades.
 function Battle:ApplyResearch(side,effects,rallyActive)
  self.researchBySide=self.researchBySide or {};self.researchBySide[side]=effects
+ -- October 14: a standing Colossal raises damage for its whole side.
+ local aura=0
+ for _,unit in self.units do
+  if unit.side==side and unit.petId and unit.hp>0 and not unit.retiring and Giant.IsColossal(unit.giantSize) then aura=Giant.ColossalArmyDamage;break end
+ end
+ self.colossalAura=self.colossalAura or {};self.colossalAura[side]=aura
  for _,unit in self.units do if unit.side==side and unit.petId then
   unit.baseHp=unit.baseHp or unit.maxHp;unit.baseDamage=unit.baseDamage or unit.damage
   local hp=unit.baseHp*(1+(effects and effects.health or 0))
   if hp~=unit.maxHp then unit.hp=math.clamp(unit.hp/unit.maxHp,0,1)*hp;unit.maxHp=hp end
-  unit.damage=unit.baseDamage*(1+(effects and effects.damage or 0)+(if rallyActive then 0.2 else 0))
+  unit.damage=unit.baseDamage*(1+(effects and effects.damage or 0)+(if rallyActive then 0.2 else 0)+aura)
   unit.bossDamage=unit.baseDamage*(effects and effects.bossDamage or 0)
   unit.armor=effects and effects.armor or 0
   unit.marchMultiplier=1+(effects and effects.march or 0)

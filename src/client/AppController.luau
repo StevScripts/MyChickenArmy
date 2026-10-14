@@ -570,7 +570,7 @@ function AppController:Groups()
 		group.protected = #group.pets - #group.sellable
 	end
 	table.sort(groups, function(a, b)
-		local ap, bp = Rules.PetPower(a.species, a.stars, a.level), Rules.PetPower(b.species, b.stars, b.level)
+		local ap, bp = Rules.PetPower(a.species, a.stars, a.level, a.giantSize), Rules.PetPower(b.species, b.stars, b.level, b.giantSize)
 		if ap ~= bp then return ap > bp end
 		return a.key < b.key
 	end)

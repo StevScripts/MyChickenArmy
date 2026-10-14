@@ -8,6 +8,7 @@ local Catalog=require(Shared.PetCatalog)
 local Theme=require(script.Parent.UITheme)
 local Selection=require(script.Parent.MergeSelection)
 local Giant=require(Shared.GiantChicken)
+local Rules=require(Shared.Rules)
 local Mutations=require(Shared.MutationCatalog)
 local MutationVFX=require(script.Parent.SpecialChickenVFX)
 local Presentation=require(script.Parent.MergePresentation)
@@ -135,7 +136,7 @@ function Browser.new(app,parent)
  self.action=button(self.footer,"Fuse","Fuse",function() self:Merge() end)
  fitText(self.action)
  self.message=label(self.body,"Status","",20,MUTED);self.message.TextWrapped=true
- self.tradeoff=label(self.footer,"Tradeoff","3 chickens → 1 Giant",23,MUTED)
+ self.tradeoff=label(self.footer,"Tradeoff","3 matching chickens → 1 level higher",23,MUTED)
  self.picker=frame(self.body,"ChickenPicker")
  self.searchShell=frame(self.picker,"Search",Color3.new());Theme.Stroke(self.searchShell,LINE,1.5)
  local search=Instance.new("TextBox")
@@ -334,16 +335,21 @@ function Browser:RenderSlots()
  self.resultEmpty.Visible=recipe==nil
  self.resultOutline.Color=LINE
  self.resultTitle.Text=if recipe then Catalog[recipe.species].name else ""
- self.resultName.Text=if recipe then "Giant · Lv. "..(recipe.level+1) else ""
- local inherited=0
- for _,id in self.selection.slots do local pet=self.app:Pet(id);inherited=math.max(inherited,pet and pet.giantSize or 0) end
- local minimum,maximum=Giant.Range(if recipe then Catalog[recipe.species].rarity else "Common",inherited)
- self.tradeoff.Text=if recipe then (if minimum==maximum then Giant.Label(minimum)
-  else string.format("%s size luck · %g–%g studs",Catalog[recipe.species].rarity,minimum,maximum)) else "3 chickens → 1 Giant"
- if recipe then
-  local chance=Giant.ColossalChance(Catalog[recipe.species].rarity,inherited)
-  if chance>0 and minimum~=maximum then self.tradeoff.Text=string.format("%g–%g studs · %g%% Colossal",minimum,maximum,chance*100) end
- end
+ -- October 14 Giants: the outcome depends on how many inputs are already Giants.
+ local kind=Giant.FusionKind(inputs)
+ local level=if recipe then recipe.level+1 else 0
+ self.resultName.Text=if not recipe then ""
+  elseif kind=="Colossal" then "Colossal · Lv. "..level
+  elseif kind=="Giant" or kind=="ColossalChance" then "Giant · Lv. "..level
+  else "Lv. "..level
+ local pity=tonumber(self.app.state and self.app.state.giantPity) or 0
+ local left=math.max(1,Giant.PityLimit-pity)
+ self.tradeoff.Text=if not recipe then "3 matching chickens → 1 level higher"
+  elseif kind=="Colossal" then "Stays Colossal · army +"..math.floor(Giant.ColossalArmyDamage*100+0.5).."% damage"
+  elseif kind=="ColossalChance" then string.format("3 Giants · %g%% Colossal chance",Giant.ColossalFromGiantsChance*100)
+  elseif kind=="Giant" then "Stays a Giant · ×"..Giant.HealthMultiplier.." HP, ×"..Giant.DamageMultiplier.." damage"
+  elseif left<=1 then "GIANT guaranteed this fusion!"
+  else string.format("%g%% Giant chance · guaranteed in %d",math.floor(Giant.Chance(recipe.level)*100+0.5),left)
  self.count.Text=self.selection:Count().."/3"
  self:UpdateAction()
 end
@@ -495,12 +501,14 @@ function Browser:ShowResult(chicken,recipe)
  self.completed=chicken;self.selection:Clear();self.notice=nil
  if self.summaryPortrait then self.summaryPortrait:Destroy() end
  self.summaryPortrait=preview(self.app,self.summaryArt,chicken)
- self.summaryName.Text=Catalog[chicken.species].name
+ self.summaryName.Text=(if chicken.giantSize and Giant.IsColossal(chicken.giantSize) then "COLOSSAL "
+  elseif chicken.giantSize then "GIANT " else "")..Catalog[chicken.species].name
  local kept=Mutations.Get(chicken.mutation)
  self.summaryLevel.Text=(if chicken.giantSize then Giant.Label(chicken.giantSize).." · " else "").."Lv. "..chicken.level
   ..(if kept then " · "..kept.name else "")
  self.summaryEggs.Text=Theme.Count(chicken.eggsPerSecond or recipe.afterEggRate,"egg/s","eggs/s")
- self.summaryDps.Text=Theme.Number(recipe.afterDps).." DPS"
+ local stats=Rules.Stats(chicken.species,chicken.stars or 1,chicken.level,chicken.giantSize)
+ self.summaryDps.Text=Theme.Number(stats.damage/stats.interval).." DPS"
  self.mode="Result";self.animating=false;self:Render(true)
  Theme.Motion:Pop(self.summaryArt,1.08);self:Focus(self.done)
 end

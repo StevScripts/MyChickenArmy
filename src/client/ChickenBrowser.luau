@@ -485,7 +485,7 @@ function Browser:OpenInventory()
 		local bestEquipped,bestPower=false,-math.huge
 		for _,candidate in state.pets or {} do
 			local isEquipped=equipped[candidate.id]==true or candidate.selected==true
-			local power=Rules.PetPower(candidate.species,candidate.stars,candidate.level)
+			local power=Rules.PetPower(candidate.species,candidate.stars,candidate.level,candidate.giantSize)
 			if not pet or (isEquipped and not bestEquipped)
 				or (isEquipped==bestEquipped and (power>bestPower or (power==bestPower and candidate.id<pet.id))) then
 				pet,bestEquipped,bestPower=candidate,isEquipped,power
@@ -975,7 +975,7 @@ end
 
 -- Permanent army research is visible in inventory and combined stats.
 function Browser:ResearchStats(pet)
- local stats=Rules.Stats(pet.species,pet.stars,pet.level)
+ local stats=Rules.Stats(pet.species,pet.stars,pet.level,pet.giantSize)
  local research=self.app.state and self.app.state.research
  if research then
   stats.damage*=1+research.effects.damage
@@ -1051,7 +1051,9 @@ function Browser:RenderDetail(pet)
  self.name.Text=definition.name
  local rarity=RARITIES[definition.rarity] or RARITIES.Common
  self.metadata.Text=string.format('<font color="#%s">%s</font> • Lv. %d',rarity:ToHex(),definition.rarity,pet.level)
-  ..(if pet.giantSize then " · "..Giant.Label(pet.giantSize) else "")
+  ..(if Giant.IsColossal(pet.giantSize) then string.format(' · <font color="#FF6AD5">COLOSSAL</font> · army +%d%% dmg',math.floor(Giant.ColossalArmyDamage*100+0.5))
+   elseif pet.giantSize then string.format(' · <font color="#FFB347">GIANT</font> · ×%g HP ×%g dmg · stomp',Giant.HealthMultiplier,Giant.DamageMultiplier)
+   else "")
  self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or Art.Glow.Common,not self.hideDetailPreview
  local eggs=pet.eggsPerSecond or Rules.EggRate(pet.species,pet.stars,pet.level)
  self.stats.Text=Theme.Number(stats.damage/stats.interval)..' <font color="#CDD6C7">DPS</font>  •  '
@@ -1092,7 +1094,7 @@ function Browser:Render(force)
 			local an,bn=Catalog[a.species].name,Catalog[b.species].name
 			if an~=bn then return an<bn end
 		end
-		local pa,pb=Rules.PetPower(a.species,a.stars,a.level),Rules.PetPower(b.species,b.stars,b.level)
+		local pa,pb=Rules.PetPower(a.species,a.stars,a.level,a.giantSize),Rules.PetPower(b.species,b.stars,b.level,b.giantSize)
 		if pa~=pb then return pa>pb end
 		return a.id<b.id
 	end)

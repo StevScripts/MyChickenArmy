@@ -172,7 +172,7 @@ function Checks.Run()
   local ok,message,petId=Army.Merge(s,ids[1],ids[2],ids[3],1,price)
   assert(ok,message)
   local giant=s.pets[petId]
-  assert(giant and giant.level==2 and giant.mutation==nil and giant.giantSize~=nil)
+  assert(giant and giant.level==2 and giant.mutation==nil) -- October 14: a Giant is now a chance, not guaranteed
  end)
  local failed=0
  for _,r in results do if not r.passed then failed+=1 end end

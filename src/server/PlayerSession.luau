@@ -63,6 +63,8 @@ function PlayerSession:Reset()
  self.rebirths=0
  self.daily={streak=0,lastDay=0,best=0}
  self.dailyGranted=nil
+ -- October 14 Giants: fusions in a row without a Giant (guarantee at Giant.PityLimit).
+ self.giantPity=0
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
  self.tutorial={starterArmy=true,collectedEggCount=0}
  self.fusionUnlocked=false
@@ -254,7 +256,7 @@ end
 function PlayerSession:AutoBestPetIds()
 	local ranked={}
 	for id,pet in self.pets do
-		table.insert(ranked,{id=id,power=Rules.PetPower(pet.species,pet.stars,pet.level),slot=self:FindSlot(id)})
+		table.insert(ranked,{id=id,power=Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize),slot=self:FindSlot(id)})
 	end
 	table.sort(ranked,function(a,b)
 		if a.power~=b.power then return a.power>b.power end
@@ -448,7 +450,7 @@ function PlayerSession:OfferAdvice(species: string, level: number?, mutation: st
 		return "Fills an army slot",true
 	end
 	local weakest=self.pets[best[#best]]
-	if weakest and Rules.PetPower(species,1,level)>Rules.PetPower(weakest.species,weakest.stars,weakest.level) then
+	if weakest and Rules.PetPower(species,1,level)>Rules.PetPower(weakest.species,weakest.stars,weakest.level,weakest.giantSize) then
 		return "Stronger next squad",true
 	end
 	local income=self:DisplayedPetIncome(species,1,level,mutation)
@@ -526,7 +528,7 @@ function PlayerSession:Snapshot(now: number)
 		campUnlocked=self.campUnlocked,armyState=self.armyState,outgoing=self.outgoing,incoming=self.incoming,stationedAt=self.stationedAt,
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
 		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner,
-		rebirth=RebirthService.Quote(self),
+		rebirth=RebirthService.Quote(self),giantPity=self.giantPity or 0,
 		daily={streak=self.daily.streak,lastDay=self.daily.lastDay,best=self.daily.best,
 			granted=if self.dailyGranted then table.clone(self.dailyGranted) else nil}}
 end
@@ -566,7 +568,7 @@ function PlayerSession:ToData()
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
-		rebirths=self.rebirths,daily=table.clone(self.daily)}
+		rebirths=self.rebirths,daily=table.clone(self.daily),giantPity=self.giantPity or 0}
 end
 
 local function numberIn(value,minimum,maximum,integer)
@@ -907,6 +909,8 @@ function PlayerSession:LoadData(data)
  self.rebirths=readRebirths(data.rebirths)
  self.daily=readDaily(data.daily)
  self.dailyGranted=nil
+ -- Additive October 14 field: anything but a whole number below the guarantee reads as 0.
+ self.giantPity=if numberIn(data.giantPity,0,Giant.PityLimit-1,true) then data.giantPity else 0
 	-- Preserve old saves: round any historical cents up once, never reset progress.
 	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial

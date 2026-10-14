@@ -9,6 +9,7 @@ local MutationCatalog = require(Shared.MutationCatalog)
 local sizeRandom = Random.new()
 local Progression = require(Shared.Progression)
 local ArmyService = {}
+ArmyService.SizeRandom = sizeRandom
 
 -- Selection is intent only, editable during combat. BattleService moves the rigs.
 
@@ -165,7 +166,10 @@ function ArmyService.MergeOptions(session, automatic: boolean?)
 	for key,pets in groups do
 		if #pets<3 then continue end
 		table.sort(pets,function(a,b)
-			-- Mutated chickens first, so the picker's default triple keeps the best mutation.
+			-- Giants, then mutated chickens first: a Giant input guarantees a Giant
+			-- result, and the picker's default triple keeps the best mutation.
+			local ga,gb=Giant.IsGiant(a),Giant.IsGiant(b)
+			if ga~=gb then return ga end
 			local ma,mb=MutationCatalog.Rank(a.mutation),MutationCatalog.Rank(b.mutation)
 			if ma~=mb then return ma>mb end
 			local sa,sb=session:FindSlot(a.id) or math.huge,session:FindSlot(b.id) or math.huge
@@ -224,8 +228,33 @@ end
 
 local function consumeTriple(session,triple)
 	local a,b,c,level=triple.first,triple.second,triple.third,triple.level
-	local giantSize=Giant.SizeFromRoll(Catalog[a.species].rarity,sizeRandom:NextNumber(),
-		math.max(a.giantSize or 0,b.giantSize or 0,c.giantSize or 0))
+	-- October 14 Giants: a normal fusion only levels up, with a chance (and an
+	-- every-PityLimit guarantee) to become a Giant. A Giant input keeps the result
+	-- a Giant; three Giants roll for a Colossal. Sizes never shrink.
+	local sizeRandom=ArmyService.SizeRandom -- Injectable for deterministic checks.
+	local rarity=Catalog[a.species].rarity
+	local largest=math.max(a.giantSize or 0,b.giantSize or 0,c.giantSize or 0)
+	local kind=Giant.FusionKind({a,b,c})
+	local giantSize,outcome=nil,"Fused"
+	if kind=="Colossal" then
+		giantSize,outcome=largest,"Colossal"
+	elseif kind=="ColossalChance" then
+		if sizeRandom:NextNumber()<Giant.ColossalFromGiantsChance then
+			giantSize,outcome=Giant.ColossalSize(sizeRandom:NextNumber(),largest),"NewColossal"
+		else
+			giantSize,outcome=Giant.OrdinarySize(rarity,sizeRandom:NextNumber(),largest),"Giant"
+		end
+	elseif kind=="Giant" then
+		giantSize,outcome=Giant.OrdinarySize(rarity,sizeRandom:NextNumber(),largest),"Giant"
+	else
+		local pity=(session.giantPity or 0)+1
+		if pity>=Giant.PityLimit or sizeRandom:NextNumber()<Giant.Chance(level) then
+			giantSize,outcome=Giant.OrdinarySize(rarity,sizeRandom:NextNumber()),"NewGiant"
+			session.giantPity=0
+		else
+			session.giantPity=pity
+		end
+	end
 	-- Validate everything before mutation, without yielding. Existing saves already
 	-- store the retained ID, level and investment; no new progression currency.
 	a.investment=triple.investment
@@ -238,9 +267,21 @@ local function consumeTriple(session,triple)
 	end
 	a.level=level+1
 	a.giantSize=giantSize
-	-- The Giant keeps the best input mutation (nil from the foundation stub).
+	-- The result keeps the best input mutation.
 	a.mutation=MutationCatalog.Best({a,b,c}) or a.mutation
+	return outcome
 end
+
+-- Player-facing result line for one fusion outcome.
+local function fusionMessage(pet,outcome): string
+	local name=Catalog[pet.species].name.." Lv "..(pet.level or 1)
+	if outcome=="NewColossal" then return "COLOSSAL! "..name.." · army +"..math.floor(Giant.ColossalArmyDamage*100+0.5).."% damage" end
+	if outcome=="NewGiant" then return "GIANT! "..name.." · ×"..Giant.HealthMultiplier.." HP, ×"..Giant.DamageMultiplier.." damage, stomp" end
+	if outcome=="Colossal" then return "Colossal "..name end
+	if outcome=="Giant" then return "Giant "..name end
+	return "Fused · "..name
+end
+ArmyService.FusionMessage=fusionMessage
 
 function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
 	if not Config.Features.Merging then return false,"Merging is unavailable." end
@@ -253,11 +294,11 @@ function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expect
 	if not canSpend then return false,spendReason end
 	-- The fee is a service cost, not refundable chicken purchase investment.
 	session.coins-=triple.price
-	consumeTriple(session,triple)
+	local outcome=consumeTriple(session,triple)
 	local a=triple.first
 	session.tutorial.upgraded=true
 	session:RefreshArmy();session:Touch()
-	return true,Giant.Label(a.giantSize).." · "..Catalog[a.species].name.."!",a.id
+	return true,fusionMessage(a,outcome),a.id,outcome
 end
 
 function ArmyService.MergeAll(session,triples)
@@ -287,12 +328,15 @@ function ArmyService.MergeAll(session,triples)
 	if not canSpend then return false,spendReason end
 	session.coins-=total
 	local results={}
+	local giants,colossals=0,0
 	for _,triple in validated do
-		consumeTriple(session,triple)
-		table.insert(results,{petId=triple.first.id,species=triple.first.species,level=triple.first.level,giantSize=triple.first.giantSize})
+		local outcome=consumeTriple(session,triple)
+		if outcome=="NewGiant" then giants+=1 elseif outcome=="NewColossal" then colossals+=1 end
+		table.insert(results,{petId=triple.first.id,species=triple.first.species,level=triple.first.level,giantSize=triple.first.giantSize,outcome=outcome})
 	end
 	session.tutorial.upgraded=true;session:RefreshArmy();session:Touch()
-	return true,"Merged "..count.." groups!",{count=count,results=results,price=total}
+	local extra=if colossals>0 then " · "..colossals.." COLOSSAL!" elseif giants>0 then " · "..giants.." new GIANT"..(if giants>1 then "S" else "").."!" else ""
+	return true,"Merged "..count.." groups"..extra,{count=count,results=results,price=total}
 end
 
 function ArmyService.AutoMerge(session)

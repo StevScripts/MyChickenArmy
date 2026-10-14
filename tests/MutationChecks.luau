@@ -191,7 +191,7 @@ function Checks.Run()
   local ok,message,petId=Army.Merge(s,a.id,b.id,c.id,1,Rules.MergePrice("Bucket",1))
   assert(ok,message)
   local giant=s.pets[petId]
-  assert(giant and giant.level==2 and giant.giantSize~=nil,"No Giant")
+  assert(giant and giant.level==2,"No fusion result") -- October 14: a Giant is now a chance, not guaranteed
   assert(giant.mutation=="Rainbow","Giant mutation "..tostring(giant.mutation))
   -- Plain inputs stay plain.
   local ids={}

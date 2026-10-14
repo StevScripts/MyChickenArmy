@@ -246,14 +246,17 @@ function GameServer:Handle(player,request)
     for _,result in receipt.results do
      local giant=session.pets[result.petId]
      if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
+     if result.outcome then self.analytics:LaunchCount(session,"giant.fuse."..result.outcome) end
     end
    end
   else
-   ok,message,petId=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
+   local outcome
+   ok,message,petId,outcome=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
    if ok then
     self.world:CelebrateMerge(session,petId)
     local giant=session.pets[petId]
     if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
+    if outcome then self.analytics:LaunchCount(session,"giant.fuse."..outcome) end
    end
   end
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then

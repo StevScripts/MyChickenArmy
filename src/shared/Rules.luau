@@ -3,6 +3,7 @@ local Config = require(script.Parent.Config)
 local Catalog = require(script.Parent.PetCatalog)
 local Progression = require(script.Parent.Progression)
 local ChickenLuck = require(script.Parent.ChickenLuck)
+local Giant = require(script.Parent.GiantChicken)
 local Rules = {}
 
 -- Frozen paid-level-era values. A new catalog price must not revalue old refunds.
@@ -91,18 +92,21 @@ function Rules.Investment(species: string, level: number?, legacy: boolean?): nu
 	return total
 end
 
-function Rules.Stats(species: string, stars: number, level: number?)
+-- giantSize (optional): a Giant has more health and damage and stomps (splash).
+function Rules.Stats(species: string, stars: number, level: number?, giantSize: number?)
 	local pet = Catalog[species]
 	local rank = math.clamp(level or 1, 1, Config.MaxPetLevel)
 	local copies = 2 ^ (stars - 1)
 	local combat = 1 + (rank - 1) * Config.PetCombatPerLevel
 	local investment = pet.price * copies
 	for previous=1,rank-1 do investment += Rules.UpgradePrice(species, previous) or 0 end
-	return {hp=pet.hp * Config.StarHP[stars] * combat, damage=pet.damage * copies * combat,
+	local giant = Giant.IsValidSize(giantSize)
+	return {hp=pet.hp * Config.StarHP[stars] * combat * (if giant then Giant.HealthMultiplier else 1),
+		damage=pet.damage * copies * combat * (if giant then Giant.DamageMultiplier else 1),
 		income=Rules.Income(species,stars,rank,0), interval=pet.interval,
 		attackWindup=pet.attackWindup or Config.AttackWindupSeconds,
-		size=pet.size * Config.StarSize[stars], splash=pet.splash == true,
-		refund=Rules.SellValue(investment)}
+		size=pet.size * Config.StarSize[stars], splash=pet.splash == true or giant,
+		refund=Rules.SellValue(investment), giant=giant}
 end
 
 -- One full roster at every rank. Keep the optional tier argument for older callers;
@@ -139,15 +143,15 @@ function Rules.Draw(luckLevel: number, randomValue: number, tier: number?, paidM
 	return "Duck"
 end
 
-function Rules.PetPower(species: string, stars: number, level: number?): number
-	local stats = Rules.Stats(species, stars, level)
+function Rules.PetPower(species: string, stars: number, level: number?, giantSize: number?): number
+	local stats = Rules.Stats(species, stars, level, giantSize)
 	return math.sqrt(stats.hp * stats.damage / stats.interval) * (if stats.splash then 1.35 else 1)
 end
 
 function Rules.Power(roster): number
 	local power = 0
 	for _, pet in roster do
-		power += Rules.PetPower(pet.species, pet.stars, pet.level)
+		power += Rules.PetPower(pet.species, pet.stars, pet.level, pet.giantSize)
 	end
 	return math.floor(power)
 end
