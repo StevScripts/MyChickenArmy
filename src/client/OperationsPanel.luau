@@ -425,6 +425,11 @@ function Panel:StepAlert(state)
 		and (state.tutorial or {}).guideCompleted==true and not self.gui
 	if not ready then return end
 	self.nextAlertAt=now+ALERT_EVERY_SECONDS
+	self:ShowAlert()
+end
+
+-- The scout report itself (also reachable from Studio test tools).
+function Panel:ShowAlert()
 	self.app:Notify("Loyalist airships spotted near your base! Tap Invasions to repel them.","info")
 	local icon=self.app.researchExtras and self.app.researchExtras.operations
 	local visual=icon and icon:FindFirstChild("Visual")

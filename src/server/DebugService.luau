@@ -6,6 +6,13 @@ local Progression=require(Shared.Progression)
 local Catalog=require(Shared.PetCatalog)
 local ShopCatalog=require(Shared.ShopCatalog)
 local PlayerSession=require(script.Parent.PlayerSession)
+local Giant=require(Shared.GiantChicken)
+local Mutations=require(Shared.MutationCatalog)
+local Research=require(Shared.ResearchCatalog)
+local ResearchRules=require(Shared.ResearchRules)
+local UpgradeCatalog=require(Shared.UpgradeCatalog)
+local RebirthService=require(script.Parent.RebirthService)
+local DailyService=require(script.Parent.DailyService)
 local DebugService={}
 DebugService.__index=DebugService
 
@@ -134,10 +141,136 @@ function DebugService:Run(player,session,command,argument,now)
 				session.slots[i]=pet.id
 			end
 		end
+	elseif DebugService.Launch[command] then
+		-- October 14 launch-feature tools. They rewrite a lot of the profile, so they
+		-- only run in a session-only test profile (a normal Studio play can save).
+		if session.saveStatus~="studio-session" then
+			return false,"Use a session-only test profile first (Settings → Test as a new player, or workspace PetRollPlaytestSessionOnly)."
+		end
+		local ok,message=DebugService.Launch[command](self,player,session,argument,now)
+		session:RefreshArmy();session:Touch()
+		return ok,message
 	else return false,"Unknown debug command." end
 	session:RefreshArmy()
 	session:Touch()
 	return true,"TEST: "..command.." applied."
+end
+
+-- Launch-feature test commands (Studio test tools → Launch features).
+local function giveChicken(session,species,level,giantSize,mutation)
+	local pet=session:AddPet(species,1,mutation)
+	pet.level=math.clamp(level,1,Config.MaxPetLevel)
+	pet.giantSize=giantSize
+	return pet
+end
+
+local function readyForRebirth(session)
+	session.kingCleared=true
+	for i=1,#Progression.Camps(1) do session.firstWins[i]=true end
+	session.campUnlocked=#Progression.Camps(1)
+	local cost=RebirthService.Cost((session.rebirths or 0)+1)
+	if cost then session.coins=math.max(session.coins,cost+1e6) end
+end
+
+DebugService.Launch={}
+
+-- One button that unlocks every system and hands out one of everything to try.
+DebugService.Launch.TestEverything=function(self,player,session,_argument,now)
+	self.battles:CancelPlayer(session.userId,now)
+	if self.commerce then self.commerce:SetTestPreset(player,session,"AllPasses") end
+	for key in session.tutorial do if type(session.tutorial[key])=="boolean" then session.tutorial[key]=true end end
+	session.tutorial.emptyStart,session.tutorial.guideSkipped,session.tutorial.goalsHidden=false,false,false
+	session.introHoldUntil=nil
+	session.promotion,session.recruitTier=Progression.Count(),Progression.Count()
+	for i=1,#Progression.Outposts() do session.frontierWins[i]=true end
+	readyForRebirth(session)
+	session.capacity=Config.MaxSlots
+	session.plotSizeLevel=#UpgradeCatalog.PlotPrices
+	session.rollSlotsUnlocked=Config.RollSlotsUnlocked
+	-- Every research node done, so every menu and Invasion tier is open.
+	for _,id in Research.Order do session.research.completed[id]=true end
+	session.research.jobs={};session.research.revision+=1
+	session.researchEffects=ResearchRules.Effects(session.research)
+	session.fusionUnlocked=true
+	-- Showcase flock: a strong army, a fusion that is guaranteed to make a Giant,
+	-- three Giants for a Colossal try, a Colossal, mutations and the event chicken.
+	session.pets,session.slots,session.armySelection={},{},nil
+	for _=1,6 do giveChicken(session,"Dragon",8) end
+	for _=1,3 do giveChicken(session,"Knight",3) end
+	for _,size in {7,8,9} do giveChicken(session,"Bucket",2,size) end
+	giveChicken(session,"StormDuck",6,22.5)
+	local golden=if Mutations.IsValid("Golden") then "Golden" else nil
+	local rainbow=if Mutations.IsValid("Rainbow") then "Rainbow" else nil
+	giveChicken(session,"Wizard",5,nil,golden)
+	giveChicken(session,"IceDuck",4,12,rainbow)
+	if Catalog.Pumpkin then giveChicken(session,"Pumpkin",3) end
+	session.giantPity=Giant.PityLimit-1
+	-- Day 7 of the streak is granted within a few seconds.
+	local today=math.floor(os.time()/DailyService.DaySeconds)
+	session.daily={streak=6,lastDay=today-1,best=6}
+	session.dailyGranted=nil
+	DailyService.Check(session,os.time(),nil)
+	return true,"TEST: everything unlocked. Try Rebirth, Invasions (all tiers), Fuse (Knights = guaranteed Giant, "
+		.."Bucket Giants = Colossal try), mutations, the Pumpkin, Day 7 streak and all passes."
+end
+
+DebugService.Launch.RebirthReady=function(_self,_player,session)
+	readyForRebirth(session)
+	return true,"TEST: King cleared and cash for the next rank. Open Rebirth."
+end
+
+DebugService.Launch.StartInvasion=function(self,_player,session,argument,now)
+	local operations=self.battles.operations
+	if not operations then return false,"Invasions are unavailable." end
+	session.kingCleared=true
+	if session.research.pendingOperationReward>0 then require(script.Parent.OperationService).ClaimReward(session) end
+	local id=if type(argument)=="string" and #argument<=8 then argument else "1:1"
+	local tier=tonumber(string.match(id,"^(%d)")) or 1
+	for t=2,tier do session.research.completed[({"S15","S16","S17"})[t]]=true end
+	if tier>=2 then session.research.completed.S15=true end
+	session.researchEffects=ResearchRules.Effects(session.research)
+	return operations:Start(session,id,session.research.revision,now)
+end
+
+DebugService.Launch.DailyNextDay=function(_self,_player,session)
+	local today=math.floor(os.time()/DailyService.DaySeconds)
+	session.tutorial.guideCompleted=true
+	session.daily.lastDay=today-1
+	session.dailyGranted=nil
+	local granted=DailyService.Check(session,os.time(),nil)
+	if not granted then return false,"The streak could not advance." end
+	return true,"TEST: Day "..granted.streak.." streak granted."
+end
+
+DebugService.Launch.GiantGuarantee=function(_self,_player,session)
+	session.fusionUnlocked=true
+	for _=1,3 do giveChicken(session,"Knight",3) end
+	session.giantPity=Giant.PityLimit-1
+	return true,"TEST: three Lv3 Knights added and the next fusion is a guaranteed Giant. Use the Fuse Machine."
+end
+
+DebugService.Launch.ColossalTry=function(_self,_player,session)
+	session.fusionUnlocked=true
+	for _,size in {7,8,9} do giveChicken(session,"Bucket",2,size) end
+	return true,"TEST: three Lv2 Bucket Giants added. Fusing them is a 25% Colossal try."
+end
+
+DebugService.Launch.Mutations=function(_self,_player,session)
+	local added={}
+	for _,id in Mutations.Order do
+		giveChicken(session,"Knight",2,nil,id);table.insert(added,id)
+	end
+	if #added==0 then return false,"Mutations are not available in this build." end
+	return true,"TEST: one Knight with each mutation: "..table.concat(added,", ").."."
+end
+
+DebugService.Launch.Halloween=function(_self,_player,_session)
+	local event=Config.Event
+	event.Enabled=not event.Enabled
+	if event.Enabled and not (event.StartsAt<=os.time() and os.time()<event.EndsAt) then
+		event.StartsAt,event.EndsAt=os.time()-60,os.time()+86400
+	end
+	return true,"TEST: Halloween event "..(if event.Enabled then "ON (2% Pumpkin per podium)" else "OFF").." for this Studio server."
 end
 
 return DebugService

@@ -644,6 +644,19 @@ function AppController:RenderTest()
 		self:Button("CancelReset", "Keep my progress", function() self.confirm = nil;self:RenderPanel(true) end)
 		return
 	end
+	-- October 14 launch features. Server commands need a session-only test profile.
+	local function launch(command,argument) self:Request("Debug",{command=command,argument=argument}) end
+	self:Text("LaunchHeading","LAUNCH FEATURES",14,30,C.green)
+	self:Button("TestEverything","TEST EVERYTHING · unlock all, showcase flock, all passes",function() launch("TestEverything") end,Theme.ActionColors.purchase)
+	self:Button("TestRebirthReady","Rebirth · King cleared + cash for the next rank",function() launch("RebirthReady") end)
+	self:Button("TestInvasion","Invasion · start Scout Landing now (airship + march)",function() launch("StartInvasion","1:1") end)
+	self:Button("TestInvasionBoss","Invasion · start The King Returns (Royal boss)",function() launch("StartInvasion","3:3") end)
+	self:Button("TestInvasionAlert","Invasion · show the 'airships spotted' alert now",function() self.operationsPanel:ShowAlert() end)
+	self:Button("TestDailyNextDay","Daily streak · jump to the next day",function() launch("DailyNextDay") end)
+	self:Button("TestGiantGuarantee","Giants · 3 Knights + next fusion guaranteed Giant",function() launch("GiantGuarantee") end)
+	self:Button("TestColossalTry","Giants · 3 Giants for a Colossal try",function() launch("ColossalTry") end)
+	self:Button("TestMutations","Mutations · one chicken with each mutation",function() launch("Mutations") end)
+	self:Button("TestHalloween","Halloween event · toggle on/off (this Studio server)",function() launch("Halloween") end)
 	local shop=self.state.shop
 	self:Text("TestHelp", if shop and shop.testAllowed then "Disposable Studio session · test progress disappears when Play stops."
 		else "Changes here affect your test progress. Use the protected reset to start a fresh playthrough.", 13, 42, C.muted)
