@@ -6,6 +6,7 @@ local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
 local HillHud=require(script.Parent.HillHud)
+local RebirthPanel=require(script.Parent.RebirthPanel)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
@@ -72,6 +73,10 @@ function Hud.new(app,shell)
 	self.income.TextWrapped,self.income.Visible=false,false
 	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
 	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
+	-- Re-enlist rank ("Veteran II") sits just above the money; hidden at rank 0.
+	self.rank=Theme.Display(cash,"RebirthRank","",24,Theme.ReferenceColors.Army)
+	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.26)
+	self.rank.Visible=false
 	local totals=Theme.Container(shell,"ArmyTotals")
 	self.totals=totals
 	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.3,0.09)
@@ -242,7 +247,7 @@ function Hud:Layout()
 		Theme.Aspect(button,136/132)
 		button.Visual.Label.TextScaled=true
 	end
-	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.conquered,self.flock,self.save,self.armyCount} do
+	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
 	Theme.Aspect(self.status,19)
@@ -315,9 +320,28 @@ function Hud:UpdateTerritory(state)
 	end
 end
 
+-- state.rebirth is missing on the first packets and is only a stub until the
+-- server quote ships; every field is optional here.
+function Hud:UpdateRebirth(state)
+	local quote=state and state.rebirth
+	if type(quote)~="table" then self.rank.Visible=false;return end
+	local rank=tonumber(quote.rank) or 0
+	self.rank.Text=if type(quote.title)=="string" then quote.title else RebirthPanel.Title(rank)
+	-- The Hill countdown chip uses the same spot above the cash readout.
+	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waiting and self.hill.waiting.Visible)
+	if self.lastRank and rank>self.lastRank then Theme.Motion:Pop(self.rank,1.15) end
+	self.lastRank=rank
+	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
+		self.rebirthToastShown=true
+		local nextTitle=if type(quote.nextTitle)=="string" then quote.nextTitle else RebirthPanel.Title(rank+1)
+		self.app:Notify("You can re-enlist as "..nextTitle..". Open Upgrades.",true)
+	end
+end
+
 function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateOpening(state)
 	self:UpdateTerritory(state)
+	self:UpdateRebirth(state)
 	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.Money(value) end)
 	self:UpdateEggLine(state.eggs or {})
 	self.flock.Text="Flock "..count.."/"..limit
