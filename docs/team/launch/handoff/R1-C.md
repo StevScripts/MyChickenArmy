@@ -75,3 +75,9 @@ Hex states:
 4. **Rank elsewhere.** Plan §6.7 also wants the rank on captured flags and leaderboard rows. Those are other files and are not done.
 5. **Optional Studio layout.** To tune the panel size in Studio, add a `PetRollGui.MenuLayouts.Rebirth` Frame with a `UIAspectRatioConstraint`. `MenuLayout.Apply` picks it up automatically. Without it, the code default above applies.
 6. **Icon.** The hex reuses the existing Army HUD icon. A dedicated Re-enlist icon (black-stroked, per AGENTS.md) could replace `CashUpgradeNodes.Reenlist.icon` later.
+
+## Lead result (October 13, merged as b97ec14)
+
+- Disposable playtest (desktop viewport): the hex shows on the Upgrades screen ("Tap to re-enlist", green) with a King clear and $1B; `Open()` shows the Keep/Reset panel with ×1.00 → ×1.25, ×1.5 enemies, $1B cost. An early release (0.8 s) sent nothing; a 2 s hold re-enlisted, closed the panel and showed "Veteran I" above the cash. No client errors.
+- Not verified: studio-flow mouse injection does not reach GUI buttons in this Studio, so taps were driven through `Open/BeginHold/EndHold`. A real tap on the hex and the hold button, the phone emulator, gamepad L2 and reduced motion still need a hands-on check.
+- Requests 1–6 are deferred (not needed for publish 1).
