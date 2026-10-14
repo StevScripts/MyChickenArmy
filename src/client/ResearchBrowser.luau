@@ -27,6 +27,24 @@ end
 for _,id in CashNodes.Order do table.insert(displayOrder,id);displayNodes[id]=CashNodes.Nodes[id] end
 local Browser={}
 Browser.__index=Browser
+
+-- Launch H1: while a limited event runs, its podium chance stays disclosed beside
+-- the normal odds. Mirrors EventService.Active (server-owned); pass server time,
+-- e.g. workspace:GetServerTimeNow(). Returns nil when no event is running.
+local Config=require(Shared.Config)
+local PetCatalog=require(Shared.PetCatalog)
+local MONTHS={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"}
+function Browser.EventOdds(now:number):(string?,Color3?)
+	local event=Config.Event
+	if type(event)~="table" or event.Enabled~=true or type(now)~="number" then return nil,nil end
+	if type(event.StartsAt)~="number" or type(event.EndsAt)~="number" or type(event.OfferChance)~="number" then return nil,nil end
+	local definition=PetCatalog[event.Species]
+	if not definition or not (event.OfferChance>0 and event.OfferChance<=1) or now<event.StartsAt or now>=event.EndsAt then return nil,nil end
+	local ends=os.date("!*t",event.EndsAt)
+	local text=string.format("%s (event): %s%% per podium · Limited until %s %d",
+		definition.name,string.format("%g",event.OfferChance*100),MONTHS[ends.month],ends.day)
+	return text,Theme.Rarities[definition.rarity] or Color3.fromRGB(255,255,255)
+end
 local GREEN=Color3.fromRGB(76,250,32)
 local CYAN=Color3.fromRGB(0,226,250)
 local WHITE=Color3.fromRGB(255,255,255)
@@ -869,6 +887,8 @@ function Browser:RenderTooltip()
 				if offer.nextWindowText then effect..=" Next: "..offer.nextWindowText.."." end
 				effect..=" All normal chickens remain possible."
 			end
+			local eventOdds=Browser.EventOdds(workspace:GetServerTimeNow())
+			if eventOdds then effect..=" "..eventOdds.."." end
 		elseif owned then effect=baseBenefit
 		elseif not offer or not offer.ready then effect="Waiting for your flock to load."
 		elseif state=="Unavailable" then
