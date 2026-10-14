@@ -1,6 +1,7 @@
 --!strict
 -- 7-day login streak popup (docs/team/launch/13_D1_DAILY_STREAK.md). Displays the
--- reward the server already granted (state.daily.granted); Collect only closes it.
+-- reward the server already granted (state.daily.granted); Collect! only closes it.
+-- October 14 layout: a Daily Rewards card grid (Days 1–6 + a tall Day 7).
 -- AppController calls Render(state, result) on every state packet, after the
 -- offline receipt (app.offlineCash.gui is set while that receipt is open).
 local GuiService = game:GetService("GuiService")
@@ -16,42 +17,45 @@ Controller.__index = Controller
 local GOLD = Theme.ReferenceColors.Base
 local GREEN = Theme.ReferenceColors.Army
 local DONE = Color3.fromRGB(112,222,98)
+local WHITE = Color3.new(1,1,1)
 -- Presentation mirror of DailyService.Rewards (server). Keep the two in step.
 local TILES = {
 	{minutes=5, rolls=0}, {minutes=10, rolls=0}, {minutes=0, rolls=1}, {minutes=20, rolls=0},
 	{minutes=30, rolls=0}, {minutes=0, rolls=2}, {minutes=60, rolls=3},
 }
-local CASH_TIER = {1,1,0,2,2,0,4}
+local CASH_TIER = {1,2,0,3,3,0,4}
+-- October 14 grid (owner reference): cash days orange/blue, roll days purple, Day 7 rainbow.
+local CARD_COLORS = {
+	Color3.fromRGB(255,166,38), Color3.fromRGB(52,186,255), Color3.fromRGB(176,82,255), Color3.fromRGB(255,166,38),
+	Color3.fromRGB(52,186,255), Color3.fromRGB(176,82,255), Color3.fromRGB(255,214,64),
+}
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0,Color3.fromRGB(255,70,190)), ColorSequenceKeypoint.new(0.25,Color3.fromRGB(255,200,40)),
+	ColorSequenceKeypoint.new(0.5,Color3.fromRGB(90,230,90)), ColorSequenceKeypoint.new(0.75,Color3.fromRGB(60,200,255)),
+	ColorSequenceKeypoint.new(1,Color3.fromRGB(255,90,60)),
+})
+local MIN_INCOME = 10 -- DailyService.MinIncome
+local DAY_SECONDS = 86400 -- DailyService.DaySeconds (UTC days)
 -- Wait for the offline receipt (and the first-visit film) before showing.
 local RETRY_SECONDS = 0.4
 local AFTER_RECEIPT_SECONDS = 0.6
 -- Studio may author MenuLayouts.DailyStreak; otherwise this native Scale frame
 -- is height-led on wide screens and width-led on narrow ones.
 local LAYOUT_NAME = "DailyStreak"
-local DEFAULT_SIZE, DEFAULT_ASPECT = UDim2.fromScale(0.92,0.6), 1.5
+local DEFAULT_SIZE, DEFAULT_ASPECT = UDim2.fromScale(0.9,0.72), 1.5
 
-local function rolls(n: number): string
-	return n.." "..(if n==1 then "roll" else "rolls")
-end
-
--- The client has no income rate, so only today's tile (whose cash the server
--- already granted) shows a dollar amount; other days describe minutes of income.
-local function tileText(reward,cash: number?): string
-	local money = if cash and cash>0 then "$"..Theme.Number(cash) else nil
-	if reward.minutes>0 and reward.rolls>0 then
-		return (money or reward.minutes.." min income").." + "..rolls(reward.rolls)
-	end
-	if reward.minutes>0 then return money or reward.minutes.." min of income" end
-	return rolls(reward.rolls)
-end
-
-local function rewardText(granted): string
+-- Today's tile shows the cash the server granted. Other days estimate from the
+-- HUD income (the server pays minutes of income at claim time).
+local function rewardText(reward,cash: number): string
 	local parts = {}
-	local cash = granted.cash or 0
-	local count = granted.rolls or 0
-	if cash>0 or count==0 then table.insert(parts,"+$"..Theme.Number(cash)) end
-	if count>0 then table.insert(parts,"+"..count.." free "..(if count==1 then "roll" else "rolls")) end
-	return table.concat(parts,"  ")
+	if reward.minutes>0 then table.insert(parts,"+$"..Theme.CompactMoney(cash)) end
+	if reward.rolls>0 then table.insert(parts,"+"..reward.rolls.." Free "..(if reward.rolls==1 then "Roll" else "Rolls")) end
+	return table.concat(parts,"\n")
+end
+
+local function clock(seconds: number): string
+	seconds = math.max(0,math.floor(seconds))
+	return string.format("%02d:%02d:%02d",seconds//3600,(seconds//60)%60,seconds%60)
 end
 
 function Controller.new(app)
@@ -127,36 +131,108 @@ local function label(parent,name,value,size,color)
 	return item
 end
 
--- One day tile. States: done (ticked), today (highlighted), future (dim).
-local function tile(parent,index,today,todayCash)
+local function place(item,x,y,w,h)
+	item.Position,item.Size = UDim2.fromScale(x,y),UDim2.fromScale(w,h)
+	return item
+end
+
+-- A dark status plate at the bottom of a card ("Not Ready" or tomorrow's timer).
+local function plate(parent,text,y,h)
+	-- White base: a UIGradient multiplies the background color.
+	local frame = Theme.Frame(parent,"Status",UDim2.fromScale(0.8,h),WHITE)
+	frame.Position = UDim2.fromScale(0.1,y)
+	frame:SetAttribute("OwnsPopupStyle",true)
+	frame.ZIndex = 8
+	Theme.Gradient(frame,Color3.fromRGB(96,100,106),Color3.fromRGB(52,55,60))
+	Theme.Stroke(frame,Color3.new(0,0,0),3)
+	local caption = place(label(frame,"Text",text,26,WHITE),0.06,0.1,0.88,0.8)
+	caption.ZIndex = 9
+	return caption
+end
+
+-- One day card. States: claimed (dark, check), today (Collect!), tomorrow (timer), later (Not Ready).
+function Controller:Card(parent,index,today,granted,x,y,w,h)
 	local reward = TILES[index]
-	local item = Theme.Frame(parent,"Day"..index,UDim2.fromScale(0.13,if index==today then 1 else 0.9),Color3.new(1,1,1))
-	item.LayoutOrder = index
-	-- Tiles keep their own colors; ApplyPopupStyle would darken them.
-	item:SetAttribute("OwnsPopupStyle",true)
-	local done = index<today
-	local tint = if index==today then GOLD elseif done then DONE:Lerp(Color3.new(0,0,0),0.55) else Color3.fromRGB(44,50,54)
-	Theme.Gradient(item,tint:Lerp(Color3.new(1,1,1),0.12),tint:Lerp(Color3.new(0,0,0),0.25))
-	Theme.Stroke(item,if index==today then Color3.new(1,1,1) else Theme.Arcade.border,if index==today then 3 else Theme.Border.Control)
-	local day = label(item,"Day","Day "..index,22)
-	day.Position,day.Size = UDim2.fromScale(0.06,0.03),UDim2.fromScale(0.88,0.2)
-	local art = Theme.Container(item,"Art")
-	art.AnchorPoint,art.Position,art.Size = Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.47),UDim2.fromScale(0.8,0.38)
+	local big = index==#TILES
+	local claimed = index<today
+	local color = CARD_COLORS[index]
+	-- White base: the card's gradient carries its color (a UIGradient multiplies).
+	local card = Theme.Frame(parent,"Day"..index,UDim2.fromScale(w,h),WHITE)
+	card.Position = UDim2.fromScale(x,y)
+	-- Cards keep their own colors; ApplyPopupStyle would darken them.
+	card:SetAttribute("OwnsPopupStyle",true)
+	if big then
+		local gradient = Instance.new("UIGradient")
+		gradient.Color,gradient.Rotation,gradient.Parent = RAINBOW,35,card
+	else
+		Theme.Gradient(card,color:Lerp(WHITE,0.15),color:Lerp(Color3.new(0,0,0),0.12))
+	end
+	Theme.Studs(card,0.16,28,0)
+	Theme.Stroke(card,if index==today then WHITE else Color3.new(0,0,0),if index==today then 4 else 3)
+	-- Layout in card space; Day 7 is tall, so its rows are thinner.
+	local title = place(label(card,"Day","Day "..index,32,WHITE),0.06,if big then 0.02 else 0.03,0.88,if big then 0.09 else 0.17)
+	title.ZIndex = 6
+	if big then
+		local insane = place(label(card,"Insane","Insane!",30,Color3.fromRGB(255,52,52)),0.1,0.11,0.8,0.08)
+		insane.ZIndex = 6
+		Theme.Gradient(insane,Color3.fromRGB(255,96,80),Color3.fromRGB(220,20,40))
+	end
+	local art = Theme.Container(card,"Art")
+	art.AnchorPoint,art.Position,art.Size = Vector2.new(0.5,0.5),UDim2.fromScale(0.5,if big then 0.43 else 0.42),UDim2.fromScale(if big then 0.8 else 0.66,if big then 0.36 else 0.38)
 	Theme.Aspect(art,1)
+	local rays = ShopArt.ProductRays(art,WHITE)
+	rays.Size,rays.Position,rays.AnchorPoint = UDim2.fromScale(1.6,1.6),UDim2.fromScale(0.5,0.5),Vector2.new(0.5,0.5)
+	rays.ZIndex = 4
 	local icon = if reward.minutes>0 then ShopArt.CashPile(art,CASH_TIER[index]) else Theme.Image(art,"Roll",Theme.Assets.Luck,UDim2.fromScale(1,1))
 	icon.Name,icon.ZIndex = "Icon",5
-	local text = label(item,"Reward",tileText(reward,if index==today then todayCash else nil),18)
-	text.Position,text.Size = UDim2.fromScale(0.05,0.68),UDim2.fromScale(0.9,0.29)
-	if done then
-		local tick = label(item,"Done","✓",40,DONE)
-		tick.AnchorPoint,tick.Position,tick.Size = Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.47),UDim2.fromScale(0.7,0.4)
+	local income = math.max(MIN_INCOME,tonumber(self.app.state and self.app.state.income) or 0)
+	local cash = if index==today then (granted.cash or 0) else math.floor(income*reward.minutes*60)
+	local rewardLabel = place(label(card,"Reward",rewardText(reward,cash),28,
+		if reward.minutes>0 then Color3.fromRGB(120,255,90) else Color3.fromRGB(255,224,60)),0.04,if big then 0.63 else 0.61,0.92,if big then 0.15 else 0.14)
+	rewardLabel.ZIndex = 6
+	local statusY,statusH = if big then 0.8 else 0.77,if big then 0.14 else 0.19
+	if claimed then
+		local shade = Theme.Frame(card,"Claimed",UDim2.fromScale(1,1),Color3.fromRGB(14,22,34))
+		shade.BackgroundTransparency,shade.ZIndex = 0.25,7
+		local tick = place(label(card,"Check","✓",80,DONE),0.15,if big then 0.25 else 0.2,0.7,if big then 0.3 else 0.42)
 		tick.ZIndex = 8
-		icon.ImageTransparency = 0.45
-	elseif index>today then
-		local dim = Theme.Frame(item,"Dim",UDim2.fromScale(1,1),Color3.new(0,0,0))
-		dim.BackgroundTransparency,dim.ZIndex = 0.5,7
+		local done = place(label(card,"ClaimedText","CLAIMED",30,DONE),0.06,statusY,0.88,statusH*0.85)
+		done.ZIndex = 8
+	elseif index==today then
+		local holder = Theme.Container(card,"Actions")
+		holder.Position,holder.Size,holder.ZIndex = UDim2.fromScale(0.1,statusY),UDim2.fromScale(0.8,statusH),8
+		local collect = Theme.ActionButton(holder,"Collect","Collect!",function() self:Collect(granted) end,GREEN)
+		collect.Position,collect.Size = UDim2.fromScale(0,0),UDim2.fromScale(1,1)
+		collect.Visual.Caption.Position,collect.Visual.Caption.Size = UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8)
+		collect.Visual.Caption.TextScaled = true
+		collect.Visual.Caption.TextShadow.Visible = false
+		self.collect = collect
+	elseif index==today+1 then
+		self.timer = plate(card,clock(self:SecondsToReset()),statusY,statusH)
+	else
+		plate(card,"Not Ready",statusY,statusH)
 	end
-	return item
+	return card
+end
+
+-- DailyService grants once per UTC day, so the next reward unlocks at UTC midnight.
+function Controller:SecondsToReset(): number
+	local now = workspace:GetServerTimeNow()
+	return DAY_SECONDS-(now%DAY_SECONDS)
+end
+
+function Controller:Collect(granted)
+	if not self.gui or self.closing then return end
+	local app = self.app
+	app.audio:Play("Click")
+	-- The reward is already in the wallet; this is presentation only.
+	if (granted.cash or 0)>0 and app.feedback then
+		local root = app.feedback:Root()
+		app.feedback:ShowCash(if root then root.Position else Vector3.zero,granted.cash)
+	else
+		app.audio:Play("Pop",1.05,{volume=0.4,maxDuration=0.35})
+	end
+	self:Dismiss()
 end
 
 function Controller:Show(granted)
@@ -197,84 +273,61 @@ function Controller:Show(granted)
 		panel.Size,panel.Position,panel.AnchorPoint = UDim2.fromScale(1,1),UDim2.fromScale(0.5,0.5),Vector2.new(0.5,0.5)
 	end
 	self.panelSize,self.panelPosition = panel.Size,panel.Position
-	local streak = math.max(1,granted.streak or 1)
+	-- Past Day 7 the cards loop (granted.slot); the streak itself keeps counting.
 	local today = math.clamp(granted.slot or 1,1,#TILES)
-	-- The header names the highlighted tile; a longer streak (past Day 7 the
-	-- tiles loop) is stated in the lead-in so the two never disagree.
-	local header = Theme.Header(panel,"Header","Day "..today.." reward!",GOLD)
+	local header = Theme.Header(panel,"Header","Daily Rewards",GOLD)
+	Theme.LayoutHeader(header)
 	local main = Theme.Container(panel,"Main")
 	Theme.BelowHeader(header,main)
-	Theme.Surface(main,GOLD:Lerp(Color3.new(0,0,0),0.55))
+	Theme.Surface(main,Color3.fromRGB(24,30,26))
 	main.UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
-	local leadText = if streak>=2 then streak.."-day streak! Come back tomorrow for more."
-		else "Come back every day for bigger rewards!"
-	local lead = label(main,"LeadIn",leadText,28)
-	lead.Position,lead.Size = UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.1)
-	-- One row of seven at every width; tiles shrink with the native frame.
-	local row = Theme.Container(main,"Days")
-	row.Position,row.Size = UDim2.fromScale(0.03,0.16),UDim2.fromScale(0.94,0.4)
-	local list = Instance.new("UIListLayout")
-	list.FillDirection,list.SortOrder = Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
-	list.HorizontalAlignment,list.VerticalAlignment = Enum.HorizontalAlignment.Center,Enum.VerticalAlignment.Center
-	list.Padding,list.Parent = UDim.new(0.012,0),row
-	local todayTile
-	for index=1,#TILES do
-		local item = tile(row,index,today,granted.cash)
-		if index==today then todayTile = item end
+	-- October 14 grid (owner reference): Days 1–6 in two rows of three, Day 7 tall on the right.
+	self.timer,self.collect = nil,nil
+	local todayCard
+	for index=1,6 do
+		local column,row = (index-1)%3,(index-1)//3
+		local card = self:Card(main,index,today,granted,0.025+column*0.232,0.035+row*0.48,0.215,0.45)
+		if index==today then todayCard = card end
 	end
-	local amount = label(main,"Amount",rewardText(granted),54,Color3.new(1,1,1))
-	amount.Position,amount.Size = UDim2.fromScale(0.04,0.6),UDim2.fromScale(0.92,0.15)
-	local gradient = Instance.new("UIGradient")
-	gradient.Color,gradient.Rotation,gradient.Parent = Theme.ReferenceGradients.Army,90,amount
-	local note = if (granted.rolls or 0)>0 then "✓ Free rolls join your Flock when it has room" else "✓ Added to your Cash"
-	local saved = label(main,"Saved",note,24,GREEN)
-	saved.Position,saved.Size = UDim2.fromScale(0.08,0.765),UDim2.fromScale(0.84,0.055)
-	local function close()
-		if not self.gui or self.closing then return end
-		app.audio:Play("Click")
-		-- The reward is already in the wallet; this is presentation only.
-		if (granted.cash or 0)>0 and app.feedback then
-			local root = app.feedback:Root()
-			app.feedback:ShowCash(if root then root.Position else Vector3.zero,granted.cash)
-		else
-			app.audio:Play("Pop",1.05,{volume=0.4,maxDuration=0.35})
-		end
-		self:Dismiss()
-	end
-	local actions = Theme.Container(main,"Actions")
-	actions.AnchorPoint,actions.Position,actions.Size = Vector2.new(0.5,1),UDim2.fromScale(0.5,0.965),UDim2.fromScale(0.4,0.13)
-	Theme.Aspect(actions,4.329331874847412)
-	Theme.HeaderClose(header,close)
-	local collect = Theme.ActionButton(actions,"Collect","Collect",close,GREEN)
-	collect.Position,collect.Size = UDim2.fromScale(0,0),UDim2.fromScale(1,1)
-	Theme.Studs(collect.Visual.Face,0.07,28,0)
-	collect.Visual.Caption.Position,collect.Visual.Caption.Size = UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8)
-	collect.Visual.Caption.TextScaled = true
-	collect.Visual.Caption.TextShadow.Visible = false
+	local seventh = self:Card(main,7,today,granted,0.72,0.035,0.255,0.93)
+	if today==7 then todayCard = seventh end
+	Theme.HeaderClose(header,function() self:Collect(granted) end)
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
+	-- Tomorrow's countdown (a plain once-a-second text update, not an animation).
+	if self.timer then
+		local timer = self.timer
+		task.spawn(function()
+			while self.gui==gui and timer.Parent do
+				timer.Text = clock(self:SecondsToReset())
+				task.wait(1)
+			end
+		end)
+	end
 	local restingSize,restingPosition = self.panelSize,self.panelPosition
 	if not app.reducedMotion then
 		panel.Size = UDim2.fromScale(restingSize.X.Scale*0.94,restingSize.Y.Scale*0.94)
 		panel.Position = UDim2.fromScale(restingPosition.X.Scale,restingPosition.Y.Scale+0.035)
-		-- Today's tile breathes; reduced motion keeps it still.
-		local scale = Instance.new("UIScale")
-		scale.Parent = todayTile
-		self.pulse = TweenService:Create(scale,TweenInfo.new(0.7,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Scale=1.06})
-		self.pulse:Play()
+		-- Today's card breathes; reduced motion keeps it still.
+		if todayCard then
+			local scale = Instance.new("UIScale")
+			scale.Parent = todayCard
+			self.pulse = TweenService:Create(scale,TweenInfo.new(0.7,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Scale=1.04})
+			self.pulse:Play()
+		end
 	end
 	Theme.Motion:Tween(panel,"daily-size",{Size=restingSize},0.28,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},0.28)
 	Theme.Motion:Tween(panel,"daily-fade",{GroupTransparency=0},0.22)
 	if app.editPreview then return end
 	ContextActionService:BindActionAtPriority("PetRollDailyRewardClose",function(_,inputState)
-		if inputState==Enum.UserInputState.Begin then close() end
+		if inputState==Enum.UserInputState.Begin then self:Collect(granted) end
 		return Enum.ContextActionResult.Sink
 	end,false,3000,Enum.KeyCode.ButtonB)
 	table.insert(self.connections,UserInputService.InputBegan:Connect(function(input)
-		if input.KeyCode==Enum.KeyCode.Escape then close() end
+		if input.KeyCode==Enum.KeyCode.Escape then self:Collect(granted) end
 	end))
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject = collect end
+	if UserInputService.GamepadEnabled and self.collect then GuiService.SelectedObject = self.collect end
 end
 
 function Controller:Destroy()

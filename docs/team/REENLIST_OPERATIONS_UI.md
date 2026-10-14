@@ -1,5 +1,22 @@
 # Re-enlist and Operations UI (October 13, 2026 redesign)
 
+## October 14 final: minimal layout (third pass)
+
+The second pass still felt cluttered. The owner asked for an uninstructed image-generator mockup
+(`assets/generated/ui-gpt-reference-20261014/`) and its UX replaced both screens:
+
+- **Rebirth** (window .6×.66, aspect 1.05): one inset box ("You will get", big "×N Eggs!", one gold
+  line "+ Mutation mutations · camps ×N tougher", cash icon + "Cost: $X", green when affordable or
+  padlock + "Defeat the Chicken King"); one red line "Resets Cash, upgrades, N chicken levels and
+  camps. Chickens stay!"; the 2-second hold button ("Hold to Rebirth" / "Locked" / "Need $X more").
+- **Invasions** (window .62×.72, aspect 1): Veteran/Elite/Royal tabs (padlock icon when locked);
+  three wide invasion bars with a right chip (first-clear cash, CLEAR!, or padlock); a status row
+  ("Enemy N · You N" + verdict chip, or the unlock requirement / saved pending reward); one big
+  button (Defend / Defend again / Army busy / Leave / View in Upgrades). Enemy portraits, the
+  Formations shortcut (still in the Army inspector) and reward chips were removed.
+
+The two passes below are superseded.
+
 ## October 14 redesign (owner picks)
 
 The owner rejected the October 13 layouts and picked references (saved in the Obsidian vault as
@@ -18,6 +35,13 @@ The owner rejected the October 13 layouts and picked references (saved in the Ob
   Info (enemy power, verdict, name, enemy army portraits, You vs Enemy bar, FIRST CLEAR REWARD, and a
   Rewards row: replay cash chip and tier banner chip). Locked tiers show the research requirement and
   View in Upgrades inside the info column.
+
+Second pass the same day (owner: "text is cramped"): fewer, taller labels so TextScaled text grows.
+Rebirth window .9×.74 at aspect 1.3; warning shortened ("Egg upgrades", "+ N chicken levels") with a
+separate green "Your chickens, Giants and research stay!" line; tiles are wide icon + name + caption
+cards. Invasions window .94×.72; column headings, "Invasion N" lines and the power bar removed; info
+column = name, verdict badge, "You N · Enemy N", enemy army (×count), reward heading and two chips
+(cash, banner); BOSS stamp on boss invasions; Leave has no countdown (the world marker shows it).
 
 Server requests, hold-to-confirm, gamepad bindings and menu exclusivity are unchanged. Checked in
 Studio Play on a desktop viewport with client-only sample data (locked, unlocked, cleared, eligible,

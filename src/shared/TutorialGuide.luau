@@ -133,7 +133,7 @@ function Guide.NextGoal(state, ignoreSkip)
 	local t = state.tutorial or {}
 	if t.guideSkipped and not ignoreSkip then return nil end -- Respect a hidden guide; Settings can resume it.
 	-- October 9: goals are opt-out (Settings). October 14 launch: after the King
-	-- (or a Rebirth, which keeps them open) they point once at Veteran Invasions.
+	-- (or a Rebirth, which keeps them open) they point once at a Veteran mission.
 	if t.goalsHidden then return nil end
 	local function goal(key, text, where)
 		local result = step("Goal:" .. key, text, where)
@@ -153,7 +153,7 @@ function Guide.NextGoal(state, ignoreSkip)
 	if state.kingCleared or rebirths >= 1 then
 		local wins = (state.operations or {}).wins or {}
 		if not (wins["1:1"] or wins["1:2"] or wins["1:3"]) then
-			return goal("Operations", "Repel the Scout Landing in Invasions", "Operations")
+			return goal("Operations", "Conquer a mission on the island", "Mission")
 		end
 	end
 	-- October 14: only Rebirth 1 needs the King, and Rebirth opens from its HUD button.

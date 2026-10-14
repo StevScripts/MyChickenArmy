@@ -85,7 +85,7 @@ Before editing or syncing, inspect Git and compare any unsynced Studio changes. 
 
 ## Player-facing words (October 14)
 Use one name per concept in every player-facing string: Army, Flock, chickens, Camp
-(home is "base"), Cash, Fuse, Upgrades (the tree screen), Invasions, "Rebirth N", and
+(home is "base"), Cash, Fuse, Upgrades (the tree screen), Missions (October 14, replaced Invasions), "Rebirth N", and
 Should win / Close fight / Very tough. Never pets, coins, merge, squad/troops,
 Operations or device-specific "Press E"/"Tap". Internal ids stay. Menus open through
 `AppController:CloseOtherMenus` so only one shows at a time. See

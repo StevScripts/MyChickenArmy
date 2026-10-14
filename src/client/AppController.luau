@@ -34,6 +34,7 @@ local ShopBrowser = require(script.Parent.ShopBrowser)
 local IndexBrowser = require(script.Parent.IndexBrowser)
 local ResearchBrowser = require(script.Parent.ResearchBrowser)
 local ResearchExtras = require(script.Parent.ResearchExtras)
+local MissionTracker = require(script.Parent.MissionTracker)
 local AdminPanel = require(script.Parent.AdminPanel)
 local CommerceController = require(script.Parent.CommerceController)
 local BaseController = require(script.Parent.BaseController)
@@ -335,8 +336,8 @@ end
 
 function AppController:OpenPage(page)
 	if self.commerce.cratePresenting then return end
-	-- October 13: Operations is its own mission-select window (OperationsPanel).
-	if page=="Operations" then self.operationsPanel:Open();return end
+	-- October 14 Missions: no menu; sites appear on the island (MissionTracker).
+	if page=="Operations" then self:Notify("Missions appear on the island by themselves. Follow the marker!","info");return end
 	if page=="Upgrades" or page=="Research" then self.research:Open();return end
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
 	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
@@ -508,6 +509,7 @@ function AppController:BuildUI()
 	self.progression:Mount(panel)
 	self.research=ResearchBrowser.new(self,frames)
 	self.researchExtras=ResearchExtras.new(self)
+	self.missionTracker=MissionTracker.new(self)
 	self.adminPanel=AdminPanel.new(self)
 	self.toastFrame,self.toast=Theme.Notification(other)
 	self:FitPanel()
@@ -714,9 +716,8 @@ function AppController:RenderTest()
 	self:Text("LaunchHeading","LAUNCH FEATURES",14,30,C.green)
 	self:Button("TestEverything","TEST EVERYTHING · unlock all, showcase flock, all passes",function() launch("TestEverything") end,Theme.ActionColors.purchase)
 	self:Button("TestRebirthReady","Rebirth · King cleared + cash for the next rank",function() launch("RebirthReady") end)
-	self:Button("TestInvasion","Invasion · start Scout Landing now (airship + march)",function() launch("StartInvasion","1:1") end)
-	self:Button("TestInvasionBoss","Invasion · start The King Returns (Royal boss)",function() launch("StartInvasion","3:3") end)
-	self:Button("TestInvasionAlert","Invasion · show the 'airships spotted' alert now",function() self.operationsPanel:ShowAlert() end)
+	self:Button("TestInvasion","Mission · spawn Scout Landing on the island now",function() launch("StartInvasion","1:1") end)
+	self:Button("TestInvasionBoss","Mission · spawn The King Returns (Royal boss)",function() launch("StartInvasion","3:3") end)
 	self:Button("TestDailyNextDay","Daily streak · jump to the next day",function() launch("DailyNextDay") end)
 	self:Button("TestGiantGuarantee","Giants · 3 Knights + next fusion guaranteed Giant",function() launch("GiantGuarantee") end)
 	self:Button("TestColossalTry","Giants · 3 Giants for a Colossal try",function() launch("ColossalTry") end)
@@ -852,6 +853,7 @@ function AppController:Receive(packet)
 		self.audio:Play("UIPurchase",nil,{noFallback=true})
 	end
 	self.researchExtras:Receive(state,result)
+	self.missionTracker:Render(state)
 	-- Admin replies go to the Admin page's output when it is open.
 	if self.adminPanel and self.adminPanel:Receive(result) then result=nil end
 	if result and not self.mergeBrowser and (result.action=="OpenMerge" or result.action=="Merge" or result.action=="MergeAll") then result=nil end
@@ -976,6 +978,7 @@ function AppController:Destroy()
 	self.progression:Destroy()
 	self.research:Destroy()
 	self.researchExtras:Destroy()
+	self.missionTracker:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
 	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy()

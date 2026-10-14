@@ -71,11 +71,8 @@ end
 
 function Extras:UpdateRally()
 	local state=self.app.state;local data=state and state.research
-	local operations=state and state.operations
-	self.operations.Visible=operations~=nil and (operations.tier or 0)>=1 and not operations.activeId
-		and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming and not state.outgoing
-		and not self.app.panel.Visible and not (self.app.research and self.app.research.root.Visible) and not self.app.dialogueActive
-		and not (self.app.operationsPanel and self.app.operationsPanel.gui)
+	-- October 14 Missions replace the Invasions menu; MissionTracker owns this slot.
+	self.operations.Visible=false
 	self.rally.Visible=data~=nil and data.effects.rallySeconds>0 and state.armyState=="Fighting" and not self.app.panel.Visible
 	if not self.rally.Visible then return end
 	local now=self.app.research:Now()

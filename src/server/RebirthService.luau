@@ -215,12 +215,12 @@ function RebirthService.Rebirth(session, expectedRank, server): (boolean, string
 	local quote = RebirthService.Quote(session)
 	if not quote.eligible then
 		if quote.reason == ARMY_AWAY and operationRunning(session, server) then
-			return false, "Finish your Invasion first."
+			return false, "Finish your mission first."
 		end
 		return false, quote.reason or "You can't rebirth right now."
 	end
 	-- 4. No Operation and no battle that still holds part of the army.
-	if operationRunning(session, server) then return false, "Finish your Invasion first." end
+	if operationRunning(session, server) then return false, "Finish your mission first." end
 	if session.defending ~= nil or battleInvolves(session, server) then return false, ARMY_AWAY end
 	local nextRank = quote.nextRank :: number
 	local coinsBefore = session.coins

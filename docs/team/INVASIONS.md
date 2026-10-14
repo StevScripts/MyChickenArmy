@@ -1,5 +1,9 @@
 # Invasions (October 14, 2026; formerly Operations)
 
+> **Superseded the same day by Missions** (`docs/team/MISSIONS_PLAN.md`): sites now spawn on
+> their own and the menu start is retired. The battle, camp, airship and reward code below
+> is reused by Missions.
+
 Owner feedback: Operations made no sense in the story. The army was teleported into a
 cloned arena floating off the map and fought "random people". Owner decision: **Coastal
 Invasions**, later (October 14) simplified to an airship drop in a random ring with no cutscene; menu name **Invasions**; **menu plus alerts**.

@@ -1355,7 +1355,7 @@ end
 function BattleService:ReturnHome(session,now)
 	local battle=self.battles[session.outgoing]
 	if not battle or battle.phase=="Returning" then return false,"Your army is already home or returning." end
-	if battle.operationId then self.operations:Resolve(battle,"Abandoned",now);return true,"Invasion abandoned. Your army is marching home." end
+	if battle.operationId then self.operations:Resolve(battle,"Abandoned",now);return true,"Mission abandoned. Your army is marching home." end
  if battle.incomeContest and battle.defender==session.userId then
   local continuation=TerritoryContest.Continue(battle,session,"B",self.world,now,false)
   continuation.incomeDeparture=true;self.battles[continuation.id]=continuation

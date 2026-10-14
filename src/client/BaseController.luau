@@ -49,6 +49,7 @@ function BaseController:CommandFor(part)
 	if not target or target == workspace then return nil end
 	local id = target:GetAttribute("CommandTarget")
 	if string.sub(id,1,5)=="base:" then return nil end
+	if string.sub(id,1,8)=="mission:" then return self:MissionCommand(target,string.sub(id,9)) end
 	-- Camps on another commander's lane are "camp:P:N" in the target list.
 	if string.match(id, "^camp:%d+$") then
 		local holder = target
@@ -99,6 +100,22 @@ function BaseController:CommandFor(part)
 			owned=entry.owned and not entry.via, color = if not allowed then C.line elseif entry.owned and not entry.via then C.green else C.red}
 	end
 	return nil
+end
+
+-- October 14 Missions: a waiting site of this commander (state.operations.missions).
+function BaseController:MissionCommand(model,missionId)
+	local state=self.app.state
+	local mission
+	for _,entry in (state.operations or {}).missions or {} do if entry.id==missionId then mission=entry end end
+	if not mission then return nil end
+	local _, _, _, selectedCount = self.app:Counts()
+	local home=state.armyState=="Home" or state.armyState=="Following"
+	local allowed=home and selectedCount>0 and not state.outgoing and not state.incoming
+	local reason=if not home or state.outgoing then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
+	local hint=Guide.Difficulty(state.power,mission.power).." · "..mission.count.." loyalists · $"..Theme.CompactMoney(mission.reward)
+	return {model=model,action=if allowed then "StartOperation" else nil,missionId=missionId,targetId="mission:"..missionId,
+		hint=if allowed then hint else nil,locked=not allowed,reason=reason,title=mission.name,
+		text=if allowed then "Send Army · "..hint else reason,color=if allowed then C.red else C.line}
 end
 
 function BaseController:HomePet(id)
@@ -356,7 +373,8 @@ function BaseController:Start()
 		command=command and self:CommandFor(command.model)
 		if command and command.action and not self.app.panel.Visible and not self.app.dialogueActive and not UserInputService:GetFocusedTextBox() then
 			self.app.audio:Play("Click")
-			self.app:Request(command.action,{targetId=command.targetId})
+			if command.missionId then self.app:Request("StartOperation",{missionId=command.missionId})
+			else self.app:Request(command.action,{targetId=command.targetId}) end
 		end
 	end))
 	table.insert(self.connections,unclaim.Triggered:Connect(function()
@@ -536,26 +554,40 @@ function BaseController:UpdateObjective()
    end
   elseif guidance.target then target=plot and plot:FindFirstChild(guidance.target) end
  end
+ local where=nil
  if not guidance then
   -- Same source as the Commander's next-goal line, so marker and text agree.
   -- (Optional outposts are disabled; Progression.Outposts() is empty.)
   local goal=Guide.NextGoal(state,true)
-  local where=goal and goal.target
+  where=goal and goal.target
   if where and string.sub(where,1,4)=="Camp" then target=lane and lane:FindFirstChild(where)
   elseif where=="KingArena" then target=world:FindFirstChild("KingArena")
   elseif where=="RollStation" then target=plot and plot:FindFirstChild("RollStation") end
  end
- -- An Invasion in progress outranks every other goal: point at its landing ring.
- local zone=state.operations and state.operations.activeId and world:FindFirstChild("InvasionZone"..Players.LocalPlayer.UserId)
+ -- A mission in progress outranks every other goal: point at its site. With no
+ -- other goal, point at the waiting mission that leaves soonest.
+ local ops=state.operations
+ local missionFolder=world:FindFirstChild("Missions")
+ local zone=ops and ops.activeSite and missionFolder and missionFolder:FindFirstChild("Mission_"..ops.activeSite)
  local invasion=zone and zone.PrimaryPart and zone.PrimaryPart:FindFirstChild("Marker")
  if invasion then target=invasion end
+ local waiting=nil
+ local nextMission=ops and ops.missions and ops.missions[1]
+ if not invasion and not guidance and (target==nil or where=="Mission") and nextMission and missionFolder then
+  local site=missionFolder:FindFirstChild("Mission_"..nextMission.id)
+  waiting=site and site.PrimaryPart and site.PrimaryPart:FindFirstChild("Marker")
+  if waiting then target=waiting end
+ end
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
  self.objective.Adornee=anchor
  local panel=self.app.operationsPanel
  local left=invasion and panel and panel.expiresAt and math.max(0,math.ceil(panel.expiresAt-os.clock()))
- self.objectiveCaption.Text=if invasion then (if left then ("INVASION %d:%02d"):format(left//60,left%60) else "INVASION")
+ local tracker=self.app.missionTracker
+ local waitLeft=waiting and tracker and tracker:Remaining(nextMission.id)
+ self.objectiveCaption.Text=if invasion then (if left then ("MISSION %d:%02d"):format(left//60,left%60) else "MISSION")
+  elseif waiting then (if waitLeft then ("MISSION %d:%02d"):format(waitLeft//60,waitLeft%60) else "MISSION")
   elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  self.objective.Enabled=anchor~=nil and not self.app.panel.Visible and not self.app.dialogueActive
@@ -563,7 +595,7 @@ function BaseController:UpdateObjective()
   and (invasion~=nil or state.armyState=="Home" or state.armyState=="Following") and not state.incoming
   and not (self.commandHeading.Enabled and self.nearestCommand and self.nearestCommand.model==target)
   and not (self.lockedHeading.Enabled and self.lockedHeading.Adornee==anchor)
- self:UpdateGuideTrail(anchor,self.objective.Enabled and (guidance~=nil or invasion~=nil))
+ self:UpdateGuideTrail(anchor,self.objective.Enabled and (guidance~=nil or invasion~=nil or waiting~=nil))
  if self.app.commander then self.app.commander:Update() end
 end
 
@@ -580,6 +612,11 @@ function BaseController:PollCommand()
 		if arena then table.insert(candidates,arena) end
 		local income=state.incomeOutpost and world:FindFirstChild("IncomeOutpost")
 		if income then table.insert(candidates,income) end
+		-- This commander's waiting mission sites (others' sites are visible but not theirs).
+		local missions=world:FindFirstChild("Missions")
+		if missions then for _,site in missions:GetChildren() do
+			if site:GetAttribute("OwnerUserId")==Players.LocalPlayer.UserId then table.insert(candidates,site) end
+		end end
 		local frontier=world:FindFirstChild("Outposts")
   if frontier then for _,camp in frontier:GetChildren() do table.insert(candidates,camp) end end
 		-- Every lane's camps: any commander's camp can be attacked.

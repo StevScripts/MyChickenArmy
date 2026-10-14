@@ -210,7 +210,7 @@ DebugService.Launch.TestEverything=function(self,player,session,_argument,now)
 	session.daily={streak=6,lastDay=today-1,best=6}
 	session.dailyGranted=nil
 	DailyService.Check(session,os.time(),nil)
-	return true,"TEST: everything unlocked. Try Rebirth, Invasions (all tiers), Fuse (Knights = guaranteed Giant, "
+	return true,"TEST: everything unlocked. Try Rebirth, Missions (all tiers), Fuse (Knights = guaranteed Giant, "
 		.."Bucket Giants = Colossal try), mutations, the Pumpkin, Day 7 streak and all passes."
 end
 
@@ -221,7 +221,7 @@ end
 
 DebugService.Launch.StartInvasion=function(self,_player,session,argument,now)
 	local operations=self.battles.operations
-	if not operations then return false,"Invasions are unavailable." end
+	if not operations then return false,"Missions are unavailable." end
 	session.kingCleared=true
 	if session.research.pendingOperationReward>0 then require(script.Parent.OperationService).ClaimReward(session) end
 	local id=if type(argument)=="string" and #argument<=8 then argument else "1:1"
@@ -229,7 +229,8 @@ DebugService.Launch.StartInvasion=function(self,_player,session,argument,now)
 	for t=2,tier do session.research.completed[({"S15","S16","S17"})[t]]=true end
 	if tier>=2 then session.research.completed.S15=true end
 	session.researchEffects=ResearchRules.Effects(session.research)
-	return operations:Start(session,id,session.research.revision,now)
+	-- October 14 Missions: spawn that encounter as a waiting site on the island.
+	return operations:SpawnNow(session,now,id)
 end
 
 DebugService.Launch.DailyNextDay=function(_self,_player,session)

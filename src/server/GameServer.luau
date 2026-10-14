@@ -61,6 +61,7 @@ function GameServer.new()
 	self.admin=AdminService.new(self)
 	-- Observation only (docs/analytics/AGENT_GUIDE.md). Hooks never change gameplay.
 	self.analytics=Analytics.new({tutorial=self.tutorial,battles=self.battles})
+	self.operations.analytics=self.analytics
 	TutorialService.Transport=function(player,name,value,fields) self.analytics:Custom(player,name,value,fields) end
 	TutorialService.onProgress=function(userId,name,value,step,detail) self.analytics:Progress(userId,name,value,step,detail) end
 	TutorialService.onIncome=function(session,source,amount,balance) self.analytics:Income(session,source,amount,balance) end
@@ -174,11 +175,13 @@ function GameServer:Handle(player,request)
 	elseif action=="ApplyFormation" then
 		ok,message=ArmyService.ApplyFormation(session,request.slot,request.expectedIds,request.expectedRevision)
 	elseif action=="StartOperation" then
-		ok,message=self.operations:Start(session,request.operationId,request.expectedRevision,now)
+		-- October 14: Missions spawn on the island; the old menu start is retired.
+		if type(request.missionId)=="string" then ok,message=self.operations:StartMission(session,request.missionId,now)
+		else message="Missions now appear on the island by themselves. Send your army to one!" end
 	elseif action=="LeaveOperation" then
 		local operation=self.battles.battles[session.outgoing]
-		if operation and operation.operationId then self.operations:Resolve(operation,"Abandoned",now);ok,message=true,"Invasion abandoned. Your army is marching home."
-		else message="You are not repelling an Invasion." end
+		if operation and operation.operationId then self.operations:Resolve(operation,"Abandoned",now);ok,message=true,"Mission abandoned. Your army is marching home."
+		else message="You are not on a mission." end
 	elseif action=="EggCashCollect" then
 		-- Old clients cannot bypass server-owned movement/one-second collection.
 		return

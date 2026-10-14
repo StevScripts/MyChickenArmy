@@ -9,9 +9,7 @@ local UserInputService=game:GetService("UserInputService")
 local TweenService=game:GetService("TweenService")
 local Theme=require(script.Parent.UITheme)
 local MutationCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.MutationCatalog)
-local Config=require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local MenuLayout=require(script.Parent.MenuLayout)
-local Assets=require(script.Parent.ResearchAssets)
 local Panel={}
 Panel.__index=Panel
 
@@ -24,12 +22,10 @@ local HOLD_SECONDS=2
 -- incomeLevel, luck, camp wins, the King and bought chicken levels); the rest is kept.
 -- quote.cashLevels counts the cash-bought chicken levels this rebirth removes.
 local function warningLine(levels: number): string
-	local tail=if levels>0 then " and "..levels.." bought chicken level"..(if levels==1 then "" else "s") else ""
-	return "WARNING: Resets Cash, Egg Speed, Egg Value, Luck, camps"..tail..". Your chickens stay!"
+	local tail=if levels>0 then ", "..levels.." chicken level"..(if levels==1 then "" else "s") else ""
+	return "Resets Cash, upgrades"..tail.." and camps. Chickens stay!"
 end
-local ENEMY_RED=Color3.fromRGB(232,62,48)
-local ORANGE=Color3.fromRGB(255,150,40)
-local PILL=Color3.fromRGB(24,30,26)
+local INSET=Color3.fromRGB(18,26,20)
 
 -- Player-facing rank names are "Rebirth 1", "Rebirth 2", … (October 14 glossary;
 -- "Veteran/Elite/Royal" are Invasion tier names only). The server quote's
@@ -76,14 +72,6 @@ local function label(parent,name,text,x,y,w,h,color)
 	item.Position,item.Size=UDim2.fromScale(x,y),UDim2.fromScale(w,h)
 	item.TextScaled,item.TextXAlignment=true,Enum.TextXAlignment.Center
 	return item
-end
-
-local function bar(parent,name,track,fillColor)
-	local frame=Theme.Frame(parent,name,UDim2.fromScale(1,1),track)
-	frame:SetAttribute("OwnsPopupStyle",true)
-	local fill=Theme.Frame(frame,"Fill",UDim2.fromScale(0,1),fillColor)
-	fill.ZIndex=frame.ZIndex+1
-	return frame,fill
 end
 
 function Panel.new(app)
@@ -168,8 +156,8 @@ function Panel:Build()
 	-- composition fills most of a phone and stays a centered dialog on desktop.
 	if MenuLayout.Control(app.gui,"Rebirth") then MenuLayout.Apply(app.gui,"Rebirth",panel)
 	else
-		panel.Size=UDim2.fromScale(.94,.66)
-		Theme.Aspect(panel,1.4)
+		panel.Size=UDim2.fromScale(.6,.66)
+		Theme.Aspect(panel,1.05)
 	end
 	self.panelSize,self.panelPosition=panel.Size,panel.Position
 	local header,title=Theme.Header(panel,"Header","Rebirth",GREEN)
@@ -181,57 +169,26 @@ function Panel:Build()
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Theme.PageSurfaces.Army)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	-- October 14 layout (owner picks R2/R3 rows + R4 warning and tiles): red warning,
-	-- before → after rows, "next rank brings" tiles, then the cash bar beside the button.
-	self.warning=label(main,"Warning",warningLine(0),.05,.02,.9,.1,RED)
-	local function row(name,y,icon)
-		local function pill(side,x)
-			local frame=Theme.Frame(main,name..side,UDim2.fromScale(.36,.1),PILL)
-			frame.Position=UDim2.fromScale(x,y)
-			frame:SetAttribute("OwnsPopupStyle",true)
-			Theme.Stroke(frame,Color3.new(0,0,0),3)
-			local art=Theme.Image(frame,"Icon",icon,UDim2.fromScale(.24,1.3),UDim2.fromScale(-.07,-.15))
-			Theme.Aspect(art,1);art.ZIndex=7
-			return label(frame,"Value","",.19,.1,.77,.8,WHITE),art
-		end
-		local now,nowIcon=pill("Now",.08)
-		local nxt,nextIcon=pill("Next",.56)
-		label(main,name.."Arrow","→",.445,y,.11,.1,ORANGE)
-		return {now=now,next=nxt,nowIcon=nowIcon,nextIcon=nextIcon}
-	end
-	self.cashRow=row("Cash",.14,Theme.Assets.Cash)
-	self.eggRow=row("Eggs",.27,Assets.egg)
-	self.rankRow=row("Rank",.4,Theme.Assets.RecruitBadge)
-	-- Tiles: the mutation this rank first allows (quote.unlockNext) and the camp scale.
-	self.bringsLine=label(main,"Brings","NEXT RANK BRINGS",.04,.515,.92,.055,GOLD)
-	local function tile(name,color,top)
-		local frame=Theme.Frame(main,name,UDim2.fromScale(.15,.2),color)
-		frame.Position=UDim2.fromScale(.425,.58)
-		frame:SetAttribute("OwnsPopupStyle",true)
-		Theme.Aspect(frame,1)
-		Theme.Gradient(frame,color:Lerp(WHITE,.15),color:Lerp(Color3.new(0,0,0),.35))
-		Theme.Stroke(frame,Color3.new(0,0,0),3)
-		label(frame,"Top",top,.04,.03,.92,.2,WHITE)
-		local caption=label(frame,"Caption","",.04,.76,.92,.2,WHITE)
-		return frame,caption
-	end
-	local mutationTile,mutationCaption=tile("MutationTile",Color3.fromRGB(255,118,214),"MUTATION")
-	self.mutationName=label(mutationTile,"Name","",.04,.28,.92,.42,WHITE)
-	local campTile,campCaption=tile("CampTile",ENEMY_RED,"CAMPS")
-	local campIcon=Theme.Image(campTile,"Icon",Theme.Assets.EnemyStrength,UDim2.fromScale(.5,.5),UDim2.fromScale(.25,.24))
-	Theme.Aspect(campIcon,1);campIcon.ZIndex=6
-	self.mutationTile,self.mutationCaption,self.campTile,self.campCaption=mutationTile,mutationCaption,campTile,campCaption
-	-- Cost bar (R2): cash icon, progress toward the next rank, then the button.
-	local track,fill=bar(main,"CostProgress",Color3.fromRGB(14,24,14),GOLD)
-	track.Position,track.Size=UDim2.fromScale(.1,.845),UDim2.fromScale(.52,.1)
-	Theme.Stroke(track,Color3.new(0,0,0),3)
-	local costIcon=Theme.Image(main,"CostIcon",Theme.Assets.Cash,UDim2.fromScale(.1,.17),UDim2.fromScale(.035,.81))
-	Theme.Aspect(costIcon,1);costIcon.ZIndex=9
-	local costText=label(track,"Label","",.08,.05,.84,.9,WHITE)
-	costText.ZIndex=8
-	self.costTrack,self.costFill,self.costText,self.costIcon=track,fill,costText,costIcon
+	-- October 14 third pass (owner: "too cluttered"; minimal layout taken from an
+	-- uninstructed image-generator mockup): one inset box with the reward and cost,
+	-- one reset line, one big button.
+	local box=Theme.Frame(main,"Reward",UDim2.fromScale(.86,.6),INSET)
+	box.Position=UDim2.fromScale(.07,.05)
+	box:SetAttribute("OwnsPopupStyle",true)
+	Theme.Stroke(box,Color3.new(0,0,0),3)
+	label(box,"Lead","You will get",.06,.06,.88,.15,WHITE)
+	self.rewardLine=label(box,"Multiplier","",.04,.21,.92,.27,Color3.fromRGB(140,255,110))
+	self.unlockLine=label(box,"Unlock","",.06,.5,.88,.11,GOLD)
+	local costRow=Theme.Container(box,"Cost")
+	costRow.Position,costRow.Size=UDim2.fromScale(.12,.7),UDim2.fromScale(.76,.22)
+	local costIcon=Theme.Image(costRow,"Icon",Theme.Assets.Cash,UDim2.fromScale(.22,1),UDim2.fromScale(0,0))
+	Theme.Aspect(costIcon,1);costIcon.ZIndex=6
+	self.costText=label(costRow,"Label","",.25,.05,.75,.9,WHITE)
+	self.costText.TextXAlignment=Enum.TextXAlignment.Left
+	self.costIcon=costIcon
+	self.warning=label(main,"Warning",warningLine(0),.07,.665,.86,.11,RED)
 	local actions=Theme.Container(main,"Actions")
-	actions.Position,actions.Size=UDim2.fromScale(.65,.825),UDim2.fromScale(.31,.14)
+	actions.Position,actions.Size=UDim2.fromScale(.15,.8),UDim2.fromScale(.7,.16)
 	-- Hold control stays at least 44 points tall on the smallest phones.
 	local minimum=Instance.new("UISizeConstraint")
 	minimum.MinSize,minimum.Parent=Vector2.new(0,44),actions
@@ -276,54 +233,24 @@ function Panel:RenderPanel()
 	local nextTitle=nextName(quote)
 	self.title.Text=nextTitle or "Rebirth"
 	local max=nextTitle==nil
-	self.warning.Text=warningLine(tonumber(quote.cashLevels) or 0)
-	-- Cash row: everything you hold now → the fresh starting cash.
+	self.warning.Text=if max then "" else warningLine(tonumber(quote.cashLevels) or 0)
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	self.cashRow.now.Text=money(coins)
-	self.cashRow.next.Text=if max then money(coins) else money(Config.StartingCoins)
-	self.cashRow.next.TextColor3=if max then WHITE else RED
-	-- Egg row.
-	local now=tonumber(quote.multiplierNow) or 1
-	self.eggRow.now.Text=multiplier(now,2)
-	self.eggRow.next.Text=if quote.multiplierNext then multiplier(quote.multiplierNext,2) else multiplier(now,2)
-	self.eggRow.next.TextColor3=if max then WHITE else Color3.fromRGB(140,255,110)
-	-- Rank row.
-	self.rankRow.now.Text=Panel.Title(rank)
-	self.rankRow.nowIcon.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
-	self.rankRow.next.Text=nextTitle or "Max rank"
-	self.rankRow.next.TextColor3=GOLD
-	self.rankRow.nextIcon.Image=Theme.Assets.Reenlist
-	-- Tiles. EnemyScale is linear in rank, so the next camp scale is enough.
+	-- The reward: the next egg multiplier, plus the mutation that rank unlocks.
+	self.rewardLine.Text=if quote.multiplierNext then multiplier(quote.multiplierNext,0).." Eggs!" else "Max rank!"
 	local unlock=quote.unlockNext
 	local def=if type(unlock)=="table" and unlock.name then MutationCatalog.Defs[unlock.name] else nil
-	self.mutationTile.Visible=def~=nil and not max
-	if def then
-		self.mutationName.Text=def.name
-		self.mutationCaption.Text="×"..tostring(def.multiplier).." eggs"
-		self.mutationTile.BackgroundColor3=def.color
-		Theme.Gradient(self.mutationTile,def.color:Lerp(WHITE,.15),def.color:Lerp(Color3.new(0,0,0),.35))
-	end
 	local scaleNext=tonumber(quote.enemyScaleNext)
-	self.campTile.Visible=scaleNext~=nil and not max
-	self.campCaption.Text=if scaleNext then multiplier(scaleNext,1).." stronger" else ""
-	local width,gap=.15,.03
-	local tiles={}
-	for _,item in {self.mutationTile,self.campTile} do if item.Visible then table.insert(tiles,item) end end
-	local start=.5-(#tiles*width+(#tiles-1)*gap)/2
-	for index,item in tiles do item.Position=UDim2.fromScale(start+(index-1)*(width+gap),.58) end
-	self.bringsLine.Text=if max then "Highest rank reached" else "NEXT RANK BRINGS"
-	-- Cost bar: King requirement first, then cash progress; server errors replace the label.
+	self.unlockLine.Text=if max then "" elseif def then "+ "..def.name.." mutations · camps "..multiplier(scaleNext or 1,0).." tougher"
+		else "Camps get "..multiplier(scaleNext or 1,0).." tougher"
 	-- Only the first Rebirth needs the King (quote.kingRequired; older quotes lack it).
 	local needKing=quote.kingCleared==false and quote.kingRequired~=false
-	local progress=if needKing then 0 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 1
-	self.costFill.Size=UDim2.fromScale(progress,1)
 	self.costIcon.Image=if needKing then Theme.Assets.Padlock else Theme.Assets.Cash
 	if self.message then
 		self.costText.Text,self.costText.TextColor3=self.message,self.messageColor or RED
 	elseif needKing then
-		self.costText.Text,self.costText.TextColor3="Defeat the Chicken King first",WHITE
+		self.costText.Text,self.costText.TextColor3="Defeat the Chicken King",WHITE
 	elseif cost then
-		self.costText.Text,self.costText.TextColor3=money(math.min(coins,cost)).." / "..money(cost),WHITE
+		self.costText.Text,self.costText.TextColor3="Cost: "..money(cost),if coins>=cost then GREEN else WHITE
 	else
 		self.costText.Text,self.costText.TextColor3="Highest rank reached",GOLD
 	end

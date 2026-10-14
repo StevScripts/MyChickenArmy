@@ -8,7 +8,8 @@ local Schema = {}
 
 -- 2 (October 14 launch): onboarding step 20 Rebirth1, daily source, Rebirth
 -- sink/feature, launch counters and the bigCash/longSeconds buckets.
-Schema.Version = 2
+-- 3 (October 14): mission.* launch counters.
+Schema.Version = 3
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -144,6 +145,13 @@ Schema.LaunchCounters = {
 	["event.offer"] = true,       -- event.offer.<species>
 	["event.buy"] = true,         -- event.buy.<species>
 	["giant.fuse"] = true,        -- giant.fuse.<Fused|NewGiant|Giant|NewColossal|Colossal> (October 14)
+	-- October 14 Missions (docs/team/MISSIONS_PLAN.md); every suffix is the tier 1..3.
+	["mission.spawn"] = true,     -- a waiting site appeared
+	["mission.expired"] = true,   -- a waiting site left unattacked
+	["mission.start"] = true,     -- the army was sent
+	["mission.won"] = true,
+	["mission.lost"] = true,
+	["mission.timeout"] = true,   -- the 3-minute fight limit ran out
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {

@@ -51,13 +51,13 @@ Catalog.Nodes = {
 	["S12"] = {id="S12", name="Formation Book", branch="Command", price=15000, duration=300, description="Save 1 named army formation", q=1, r=0, icon="index", prerequisite="S1", effect="formations", value=1},
 	["S13"] = {id="S13", name="Officer's Notebook", branch="Command", price=1000000, duration=1800, description="Save 2 formations total", q=2, r=0, icon="index", prerequisite="S12", effect="formations", value=2},
 	["S14"] = {id="S14", name="Command Archive", branch="Command", price=25000000, duration=14400, description="Save 3 formations total", q=3, r=0, icon="index", prerequisite="S13", effect="formations", value=3},
-	["S15"] = {id="S15", name="Coastal Watch", branch="Command", price=2500000, duration=3600, description="Unlock Veteran Invasions early (defeating the Chicken King or a Rebirth also unlocks them)", q=3, r=-3, icon="index", prerequisite="S4", effect="operations", value=1},
+	["S15"] = {id="S15", name="Coastal Watch", branch="Command", price=2500000, duration=3600, description="Unlock Veteran Missions early (defeating the Chicken King or a Rebirth also unlocks them)", q=3, r=-3, icon="index", prerequisite="S4", effect="operations", value=1},
 	-- October 14 launch: Elite 8 h -> 2 h and Royal 48 h -> 6 h; a King clear also opens Veteran.
-	["S16"] = {id="S16", name="Elite Invasions", branch="Command", price=25000000, duration=7200, description="Unlock the Elite Invasions: the loyalist fleet", q=4, r=-4, icon="index", prerequisite="S15", effect="operations", value=2},
+	["S16"] = {id="S16", name="Elite Missions", branch="Command", price=25000000, duration=7200, description="Elite Missions start appearing: the loyalist fleet", q=4, r=-4, icon="index", prerequisite="S15", effect="operations", value=2},
 	-- October 13: Mini War-style territory limit (Config.Territories.HoldLimit 8).
 	["H1"] = {id="H1", name="Flag Bearers", branch="Command", price=5000000, duration=7200, description="Hold up to 9 territories at once", q=3, r=-5, icon="index", prerequisite="S8", effect="holdCap", value=9},
 	["H2"] = {id="H2", name="Banner Legion", branch="Command", price=50000000, duration=28800, description="Hold up to 10 territories at once", q=3, r=-6, icon="index", prerequisite="H1", effect="holdCap", value=10},
-	["S17"] = {id="S17", name="Royal Invasions", branch="Command", price=250000000, duration=21600, description="Unlock the Royal Invasions: the King's armada", q=5, r=-5, icon="index", prerequisite="S16", effect="operations", value=3},
+	["S17"] = {id="S17", name="Royal Missions", branch="Command", price=250000000, duration=21600, description="Royal Missions start appearing: the King's armada", q=5, r=-5, icon="index", prerequisite="S16", effect="operations", value=3},
 	-- Collection progression inspired by the supplied Slime RNG tree. Our tuning
 	-- shifts favored chicken bands and podium frequency; it never changes fusion or slot caps.
 	["L1"] = {id="L1", name="Lucky Feathers I", branch="Rolling", price=750, duration=30, description="+10% Luck strength toward stronger chickens", q=0, r=-1, icon="luck", prerequisite="Start", effect="rollingLuck", value=0.1},
