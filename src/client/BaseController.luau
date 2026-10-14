@@ -544,18 +544,25 @@ function BaseController:UpdateObjective()
   elseif where=="KingArena" then target=world:FindFirstChild("KingArena")
   elseif where=="RollStation" then target=plot and plot:FindFirstChild("RollStation") end
  end
+ -- An Invasion in progress outranks every other goal: point at its landing ring.
+ local zone=state.operations and state.operations.activeId and world:FindFirstChild("InvasionZone"..Players.LocalPlayer.UserId)
+ local invasion=zone and zone.PrimaryPart and zone.PrimaryPart:FindFirstChild("Marker")
+ if invasion then target=invasion end
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
  self.objective.Adornee=anchor
- self.objectiveCaption.Text=if not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
+ local panel=self.app.operationsPanel
+ local left=invasion and panel and panel.expiresAt and math.max(0,math.ceil(panel.expiresAt-os.clock()))
+ self.objectiveCaption.Text=if invasion then (if left then ("INVASION %d:%02d"):format(left//60,left%60) else "INVASION")
+  elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  self.objective.Enabled=anchor~=nil and not self.app.panel.Visible and not self.app.dialogueActive
   and not (self.app.research and self.app.research.root.Visible) and not (self.app.offlineCash and self.app.offlineCash.gui)
-  and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming
+  and (invasion~=nil or state.armyState=="Home" or state.armyState=="Following") and not state.incoming
   and not (self.commandHeading.Enabled and self.nearestCommand and self.nearestCommand.model==target)
   and not (self.lockedHeading.Enabled and self.lockedHeading.Adornee==anchor)
- self:UpdateGuideTrail(anchor,self.objective.Enabled and guidance~=nil)
+ self:UpdateGuideTrail(anchor,self.objective.Enabled and (guidance~=nil or invasion~=nil))
  if self.app.commander then self.app.commander:Update() end
 end
 

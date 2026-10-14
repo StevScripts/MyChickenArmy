@@ -331,7 +331,9 @@ function Panel:BuildDetail(content,data,state)
 	-- Main action.
 	if data.activeId then
 		local active=Operations.Encounters[data.activeId]
-		label(detail,"Active",(if active then active.name else "An Invasion").." is under way",0,.82,.42,.17,WHITE)
+		local left=self.expiresAt and math.max(0,math.ceil(self.expiresAt-os.clock()))
+		label(detail,"Active",(if active then active.name else "An Invasion").." is under way"
+			..(if left then (" · %d:%02d left"):format(left//60,left%60) else ""),0,.82,.42,.17,WHITE)
 		local leave=Theme.ActionButton(detail,"Leave","Leave",function() app:Request("LeaveOperation") end,Theme.ActionColors.danger)
 		leave.Position,leave.Size=UDim2.fromScale(.45,.83),UDim2.fromScale(.55,.16)
 		self.deploy=leave
@@ -374,45 +376,6 @@ function Panel:Dismiss(immediate: boolean?)
 	Theme.Motion:Tween(panel,"operations-fade",{GroupTransparency=1},.16,nil,nil,finish)
 end
 
--- A short camera shot of the airship arriving over the landing zone, then back to
--- the player. Any key, click or tap skips it; reduced motion skips it entirely.
-local ARRIVAL_SHOT_SECONDS=4.6
-function Panel:PlayArrival(center)
-	local camera=workspace.CurrentCamera
-	if self.app.reducedMotion or not camera or type(center)~="table" or self.arrivalPlaying then return end
-	local landing=Vector3.new(center.x,center.y,center.z)
-	local seaward=Vector3.new(landing.X,0,landing.Z)
-	seaward=if seaward.Magnitude>1e-3 then seaward.Unit else Vector3.new(0,0,1)
-	local side=seaward:Cross(Vector3.yAxis)
-	-- Stand inland of the landing zone, looking out to sea at the incoming ship.
-	local eye=landing-seaward*60+side*30+Vector3.new(0,26,0)
-	local shot=CFrame.lookAt(eye,landing+seaward*40+Vector3.new(0,30,0))
-	self.arrivalPlaying=true
-	local previousType,previous=camera.CameraType,camera.CFrame
-	camera.CameraType=Enum.CameraType.Scriptable
-	local moveIn=TweenService:Create(camera,TweenInfo.new(.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{CFrame=shot})
-	moveIn:Play()
-	local finished=false
-	local skip
-	local function finish()
-		if finished then return end
-		finished=true
-		if skip then skip:Disconnect() end
-		moveIn:Cancel()
-		local back=TweenService:Create(camera,TweenInfo.new(.5,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{CFrame=previous})
-		back:Play()
-		back.Completed:Once(function()
-			camera.CameraType=if previousType==Enum.CameraType.Scriptable then Enum.CameraType.Custom else previousType
-			self.arrivalPlaying=false
-		end)
-	end
-	skip=UserInputService.InputBegan:Connect(function(input)
-		if input.UserInputType==Enum.UserInputType.Keyboard or input.UserInputType==Enum.UserInputType.MouseButton1
-			or input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.Gamepad1 then finish() end
-	end)
-	task.delay(ARRIVAL_SHOT_SECONDS,finish)
-end
-
 -- Every so often, while an Invasion is available and the army is home, a scout
 -- reports airships and the HUD Invasions icon pulses. Cosmetic only.
 local ALERT_FIRST_SECONDS,ALERT_EVERY_SECONDS=180,600
@@ -430,7 +393,7 @@ end
 
 -- The scout report itself (also reachable from Studio test tools).
 function Panel:ShowAlert()
-	self.app:Notify("Loyalist airships spotted near your base! Tap Invasions to repel them.","info")
+	self.app:Notify("Loyalist airships spotted on the island! Tap Invasions to repel them.","info")
 	local icon=self.app.researchExtras and self.app.researchExtras.operations
 	local visual=icon and icon:FindFirstChild("Visual")
 	if visual and not self.app.reducedMotion then
@@ -444,9 +407,8 @@ function Panel:Render(state,result)
 	if type(state)~="table" then return end
 	local data=state.operations
 	local active=data and data.activeId
-	-- A new Invasion just started: show the airship arriving.
-	if active and active~=self.lastActive and data.center then self:PlayArrival(data.center) end
-	self.lastActive=active
+	-- The world marker counts down from the server's remaining time.
+	self.expiresAt=if active and data.expiresIn then os.clock()+data.expiresIn else nil
 	self:StepAlert(state)
 	-- A successful deploy sends the army off; the menu gets out of the way.
 	if result and result.ok and result.action=="StartOperation" then self:Dismiss();return end

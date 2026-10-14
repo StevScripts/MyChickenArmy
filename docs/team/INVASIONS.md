@@ -2,27 +2,34 @@
 
 Owner feedback: Operations made no sense in the story. The army was teleported into a
 cloned arena floating off the map and fought "random people". Owner decision: **Coastal
-Invasions, faked with an arrival scene**; menu name **Invasions**; **menu plus alerts**.
+Invasions**, later (October 14) simplified to an airship drop in a random ring with no cutscene; menu name **Invasions**; **menu plus alerts**.
 
 ## Story
 
 After the Chicken King falls, his loyalists want the throne back. Their airships land
-beside your base, and your army marches out to repel them. Veteran = scout landings,
+somewhere on the island, and your army marches out to repel them. Veteran = scout landings,
 Elite = the loyalist fleet, Royal = the King's armada, ending with "The King Returns".
 
 ## How it plays
 
 1. Open **Invasions** (HUD icon on the right, Upgrades research node, or the guide).
-2. Pick an invasion and press **Defend**. The server spawns the loyalist airship
-   (`src/server/InvasionAirship.luau`, code-built, TweenService only). It flies in from
-   the sea to the landing zone beside your base (`src/shared/InvasionLayout.luau`, one
-   measured spot per plot) and hovers while the loyalists drop (`Catalog.Roster`).
-3. The invading player sees a 4.6 s camera shot of the arrival (skippable with any
-   input; skipped with reduced motion). The commander stays where they are; nobody is
-   teleported.
+2. Pick an invasion and press **Defend**. The server picks a **random open spot anywhere
+   on the island** (`InvasionLayout.Pick`: island ground with no roads, camps, plots or
+   props within 28 studs, scanned once and cached; never within 90 studs of another live
+   Invasion; the plot's old fixed spot is only the fallback). It drops a glowing purple
+   **ring** there (`InvasionZone<userId>`) and spawns the loyalist airship
+   (`src/server/InvasionAirship.luau`, code-built, TweenService only), which flies in
+   and hovers while the loyalists drop into the ring (`Catalog.Roster`).
+3. No cutscene and no teleport (owner, October 14). The commander gets the normal guide
+   beam plus an **"INVASION m:ss"** marker over the ring (`BaseController:UpdateObjective`),
+   which outranks every other goal while the Invasion is active.
 4. The army waits about 3.5 s, then marches out with the normal camp travel code,
-   fights the finite roster, captures the landing zone and walks home through the
-   normal Returning flow. A loss, a draw or Leave also walks home.
+   fights the finite roster and walks home through the normal Returning flow. Other
+   players see the ring and the loyalists but cannot join.
+   **Time limit: 3 minutes** (`OperationService.TimeLimit=180`). On time-out, Leave,
+   a loss or the player leaving the game, there is no reward and the loyalists **fade
+   away one by one** over about 8 s (`fadeInvaders`). After a win the fallen loyalists
+   fade the same way. The ring disappears when the Invasion ends.
 5. Rewards, first-clear tracking, banners, research gates (S15 "Coastal Watch", S16
    "Elite Invasions", S17 "Royal Invasions") and the King-clear unlock are unchanged.
    Only display names changed; ids (`operationId`, `StartOperation`, analytics names,
