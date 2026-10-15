@@ -90,7 +90,7 @@ local HEADING_HEIGHT=TITLE_WIDTH/21.94
 local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.018
 -- Wider than the old 1.48 GUI.FRAMES proportion; matches MenuLayout.Defaults.Shop.
 local SHOP_ASPECT=1.78
-local PASS_RATIO=1.62
+local PASS_RATIO=1
 local CASH_RATIO=1.05
 local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Cash Packs"}
 local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Cash"}
@@ -255,13 +255,8 @@ function Browser:SectionTab(parent,key,index)
  Theme.Aspect(button,0.86)
  local visual=Theme.Container(button,"Visual")
  visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
- local backing=frame(visual,"Backing",UDim2.fromScale(0.96,0.78),UDim2.fromScale(0.02,0.02),Color3.new(1,1,1))
- backing.ZIndex=6
- Theme.Gradient(backing,Color3.fromRGB(58,64,78),Color3.fromRGB(20,22,30))
- Theme.Stroke(backing,Color3.new(0,0,0),3)
- local glow=Theme.Stroke(Theme.Container(backing,"Glow"),P.gold,2)
- glow.Parent.ZIndex,glow.Transparency=7,1
- local icon=Theme.Image(visual,"Icon","",UDim2.fromScale(0.86,0.7),UDim2.fromScale(0.07,0.05))
+ -- Transparent: just the art and its caption (owner, October 15).
+ local icon=Theme.Image(visual,"Icon","",UDim2.fromScale(0.92,0.74),UDim2.fromScale(0.04,0.02))
  icon.ZIndex=8
  Theme.Aspect(icon,1)
  if key=="Galaxy" then icon.Image=GalaxyPresentation.CrateImage
@@ -758,7 +753,6 @@ function Browser:UpdateSection()
  for key,button in self.tabs do
   local selected=key==active
   button.Visual.Caption.TextColor3=if selected then P.gold else P.white
-  button.Visual.Backing.Glow.UIStroke.Transparency=if selected then 0 else 1
   button:SetAttribute("Selected",selected)
  end
 end
@@ -779,7 +773,6 @@ function Browser:ApplyPresentation()
   local selected=key==self.activeSection
   local caption=button.Visual.Caption
   caption.TextColor3=if selected then P.gold else P.white
-  button.Visual.Backing.Glow.UIStroke.Transparency=if selected then 0 else 1
  end
 end
 
@@ -805,24 +798,23 @@ function Browser:Resize()
  self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(OFFER_GAP,OFFER_GAP/gridHeight),UDim2.fromScale(cardWidth,passCardHeight/gridHeight)
  self.passLayout.FillDirectionMaxCells=OFFER_COLUMNS
  for _,view in self.cards do
-  -- Reference layout: art and sunburst on the left, name top-right, one line of
-  -- copy, then a big price pill bottom-right. Everything is readable at a glance.
-  view.rays.Position,view.rays.Size=UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.62,1.0)
+  -- Square card: name on top, big art on a sunburst, one line, full-width price.
+  view.rays.AnchorPoint,view.rays.Position,view.rays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.43),UDim2.fromScale(0.82,0.82)
   Theme.Aspect(view.rays,1)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.47,0.76)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.43),UDim2.fromScale(0.6,0.5)
   Theme.Aspect(view.art,1)
   view.artRestSize=view.art.Size
-  view.title.AnchorPoint,view.title.Position,view.title.Size=Vector2.new(1,0),UDim2.fromScale(0.965,0.06),UDim2.fromScale(0.56,0.25)
-  view.title.TextWrapped,view.title.TextXAlignment=false,Enum.TextXAlignment.Right
-  view.description.AnchorPoint,view.description.Position=Vector2.new(1,0),UDim2.fromScale(0.965,0.33)
-  view.description.Size=UDim2.fromScale(0.5,0.27)
-  view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Right
+  view.title.AnchorPoint,view.title.Position,view.title.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.03),UDim2.fromScale(0.92,0.13)
+  view.title.TextWrapped,view.title.TextXAlignment=false,Enum.TextXAlignment.Center
+  view.description.AnchorPoint,view.description.Position=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.67)
+  view.description.Size=UDim2.fromScale(0.92,0.1)
+  view.description.TextWrapped,view.description.TextXAlignment=false,Enum.TextXAlignment.Center
   if view.details then
-   -- The odds button tucks into the art's lower-left corner.
-   view.details.AnchorPoint,view.details.Position,view.details.Size=Vector2.new(0,1),UDim2.fromScale(0.03,0.93),UDim2.fromScale(0.2,0.2)
+   -- The odds button tucks into the art's upper-right corner.
+   view.details.AnchorPoint,view.details.Position,view.details.Size=Vector2.new(1,0),UDim2.fromScale(0.96,0.18),UDim2.fromScale(0.24,0.11)
   end
-  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(1,1),UDim2.fromScale(0.965,0.93),UDim2.fromScale(0.5,0.25)
+  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.96),UDim2.fromScale(0.86,0.17)
  end
  local cashCardWidth=cardWidth
  local cashCardHeight=cashCardWidth/CASH_RATIO

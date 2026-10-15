@@ -6,7 +6,9 @@ local Catalog=require(ReplicatedStorage.PetRoll.Shared.ShopCatalog)
 local Presentation=require(ReplicatedStorage.PetRoll.Shared.GalaxyCratePresentation)
 local Shop={}
 Shop.__index=Shop
-Shop.Height=0.405
+-- October 15 (owner): taller banner so the reward chickens and names read larger.
+Shop.Height=0.44
+local BANNER=0.36 -- Banner height as a fraction of width (virtual 2000x720).
 
 local WHITE=Color3.new(1,1,1)
 local BLACK=Color3.fromRGB(3,1,4)
@@ -58,13 +60,16 @@ local function percentage(value)
  return string.format("%g%%",value*100)
 end
 
+-- Reward card in a virtual 268x430 space: portrait, name, chance.
+local CARD_W,CARD_H,PORTRAIT_H=268,430,300
 local function portrait(parent,asset)
  -- The Figma exports retain their alpha; dark underlays outline the silhouette.
  for index,offset in {{-1,-1},{0,-1},{1,-1},{-1,0},{1,0},{-1,1},{0,1},{1,1}} do
-  local outline=picture(parent,"PortraitOutline"..index,asset,3+offset[1]*2.5,offset[2]*2.5,254,235,260,326,8)
+  local outline=picture(parent,"PortraitOutline"..index,asset,-45+offset[1]*3,-40+offset[2]*3,CARD_W+90,PORTRAIT_H+50,CARD_W,CARD_H,8)
   outline.ImageColor3=BLACK
  end
- return picture(parent,"Portrait",asset,3,0,254,235,260,326,9)
+ -- The exports carry transparent padding; overscan so the chicken itself reads big.
+ return picture(parent,"Portrait",asset,-45,-40,CARD_W+90,PORTRAIT_H+50,CARD_W,CARD_H,9)
 end
 
 function Shop.new(app,parent)
@@ -74,47 +79,47 @@ function Shop.new(app,parent)
  root:SetAttribute("OwnsPopupStyle",true)
  Theme.Aspect(root,1/Shop.Height)
  self.root=root
- local banner=layer(root,"GalaxyCrateBanner",0,0,1,0.325,1,Shop.Height,Color3.fromRGB(17,9,37),4)
+ local banner=layer(root,"GalaxyCrateBanner",0,0,1,BANNER,1,Shop.Height,Color3.fromRGB(17,9,37),4)
  banner.ClipsDescendants=true
- rounded(banner,34/650)
+ rounded(banner,34/720)
  self.banner=banner
  local border=Theme.Stroke(banner,WHITE,3)
- border.StrokeSizingMode,border.Thickness=Enum.StrokeSizingMode.ScaledSize,7/650
+ border.StrokeSizingMode,border.Thickness=Enum.StrokeSizingMode.ScaledSize,7/720
  border.LineJoinMode=Enum.LineJoinMode.Round
  Theme.Gradient(border,Color3.fromRGB(154,251,255),Color3.fromRGB(148,64,255))
- local background=picture(banner,"Atmosphere",Presentation.Background,0,0,2000,650,2000,650,5)
+ local background=picture(banner,"Atmosphere",Presentation.Background,0,0,2000,720,2000,720,5)
  background.ScaleType=Enum.ScaleType.Crop
- rounded(background,34/650)
- local vignette=layer(banner,"VioletVignette",0,0,2000,650,2000,650,WHITE,6)
+ rounded(background,34/720)
+ local vignette=layer(banner,"VioletVignette",0,0,2000,720,2000,720,WHITE,6)
  local shading=Theme.Gradient(vignette,WHITE,WHITE)
  shading.Rotation=0
  shading.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(34,6,44)),ColorSequenceKeypoint.new(0.48,Color3.fromRGB(6,4,29)),ColorSequenceKeypoint.new(1,Color3.fromRGB(16,5,37))})
  shading.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.74),NumberSequenceKeypoint.new(0.48,0.9),NumberSequenceKeypoint.new(1,0.7)})
- rounded(vignette,34/650)
- self.crate=picture(banner,"GalaxyCrate",Presentation.CrateImage,-58,112,718,610,2000,650,7)
- local new=label(banner,"New","NEW!",32,20,260,110,2000,650,9)
+ rounded(vignette,34/720)
+ self.crate=picture(banner,"GalaxyCrate",Presentation.CrateImage,-58,170,718,610,2000,720,7)
+ local new=label(banner,"New","NEW!",32,20,260,110,2000,720,9)
  new.TextXAlignment=Enum.TextXAlignment.Left
  Theme.Gradient(new,Color3.fromRGB(204,155,255),Color3.fromRGB(61,239,255))
- local title=label(banner,"Title","Galaxy Crate!",310,20,600,110,2000,650,9)
+ local title=label(banner,"Title","Galaxy Crate!",310,20,600,110,2000,720,9)
  title.TextXAlignment=Enum.TextXAlignment.Left
- local rewards=layer(banner,"Rewards",650,139,1320,326,2000,650,nil,8)
+ local rewards=layer(banner,"Rewards",640,118,1340,CARD_H,2000,720,nil,8)
  for index,reward in Presentation.Rewards do
-  local card=layer(rewards,reward.id or reward.species,(index-1)*265,0,260,326,1320,326,nil,8)
+  local card=layer(rewards,reward.id or reward.species,(index-1)*CARD_W,0,CARD_W,CARD_H,1340,CARD_H,nil,8)
   card:SetAttribute("Species",reward.species or reward.id)
   card:SetAttribute("Chance",reward.chance)
   portrait(card,reward.image)
-  label(card,"Name",reward.name,0,235,260,33,260,326,10)
-  label(card,"Chance",percentage(reward.chance),0,267,260,59,260,326,10)
+  label(card,"Name",reward.name,0,PORTRAIT_H,CARD_W,52,CARD_W,CARD_H,10)
+  label(card,"Chance",percentage(reward.chance),0,PORTRAIT_H+50,CARD_W,CARD_H-PORTRAIT_H-50,CARD_W,CARD_H,10)
  end
- local purchaseRow=layer(banner,"Purchases",650,481,1318,150,2000,650,nil,9)
+ local purchaseRow=layer(banner,"Purchases",650,560,1318,145,2000,720,nil,9)
  for index,pack in PACKS do
   self:CreatePurchase(purchaseRow,pack,index)
  end
- local inner=layer(banner,"InnerEdge",9,9,1982,632,2000,650,nil,11)
- rounded(inner,27/632)
+ local inner=layer(banner,"InnerEdge",9,9,1982,702,2000,720,nil,11)
+ rounded(inner,27/702)
  local innerBorder=Theme.Stroke(inner,Color3.fromRGB(170,223,255),1)
- innerBorder.StrokeSizingMode,innerBorder.Thickness,innerBorder.Transparency=Enum.StrokeSizingMode.ScaledSize,2/632,0.62
- local footer=layer(root,"CrateControls",0,0.34,1,0.065,1,Shop.Height,nil,7)
+ innerBorder.StrokeSizingMode,innerBorder.Thickness,innerBorder.Transparency=Enum.StrokeSizingMode.ScaledSize,2/702,0.62
+ local footer=layer(root,"CrateControls",0,BANNER+0.015,1,0.065,1,Shop.Height,nil,7)
  self.creditLabel=label(footer,"Credits","",0,0,0.66,0.53,1,1,8)
  self.creditLabel.TextXAlignment=Enum.TextXAlignment.Left
  self.note=label(footer,"Disclosure","One chicken per crate · Chances shown above",0,0.56,0.66,0.4,1,1,8)
