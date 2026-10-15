@@ -1,0 +1,254 @@
+{
+  "batch": "b9",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b9-lineup.png",
+  "chickens": [
+    {
+      "id": "Jade",
+      "name": "Jade Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Jade.jpg",
+      "preview": "previews/Jade.jpg",
+      "poses": [
+        "previews/Jade-Chicken_Walk.jpg",
+        "previews/Jade-Chicken_Peck.jpg",
+        "previews/Jade-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Jade-base-color.png"
+      },
+      "vfxPlan": "Soft green glint (Glitter, rate 1.5) sliding over the body; gold sparkle on Celebrate.",
+      "review": {
+        "id": "Jade",
+        "name": "Jade Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Jade_Props",
+          "Roster_Jade_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 348,
+        "glb": "models/Jade.glb",
+        "fbx": "models/Jade-Bind.fbx",
+        "glbBytes": 301268
+      }
+    },
+    {
+      "id": "Griffin",
+      "name": "Griffin Chicken",
+      "rarity": "Legendary",
+      "band": 8,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Griffin.jpg",
+      "preview": "previews/Griffin.jpg",
+      "poses": [
+        "previews/Griffin-Chicken_Walk.jpg",
+        "previews/Griffin-Chicken_Peck.jpg",
+        "previews/Griffin-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Griffin-base-color.png"
+      },
+      "vfxPlan": "Feather burst (white/brown) on Celebrate; screech sound.",
+      "review": {
+        "id": "Griffin",
+        "name": "Griffin Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Griffin_Props",
+          "Roster_Griffin_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 516,
+        "glb": "models/Griffin.glb",
+        "fbx": "models/Griffin-Bind.fbx",
+        "glbBytes": 319052
+      }
+    },
+    {
+      "id": "Valkyrie",
+      "name": "Valkyrie Chicken",
+      "rarity": "Legendary",
+      "band": 8,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Valkyrie.jpg",
+      "preview": "previews/Valkyrie.jpg",
+      "poses": [
+        "previews/Valkyrie-Chicken_Walk.jpg",
+        "previews/Valkyrie-Chicken_Peck.jpg",
+        "previews/Valkyrie-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Valkyrie-base-color.png"
+      },
+      "vfxPlan": "Spear tip glow pulse (tween) + blue Spark trail on Peck; feather Glitter on Celebrate.",
+      "review": {
+        "id": "Valkyrie",
+        "name": "Valkyrie Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Valkyrie_Props",
+          "Roster_Valkyrie_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 468,
+        "glb": "models/Valkyrie.glb",
+        "fbx": "models/Valkyrie-Bind.fbx",
+        "glbBytes": 312008
+      }
+    },
+    {
+      "id": "Eclipse",
+      "name": "Eclipse Chicken",
+      "rarity": "Mythic",
+      "band": 9,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Eclipse.jpg",
+      "preview": "previews/Eclipse.jpg",
+      "poses": [
+        "previews/Eclipse-Chicken_Walk.jpg",
+        "previews/Eclipse-Chicken_Peck.jpg",
+        "previews/Eclipse-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Eclipse-base-color.png",
+        "emission": "textures/Eclipse-emission.png"
+      },
+      "vfxPlan": "Corona glow pulse (emission tween); slow orbiting flare wisps (Ember, 2 orbit anchors); dark aura shell (Smoke, deep red).",
+      "review": {
+        "id": "Eclipse",
+        "name": "Eclipse Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Eclipse_Props",
+          "Roster_Eclipse_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 312,
+        "glb": "models/Eclipse.glb",
+        "fbx": "models/Eclipse-Bind.fbx",
+        "glbBytes": 292012
+      }
+    },
+    {
+      "id": "ForestGuardian",
+      "name": "Forest Guardian",
+      "rarity": "Mythic",
+      "band": 9,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/ForestGuardian.jpg",
+      "preview": "previews/ForestGuardian.jpg",
+      "poses": [
+        "previews/ForestGuardian-Chicken_Walk.jpg",
+        "previews/ForestGuardian-Chicken_Peck.jpg",
+        "previews/ForestGuardian-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/ForestGuardian-base-color.png",
+        "emission": "textures/ForestGuardian-emission.png"
+      },
+      "vfxPlan": "Mushroom glow pulse; drifting leaf/firefly motes (Glitter green, rate 3); leaf burst on Celebrate.",
+      "review": {
+        "id": "ForestGuardian",
+        "name": "Forest Guardian",
+        "ok": true,
+        "meshNodes": [
+          "Roster_ForestGuardian_Props",
+          "Roster_ForestGuardian_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 612,
+        "glb": "models/ForestGuardian.glb",
+        "fbx": "models/ForestGuardian-Bind.fbx",
+        "glbBytes": 332116
+      }
+    }
+  ]
+}

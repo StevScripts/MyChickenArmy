@@ -894,8 +894,8 @@ function Browser:RenderTooltip()
 	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" else job~=nil or state~="Completed"
 	local primaryText,primaryStyle,pinText=self:TooltipActions(id,cashNode,offer,state,job,completed)
 	local actionRow=self.persistent and (primaryText~=nil or pinText~=nil)
-	-- Thumb-sized buttons on touch; the card itself has a pixel floor (TipWidth).
-	local buttonHeight=if UserInputService.PreferredInput==Enum.PreferredInput.Touch then 52 else 34
+	-- One size on every device (October 15): thumb-friendly 44 px; the card has a pixel floor (TipWidth).
+	local buttonHeight=44
 	local actionHeight=if actionRow then buttonHeight+14 else 0
 	local tipWidth=self:TipWidth()
 	local titleHeight=30*titleRows

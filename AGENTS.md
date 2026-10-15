@@ -91,6 +91,16 @@ Operations or device-specific "Press E"/"Tap". Internal ids stay. Menus open thr
 `AppController:CloseOtherMenus` so only one shows at a time. See
 `docs/team/UX_AUDIT_FIXES_20261014.md`.
 
+## Chicken UI Lab (October 15)
+The owner tweaks UI in the Studio plugin (`tools/ui-lab`, guide `docs/UI_LAB.md`) and
+saves change lists to `ServerStorage.UILab.Tweaks`. "Apply my UI Lab tweaks" means:
+read records with `Status=new`, carry each change into the source that builds it,
+re-render the story, then set `Status=applied`. Add a story in
+`src/server/UIAuthoring/LabStories.luau` when a new screen ships.
+October 15 owner rule: ONE UI layout for every device. Do not branch positions or
+sizes on PreferredInput/TouchEnabled (input-specific hint text such as "Tap"/"Press"
+is fine). An owner tweak made on any device applies to all of them.
+
 ## Reference vault (October 13)
 UI references, games studied, idea notes and the dev journal live in the Obsidian vault `~/Documents/ObsidianVaults/Roblox-Journal/` (read its `AGENTS.md`). Before UI work, check `UI References/` for the matching `screen:`. Vault notes are inspiration only; this repo's rules win.
 

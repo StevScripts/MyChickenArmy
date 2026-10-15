@@ -1,0 +1,453 @@
+{
+  "batch": "b3",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b3-lineup.png",
+  "chickens": [
+    {
+      "id": "Geode",
+      "name": "Geode Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": "Crystal Mine",
+      "earn": "normal roll",
+      "concept": "concepts/Geode.jpg",
+      "preview": "previews/Geode.jpg",
+      "poses": [
+        "previews/Geode-Chicken_Walk.jpg",
+        "previews/Geode-Chicken_Peck.jpg",
+        "previews/Geode-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Geode-base-color.png",
+        "emission": "textures/Geode-emission.png"
+      },
+      "vfxPlan": "Crystal glow PointLight (purple); sparkle glints on the crystals; crystal shards on Hit.",
+      "review": {
+        "id": "Geode",
+        "name": "Geode Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Geode_Props",
+          "Roster_Geode_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 324,
+        "glb": "models/Geode.glb",
+        "fbx": "models/Geode-Bind.fbx",
+        "glbBytes": 295600
+      }
+    },
+    {
+      "id": "AirshipCaptain",
+      "name": "Airship Captain",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": "Loyalist Landing",
+      "earn": "normal roll",
+      "concept": "concepts/AirshipCaptain.jpg",
+      "preview": "previews/AirshipCaptain.jpg",
+      "poses": [
+        "previews/AirshipCaptain-Chicken_Walk.jpg",
+        "previews/AirshipCaptain-Chicken_Peck.jpg",
+        "previews/AirshipCaptain-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/AirshipCaptain-base-color.png"
+      },
+      "vfxPlan": "Propeller spins (looping TweenService rotation); small steam puffs from the pack.",
+      "review": {
+        "id": "AirshipCaptain",
+        "name": "Airship Captain",
+        "ok": true,
+        "meshNodes": [
+          "Roster_AirshipCaptain_Props",
+          "Roster_AirshipCaptain_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 492,
+        "glb": "models/AirshipCaptain.glb",
+        "fbx": "models/AirshipCaptain-Bind.fbx",
+        "glbBytes": 314400
+      }
+    },
+    {
+      "id": "DragonKnight",
+      "name": "Dragon Knight",
+      "rarity": "Legendary",
+      "band": 8,
+      "zone": "Dragon Roost",
+      "earn": "normal roll",
+      "concept": "concepts/DragonKnight.jpg",
+      "preview": "previews/DragonKnight.jpg",
+      "poses": [
+        "previews/DragonKnight-Chicken_Walk.jpg",
+        "previews/DragonKnight-Chicken_Peck.jpg",
+        "previews/DragonKnight-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/DragonKnight-base-color.png",
+        "emission": "textures/DragonKnight-emission.png"
+      },
+      "vfxPlan": "Ember eyes glow; ember sparks on Peck; smoke from horns on Celebrate.",
+      "review": {
+        "id": "DragonKnight",
+        "name": "Dragon Knight",
+        "ok": true,
+        "meshNodes": [
+          "Roster_DragonKnight_Props",
+          "Roster_DragonKnight_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 492,
+        "glb": "models/DragonKnight.glb",
+        "fbx": "models/DragonKnight-Bind.fbx",
+        "glbBytes": 317672
+      }
+    },
+    {
+      "id": "Pharaoh",
+      "name": "Pharaoh Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Pharaoh.jpg",
+      "preview": "previews/Pharaoh.jpg",
+      "poses": [
+        "previews/Pharaoh-Chicken_Walk.jpg",
+        "previews/Pharaoh-Chicken_Peck.jpg",
+        "previews/Pharaoh-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Pharaoh-base-color.png"
+      },
+      "vfxPlan": "Sand swirl particles around the feet while idle; golden glint on the headdress.",
+      "review": {
+        "id": "Pharaoh",
+        "name": "Pharaoh Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Pharaoh_Props",
+          "Roster_Pharaoh_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 552,
+        "glb": "models/Pharaoh.glb",
+        "fbx": "models/Pharaoh-Bind.fbx",
+        "glbBytes": 316752
+      }
+    },
+    {
+      "id": "StainedGlass",
+      "name": "Stained Glass Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/StainedGlass.jpg",
+      "preview": "previews/StainedGlass.jpg",
+      "poses": [
+        "previews/StainedGlass-Chicken_Walk.jpg",
+        "previews/StainedGlass-Chicken_Peck.jpg",
+        "previews/StainedGlass-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/StainedGlass-base-color.png",
+        "emission": "textures/StainedGlass-emission.png"
+      },
+      "vfxPlan": "Soft inner glow (emission); colored light shafts (Beam) on Celebrate.",
+      "review": {
+        "id": "StainedGlass",
+        "name": "Stained Glass Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_StainedGlass_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 252,
+        "glb": "models/StainedGlass.glb",
+        "fbx": "models/StainedGlass-Bind.fbx",
+        "glbBytes": 294296
+      }
+    },
+    {
+      "id": "Moon",
+      "name": "Moon Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Moon.jpg",
+      "preview": "previews/Moon.jpg",
+      "poses": [
+        "previews/Moon-Chicken_Walk.jpg",
+        "previews/Moon-Chicken_Peck.jpg",
+        "previews/Moon-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Moon-base-color.png",
+        "emission": "textures/Moon-emission.png"
+      },
+      "vfxPlan": "Moon-glow halo (soft PointLight, pale blue); twinkling stars on the wing tips.",
+      "review": {
+        "id": "Moon",
+        "name": "Moon Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Moon_Props",
+          "Roster_Moon_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/Moon.glb",
+        "fbx": "models/Moon-Bind.fbx",
+        "glbBytes": 297668
+      }
+    },
+    {
+      "id": "TimeKeeper",
+      "name": "Time Keeper",
+      "rarity": "Mythic",
+      "band": 9,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/TimeKeeper.jpg",
+      "preview": "previews/TimeKeeper.jpg",
+      "poses": [
+        "previews/TimeKeeper-Chicken_Walk.jpg",
+        "previews/TimeKeeper-Chicken_Peck.jpg",
+        "previews/TimeKeeper-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/TimeKeeper-base-color.png",
+        "emission": "textures/TimeKeeper-emission.png"
+      },
+      "vfxPlan": "Clock hands rotate (looping tweens on the wing decal or separate hands); falling sand particles in the hourglass; gear spins.",
+      "review": {
+        "id": "TimeKeeper",
+        "name": "Time Keeper",
+        "ok": true,
+        "meshNodes": [
+          "Roster_TimeKeeper_Props",
+          "Roster_TimeKeeper_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 1188,
+        "glb": "models/TimeKeeper.glb",
+        "fbx": "models/TimeKeeper-Bind.fbx",
+        "glbBytes": 390752
+      }
+    },
+    {
+      "id": "Mecha",
+      "name": "Mecha Chicken",
+      "rarity": "Mythic",
+      "band": 9,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Mecha.jpg",
+      "preview": "previews/Mecha.jpg",
+      "poses": [
+        "previews/Mecha-Chicken_Walk.jpg",
+        "previews/Mecha-Chicken_Peck.jpg",
+        "previews/Mecha-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Mecha-base-color.png",
+        "emission": "textures/Mecha-emission.png"
+      },
+      "vfxPlan": "Thruster flames (ParticleEmitter) under the boots; visor glow pulse; small hover on Celebrate.",
+      "review": {
+        "id": "Mecha",
+        "name": "Mecha Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Mecha_Props",
+          "Roster_Mecha_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/Mecha.glb",
+        "fbx": "models/Mecha-Bind.fbx",
+        "glbBytes": 305920
+      }
+    },
+    {
+      "id": "Kitsune",
+      "name": "Kitsune Spirit",
+      "rarity": "Mythic",
+      "band": 9,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Kitsune.jpg",
+      "preview": "previews/Kitsune.jpg",
+      "poses": [
+        "previews/Kitsune-Chicken_Walk.jpg",
+        "previews/Kitsune-Chicken_Peck.jpg",
+        "previews/Kitsune-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Kitsune-base-color.png"
+      },
+      "vfxPlan": "Three blue foxfire orbs orbiting slowly (tweened attachments + flame particles); spirit wisps on Walk.",
+      "review": {
+        "id": "Kitsune",
+        "name": "Kitsune Spirit",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Kitsune_Props",
+          "Roster_Kitsune_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/Kitsune.glb",
+        "fbx": "models/Kitsune-Bind.fbx",
+        "glbBytes": 301488
+      }
+    }
+  ]
+}

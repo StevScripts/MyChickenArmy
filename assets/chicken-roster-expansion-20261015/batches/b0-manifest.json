@@ -1,0 +1,305 @@
+{
+  "batch": "b0",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b0-lineup.png",
+  "chickens": [
+    {
+      "id": "Pumpkin",
+      "name": "Pumpkin Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": null,
+      "earn": "Halloween 2026 limited (existing catalog ID)",
+      "concept": "concepts/Pumpkin.jpg",
+      "preview": "previews/Pumpkin.jpg",
+      "poses": [
+        "previews/Pumpkin-Chicken_Walk.jpg",
+        "previews/Pumpkin-Chicken_Peck.jpg",
+        "previews/Pumpkin-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Pumpkin-base-color.png",
+        "emission": "textures/Pumpkin-emission.png"
+      },
+      "vfxPlan": "Warm flickering PointLight inside the carved grin and cheeks; optional ember wisps on Celebrate.",
+      "review": {
+        "id": "Pumpkin",
+        "name": "Pumpkin Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Pumpkin_Props",
+          "Roster_Pumpkin_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 312,
+        "glb": "models/Pumpkin.glb",
+        "fbx": "models/Pumpkin-Bind.fbx",
+        "glbBytes": 294884
+      }
+    },
+    {
+      "id": "Witch",
+      "name": "Witch Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Witch.jpg",
+      "preview": "previews/Witch.jpg",
+      "poses": [
+        "previews/Witch-Chicken_Walk.jpg",
+        "previews/Witch-Chicken_Peck.jpg",
+        "previews/Witch-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Witch-base-color.png"
+      },
+      "vfxPlan": "Green cauldron sparkles burst on Celebrate; slow drifting star motes around the hat while idle.",
+      "review": {
+        "id": "Witch",
+        "name": "Witch Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Witch_Props",
+          "Roster_Witch_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/Witch.glb",
+        "fbx": "models/Witch-Bind.fbx",
+        "glbBytes": 305104
+      }
+    },
+    {
+      "id": "Animatronic",
+      "name": "Animatronic Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Animatronic.jpg",
+      "preview": "previews/Animatronic.jpg",
+      "poses": [
+        "previews/Animatronic-Chicken_Walk.jpg",
+        "previews/Animatronic-Chicken_Peck.jpg",
+        "previews/Animatronic-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Animatronic-base-color.png",
+        "emission": "textures/Animatronic-emission.png"
+      },
+      "vfxPlan": "Right eye flickers (emission on/off tween, random interval); tiny spark on Hit from the neck wires.",
+      "review": {
+        "id": "Animatronic",
+        "name": "Animatronic Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Animatronic_Props",
+          "Roster_Animatronic_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 396,
+        "glb": "models/Animatronic.glb",
+        "fbx": "models/Animatronic-Bind.fbx",
+        "glbBytes": 303608
+      }
+    },
+    {
+      "id": "ZombieHunter",
+      "name": "Zombie Hunter",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/ZombieHunter.jpg",
+      "preview": "previews/ZombieHunter.jpg",
+      "poses": [
+        "previews/ZombieHunter-Chicken_Walk.jpg",
+        "previews/ZombieHunter-Chicken_Peck.jpg",
+        "previews/ZombieHunter-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/ZombieHunter-base-color.png"
+      },
+      "vfxPlan": "Flashlight SpotLight beam from the chest lamp, aimed forward.",
+      "review": {
+        "id": "ZombieHunter",
+        "name": "Zombie Hunter",
+        "ok": true,
+        "meshNodes": [
+          "Roster_ZombieHunter_Props",
+          "Roster_ZombieHunter_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 432,
+        "glb": "models/ZombieHunter.glb",
+        "fbx": "models/ZombieHunter-Bind.fbx",
+        "glbBytes": 308028
+      }
+    },
+    {
+      "id": "Mummy",
+      "name": "Mummy Chicken",
+      "rarity": "Rare",
+      "band": 4,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Mummy.jpg",
+      "preview": "previews/Mummy.jpg",
+      "poses": [
+        "previews/Mummy-Chicken_Walk.jpg",
+        "previews/Mummy-Chicken_Peck.jpg",
+        "previews/Mummy-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Mummy-base-color.png",
+        "emission": "textures/Mummy-emission.png"
+      },
+      "vfxPlan": "Green eye glow (PointLight); dust puff when walking and on Defeat.",
+      "review": {
+        "id": "Mummy",
+        "name": "Mummy Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Mummy_Props",
+          "Roster_Mummy_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 300,
+        "glb": "models/Mummy.glb",
+        "fbx": "models/Mummy-Bind.fbx",
+        "glbBytes": 291872
+      }
+    },
+    {
+      "id": "Vampire",
+      "name": "Vampire Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Vampire.jpg",
+      "preview": "previews/Vampire.jpg",
+      "poses": [
+        "previews/Vampire-Chicken_Walk.jpg",
+        "previews/Vampire-Chicken_Peck.jpg",
+        "previews/Vampire-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Vampire-base-color.png",
+        "emission": "textures/Vampire-emission.png"
+      },
+      "vfxPlan": "Small bat swarm (3\u20135 billboard bats) on Celebrate; faint red eye glow.",
+      "review": {
+        "id": "Vampire",
+        "name": "Vampire Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Vampire_Props",
+          "Roster_Vampire_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 504,
+        "glb": "models/Vampire.glb",
+        "fbx": "models/Vampire-Bind.fbx",
+        "glbBytes": 315596
+      }
+    }
+  ]
+}

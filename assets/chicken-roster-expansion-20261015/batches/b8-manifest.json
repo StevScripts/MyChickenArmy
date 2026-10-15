@@ -1,0 +1,500 @@
+{
+  "batch": "b8",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b8-lineup.png",
+  "chickens": [
+    {
+      "id": "Police",
+      "name": "Police Chicken",
+      "rarity": "Rare",
+      "band": 4,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Police.jpg",
+      "preview": "previews/Police.jpg",
+      "poses": [
+        "previews/Police-Chicken_Walk.jpg",
+        "previews/Police-Chicken_Peck.jpg",
+        "previews/Police-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Police-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: radio chirp sound.",
+      "review": {
+        "id": "Police",
+        "name": "Police Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Police_Props",
+          "Roster_Police_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/Police.glb",
+        "fbx": "models/Police-Bind.fbx",
+        "glbBytes": 304572
+      }
+    },
+    {
+      "id": "Doctor",
+      "name": "Doctor Chicken",
+      "rarity": "Rare",
+      "band": 4,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Doctor.jpg",
+      "preview": "previews/Doctor.jpg",
+      "poses": [
+        "previews/Doctor-Chicken_Walk.jpg",
+        "previews/Doctor-Chicken_Peck.jpg",
+        "previews/Doctor-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Doctor-base-color.png"
+      },
+      "vfxPlan": "Head-mirror glint (Glitter, rate 0.5) \u2014 optional.",
+      "review": {
+        "id": "Doctor",
+        "name": "Doctor Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Doctor_Props",
+          "Roster_Doctor_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 348,
+        "glb": "models/Doctor.glb",
+        "fbx": "models/Doctor-Bind.fbx",
+        "glbBytes": 296660
+      }
+    },
+    {
+      "id": "Ghost",
+      "name": "Ghost Chicken",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Ghost.jpg",
+      "preview": "previews/Ghost.jpg",
+      "poses": [
+        "previews/Ghost-Chicken_Walk.jpg",
+        "previews/Ghost-Chicken_Peck.jpg",
+        "previews/Ghost-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Ghost-base-color.png",
+        "emission": "textures/Ghost-emission.png"
+      },
+      "vfxPlan": "Set MeshPart Transparency \u22480.25 at import; slow bob tween (\u00b10.15, 2 s); faint cyan Smoke wisps (rate 2) under the body.",
+      "review": {
+        "id": "Ghost",
+        "name": "Ghost Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Ghost_Props",
+          "Roster_Ghost_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 324,
+        "glb": "models/Ghost.glb",
+        "fbx": "models/Ghost-Bind.fbx",
+        "glbBytes": 292892
+      }
+    },
+    {
+      "id": "Archer",
+      "name": "Archer Chicken",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": "Watchtower Fort",
+      "earn": "normal roll",
+      "concept": "concepts/Archer.jpg",
+      "preview": "previews/Archer.jpg",
+      "poses": [
+        "previews/Archer-Chicken_Walk.jpg",
+        "previews/Archer-Chicken_Peck.jpg",
+        "previews/Archer-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Archer-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: arrow-whoosh sound on Peck.",
+      "review": {
+        "id": "Archer",
+        "name": "Archer Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Archer_Props",
+          "Roster_Archer_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 444,
+        "glb": "models/Archer.glb",
+        "fbx": "models/Archer-Bind.fbx",
+        "glbBytes": 310156
+      }
+    },
+    {
+      "id": "Rockstar",
+      "name": "Rockstar Chicken",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Rockstar.jpg",
+      "preview": "previews/Rockstar.jpg",
+      "poses": [
+        "previews/Rockstar-Chicken_Walk.jpg",
+        "previews/Rockstar-Chicken_Peck.jpg",
+        "previews/Rockstar-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Rockstar-base-color.png"
+      },
+      "vfxPlan": "Music-note burst (Note) on Celebrate; guitar riff sound.",
+      "review": {
+        "id": "Rockstar",
+        "name": "Rockstar Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Rockstar_Props",
+          "Roster_Rockstar_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/Rockstar.glb",
+        "fbx": "models/Rockstar-Bind.fbx",
+        "glbBytes": 304388
+      }
+    },
+    {
+      "id": "Yeti",
+      "name": "Yeti Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Yeti.jpg",
+      "preview": "previews/Yeti.jpg",
+      "poses": [
+        "previews/Yeti-Chicken_Walk.jpg",
+        "previews/Yeti-Chicken_Peck.jpg",
+        "previews/Yeti-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Yeti-base-color.png",
+        "emission": "textures/Yeti-emission.png"
+      },
+      "vfxPlan": "Frost sparkles (Star pale blue, rate 2) and a breath puff on Celebrate.",
+      "review": {
+        "id": "Yeti",
+        "name": "Yeti Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Yeti_Props",
+          "Roster_Yeti_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 504,
+        "glb": "models/Yeti.glb",
+        "fbx": "models/Yeti-Bind.fbx",
+        "glbBytes": 318160
+      }
+    },
+    {
+      "id": "Mimic",
+      "name": "Mimic Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": "Pirate Cove",
+      "earn": "normal roll",
+      "concept": "concepts/Mimic.jpg",
+      "preview": "previews/Mimic.jpg",
+      "poses": [
+        "previews/Mimic-Chicken_Walk.jpg",
+        "previews/Mimic-Chicken_Peck.jpg",
+        "previews/Mimic-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Mimic-base-color.png"
+      },
+      "vfxPlan": "Lid snap (small rotation tween on the lid part) + gold Glitter burst on Celebrate.",
+      "review": {
+        "id": "Mimic",
+        "name": "Mimic Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Mimic_Props",
+          "Roster_Mimic_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/Mimic.glb",
+        "fbx": "models/Mimic-Bind.fbx",
+        "glbBytes": 305512
+      }
+    },
+    {
+      "id": "Gladiator",
+      "name": "Gladiator Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Gladiator.jpg",
+      "preview": "previews/Gladiator.jpg",
+      "poses": [
+        "previews/Gladiator-Chicken_Walk.jpg",
+        "previews/Gladiator-Chicken_Peck.jpg",
+        "previews/Gladiator-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Gladiator-base-color.png"
+      },
+      "vfxPlan": "Shield clang Spark on Hit; crowd-cheer sound on Celebrate (optional).",
+      "review": {
+        "id": "Gladiator",
+        "name": "Gladiator Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Gladiator_Props",
+          "Roster_Gladiator_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 516,
+        "glb": "models/Gladiator.glb",
+        "fbx": "models/Gladiator-Bind.fbx",
+        "glbBytes": 315024
+      }
+    },
+    {
+      "id": "Olympian",
+      "name": "Olympian Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Olympian.jpg",
+      "preview": "previews/Olympian.jpg",
+      "poses": [
+        "previews/Olympian-Chicken_Walk.jpg",
+        "previews/Olympian-Chicken_Peck.jpg",
+        "previews/Olympian-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Olympian-base-color.png",
+        "emission": "textures/Olympian-emission.png"
+      },
+      "vfxPlan": "Lightning bolt glow pulse (tween); small Spark arcs around the bolt; divine Glitter on Celebrate.",
+      "review": {
+        "id": "Olympian",
+        "name": "Olympian Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Olympian_Props",
+          "Roster_Olympian_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/Olympian.glb",
+        "fbx": "models/Olympian-Bind.fbx",
+        "glbBytes": 302492
+      }
+    },
+    {
+      "id": "Aurora",
+      "name": "Aurora Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Aurora.jpg",
+      "preview": "previews/Aurora.jpg",
+      "poses": [
+        "previews/Aurora-Chicken_Walk.jpg",
+        "previews/Aurora-Chicken_Peck.jpg",
+        "previews/Aurora-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Aurora-base-color.png",
+        "emission": "textures/Aurora-emission.png"
+      },
+      "vfxPlan": "Slow aurora shimmer: tween the emission strength 1.5\u21942.5 (4 s); soft green PointLight.",
+      "review": {
+        "id": "Aurora",
+        "name": "Aurora Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Aurora_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 252,
+        "glb": "models/Aurora.glb",
+        "fbx": "models/Aurora-Bind.fbx",
+        "glbBytes": 290796
+      }
+    }
+  ]
+}

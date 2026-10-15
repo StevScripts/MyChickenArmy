@@ -1,0 +1,546 @@
+{
+  "batch": "b4",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b4-lineup.png",
+  "chickens": [
+    {
+      "id": "Scarecrow",
+      "name": "Scarecrow Chicken",
+      "rarity": "Common",
+      "band": 1,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Scarecrow.jpg",
+      "preview": "previews/Scarecrow.jpg",
+      "poses": [
+        "previews/Scarecrow-Chicken_Walk.jpg",
+        "previews/Scarecrow-Chicken_Peck.jpg",
+        "previews/Scarecrow-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Scarecrow-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: straw bits on Hit.",
+      "review": {
+        "id": "Scarecrow",
+        "name": "Scarecrow Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Scarecrow_Props",
+          "Roster_Scarecrow_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 432,
+        "glb": "models/Scarecrow.glb",
+        "fbx": "models/Scarecrow-Bind.fbx",
+        "glbBytes": 305836
+      }
+    },
+    {
+      "id": "Pajama",
+      "name": "Pajama Chicken",
+      "rarity": "Common",
+      "band": 1,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Pajama.jpg",
+      "preview": "previews/Pajama.jpg",
+      "poses": [
+        "previews/Pajama-Chicken_Walk.jpg",
+        "previews/Pajama-Chicken_Peck.jpg",
+        "previews/Pajama-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Pajama-base-color.png"
+      },
+      "vfxPlan": "\"Zzz\" bubbles while idle (BillboardGui or particle).",
+      "review": {
+        "id": "Pajama",
+        "name": "Pajama Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Pajama_Props",
+          "Roster_Pajama_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/Pajama.glb",
+        "fbx": "models/Pajama-Bind.fbx",
+        "glbBytes": 303832
+      }
+    },
+    {
+      "id": "Lumberjack",
+      "name": "Lumberjack Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Lumberjack.jpg",
+      "preview": "previews/Lumberjack.jpg",
+      "poses": [
+        "previews/Lumberjack-Chicken_Walk.jpg",
+        "previews/Lumberjack-Chicken_Peck.jpg",
+        "previews/Lumberjack-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Lumberjack-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: wood chips on Peck.",
+      "review": {
+        "id": "Lumberjack",
+        "name": "Lumberjack Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Lumberjack_Props",
+          "Roster_Lumberjack_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 336,
+        "glb": "models/Lumberjack.glb",
+        "fbx": "models/Lumberjack-Bind.fbx",
+        "glbBytes": 294624
+      }
+    },
+    {
+      "id": "Party",
+      "name": "Party Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Party.jpg",
+      "preview": "previews/Party.jpg",
+      "poses": [
+        "previews/Party-Chicken_Walk.jpg",
+        "previews/Party-Chicken_Peck.jpg",
+        "previews/Party-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Party-base-color.png"
+      },
+      "vfxPlan": "Confetti burst on Celebrate; party-horn toot sound.",
+      "review": {
+        "id": "Party",
+        "name": "Party Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Party_Props",
+          "Roster_Party_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 336,
+        "glb": "models/Party.glb",
+        "fbx": "models/Party-Bind.fbx",
+        "glbBytes": 296268
+      }
+    },
+    {
+      "id": "Cow",
+      "name": "Cow Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Cow.jpg",
+      "preview": "previews/Cow.jpg",
+      "poses": [
+        "previews/Cow-Chicken_Walk.jpg",
+        "previews/Cow-Chicken_Peck.jpg",
+        "previews/Cow-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Cow-base-color.png"
+      },
+      "vfxPlan": "Cowbell clink sound on Walk steps.",
+      "review": {
+        "id": "Cow",
+        "name": "Cow Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Cow_Props",
+          "Roster_Cow_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 348,
+        "glb": "models/Cow.glb",
+        "fbx": "models/Cow-Bind.fbx",
+        "glbBytes": 297116
+      }
+    },
+    {
+      "id": "Piggy",
+      "name": "Piggy Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Piggy.jpg",
+      "preview": "previews/Piggy.jpg",
+      "poses": [
+        "previews/Piggy-Chicken_Walk.jpg",
+        "previews/Piggy-Chicken_Peck.jpg",
+        "previews/Piggy-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Piggy-base-color.png"
+      },
+      "vfxPlan": "Mud splat puff on Defeat; oink sound.",
+      "review": {
+        "id": "Piggy",
+        "name": "Piggy Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Piggy_Props",
+          "Roster_Piggy_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/Piggy.glb",
+        "fbx": "models/Piggy-Bind.fbx",
+        "glbBytes": 296824
+      }
+    },
+    {
+      "id": "Sushi",
+      "name": "Sushi Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Sushi.jpg",
+      "preview": "previews/Sushi.jpg",
+      "poses": [
+        "previews/Sushi-Chicken_Walk.jpg",
+        "previews/Sushi-Chicken_Peck.jpg",
+        "previews/Sushi-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Sushi-base-color.png"
+      },
+      "vfxPlan": "None required.",
+      "review": {
+        "id": "Sushi",
+        "name": "Sushi Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Sushi_Props",
+          "Roster_Sushi_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 348,
+        "glb": "models/Sushi.glb",
+        "fbx": "models/Sushi-Bind.fbx",
+        "glbBytes": 296748
+      }
+    },
+    {
+      "id": "Donut",
+      "name": "Donut Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Donut.jpg",
+      "preview": "previews/Donut.jpg",
+      "poses": [
+        "previews/Donut-Chicken_Walk.jpg",
+        "previews/Donut-Chicken_Peck.jpg",
+        "previews/Donut-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Donut-base-color.png"
+      },
+      "vfxPlan": "Sprinkle burst on Celebrate.",
+      "review": {
+        "id": "Donut",
+        "name": "Donut Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Donut_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 252,
+        "glb": "models/Donut.glb",
+        "fbx": "models/Donut-Bind.fbx",
+        "glbBytes": 281788
+      }
+    },
+    {
+      "id": "Popcorn",
+      "name": "Popcorn Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Popcorn.jpg",
+      "preview": "previews/Popcorn.jpg",
+      "poses": [
+        "previews/Popcorn-Chicken_Walk.jpg",
+        "previews/Popcorn-Chicken_Peck.jpg",
+        "previews/Popcorn-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Popcorn-base-color.png"
+      },
+      "vfxPlan": "Popcorn kernels pop out on Hit (short-life part particles).",
+      "review": {
+        "id": "Popcorn",
+        "name": "Popcorn Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Popcorn_Props",
+          "Roster_Popcorn_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 336,
+        "glb": "models/Popcorn.glb",
+        "fbx": "models/Popcorn-Bind.fbx",
+        "glbBytes": 295468
+      }
+    },
+    {
+      "id": "Gamer",
+      "name": "Gamer Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Gamer.jpg",
+      "preview": "previews/Gamer.jpg",
+      "poses": [
+        "previews/Gamer-Chicken_Walk.jpg",
+        "previews/Gamer-Chicken_Peck.jpg",
+        "previews/Gamer-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Gamer-base-color.png",
+        "emission": "textures/Gamer-emission.png"
+      },
+      "vfxPlan": "Slow RGB color cycle on headset rings and wing tips (Color3 tween loop).",
+      "review": {
+        "id": "Gamer",
+        "name": "Gamer Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Gamer_Props",
+          "Roster_Gamer_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/Gamer.glb",
+        "fbx": "models/Gamer-Bind.fbx",
+        "glbBytes": 298992
+      }
+    },
+    {
+      "id": "Frog",
+      "name": "Frog Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Frog.jpg",
+      "preview": "previews/Frog.jpg",
+      "poses": [
+        "previews/Frog-Chicken_Walk.jpg",
+        "previews/Frog-Chicken_Peck.jpg",
+        "previews/Frog-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Frog-base-color.png"
+      },
+      "vfxPlan": "Ribbit sound on Celebrate; small hop on Celebrate is already in the clip.",
+      "review": {
+        "id": "Frog",
+        "name": "Frog Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Frog_Props",
+          "Roster_Frog_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/Frog.glb",
+        "fbx": "models/Frog-Bind.fbx",
+        "glbBytes": 299340
+      }
+    }
+  ]
+}

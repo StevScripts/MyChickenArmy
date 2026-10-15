@@ -1,0 +1,498 @@
+{
+  "batch": "b2",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b2-lineup.png",
+  "chickens": [
+    {
+      "id": "CrateRunner",
+      "name": "Crate Runner",
+      "rarity": "Common",
+      "band": 2,
+      "zone": "Supply Depot",
+      "earn": "normal roll",
+      "concept": "concepts/CrateRunner.jpg",
+      "preview": "previews/CrateRunner.jpg",
+      "poses": [
+        "previews/CrateRunner-Chicken_Walk.jpg",
+        "previews/CrateRunner-Chicken_Peck.jpg",
+        "previews/CrateRunner-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/CrateRunner-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: small dust kick on Walk.",
+      "review": {
+        "id": "CrateRunner",
+        "name": "Crate Runner",
+        "ok": true,
+        "meshNodes": [
+          "Roster_CrateRunner_Props",
+          "Roster_CrateRunner_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 372,
+        "glb": "models/CrateRunner.glb",
+        "fbx": "models/CrateRunner-Bind.fbx",
+        "glbBytes": 298592
+      }
+    },
+    {
+      "id": "Miner",
+      "name": "Miner Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": "Crystal Mine",
+      "earn": "normal roll",
+      "concept": "concepts/Miner.jpg",
+      "preview": "previews/Miner.jpg",
+      "poses": [
+        "previews/Miner-Chicken_Walk.jpg",
+        "previews/Miner-Chicken_Peck.jpg",
+        "previews/Miner-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Miner-base-color.png"
+      },
+      "vfxPlan": "Headlamp SpotLight forward from the lamp lens (warm white); pebble sparks on Peck.",
+      "review": {
+        "id": "Miner",
+        "name": "Miner Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Miner_Props",
+          "Roster_Miner_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 348,
+        "glb": "models/Miner.glb",
+        "fbx": "models/Miner-Bind.fbx",
+        "glbBytes": 298896
+      }
+    },
+    {
+      "id": "Paratrooper",
+      "name": "Paratrooper Chicken",
+      "rarity": "Rare",
+      "band": 4,
+      "zone": "Loyalist Landing",
+      "earn": "normal roll",
+      "concept": "concepts/Paratrooper.jpg",
+      "preview": "previews/Paratrooper.jpg",
+      "poses": [
+        "previews/Paratrooper-Chicken_Walk.jpg",
+        "previews/Paratrooper-Chicken_Peck.jpg",
+        "previews/Paratrooper-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Paratrooper-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: parachute pop-out on Celebrate (a tweened canopy part).",
+      "review": {
+        "id": "Paratrooper",
+        "name": "Paratrooper Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Paratrooper_Props",
+          "Roster_Paratrooper_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/Paratrooper.glb",
+        "fbx": "models/Paratrooper-Bind.fbx",
+        "glbBytes": 306648
+      }
+    },
+    {
+      "id": "Coral",
+      "name": "Coral Reef Chicken",
+      "rarity": "Rare",
+      "band": 4,
+      "zone": "Pirate Cove",
+      "earn": "normal roll",
+      "concept": "concepts/Coral.jpg",
+      "preview": "previews/Coral.jpg",
+      "poses": [
+        "previews/Coral-Chicken_Walk.jpg",
+        "previews/Coral-Chicken_Peck.jpg",
+        "previews/Coral-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Coral-base-color.png"
+      },
+      "vfxPlan": "Occasional bubbles rising while idle.",
+      "review": {
+        "id": "Coral",
+        "name": "Coral Reef Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Coral_Props",
+          "Roster_Coral_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 516,
+        "glb": "models/Coral.glb",
+        "fbx": "models/Coral-Bind.fbx",
+        "glbBytes": 317232
+      }
+    },
+    {
+      "id": "CastleGuard",
+      "name": "Castle Guard Chicken",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": "Watchtower Fort",
+      "earn": "normal roll",
+      "concept": "concepts/CastleGuard.jpg",
+      "preview": "previews/CastleGuard.jpg",
+      "poses": [
+        "previews/CastleGuard-Chicken_Walk.jpg",
+        "previews/CastleGuard-Chicken_Peck.jpg",
+        "previews/CastleGuard-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/CastleGuard-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: shield clang spark on Hit.",
+      "review": {
+        "id": "CastleGuard",
+        "name": "Castle Guard Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_CastleGuard_Props",
+          "Roster_CastleGuard_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/CastleGuard.glb",
+        "fbx": "models/CastleGuard-Bind.fbx",
+        "glbBytes": 304244
+      }
+    },
+    {
+      "id": "Jester",
+      "name": "Court Jester",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": "Chicken King's Court",
+      "earn": "normal roll",
+      "concept": "concepts/Jester.jpg",
+      "preview": "previews/Jester.jpg",
+      "poses": [
+        "previews/Jester-Chicken_Walk.jpg",
+        "previews/Jester-Chicken_Peck.jpg",
+        "previews/Jester-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Jester-base-color.png"
+      },
+      "vfxPlan": "Bell jingle sound + small confetti puff on Celebrate.",
+      "review": {
+        "id": "Jester",
+        "name": "Court Jester",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Jester_Props",
+          "Roster_Jester_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 492,
+        "glb": "models/Jester.glb",
+        "fbx": "models/Jester-Bind.fbx",
+        "glbBytes": 314632
+      }
+    },
+    {
+      "id": "Ironbeak",
+      "name": "Ironbeak Chicken",
+      "rarity": "Rare",
+      "band": 5,
+      "zone": "Ironbeak HQ",
+      "earn": "normal roll",
+      "concept": "concepts/Ironbeak.jpg",
+      "preview": "previews/Ironbeak.jpg",
+      "poses": [
+        "previews/Ironbeak-Chicken_Walk.jpg",
+        "previews/Ironbeak-Chicken_Peck.jpg",
+        "previews/Ironbeak-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Ironbeak-base-color.png"
+      },
+      "vfxPlan": "Metal spark on Peck (beak hits).",
+      "review": {
+        "id": "Ironbeak",
+        "name": "Ironbeak Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Ironbeak_Props",
+          "Roster_Ironbeak_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 336,
+        "glb": "models/Ironbeak.glb",
+        "fbx": "models/Ironbeak-Bind.fbx",
+        "glbBytes": 296040
+      }
+    },
+    {
+      "id": "DeepseaDiver",
+      "name": "Deepsea Diver",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": "Pirate Cove",
+      "earn": "normal roll",
+      "concept": "concepts/DeepseaDiver.jpg",
+      "preview": "previews/DeepseaDiver.jpg",
+      "poses": [
+        "previews/DeepseaDiver-Chicken_Walk.jpg",
+        "previews/DeepseaDiver-Chicken_Peck.jpg",
+        "previews/DeepseaDiver-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/DeepseaDiver-base-color.png"
+      },
+      "vfxPlan": "Bubble trail rising from the helmet valve; porthole glass glint.",
+      "review": {
+        "id": "DeepseaDiver",
+        "name": "Deepsea Diver",
+        "ok": true,
+        "meshNodes": [
+          "Roster_DeepseaDiver_Props",
+          "Roster_DeepseaDiver_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 504,
+        "glb": "models/DeepseaDiver.glb",
+        "fbx": "models/DeepseaDiver-Bind.fbx",
+        "glbBytes": 314864
+      }
+    },
+    {
+      "id": "DragonHatchling",
+      "name": "Dragon Hatchling",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": "Dragon Roost",
+      "earn": "normal roll",
+      "concept": "concepts/DragonHatchling.jpg",
+      "preview": "previews/DragonHatchling.jpg",
+      "poses": [
+        "previews/DragonHatchling-Chicken_Walk.jpg",
+        "previews/DragonHatchling-Chicken_Peck.jpg",
+        "previews/DragonHatchling-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/DragonHatchling-base-color.png",
+        "emission": "textures/DragonHatchling-emission.png"
+      },
+      "vfxPlan": "Ember puff from the beak on Peck; tiny smoke ring on Celebrate.",
+      "review": {
+        "id": "DragonHatchling",
+        "name": "Dragon Hatchling",
+        "ok": true,
+        "meshNodes": [
+          "Roster_DragonHatchling_Props",
+          "Roster_DragonHatchling_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/DragonHatchling.glb",
+        "fbx": "models/DragonHatchling-Bind.fbx",
+        "glbBytes": 307736
+      }
+    },
+    {
+      "id": "RoyalGuard",
+      "name": "Royal Guard Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": "Chicken King's Court",
+      "earn": "normal roll",
+      "concept": "concepts/RoyalGuard.jpg",
+      "preview": "previews/RoyalGuard.jpg",
+      "poses": [
+        "previews/RoyalGuard-Chicken_Walk.jpg",
+        "previews/RoyalGuard-Chicken_Peck.jpg",
+        "previews/RoyalGuard-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/RoyalGuard-base-color.png"
+      },
+      "vfxPlan": "None required.",
+      "review": {
+        "id": "RoyalGuard",
+        "name": "Royal Guard Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_RoyalGuard_Props",
+          "Roster_RoyalGuard_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 336,
+        "glb": "models/RoyalGuard.glb",
+        "fbx": "models/RoyalGuard-Bind.fbx",
+        "glbBytes": 294488
+      }
+    }
+  ]
+}

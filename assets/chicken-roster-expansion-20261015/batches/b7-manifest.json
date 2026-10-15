@@ -1,0 +1,497 @@
+{
+  "batch": "b7",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b7-lineup.png",
+  "chickens": [
+    {
+      "id": "Rooster",
+      "name": "Rooster",
+      "rarity": "Common",
+      "band": 1,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Rooster.jpg",
+      "preview": "previews/Rooster.jpg",
+      "poses": [
+        "previews/Rooster-Chicken_Walk.jpg",
+        "previews/Rooster-Chicken_Peck.jpg",
+        "previews/Rooster-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Rooster-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: crow sound on Celebrate.",
+      "review": {
+        "id": "Rooster",
+        "name": "Rooster",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Rooster_Props",
+          "Roster_Rooster_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 432,
+        "glb": "models/Rooster.glb",
+        "fbx": "models/Rooster-Bind.fbx",
+        "glbBytes": 305424
+      }
+    },
+    {
+      "id": "Sheep",
+      "name": "Sheep Chicken",
+      "rarity": "Common",
+      "band": 1,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Sheep.jpg",
+      "preview": "previews/Sheep.jpg",
+      "poses": [
+        "previews/Sheep-Chicken_Walk.jpg",
+        "previews/Sheep-Chicken_Peck.jpg",
+        "previews/Sheep-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Sheep-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: baa sound; wool tufts on Hit.",
+      "review": {
+        "id": "Sheep",
+        "name": "Sheep Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Sheep_Props",
+          "Roster_Sheep_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/Sheep.glb",
+        "fbx": "models/Sheep-Bind.fbx",
+        "glbBytes": 303048
+      }
+    },
+    {
+      "id": "Plushie",
+      "name": "Plushie Chicken",
+      "rarity": "Common",
+      "band": 1,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Plushie.jpg",
+      "preview": "previews/Plushie.jpg",
+      "poses": [
+        "previews/Plushie-Chicken_Walk.jpg",
+        "previews/Plushie-Chicken_Peck.jpg",
+        "previews/Plushie-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Plushie-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: soft squeak on Hit.",
+      "review": {
+        "id": "Plushie",
+        "name": "Plushie Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Plushie_Props",
+          "Roster_Plushie_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 396,
+        "glb": "models/Plushie.glb",
+        "fbx": "models/Plushie-Bind.fbx",
+        "glbBytes": 302152
+      }
+    },
+    {
+      "id": "Mailman",
+      "name": "Mailman Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": "Supply Depot",
+      "earn": "normal roll",
+      "concept": "concepts/Mailman.jpg",
+      "preview": "previews/Mailman.jpg",
+      "poses": [
+        "previews/Mailman-Chicken_Walk.jpg",
+        "previews/Mailman-Chicken_Peck.jpg",
+        "previews/Mailman-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Mailman-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: a letter flutters out on Hit.",
+      "review": {
+        "id": "Mailman",
+        "name": "Mailman Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Mailman_Props",
+          "Roster_Mailman_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/Mailman.glb",
+        "fbx": "models/Mailman-Bind.fbx",
+        "glbBytes": 299120
+      }
+    },
+    {
+      "id": "Raincoat",
+      "name": "Raincoat Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Raincoat.jpg",
+      "preview": "previews/Raincoat.jpg",
+      "poses": [
+        "previews/Raincoat-Chicken_Walk.jpg",
+        "previews/Raincoat-Chicken_Peck.jpg",
+        "previews/Raincoat-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Raincoat-base-color.png"
+      },
+      "vfxPlan": "Small water-splash puff on Walk steps (optional).",
+      "review": {
+        "id": "Raincoat",
+        "name": "Raincoat Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Raincoat_Props",
+          "Roster_Raincoat_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/Raincoat.glb",
+        "fbx": "models/Raincoat-Bind.fbx",
+        "glbBytes": 295920
+      }
+    },
+    {
+      "id": "Skater",
+      "name": "Skater Chicken",
+      "rarity": "Common",
+      "band": 2,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Skater.jpg",
+      "preview": "previews/Skater.jpg",
+      "poses": [
+        "previews/Skater-Chicken_Walk.jpg",
+        "previews/Skater-Chicken_Peck.jpg",
+        "previews/Skater-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Skater-base-color.png"
+      },
+      "vfxPlan": "None required. Optional: board-spin trick on Celebrate (tween on the board part).",
+      "review": {
+        "id": "Skater",
+        "name": "Skater Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Skater_Props",
+          "Roster_Skater_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 372,
+        "glb": "models/Skater.glb",
+        "fbx": "models/Skater-Bind.fbx",
+        "glbBytes": 299400
+      }
+    },
+    {
+      "id": "Taco",
+      "name": "Taco Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Taco.jpg",
+      "preview": "previews/Taco.jpg",
+      "poses": [
+        "previews/Taco-Chicken_Walk.jpg",
+        "previews/Taco-Chicken_Peck.jpg",
+        "previews/Taco-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Taco-base-color.png"
+      },
+      "vfxPlan": "None required.",
+      "review": {
+        "id": "Taco",
+        "name": "Taco Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Taco_Props",
+          "Roster_Taco_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 636,
+        "glb": "models/Taco.glb",
+        "fbx": "models/Taco-Bind.fbx",
+        "glbBytes": 332836
+      }
+    },
+    {
+      "id": "Painter",
+      "name": "Painter Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Painter.jpg",
+      "preview": "previews/Painter.jpg",
+      "poses": [
+        "previews/Painter-Chicken_Walk.jpg",
+        "previews/Painter-Chicken_Peck.jpg",
+        "previews/Painter-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Painter-base-color.png"
+      },
+      "vfxPlan": "Paint-splat burst (Confetti tinted) on Celebrate.",
+      "review": {
+        "id": "Painter",
+        "name": "Painter Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Painter_Props",
+          "Roster_Painter_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 384,
+        "glb": "models/Painter.glb",
+        "fbx": "models/Painter-Bind.fbx",
+        "glbBytes": 304676
+      }
+    },
+    {
+      "id": "Sunflower",
+      "name": "Sunflower Chicken",
+      "rarity": "Uncommon",
+      "band": 3,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Sunflower.jpg",
+      "preview": "previews/Sunflower.jpg",
+      "poses": [
+        "previews/Sunflower-Chicken_Walk.jpg",
+        "previews/Sunflower-Chicken_Peck.jpg",
+        "previews/Sunflower-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Sunflower-base-color.png"
+      },
+      "vfxPlan": "Petals gently sway (tiny rotation tween on the petal ring) \u2014 optional.",
+      "review": {
+        "id": "Sunflower",
+        "name": "Sunflower Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Sunflower_Props",
+          "Roster_Sunflower_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 636,
+        "glb": "models/Sunflower.glb",
+        "fbx": "models/Sunflower-Bind.fbx",
+        "glbBytes": 325800
+      }
+    },
+    {
+      "id": "Snowman",
+      "name": "Snowman Chicken",
+      "rarity": "Rare",
+      "band": 4,
+      "zone": null,
+      "earn": "normal roll",
+      "concept": "concepts/Snowman.jpg",
+      "preview": "previews/Snowman.jpg",
+      "poses": [
+        "previews/Snowman-Chicken_Walk.jpg",
+        "previews/Snowman-Chicken_Peck.jpg",
+        "previews/Snowman-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Snowman-base-color.png"
+      },
+      "vfxPlan": "Light snowfall around the chicken (Star white, rate 2); snow puff on Hit.",
+      "review": {
+        "id": "Snowman",
+        "name": "Snowman Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Snowman_Props",
+          "Roster_Snowman_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 444,
+        "glb": "models/Snowman.glb",
+        "fbx": "models/Snowman-Bind.fbx",
+        "glbBytes": 308684
+      }
+    }
+  ]
+}

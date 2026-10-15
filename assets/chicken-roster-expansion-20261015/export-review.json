@@ -1,0 +1,1915 @@
+{
+ "checked": 83,
+ "allOk": true,
+ "chickens": [
+  {
+   "id": "Pumpkin",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 92620,
+   "ok": true
+  },
+  {
+   "id": "Witch",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92492,
+   "ok": true
+  },
+  {
+   "id": "Animatronic",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 94444,
+   "ok": true
+  },
+  {
+   "id": "ZombieHunter",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92476,
+   "ok": true
+  },
+  {
+   "id": "Mummy",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 90844,
+   "ok": true
+  },
+  {
+   "id": "Vampire",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 94284,
+   "ok": true
+  },
+  {
+   "id": "Hatchling",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89804,
+   "ok": true
+  },
+  {
+   "id": "Silkie",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89244,
+   "ok": true
+  },
+  {
+   "id": "SpeckledHen",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 85916,
+   "ok": true
+  },
+  {
+   "id": "BaconHair",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 87052,
+   "ok": true
+  },
+  {
+   "id": "Phoenix",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 111100,
+   "ok": true
+  },
+  {
+   "id": "Unicorn",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 95612,
+   "ok": true
+  },
+  {
+   "id": "Kraken",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 93740,
+   "ok": true
+  },
+  {
+   "id": "FirstHen",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 94908,
+   "ok": true
+  },
+  {
+   "id": "RiftWalker",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 101452,
+   "ok": true
+  },
+  {
+   "id": "Supernova",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 119052,
+   "ok": true
+  },
+  {
+   "id": "CrateRunner",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89132,
+   "ok": true
+  },
+  {
+   "id": "Miner",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92028,
+   "ok": true
+  },
+  {
+   "id": "Paratrooper",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92988,
+   "ok": true
+  },
+  {
+   "id": "Coral",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 94508,
+   "ok": true
+  },
+  {
+   "id": "CastleGuard",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90108,
+   "ok": true
+  },
+  {
+   "id": "Jester",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 93932,
+   "ok": true
+  },
+  {
+   "id": "Ironbeak",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90348,
+   "ok": true
+  },
+  {
+   "id": "DeepseaDiver",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92572,
+   "ok": true
+  },
+  {
+   "id": "DragonHatchling",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 95500,
+   "ok": true
+  },
+  {
+   "id": "RoyalGuard",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 88764,
+   "ok": true
+  },
+  {
+   "id": "Geode",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 92604,
+   "ok": true
+  },
+  {
+   "id": "AirshipCaptain",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 93404,
+   "ok": true
+  },
+  {
+   "id": "DragonKnight",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 97388,
+   "ok": true
+  },
+  {
+   "id": "Pharaoh",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90348,
+   "ok": true
+  },
+  {
+   "id": "StainedGlass",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 1,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 77980,
+   "ok": true
+  },
+  {
+   "id": "Moon",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 90668,
+   "ok": true
+  },
+  {
+   "id": "TimeKeeper",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 103068,
+   "ok": true
+  },
+  {
+   "id": "Mecha",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 92956,
+   "ok": true
+  },
+  {
+   "id": "Kitsune",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 88860,
+   "ok": true
+  },
+  {
+   "id": "Scarecrow",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91660,
+   "ok": true
+  },
+  {
+   "id": "Pajama",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91788,
+   "ok": true
+  },
+  {
+   "id": "Lumberjack",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 88620,
+   "ok": true
+  },
+  {
+   "id": "Party",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90988,
+   "ok": true
+  },
+  {
+   "id": "Cow",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90652,
+   "ok": true
+  },
+  {
+   "id": "Piggy",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89724,
+   "ok": true
+  },
+  {
+   "id": "Sushi",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89852,
+   "ok": true
+  },
+  {
+   "id": "Donut",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 1,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 64444,
+   "ok": true
+  },
+  {
+   "id": "Popcorn",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90700,
+   "ok": true
+  },
+  {
+   "id": "Gamer",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 91436,
+   "ok": true
+  },
+  {
+   "id": "Frog",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90828,
+   "ok": true
+  },
+  {
+   "id": "Firefighter",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 87180,
+   "ok": true
+  },
+  {
+   "id": "Chef",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89228,
+   "ok": true
+  },
+  {
+   "id": "Detective",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90796,
+   "ok": true
+  },
+  {
+   "id": "Samurai",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89196,
+   "ok": true
+  },
+  {
+   "id": "Cowboy",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 89180,
+   "ok": true
+  },
+  {
+   "id": "Steampunk",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91740,
+   "ok": true
+  },
+  {
+   "id": "Neon",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 1,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 63756,
+   "ok": true
+  },
+  {
+   "id": "NorseRaider",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 96348,
+   "ok": true
+  },
+  {
+   "id": "Gingerbread",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 87404,
+   "ok": true
+  },
+  {
+   "id": "Firework",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 95308,
+   "ok": true
+  },
+  {
+   "id": "Kingslayer",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 93980,
+   "ok": true
+  },
+  {
+   "id": "Ascendant",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 105836,
+   "ok": true
+  },
+  {
+   "id": "Rooster",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91052,
+   "ok": true
+  },
+  {
+   "id": "Sheep",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90412,
+   "ok": true
+  },
+  {
+   "id": "Plushie",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90428,
+   "ok": true
+  },
+  {
+   "id": "Mailman",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91484,
+   "ok": true
+  },
+  {
+   "id": "Raincoat",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 88444,
+   "ok": true
+  },
+  {
+   "id": "Skater",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90236,
+   "ok": true
+  },
+  {
+   "id": "Taco",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 97564,
+   "ok": true
+  },
+  {
+   "id": "Painter",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 94588,
+   "ok": true
+  },
+  {
+   "id": "Sunflower",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91516,
+   "ok": true
+  },
+  {
+   "id": "Snowman",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92732,
+   "ok": true
+  },
+  {
+   "id": "Police",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90476,
+   "ok": true
+  },
+  {
+   "id": "Doctor",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 90236,
+   "ok": true
+  },
+  {
+   "id": "Ghost",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 89516,
+   "ok": true
+  },
+  {
+   "id": "Archer",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 94108,
+   "ok": true
+  },
+  {
+   "id": "Rockstar",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 92460,
+   "ok": true
+  },
+  {
+   "id": "Yeti",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 97100,
+   "ok": true
+  },
+  {
+   "id": "Mimic",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91628,
+   "ok": true
+  },
+  {
+   "id": "Gladiator",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 91116,
+   "ok": true
+  },
+  {
+   "id": "Olympian",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 91644,
+   "ok": true
+  },
+  {
+   "id": "Aurora",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 1,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 74316,
+   "ok": true
+  },
+  {
+   "id": "Jade",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 94508,
+   "ok": true
+  },
+  {
+   "id": "Griffin",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 95756,
+   "ok": true
+  },
+  {
+   "id": "Valkyrie",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 1,
+   "previewLeak": [],
+   "fbxBytes": 93772,
+   "ok": true
+  },
+  {
+   "id": "Eclipse",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 90188,
+   "ok": true
+  },
+  {
+   "id": "ForestGuardian",
+   "skins": 1,
+   "joints": [
+    18
+   ],
+   "meshNodes": 2,
+   "allSkinned": true,
+   "weights": true,
+   "clips": [
+    "Chicken_Celebrate",
+    "Chicken_Defeat",
+    "Chicken_Hit",
+    "Chicken_Idle",
+    "Chicken_Peck",
+    "Chicken_Walk"
+   ],
+   "clipsOk": true,
+   "embeddedImages": 2,
+   "previewLeak": [],
+   "fbxBytes": 101852,
+   "ok": true
+  }
+ ]
+}

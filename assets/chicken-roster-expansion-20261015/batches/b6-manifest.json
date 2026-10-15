@@ -1,0 +1,205 @@
+{
+  "batch": "b6",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/b6-lineup.png",
+  "chickens": [
+    {
+      "id": "Gingerbread",
+      "name": "Gingerbread Chicken",
+      "rarity": "Epic",
+      "band": 6,
+      "zone": null,
+      "earn": "Christmas 2026 limited (zero roll weight, like Pumpkin)",
+      "concept": "concepts/Gingerbread.jpg",
+      "preview": "previews/Gingerbread.jpg",
+      "poses": [
+        "previews/Gingerbread-Chicken_Walk.jpg",
+        "previews/Gingerbread-Chicken_Peck.jpg",
+        "previews/Gingerbread-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Gingerbread-base-color.png"
+      },
+      "vfxPlan": "Snowflake sprinkle on Celebrate; jingle sound.",
+      "review": {
+        "id": "Gingerbread",
+        "name": "Gingerbread Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Gingerbread_Props",
+          "Roster_Gingerbread_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 324,
+        "glb": "models/Gingerbread.glb",
+        "fbx": "models/Gingerbread-Bind.fbx",
+        "glbBytes": 291644
+      }
+    },
+    {
+      "id": "Firework",
+      "name": "Firework Chicken",
+      "rarity": "Legendary",
+      "band": 7,
+      "zone": null,
+      "earn": "New Year 2027 limited (zero roll weight)",
+      "concept": "concepts/Firework.jpg",
+      "preview": "previews/Firework.jpg",
+      "poses": [
+        "previews/Firework-Chicken_Walk.jpg",
+        "previews/Firework-Chicken_Peck.jpg",
+        "previews/Firework-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Firework-base-color.png",
+        "emission": "textures/Firework-emission.png"
+      },
+      "vfxPlan": "Fuse spark particles while idle; firework burst (colored sparks) on Celebrate.",
+      "review": {
+        "id": "Firework",
+        "name": "Firework Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Firework_Props",
+          "Roster_Firework_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 348,
+        "glb": "models/Firework.glb",
+        "fbx": "models/Firework-Bind.fbx",
+        "glbBytes": 301432
+      }
+    },
+    {
+      "id": "Kingslayer",
+      "name": "Kingslayer",
+      "rarity": "Mythic",
+      "band": 10,
+      "zone": null,
+      "earn": "Needs owner decision: beat the Chicken King N times (like Hill Champion)",
+      "concept": "concepts/Kingslayer.jpg",
+      "preview": "previews/Kingslayer.jpg",
+      "poses": [
+        "previews/Kingslayer-Chicken_Walk.jpg",
+        "previews/Kingslayer-Chicken_Peck.jpg",
+        "previews/Kingslayer-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Kingslayer-base-color.png"
+      },
+      "vfxPlan": "Gold glint on the crown; cape flutter is the existing Walk motion.",
+      "review": {
+        "id": "Kingslayer",
+        "name": "Kingslayer",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Kingslayer_Props",
+          "Roster_Kingslayer_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 420,
+        "glb": "models/Kingslayer.glb",
+        "fbx": "models/Kingslayer-Bind.fbx",
+        "glbBytes": 307632
+      }
+    },
+    {
+      "id": "Ascendant",
+      "name": "Ascendant Chicken",
+      "rarity": "Mythic",
+      "band": 10,
+      "zone": null,
+      "earn": "Needs owner decision: reach Rebirth N",
+      "concept": "concepts/Ascendant.jpg",
+      "preview": "previews/Ascendant.jpg",
+      "poses": [
+        "previews/Ascendant-Chicken_Walk.jpg",
+        "previews/Ascendant-Chicken_Peck.jpg",
+        "previews/Ascendant-Chicken_Celebrate.jpg"
+      ],
+      "textures": {
+        "baseColor": "textures/Ascendant-base-color.png",
+        "emission": "textures/Ascendant-emission.png"
+      },
+      "vfxPlan": "Halo rings rotate slowly (looping rotation tweens on the ring parts); soft pearl glow; one extra ring per Rebirth (runtime toggle).",
+      "review": {
+        "id": "Ascendant",
+        "name": "Ascendant Chicken",
+        "ok": true,
+        "meshNodes": [
+          "Roster_Ascendant_Props",
+          "Roster_Ascendant_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 924,
+        "glb": "models/Ascendant.glb",
+        "fbx": "models/Ascendant-Bind.fbx",
+        "glbBytes": 361944
+      }
+    }
+  ]
+}

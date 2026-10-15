@@ -76,10 +76,11 @@ device or live gameplay test. See `assets/ui-aspect-layout-20260930/`.
   its own measured constraint (Commander Cluck's one-line fit). This is a
   readability exception to the "no UITextSizeConstraint" rule, limited to a
   minimum; it does not resize layouts or add breakpoints.
-- **Touch HUD.** When `UserInputService.PreferredInput` is Touch, the cash
-  readout and Route/Flock totals lift above the thumbstick and jump button
-  (cash sits beside the left shortcut column) and Settings grows to a
-  thumb-sized target. Keyboard and gamepad keep the authored corners.
+- **One layout for every device (October 15, supersedes the touch HUD).** The HUD
+  and research card no longer move or resize for touch; PC, phone, tablet and
+  gamepad share the same Scale layout, so an edit made once applies everywhere.
+  Check thumbstick/jump-button overlap in the UI Lab's Phone shape after moving
+  bottom-corner items.
 - **Numbers.** `UITheme.Number` is the one compact formatter (about three
   significant figures, K/M/B/T: $2.88K, $726K, $3.63M, $1.2B). `UITheme.Money`
   still shows exact cash where the design wants every digit.

@@ -221,3 +221,14 @@ Mission / Auto Sell / Auto Collect buttons.
   Screenshots: `assets/generated/mission-sites-20261014/`.
 - Still to do: rewards by theme (free rolls, egg boost), enemy scaling with rebirth rank,
   polishing Supply Depot's crane and Dragon Roost's entrance skulls.
+
+## Enemies wait at the site (October 15, owner request)
+
+A waiting site now shows its real roster: `OperationService` spawns the encounter's
+loyalists (boss with its King visual, name and level tags) about 1.3 s after a built
+site rises, or out of the landed crates for Loyalist Landing, and they wander the
+clear centre (radius 8, `IdlePatrol`, like camp guards). Sending an army hands these
+same rigs to the battle in roster order (no pop-in); expiry fades them with the site.
+Checked in Studio Play: Dragon Commander (8) and Veteran Assault (10) sites populated
+and wandering, all 8 adopted into the battle. Not checked: the airship crate exit,
+expiry fade, server cost with six full sites.

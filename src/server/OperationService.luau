@@ -11,6 +11,11 @@ local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.OperationCatalog)
 local Battle=require(script.Parent.Battle)
 local LiveActors=require(script.Parent.LiveBattleActors)
+local PetActor=require(script.Parent.PetActor)
+local IdlePatrol=require(script.Parent.IdlePatrol)
+local PetView=require(Shared.PetView)
+local KingVisual=require(Shared.KingVisual)
+local KingEncounter=require(script.Parent.KingEncounter)
 local Airship=require(script.Parent.InvasionAirship)
 local Camp=require(script.Parent.InvasionCamp)
 local MissionSite=require(script.Parent.MissionSite)
@@ -53,6 +58,11 @@ local HOVER_SECONDS=CRATE_FALL_SECONDS+.8
 Service.TimeLimit=180
 local FADE_SPREAD,FADE_SECONDS=8,.9
 local rng=Random.new()
+-- October 15 owner request: a waiting site shows its real roster. The loyalists
+-- stand in the site and wander its clear centre (MissionKits.Common.CLEAR 11.5)
+-- until an army is sent; the battle then adopts these same rigs.
+local GUARD_PATROL_RADIUS=8
+local BUILT_GUARD_DELAY=1.3 -- after the staged reveal (MissionSite, 0.3 s per group)
 
 -- Detach the loyalist rigs from the battle and fade them out one at a time.
 local function fadeInvaders(battle,parent)
@@ -78,6 +88,47 @@ local function fadeInvaders(battle,parent)
 			task.delay(FADE_SECONDS,function() actor:Destroy() end)
 		end)
 	end
+end
+
+-- Spawn the site's roster in roster order (StartMission adopts them in that order).
+-- Airship sites: each loyalist steps out of its column's landed crate.
+local function populateGuards(site)
+	local roster=Catalog.Roster(site.encounterId)
+	local folder=Instance.new("Folder");folder.Name="Guards";folder.Parent=site.model
+	local facing=-site.frame.LookVector
+	site.actors,site.patrols={},{}
+	local columns=FlockLayout.Dimensions(#roster)
+	for i,pet in roster do
+		local x,z=FlockLayout.Offset(i,#roster)
+		local spot=site.spots and site.spots[(i-1)%columns+1]
+		local foot=if spot then Vector3.new(spot.X,site.landing.Y,spot.Z) else (site.frame*CFrame.new(x,0,z)).Position
+		local actor=PetActor.new(folder,"Guard"..i,pet.species,pet.stars or 1,foot,facing)
+		if pet.boss then
+			KingVisual.Apply(actor.model,KingEncounter.Scale)
+			actor.footOffset=actor.model:GetAttribute("FootOffset")
+		end
+		PetView.Level(actor.model,pet.level or 1)
+		actor.model:SetAttribute("MissionGuard",site.id)
+		actor:Stop()
+		table.insert(site.actors,actor)
+		table.insert(site.patrols,IdlePatrol.new(actor,rng,Config.RoamSpeed,.5,2))
+	end
+end
+
+local function stepGuards(site,now)
+	if not site.actors then
+		if now>=site.guardsAt and site.model.Parent then populateGuards(site) end
+		return
+	end
+	for _,patrol in site.patrols do
+		patrol:Step(now,function() return IdlePatrol.DiskTarget(site.frame,GUARD_PATROL_RADIUS,site.patrols,patrol,rng) end)
+	end
+end
+
+-- Stop the wandering; the rigs stay in the site model and fade/destroy with it.
+local function stopGuards(site)
+	for _,actor in site.actors or {} do actor:Stop() end
+	site.patrols={}
 end
 
 -- Mission pacing (owner-approved plan defaults, October 14).
@@ -174,8 +225,11 @@ function Service:Spawn(session,now,forcedId,forcedTheme,sharedTier)
 			Airship.DropCrates(model,landing+Vector3.new(0,Airship.HoverHeight,0)+Airship.HatchOffset,spots,CRATE_FALL_SECONDS)
 		end)
 	end
+	local airship=MissionSite.UsesAirship[theme]
 	local site={id=siteId,encounterId=id,landing=landing,frame=frame,model=model,rare=rare,
-		spawnedAt=now,expiresAt=now+Service.WaitSeconds,shared=session==nil}
+		spawnedAt=now,expiresAt=now+Service.WaitSeconds,shared=session==nil,
+		spots=if airship then spots else nil,
+		guardsAt=now+(if airship then Airship.InboundSeconds+CRATE_FALL_SECONDS+.5 else BUILT_GUARD_DELAY)}
 	if session and self.analytics then self.analytics:LaunchCount(session,"mission.spawn."..definition.tier) end
 	return site
 end
@@ -205,9 +259,10 @@ function Service:StepSites(now)
 	for siteId,site in pool.sites do
 		if now>=site.expiresAt or topTier==0 then
 			pool.sites[siteId]=nil
+			stopGuards(site)
 			if site.model then Camp.FadeOut(site.model,0) end
 			for _,session in self.sessions do session:Touch() end
-		else count+=1 end
+		else count+=1;stepGuards(site,now) end
 	end
 	if topTier==0 then pool.nextAt=now+Service.FirstSpawnSeconds;return end
 	local target=math.clamp(2+eligible,Service.MinSites,Service.MaxSites)
@@ -307,6 +362,16 @@ function Service:StartMission(session,siteId,now)
 	battle:ApplyResearch("A",session.researchEffects,os.time()<(session.rallyActiveUntil or 0))
 	battle.zone=site.model
 	battle:AddArmy("B",Catalog.Roster(id),landing)
+	-- The loyalists already wandering the site join the fight where they stand;
+	-- Sync creates any rig that has not appeared yet.
+	local guards=site.actors or {}
+	stopGuards(site);site.actors=nil
+	local guardIndex=0
+	for _,unit in battle.units do if unit.side=="B" then
+		guardIndex+=1
+		local actor=guards[guardIndex]
+		if actor and not actor.destroyed and actor.model.Parent then battle.actors:Adopt(unit,actor) end
+	end end
 	self.battles.battles[battle.id]=battle
 	session:Touch();self.world:UpdateSession(session)
 	battle.actors:Sync(now);battle.actors:Publish(now)
@@ -428,7 +493,7 @@ end
 
 function Service:Destroy()
 	for _,battle in self.battles.battles do if battle.operationId then self:Detach(battle) end end
-	for _,site in self.shared.sites do if site.model then site.model:Destroy() end end
+	for _,site in self.shared.sites do stopGuards(site);if site.model then site.model:Destroy() end end
 	table.clear(self.shared.sites)
 end
 

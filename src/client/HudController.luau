@@ -14,9 +14,6 @@ local ARMY_HOME_SCALE=0.82
 local Hud={}
 Hud.__index=Hud
 
-local function touchPrimary()
-	return UserInputService.PreferredInput==Enum.PreferredInput.Touch
-end
 
 local function callArmyUnlocked(state)
 	local research=state and state.research
@@ -61,10 +58,16 @@ function Hud.new(app,shell)
 	self.cashReadout=cash
 	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.14)
 	Theme.Aspect(cash,3.2)
-	self.money=Theme.Display(cash,"Money","$0",46,Theme.Colors.money)
-	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Cash,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0,0.04))
+	-- October 15 owner UI Lab tweak: larger cash number with a green gradient face.
+	self.money=Theme.Display(cash,"Money","$0",46,Color3.fromRGB(252,248,255))
+	local moneyGradient=Instance.new("UIGradient")
+	moneyGradient.Rotation=90
+	moneyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(0,255,67)),
+		ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(105,255,91)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,223,6))})
+	moneyGradient.Parent=self.money.TextFace
+	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Cash,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0.0021,0.0532))
 	Theme.Aspect(self.cashIcon,1)
-	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.2),UDim2.fromScale(0.76,0.44)
+	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0772),UDim2.fromScale(0.76,0.5628)
 	self.income=Theme.Display(cash,"Income","",20)
 	self.income.Position,self.income.Size=UDim2.fromScale(0,0.68),UDim2.fromScale(1,0.3)
 	self.income.TextWrapped,self.income.Visible=false,false
@@ -84,16 +87,18 @@ function Hud.new(app,shell)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self.hill=HillHud.new(app,shell,cash)
 	self:BuildSettingsTopbar()
-	-- Four slots (Re-enlist shows once it matters); the list centers whatever is visible.
-	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.082,0.68))
+	-- The list centers whatever is visible.
+	-- Later October 15 owner request: a little smaller, centered on the left edge,
+	-- order Shop / Upgrades / Index.
+	local shortcuts=Theme.Frame(shell,"CollectionNavigation",UDim2.fromScale(0.096,0.53))
 	shortcuts.BackgroundTransparency=1
-	shortcuts.AnchorPoint,shortcuts.Position=Vector2.new(0,0.5),UDim2.fromScale(0.012,0.43)
+	shortcuts.AnchorPoint,shortcuts.Position=Vector2.new(0,0.5),UDim2.fromScale(0.009,0.5)
 	self.shortcuts=shortcuts
 	local shortcutLayout=Instance.new("UIListLayout")
-	shortcutLayout.SortOrder,shortcutLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0.0225,0)
+	shortcutLayout.SortOrder,shortcutLayout.Padding=Enum.SortOrder.LayoutOrder,UDim.new(0.0286,0)
 	shortcutLayout.VerticalAlignment=Enum.VerticalAlignment.Center
 	shortcutLayout.Parent=shortcuts
-	for i,page in {"Shop","Index","Upgrades"} do
+	for i,page in {"Shop","Upgrades","Index"} do
 		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
@@ -108,6 +113,17 @@ function Hud.new(app,shell)
 		if app.rebirthPanel then app.rebirthPanel:Open() end
 	end)
 	self.reenlist.Visible=false
+	-- October 15 owner request: a red "!" notification badge on the icon's corner
+	-- whenever a Rebirth is available (UpdateRebirth toggles it).
+	local badge=Theme.Frame(self.reenlist.Visual,"RebirthReady",UDim2.fromScale(0.3,0.3),Color3.fromRGB(235,45,45))
+	badge.AnchorPoint,badge.Position,badge.ZIndex,badge.Visible=Vector2.new(0.5,0.5),UDim2.fromScale(0.86,0.1),8,false
+	Theme.Aspect(badge,1)
+	Theme.Round(badge).CornerRadius=UDim.new(0.5,0)
+	-- Round joins: a Miter stroke draws a square box around a circle.
+	Theme.Stroke(badge,Color3.new(0,0,0),2).LineJoinMode=Enum.LineJoinMode.Round
+	local mark=Theme.Label(badge,"Mark","!",28,Color3.new(1,1,1))
+	mark.Size,mark.TextScaled,mark.ZIndex,mark.TextXAlignment=UDim2.fromScale(1,1),true,9,Enum.TextXAlignment.Center
+	self.rebirthBadge=badge
 	-- Below the status line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
@@ -120,6 +136,7 @@ end
 
 function Hud:BindBasePresence()
 	local player=Players.LocalPlayer
+	if not player then return end -- Edit-mode UI Lab previews have no player.
 	local alive=true
 	local presenceConnection
 	local function reset()
@@ -239,7 +256,7 @@ end
 -- The composition is authored once; viewport changes are handled by Roblox.
 function Hud:Layout()
 	Theme.Aspect(self.navigation,558/272)
-	Theme.Aspect(self.shortcuts,136/544)
+	Theme.Aspect(self.shortcuts,136/420) -- Three slots: 3 x 0.314 + 2 x 0.0286 padding.
 	self.army.AnchorPoint,self.army.Position=Vector2.new(0.5,1),UDim2.fromScale(0.5,1)
 	for _,button in {self.callArmy,self.army,self.myBase} do
 		local primary=button==self.army
@@ -252,14 +269,17 @@ function Hud:Layout()
 		label.TextScaled,label.ZIndex=true,4
 	end
 	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.86),UDim2.fromScale(1,0.135)
+	-- October 15 owner request: labels sit closer to their icons (0.712 -> 0.64).
 	for _,page in {"Shop","Index","Upgrades"} do
 		local button=self.shortcuts:FindFirstChild(page)
-		button.Size=UDim2.fromScale(1,0.235)
+		button.Size=UDim2.fromScale(1,0.314)
 		Theme.Aspect(button,136/132)
 		button.Visual.Label.TextScaled=true
+		button.Visual.Label.Position=UDim2.fromScale(0,0.64)
 	end
 	self.reenlist.Size=UDim2.fromScale(1,1)
 	self.reenlist.Visual.Label.TextScaled=true
+	self.reenlist.Visual.Label.Position=UDim2.fromScale(0,0.64)
 	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
@@ -276,28 +296,22 @@ function Hud:Layout()
 	self:UpdateArmyCommands(true)
 end
 
--- Touch: the cash readout keeps its bottom-left corner like PC (owner request,
--- October 14); the Camps held/Flock lines lift above the jump button, the Rebirth
--- icon sits just below them, and
--- enlarge Settings to a thumb-sized target
--- (top 0.12 at most). Keyboard/gamepad keep the authored bottom corners.
+-- October 15 owner request: ONE HUD layout for every device (PC, phone, tablet,
+-- gamepad). No touch-only positions; edit it once (UI Lab) and it applies everywhere.
 -- settingsBottom: lowest screen Y scale the Settings button can reach (for neighbours).
 function Hud:ApplyInputLayout()
-	local touch=touchPrimary()
 	self.cashReadout.AnchorPoint,self.cashReadout.Position=Vector2.new(0,1),UDim2.fromScale(0.012,0.98)
 	self:PlaceRebirth()
-	self.settings.Size=if touch then UDim2.fromScale(0.065,0.105) else UDim2.fromScale(0.04,0.072)
+	self.settings.Size=UDim2.fromScale(0.04,0.072)
 	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
 	-- The Hill chip rides just above the cash readout wherever it sits.
 	if self.hill then self.hill:Place() end
 end
 
--- Middle of the right edge (touch: a little lower, under the lifted totals and
--- clear of the jump button). The totals keep their corners.
+-- Middle of the right edge; the totals keep the bottom-right corner (all devices).
 function Hud:PlaceRebirth()
-	local touch=touchPrimary()
-	self.rebirthCorner.Position=UDim2.fromScale(0.988,if touch then 0.6 else 0.5)
-	self.totals.Position=if touch then UDim2.fromScale(0.988,0.47) else UDim2.fromScale(0.988,0.98)
+	self.rebirthCorner.Position=UDim2.fromScale(0.988,0.5)
+	self.totals.Position=UDim2.fromScale(0.988,0.98)
 end
 
 function Hud:Resize(_width, _height, _scale)
@@ -360,6 +374,7 @@ function Hud:UpdateRebirth(state)
 	-- The Re-enlist icon appears once it matters: the King is beaten or a rank is earned.
 	local showIcon=quote.enabled~=false and (rank>=1 or quote.kingCleared==true)
 	if self.reenlist.Visible~=showIcon then self.reenlist.Visible=showIcon;self:PlaceRebirth() end
+	self.rebirthBadge.Visible=showIcon and quote.eligible==true
 	local pulse=showIcon and quote.eligible==true and not self.app.reducedMotion
 	if pulse~=(self.reenlistPulse~=nil) then
 		local visual=self.reenlist.Visual
@@ -426,7 +441,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	if self.lastConquered and held>self.lastConquered then
 		Theme.Motion:Pop(self.conquered,1.13)
 		Theme.Motion:Pop(self.cashIcon,1.14)
-		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,if touchPrimary() then 0.43 else 0.94),A.gold)
+		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,0.94),A.gold)
 	end
 	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,held
 end
