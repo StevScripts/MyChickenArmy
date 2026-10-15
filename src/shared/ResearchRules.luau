@@ -10,7 +10,7 @@ local function shortString(value,limit)
 end
 
 function Rules.New()
-	return {completed={Start=true},jobs={},revision=0,pinned=nil,rallyReadyAt=0,formations={},operationWins={},pendingOperationReward=0,eggValueRemainder=0}
+	return {completed={Start=true},jobs={},revision=0,pinned=nil,rallyReadyAt=0,formations={},operationWins={},pendingOperationReward=0,eggValueRemainder=0,skipCredit=0}
 end
 
 function Rules.Effects(research)
@@ -86,6 +86,9 @@ function Rules.Read(value)
 	local remainder=value.eggValueRemainder or 0
 	if type(remainder)~="number" or remainder~=remainder or remainder<0 or remainder>=1 then return nil end
 	result.eggValueRemainder=remainder
+	-- Paid skip seconds that found no running job; spent by the next research.
+	-- A bad value is dropped rather than rejecting the save.
+	result.skipCredit=if integer(value.skipCredit,0,1e8) then value.skipCredit else 0
 	if not integer(value.pendingOperationReward or 0,0,2^53-1) then return nil end
 	result.pendingOperationReward=value.pendingOperationReward or 0
 	if value.formations~=nil then

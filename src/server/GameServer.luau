@@ -192,7 +192,7 @@ function GameServer:Handle(player,request)
 	elseif action=="PreparePurchase" then
 		if request.key=="FinishEggs" and not self.eggs:CanUseBoard(player,session) then
 			message="Walk up to your egg selling board."
-		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session)) end
+		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session),request.jobId) end
 	elseif action=="OpenCrate" then
 		if not self.products:CanPurchase(session) then message="Crates need a safely loaded, saved profile."
 		else

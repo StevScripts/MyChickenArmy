@@ -4,6 +4,7 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local Players=game:GetService("Players")
 local ShopCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
 local EggProcessor=require(script.Parent.EggProcessor)
+local ResearchService=require(script.Parent.ResearchService)
 local ProductService={}
 ProductService.__index=ProductService
 local Granted=Enum.ProductPurchaseDecision.PurchaseGranted
@@ -78,6 +79,10 @@ function ProductService:_ProcessReceipt(receipt)
   end
   if product.finishEggs==true then
    if not EggProcessor.GrantFinish(session.eggProcessor) then return false end
+  elseif product.researchSkipSeconds~=nil and integer(product.researchSkipSeconds,1,1e6) then
+   -- The job chosen at checkout (transient); otherwise the longest running job.
+   ResearchService.PaidSkip(session,product.researchSkipSeconds,session.researchSkipTarget,os.time())
+   session.researchSkipTarget=nil
   elseif product.coins~=nil and product.crates==nil and integer(product.coins,1,MaxCoins)
    and integer(cash,product.coins,MaxCoins) and integer(session.coins,0,MaxCoins-cash) then
    -- Minutes of current income, never below the listed floor. Earned-income

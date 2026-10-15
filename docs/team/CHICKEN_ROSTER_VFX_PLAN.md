@@ -3,8 +3,8 @@
 This plan covers effects for the 83 new chicken models in
 `assets/chicken-roster-expansion-20261015/`.
 
-The art is finished. **Nothing here is built in Roblox yet**: the models are not imported, and
-no catalog or runtime code has changed. This is the effect design for the integration pass.
+**Built October 15** as native template effects plus a small burst/pulse hook. See
+`CHICKEN_ROSTER_INTEGRATION.md` for exactly what shipped and the simplifications.
 
 Each chicken's effect sketch also sits in its manifest entry (`vfxPlan`). The Blender scenes
 include a few preview-only glow cubes (`preview_fx`). They show intent only, and none of them

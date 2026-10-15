@@ -46,7 +46,11 @@ for index = #guaranteed, 1, -1 do
 end
 local ShopCatalog = {
 	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
-	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs"},
+	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs",
+		"ResearchSkip1m", "ResearchSkip5m", "ResearchSkip15m", "ResearchSkip30m", "ResearchSkip1h", "ResearchSkip2h", "ResearchSkip4h", "ResearchSkip8h", "ResearchSkip12h", "ResearchSkip24h"},
+	-- October 15: Robux research skips, shortest first. The Upgrades card offers the
+	-- smallest tier that covers the job's remaining time; never listed in the Shop.
+	ResearchSkipOrder = {"ResearchSkip1m", "ResearchSkip5m", "ResearchSkip15m", "ResearchSkip30m", "ResearchSkip1h", "ResearchSkip2h", "ResearchSkip4h", "ResearchSkip8h", "ResearchSkip12h", "ResearchSkip24h"},
 	ArmyBonus = 5,
 	Crate = {enabled=true,name="Galaxy Crate",rewards={
 		{species="Astronaut",chance=0.40},
@@ -71,6 +75,16 @@ local ShopCatalog = {
 		OuterSpaceCrate1 = {productId=3712929703, name="Galaxy Crate", crates=1, proposedPrice=500, paidRandom=true},
 		OuterSpaceCrate3 = {productId=3712929865, name="3 Galaxy Crates", crates=3, proposedPrice=1250, paidRandom=true},
 		OuterSpaceCrate10 = {productId=3712929926, name="10 Galaxy Crates", crates=10, proposedPrice=4000, paidRandom=true},
+		ResearchSkip1m = {productId=3718778626, name="Skip Research (1 min)", researchSkipSeconds=60, proposedPrice=5},
+		ResearchSkip5m = {productId=3718778636, name="Skip Research (5 min)", researchSkipSeconds=300, proposedPrice=15},
+		ResearchSkip15m = {productId=3718778649, name="Skip Research (15 min)", researchSkipSeconds=900, proposedPrice=29},
+		ResearchSkip30m = {productId=3718778658, name="Skip Research (30 min)", researchSkipSeconds=1800, proposedPrice=49},
+		ResearchSkip1h = {productId=3718778661, name="Skip Research (1 hr)", researchSkipSeconds=3600, proposedPrice=79},
+		ResearchSkip2h = {productId=3718778673, name="Skip Research (2 hr)", researchSkipSeconds=7200, proposedPrice=129},
+		ResearchSkip4h = {productId=3718778682, name="Skip Research (4 hr)", researchSkipSeconds=14400, proposedPrice=199},
+		ResearchSkip8h = {productId=3718778696, name="Skip Research (8 hr)", researchSkipSeconds=28800, proposedPrice=299},
+		ResearchSkip12h = {productId=3718778705, name="Skip Research (12 hr)", researchSkipSeconds=43200, proposedPrice=399},
+		ResearchSkip24h = {productId=3718778720, name="Skip Research (24 hr)", researchSkipSeconds=86400, proposedPrice=549},
 	},
 	RadiusMultiplier = 2,
 	BountyMultiplier = 2,
@@ -109,6 +123,14 @@ function ShopCatalog.CashPackAmount(product, incomePerSecond: number?): number
 	return math.max(floor, math.floor(math.min(incomePerSecond * minutes * 60, Currency.MaxCoins)))
 end
 
+-- Smallest research skip that covers `remaining` seconds, or nil past the largest tier.
+function ShopCatalog.ResearchSkipFor(remaining: number): string?
+	for _, key in ShopCatalog.ResearchSkipOrder do
+		if ShopCatalog.Products[key].researchSkipSeconds >= remaining then return key end
+	end
+	return nil
+end
+
 for index = #ShopCatalog.Order, 1, -1 do
 	if ShopCatalog.Definitions[ShopCatalog.Order[index]].enabled == false then table.remove(ShopCatalog.Order, index) end
 end
@@ -118,6 +140,7 @@ table.freeze(ShopCatalog.GuaranteedLuck.sequence)
 table.freeze(ShopCatalog.GuaranteedLuck)
 table.freeze(ShopCatalog.Products)
 table.freeze(ShopCatalog.ProductOrder)
+table.freeze(ShopCatalog.ResearchSkipOrder)
 table.freeze(ShopCatalog.Definitions)
 table.freeze(ShopCatalog.Order)
 return table.freeze(ShopCatalog)

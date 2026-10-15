@@ -170,7 +170,41 @@ function Special.new(model: Model, audio: any?)
 		nextUpdate = 0, phase = phaseFor(model.Name), unit = 0, lastBurst = nil,
 		galaxy = nil, rainbow = nil, ownsGlitch = false,
 		mutation = nil, shells = {}, tints = {}, tintColor = nil, tintScanAt = 0,
-		mutationParticles = false, budgeted = false, orbits = false, calm = false, authored = {}}, Special)
+		mutationParticles = false, budgeted = false, orbits = false, calm = false, authored = {},
+		bursts = {}, pulses = {}, serials = {}}, Special)
+end
+
+-- October 15 roster expansion: template-authored action bursts (emitters marked
+-- RosterBurst = "Attack" | "Hit" | "Victory", fired with Emit on the clip serial)
+-- and pulsing lights (RosterPulse = peak Brightness, RosterPulseTime = seconds).
+local BURST_EVENTS = {AttackSerial = "Attack", HitSerial = "Hit", VictorySerial = "Victory"}
+
+function Special._pulse(self: any, on: boolean)
+	for _, record in self.pulses do
+		if record.tween then record.tween:Cancel(); record.tween = nil end
+		if record.instance.Parent then
+			record.instance.Brightness = record.base
+			if on then
+				record.tween = TweenService:Create(record.instance, TweenInfo.new(record.period, Enum.EasingStyle.Sine,
+					Enum.EasingDirection.InOut, -1, true), {Brightness = record.peak})
+				record.tween:Play()
+			end
+		end
+	end
+end
+
+function Special._burst(self: any, visible: boolean)
+	for attribute, event in BURST_EVENTS do
+		local serial = self.model:GetAttribute(attribute) or 0
+		if serial ~= self.serials[attribute] then
+			self.serials[attribute] = serial
+			if visible then
+				for _, record in self.bursts do
+					if record.on == event and record.instance.Parent then record.instance:Emit(record.count) end
+				end
+			end
+		end
+	end
 end
 
 function Special._glitch(self: any, scale: number, alpha: number, twitch: number)
@@ -216,6 +250,10 @@ end
 function Special._clear(self: any)
 	if self.sound then self.sound:Destroy();self.sound=nil end
 	self:_calm(false)
+	self:_pulse(false)
+	table.clear(self.pulses)
+	for _, record in self.bursts do if record.instance.Parent then record.instance:Clear() end end
+	table.clear(self.bursts)
 	table.clear(self.authored)
 	for _, effect in self.imported do
 		if effect.Parent then
@@ -383,8 +421,19 @@ function Special._attach(self: any, body: MeshPart, root: BasePart, appearance: 
 			if effect:IsA("ParticleEmitter") then
 				self.authored[effect] = {rate = effect.Rate, transparency = effect.Transparency}
 			end
+			local peak = effect:GetAttribute("RosterPulse")
+			if effect:IsA("Light") and type(peak) == "number" then
+				local period = effect:GetAttribute("RosterPulseTime")
+				table.insert(self.pulses, {instance = effect, base = effect.Brightness, peak = peak,
+					period = if type(period) == "number" then period else 1.2})
+			end
+		elseif effect:IsA("ParticleEmitter") and type(effect:GetAttribute("RosterBurst")) == "string" then
+			local count = effect:GetAttribute("RosterBurstCount")
+			table.insert(self.bursts, {instance = effect, on = effect:GetAttribute("RosterBurst"),
+				count = if type(count) == "number" then math.clamp(count, 1, 16) else 8})
 		end
 	end
+	for attribute in BURST_EVENTS do self.serials[attribute] = self.model:GetAttribute(attribute) or 0 end
 	self.ownsGlitch = appearance == "Glitch"
 	if self.ownsGlitch then self:_glitch(1, 0, 0) end
 	-- Galaxy's image cache is acquired lazily only while this client can use it.
@@ -467,6 +516,7 @@ end
 function Special._visible(self: any, visible: boolean)
 	if visible == self.visible then return end
 	self.visible = visible
+	self:_pulse(visible)
 	if self.mutationParticles then self:_budget(visible) end
 	for _, effect in self.imported do
 		if effect.Parent then
@@ -547,6 +597,7 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		self.sound=self.audio:VFXLoop("VFX_"..appearance,if audible then body else nil,self.sound)
 	end
 	self:_visible(visible)
+	if #self.bursts > 0 then self:_burst(visible) end
 	if self.mutation then self:_stepMutation(now, visible) end
 	if not visible then return end
 	self:_place()

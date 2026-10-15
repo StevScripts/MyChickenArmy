@@ -9,6 +9,7 @@ local TweenService=game:GetService("TweenService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.ResearchCatalog)
 local Rules=require(Shared.ResearchRules)
+local ShopCatalog=require(Shared.ShopCatalog)
 local Theme=require(script.Parent.UITheme)
 local Assets=require(script.Parent.ResearchAssets)
 local CashNodes=require(script.Parent.CashUpgradeNodes)
@@ -892,7 +893,7 @@ function Browser:RenderTooltip()
 	local title,titleRows=wrap(if tier then tier.name else node.name,22)
 	local description,rows=wrap(effect,23)
 	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" else job~=nil or state~="Completed"
-	local primaryText,primaryStyle,pinText=self:TooltipActions(id,cashNode,offer,state,job,completed)
+	local primaryText,primaryStyle,pinText,pinStyle=self:TooltipActions(id,cashNode,offer,state,job,completed)
 	local actionRow=self.persistent and (primaryText~=nil or pinText~=nil)
 	-- One size on every device (October 15): thumb-friendly 44 px; the card has a pixel floor (TipWidth).
 	local buttonHeight=44
@@ -917,7 +918,7 @@ function Browser:RenderTooltip()
 	else self:StopProgress(self.tipMotion) end
 	self.tip.Active=self.persistent==true
 	styleAction(self.primaryAction,if actionRow then primaryText else nil,primaryStyle)
-	styleAction(self.secondaryAction,if actionRow then pinText else nil,"pin")
+	styleAction(self.secondaryAction,if actionRow then pinText else nil,pinStyle or "pin")
 	local both=actionRow and primaryText~=nil and pinText~=nil
 	local y,h=(height-buttonHeight-8)/height,buttonHeight/height
 	self.primaryAction.button.Position,self.primaryAction.button.Size=UDim2.fromScale(.065,y),UDim2.fromScale(if both then .52 else .87,h)
@@ -942,12 +943,30 @@ function Browser:TooltipActions(id,cashNode,offer,state,job,completed)
 	if cashNode then return nil,nil,nil end
 	if state=="Completed" and not job then return nil,nil,nil end
 	local pin=if data.pinned==id then "Clear goal" else "Pin goal"
+	local pinStyle="pin"
 	if job then
-		-- Studio/admins only: the second button finishes the timer (server rechecks access).
-		if self:CanSkip() then pin="Finish now" end
-		return (if self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"),"cancel",pin
+		-- Studio/admins finish the timer free (server rechecks access); everyone else
+		-- buys the smallest Robux skip tier covering the time left (October 15).
+		if self:CanSkip() then pin="Finish now"
+		else
+			local key=self:SkipProduct(job)
+			if key then
+				local commerce=self.app.commerce
+				commerce:Load(key)
+				local status,price=commerce:State(key)
+				pin=if status=="ready" and type(price)=="number" then "Finish  R$ "..Theme.Number(price)
+					elseif status=="preparing" or status=="pending" then "Opening…" else "Finish now"
+				pinStyle="buy"
+			end
+		end
+		return (if self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"),"cancel",pin,pinStyle
 	end
-	return nil,nil,pin
+	return nil,nil,pin,pinStyle
+end
+
+-- Robux skip tier for a running job; a 2 s margin covers client/server clock drift.
+function Browser:SkipProduct(job)
+	return ShopCatalog.ResearchSkipFor(job.finishAt-self:Now()+2)
 end
 
 -- Gamepad: A on a hex moves focus into its card; B returns to the hex.
@@ -1058,6 +1077,10 @@ function Browser:Secondary()
 	if job and self:CanSkip() then
 		self.app:Request("SkipResearch",{jobId=job.id,expectedRevision=self.data.revision})
 		return
+	end
+	if job then
+		local key=self:SkipProduct(job)
+		if key then self.app.commerce:Buy(key,job.id);return end
 	end
 	if self.selected and self.data and not CashNodes.Nodes[self.selected] and self.data.completed[self.selected]~=true then
 		self.app:Request("PinResearch",{nodeId=if self.data.pinned==self.selected then nil else self.selected})

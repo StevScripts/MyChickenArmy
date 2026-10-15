@@ -255,7 +255,7 @@ function CommerceService:SetAutomatic(session,key,enabled)
  return true,definition.name..(if enabled then " on." else " off.")
 end
 
-function CommerceService:PreparePurchase(player,session,key,productReady)
+function CommerceService:PreparePurchase(player,session,key,productReady,jobId)
  if self:TestAllowed(session) then return false,"Purchases are disabled in a test session." end
  if type(key)~="string" or #key>48 then return false,"Unknown shop item." end
  local definition=self.catalog.Definitions[key] or self.catalog.Products[key]
@@ -267,6 +267,14 @@ function CommerceService:PreparePurchase(player,session,key,productReady)
  elseif not productReady then return false,"Purchases need a safely loaded, saved profile." end
  if definition.coins and session.coins>Currency.MaxCoins-definition.coins then return false,"Spend some cash before buying this pack." end
  if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
+ if definition.researchSkipSeconds then
+  -- Remaining time only shrinks, so a tier that covers it now still covers it at delivery.
+  local now,target=os.time(),nil
+  for _,job in session.research.jobs do if job.id==jobId and job.finishAt>now then target=job end end
+  if not target then return false,"That research has already finished." end
+  if target.finishAt-now>definition.researchSkipSeconds then return false,"Research time changed. Try again." end
+  session.researchSkipTarget=target.id
+ end
  if definition.crates and session.crateCredits>1e9-definition.crates then return false,"Open some crates before buying more." end
  if definition.crates and not self.catalog.Crate.enabled then return false,"Crate rewards are being prepared." end
  if definition.paidRandom then

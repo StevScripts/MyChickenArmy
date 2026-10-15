@@ -373,3 +373,21 @@ again on the server (`GameServer:ResearchSkipAllowed`) and calls
 `ResearchService.Skip`, which sets the job's `finishAt` to now and completes it
 through the normal `Complete` path. The cash already paid stays spent; nothing else
 about research changes for ordinary players.
+
+## Robux research skips, October 15, 2026
+
+Players without admin access see **Finish R$ N** (green) in place of Pin goal on a
+running research. The card offers the smallest tier that covers the time left (plus
+2 s for clock drift): 1 min R$5, 5 min R$15, 15 min R$29, 30 min R$49, 1 hr R$79,
+2 hr R$129, 4 hr R$199, 8 hr R$299, 12 hr R$399, 24 hr R$549. Products are
+`ShopCatalog.Products.ResearchSkip*` (IDs 3718778626–3718778720, created with
+`tools/monetization.py`); they are not listed in the Shop.
+
+`PreparePurchase` (with `jobId`) refuses a finished job or a tier smaller than the
+time left and records the job as the transient `session.researchSkipTarget`.
+`ProductService` delivers through `ResearchService.PaidSkip`: it takes the tier's
+seconds off that job, else the running job with the most time left. With nothing
+running (the job ended during checkout, or a redelivered receipt) the seconds are
+saved in `research.skipCredit` and shorten the next research started, so a paid
+skip is never lost. A malformed `skipCredit` loads as 0; it never rejects a save.
+Admins keep the free **Finish now**.

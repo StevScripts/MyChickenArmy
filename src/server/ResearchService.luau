@@ -44,9 +44,12 @@ function Service.Start(session,nodeId,expectedRevision,expectedPrice,expectedDur
 	if #research.jobs>=effects.slots then return false,"All researchers are busy." end
 	local canSpend,reason=session:CanSpendCash(node.price)
 	if not canSpend then return false,reason end
-	local job={id=HttpService:GenerateGUID(false),nodeId=nodeId,startedAt=now,finishAt=now+duration,paid=node.price}
+	-- Saved paid skip time (a skip bought while nothing was running) shortens this job.
+	local credit=math.min(research.skipCredit or 0,duration)
+	local job={id=HttpService:GenerateGUID(false),nodeId=nodeId,startedAt=now,finishAt=now+math.max(1,duration-credit),paid=node.price}
+	research.skipCredit=(research.skipCredit or 0)-credit
 	session.coins-=node.price;table.insert(research.jobs,job);research.revision+=1;session:Touch()
-	return true,node.name.." research started.",job.id
+	return true,node.name.." research started."..(if credit>0 then " Saved skip time used." else ""),job.id
 end
 
 function Service.Cancel(session,jobId,expectedRevision,now)
@@ -75,6 +78,27 @@ function Service.Skip(session,jobId,expectedRevision,now)
 		return true,(if node then node.name else "Research").." finished."
 	end end
 	return false,"This research job has already finished or been cancelled."
+end
+
+-- Paid skip receipt (non-yielding): takes `seconds` off the job chosen at checkout,
+-- else the running job with the most time left. With nothing running the seconds
+-- are saved as skipCredit for the next research, so a paid skip is never lost.
+function Service.PaidSkip(session,seconds,targetJobId,now)
+	Service.Complete(session,now)
+	local research=session.research
+	local target
+	for _,job in research.jobs do
+		if job.id==targetJobId then target=job;break end
+		if not target or job.finishAt>target.finishAt then target=job end
+	end
+	if not target then
+		research.skipCredit=math.min(1e8,(research.skipCredit or 0)+seconds);session:Touch()
+		return true,"Skip time saved for your next research."
+	end
+	target.finishAt=math.max(now,target.startedAt+1,target.finishAt-seconds);research.revision+=1;session:Touch()
+	local node=Catalog.Nodes[target.nodeId]
+	Service.Complete(session,now)
+	return true,(if node then node.name else "Research").." sped up."
 end
 
 function Service.Pin(session,nodeId)

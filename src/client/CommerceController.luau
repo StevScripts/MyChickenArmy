@@ -100,21 +100,22 @@ function Controller:State(key)
 	return if product then product.status else "loading",product and product.price
 end
 
-function Controller:Buy(key)
+-- `jobId` names the research job a skip product is for (ignored by other items).
+function Controller:Buy(key,jobId)
 	if not self.alive or self.pending or self.autoCrate or self.cratePending or self.cratePresenting then return end
 	local status=self:State(key)
 	if status=="ownership" or status=="policy" or status=="profile" then self.app:Request("RefreshShop");return end
 	if status=="error" then self:Load(key,true);self:Changed();return end
 	local definition,kind,id=self:Definition(key)
 	if not definition or status~="ready" then return end
-	local pending={key=key,kind=kind,productId=id,prompted=false}
+	local pending={key=key,kind=kind,productId=id,prompted=false,jobId=jobId}
 	if definition.crates then
 		local shop=self.app.state and self.app.state.shop
 		local intent={key=key,baseline=(shop and shop.crateCredits) or 0,armed=false}
 		pending.crateIntent,self.autoCrate=intent,intent
 	end
 	self.pending=pending
-	pending.requestId=self.app:Request("PreparePurchase",{key=key})
+	pending.requestId=self.app:Request("PreparePurchase",{key=key,jobId=jobId})
 	self:Changed()
 	self.delay(20,function()
 		if not self.alive or self.pending~=pending or pending.prompted then return end
@@ -247,6 +248,8 @@ function Controller:Receive(result)
 		if result.ok~=true or type(purchase)~="table" or purchase.key~=pending.key
 			or purchase.kind~=pending.kind or purchase.id~=pending.productId then
 			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
+			-- Research skips are bought outside the Shop page, so say why it stopped.
+			if pending.jobId and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false) end
 			self.pending=nil;self:Changed();return
 		end
 		-- A validated server response permits the native checkout, never a local grant.

@@ -65,6 +65,58 @@ variant("Devil","Knight","Devil Chicken",0.015,{249,32,53})
 variant("Heavenly","Wizard","Heavenly Chicken",0.015,{255,242,184})
 variant("SolarFlare","Wizard","Solar Flare Chicken",0.15,{255,206,28})
 
+-- October 15 roster expansion (docs/team/CHICKEN_ROSTER_EXPANSION.md): 79 new
+-- appearances in the existing stat tiers, keyed by the original economy keys.
+-- Weights are set after the October 7 remap below so each band keeps its total.
+local RosterExpansion = {
+ Duck={{"Hatchling","Hatchling",{255,236,140}},{"Silkie","Silkie",{246,244,240}},{"SpeckledHen","Speckled Hen",{60,60,66}},
+  {"BaconHair","Bacon Hair Chick",{64,194,74}},{"Scarecrow","Scarecrow Chicken",{198,162,106}},{"Pajama","Pajama Chicken",{152,198,242}},
+  {"Rooster","Rooster",{150,38,26}},{"Sheep","Sheep Chicken",{242,232,204}},{"Plushie","Plushie Chicken",{250,196,170}}},
+ Mallard={{"CrateRunner","Crate Runner",{112,122,64}},{"Lumberjack","Lumberjack Chicken",{204,34,40}},{"Party","Party Chicken",{255,110,170}},
+  {"Cow","Cow Chicken",{32,30,34}},{"Piggy","Piggy Chicken",{250,172,184}},{"Mailman","Mailman Chicken",{150,192,232}},
+  {"Raincoat","Raincoat Chicken",{255,212,40}},{"Skater","Skater Chicken",{62,192,190}}},
+ Chunky={{"Miner","Miner Chicken",{250,200,40}},{"Sushi","Sushi Chicken",{250,132,80}},{"Donut","Donut Chicken",{255,140,190}},
+  {"Popcorn","Popcorn Chicken",{222,38,42}},{"Gamer","Gamer Chicken",{64,66,76}},{"Frog","Frog Chicken",{96,192,72}},
+  {"Taco","Taco Chicken",{236,186,86}},{"Painter","Painter Chicken",{200,30,44}},{"Sunflower","Sunflower Chicken",{255,206,40}}},
+ Bucket={{"Paratrooper","Paratrooper Chicken",{108,120,66}},{"Coral","Coral Reef Chicken",{255,122,124}},{"Firefighter","Firefighter Chicken",{214,34,36}},
+  {"Chef","Chef Chicken",{250,250,248}},{"Detective","Detective Chicken",{192,160,108}},{"Mummy","Mummy Chicken",{236,228,204}},
+  {"Snowman","Snowman Chicken",{226,234,246}},{"Police","Police Chicken",{34,46,92}},{"Doctor","Doctor Chicken",{62,172,172}}},
+ Viking={{"CastleGuard","Castle Guard Chicken",{40,82,172}},{"Jester","Court Jester",{214,40,48}},{"Ironbeak","Ironbeak Chicken",{128,132,140}},
+  {"Samurai","Samurai Chicken",{196,30,38}},{"Cowboy","Cowboy Chicken",{176,128,74}},{"Steampunk","Steampunk Scratcher",{210,164,70}},
+  {"ZombieHunter","Zombie Hunter",{98,62,38}},{"Ghost","Ghost Chicken",{176,242,252}},{"Archer","Archer Chicken",{62,112,52}},
+  {"Rockstar","Rockstar Chicken",{34,34,38}}},
+ Knight={{"DeepseaDiver","Deepsea Diver",{198,150,64}},{"DragonHatchling","Dragon Hatchling",{228,88,40}},{"RoyalGuard","Royal Guard Chicken",{204,30,42}},
+  {"Neon","Neon Chicken",{255,60,200}},{"NorseRaider","Norse Raider",{130,134,142}},{"Animatronic","Animatronic Chicken",{66,138,130}},
+  {"Vampire","Vampire Chicken",{176,16,38}},{"Yeti","Yeti Chicken",{150,192,232}},{"Mimic","Mimic Chicken",{146,92,50}},
+  {"Gladiator","Gladiator Chicken",{204,144,62}}},
+ Wizard={{"Geode","Geode Chicken",{156,82,228}},{"AirshipCaptain","Airship Captain",{32,46,98}},{"Pharaoh","Pharaoh Chicken",{240,192,54}},
+  {"StainedGlass","Stained Glass Chicken",{36,86,214}},{"Moon","Moon Chicken",{214,218,232}},{"Witch","Witch Chicken",{96,60,156}},
+  {"Olympian","Olympian Chicken",{244,198,70}},{"Aurora","Aurora Chicken",{80,255,170}},{"Jade","Jade Chicken",{34,132,82}}},
+ Dragon={{"Phoenix","Phoenix Chicken",{255,140,34}},{"Unicorn","Unicorn Chicken",{255,108,182}},{"Kraken","Kraken Chicken",{110,50,152}},
+  {"DragonKnight","Dragon Knight",{138,22,34}},{"Griffin","Griffin Chicken",{226,156,56}},{"Valkyrie","Valkyrie Chicken",{52,92,182}}},
+ IceDuck={{"TimeKeeper","Time Keeper",{24,92,98}},{"Mecha","Mecha Chicken",{220,40,52}},{"Kitsune","Kitsune Spirit",{214,34,44}},
+  {"Eclipse","Eclipse Chicken",{255,176,56}},{"ForestGuardian","Forest Guardian",{84,140,52}}},
+ StormDuck={{"FirstHen","The First Hen",{255,212,90}},{"RiftWalker","Rift Walker",{255,70,210}},{"Supernova","Supernova Chicken",{255,186,50}}},
+}
+local RosterExpansionOrder = {"Duck","Mallard","Chunky","Bucket","Viking","Knight","Wizard","Dragon","IceDuck","StormDuck"}
+local rosterNew = {}
+for _, key in RosterExpansionOrder do
+ for _, entry in RosterExpansion[key] do
+  variant(entry[1], key, entry[2], 0, entry[3])
+  rosterNew[entry[1]] = key
+  table.insert(Catalog.Order, entry[1])
+ end
+end
+-- Seasonal limiteds in the Pumpkin pattern: zero roll weight, hidden from the Index
+-- until owned or their event runs. No event is configured for them yet.
+variant("Gingerbread","Knight","Gingerbread Chicken",0,{182,108,56})
+Catalog.Gingerbread.limited = "Christmas2026"
+Catalog.Gingerbread.limitedLabel = "Limited (Christmas 2026)"
+variant("Firework","Wizard","Firework Chicken",0,{24,30,76})
+Catalog.Firework.limited = "NewYear2027"
+Catalog.Firework.limitedLabel = "Limited (New Year 2027)"
+table.insert(Catalog.Order, "Gingerbread"); table.insert(Catalog.Order, "Firework")
+
 -- Crate-only species remain in the persistent collection/index roster. A zero
 -- normal-roll weight keeps every existing station probability unchanged.
 variant("Astronaut","Knight","Astronaut Chicken",0,{99,180,255})
@@ -120,6 +172,39 @@ for id, key in {Cardboard="Mallard",Lollipop="Chunky",Cactus="Chunky",Jungle="Bu
 end
 for _, id in Catalog.Order do
  Catalog[id].rarity = TierRarity[Catalog[id].economyBase or id]
+end
+
+-- October 15 roster expansion weights. Each Luck band keeps its total weight
+-- (weights stay equal to Luck-0 percent odds): the new appearances share
+-- RosterShare of the band and existing members keep their relative weights.
+-- The basic Chicken stays locked at 28 so it still leads a fresh roll.
+local RosterBand = {Duck=1,Mallard=2,Chunky=3,Sailor=3,Bucket=4,Viking=5,Knight=6,Wizard=7,Dragon=8,IceDuck=9,StormDuck=10}
+local RosterShare = {[1]=0.7,[2]=0.4,[3]=0.4,[4]=0.45,[5]=0.5,[6]=0.45,[7]=0.45,[8]=0.6,[9]=0.45,[10]=0.45}
+local RosterLocked = {Duck=true}
+for band, share in RosterShare do
+ local existing, fresh, free = {}, {}, 0
+ for id, d in Catalog do
+  if type(d) == "table" and d.name and (d.weight or 0) >= 0 and RosterBand[d.economyBase or id] == band then
+   if rosterNew[id] then table.insert(fresh, id)
+   elseif (d.weight or 0) > 0 and not RosterLocked[id] then table.insert(existing, id); free += d.weight end
+  end
+ end
+ if #fresh > 0 and free > 0 then
+  for _, id in existing do Catalog[id].weight *= (1 - share) end
+  for _, id in fresh do Catalog[id].weight = free * share / #fresh end
+ end
+end
+-- Index order: each new chicken follows the last chicken of its rarity.
+for _, key in RosterExpansionOrder do
+ for _, entry in RosterExpansion[key] do
+  local id = entry[1]
+  table.remove(Catalog.Order, table.find(Catalog.Order, id))
+  local after = 0
+  for i, other in Catalog.Order do
+   if Catalog[other].rarity == Catalog[id].rarity then after = i end
+  end
+  table.insert(Catalog.Order, after + 1, id)
+ end
 end
 
 return Catalog

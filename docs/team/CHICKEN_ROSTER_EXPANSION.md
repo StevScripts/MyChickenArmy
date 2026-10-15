@@ -3,7 +3,8 @@
 Status: **all ideas approved by the owner on October 15, plus the chat requests in §5b.
 All 83 models (58 + round two's 25) are built in Blender and pass the export checks:
 `assets/chicken-roster-expansion-20261015/` (see its README). The effect design is in
-`CHICKEN_ROSTER_VFX_PLAN.md`. Nothing is imported into Studio or added to the catalog yet.**
+`CHICKEN_ROSTER_VFX_PLAN.md`. Integrated in-game on October 15 (81 in the catalog, effects on 55;
+see `CHICKEN_ROSTER_INTEGRATION.md`). The place is not yet saved to Roblox.**
 Goal: grow from 46 chickens to 103 without lowering quality.
 
 ## 1. What we have today (46)
