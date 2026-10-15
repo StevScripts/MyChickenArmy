@@ -53,10 +53,11 @@ function OfflineCash.Reward(checkpoint, now, coins)
 	-- Pay every checkpoint at today's efficiency (older saves were frozen at 2%).
 	local rate = checkpoint.rate * Tuning.Efficiency / (checkpoint.efficiency or Tuning.LegacyEfficiency)
 	local amount = if away >= Tuning.MinSeconds then math.floor(counted * rate + 1e-7) else 0
-	amount = math.max(0, math.min(amount, math.floor(Currency.MaxCoins - coins)))
+	local limited = amount > Tuning.MaxCoins
+	amount = math.max(0, math.min(amount, Tuning.MaxCoins, math.floor(Currency.MaxCoins - coins)))
 	return {amount = amount, awaySeconds = away, countedSeconds = counted,
 		rate = rate, efficiency = Tuning.Efficiency, maxSeconds = maximum,
-		capped = away > maximum}
+		capped = away > maximum or limited}
 end
 
 return OfflineCash
