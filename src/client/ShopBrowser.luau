@@ -66,9 +66,14 @@ local EXISTING_STYLES={
  CommanderBanner={icon="CommanderBanner",background="gold",palette=6},
  DoubleBounty={icon="DoubleBounty",background="army",palette=5},
 }
+-- October 15 shop redesign (owner reference: StarterGui.GUI.FRAMES.Shop): one short
+-- line per offer; the card itself is the button.
 local PASS_COPY={
- AutoCollectEggs="Collect eggs into your bag.",DoubleCash="2x earned egg and combat cash.",
- AutoMerge="Fuse eligible home chickens.",BiggerArmy="+5 slots. Up to 15 chickens.",DoubleLuck="2x Luck strength. Favor stronger chickens.",
+ AutoCollectEggs="A vacuum collects your eggs!",DoubleCash="2x cash from eggs and fights!",
+ DoubleEggSpawn="Chickens lay 2x the eggs!",AutoMerge="Fuses matches for you!",
+ BiggerArmy="+5 army slots!",DoubleLuck="Stronger chickens more often!",
+ EggMagnet="Grab eggs from 2x as far!",CommanderBanner="Gold frame + crown flags!",
+ DoubleBounty="2x cash from NPC kills!",
 }
 -- Placeholder quantities; RenderCashAmounts shows the live payout. Checkout prices always come from Roblox.
 local CASH_TIERS={
@@ -78,9 +83,22 @@ local CASH_TIERS={
 }
 -- Recording-led spacing, expressed relative to section width on every screen.
 local OFFER_COLUMNS=3
-local OFFER_GAP=0.012
-local HEADING_HEIGHT=0.034
-local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.012
+local OFFER_GAP=0.016
+-- Section title bars follow the reference's 21.9:1 dark bar at 93% width.
+local TITLE_WIDTH=0.93
+local HEADING_HEIGHT=TITLE_WIDTH/21.94
+local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.018
+-- Wider than the old 1.48 GUI.FRAMES proportion; matches MenuLayout.Defaults.Shop.
+local SHOP_ASPECT=1.78
+local PASS_RATIO=1.62
+local CASH_RATIO=1.05
+local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Cash Packs"}
+local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Cash"}
+local TITLE_GRADIENTS={
+ Galaxy={Color3.fromRGB(205,140,255),Color3.fromRGB(110,235,255)},
+ Passes={Color3.fromRGB(21,255,0),Color3.fromRGB(255,255,0)},
+ Cash={Color3.fromRGB(21,255,0),Color3.fromRGB(255,255,0)},
+}
 local SECTION_ICONS={Galaxy=GalaxyPresentation.CrateImage,Passes=Theme.Assets.Army,Cash=Theme.Assets.Cash}
 
 local function frame(parent,name,size,position,color)
@@ -146,7 +164,7 @@ function Browser.new(app,parent)
  -- The shared popup visitor must also skip this subtree while another page is open.
  root:SetAttribute("OwnsPopupStyle",true)
  self.root=root
- Theme.Aspect(root,1.4817016124725342)
+ Theme.Aspect(root,SHOP_ASPECT)
  local window=Theme.Container(root,"Window")
  self.window=window
  local header=Theme.Header(window,"Header","Shop",P.gold)
@@ -162,33 +180,20 @@ function Browser.new(app,parent)
  body.ClipsDescendants=true
  self.body=body
  self.previewStatus=plain(body,"PurchaseStatus","Prices from Roblox · purchases deliver to this account",14,UDim2.fromScale(0.015,0.945),UDim2.fromScale(0.97,0.045),P.muted,true)
- -- Section tabs live in a left rail inside the panel, beside the scrolling content.
- local nav=frame(body,"SectionNavigation",UDim2.fromScale(0.07,0.62),UDim2.fromScale(0.008,0.5))
- nav.AnchorPoint=Vector2.new(0,0.5)
+ -- Section shortcuts sit outside the window's left edge so the inside is all offers.
+ local nav=frame(root,"SectionNavigation",UDim2.fromScale(0.085,0.7),UDim2.fromScale(-0.014,0.56))
+ nav.AnchorPoint=Vector2.new(1,0.5)
  nav.BackgroundTransparency,nav.ZIndex=1,5
+ nav:SetAttribute("OwnsPopupStyle",true)
  self.navigation=nav
  local navLayout=Instance.new("UIListLayout")
- navLayout.FillDirection,navLayout.Padding,navLayout.SortOrder,navLayout.Parent=Enum.FillDirection.Vertical,UDim.new(0.025,0),Enum.SortOrder.LayoutOrder,nav
- navLayout.VerticalAlignment=Enum.VerticalAlignment.Center
+ navLayout.FillDirection,navLayout.Padding,navLayout.SortOrder,navLayout.Parent=Enum.FillDirection.Vertical,UDim.new(0.03,0),Enum.SortOrder.LayoutOrder,nav
+ navLayout.VerticalAlignment,navLayout.HorizontalAlignment=Enum.VerticalAlignment.Center,Enum.HorizontalAlignment.Center
  for index,key in {"Galaxy","Passes","Cash"} do
-  local button=Theme.IconButton(nav,key,key,"",function()
-   self.app.audio:Play("Click");self:ScrollTo(key)
-  end)
-  button.LayoutOrder,button.ZIndex=index,6
-  button.Size=UDim2.fromScale(1,0.3)
-  Theme.Aspect(button,1)
-  button.TextColor3=if index==1 then P.gold else P.white
-  button:SetAttribute("Selected",index==1)
-  local icon=button.Visual.Icon
-  if key=="Galaxy" then icon.Image=GalaxyPresentation.CrateImage
-  elseif key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
-  else Art.CashPile(icon,1) end
-  local indicator=frame(button.Visual,"SelectedIndicator",UDim2.fromScale(0.9,0.035),UDim2.fromScale(0.05,0.965),P.gold)
-  indicator.Visible,indicator.ZIndex=index==1,7
-  self.tabs[key]=button
+  self.tabs[key]=self:SectionTab(nav,key,index)
  end
  local scroll=Instance.new("ScrollingFrame")
- scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.085,0.02),UDim2.fromScale(0.905,0.91)
+ scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.01,0.015),UDim2.fromScale(0.98,0.915)
  -- A visible gold scrollbar and a soft fade say "there is more below".
  scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,8
  scroll.ScrollingDirection,scroll.ScrollBarImageColor3,scroll.ClipsDescendants=Enum.ScrollingDirection.Y,P.gold,true
@@ -216,7 +221,7 @@ function Browser.new(app,parent)
  layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.05,0),Enum.SortOrder.LayoutOrder,scroll
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.layout=layout
- local featured=self:Section("Galaxy","Featured",0)
+ local featured=self:Section("Galaxy",SECTION_TITLES.Galaxy,0)
  self.galaxy=GalaxyCrateShop.new(app,featured)
  self:CreatePasses();self:CreateCash();self:CreateDetails()
  for _,property in {"CanvasPosition","AbsoluteCanvasSize","AbsoluteWindowSize"} do
@@ -241,16 +246,56 @@ function Browser.new(app,parent)
  return self
 end
 
+-- A big icon with a stroked caption; the selected section's caption turns gold.
+function Browser:SectionTab(parent,key,index)
+ local button=Instance.new("TextButton")
+ button.Name,button.Text,button.BackgroundTransparency,button.AutoButtonColor=key,"",1,false
+ button.Size,button.LayoutOrder,button.ZIndex,button.Selectable=UDim2.fromScale(1,0.3),index,6,true
+ button.Parent=parent
+ Theme.Aspect(button,0.86)
+ local visual=Theme.Container(button,"Visual")
+ visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+ local backing=frame(visual,"Backing",UDim2.fromScale(0.96,0.78),UDim2.fromScale(0.02,0.02),Color3.new(1,1,1))
+ backing.ZIndex=6
+ Theme.Gradient(backing,Color3.fromRGB(58,64,78),Color3.fromRGB(20,22,30))
+ Theme.Stroke(backing,Color3.new(0,0,0),3)
+ local glow=Theme.Stroke(Theme.Container(backing,"Glow"),P.gold,2)
+ glow.Parent.ZIndex,glow.Transparency=7,1
+ local icon=Theme.Image(visual,"Icon","",UDim2.fromScale(0.86,0.7),UDim2.fromScale(0.07,0.05))
+ icon.ZIndex=8
+ Theme.Aspect(icon,1)
+ if key=="Galaxy" then icon.Image=GalaxyPresentation.CrateImage
+ elseif key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
+ else Art.CashPile(icon,3) end
+ local caption=Theme.Display(visual,"Caption",TAB_TITLES[key],26,P.white)
+ caption.Position,caption.Size,caption.ZIndex=UDim2.fromScale(-0.1,0.76),UDim2.fromScale(1.2,0.24),9
+ caption.TextXAlignment,caption.TextScaled,caption.TextWrapped=Enum.TextXAlignment.Center,true,false
+ Theme.Motion:BindButton(button,visual)
+ table.insert(self.connections,button.Activated:Connect(function()
+  self.app.audio:Play("Click");self:ScrollTo(key)
+ end))
+ return button
+end
+
 function Browser:Section(key,title,order)
  local section=frame(self.scroll,key,UDim2.fromScale(0.98,4))
  section.LayoutOrder,section.BackgroundTransparency=order,1
- local titleWidth=if key=="Cash" then 0.09 elseif key=="Galaxy" then 0.15 else 0.20
- local heading=text(section,"Heading",title,24,UDim2.fromScale(0.5,0),UDim2.fromScale(titleWidth,0.05),FIGMA.text,true)
- heading.AnchorPoint,heading.TextWrapped=Vector2.new(0.5,0),false
+ -- Dark translucent bar with a gradient title and an icon on each side.
+ local bar=frame(section,"TitleBar",UDim2.fromScale(TITLE_WIDTH,0.05),UDim2.fromScale(0.5,0),Color3.new(0,0,0))
+ bar.AnchorPoint,bar.BackgroundTransparency,bar.ZIndex=Vector2.new(0.5,0),0.55,5
+ bar:SetAttribute("OwnsPopupStyle",true)
+ Theme.Stroke(bar,Color3.new(0,0,0),3)
+ local heading=text(bar,"Heading",title,30,UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.3,1),P.white,true)
+ heading.AnchorPoint,heading.TextWrapped,heading.ZIndex=Vector2.new(0.5,0.5),false,8
+ local colors=TITLE_GRADIENTS[key]
+ local shine=Instance.new("UIGradient")
+ shine.Rotation=90
+ shine.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,colors[1]),ColorSequenceKeypoint.new(0.5,colors[2]),ColorSequenceKeypoint.new(1,colors[1])})
+ shine.Parent=heading.TextFace
  for _,side in {-1,1} do
-  local icon=Theme.Image(section,if side<0 then "HeadingLeft" else "HeadingRight",SECTION_ICONS[key],UDim2.fromScale(0.028,0.028))
-  icon.AnchorPoint,icon.ZIndex=Vector2.new(0.5,0.5),heading.ZIndex
-  icon.Position=UDim2.fromScale(0.5+side*(titleWidth/2+0.022),0)
+  local icon=Theme.Image(bar,if side<0 then "HeadingLeft" else "HeadingRight",SECTION_ICONS[key],UDim2.fromScale(0.09,1.8))
+  icon.AnchorPoint,icon.ZIndex=Vector2.new(0.5,0.5),9
+  icon.Position=UDim2.fromScale(0.5+side*0.2,0.5)
   Theme.Aspect(icon,1)
  end
  self.sections[key]=section
@@ -259,24 +304,43 @@ end
 
 local function layoutSection(section,height)
  Theme.Aspect(section,1/height)
- section.Heading.Size=UDim2.fromScale(section.Heading.Size.X.Scale,HEADING_HEIGHT/height)
- for _,name in {"HeadingLeft","HeadingRight"} do
-  local icon=section[name]
-  icon.Position=UDim2.fromScale(icon.Position.X.Scale,HEADING_HEIGHT/(2*height))
-  icon.Size=UDim2.fromScale(0.028,0.028/height)
- end
+ section.TitleBar.Size=UDim2.fromScale(TITLE_WIDTH,HEADING_HEIGHT/height)
+end
+
+-- The reference's offer surface: vertical gradient, dark outer edge, light inner
+-- keyline, and a white sunburst behind oversized art. `visual` is what scales on hover.
+local function offerFace(card,top,bottom)
+ local visual=Theme.Container(card,"Visual")
+ visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+ local face=frame(visual,"Face",UDim2.fromScale(1,1),nil,Color3.new(1,1,1))
+ face.ZIndex=2
+ local gradient=Theme.Gradient(face,top,bottom)
+ gradient.Transparency=NumberSequence.new(0)
+ local edge=Theme.Stroke(face,top:Lerp(Color3.new(0,0,0),0.72),3)
+ edge.BorderStrokePosition=Enum.BorderStrokePosition.Outer
+ local rim=Theme.Container(face,"InnerRim")
+ rim.Position,rim.Size,rim.ZIndex=UDim2.fromScale(0.012,0.02),UDim2.fromScale(0.976,0.96),3
+ local keyline=Theme.Stroke(rim,top:Lerp(Color3.new(1,1,1),0.6),2)
+ keyline.Transparency=0.15
+ local studs=Theme.Studs(face,0.08,28,0)
+ studs.ZIndex=3
+ return visual,face
+end
+
+function Browser:Activate(key,button)
+ if not button.Active then return end
+ self.app.audio:Play("Click")
+ local state=self.app.commerce:State(key)
+ if state=="owned" then self.app.commerce:Toggle(key)
+ elseif state=="ready" and key=="DoubleLuck" then
+  self:ShowDetails("Luck",key)
+ else self.app.commerce:Buy(key) end
 end
 
 function Browser:PurchaseButton(parent,key,color)
  local button
  button=Theme.ActionButton(parent,"Buy"..key,"Loading",function()
-  if not button.Active then return end
-  self.app.audio:Play("Click")
-  local state=self.app.commerce:State(key)
-  if state=="owned" then self.app.commerce:Toggle(key)
-  elseif state=="ready" and key=="DoubleLuck" then
-   self:ShowDetails("Luck",key)
-  else self.app.commerce:Buy(key) end
+  self:Activate(key,button)
  end,color or P.green)
  button.TextSize=20
  button.Active,button.Selectable=false,false
@@ -286,8 +350,30 @@ function Browser:PurchaseButton(parent,key,color)
  return button
 end
 
+-- One offer card: the whole card is a button that does what its price pill does.
+function Browser:OfferCard(parent,key,definition,order)
+ local card=Instance.new("TextButton")
+ card.Name,card.Text,card.BackgroundTransparency,card.AutoButtonColor=key,"",1,false
+ card.LayoutOrder,card.ZIndex,card.Selectable=order,2,false
+ card:SetAttribute("OwnsPopupStyle",true)
+ card.Parent=parent
+ local visual,face=offerFace(card,definition.color:Lerp(Color3.new(1,1,1),0.12),definition.top)
+ local rays=Art.ProductRays(visual,Color3.new(1,1,1))
+ rays.AnchorPoint,rays.ImageTransparency,rays.ZIndex=Vector2.new(0.5,0.5),0.25,4
+ local art=frame(visual,"Artwork",UDim2.fromScale(0.46,0.74),UDim2.fromScale(0.25,0.56))
+ art.BackgroundTransparency,art.ZIndex=1,5
+ local title=text(visual,"Title",definition.name,30,UDim2.new(),UDim2.new(),P.white,false)
+ local description=text(visual,"Description",PASS_COPY[key] or Catalog.Definitions[key].description,20,UDim2.new(),UDim2.new(),FIGMA.text,false)
+ local buy=self:PurchaseButton(visual,key)
+ buy.ZIndex=12
+ table.insert(self.connections,card.Activated:Connect(function() self:Activate(key,buy) end))
+ Theme.Motion:BindButton(card,visual,face)
+ card:SetAttribute("Owned",false)
+ return {root=card,visual=visual,face=face,title=title,art=art,rays=rays,description=description,buy=buy,palette=definition}
+end
+
 function Browser:CreatePasses()
- local section=self:Section("Passes","Gamepasses",1)
+ local section=self:Section("Passes",SECTION_TITLES.Passes,1)
  local grid=frame(section,"PassCards",UDim2.fromScale(1,0.9),UDim2.fromScale(0,0.1))
  grid.BackgroundTransparency=1
  self.passGrid=grid
@@ -299,26 +385,16 @@ function Browser:CreatePasses()
   local offer=Catalog.Definitions[definition.key]
   if not offer or offer.enabled==false then continue end
   self.passCount+=1
-  local card=panel(grid,definition.key,definition.color)
-  card.LayoutOrder=self.passCount
-  local title=text(card,"Title",definition.name,24,UDim2.fromScale(0.035,0.03),UDim2.fromScale(0.93,0.17),definition.color,true)
-  local art=frame(card,"Artwork",UDim2.fromScale(0.43,0.48),UDim2.fromScale(0.025,0.235))
-  art.BackgroundTransparency,art.ZIndex=1,3
-  local rays=Art.PassBackdrop(card,definition.background)
-  local multiplier=Art.PassIcon(art,definition.icon,definition.double)
-  -- Figma uses the display face with a dark outline and 2px hard shadow, not plain copy.
-  local description=text(card,"Description",PASS_COPY[definition.key] or Catalog.Definitions[definition.key].description,18,UDim2.fromScale(0.51,0.23),UDim2.fromScale(0.45,0.43),FIGMA.text,true)
-  local buy=self:PurchaseButton(card,definition.key)
-  buy.Position,buy.Size=UDim2.fromScale(0.04,0.78),UDim2.fromScale(0.92,0.18)
-  card:SetAttribute("Owned",false)
-  self.cards[definition.key]={root=card,title=title,art=art,rays=rays,multiplier=multiplier,description=description,buy=buy,palette=definition}
+  local view=self:OfferCard(grid,definition.key,definition,self.passCount)
+  view.multiplier=Art.PassIcon(view.art,definition.icon,definition.double)
+  self.cards[definition.key]=view
   if definition.key=="DoubleLuck" then
-   local details=Theme.ActionButton(card,"Details","Details",function()
+   local details=Theme.ActionButton(view.visual,"Details","Odds",function()
     self.app.audio:Play("Click");self:ShowDetails("Luck")
    end,P.cyan)
-   dress(details,P.cyan);self.cards[definition.key].details=details
+   dress(details,P.cyan);details.ZIndex=12;view.details=details
   end
-  self:BindOfferMotion(self.cards[definition.key],"Passes")
+  self:BindOfferMotion(view,"Passes")
  end
  self:CreateExistingPasses(section)
 end
@@ -330,17 +406,10 @@ function Browser:CreateExistingPasses(_section)
   if not definition or definition.enabled==false then continue end
   self.passCount+=1
   local style=EXISTING_STYLES[key]
-  local palette=PASSES[style.palette]
-  local entry=panel(self.passGrid,key,palette.color)
-  entry.LayoutOrder=self.passCount
-  local title=text(entry,"Title",definition.name,24,UDim2.new(),UDim2.new(),palette.title,true)
-  local description=text(entry,"Description",definition.description,22,UDim2.new(),UDim2.new(),FIGMA.text,true)
-  local art=frame(entry,"Artwork",UDim2.fromScale(0.43,0.48),UDim2.fromScale(0.025,0.235))
-  art.BackgroundTransparency,art.ZIndex=1,3
-  Art.PassIcon(art,style.icon)
-  local rays=Art.PassBackdrop(entry,style.background)
-  local buy=self:PurchaseButton(entry,key)
-  local view={root=entry,title=title,description=description,art=art,rays=rays,buy=buy,palette=palette}
+  local palette=table.clone(PASSES[style.palette])
+  palette.name=definition.name
+  local view=self:OfferCard(self.passGrid,key,palette,self.passCount)
+  Art.PassIcon(view.art,style.icon)
   self.existingCards[key],self.cards[key]=view,view
   self:BindOfferMotion(view,"Passes")
  end
@@ -372,7 +441,7 @@ function Browser:RenderExisting()
  local normal=shop and shop.policyReady==true and shop.paidRandomAllowed==true
  luck.title.Text=if guaranteed then "Guaranteed Offers" elseif normal then "2x Luck" else "Luck pass"
  luck.description.Text=if guaranteed then "A Rare+ offer every 10 rolls"
-  elseif normal then PASS_COPY.DoubleLuck else "Checking your available benefit…"
+  elseif normal then PASS_COPY.DoubleLuck else "Checking your benefit…"
  if luck.multiplier then luck.multiplier.Visible=normal==true end
  local saving=not shop or not shop.productReady
  self.previewStatus.Text=if shop and shop.testAllowed then "Studio test · Use Test roll above · No Robux charged"
@@ -390,28 +459,34 @@ function Browser:RenderExisting()
     or unit>=entry.price/Catalog.Products[view.key].coins then bestVault=false;break end
   end
  end
- self.cashSubtitle.Text=if bestVault then "Best value" else "Largest cash pack"
+ self.cashSubtitle.Text=if bestVault then "BEST VALUE!" else "Biggest pack!"
  self:RenderDetails()
 end
 
 function Browser:CreateCash()
- local section=self:Section("Cash","Cash",2)
- local vault=panel(section,"CommandersVault",FIGMA.cash)
- self.cashFeatured=vault
+ local section=self:Section("Cash",SECTION_TITLES.Cash,2)
+ local vaultButton=Instance.new("TextButton")
+ vaultButton.Name,vaultButton.Text,vaultButton.BackgroundTransparency,vaultButton.AutoButtonColor="CommandersVault","",1,false
+ vaultButton.ZIndex,vaultButton.Selectable=2,false
+ vaultButton:SetAttribute("OwnsPopupStyle",true)
+ vaultButton.Parent=section
+ local vault,vaultFace=offerFace(vaultButton,Color3.fromRGB(176,255,1),Color3.fromRGB(23,190,0))
+ vault.ClipsDescendants=true
+ self.cashFeatured,self.cashFeaturedButton=vaultButton,vaultButton
  self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
- local art=frame(vault,"CashOverflow",UDim2.fromScale(1,1.3),UDim2.fromScale(0,-0.3))
- art.BackgroundTransparency,art.ZIndex=1,3
+ self.cashRays.ZIndex=4
+ local art=frame(vault,"CashOverflow",UDim2.fromScale(0.5,1.25),UDim2.fromScale(0.5,-0.18))
+ art.BackgroundTransparency,art.ZIndex=1,5
  self.cashArt=art
  self.cashOverflow=Art.CashOverflow(art)
- self.cashShade=frame(vault,"CashCopyShade",UDim2.fromScale(0.68,1))
- -- The current Figma banner has no extra copy overlay; keep the cash artwork unmuted.
- self.cashShade.Visible,self.cashShade.ZIndex=false,6
- self.cashTitle=text(vault,"Title","Commander's Vault",28,UDim2.fromScale(0.02,0.05),UDim2.fromScale(0.54,0.16))
- self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.02,0.49),UDim2.fromScale(0.54,0.2),Color3.fromRGB(176,255,1))
- self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.fromScale(0.02,0.22),UDim2.fromScale(0.54,0.25),FIGMA.text,false)
- self.cashNote.Font=Theme.Font
- vault:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
+ self.cashTitle=text(vault,"Title","Commander's Vault",30,UDim2.fromScale(0.03,0.07),UDim2.fromScale(0.5,0.2))
+ self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.fromScale(0.03,0.29),UDim2.fromScale(0.5,0.3),FIGMA.text,false)
+ self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.03,0.56),UDim2.fromScale(0.4,0.12),Color3.fromRGB(255,240,90))
+ vaultButton:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
  self.cashBuy=self:PurchaseButton(vault,"CommandersVault",P.gold)
+ self.cashBuy.ZIndex=12
+ table.insert(self.connections,vaultButton.Activated:Connect(function() self:Activate("CommandersVault",self.cashBuy) end))
+ Theme.Motion:BindButton(vaultButton,vault,vaultFace)
  local shelf=frame(section,"CashTiers",UDim2.fromScale(1,0.45),UDim2.fromScale(0,0.55))
  shelf.BackgroundTransparency=1
  self.cashShelf=shelf
@@ -420,16 +495,24 @@ function Browser:CreateCash()
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.cashLayout=layout
  for i,definition in CASH_TIERS do
-  local card=panel(shelf,definition.key,FIGMA.cash)
-  card.LayoutOrder=i
-  local title=text(card,"Title",definition.name,24,UDim2.fromScale(0.04,0.025),UDim2.fromScale(0.92,0.12),P.white,true)
-  local rays=Art.ProductRays(card,Color3.new(1,1,1))
-  local icon=frame(card,"Artwork",UDim2.fromScale(0.66,0.5),UDim2.fromScale(0.17,0.18))
-  icon.BackgroundTransparency,icon.ZIndex=1,3
+  local card=Instance.new("TextButton")
+  card.Name,card.Text,card.BackgroundTransparency,card.AutoButtonColor=definition.key,"",1,false
+  card.LayoutOrder,card.ZIndex,card.Selectable=i,2,false
+  card:SetAttribute("OwnsPopupStyle",true)
+  card.Parent=shelf
+  local visual,face=offerFace(card,Color3.fromRGB(176,255,1),Color3.fromRGB(23,190,0))
+  local title=text(visual,"Title",definition.name,26,UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.12),P.white,true)
+  local rays=Art.ProductRays(visual,Color3.new(1,1,1))
+  rays.ZIndex=4
+  local icon=frame(visual,"Artwork",UDim2.fromScale(0.66,0.5),UDim2.fromScale(0.17,0.18))
+  icon.BackgroundTransparency,icon.ZIndex=1,5
   Art.CashPile(icon,definition.tier)
-  local note=text(card,"PreviewAmount",definition.amount,40,UDim2.fromScale(0.04,0.69),UDim2.fromScale(0.92,0.13),FIGMA.text,true)
+  local note=text(visual,"PreviewAmount",definition.amount,40,UDim2.fromScale(0.04,0.69),UDim2.fromScale(0.92,0.13),FIGMA.text,true)
   note.Font=Theme.Font
-  local buy=self:PurchaseButton(card,definition.key)
+  local buy=self:PurchaseButton(visual,definition.key)
+  buy.ZIndex=12
+  table.insert(self.connections,card.Activated:Connect(function() self:Activate(definition.key,buy) end))
+  Theme.Motion:BindButton(card,visual,face)
   self.cashViews[i]={root=card,key=definition.key,title=title,art=icon,rays=rays,note=note,buy=buy}
   self:BindOfferMotion(self.cashViews[i],"Cash")
  end
@@ -674,73 +757,29 @@ function Browser:UpdateSection()
  self.activeSection=active
  for key,button in self.tabs do
   local selected=key==active
-  button.TextColor3=if selected then P.gold else P.white
-  button.Visual.SelectedIndicator.Visible=selected
+  button.Visual.Caption.TextColor3=if selected then P.gold else P.white
+  button.Visual.Backing.Glow.UIStroke.Transparency=if selected then 0 else 1
   button:SetAttribute("Selected",selected)
  end
 end
 
 function Browser:ApplyPresentation()
- -- Explicit Shop direction: saturated Mini War-style offers, shared neutral shell.
+ -- Shared neutral shell; offer cards and title bars own their colors (OwnsPopupStyle).
  Theme.ApplyPopupStyle(self.root)
- local function offerSurface(item,color,top,rimColor)
-  item.BackgroundColor3,item.BackgroundTransparency=Color3.new(1,1,1),0
-  Theme.Gradient(item,top or color:Lerp(P.ink,0.88),color)
-  local gradient=item:FindFirstChildWhichIsA("UIGradient")
-  if gradient then
-   -- The popup visitor assigns a translucent neutral gradient on every render.
-   -- Reset its alpha as well as its color so the offer keeps its full saturation.
-   gradient.Enabled,gradient.Rotation,gradient.Transparency=true,90,NumberSequence.new(0)
-  end
-  local edge=Theme.Stroke(item,color,Theme.Border.Card)
-  edge.Transparency=0
-  local rim=item:FindFirstChild("InnerRim")
-  if rim and rim:IsA("Frame") then
-   rim.Visible,rim.BackgroundTransparency=true,1
-   local keyline=Theme.Stroke(rim,rimColor or color:Lerp(P.white,0.65),1)
-   keyline.Transparency=0.48
-  end
- end
- -- Keep native buttons and their unavailable guards, but restore the Figma face
- -- after the shared popup visitor has applied its general-purpose styling.
  local function offerButton(button,sequence)
   Theme.ApplyReferenceAccent(button,sequence)
   button.TextColor3,button.Visual.Caption.TextColor3=FIGMA.text,FIGMA.text
  end
- offerSurface(self.cashFeatured,FIGMA.cash,FIGMA.cashTop,FIGMA.cashRim)
- for _,section in self.sections do section.Heading.TextColor3=FIGMA.text end
- for _,definition in PASSES do
-  local view=self.cards[definition.key]
-  if not view then continue end
-  offerSurface(view.root,definition.color,definition.top,definition.rim)
-  view.title.TextColor3,view.description.TextColor3=definition.title,FIGMA.text
-  view.root.InnerRim.UIStroke.Transparency=0.28
-  offerButton(view.buy,FIGMA.purchase)
- end
- for _,view in self.existingCards do
-  local definition=view.palette
-  offerSurface(view.root,definition.color,definition.top,definition.rim)
-  view.root.InnerRim.UIStroke.Transparency=0.28
-  view.title.TextColor3,view.description.TextColor3=definition.title,FIGMA.text
+ for _,view in self.cards do
   offerButton(view.buy,if view.root:GetAttribute("Owned") then FIGMA.vaultPurchase else FIGMA.purchase)
  end
- for _,view in self.cashViews do
-  offerSurface(view.root,FIGMA.cash,FIGMA.cashTop,FIGMA.cashRim)
-  view.title.TextColor3,view.note.TextColor3=FIGMA.text,FIGMA.text
-  offerButton(view.buy,FIGMA.purchase)
- end
- self.cashTitle.TextColor3,self.cashNote.TextColor3=FIGMA.text,FIGMA.text
+ for _,view in self.cashViews do offerButton(view.buy,FIGMA.purchase) end
  offerButton(self.cashBuy,FIGMA.vaultPurchase)
- -- The shared popup visitor must not recolor the illustration's copy-protection fade.
- self.cashShade.Visible=true
- self.cashShade.BackgroundColor3,self.cashShade.BackgroundTransparency=FIGMA.cashTop,0
- Theme.Gradient(self.cashShade,Color3.new(1,1,1),Color3.new(1,1,1))
- local copyFade=self.cashShade:FindFirstChildWhichIsA("UIGradient")
- if copyFade then
-  copyFade.Enabled,copyFade.Rotation=true,0
-  copyFade.Transparency=NumberSequence.new({
-   NumberSequenceKeypoint.new(0,0.14),NumberSequenceKeypoint.new(0.48,0.5),NumberSequenceKeypoint.new(1,1),
-  })
+ for key,button in self.tabs do
+  local selected=key==self.activeSection
+  local caption=button.Visual.Caption
+  caption.TextColor3=if selected then P.gold else P.white
+  button.Visual.Backing.Glow.UIStroke.Transparency=if selected then 0 else 1
  end
 end
 
@@ -754,7 +793,7 @@ function Browser:Resize()
  local featuredSectionHeight=SECTION_CONTENT_TOP+GalaxyCrateShop.Height
  layoutSection(self.sections.Galaxy,featuredSectionHeight)
  self.galaxy.root.Position,self.galaxy.root.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/featuredSectionHeight),UDim2.fromScale(1,GalaxyCrateShop.Height/featuredSectionHeight)
- local passRatio=1.10
+ local passRatio=PASS_RATIO
  local cardWidth=(1-OFFER_GAP*(OFFER_COLUMNS-1))/OFFER_COLUMNS
  local passRows=math.ceil(self.passCount/OFFER_COLUMNS)
  local passCardHeight=cardWidth/passRatio
@@ -766,23 +805,29 @@ function Browser:Resize()
  self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(OFFER_GAP,OFFER_GAP/gridHeight),UDim2.fromScale(cardWidth,passCardHeight/gridHeight)
  self.passLayout.FillDirectionMaxCells=OFFER_COLUMNS
  for _,view in self.cards do
-  Theme.Aspect(view.root,passRatio)
-  view.title.Position,view.title.Size=UDim2.fromScale(0.035,0.035),UDim2.fromScale(0.93,0.155)
-  view.title.TextWrapped=true
+  -- Reference layout: art and sunburst on the left, name top-right, one line of
+  -- copy, then a big price pill bottom-right. Everything is readable at a glance.
+  view.rays.Position,view.rays.Size=UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.62,1.0)
+  Theme.Aspect(view.rays,1)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.245,0.455),UDim2.fromScale(0.43,0.44)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.47,0.76)
   Theme.Aspect(view.art,1)
   view.artRestSize=view.art.Size
-  view.description.Position,view.description.Size=UDim2.fromScale(0.50,0.245),UDim2.fromScale(0.46,if view.details then 0.25 else 0.39)
-  view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Center
+  view.title.AnchorPoint,view.title.Position,view.title.Size=Vector2.new(1,0),UDim2.fromScale(0.965,0.06),UDim2.fromScale(0.56,0.25)
+  view.title.TextWrapped,view.title.TextXAlignment=false,Enum.TextXAlignment.Right
+  view.description.AnchorPoint,view.description.Position=Vector2.new(1,0),UDim2.fromScale(0.965,0.33)
+  view.description.Size=UDim2.fromScale(0.5,0.27)
+  view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Right
   if view.details then
-   view.details.Position,view.details.Size=UDim2.fromScale(0.52,0.545),UDim2.fromScale(0.43,0.14)
+   -- The odds button tucks into the art's lower-left corner.
+   view.details.AnchorPoint,view.details.Position,view.details.Size=Vector2.new(0,1),UDim2.fromScale(0.03,0.93),UDim2.fromScale(0.2,0.2)
   end
-  view.buy.Position,view.buy.Size=UDim2.fromScale(0.06,0.75),UDim2.fromScale(0.88,0.20)
+  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(1,1),UDim2.fromScale(0.965,0.93),UDim2.fromScale(0.5,0.25)
  end
  local cashCardWidth=cardWidth
- local featuredHeight=0.26
- local cashHeight=SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP+cashCardWidth
+ local cashCardHeight=cashCardWidth/CASH_RATIO
+ local featuredHeight=0.22
+ local cashHeight=SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP+cashCardHeight
  -- AutomaticCanvasSize undercounts these aspect-constrained sections. Express
  -- their full height in the body's native Scale coordinates instead. CanvasSize
  -- uses the scroll parent's height; padding and list gaps use the canvas height.
@@ -798,19 +843,23 @@ function Browser:Resize()
  layoutSection(self.sections.Cash,cashHeight)
  self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/cashHeight),UDim2.fromScale(1,featuredHeight/cashHeight)
  Theme.Aspect(self.cashFeatured,1/featuredHeight)
- self.cashRays.Visible=false
- self.cashBuy.Position,self.cashBuy.Size=UDim2.fromScale(0.65,0.71),UDim2.fromScale(0.32,0.24)
+ self.cashRays.AnchorPoint,self.cashRays.Position,self.cashRays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.75,0.5),UDim2.fromScale(0.5,1.6)
+ Theme.Aspect(self.cashRays,1)
+ self.cashBuy.AnchorPoint,self.cashBuy.Position,self.cashBuy.Size=Vector2.new(0,1),UDim2.fromScale(0.03,0.93),UDim2.fromScale(0.3,0.22)
  self.cashTitle.TextWrapped,self.cashSubtitle.TextWrapped=true,true
  self.cashTitle.TextXAlignment,self.cashNote.TextXAlignment,self.cashSubtitle.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
- self.cashShelf.Position,self.cashShelf.Size=UDim2.fromScale(0,(SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP)/cashHeight),UDim2.fromScale(1,cashCardWidth/cashHeight)
+ self.cashShelf.Position,self.cashShelf.Size=UDim2.fromScale(0,(SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP)/cashHeight),UDim2.fromScale(1,cashCardHeight/cashHeight)
  self.cashLayout.CellSize,self.cashLayout.FillDirectionMaxCells=UDim2.fromScale(cashCardWidth,1),OFFER_COLUMNS
  for _,view in self.cashViews do
-  Theme.Aspect(view.root,1)
+  Theme.Aspect(view.root,CASH_RATIO)
+  view.rays.AnchorPoint,view.rays.Position,view.rays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.42),UDim2.fromScale(0.9,0.9)
+  Theme.Aspect(view.rays,1)
+  view.title.Position,view.title.Size=UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.13)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.385),UDim2.fromScale(0.64,0.46)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.42),UDim2.fromScale(0.62,0.48)
   view.artRestSize=view.art.Size
-  view.note.Position,view.note.Size=UDim2.fromScale(0.04,0.64),UDim2.fromScale(0.92,0.11)
-  view.buy.Position,view.buy.Size=UDim2.fromScale(0.06,0.77),UDim2.fromScale(0.88,0.20)
+  view.note.Position,view.note.Size=UDim2.fromScale(0.04,0.63),UDim2.fromScale(0.92,0.12)
+  view.buy.Position,view.buy.Size=UDim2.fromScale(0.08,0.77),UDim2.fromScale(0.84,0.19)
  end
  Theme.ScaleText(self.root)
  self:UpdateSection()

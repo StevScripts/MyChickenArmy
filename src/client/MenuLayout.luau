@@ -6,7 +6,8 @@ Layout.Names={Army="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settin
 -- FRAMES is a small proxy). No viewport math, size limits, or device breakpoints.
 Layout.Defaults={
 	Army={size=Vector2.new(0.629404,0.82),aspect=1274/876},
-	Shop={size=Vector2.new(0.518958,0.717356),position=Vector2.new(0.5,0.519942),aspect=1.481701612},
+	-- October 15 (owner): wider shop; section tabs sit outside its left edge.
+	Shop={size=Vector2.new(0.70,0.80),position=Vector2.new(0.535,0.52),aspect=1.78},
 	Index={size=Vector2.new(0.513810,0.624904),aspect=1.481701612},
 	Upgrades={size=Vector2.new(0.660243,0.461530),position=Vector2.new(0.514634,0.501785),aspect=2.93},
 	Settings={size=Vector2.new(0.411726,0.541205),position=Vector2.new(0.489130,0.5),aspect=1.543928},
