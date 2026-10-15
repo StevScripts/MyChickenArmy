@@ -97,12 +97,17 @@ function Hud.new(app,shell)
 		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
-	-- Re-enlist: its own HUD icon (the hex on the Upgrades screen stays too).
-	self.reenlist=Theme.IconButton(shortcuts,"Reenlist","Rebirth",Theme.Assets.Reenlist or Theme.Assets.ArmyHud,function()
+	-- Rebirth: its own icon at the middle of the right edge (October 14 owner
+	-- request; the left column keeps Shop, Index and Upgrades).
+	local rebirthCorner=Theme.Frame(shell,"RebirthCorner",UDim2.fromScale(0.082,0.16))
+	rebirthCorner.BackgroundTransparency,rebirthCorner.AnchorPoint=1,Vector2.new(1,0.5)
+	Theme.Aspect(rebirthCorner,136/132)
+	self.rebirthCorner=rebirthCorner
+	self.reenlist=Theme.IconButton(rebirthCorner,"Reenlist","Rebirth",Theme.Assets.Reenlist or Theme.Assets.ArmyHud,function()
 		app.audio:Play("Click")
 		if app.rebirthPanel then app.rebirthPanel:Open() end
 	end)
-	self.reenlist.LayoutOrder,self.reenlist.Visible=4,false
+	self.reenlist.Visible=false
 	-- Below the status line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
@@ -247,12 +252,14 @@ function Hud:Layout()
 		label.TextScaled,label.ZIndex=true,4
 	end
 	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.86),UDim2.fromScale(1,0.135)
-	for _,page in {"Shop","Index","Upgrades","Reenlist"} do
+	for _,page in {"Shop","Index","Upgrades"} do
 		local button=self.shortcuts:FindFirstChild(page)
 		button.Size=UDim2.fromScale(1,0.235)
 		Theme.Aspect(button,136/132)
 		button.Visual.Label.TextScaled=true
 	end
+	self.reenlist.Size=UDim2.fromScale(1,1)
+	self.reenlist.Visual.Label.TextScaled=true
 	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
@@ -261,6 +268,7 @@ function Hud:Layout()
 	Theme.Aspect(self.save,19)
 	Theme.ScaleText(self.navigation)
 	Theme.ScaleText(self.shortcuts)
+	Theme.ScaleText(self.rebirthCorner)
 	Theme.ScaleText(self.settings)
 	-- Top status lines get the shared readable text floor (wide boxes, no overlap risk).
 	for _,label in {self.status,self.objective,self.save} do Theme.ScaleText(label) end
@@ -270,7 +278,7 @@ end
 
 -- Touch: lift the corner readouts above the thumbstick and jump button (the
 -- cash readout moves beside the left shortcut column; the Camps held/Flock lines
--- sit above the right-side Invasions icon, which spans about 0.48-0.64) and
+-- sit above the jump button; the Rebirth icon sits just below them) and
 -- enlarge Settings to a thumb-sized target that ends above the research goal chip
 -- (top 0.12). Keyboard/gamepad keep the authored bottom corners.
 -- settingsBottom: lowest screen Y scale the Settings button can reach (for neighbours).
@@ -278,11 +286,19 @@ function Hud:ApplyInputLayout()
 	local touch=touchPrimary()
 	self.cashReadout.AnchorPoint=Vector2.new(0,1)
 	self.cashReadout.Position=if touch then UDim2.fromScale(0.105,0.7) else UDim2.fromScale(0.012,0.98)
-	self.totals.Position=if touch then UDim2.fromScale(0.988,0.47) else UDim2.fromScale(0.988,0.98)
+	self:PlaceRebirth()
 	self.settings.Size=if touch then UDim2.fromScale(0.065,0.105) else UDim2.fromScale(0.04,0.072)
 	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
 	-- The Hill chip rides just above the cash readout wherever it sits.
 	if self.hill then self.hill:Place() end
+end
+
+-- Middle of the right edge (touch: a little lower, under the lifted totals and
+-- clear of the jump button). The totals keep their corners.
+function Hud:PlaceRebirth()
+	local touch=touchPrimary()
+	self.rebirthCorner.Position=UDim2.fromScale(0.988,if touch then 0.6 else 0.5)
+	self.totals.Position=if touch then UDim2.fromScale(0.988,0.47) else UDim2.fromScale(0.988,0.98)
 end
 
 function Hud:Resize(_width, _height, _scale)
@@ -344,7 +360,7 @@ function Hud:UpdateRebirth(state)
 	local rank=tonumber(quote.rank) or 0
 	-- The Re-enlist icon appears once it matters: the King is beaten or a rank is earned.
 	local showIcon=quote.enabled~=false and (rank>=1 or quote.kingCleared==true)
-	if self.reenlist.Visible~=showIcon then self.reenlist.Visible=showIcon end
+	if self.reenlist.Visible~=showIcon then self.reenlist.Visible=showIcon;self:PlaceRebirth() end
 	local pulse=showIcon and quote.eligible==true and not self.app.reducedMotion
 	if pulse~=(self.reenlistPulse~=nil) then
 		local visual=self.reenlist.Visual

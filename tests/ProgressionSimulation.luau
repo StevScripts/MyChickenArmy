@@ -71,6 +71,8 @@ local Progression=require(Shared.Progression)
 local Guide=require(Shared.TutorialGuide)
 local UpgradeCatalog=require(Shared.UpgradeCatalog)
 local MutationCatalog=require(Shared.MutationCatalog)
+local PetCatalog=require(Shared.PetCatalog)
+local GiantChicken=require(Shared.GiantChicken)
 local ResearchCatalog=require(Shared.ResearchCatalog)
 local ResearchRules=require(Shared.ResearchRules)
 local Operations=require(Shared.OperationCatalog)
@@ -506,8 +508,26 @@ end
 
 local function judgeOffers(state,ctx,at)
 	local s,stats=state.session,state.stats
+	-- October 14 difficulty milestones: first Mythic / Galaxy Overlord / Golden offer
+	-- seen and owned, first Giant / Colossal in the flock.
+	for _,pet in s.pets do
+		if GiantChicken.IsValidSize(pet.giantSize) then
+			mark(state,"Giant",at)
+			if GiantChicken.IsColossal(pet.giantSize) then mark(state,"Colossal",at) end
+		end
+		local def=PetCatalog[pet.species]
+		if def and def.rarity=="Mythic" then mark(state,"MythicOwned",at) end
+		if pet.species=="StormDuck" then mark(state,"GalaxyOwned",at) end
+		if pet.mutation=="Golden" then mark(state,"GoldenOwned",at) end
+	end
 	for slot=1,s.rollSlotCount or 1 do
 		local offer=s.offers and s.offers[slot]
+		if offer then
+			local def=PetCatalog[offer.species]
+			if def and def.rarity=="Mythic" then mark(state,"MythicSeen",at) end
+			if offer.species=="StormDuck" then mark(state,"GalaxySeen",at) end
+			if offer.mutation=="Golden" then mark(state,"GoldenSeen",at) end
+		end
 		if not offer or offer.price>s.coins then continue end
 		local pet={species=offer.species,stars=1,level=offer.level,mutation=offer.mutation}
 		local gain,netPrice=petCash(s,pet,offer.level),offer.price
@@ -619,6 +639,14 @@ local ROWS={
 	{"Rebirth2","Rebirth 2","4-8 h"},
 	{"King2","King at Rebirth 2",nil},
 	{"Rebirth3","Rebirth 3","10-20 h"},
+	{"GoldenSeen","First Golden offer",nil},
+	{"GoldenOwned","First Golden owned",nil},
+	{"MythicSeen","First Mythic offer",nil},
+	{"MythicOwned","First Mythic owned",nil},
+	{"GalaxySeen","First Galaxy offer",nil},
+	{"GalaxyOwned","First Galaxy owned",nil},
+	{"Giant","First Giant",nil},
+	{"Colossal","First Colossal",nil},
 }
 
 local function median(values)

@@ -153,7 +153,7 @@ function Guide.NextGoal(state, ignoreSkip)
 	if state.kingCleared or rebirths >= 1 then
 		local wins = (state.operations or {}).wins or {}
 		if not (wins["1:1"] or wins["1:2"] or wins["1:3"]) then
-			return goal("Operations", "Conquer a mission on the island", "Mission")
+			return goal("Operations", "Attack a loyalist site on the island", "Mission")
 		end
 	end
 	-- October 14: only Rebirth 1 needs the King, and Rebirth opens from its HUD button.
@@ -161,7 +161,7 @@ function Guide.NextGoal(state, ignoreSkip)
 		local cost = rebirth.cost
 		if rebirth.enabled ~= false and rebirth.nextRank and type(cost) == "number" and cost > 0
 			and (state.coins or 0) >= cost * 0.5 then
-			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready: open Rebirth on the left", nil) end
+			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready: open Rebirth (right side)", nil) end
 			return goal("Rebirth", "Rebirth: $" .. shortCash(state.coins) .. " / $" .. shortCash(cost), nil)
 		end
 	end

@@ -25,12 +25,16 @@ The foundation already did the shared work: `pet.mutation` is saved and loaded (
 ```lua
 MutationCatalog.Order = {"Golden", "Rainbow", "Shadow", "Cosmic"}
 MutationCatalog.Defs = {
-	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/40,   unlockRank = 0},
-	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/200,  unlockRank = 1},
-	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/1000, unlockRank = 3},
-	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/5000, unlockRank = 5},
+	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/250,   unlockRank = 0},
+	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/800,   unlockRank = 1},
+	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/3000,  unlockRank = 3},
+	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/12000, unlockRank = 5},
 }
 ```
+
+October 14 owner retune: Golden was 1/40 (Rainbow 1/200, Shadow 1/1000, Cosmic 1/5000);
+Golden should be "pretty rare, but not the rarest". The Golden mutation now uses the
+Golden Emperor appearance's glitter emitters 1:1 (`SpecialChickenVFX._attachMutation`).
 
 Functions (signatures are fixed; others rely on them):
 

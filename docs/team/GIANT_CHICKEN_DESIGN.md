@@ -12,10 +12,10 @@ cosmetic plus trade value). Without trading, a special variant needs a real game
 | Rule | Value (`src/shared/GiantChicken.luau`) |
 |---|---|
 | Normal fusion | three matching chickens → one, +1 level, normal size |
-| Giant chance | `BaseChance` 10% + `ChancePerLevel` 2% × input level (Lv1 12%, Lv5 20%, Lv9 28%) |
-| Guarantee | the `PityLimit` (8th) fusion in a row without a Giant; saved `giantPity` (additive, junk reads 0) |
+| Giant chance | `BaseChance` 3% + `ChancePerLevel` 0.5% × input level (Lv1 3.5%, Lv5 5.5%, Lv9 7.5%); October 14 owner retune, was 10% + 2% |
+| Guarantee | the `PityLimit` (30th; was 8th) fusion in a row without a Giant; saved `giantPity` (additive, junk reads 0) |
 | Giant input | at least one Giant input → the result is a Giant (size ≥ largest input); guarantee unchanged |
-| Three Giants | `ColossalFromGiantsChance` 25% → Colossal (20–27.5 studs, biased to 20), otherwise a Giant |
+| Three Giants | `ColossalFromGiantsChance` 10% (was 25%) → Colossal (20–27.5 studs, biased to 20), otherwise a Giant |
 | Colossal input | stays Colossal |
 | Giant combat | ×2 health, ×1.5 damage, stomp (splash) via `Rules.Stats(..., giantSize)`; power and Select Best include it |
 | Colossal aura | +10% damage for every chicken on its side while it stands (`Battle:ApplyResearch`); still one Colossal per army |

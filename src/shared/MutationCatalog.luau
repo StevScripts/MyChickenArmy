@@ -11,11 +11,13 @@ export type Def = {name: string, multiplier: number, chance: number, unlockRank:
 MutationCatalog.Order = {"Golden", "Rainbow", "Shadow", "Cosmic"} :: {string}
 
 -- `color` is presentation only (badges and VFX); the other fields are the economy.
+-- October 14 owner retune: Golden is "pretty rare, but not the rarest" (was 1/40);
+-- the rarer mutations move down with it so the ladder keeps its order.
 MutationCatalog.Defs = {
-	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/40,   unlockRank = 0, color = Color3.fromRGB(255, 206, 54)},
-	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/200,  unlockRank = 1, color = Color3.fromRGB(255, 118, 214)},
-	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/1000, unlockRank = 3, color = Color3.fromRGB(178, 104, 255)},
-	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/5000, unlockRank = 5, color = Color3.fromRGB(96, 196, 255)},
+	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/250,   unlockRank = 0, color = Color3.fromRGB(255, 206, 54)},
+	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/800,   unlockRank = 1, color = Color3.fromRGB(255, 118, 214)},
+	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/3000,  unlockRank = 3, color = Color3.fromRGB(178, 104, 255)},
+	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/12000, unlockRank = 5, color = Color3.fromRGB(96, 196, 255)},
 } :: {[string]: Def}
 
 function MutationCatalog.IsValid(id: any): boolean

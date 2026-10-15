@@ -1,5 +1,17 @@
 # Re-enlist and Operations UI (October 13, 2026 redesign)
 
+## October 14 Rebirth board (latest; supersedes the minimal Rebirth below)
+
+Owner: "more information, coherent with the rest of the UI". Window .9 × .74, aspect 1.45,
+in the Daily Rewards card style: a rank row (badge + "Rebirth 2" → badge + "Rebirth 3");
+three studded cards (Egg Cash ×now → ×next "Forever", New Mutation in its catalog colour or
+grey "None · Not this rank", Camps ×next "Tougher enemies"); a red RESETS strip ("Cash · Egg
+upgrades · Luck · Camps · N chicken levels") and a green YOU KEEP strip ("Chickens · Giants ·
+Research · Plot · Army size"); the cash progress bar beside the 2-second hold button. The HUD
+Rebirth icon moved to the middle of the right edge (touch: y .6). Daily Rewards cards now use
+small, subtle studs (opacity .07, `StudScaleWidth` 1.6). The Invasions screen is no longer
+reachable (sites spawn on the island).
+
 ## October 14 final: minimal layout (third pass)
 
 The second pass still felt cluttered. The owner asked for an uninstructed image-generator mockup

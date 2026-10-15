@@ -11,7 +11,9 @@ local Economy = {
 	IncomeUpgradeMax = 25,
 	IncomePriceGrowth = 1.6, -- October 8: 1.35 let every cash track max by day 3.
 	LuckUpgradeMax = 20,
-	LuckPriceGrowth = 1.25,
+	LuckPriceGrowth = 1.25, -- Superseded October 14 by the accelerating Base/Step below.
+	LuckPriceBase = 1.5,
+	LuckPriceStep = 0.07,
 	UpgradePriceStep = 1000,
 	ReferenceIncome = {
 		16, -- Fixed opening price benchmark; independent of the initial flock.
@@ -131,6 +133,16 @@ local Config = {
  },
 }
 -- Quote fixed prices, never prices based on a player's coins or live income.
+-- October 14 owner retune ("easy at the start, then harder and harder"): Luck's
+-- continuation ratio itself grows each level (1.57x, 1.64x … 2.62x), so the opening
+-- stays cheap and the top levels become a long-term goal (L10 ~$67M, L20 ~$240B).
+local function extendAcceleratingPrices(prices, maximum, base, step)
+	local openingCount, price = #prices, prices[#prices]
+	for purchase = openingCount + 1, maximum do
+		price *= base + step * (purchase - openingCount)
+		prices[purchase] = math.ceil(price / Economy.UpgradePriceStep) * Economy.UpgradePriceStep
+	end
+end
 local function extendPrices(prices, maximum, growth)
 	local openingCount, anchor = #prices, prices[#prices]
 	for purchase = openingCount + 1, maximum do
@@ -139,5 +151,5 @@ local function extendPrices(prices, maximum, growth)
 	end
 end
 extendPrices(Config.IncomePrices, Economy.IncomeUpgradeMax, Economy.IncomePriceGrowth)
-extendPrices(Config.LuckPrices, Economy.LuckUpgradeMax, Economy.LuckPriceGrowth)
+extendAcceleratingPrices(Config.LuckPrices, Economy.LuckUpgradeMax, Economy.LuckPriceBase, Economy.LuckPriceStep)
 return Config

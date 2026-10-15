@@ -23,8 +23,9 @@ local Service={}
 Service.__index=Service
 
 function Service.new(battles,world,sessions)
-	-- missions[userId] = {sites={[siteId]=site}, nextAt=os.clock() of the next spawn}
-	local self=setmetatable({battles=battles,world=world,sessions=sessions,missions={},serial=0},Service)
+	-- shared = {sites={[siteId]=site}, nextAt=...}: the island's random sites, claimable by any player.
+	local self=setmetatable({battles=battles,world=world,sessions=sessions,serial=0,
+		shared={sites={},nextAt=0}},Service)
 	battles.operations=self
 	return self
 end
@@ -80,9 +81,12 @@ local function fadeInvaders(battle,parent)
 end
 
 -- Mission pacing (owner-approved plan defaults, October 14).
-Service.FirstSpawnSeconds=30 -- after Missions unlock or the player joins
-Service.SpawnEverySeconds=240
-Service.MaxWaiting=2
+-- October 14 owner update (latest): no mission list, no private/shared split.
+-- Random sites simply appear around the island; any player whose army has the
+-- tier unlocked can attack one, and the first army sent claims it.
+Service.FirstSpawnSeconds=20 -- after the first player unlocks them
+Service.SpawnEverySeconds=45 -- refill delay once a site leaves or is taken
+Service.MinSites,Service.MaxSites=3,6 -- 2 + one per eligible player, clamped
 Service.WaitSeconds=360 -- a site leaves if nobody attacks it in time
 Service.RareChance=.1 -- gold sites pay double
 -- Cash reward: minutes of the player's egg income by tier, never below the
@@ -97,8 +101,8 @@ function Service.Reward(session,id,rare)
 end
 
 -- The highest unlocked tier comes up most often (weight 3), lower tiers weight 1.
-local function pickEncounter(session)
-	local tier=math.clamp(Service.Tier(session),1,#Catalog.Tiers)
+local function pickEncounter(tier)
+	tier=math.clamp(tier,1,#Catalog.Tiers)
 	local pool={}
 	for _,id in Catalog.Order do
 		local definition=Catalog.Encounters[id]
@@ -112,7 +116,7 @@ end
 -- Every spot already used by a live site or Mission battle (all players).
 function Service:Taken()
 	local taken={}
-	for _,entry in self.missions do for _,site in entry.sites do table.insert(taken,site.landing) end end
+	for _,site in self.shared.sites do table.insert(taken,site.landing) end
 	for _,other in self.battles.battles do
 		if other.operationId and not other.paid then table.insert(taken,other.destination) end
 	end
@@ -120,31 +124,36 @@ function Service:Taken()
 end
 
 -- Spawn one waiting site: the camp, the airship drop and its open crates.
-function Service:Spawn(session,now,forcedId,forcedTheme)
+-- `session` owns a private site; nil makes a shared one (tier up to `sharedTier`).
+function Service:Spawn(session,now,forcedId,forcedTheme,sharedTier)
 	local root=self.world.root
 	if not root then return nil end
-	local landing=InvasionLayout.Pick(rng,self:Taken())
+	-- Each site is a seeded build of one theme (MissionSite + MissionKits);
+	-- coastal themes prefer the island's edge.
+	local theme=if forcedTheme then forcedTheme else MissionSite.Themes[rng:NextInteger(1,#MissionSite.Themes)]
+	local landing=MissionSite.Coastal[theme] and InvasionLayout.Pick(rng,self:Taken(),340) or InvasionLayout.Pick(rng,self:Taken())
 	if not landing then return nil end
-	local id=if forcedId and Catalog.Encounters[forcedId] then forcedId else pickEncounter(session)
+	local id=if forcedId and Catalog.Encounters[forcedId] then forcedId
+		else pickEncounter(if session then Service.Tier(session) else sharedTier or 1)
 	local definition=Catalog.Encounters[id]
 	self.serial+=1
 	local siteId="m"..self.serial
-	local home=self.world:Position(session.plotIndex)
+	-- A private site's front faces its owner's base; a shared one faces the island centre.
+	local home=if session then self.world:Position(session.plotIndex) else Vector3.zero
 	local away=Vector3.new(landing.X-home.X,0,landing.Z-home.Z)
 	away=if away.Magnitude>1e-3 then away.Unit else Vector3.new(0,0,1)
 	-- -Z faces away from the owner's base, so the open front faces the arriving army.
 	local frame=CFrame.lookAt(landing,landing+away)
 	local folder=root:FindFirstChild("Missions")
 	if not folder then folder=Instance.new("Folder");folder.Name="Missions";folder.Parent=root end
-	-- Each site is a seeded build of one theme (MissionSite + MissionKits).
-	local theme=if forcedTheme then forcedTheme else MissionSite.Themes[rng:NextInteger(1,#MissionSite.Themes)]
 	local seed=rng:NextInteger(1,2^30)
-	local model=MissionSite.Build(folder,theme,frame,session.userId,seed)
+	local model=MissionSite.Build(folder,theme,frame,if session then session.userId else 0,seed)
 	model.Name="Mission_"..siteId
 	local rare=rng:NextNumber()<Service.RareChance
 	model:SetAttribute("MissionId",siteId)
 	model:SetAttribute("CommandTarget","mission:"..siteId)
 	model:SetAttribute("Rare",rare)
+	model:SetAttribute("Shared",session==nil)
 	-- The airship drops one crate behind each column of the loyalist formation;
 	-- the open crates stay until the loyalists step out of them.
 	local enemies=Catalog.Roster(id)
@@ -166,51 +175,52 @@ function Service:Spawn(session,now,forcedId,forcedTheme)
 		end)
 	end
 	local site={id=siteId,encounterId=id,landing=landing,frame=frame,model=model,rare=rare,
-		spawnedAt=now,expiresAt=now+Service.WaitSeconds}
-	if self.analytics then self.analytics:LaunchCount(session,"mission.spawn."..definition.tier) end
+		spawnedAt=now,expiresAt=now+Service.WaitSeconds,shared=session==nil}
+	if session and self.analytics then self.analytics:LaunchCount(session,"mission.spawn."..definition.tier) end
 	return site
 end
 
 -- Studio test tools: spawn a waiting site right away (ignores pacing, not the cap).
-function Service:SpawnNow(session,now,forcedId,forcedTheme)
-	local entry=self.missions[session.userId]
-	if not entry then entry={sites={},nextAt=now+Service.SpawnEverySeconds};self.missions[session.userId]=entry end
-	local site=self:Spawn(session,now,forcedId,forcedTheme)
+function Service:SpawnNow(_session,now,forcedId,forcedTheme)
+	local site=self:Spawn(nil,now,forcedId,forcedTheme,3)
 	if not site then return false,"No free spot on the island." end
-	entry.sites[site.id]=site;session:Touch()
-	return true,"TEST: "..Catalog.Encounters[site.encounterId].name.." landed on the island."
+	self.shared.sites[site.id]=site
+	for _,other in self.sessions do other:Touch() end
+	return true,"TEST: "..Catalog.Encounters[site.encounterId].name.." appeared on the island."
 end
 
--- Spawn, expire and clean up waiting sites for every player.
+-- Spawn, expire and clean up the island's random sites. They roll from the
+-- highest tier any online player has unlocked; locked ones show as locked.
 function Service:StepSites(now)
-	for userId,entry in self.missions do
-		local session=self.sessions[userId]
-		if not session or session.closing then
-			for _,site in entry.sites do if site.model then site.model:Destroy() end end
-			self.missions[userId]=nil
+	local pool=self.shared
+	local topTier,eligible=0,0
+	for _,session in self.sessions do
+		if session.loaded and not session.closing and not session.saveLost then
+			local tier=Service.Tier(session)
+			topTier=math.max(topTier,tier)
+			if tier>=1 then eligible+=1 end
 		end
 	end
-	for userId,session in self.sessions do
-		if not session.loaded or session.closing or session.saveLost or Service.Tier(session)<1 then continue end
-		local entry=self.missions[userId]
-		if not entry then
-			entry={sites={},nextAt=now+Service.FirstSpawnSeconds}
-			self.missions[userId]=entry
-		end
-		for siteId,site in entry.sites do
-			if now>=site.expiresAt then
-				entry.sites[siteId]=nil
-				if site.model then Camp.FadeOut(site.model,0) end
-				if self.analytics then self.analytics:LaunchCount(session,"mission.expired."..Catalog.Encounters[site.encounterId].tier) end
-			end
-		end
-		local waiting=0
-		for _ in entry.sites do waiting+=1 end
-		if now>=entry.nextAt and waiting<Service.MaxWaiting then
-			local site=self:Spawn(session,now)
-			-- No free spot: try again shortly instead of waiting a full interval.
-			entry.nextAt=now+(if site then Service.SpawnEverySeconds else 15)
-			if site then entry.sites[site.id]=site;session:Touch() end
+	local count=0
+	for siteId,site in pool.sites do
+		if now>=site.expiresAt or topTier==0 then
+			pool.sites[siteId]=nil
+			if site.model then Camp.FadeOut(site.model,0) end
+			for _,session in self.sessions do session:Touch() end
+		else count+=1 end
+	end
+	if topTier==0 then pool.nextAt=now+Service.FirstSpawnSeconds;return end
+	local target=math.clamp(2+eligible,Service.MinSites,Service.MaxSites)
+	if count>=target then
+		-- Full: the refill timer starts once a site leaves or is taken.
+		pool.nextAt=math.max(pool.nextAt,now+Service.SpawnEverySeconds)
+	elseif now>=pool.nextAt then
+		local site=self:Spawn(nil,now,nil,nil,topTier)
+		-- Fill up quickly at first; afterwards one per interval. No free spot: retry soon.
+		pool.nextAt=now+(if not site then 15 elseif count+1<Service.MinSites then 3 else Service.SpawnEverySeconds)
+		if site then
+			pool.sites[site.id]=site
+			for _,session in self.sessions do session:Touch() end
 		end
 	end
 end
@@ -218,9 +228,9 @@ end
 -- Send the army from home to a waiting site. The site's camp becomes the battle
 -- zone; the loyalists step out of the crates and the 3-minute limit starts.
 function Service:StartMission(session,siteId,now)
-	local entry=self.missions[session.userId]
-	local site=entry and type(siteId)=="string" and entry.sites[siteId]
-	if not site or not site.model or not site.model.Parent then return false,"That mission has already left." end
+	local pool=self.shared.sites
+	local site=type(siteId)=="string" and pool[siteId] or nil
+	if not site or not site.model or not site.model.Parent then return false,"That mission is gone. Another army may have taken it." end
 	local id=site.encounterId
 	local definition=Catalog.Encounters[id]
 	if Service.Tier(session)<definition.tier then return false,Service.LockedMessage(definition.tier) end
@@ -230,7 +240,8 @@ function Service:StartMission(session,siteId,now)
 	if #roster==0 then return false,"Select an army first." end
 	local root=self.world.root
 	if not root then return false,"Missions are not ready yet." end
-	entry.sites[siteId]=nil
+	pool[siteId]=nil
+	for _,other in self.sessions do other:Touch() end
 	local landing,frame=site.landing,site.frame
 	local home=self.world:Position(session.plotIndex)
 	local battle=Battle.new(HttpService:GenerateGUID(false),session.userId,"operation:"..id,home,landing,now)
@@ -365,12 +376,13 @@ end
 -- Waiting sites for the HUD, markers and the walk-up prompt (client presentation).
 function Service:MissionList(session)
 	local list={}
-	local entry=self.missions[session.userId]
-	if not entry then return list end
+	local tier=Service.Tier(session)
+	if tier<1 then return list end
 	local now=os.clock()
-	for _,site in entry.sites do
+	for _,site in self.shared.sites do
 		local definition=Catalog.Encounters[site.encounterId]
 		table.insert(list,{id=site.id,name=definition.name,tier=definition.tier,boss=definition.boss~=nil,
+			locked=definition.tier>tier,
 			power=Catalog.Power(site.encounterId),count=#Catalog.Roster(site.encounterId),
 			-- What a win would pay now, including 2x Cash (same as Resolve).
 			reward=session:EarnedAmount(Service.Reward(session,site.encounterId,site.rare),"battle"),rare=site.rare,
@@ -382,8 +394,8 @@ end
 
 function Service:Destroy()
 	for _,battle in self.battles.battles do if battle.operationId then self:Detach(battle) end end
-	for _,entry in self.missions do for _,site in entry.sites do if site.model then site.model:Destroy() end end end
-	table.clear(self.missions)
+	for _,site in self.shared.sites do if site.model then site.model:Destroy() end end
+	table.clear(self.shared.sites)
 end
 
 return Service

@@ -11,8 +11,37 @@ local Kits = script.Parent:WaitForChild("MissionKits")
 local Site = {}
 
 -- Theme id -> kit module name. "LoyalistLanding" is today's airship camp.
-Site.Themes = {"LoyalistLanding", "WatchtowerFort"}
+Site.Themes = {"LoyalistLanding", "WatchtowerFort", "SupplyDepot", "CrystalMine", "PirateCove", "DragonRoost"}
 Site.UsesAirship = {LoyalistLanding = true}
+-- Themes that only spawn near the island's edge (beach side), when a spot is free.
+Site.Coastal = {PirateCove = true}
+
+-- The authored map's stud texture, exactly as its camps apply it (read from the
+-- place October 14): every face but the bottom, 8 studs per tile, black at 80%.
+local STUDS = "rbxassetid://6372755229"
+local FACES = {
+	{Enum.NormalId.Top, "X", "Z"}, {Enum.NormalId.Front, "X", "Y"}, {Enum.NormalId.Back, "X", "Y"},
+	{Enum.NormalId.Left, "Z", "Y"}, {Enum.NormalId.Right, "Z", "Y"},
+}
+function Site.Studify(root: Instance)
+	for _, item in root:GetDescendants() do
+		if not item:IsA("BasePart") or item.Transparency >= 1 or item.Material == Enum.Material.Neon then continue end
+		if item:IsA("Part") and item.Shape ~= Enum.PartType.Block then continue end
+		local has = {}
+		for _, child in item:GetChildren() do
+			if child:IsA("Texture") then has[child.Face] = child end
+		end
+		for _, face in FACES do
+			local size = item.Size :: any
+			if size[face[2]] < 0.8 or size[face[3]] < 0.8 then continue end
+			local texture = has[face[1]] or Instance.new("Texture")
+			texture.Texture, texture.Face = STUDS, face[1]
+			texture.StudsPerTileU, texture.StudsPerTileV = 8, 8
+			texture.Color3, texture.Transparency = Color3.new(0, 0, 0), 0.8
+			texture.Parent = item
+		end
+	end
+end
 
 -- A puff of chunky dust blocks (same look as the crate landings).
 local function dust(parent: Instance, at: Vector3, scale: number)
@@ -34,6 +63,7 @@ function Site.Build(parent: Instance, theme: string, frame: CFrame, userId: numb
 	local model: Model
 	if theme == "LoyalistLanding" then
 		model = Camp.Build(parent, frame, userId)
+		Site.Studify(model)
 	else
 		model = Instance.new("Model")
 		model.Name = "MissionSite"
@@ -45,6 +75,13 @@ function Site.Build(parent: Instance, theme: string, frame: CFrame, userId: numb
 		local marker = Instance.new("Attachment")
 		marker.Name, marker.Parent = "Marker", center
 		marker.WorldPosition = frame.Position + Vector3.new(0, 0.3, 0)
+		-- The command anchor exists before the site is parented, so clients never see a
+		-- site without it (CampCommand.Anchor would otherwise fall back to a child
+		-- named "Ground").
+		local anchor = Instance.new("Part")
+		anchor.Name, anchor.Anchored, anchor.CanCollide, anchor.CanQuery, anchor.CanTouch = "CommandCenter", true, false, false, false
+		anchor.Transparency, anchor.Size, anchor.CFrame = 1, Vector3.new(1, 1, 1), frame
+		anchor.Parent = model
 		local kit = require(Kits:WaitForChild(theme)) :: any
 		-- Scramble the seed: nearby seeds otherwise start with similar first draws.
 		local rng = Random.new((seed * 2654435761) % 2147483647)
@@ -53,6 +90,10 @@ function Site.Build(parent: Instance, theme: string, frame: CFrame, userId: numb
 		model.Parent = parent
 		-- Staged reveal: ground, then walls, hero piece and props, each with dust.
 		for index, group in groups do
+			Site.Studify(group.model)
+			-- Kit group names ("Ground", "Walls"…) are prefixed so no child named "Ground"
+			-- can stand in for the command anchor.
+			group.model.Name = "Site" .. group.model.Name
 			task.delay((index - 1) * 0.3, function()
 				if not model.Parent then group.model:Destroy(); return end
 				group.model.Parent = model
@@ -62,11 +103,14 @@ function Site.Build(parent: Instance, theme: string, frame: CFrame, userId: numb
 	end
 	model:SetAttribute("Theme", theme)
 	model:SetAttribute("Seed", seed)
-	-- The walk-up "Send Army" prompt anchors here (CampCommand.Anchor).
-	local anchor = Instance.new("Part")
-	anchor.Name, anchor.Anchored, anchor.CanCollide, anchor.CanQuery, anchor.CanTouch = "CommandCenter", true, false, false, false
-	anchor.Transparency, anchor.Size, anchor.CFrame = 1, Vector3.new(1, 1, 1), frame
-	anchor.Parent = model
+	-- The walk-up "Send Army" prompt anchors here (CampCommand.Anchor). Kit sites
+	-- created theirs above; the Loyalist Landing camp gets one now.
+	if not model:FindFirstChild("CommandCenter") then
+		local anchor = Instance.new("Part")
+		anchor.Name, anchor.Anchored, anchor.CanCollide, anchor.CanQuery, anchor.CanTouch = "CommandCenter", true, false, false, false
+		anchor.Transparency, anchor.Size, anchor.CFrame = 1, Vector3.new(1, 1, 1), frame
+		anchor.Parent = model
+	end
 	if not model.Parent then model.Parent = parent end
 	return model
 end

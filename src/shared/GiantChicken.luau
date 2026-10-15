@@ -5,12 +5,14 @@
 -- a Colossal that boosts its whole army. Rarity still sets the visual size band.
 local Giant = {}
 -- Chance for a fusion of three normal chickens: Base + PerLevel × input level.
-Giant.BaseChance = 0.10
-Giant.ChancePerLevel = 0.02
+-- October 14 owner retune: huge chickens must not be easy (was 10% + 2%/level,
+-- pity 8, Colossal 25%).
+Giant.BaseChance = 0.03
+Giant.ChancePerLevel = 0.005
 -- After this many fusions in a row without a Giant, the next one is guaranteed.
-Giant.PityLimit = 8
+Giant.PityLimit = 30
 -- Three Giant inputs: chance the result becomes a Colossal (otherwise a Giant).
-Giant.ColossalFromGiantsChance = 0.25
+Giant.ColossalFromGiantsChance = 0.10
 -- Combat: Giants have more health and damage and stomp (splash) like Wizards.
 Giant.HealthMultiplier = 2
 Giant.DamageMultiplier = 1.5

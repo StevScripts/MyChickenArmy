@@ -58,10 +58,12 @@ function InvasionLayout.Candidates(): {Vector3}
 end
 
 -- A random open landing spot at least MinSeparation from every `taken` spot,
--- or nil when none is free.
-function InvasionLayout.Pick(rng: Random, taken: {Vector3}): Vector3?
+-- or nil when none is free. `minRadius` keeps it near the island's edge
+-- (coastal mission themes).
+function InvasionLayout.Pick(rng: Random, taken: {Vector3}, minRadius: number?): Vector3?
 	local pool = {}
 	for _, spot in InvasionLayout.Candidates() do
+		if minRadius and Vector3.new(spot.X, 0, spot.Z).Magnitude < minRadius then continue end
 		local free = true
 		for _, other in taken do
 			if (Vector3.new(spot.X - other.X, 0, spot.Z - other.Z)).Magnitude < InvasionLayout.MinSeparation then free = false; break end

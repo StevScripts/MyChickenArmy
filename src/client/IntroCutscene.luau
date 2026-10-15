@@ -63,7 +63,7 @@ end
 
 function Intro.new(app)
 	return setmetatable({app = app, playing = false, started = false, eligible = nil,
-		threads = {}, tweens = {}, hidden = {}, watches = {}, brows = {}, lastWin = nil}, Intro)
+		threads = {}, tweens = {}, hidden = {}, watches = {}, brows = {}}, Intro)
 end
 
 function Intro:Observe(state)
@@ -74,12 +74,6 @@ function Intro:Observe(state)
 		self.eligible = Intro.Eligible(state)
 		if self.eligible then self:Prepare(state) end
 	end
-	local t = state.tutorial or {}
-	local won = Guide.Facts(state).Win
-	if self.lastWin == false and won and t.introSeen and t.starterArmy then
-		task.delay(2, function() self:Payoff() end)
-	end
-	self.lastWin = won
 end
 
 -- True while a first-visit film is still waiting behind the loading veil, so the
@@ -114,7 +108,7 @@ function Intro:Resolve(state, anywhere: boolean?)
 	local anchors = plot and plot:FindFirstChild("Anchors", true)
 	local yard = anchors and anchors:FindFirstChild("Yard")
 	if not (campAnchor and pets and sell and station and yard) then return nil end
-	-- The hero is the first free starter by id, so the payoff finds the same bird.
+	-- The hero is the first free starter by id, so every play stars the same bird.
 	local ids = {}
 	for _, pet in state.pets do
 		if pet.species == "Duck" and pet.investment == 0 then table.insert(ids, pet.id) end
@@ -1844,59 +1838,6 @@ function Intro:Run()
 	self:Tween(self.cover, 0.25, {BackgroundTransparency = 0}, QUAD, IN)
 	self:Wait(c + 3.5)
 	self:Finish(false)
-end
-
--- Callback when the tutorial's Cluck Camp falls: the same hero, triumphant,
--- looking at the crown it set out for. Five seconds, and only once.
-function Intro:Payoff()
-	local app, state = self.app, self.app.state
-	if self.playing or self.paidOff or not state or app.reducedMotion then return end
-	if app.panel.Visible or app.research.root.Visible or app.commerce.cratePresenting then return end
-	local scene = self:Resolve(state, true)
-	if not scene then return end
-	self.paidOff, self.playing, self.mode = true, true, "payoff"
-	self:Lock()
-	self.cover.BackgroundTransparency = 1
-	for _, bar in self.bars do bar.Size = UDim2.fromScale(1, 0);self:Tween(bar, 0.35, {Size = UDim2.fromScale(1, BAR_HEIGHT)}, QUAD, OUT) end
-	self.thread = task.spawn(function()
-		local ok, why = pcall(function()
-			self.folder = Instance.new("Folder")
-			self.folder.Name, self.folder.Parent = "PetRollIntro", workspace
-			for _, model in scene.world:GetDescendants() do
-				if model:IsA("Model") and model:GetAttribute("PetId") == scene.heroId then self:Hide(model) end
-			end
-			self:HideOthers(scene)
-			self:StageArena(scene, true)
-			self:HideTags(scene.lane)
-			local inward = scene.inward
-			local campDir = flat(scene.campAt - scene.yard).Unit
-			local spot = ground(scene.campAt - campDir * 2)
-			local hero = self:Stage(scene.hero, "Hero")
-			self:Place(hero, spot, -campDir)
-			self:Brows(hero, "happy")
-			self.clock = os.clock()
-			self:Cut(spot - campDir * 7 + scene.right * 2 + UP * 1.1, spot + UP * 3, 60)
-			self:Dolly(spot - campDir * 5.5 + scene.right * 1.6 + UP * 1, spot + UP * 3.4, 2.4, SINE)
-			self:Wait(0.4)
-			bump(hero, "VictorySerial")
-			self:Sound("PayoffJingle")
-			self:Sparkle(spot + UP * 2, Theme.Conquest.Owned, 24, 1)
-			self:Confetti(spot + UP)
-			self:Pop(hero, "!", GOLD, 0.9)
-			self:Wait(1.6)
-			bump(hero, "VictorySerial")
-			self:Wait(2.6)
-			local K = ground(scene.kingAt)
-			self:Face(hero, inward, 0.4)
-			self:Dolly(spot - inward * 4 + UP * 3, K + UP * 14, 2, SINE, 45, spot + UP * 1.5)
-			self:Wait(3.7)
-			self:Glint(K + UP * 20, 90)
-			self:Sound("PayoffCrownGlint")
-			self:Wait(5.2)
-		end)
-		if not ok then warn("[IntroCutscene] payoff: " .. tostring(why)) end
-		if self.playing then self:Finish(false) end
-	end)
 end
 
 function Intro:Destroy()

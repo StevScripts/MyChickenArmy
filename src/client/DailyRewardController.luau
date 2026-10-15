@@ -167,7 +167,8 @@ function Controller:Card(parent,index,today,granted,x,y,w,h)
 	else
 		Theme.Gradient(card,color:Lerp(WHITE,0.15),color:Lerp(Color3.new(0,0,0),0.12))
 	end
-	Theme.Studs(card,0.16,28,0)
+	-- Small, subtle studs (owner feedback): about 15 cells across a card, like the reference.
+	Theme.Studs(card,0.07,28,0):SetAttribute("StudScaleWidth",1.6)
 	Theme.Stroke(card,if index==today then WHITE else Color3.new(0,0,0),if index==today then 4 else 3)
 	-- Layout in card space; Day 7 is tall, so its rows are thinner.
 	local title = place(label(card,"Day","Day "..index,32,WHITE),0.06,if big then 0.02 else 0.03,0.88,if big then 0.09 else 0.17)

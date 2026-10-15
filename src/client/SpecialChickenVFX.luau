@@ -300,11 +300,13 @@ function Special._attachMutation(self: any, id: string)
 	self.tintScanAt = 0
 	self:_tint(if id == "Rainbow" then RAINBOW_STILL else MUTATION_TINT[id])
 	if id == "Golden" then
+		-- October 14 owner request: the Golden Emperor's own glitter, copied 1:1
+		-- (same anchors, rate, size, speed and light as the "Golden" appearance below).
 		for _, side in {-1, 1} do
-			local anchor = self:_anchor("Mutation" .. side, "Body", Vector3.new(side * 0.85, 0.25, 0.15))
-			self:_emitter(anchor, "Glitter", Color3.fromRGB(255, 226, 120), 3, NumberRange.new(0.7, 1.2),
-				scalarSequence(0, 0.22, 0), NumberRange.new(0.25, 0.6), Vector3.new(0, 0.35, 0),
-				scalarSequence(1, 0.05, 1), 0.9, true)
+			local anchor = self:_anchor("Mutation" .. side, "Body", Vector3.new(side * 1.06, -0.28, 0.38))
+			self:_emitter(anchor, "Glitter", Color3.fromRGB(255, 229, 117), 4, NumberRange.new(0.65, 1.15),
+				scalarSequence(0, 0.24, 0), NumberRange.new(0.35, 0.75), Vector3.new(0, 0.4, 0),
+				scalarSequence(1, 0.06, 1), 0.85, true)
 		end
 	elseif id == "Rainbow" then
 		for _, side in {-1, 1} do

@@ -162,3 +162,62 @@ Six site **themes**, each with its own look, enemy flavor and reward:
   before the other four themes.
 - **Next:** remaining themes (Supply Depot, Crystal Mine, Pirate Cove, Dragon Roost),
   then rewards (free rolls, egg boost) and enemy scaling with rebirth rank.
+
+## Owner update (October 14, later): 3–4 missions, shared ones, Rebirth corner
+
+- **Always about 3–4 missions:** each player keeps **2 private** sites (refilled 60 s after
+  one leaves or is taken) plus **2 shared** sites on the island while anyone online has
+  Missions (refilled 60 s after one goes). Shared sites roll from the highest tier any
+  online player has unlocked, face the island centre, carry `Shared=true` /
+  `OwnerUserId=0`, and are listed for every eligible player (locked tiers show as
+  locked). The **first army sent claims a shared site**; it then runs as that player's
+  private battle. Clients announce "Shared mission: … first Army to win takes it" and
+  "… was taken by another Army".
+- **Tracker** moved to the upper right (under the research goal chip), up to four rows,
+  "Shared" tag; shared sites get the walk-up prompt and a marker for everyone.
+- **Rebirth icon** moved from the left column to the bottom-right corner (desktop) / above
+  the jump button (touch); the Camps held / Flock lines shift left of it while it shows.
+- Checked in Studio Play: 2 private + 2 shared listed, tracker rows, Rebirth corner,
+  sending the army to a shared site. Not checked: two real players racing for one site.
+- Still waiting: the owner's reference video ("how missions appear") could not be read
+  (the temp file was gone).
+
+## Missions panel copied 1:1 from the owner's reference (October 14, latest)
+
+`MissionTracker.luau` now copies the owner's reference screenshots (vault note
+`UI References/unknown-game-missions-panel`): a right-side panel with a blue ▶/◀ square
+that collapses it to one button, "Missions (N)" (N = open missions), Yours / Shared /
+Active tabs, and rows of name + "Respond in m:ss" + a green GUIDE button with a red "!"
+until pressed. GUIDE points the objective marker and guide beam at that site (it
+outranks other goals, `tracker.guideId`); the walk-up Send Army prompt at the site sends
+the army. Markers over sites read "YOUR MISSION [Tier]" / "SHARED MISSION [Tier]", the
+name and "Respond in m:ss" ([Gold] for gold sites). Rewards, verdicts and the "landed /
+left" toasts were dropped for the minimal look; only "… was taken by another Army" stays.
+The prompt still shows strength and reward. Checked in Studio Play: rows, tabs, GUIDE
+beam, collapse. Markers exist with on-screen sizes, but the screenshot tool does not
+capture BillboardGuis, so their look is unverified. Not copied: the reference's Auto
+Mission / Auto Sell / Auto Collect buttons.
+
+## Owner direction, October 14 (latest; supersedes the panel, tabs and shared/yours split)
+
+- **No mission UI.** The Missions panel, Yours/Shared/Active tabs, GUIDE and the
+  private/shared split are gone. Random loyalist **sites simply appear around the island**
+  (`OperationService:StepSites`): one island-wide pool of `clamp(2 + eligible players, 3, 6)`
+  sites, first one 20 s after anyone unlocks them, refilled 45 s after one leaves or is
+  taken (3 s while below 3), 6 min each. They roll from the highest tier any online player
+  has; any player whose tier is high enough attacks with the walk-up Send Army prompt, and
+  the first army sent claims it. `MissionTracker` now only labels each site in the world
+  (name in tier colour or gold, "Leaves in m:ss" / "Locked · Elite tier"; not
+  AlwaysOnTop, which did not render) and keeps the countdowns the objective marker uses
+  ("ATTACK m:ss"). Guide goal: "Attack a loyalist site on the island".
+- **Camp-sized builds, studs everywhere.** `MissionKits/Common.luau` fixes the envelope
+  (radius 15, clear centre 11.5, hero at z = −17; measured 34–37 × ~42 studs including the
+  path, 120–210 parts). `MissionSite.Studify` puts the map's exact stud texture
+  (`rbxassetid://6372755229`, 8 studs/tile, black, 80 % transparent — read from the
+  authored camps) on every face but the bottom of every block, Loyalist Landing included.
+- **All six themes built:** Loyalist Landing, Watchtower Fort (rebuilt small), Supply
+  Depot, Crystal Mine, Pirate Cove (prefers spots ≥ 340 studs out, near the beach) and
+  Dragon Roost, each with three seeded hero pieces and its own props/palettes.
+  Screenshots: `assets/generated/mission-sites-20261014/`.
+- Still to do: rewards by theme (free rolls, egg boost), enemy scaling with rebirth rank,
+  polishing Supply Depot's crane and Dragon Roost's entrance skulls.

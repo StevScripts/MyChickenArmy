@@ -110,8 +110,9 @@ function BaseController:MissionCommand(model,missionId)
 	if not mission then return nil end
 	local _, _, _, selectedCount = self.app:Counts()
 	local home=state.armyState=="Home" or state.armyState=="Following"
-	local allowed=home and selectedCount>0 and not state.outgoing and not state.incoming
-	local reason=if not home or state.outgoing then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
+	local allowed=home and selectedCount>0 and not state.outgoing and not state.incoming and not mission.locked
+	local reason=if mission.locked then "Unlock this Mission tier in Upgrades"
+		elseif not home or state.outgoing then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
 	local hint=Guide.Difficulty(state.power,mission.power).." · "..mission.count.." loyalists · $"..Theme.CompactMoney(mission.reward)
 	return {model=model,action=if allowed then "StartOperation" else nil,missionId=missionId,targetId="mission:"..missionId,
 		hint=if allowed then hint else nil,locked=not allowed,reason=reason,title=mission.name,
@@ -572,8 +573,15 @@ function BaseController:UpdateObjective()
  local invasion=zone and zone.PrimaryPart and zone.PrimaryPart:FindFirstChild("Marker")
  if invasion then target=invasion end
  local waiting=nil
- local nextMission=ops and ops.missions and ops.missions[1]
- if not invasion and not guidance and (target==nil or where=="Mission") and nextMission and missionFolder then
+ -- GUIDE in the Missions panel picks a site and outranks other goals; without it,
+ -- point at the first open mission when nothing else is a goal.
+ local tracker=self.app.missionTracker
+ local guided=tracker and tracker.guideId
+ local nextMission=nil
+ for _,mission in (ops and ops.missions) or {} do
+  if not mission.locked and (guided==nil or mission.id==guided) then nextMission=mission;break end
+ end
+ if not invasion and (guided~=nil or (not guidance and (target==nil or where=="Mission"))) and nextMission and missionFolder then
   local site=missionFolder:FindFirstChild("Mission_"..nextMission.id)
   waiting=site and site.PrimaryPart and site.PrimaryPart:FindFirstChild("Marker")
   if waiting then target=waiting end
@@ -584,10 +592,9 @@ function BaseController:UpdateObjective()
  self.objective.Adornee=anchor
  local panel=self.app.operationsPanel
  local left=invasion and panel and panel.expiresAt and math.max(0,math.ceil(panel.expiresAt-os.clock()))
- local tracker=self.app.missionTracker
  local waitLeft=waiting and tracker and tracker:Remaining(nextMission.id)
- self.objectiveCaption.Text=if invasion then (if left then ("MISSION %d:%02d"):format(left//60,left%60) else "MISSION")
-  elseif waiting then (if waitLeft then ("MISSION %d:%02d"):format(waitLeft//60,waitLeft%60) else "MISSION")
+ self.objectiveCaption.Text=if invasion then (if left then ("ATTACK %d:%02d"):format(left//60,left%60) else "ATTACK")
+  elseif waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
   elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  self.objective.Enabled=anchor~=nil and not self.app.panel.Visible and not self.app.dialogueActive
@@ -615,7 +622,7 @@ function BaseController:PollCommand()
 		-- This commander's waiting mission sites (others' sites are visible but not theirs).
 		local missions=world:FindFirstChild("Missions")
 		if missions then for _,site in missions:GetChildren() do
-			if site:GetAttribute("OwnerUserId")==Players.LocalPlayer.UserId then table.insert(candidates,site) end
+			if site:GetAttribute("OwnerUserId")==Players.LocalPlayer.UserId or site:GetAttribute("Shared") then table.insert(candidates,site) end
 		end end
 		local frontier=world:FindFirstChild("Outposts")
   if frontier then for _,camp in frontier:GetChildren() do table.insert(candidates,camp) end end

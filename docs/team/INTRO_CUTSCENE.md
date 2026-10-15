@@ -75,7 +75,8 @@ are granted, and Skip is available the whole time.
 ## Editing and checking in Studio
 
 - Timings and shots: `src/client/IntroCutscene.luau`, `Intro:Run` (one `self:Wait(t)`
-  per beat). Payoff: `Intro:Payoff`.
+  per beat). The October 14 owner decision removed the second (first-camp-win payoff)
+  film: players kept seeing it again after the first camp. Only the intro plays.
 - Every fresh Studio Play session is a new profile, so the film plays each time.
   Set `workspace.PetRollSkipIntro=true` (Studio only) to skip it while testing other work.
 - Framing aid: during Play, set the client's `workspace.PetRollIntroPauseAt` to a
@@ -85,4 +86,3 @@ are granted, and Skip is available the whole time.
   moment something solid sits between the lens and an on-screen actor, or the lens
   is inside scenery. Shots use `Intro:Pick` (first clear candidate view) and every
   cut/dolly slides out of scenery, so other plots' props are avoided automatically.
-- Payoff test: the Studio debug `Promotion 2` command marks the route won.

@@ -16,6 +16,11 @@ ChickenLuck.Bands = {
 	{species="IceDuck", weight=0.05}, {species="StormDuck", weight=0.01},
 }
 local baselineShare = 0.10
+-- October 14 owner retune: the strongest band (Galaxy Overlord) was owned within a
+-- few hours. Only this share of its final probability stays; the rest drops to the
+-- band below. Linear at every Luck, so stronger-threshold odds stay monotone and the
+-- chance of "Mythic or better" is unchanged.
+ChickenLuck.TopBandKeep = 0.15
 local initialWindowEnd = 5 -- These bands contain 95.99% of baseline probability.
 local bandBySignature, bandBySpecies, memberWeights = {}, {}, {}
 local totalBudget = 0
@@ -89,6 +94,10 @@ function ChickenLuck.Odds(luckLevel: number, paidMultiplier: number?, researchLu
 		probabilities[lower] += moving * (1 - fraction)
 		if fraction > 0 then probabilities[lower + 1] += moving * fraction end
 	end
+	local top = #ChickenLuck.Bands
+	local dropped = probabilities[top] * (1 - ChickenLuck.TopBandKeep)
+	probabilities[top] -= dropped
+	probabilities[top - 1] += dropped
 
 	local odds = {}
 	for _, species in Catalog.Order do
