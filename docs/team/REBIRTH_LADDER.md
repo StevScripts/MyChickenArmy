@@ -6,6 +6,11 @@
 > `Config.Rebirth` is back to the earlier 20-rank table, MaxRank 20:
 > $50M, $1T, $5T, $12T, $18T, $28T, $38T, $45T, $50T, $55T, $62T, $80T, $95T, $115T, $125T,
 > $135T, $150T, $165T, $175T, $185T. Saved ranks above 20 load as 20 (never rejected).
+> Chicken cash upgrades were switched back on with it (the costs need them).
+> Re-checked with `tests/ProgressionSimulation` (1 seed, 30 s ticks), Rebirth 1–6 at:
+> +100% egg cash per rank (kept): 1.1, 2.8, 4.4, 6.2, 8.1, 9.7 h (steady ~1.7 h each).
+> Tried and rejected: x2 per rank 1.1, 2.9, 4.1, 5.0, 5.6, 5.9 h (later ranks speed up);
+> x1.5 per rank 1.1, 3.3, 6.0, 7.8, 9.6, 10.8 h; +200% per rank 1.1, 2.4, 3.4, 4.6, 5.7, 6.7 h.
 > The rest of this page records the reverted ladder.
 
 ## Owner request
