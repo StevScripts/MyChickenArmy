@@ -29,6 +29,7 @@ Giant.Bands = {
 	Rare={min=6,max=12,exponent=1.6}, Epic={min=8,max=17,exponent=1.4},
 	Legendary={min=11,max=22,exponent=3,colossalChance=0.01},
 	Mythic={min=15,max=27.5,exponent=3,colossalChance=0.03},
+	Secret={min=15,max=27.5,exponent=3,colossalChance=0.03}, -- October 15: same band as Mythic.
 }
 
 function Giant.IsValidSize(size: any): boolean

@@ -60,7 +60,7 @@ end
 -- works anywhere). Rolls whenever the lever is ready; stops while an offer worth
 -- keeping waits on a podium (any mutation, or the player's stopAt setting) and
 -- tells the player once. Recruiting it, or pulling the lever, lets it roll on.
-local RANK={Common=1,Uncommon=2,Rare=3,Epic=4,Legendary=5,Mythic=6}
+local RANK={Common=1,Uncommon=2,Rare=3,Epic=4,Legendary=5,Mythic=6,Secret=7}
 function RollService.Keeper(session, offer): boolean
 	if offer.mutation then return true end
 	local stop=session.autoRoll and session.autoRoll.stopAt or "Upgrade"

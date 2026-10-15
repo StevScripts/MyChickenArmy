@@ -18,7 +18,7 @@ local function luckChances(session, level, window)
 	for id, probability in Rules.Odds(level, session.recruitTier,
 		session:PaidLuckMultiplier(), session.researchEffects.rollingLuck) do
 		local rarity = Catalog[id].rarity
-		if rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" then
+		if rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" or rarity == "Secret" then
 			rarePlus += probability
 			epicPlus += probability
 		elseif rarity == "Rare" then

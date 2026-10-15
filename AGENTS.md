@@ -44,6 +44,8 @@ The map, rigs, assets, world settings, saved profiles and builder geometry remai
 
 Preserve the current relative module paths, internal PetRoll/Duck IDs and save compatibility. Server modules own state, money and transactions; client modules own input/presentation. No unrelated framework, file reshuffle or formatting pass. The user prefers quick PC iteration and small relevant checks over extensive suites.
 
+October 15 "1 in X" rarity (owner decision): every rollable chicken shows its zero-Luck odds ("1 in 19,000") next to its rarity, and its price, income and power follow its own odds (`PetCatalog` RarityPrice/oneIn; Luck bands now live in `PetCatalog.LuckBands`, matched by `luckSignature`). Rarer chickens never earn less than their old tier value. A new **Secret** rarity covers 1 in 200,000 or rarer. The 11 original tier species keep their exact stats because enemies use them. See `docs/team/ONE_IN_X_RARITY.md`.
+
 ## Simple animations — use TweenService
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 

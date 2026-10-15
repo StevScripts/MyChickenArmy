@@ -278,7 +278,9 @@ function RollStation:Step(now, force)
 			self.model:SetAttribute("RevealedMutation", self.offer.mutation)
 		end
 		self.label.Text = def.name
-		self.rarityLabel.Text = def.rarity
+		-- October 15: the rarity plus its zero-Luck odds, e.g. "Mythic · 1 in 19,000".
+		local oneIn = Catalog.OneInText(self.offer.species)
+		self.rarityLabel.Text = if oneIn then def.rarity .. " · " .. oneIn else def.rarity
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
 		self.priceLabel.Text = "$" .. commas(price)
 		local promptText = if self.flockFull then "Flock full · sell in Army" else "Buy " .. def.name .. " · $" .. commas(price)

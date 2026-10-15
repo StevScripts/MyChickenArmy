@@ -248,4 +248,111 @@ for _, entry in Catalog.Loyalists do
  Catalog[entry[1]] = definition
 end
 
+-- October 15 owner decision: "1 in X" rarity (docs/team/ONE_IN_X_RARITY.md).
+-- Luck's strength bands live here so the catalog can compute each chicken's
+-- zero-Luck odds; ChickenLuck reads the same table. Bands are matched by each
+-- chicken's tier stats (luckSignature, recorded before the rarity premium).
+Catalog.LuckBands = {
+	{species="Duck", weight=38}, {species="Mallard", weight=22},
+	{species="Chunky", weight=22}, {species="Bucket", weight=9},
+	{species="Viking", weight=5}, {species="Knight", weight=3},
+	{species="Dragon", weight=0.7}, {species="Rainbow", weight=0.25},
+	{species="IceDuck", weight=0.05}, {species="StormDuck", weight=0.01},
+}
+-- October 14 owner retune: only this share of the strongest band's odds stays.
+Catalog.LuckTopBandKeep = 0.15
+function Catalog.LuckSignature(definition): string
+	return definition.luckSignature or table.concat({definition.income, definition.hp, definition.damage,
+		definition.interval, definition.attackWindup or Config.AttackWindupSeconds,
+		if definition.splash then 1 else 0}, ":")
+end
+for _, definition in Catalog do
+	if type(definition) == "table" and definition.name then definition.luckSignature = Catalog.LuckSignature(definition) end
+end
+do
+	-- Zero-Luck odds: each band keeps its weight share, the top band hands most of
+	-- its share to the band below, and members split their band by weight.
+	local bandOf, bandChance, members, total = {}, {}, {}, 0
+	for index, band in Catalog.LuckBands do
+		bandOf[Catalog[band.species].luckSignature] = index
+		total += band.weight
+	end
+	for index, band in Catalog.LuckBands do bandChance[index] = band.weight / total end
+	local top = #Catalog.LuckBands
+	bandChance[top - 1] += bandChance[top] * (1 - Catalog.LuckTopBandKeep)
+	bandChance[top] *= Catalog.LuckTopBandKeep
+	local function rollable(definition) return definition.weight > 0 and not definition.crateExclusive end
+	for _, id in Catalog.Order do
+		local definition, band = Catalog[id], nil
+		if rollable(definition) then band = bandOf[definition.luckSignature] end
+		if band then members[band] = (members[band] or 0) + definition.weight end
+	end
+	for _, id in Catalog.Order do
+		local definition = Catalog[id]
+		local band = rollable(definition) and bandOf[definition.luckSignature]
+		if band then definition.oneIn = 1 / (bandChance[band] * definition.weight / members[band]) end
+	end
+end
+
+-- Rarer always means better, and rarity sets the price. R is a chicken's odds
+-- relative to the basic Chicken (1 in ~3.6); r is relative to its stat tier's most
+-- common member. Income = max(tier income x r^0.2, 4 x R^0.5): never below today's
+-- tier value, so no owned chicken is weakened. HP and damage follow the income gain
+-- gently (square root, at most x2). Price = max(600 s of income, 2,400 x
+-- R^(0.25 + 0.17 log10 R)): commons stay near their old prices, and the curve
+-- steepens until a 1-in-121,000 Galaxy Overlord costs ~$100M at level 1. The rarest
+-- chickens (1 in SecretOneIn or rarer) are Secret, with x SecretPricePremium on top.
+-- The 11 original tier species keep their exact stats, because camps, the King and
+-- invasions are built from them; only their price follows the curve.
+Catalog.SecretOneIn = 200000
+Catalog.SecretPricePremium = 5
+local ProtectedStats = {Duck=true,Mallard=true,Chunky=true,Sailor=true,Bucket=true,Viking=true,
+	Knight=true,Wizard=true,Dragon=true,IceDuck=true,StormDuck=true}
+function Catalog.RarityPrice(oneIn: number, income: number): number
+	local relative = math.max(1, oneIn / Catalog.Duck.oneIn)
+	local curve = 2400 * relative ^ (0.25 + 0.17 * math.log10(relative))
+	local price = math.max(basePrice(income), curve) * (if oneIn >= Catalog.SecretOneIn then Catalog.SecretPricePremium else 1)
+	return math.floor(price + 0.5)
+end
+do
+	local floor = {}
+	for _, id in Catalog.Order do
+		local definition = Catalog[id]
+		if definition.oneIn then
+			local key = definition.economyBase or id
+			floor[key] = math.min(floor[key] or math.huge, definition.oneIn)
+		end
+	end
+	for _, id in Catalog.Order do
+		local definition = Catalog[id]
+		if not definition.oneIn then continue end
+		if not ProtectedStats[id] then
+			local relative = math.max(1, definition.oneIn / Catalog.Duck.oneIn)
+			local tierRatio = math.max(1, definition.oneIn / floor[definition.economyBase or id])
+			local income = math.max(definition.income * tierRatio ^ 0.2, 4 * relative ^ 0.5)
+			income = math.floor(income + 0.5)
+			local strength = math.min(2, (income / definition.income) ^ 0.5)
+			definition.income = income
+			definition.hp = math.floor(definition.hp * strength + 0.5)
+			definition.damage = math.floor(definition.damage * strength + 0.5)
+		end
+		definition.price = Catalog.RarityPrice(definition.oneIn, definition.income)
+		if definition.oneIn >= Catalog.SecretOneIn then definition.rarity = "Secret" end
+	end
+end
+
+-- "1 in 4", "1 in 129", "1 in 2,900", "1 in 444,500": three significant figures.
+function Catalog.OneInText(species: string): string?
+	local definition = Catalog[species]
+	local value = definition and definition.oneIn
+	if not value then return nil end
+	local rounded = if value < 1000 then math.floor(value + 0.5)
+		else (function()
+			local step = 10 ^ (math.floor(math.log10(value)) - 2)
+			return math.floor(value / step + 0.5) * step
+		end)()
+	local digits = tostring(math.max(2, rounded)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+	return "1 in " .. digits
+end
+
 return Catalog

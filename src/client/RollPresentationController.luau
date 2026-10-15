@@ -20,7 +20,7 @@ RollPresentationController.__index = RollPresentationController
 local BEATS = {0.065, 0.10, 0.14, 0.185, 0.235, 0.295, 0.365, 0.455, 0.56, 0.69, 0.84}
 local GOLD = UIColors.Rewards
 local BLUE = Color3.fromRGB(67, 181, 222)
-local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6}
+local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Secret=7}
 -- Camera feel: edit these, then restart Play. Duration follows each server-accepted roll.
 local ROLL_ZOOM_DEGREES = 2 -- Larger means a stronger zoom.
 local ROLL_ZOOM_EASING = Enum.EasingStyle.Linear

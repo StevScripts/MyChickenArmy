@@ -9,7 +9,8 @@ local Schema = {}
 -- 2 (October 14 launch): onboarding step 20 Rebirth1, daily source, Rebirth
 -- sink/feature, launch counters and the bigCash/longSeconds buckets.
 -- 3 (October 14): mission.* launch counters.
-Schema.Version = 3
+-- 4 (October 15): the Secret rarity (roll.offer/buy, Recruit sink, crate labels).
+Schema.Version = 4
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -118,7 +119,7 @@ Schema.Sinks = {
 	-- The whole wallet removed by a re-enlist (the cost plus the cash reset).
 	Rebirth        = {transaction = "Gameplay", sku = "Rebirth"},
 }
-Schema.Rarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"}
+Schema.Rarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret"}
 
 -- First-use feature adoption, keyed by the request action that proves use.
 Schema.Features = {

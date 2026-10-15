@@ -664,7 +664,7 @@ function AppController:RenderSettings()
 	local auto=self.state.autoRoll
 	if auto and auto.unlocked then
 		toggle("ToggleAutoRoll", "Auto Roll", auto.enabled, function() self:Request("SetAutoRoll",{enabled=not auto.enabled}) end)
-		local names={Upgrade="Army upgrade",Rare="Rare+",Epic="Epic+",Legendary="Legendary+",Mythic="Mythic"}
+		local names={Upgrade="Army upgrade",Rare="Rare+",Epic="Epic+",Legendary="Legendary+",Mythic="Mythic+",Secret="Secret"}
 		local index=table.find(Config.AutoRollStops,auto.stopAt) or 1
 		self:Button("AutoRollStop", "Auto Roll stops at  ·  "..(names[auto.stopAt] or "Army upgrade"), function()
 			self:Request("SetAutoRoll",{stopAt=Config.AutoRollStops[index%#Config.AutoRollStops+1]})

@@ -87,7 +87,7 @@ local Config = {
  RollRevealSeconds=2.4,RollInteractDistance=14,
  -- Auto Roll (research AutoRoll) stops on any mutated offer or at this setting:
  -- "Upgrade" = an offer that fills or strengthens the army, else a rarity floor.
- AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic"},
+ AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic","Secret"},
  SlotLevels={3,4,5,6,7,8,9,10},
  SlotUnlocks={
   [3]={capacity=4,price=1200},

@@ -49,7 +49,7 @@ local Art={
 local RARITIES={
  Common=Color3.fromRGB(211,228,207),Uncommon=Color3.fromRGB(53,255,23),
  Rare=Color3.fromRGB(0,212,255),Epic=Color3.fromRGB(198,75,255),
- Legendary=Color3.fromRGB(255,213,0),Mythic=Color3.fromRGB(255,54,114),
+ Legendary=Color3.fromRGB(255,213,0),Mythic=Color3.fromRGB(255,54,114),Secret=Color3.fromRGB(64,255,233),
 }
 local TONES={
  Green={Color3.fromRGB(165,255,0),Color3.fromRGB(38,227,0),Color3.fromRGB(40,125,6),Color3.fromRGB(217,255,154)},
@@ -1099,11 +1099,12 @@ function Browser:RenderDetail(pet)
  local stats=self:ResearchStats(pet)
  self.name.Text=definition.name
  local rarity=RARITIES[definition.rarity] or RARITIES.Common
- self.metadata.Text=string.format('<font color="#%s">%s</font> • Lv. %d',rarity:ToHex(),definition.rarity,pet.level)
+ local oneIn=Catalog.OneInText(pet.species)
+ self.metadata.Text=string.format('<font color="#%s">%s</font>%s • Lv. %d',rarity:ToHex(),definition.rarity,if oneIn then " · "..oneIn else "",pet.level)
   ..(if Giant.IsColossal(pet.giantSize) then string.format(' · <font color="#FF6AD5">COLOSSAL</font> · army +%d%% dmg',math.floor(Giant.ColossalArmyDamage*100+0.5))
    elseif pet.giantSize then string.format(' · <font color="#FFB347">GIANT</font> · ×%g HP ×%g dmg · stomp',Giant.HealthMultiplier,Giant.DamageMultiplier)
    else "")
- self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or Art.Glow.Common,not self.hideDetailPreview
+ self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or (if definition.rarity=="Secret" then Art.Glow.Mythic else nil) or Art.Glow.Common,not self.hideDetailPreview
  local eggs=pet.eggsPerSecond or Rules.EggRate(pet.species,pet.stars,pet.level)
  self.stats.Text=Theme.Number(stats.damage/stats.interval)..' <font color="#CDD6C7">DPS</font>  •  '
   ..Theme.Number(eggs)..' <font color="#CDD6C7">'..(if Theme.Number(eggs)=="1" then "egg/s" else "eggs/s")..'</font>'

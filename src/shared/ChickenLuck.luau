@@ -8,28 +8,17 @@ local ChickenLuck = {}
 -- appearance divides its band's budget instead of changing progression odds.
 -- October 7 reset: bands follow income, combat strength AND rarity; the basic
 -- Chicken leads a fresh roll and a Mythic starts at about 1 in 1,667.
-ChickenLuck.Bands = {
-	{species="Duck", weight=38}, {species="Mallard", weight=22},
-	{species="Chunky", weight=22}, {species="Bucket", weight=9},
-	{species="Viking", weight=5}, {species="Knight", weight=3},
-	{species="Dragon", weight=0.7}, {species="Rainbow", weight=0.25},
-	{species="IceDuck", weight=0.05}, {species="StormDuck", weight=0.01},
-}
+ChickenLuck.Bands = Catalog.LuckBands -- Owned by PetCatalog (zero-Luck "1 in X").
 local baselineShare = 0.10
--- October 14 owner retune: the strongest band (Galaxy Overlord) was owned within a
--- few hours. Only this share of its final probability stays; the rest drops to the
--- band below. Linear at every Luck, so stronger-threshold odds stay monotone and the
--- chance of "Mythic or better" is unchanged.
-ChickenLuck.TopBandKeep = 0.15
+-- October 14 owner retune: only this share of the top band's final probability
+-- stays; the rest drops to the band below (see PetCatalog.LuckTopBandKeep).
+ChickenLuck.TopBandKeep = Catalog.LuckTopBandKeep
 local initialWindowEnd = 5 -- These bands contain 95.99% of baseline probability.
 local bandBySignature, bandBySpecies, memberWeights = {}, {}, {}
 local totalBudget = 0
 
-local function signature(definition): string
-	return table.concat({definition.income, definition.hp, definition.damage,
-		definition.interval, definition.attackWindup or Config.AttackWindupSeconds,
-		if definition.splash then 1 else 0}, ":")
-end
+-- Tier stats recorded before the rarity premium, so a rarer appearance stays in its band.
+local signature = Catalog.LuckSignature
 
 for index, band in ChickenLuck.Bands do
 	local key = signature(Catalog[band.species])

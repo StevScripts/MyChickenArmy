@@ -88,6 +88,13 @@ function Browser:BuildCards()
 		name.TextXAlignment,name.TextYAlignment=Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
 		name.TextScaled=true
 		caption.Visible=false
+		-- October 15: every rollable chicken shows its zero-Luck odds in the corner.
+		local oneIn=Catalog.OneInText(species)
+		if oneIn then
+			local odds=Theme.Label(visual,"OneIn",oneIn,20,Theme.Rarities[Catalog[species].rarity] or C.white)
+			odds.AnchorPoint,odds.Position,odds.Size=Vector2.new(1,0),UDim2.fromScale(0.96,0.035),UDim2.fromScale(0.8,0.13)
+			odds.TextXAlignment,odds.TextScaled,odds.ZIndex=Enum.TextXAlignment.Right,true,5
+		end
 		local view={root=slot,visual=visual,preview=preview,caption=caption,
 			name=name,rim=rim,studs=studs,collected=nil}
 		self.cards[species]=view

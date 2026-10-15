@@ -28,5 +28,7 @@ return {
 		Common=Color3.fromRGB(211,228,207), Uncommon=Color3.fromRGB(81,255,59),
 		Rare=Color3.fromRGB(66,211,255), Epic=Color3.fromRGB(210,116,255),
 		Legendary=Color3.fromRGB(255,222,41), Mythic=Color3.fromRGB(255,94,139),
+		-- October 15: rarer than Mythic (1 in 200,000 or rarer).
+		Secret=Color3.fromRGB(64,255,233),
 	},
 }

@@ -5,7 +5,7 @@ local Config = require(script.Parent.Config)
 local ProcessorConfig = require(script.Parent.EggProcessorConfig)
 local PetCatalog = require(script.Parent.PetCatalog)
 local Currency = require(script.Parent.CurrencyLimits)
-local RarityRank = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6}
+local RarityRank = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Secret=7}
 
 -- Fallback matches the October 7 rarity reset; used only if the catalog lookup fails.
 local FALLBACK_GUARANTEED = {

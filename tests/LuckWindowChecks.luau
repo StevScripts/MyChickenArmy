@@ -16,10 +16,11 @@ local function near(actual, expected, context)
 		(context or "Probability") .. ": " .. tostring(actual) .. " differs from " .. tostring(expected))
 end
 
+-- October 15 "1 in X": rarer appearances carry their own stats, so bands are
+-- matched by the tier stats recorded before the rarity premium (luckSignature).
 local function sameStats(a, b)
-	return a.income == b.income and a.hp == b.hp and a.damage == b.damage
-		and a.interval == b.interval and (a.splash == true) == (b.splash == true)
-		and (a.attackWindup or Config.AttackWindupSeconds) == (b.attackWindup or Config.AttackWindupSeconds)
+	return (Catalog.LuckSignature or function(d) return d.luckSignature end)(a)
+		== (Catalog.LuckSignature or function(d) return d.luckSignature end)(b)
 end
 
 local function bandFor(catalog, species)
