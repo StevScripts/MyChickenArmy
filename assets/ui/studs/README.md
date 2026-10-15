@@ -1,3 +1,19 @@
+# Shared stud artwork
+
+## October 15, 2026 — current (owner decision)
+
+The owner replaced the generated sheet with the stud tile from their `StarterGui.GUI.FRAMES`
+reference GUI: Roblox image **85697657610499**, a 4×4 block of beveled square studs. The
+reference applies it with `ScaleType.Tile` at about 80% transparency (88–90% on buttons).
+`UITheme.Studs`/`BindStudTexture` now tile it (`STUD_TILES = 6` per square, i.e. the previous
+24-studs-per-sheet density) inside the same clipping `StudClip`, so every runtime stud surface
+and every in-world board rebound with `BindStudTextures` uses it. The 110 generated `Preview`
+copies in `StarterGui.PetRollGui.MenuLayouts` were updated in Studio (save the place). Backup
+and archive folders in ServerStorage keep the old image on purpose. Figma screens still show
+the old sheet.
+
+The sections below are the historical September record.
+
 # Shared stud artwork — September 24, 2026
 
 ## Current work

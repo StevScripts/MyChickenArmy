@@ -51,7 +51,7 @@ Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color
 Theme.Assets = {
 	Commander="rbxassetid://122076338993517",
 	Merge = "rbxassetid://122096168414414",
-	Cash="rbxassetid://101788696120931", Studs="rbxassetid://93331178043153",
+	Cash="rbxassetid://101788696120931", Studs="rbxassetid://85697657610499",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",
 	ArmyHud="rbxassetid://107457338807219", CallArmy="rbxassetid://125964672530167", MyBase="rbxassetid://76117843071069",
@@ -341,7 +341,11 @@ function Theme.Image(parent, name, asset, size, position)
 	return image
 end
 
--- One full-sheet image cropped by a transparent frame; never individual studs.
+-- October 15 (owner): the stud art is the GUI.FRAMES reference tile
+-- (rbxassetid://85697657610499, a 4x4 block of beveled studs), tiled across one
+-- square ImageLabel cropped by a transparent frame; never individual studs.
+-- STUD_TILES tiles per square keep the previous density (24 studs across).
+local STUD_TILES = 6
 local studBindings = setmetatable({}, {__mode="k"})
 
 function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
@@ -361,7 +365,8 @@ function Theme.BindStudTexture(pattern: ImageLabel, spacing: number?)
 		clip.Parent=parent
 		pattern.Parent=clip
 	end
-	pattern.Image,pattern.ScaleType=Theme.Assets.Studs,Enum.ScaleType.Stretch
+	pattern.Image,pattern.ScaleType=Theme.Assets.Studs,Enum.ScaleType.Tile
+	pattern.TileSize=UDim2.fromScale(1/STUD_TILES,1/STUD_TILES)
 	pattern.ImageRectOffset,pattern.ImageRectSize=Vector2.zero,Vector2.zero
 	pattern.Position,pattern.AnchorPoint,pattern.Rotation=UDim2.new(),Vector2.zero,0
 	pattern.BackgroundTransparency,pattern.BorderSizePixel,pattern.Active=1,0,false
@@ -422,7 +427,8 @@ function Theme.Studs(parent, opacity, tilePixels, inset)
 	local bounds=pattern.Parent
 	local insetScale=if padding==0 then 0 else 0.015
 	bounds.Size,bounds.Position=UDim2.fromScale(1-insetScale*2,1-insetScale*2),UDim2.fromScale(insetScale,insetScale)
-	pattern.ImageTransparency, pattern.ZIndex = 1-(opacity or 0.14), 2
+	-- Reference strengths: 80% transparent on surfaces, 88% on buttons (low opacity).
+	pattern.ImageTransparency, pattern.ZIndex = if (opacity or 0.14) >= 0.1 then 0.8 else 0.88, 2
 	return pattern
 end
 
