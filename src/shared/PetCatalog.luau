@@ -207,4 +207,45 @@ for _, key in RosterExpansionOrder do
  end
 end
 
+-- October 15 owner request: each mission territory has its own Loyalist guards
+-- (docs/team/LOYALIST_GUARDS.md). They are enemy only: never in Order, so they are
+-- never rolled, offered, owned or shown in the Index. Each copies the final stats of
+-- the chicken it replaced in OperationCatalog, so every fight keeps its strength.
+Catalog.Loyalists = {
+ {"LoyalCrateScout","Crate Scout","Bucket",{206,168,112}},
+ {"LoyalSpyglassScout","Spyglass Scout","Viking",{176,30,44}},
+ {"LoyalDropTrooper","Drop Trooper","Bucket",{118,124,134}},
+ {"LoyalAnvilBrute","Anvil Brute","Knight",{96,96,104}},
+ {"LoyalSergeant","Veteran Sergeant","Knight",{176,30,44}},
+ {"LoyalLancer","Assault Lancer","Viking",{158,164,172}},
+ {"LoyalMortarHen","Mortar Hen","Wizard",{190,112,58}},
+ {"LoyalShadowBulwark","Shadow Bulwark","Bucket",{46,50,70}},
+ {"LoyalShadowGunner","Shadow Gunner","Wizard",{84,86,104}},
+ {"LoyalNightCaptain","Night Captain","Knight",{34,40,76}},
+ {"LoyalFleetMarine","Fleet Marine","Knight",{40,70,140}},
+ {"LoyalDeckRaider","Deck Raider","Viking",{236,236,236}},
+ {"LoyalFrostGunner","Frost Gunner","IceDuck",{176,222,246}},
+ {"LoyalHonorGuard","Honor Guard","Knight",{72,44,70}},
+ {"LoyalEmberAdept","Ember Adept","Wizard",{70,34,70}},
+ {"LoyalDragonCommander","Dragon Commander","Dragon",{176,30,44}},
+ {"LoyalVanguardPaladin","Vanguard Paladin","Knight",{244,236,214}},
+ {"LoyalGlacierLancer","Glacier Lancer","IceDuck",{206,232,248}},
+ {"LoyalDrakeKnight","Crimson Drake Knight","Dragon",{176,30,44}},
+ {"LoyalShieldbearer","Crown Shieldbearer","IceDuck",{226,222,210}},
+ {"LoyalRoyalWarden","Royal Warden","Dragon",{80,50,46}},
+ {"LoyalStormHerald","Storm Herald","StormDuck",{40,70,170}},
+ {"LoyalFrostGuard","King's Frost Guard","IceDuck",{150,220,255}},
+ {"LoyalFlameGuard","King's Flame Guard","Dragon",{255,120,40}},
+ {"LoyalThunderGuard","King's Thunder Guard","StormDuck",{255,226,70}},
+ {"LoyalArmadaKing","Armada King","Duck",{236,186,58}},
+}
+for _, entry in Catalog.Loyalists do
+ local definition = table.clone(Catalog[entry[3]])
+ definition.name, definition.weight, definition.color = entry[2], 0, entry[4]
+ definition.economyBase = definition.economyBase or entry[3]
+ definition.baseSpecies = definition.baseSpecies or entry[3]
+ definition.enemyOnly = true
+ Catalog[entry[1]] = definition
+end
+
 return Catalog

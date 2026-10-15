@@ -95,3 +95,35 @@ The art and runtime export are in the Blender staging folder
 
 The importer skips anything already in staging, and the installer refuses to overwrite an
 existing `ChickenAssets` species.
+
+## Follow-up (same day): portraits, roll preload, lineup
+
+**Portraits**
+- All 81 catalog chickens now have 512 px image portraits with the approved 7px black
+  silhouette border.
+- They're mapped in `src/client/ChickenPortraits.luau`, and `ChickenPreview` uses them instead of
+  a 3D ViewportFrame.
+- How they were made: Studio viewport captures at the Sept 25 Photobooth angle, shot against a far
+  black backdrop and then a white one. The two are difference-matted into clean alpha, then
+  outlined.
+- Files: `assets/chicken-roster-expansion-20261015/roblox/portraits/`
+  - `capture.luau` and `process.py`
+  - `outlined/`
+  - `portrait-receipts.json`
+- Group image assets were uploaded through `AssetService`, and all 117 portrait IDs fetch
+  successfully.
+
+**Roll preload**
+- `RollStation` sets `PendingSpecies` when a roll starts.
+- `RollPresentationController:Warm` builds that chicken (and the shuffle birds) unparented, then
+  runs `ContentProvider:PreloadAsync` on them.
+- The reveal therefore appears with its mesh and texture already loaded. The reveal timing is
+  unchanged.
+- Trade-off: the result species is readable on the client about one roll duration early. The roll
+  is already decided on the server, so this gives no advantage.
+- Both scripts compile in Studio. This was not play-tested in a live roll.
+
+**Lineup**
+- `Workspace.ChickenLineup_Review` shows all 127 templates in rarity order with labels, at
+  Y = 300 off the island.
+- It's a temporary review model: delete it before saving or publishing, or it ships in the place.

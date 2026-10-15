@@ -1,0 +1,350 @@
+{
+  "batch": "l1",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/l1-lineup.png",
+  "chickens": [
+    {
+      "id": "LoyalCrateScout",
+      "name": "Crate Scout",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Scout Landing",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalCrateScout.png",
+      "preview": "previews/LoyalCrateScout.png",
+      "poses": [
+        "previews/LoyalCrateScout-Chicken_Walk.png",
+        "previews/LoyalCrateScout-Chicken_Peck.png",
+        "previews/LoyalCrateScout-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalCrateScout-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalCrateScout",
+        "name": "Crate Scout",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalCrateScout_Props",
+          "Roster_LoyalCrateScout_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 396,
+        "glb": "models/LoyalCrateScout.glb",
+        "fbx": "models/LoyalCrateScout-Bind.fbx",
+        "glbBytes": 304788
+      }
+    },
+    {
+      "id": "LoyalSpyglassScout",
+      "name": "Spyglass Scout",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Scout Landing",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalSpyglassScout.png",
+      "preview": "previews/LoyalSpyglassScout.png",
+      "poses": [
+        "previews/LoyalSpyglassScout-Chicken_Walk.png",
+        "previews/LoyalSpyglassScout-Chicken_Peck.png",
+        "previews/LoyalSpyglassScout-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalSpyglassScout-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalSpyglassScout",
+        "name": "Spyglass Scout",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalSpyglassScout_Props",
+          "Roster_LoyalSpyglassScout_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 384,
+        "glb": "models/LoyalSpyglassScout.glb",
+        "fbx": "models/LoyalSpyglassScout-Bind.fbx",
+        "glbBytes": 305412
+      }
+    },
+    {
+      "id": "LoyalDropTrooper",
+      "name": "Drop Trooper",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Iron Drop",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalDropTrooper.png",
+      "preview": "previews/LoyalDropTrooper.png",
+      "poses": [
+        "previews/LoyalDropTrooper-Chicken_Walk.png",
+        "previews/LoyalDropTrooper-Chicken_Peck.png",
+        "previews/LoyalDropTrooper-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalDropTrooper-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalDropTrooper",
+        "name": "Drop Trooper",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalDropTrooper_Props",
+          "Roster_LoyalDropTrooper_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 504,
+        "glb": "models/LoyalDropTrooper.glb",
+        "fbx": "models/LoyalDropTrooper-Bind.fbx",
+        "glbBytes": 317148
+      }
+    },
+    {
+      "id": "LoyalAnvilBrute",
+      "name": "Anvil Brute",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Iron Drop",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalAnvilBrute.png",
+      "preview": "previews/LoyalAnvilBrute.png",
+      "poses": [
+        "previews/LoyalAnvilBrute-Chicken_Walk.png",
+        "previews/LoyalAnvilBrute-Chicken_Peck.png",
+        "previews/LoyalAnvilBrute-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalAnvilBrute-base-color.png"
+      },
+      "vfxPlan": "Ember sparks from the hot anvil edge on Attack (burst).",
+      "review": {
+        "id": "LoyalAnvilBrute",
+        "name": "Anvil Brute",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalAnvilBrute_Props",
+          "Roster_LoyalAnvilBrute_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 444,
+        "glb": "models/LoyalAnvilBrute.glb",
+        "fbx": "models/LoyalAnvilBrute-Bind.fbx",
+        "glbBytes": 310600
+      }
+    },
+    {
+      "id": "LoyalSergeant",
+      "name": "Veteran Sergeant",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Veteran Assault",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalSergeant.png",
+      "preview": "previews/LoyalSergeant.png",
+      "poses": [
+        "previews/LoyalSergeant-Chicken_Walk.png",
+        "previews/LoyalSergeant-Chicken_Peck.png",
+        "previews/LoyalSergeant-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalSergeant-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalSergeant",
+        "name": "Veteran Sergeant",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalSergeant_Props",
+          "Roster_LoyalSergeant_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 552,
+        "glb": "models/LoyalSergeant.glb",
+        "fbx": "models/LoyalSergeant-Bind.fbx",
+        "glbBytes": 322764
+      }
+    },
+    {
+      "id": "LoyalLancer",
+      "name": "Assault Lancer",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Veteran Assault",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalLancer.png",
+      "preview": "previews/LoyalLancer.png",
+      "poses": [
+        "previews/LoyalLancer-Chicken_Walk.png",
+        "previews/LoyalLancer-Chicken_Peck.png",
+        "previews/LoyalLancer-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalLancer-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalLancer",
+        "name": "Assault Lancer",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalLancer_Props",
+          "Roster_LoyalLancer_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 456,
+        "glb": "models/LoyalLancer.glb",
+        "fbx": "models/LoyalLancer-Bind.fbx",
+        "glbBytes": 310704
+      }
+    },
+    {
+      "id": "LoyalMortarHen",
+      "name": "Mortar Hen",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Veteran Assault",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalMortarHen.png",
+      "preview": "previews/LoyalMortarHen.png",
+      "poses": [
+        "previews/LoyalMortarHen-Chicken_Walk.png",
+        "previews/LoyalMortarHen-Chicken_Peck.png",
+        "previews/LoyalMortarHen-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalMortarHen-base-color.png"
+      },
+      "vfxPlan": "Smoke puff + Ember burst from the muzzle on Attack.",
+      "review": {
+        "id": "LoyalMortarHen",
+        "name": "Mortar Hen",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalMortarHen_Props",
+          "Roster_LoyalMortarHen_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 432,
+        "glb": "models/LoyalMortarHen.glb",
+        "fbx": "models/LoyalMortarHen-Bind.fbx",
+        "glbBytes": 310916
+      }
+    }
+  ]
+}

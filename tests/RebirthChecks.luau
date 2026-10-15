@@ -116,20 +116,24 @@ function Checks.Run()
   print((if ok then "PASS " else "FAIL ")..name..(if ok then "" else " :: "..tostring(why)))
  end
 
- test("Cost, multiplier and enemy scale match the table; rank 16 is unavailable",function()
-  -- October 14 pacing: explicit Config.Rebirth.Costs, +1.0 eggs, +1.0 enemies.
-  local costs={5e9,5e12,1e14,5e14,1.2e15}
-  local multipliers={2,3,4,5,6}
-  local scales={2,3,4,5,6}
+ test("Cost, multiplier and enemy scale follow the ladder; ranks past MaxRank are unavailable",function()
+  -- October 15 pacing: listed Config.Rebirth.Costs, then +CostStep per rank; +1.0 eggs, +1.0 enemies.
+  local listed=Config.Rebirth.Costs
   for rank=1,5 do
-   assert(Rebirth.Cost(rank)==costs[rank],"Cost "..rank..": "..tostring(Rebirth.Cost(rank)))
-   near(Rebirth.Multiplier(rank),multipliers[rank],"Multiplier "..rank)
-   near(Rebirth.EnemyScale(rank),scales[rank],"Enemy scale "..rank)
+   assert(Rebirth.Cost(rank)==listed[rank],"Cost "..rank..": "..tostring(Rebirth.Cost(rank)))
+   near(Rebirth.Multiplier(rank),rank+1,"Multiplier "..rank)
+   near(Rebirth.EnemyScale(rank),rank+1,"Enemy scale "..rank)
+  end
+  assert(Rebirth.Cost(#listed+2)==listed[#listed]+2*Config.Rebirth.CostStep,"Cost after the list")
+  -- No wall: every rank costs more than the last, never more than x4 of it.
+  for rank=2,Config.Rebirth.MaxRank do
+   local ratio=(Rebirth.Cost(rank) :: number)/(Rebirth.Cost(rank-1) :: number)
+   assert(ratio>1 and ratio<=4,"Rank "..rank.." step x"..ratio)
   end
   assert(Rebirth.Multiplier(0)==1 and Rebirth.EnemyScale(0)==1,"Rank 0 must be neutral")
   assert(Rebirth.Cost(Config.Rebirth.MaxRank)~=nil)
   assert((Rebirth.Cost(Config.Rebirth.MaxRank) :: number)<=require(Shared.CurrencyLimits).MaxCoins,"Max rank costs more than the coin cap")
-  assert(Rebirth.Cost(Config.Rebirth.MaxRank+1)==nil and Rebirth.Cost(16)==nil,"Rank 16 is available")
+  assert(Rebirth.Cost(Config.Rebirth.MaxRank+1)==nil,"A rank past MaxRank is available")
   assert(Rebirth.Cost(0)==nil and Rebirth.Cost(1.5)==nil)
   assert(Rebirth.Title(0)=="No rebirths yet" and Rebirth.Title(1)=="Rebirth 1" and Rebirth.Title(4)=="Rebirth 4"
    and Rebirth.Title(9)=="Rebirth 9" and Rebirth.Title(10)=="Rebirth 10")
@@ -185,7 +189,7 @@ function Checks.Run()
   oserver.battles.battles.op1={id="op1",attacker=o.userId,operationId="Raid1"}
   o.outgoing,o.armyState="op1","Fighting"
   done,message=Rebirth.Rebirth(o,0,oserver)
-  assert(not done and message=="Finish your Invasion first.",message)
+  assert(not done and message=="Finish your mission first.",message)
   -- Stale or missing expected rank.
   local r,_,rserver=setup()
   done,message=Rebirth.Rebirth(r,1,rserver)

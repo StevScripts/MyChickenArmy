@@ -52,7 +52,7 @@ local Config = {
   BoostPerMinute=0.10,BoostMax=0.50,MinWinSeconds=15,RollLuckBonus=2,
   ChampionWins=10,ChampionSpecies="HillChampion"},
  -- Launch sprint (docs/team/LAUNCH_CHANGE_PLAN.md §6, §8). Tuning is config-only.
- -- Re-enlist: cost BaseCost*CostGrowth^(rank-1); eggs +EggBonusPerRank per rank;
+ -- Re-enlist: cost Costs[rank] (then +CostStep per rank); eggs +EggBonusPerRank per rank;
  -- camps and the King +EnemyHealthPerRank/EnemyDamagePerRank per rank.
  -- October 13 owner retune (kept chicken levels made the 1e9×8 ladder too fast):
  -- $5B, $20B, $80B, $320B, $1.28T… MaxRank 10 keeps every cost below the coin cap.
@@ -61,15 +61,19 @@ local Config = {
  -- adds +100% egg cash (x2, x3, x4…; was +25%). Rebirth also removes cash-bought chicken
  -- levels. Costs (explicit, all below the 2^53 coin cap) were tuned with
  -- tests/ProgressionSimulation: Rebirth 1 ≈ 1.8 h, Rebirth 2 ≈ 4.3 h, Rebirth 3 in the
- -- 10–20 h band. BaseCost/CostGrowth remain the fallback for ranks without an entry.
- Rebirth={Enabled=true,MaxRank=20,BaseCost=5e9,CostGrowth=4,
-  -- October 15 owner decision: 20 Rebirths spaced evenly, Rebirth 1 at ~1 h and
-  -- Rebirth 20 at ~33 h (one every ~1.5-2 h). Costs fitted with tests/ProgressionSimulation
-  -- (fast / casual player): R1 66/77 min, R2 2.8/4h, R5 8.3/10.3h, R10 17/20h,
-  -- R15 24.5/27.8h, R20 31.3/35.4h. Rebirth 1 still needs the King (cleared ~50 min).
-  -- Every cost stays far below the 2^53 coin cap.
-  Costs={5e7,1e12,5e12,1.2e13,1.8e13,2.8e13,3.8e13,4.5e13,5e13,5.5e13,
-   6.2e13,8e13,9.5e13,1.15e14,1.25e14,1.35e14,1.5e14,1.65e14,1.75e14,1.85e14},
+ -- 10–20 h band.
+ Rebirth={Enabled=true,MaxRank=50,
+  -- October 15 owner request: more Rebirths without million -> billion -> trillion walls
+  -- (the 20-rank table jumped x20,000 from Rebirth 1 to 2). Each listed rank costs at most
+  -- x3.6 the one before, easing to x1.15 by Rebirth 20; after the list every rank costs
+  -- CostStep more ($45T, $52.5T, $60T … $270T at Rebirth 50, far below the 2^53 coin cap).
+  -- Fitted with tests/ProgressionSimulation, see docs/team/REBIRTH_LADDER.md:
+  -- fast / casual player reach R1 68/90 min, R10 2.9/3.9 h, R20 7.5/9.5 h, R30 16/20 h,
+  -- R50 36/44 h. Runs take ~12/16 min early and ~60/72 min from Rebirth 30 on.
+  -- Rebirth 1 still needs the King. Saved ranks above MaxRank keep the highest rank.
+  Costs={5e7,1.8e8,6.2e8,2e9,5.9e9,1.7e10,4.4e10,1.1e11,2.6e11,5.6e11,
+   1.2e12,2.2e12,4.1e12,6.9e12,1.1e13,1.7e13,2.3e13,3.1e13,3.9e13,4.5e13},
+  CostStep=7.5e12,
   EggBonusPerRank=1.0,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
@@ -100,6 +104,9 @@ local Config = {
  -- to empty over LeftProgressDrainSeconds and fallen guards stand back up one per
  -- LeftDefenderRespawnSeconds (BattleService:LeaveProgress/ResumeProgress).
  LeftProgressDrainSeconds=90,LeftDefenderRespawnSeconds=12,
+ -- October 15: a marching army fights any open camp whose centre it passes within
+ -- InterceptRadius studs of (BattleService:StepIntercepts), then marches on.
+ InterceptRadius=16,
  LuckPrices={pacedPrice(1,Economy.LuckUpgradeSeconds),pacedPrice(2,Economy.LuckUpgradeSeconds),pacedPrice(3,Economy.LuckUpgradeSeconds),pacedPrice(4,Economy.LuckUpgradeSeconds)},LuckWeightPerLevel=0.10,
  LuckOpeningLevels=4,LuckContinuationWeightPerLevel=0.10,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,
@@ -120,7 +127,9 @@ local Config = {
  -- October 13 (Mini War-style territory): each held camp adds egg value while its
  -- flag stands (Camp 1/2/3, then the King). Bonuses stack; a camp under attack
  -- pays ContestedShare. HoldLimit is raised only by research (effect holdCap).
- Territories={CampBonus={0.05,0.15,0.20},KingBonus=0.25,ContestedShare=0.5,HoldLimit=8},
+ -- October 15 owner request: a stationed mission army also adds egg value while it
+ -- holds its territory (Veteran/Elite/Royal), counting toward HoldLimit.
+ Territories={CampBonus={0.05,0.15,0.20},KingBonus=0.25,MissionBonus={0.05,0.08,0.10},ContestedShare=0.5,HoldLimit=8},
  -- October 6 footage: one continuous conquest meter, approximately 25s.
  -- Supply Outpost/player contests and Operations retain their existing timing.
  RoamStep=0.1,RoamSpeed=2.5,ConquestSeconds=25,ConquestSecondsByCamp={12,20,25},CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,

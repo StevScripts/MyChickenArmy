@@ -4,6 +4,7 @@ local PetActor=require(script.Parent.PetActor)
 local PetView=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetView)
 local KingVisual=require(game:GetService("ReplicatedStorage").PetRoll.Shared.KingVisual)
 local KingEncounter=require(script.Parent.KingEncounter)
+local PetCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local LiveBattleActors={}
 LiveBattleActors.__index=LiveBattleActors
 
@@ -65,7 +66,7 @@ function LiveBattleActors:Sync(now)
   if not actor then
    actor=PetActor.new(self.folder,u.id,u.species,u.stars,spawnFoot(u.x,u.z))
    if u.boss then
-    KingVisual.Apply(actor.model,KingEncounter.Scale)
+    KingVisual.Apply(actor.model,KingEncounter.Scale,PetCatalog[u.species] and PetCatalog[u.species].enemyOnly)
     actor.footOffset=actor.model:GetAttribute("FootOffset")
    end
    self:Adopt(u,actor)

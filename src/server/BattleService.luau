@@ -231,9 +231,9 @@ function BattleService:Started(session)
 end
 
 -- Territory limit (Config.Territories.HoldLimit, raised by research holdCap).
--- Camps and the King count; the Hill does not.
+-- Camps, the King and held mission territories count; the Hill does not.
 function BattleService:HoldCount(session)
- local count=0
+ local count=if self.operations then self.operations:HoldCount(session.userId) else 0
  for key,owner in self.campOwners do
   if owner.userId==session.userId and key~="income:1" then count+=1 end
  end
@@ -263,6 +263,9 @@ function BattleService:RefreshTerritoryBonus()
   local contested=battle~=nil and battle.attacker~=owner.userId and not battle.paid
    and (battle.phase=="Fight" or battle.phase=="Capture")
   totals[owner.userId]=(totals[owner.userId] or 0)+bonus*(if contested then Config.Territories.ContestedShare else 1)
+ end
+ if self.operations then
+  for userId,bonus in self.operations:HoldBonuses() do totals[userId]=(totals[userId] or 0)+bonus end
  end
  for userId,session in self.sessions do
   local total=math.floor((totals[userId] or 0)*1000+0.5)/1000
@@ -785,7 +788,9 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	if territoryOwner and territoryOwner.userId==session.userId then defenders={} end
 	targetPower=targetPower or scaledPower(defenders,defenderScale)
 	local battleId=HttpService:GenerateGUID(false)
-	local origin=if turning then armyCenter(previous) elseif moving then previous.destination else self.world:Position(session.plotIndex)
+	-- A squad still marching leaves from where it is, not from its old target.
+	local midMarch=moving and previous.phase=="Travel"
+	local origin=if turning or midMarch then armyCenter(previous) elseif moving then previous.destination else self.world:Position(session.plotIndex)
 	local battle=Battle.new(battleId,session.userId,targetId,origin,destination,now)
 	battle.name,battle.campIndex=name,campIndex
  -- routeCamps tracks this push on the lane being attacked.
@@ -822,6 +827,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		if previous.operationId and not previous.paid then
 			self.operations:Resolve(previous,"Abandoned",now)
 			session.lastResult=previous.name.." left behind · no completion reward."
+		elseif previous.operationId then self.operations:Release(previous,now)
 		else self:LeaveProgress(previous,now) end
 		-- Carry the same lives and every incoming/relieved bird across encounter boundaries.
 		battle.serial=previous.serial
@@ -871,7 +877,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	end
 	-- All adopted rigs receive the same departure time and source gate.
 	-- A turned-around squad is already outside the old camp; it leaves from where it stands.
-	local departure=if moving and not turning then previous:DepartureSite() else nil
+	local departure=if moving and not turning and not midMarch then previous:DepartureSite() else nil
 	for _,u in battle.units do if u.side=="A" and not u.retiring then
 		March.Approach(u,battle.destination,now,departure)
 	end end
@@ -1359,6 +1365,7 @@ function BattleService:Step(dt,now)
 			self:ReturnHome(session,now)
 		end
 	end
+ self:StepIntercepts(now)
  if incomeEnabled(self) and self.world.SetIncomeStatus then self.world:SetIncomeStatus(self:IncomeSummary(nil,now)) end
  self:RefreshTerritoryBonus()
 end
@@ -1366,6 +1373,10 @@ end
 function BattleService:ReturnHome(session,now)
 	local battle=self.battles[session.outgoing]
 	if not battle or battle.phase=="Returning" then return false,"Your army is already home or returning." end
+	-- October 15: a stationed mission army lowers its flag and walks home; a holder
+	-- under attack must finish the fight first.
+	if battle.operationId and battle.paid and battle.phase=="Holding" then return self.operations:Recall(battle,session,now) end
+	if battle.operationId and battle.defender==session.userId then return false,"Your army is defending a territory. Win the fight first." end
 	if battle.operationId then self.operations:Resolve(battle,"Abandoned",now);return true,"Mission abandoned. Your army is marching home." end
  if battle.incomeContest and battle.defender==session.userId then
   local continuation=TerritoryContest.Continue(battle,session,"B",self.world,now,false)
@@ -1449,7 +1460,8 @@ function BattleService:CancelPlayer(userId,now)
 		if battle.attacker==userId or battle.defender==userId then
 			if battle.phase=="Holding" then self:ReturnHome(self.sessions[battle.attacker],now)
 			else self:Finish(battle,"Cancelled",now) end
-			table.insert(remove,battle)
+			-- A mission contest can hand its encounter to the other commander; keep it.
+			if battle.attacker==userId or battle.defender==userId then table.insert(remove,battle) end
 		end
 	end
 	for _,battle in remove do
@@ -1551,6 +1563,60 @@ function BattleService:CloseHill(now)
  self.income.clockOwner=nil
  self.hillOpen=false
  if self.world.SetHillMode then self.world:SetHillMode(false) end
+end
+
+-- Every camp and frontier outpost this commander could fight, by order id.
+function BattleService:CampSpots(session)
+ local spots={}
+ for _,owner in self.sessions do
+  if not owner.plotIndex or owner.closing then continue end
+  for i in Progression.Camps(owner.promotion or 1) do
+   spots[CampaignRoute.CampId(i,owner.plotIndex,session.plotIndex)]=self:CampPosition(i,owner.plotIndex)
+  end
+ end
+ if self.world.OutpostFrame then
+  for i in Progression.Outposts() do spots["outpost:"..i]=self.world:OutpostFrame(i).Position end
+ end
+ return spots
+end
+
+-- October 15 (owner): an army marching to a target fights any open camp it walks
+-- into on the way, then marches on to its target (routeGoal). Nothing is ordered
+-- or announced; only a camp it physically passes counts, never the ground it set
+-- out from (camps in range on its first check), held ground, busy camps or the King.
+function BattleService:StepIntercepts(now)
+ if now<(self.nextInterceptAt or 0) then return end
+ self.nextInterceptAt=now+0.25
+ local orders={}
+ for _,battle in self.battles do
+  if battle.phase~="Travel" or battle.operationId or battle.incomeSite or battle.incomeContest or battle.incomeJoin or battle.defender then continue end
+  local session=self.sessions[battle.attacker]
+  if not session or session.outgoing~=battle.id or session.closing then continue end
+  local center=armyCenter(battle)
+  local first=battle.interceptSeen==nil
+  battle.interceptSeen=battle.interceptSeen or {}
+  for id,at in self:CampSpots(session) do
+   if id==battle.target or id==battle.routeGoal or battle.interceptSeen[id] then continue end
+   if (Vector3.new(at.X,0,at.Z)-Vector3.new(center.X,0,center.Z)).Magnitude>Config.InterceptRadius then continue end
+   battle.interceptSeen[id]=true
+   if not first then table.insert(orders,{battle=battle,session=session,id=id});break end
+  end
+ end
+ for _,order in orders do
+  local battle,session=order.battle,order.session
+  if self.battles[battle.id]~=battle or session.outgoing~=battle.id then continue end
+  local entry
+  for _,target in self:Targets(session,now) do if target.id==order.id then entry=target;break end end
+  if not entry or not entry.available or entry.owned or entry.via or entry.kind=="King" then continue end
+  local goal=battle.routeGoal or battle.target
+  local lastResult=session.lastResult
+  local ok=self:Attack(session,order.id,now)
+  local fight=self.battles[session.outgoing]
+  if ok and fight and fight~=battle then
+   fight.routeGoal,fight.routeGoalName=goal,self:TargetName(session,goal)
+   session.lastResult=lastResult
+  end
+ end
 end
 
 local function leftState(record,now)

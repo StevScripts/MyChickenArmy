@@ -91,6 +91,14 @@ Operations or device-specific "Press E"/"Tap". Internal ids stay. Menus open thr
 `AppController:CloseOtherMenus` so only one shows at a time. See
 `docs/team/UX_AUDIT_FIXES_20261014.md`.
 
+## Mission territories (October 15, owner decision)
+Mission sites last 15 minutes and are guarded only by their own enemy-only Loyalist
+chickens (`PetCatalog.Loyalists`, never rollable/ownable/indexed). A win stations the
+army under a flag; other players may take it. Leaving early lowers the flag and the
+guards return; after 15 minutes a site leaves as soon as no player holds it. Conquest
+pays once per player per site; holding adds a small egg-value percentage
+(`Config.Territories.MissionBonus`). See `docs/team/MISSION_TERRITORIES.md`.
+
 ## Chicken UI Lab (October 15)
 The owner tweaks UI in the Studio plugin (`tools/ui-lab`, guide `docs/UI_LAB.md`) and
 saves change lists to `ServerStorage.UILab.Tweaks`. "Apply my UI Lab tweaks" means:

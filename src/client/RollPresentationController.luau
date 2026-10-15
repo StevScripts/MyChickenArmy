@@ -1,5 +1,6 @@
 --!strict
 -- Local podium presentation and subtle roll zoom. RollStation owns the offer.
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -141,10 +142,19 @@ function RollPresentationController:Track(station)
   voiceKey="Roll"..tostring(station:GetAttribute("PlotIndex"))}
 end
 
-function RollPresentationController:Preview(record, species, mystery: boolean?)
+-- October 15: build the roll's result (and its shuffle birds) the moment the roll
+-- starts, unparented, and preload their meshes/textures so the reveal pops in loaded.
+function RollPresentationController:Warm(record, species)
+ if type(species)~="string" or not Catalog[species] or record.cache[species] then return end
+ local model=self:Preview(record,species,true,true)
+ if model then task.spawn(function() pcall(ContentProvider.PreloadAsync,ContentProvider,{model}) end) end
+end
+
+function RollPresentationController:Preview(record, species, mystery: boolean?, warmOnly: boolean?)
  local model = record.cache[species]
  if not model then
   model = PetView.Create(self.folder, "RollPreview_"..species, species, 1, record.foot)
+  if warmOnly then model.Parent=nil end
   local appearance={parts={}, surfaces={}}
   for _, item in model:GetDescendants() do
    if item:IsA("BillboardGui") then item.Enabled=false end
@@ -161,6 +171,7 @@ function RollPresentationController:Preview(record, species, mystery: boolean?)
   record.cache[species] = model
   record.appearances[species] = appearance
  end
+ if warmOnly then return model end
  -- Suppress species effects during the mystery shuffle, then restore them for
  -- the revealed offer, including when it reuses the last cached shuffle bird.
  model:SetAttribute("ReducedMotion",mystery == true)
@@ -351,6 +362,10 @@ function RollPresentationController:StepRecord(record, now)
   for i=1,#BEATS do
    record.sequence[i]=Rules.Draw(luck,random:NextNumber(),tier,paidLuck,researchLuck)
   end
+  if rollId then
+   self:Warm(record,station:GetAttribute("PendingSpecies"))
+   for _,shuffled in record.sequence do self:Warm(record,shuffled) end
+  end
   if rollId and elapsed<0.3 then self:Sound(record,"RollLever",0.9,0.55,0.3) end
   self:HideBadge(record)
  end
@@ -375,6 +390,8 @@ function RollPresentationController:StepRecord(record, now)
   and (station:GetAttribute("RollSlot") or 1)>1 and station:GetAttribute("Unlocked")~=false
   and station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId)
  if rolling then
+  -- Late attribute replication: warm as soon as the pending species arrives.
+  self:Warm(record,station:GetAttribute("PendingSpecies"))
   local progress=math.clamp(elapsed/duration,0,1)
   local stage=0
   for i,beat in BEATS do if progress>=beat then stage=i else break end end

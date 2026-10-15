@@ -1,0 +1,185 @@
+{
+ "b1": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Hatchling",
+   "Silkie",
+   "SpeckledHen",
+   "BaconHair",
+   "Scarecrow",
+   "Pajama",
+   "Rooster",
+   "Sheep"
+  ]
+ },
+ "b2": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Plushie",
+   "CrateRunner",
+   "Lumberjack",
+   "Party",
+   "Cow",
+   "Piggy",
+   "Mailman",
+   "Raincoat"
+  ]
+ },
+ "b3": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Skater",
+   "Miner",
+   "Sushi",
+   "Donut",
+   "Popcorn",
+   "Gamer",
+   "Frog",
+   "Taco"
+  ]
+ },
+ "b4": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Painter",
+   "Sunflower",
+   "Paratrooper",
+   "Coral",
+   "Firefighter",
+   "Chef",
+   "Detective",
+   "Mummy"
+  ]
+ },
+ "b5": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Snowman",
+   "Police",
+   "Doctor",
+   "CastleGuard",
+   "Jester",
+   "Ironbeak",
+   "Samurai",
+   "Cowboy"
+  ]
+ },
+ "b6": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Steampunk",
+   "ZombieHunter",
+   "Ghost",
+   "Archer",
+   "Rockstar",
+   "DeepseaDiver",
+   "DragonHatchling",
+   "RoyalGuard"
+  ]
+ },
+ "b7": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Neon",
+   "NorseRaider",
+   "Animatronic",
+   "Vampire",
+   "Yeti",
+   "Mimic",
+   "Gladiator",
+   "Pumpkin"
+  ]
+ },
+ "b8": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Gingerbread",
+   "Geode",
+   "AirshipCaptain",
+   "Pharaoh",
+   "StainedGlass",
+   "Moon",
+   "Witch",
+   "Olympian"
+  ]
+ },
+ "b9": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Aurora",
+   "Jade",
+   "Firework",
+   "Phoenix",
+   "Unicorn",
+   "Kraken",
+   "DragonKnight",
+   "Griffin"
+  ]
+ },
+ "b10": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Valkyrie",
+   "TimeKeeper",
+   "Mecha",
+   "Kitsune",
+   "Eclipse",
+   "ForestGuardian",
+   "FirstHen",
+   "RiftWalker"
+  ]
+ },
+ "b11": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Supernova"
+  ]
+ },
+ "b12": {
+  "viewport": [
+   1920,
+   1078
+  ],
+  "ids": [
+   "Chef",
+   "Jester",
+   "Samurai",
+   "Cowboy",
+   "RoyalGuard",
+   "Gladiator"
+  ]
+ }
+}

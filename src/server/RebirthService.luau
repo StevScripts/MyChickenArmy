@@ -80,10 +80,11 @@ end
 function RebirthService.Cost(rank: number): number?
 	local rules = settings()
 	if type(rank) ~= "number" or rank ~= rank or rank % 1 ~= 0 or rank < 1 or rank > rules.MaxRank then return nil end
-	-- October 14 pacing: an explicit table (every entry below the coin cap) wins over the curve.
-	local listed = rules.Costs and rules.Costs[rank]
+	-- October 15 pacing: the listed ranks, then CostStep more for each rank after the last one.
+	local costs = rules.Costs
+	local listed = costs[rank]
 	if type(listed) == "number" then return listed end
-	return math.floor(rules.BaseCost * rules.CostGrowth ^ (rank - 1) + 0.5)
+	return costs[#costs] + rules.CostStep * (rank - #costs)
 end
 
 local function armyHome(session): boolean

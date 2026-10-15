@@ -113,10 +113,15 @@ function BaseController:MissionCommand(model,missionId)
 	-- forfeits a Mission it leaves and keeps a camp's progress draining there).
 	local canMove=state.armyState=="Home" or state.armyState=="Following" or state.armyState=="Deployed"
 		or state.armyState=="Traveling" or state.armyState=="Fighting" or state.armyState=="Returning"
-	local allowed=canMove and selectedCount>0 and not mission.locked
-	local reason=if mission.locked then "Unlock this Mission tier in Upgrades"
+	-- October 15: a won site stays held by its army; any other Army may take it.
+	local allowed=canMove and selectedCount>0 and not mission.locked and not mission.yours and not mission.busy
+	local reason=if mission.yours then "Your Army holds this territory"
+		elseif mission.busy then "A battle is already going on here"
+		elseif mission.locked then "Unlock this Mission tier in Upgrades"
 		elseif not canMove then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
-	local hint=Guide.Difficulty(state.power,mission.power).." · "..mission.count.." loyalists · $"..Theme.CompactMoney(mission.reward)
+	local enemies=if mission.holder then mission.count.." chickens of "..mission.holder else mission.count.." loyalists"
+	local payout=if mission.rewarded then "already rewarded" else "$"..Theme.CompactMoney(mission.reward)
+	local hint=Guide.Difficulty(state.power,mission.power).." · "..enemies.." · "..payout
 	return {model=model,action=if allowed then "StartOperation" else nil,missionId=missionId,targetId="mission:"..missionId,
 		hint=if allowed then hint else nil,locked=not allowed,reason=reason,title=mission.name,
 		text=if allowed then "Send Army · "..hint else reason,color=if allowed then C.red else C.line}
@@ -582,7 +587,7 @@ function BaseController:UpdateObjective()
  local guided=tracker and tracker.guideId
  local nextMission=nil
  for _,mission in (ops and ops.missions) or {} do
-  if not mission.locked and (guided==nil or mission.id==guided) then nextMission=mission;break end
+  if not mission.locked and not mission.yours and not mission.busy and (guided==nil or mission.id==guided) then nextMission=mission;break end
  end
  if not invasion and (guided~=nil or (not guidance and (target==nil or where=="Mission"))) and nextMission and missionFolder then
   local site=missionFolder:FindFirstChild("Mission_"..nextMission.id)

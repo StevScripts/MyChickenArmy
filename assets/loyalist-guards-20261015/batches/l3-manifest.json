@@ -1,0 +1,501 @@
+{
+  "batch": "l3",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/l3-lineup.png",
+  "chickens": [
+    {
+      "id": "LoyalVanguardPaladin",
+      "name": "Vanguard Paladin",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Royal Vanguard",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalVanguardPaladin.png",
+      "preview": "previews/LoyalVanguardPaladin.png",
+      "poses": [
+        "previews/LoyalVanguardPaladin-Chicken_Walk.png",
+        "previews/LoyalVanguardPaladin-Chicken_Peck.png",
+        "previews/LoyalVanguardPaladin-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalVanguardPaladin-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalVanguardPaladin",
+        "name": "Vanguard Paladin",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalVanguardPaladin_Props",
+          "Roster_LoyalVanguardPaladin_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 516,
+        "glb": "models/LoyalVanguardPaladin.glb",
+        "fbx": "models/LoyalVanguardPaladin-Bind.fbx",
+        "glbBytes": 316628
+      }
+    },
+    {
+      "id": "LoyalGlacierLancer",
+      "name": "Glacier Lancer",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Royal Vanguard",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalGlacierLancer.png",
+      "preview": "previews/LoyalGlacierLancer.png",
+      "poses": [
+        "previews/LoyalGlacierLancer-Chicken_Walk.png",
+        "previews/LoyalGlacierLancer-Chicken_Peck.png",
+        "previews/LoyalGlacierLancer-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalGlacierLancer-base-color.png"
+      },
+      "vfxPlan": "Frost Glitter loop around the lance crystal.",
+      "review": {
+        "id": "LoyalGlacierLancer",
+        "name": "Glacier Lancer",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalGlacierLancer_Props",
+          "Roster_LoyalGlacierLancer_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 456,
+        "glb": "models/LoyalGlacierLancer.glb",
+        "fbx": "models/LoyalGlacierLancer-Bind.fbx",
+        "glbBytes": 310156
+      }
+    },
+    {
+      "id": "LoyalDrakeKnight",
+      "name": "Crimson Drake Knight",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Royal Vanguard",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalDrakeKnight.png",
+      "preview": "previews/LoyalDrakeKnight.png",
+      "poses": [
+        "previews/LoyalDrakeKnight-Chicken_Walk.png",
+        "previews/LoyalDrakeKnight-Chicken_Peck.png",
+        "previews/LoyalDrakeKnight-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalDrakeKnight-base-color.png"
+      },
+      "vfxPlan": "Ember loop along the greatsword; Ember burst on Attack.",
+      "review": {
+        "id": "LoyalDrakeKnight",
+        "name": "Crimson Drake Knight",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalDrakeKnight_Props",
+          "Roster_LoyalDrakeKnight_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 492,
+        "glb": "models/LoyalDrakeKnight.glb",
+        "fbx": "models/LoyalDrakeKnight-Bind.fbx",
+        "glbBytes": 315124
+      }
+    },
+    {
+      "id": "LoyalShieldbearer",
+      "name": "Crown Shieldbearer",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Crown's Shield",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalShieldbearer.png",
+      "preview": "previews/LoyalShieldbearer.png",
+      "poses": [
+        "previews/LoyalShieldbearer-Chicken_Walk.png",
+        "previews/LoyalShieldbearer-Chicken_Peck.png",
+        "previews/LoyalShieldbearer-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalShieldbearer-base-color.png"
+      },
+      "vfxPlan": "Ice gem glint (Glitter) on Hit.",
+      "review": {
+        "id": "LoyalShieldbearer",
+        "name": "Crown Shieldbearer",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalShieldbearer_Props",
+          "Roster_LoyalShieldbearer_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 612,
+        "glb": "models/LoyalShieldbearer.glb",
+        "fbx": "models/LoyalShieldbearer-Bind.fbx",
+        "glbBytes": 326324
+      }
+    },
+    {
+      "id": "LoyalRoyalWarden",
+      "name": "Royal Warden",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Crown's Shield",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalRoyalWarden.png",
+      "preview": "previews/LoyalRoyalWarden.png",
+      "poses": [
+        "previews/LoyalRoyalWarden-Chicken_Walk.png",
+        "previews/LoyalRoyalWarden-Chicken_Peck.png",
+        "previews/LoyalRoyalWarden-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalRoyalWarden-base-color.png"
+      },
+      "vfxPlan": "Ember burst from the mace on Attack.",
+      "review": {
+        "id": "LoyalRoyalWarden",
+        "name": "Royal Warden",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalRoyalWarden_Props",
+          "Roster_LoyalRoyalWarden_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 504,
+        "glb": "models/LoyalRoyalWarden.glb",
+        "fbx": "models/LoyalRoyalWarden-Bind.fbx",
+        "glbBytes": 315056
+      }
+    },
+    {
+      "id": "LoyalStormHerald",
+      "name": "Storm Herald",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Crown's Shield",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalStormHerald.png",
+      "preview": "previews/LoyalStormHerald.png",
+      "poses": [
+        "previews/LoyalStormHerald-Chicken_Walk.png",
+        "previews/LoyalStormHerald-Chicken_Peck.png",
+        "previews/LoyalStormHerald-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalStormHerald-base-color.png",
+        "emission": "textures/LoyalStormHerald-emission.png"
+      },
+      "vfxPlan": "Spark burst from the trumpet bell on Attack.",
+      "review": {
+        "id": "LoyalStormHerald",
+        "name": "Storm Herald",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalStormHerald_Props",
+          "Roster_LoyalStormHerald_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 360,
+        "glb": "models/LoyalStormHerald.glb",
+        "fbx": "models/LoyalStormHerald-Bind.fbx",
+        "glbBytes": 301520
+      }
+    },
+    {
+      "id": "LoyalFrostGuard",
+      "name": "King's Frost Guard",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "The King Returns",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalFrostGuard.png",
+      "preview": "previews/LoyalFrostGuard.png",
+      "poses": [
+        "previews/LoyalFrostGuard-Chicken_Walk.png",
+        "previews/LoyalFrostGuard-Chicken_Peck.png",
+        "previews/LoyalFrostGuard-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalFrostGuard-base-color.png",
+        "emission": "textures/LoyalFrostGuard-emission.png"
+      },
+      "vfxPlan": "Frost Glitter loop on the axe.",
+      "review": {
+        "id": "LoyalFrostGuard",
+        "name": "King's Frost Guard",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalFrostGuard_Props",
+          "Roster_LoyalFrostGuard_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 552,
+        "glb": "models/LoyalFrostGuard.glb",
+        "fbx": "models/LoyalFrostGuard-Bind.fbx",
+        "glbBytes": 322872
+      }
+    },
+    {
+      "id": "LoyalFlameGuard",
+      "name": "King's Flame Guard",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "The King Returns",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalFlameGuard.png",
+      "preview": "previews/LoyalFlameGuard.png",
+      "poses": [
+        "previews/LoyalFlameGuard-Chicken_Walk.png",
+        "previews/LoyalFlameGuard-Chicken_Peck.png",
+        "previews/LoyalFlameGuard-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalFlameGuard-base-color.png",
+        "emission": "textures/LoyalFlameGuard-emission.png"
+      },
+      "vfxPlan": "Ember loop from the halberd flame.",
+      "review": {
+        "id": "LoyalFlameGuard",
+        "name": "King's Flame Guard",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalFlameGuard_Props",
+          "Roster_LoyalFlameGuard_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 576,
+        "glb": "models/LoyalFlameGuard.glb",
+        "fbx": "models/LoyalFlameGuard-Bind.fbx",
+        "glbBytes": 326764
+      }
+    },
+    {
+      "id": "LoyalThunderGuard",
+      "name": "King's Thunder Guard",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "The King Returns",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalThunderGuard.png",
+      "preview": "previews/LoyalThunderGuard.png",
+      "poses": [
+        "previews/LoyalThunderGuard-Chicken_Walk.png",
+        "previews/LoyalThunderGuard-Chicken_Peck.png",
+        "previews/LoyalThunderGuard-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalThunderGuard-base-color.png",
+        "emission": "textures/LoyalThunderGuard-emission.png"
+      },
+      "vfxPlan": "Spark loop on the spear bolts.",
+      "review": {
+        "id": "LoyalThunderGuard",
+        "name": "King's Thunder Guard",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalThunderGuard_Props",
+          "Roster_LoyalThunderGuard_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 576,
+        "glb": "models/LoyalThunderGuard.glb",
+        "fbx": "models/LoyalThunderGuard-Bind.fbx",
+        "glbBytes": 326592
+      }
+    },
+    {
+      "id": "LoyalArmadaKing",
+      "name": "Armada King",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "The King Returns (boss)",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalArmadaKing.png",
+      "preview": "previews/LoyalArmadaKing.png",
+      "poses": [
+        "previews/LoyalArmadaKing-Chicken_Walk.png",
+        "previews/LoyalArmadaKing-Chicken_Peck.png",
+        "previews/LoyalArmadaKing-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalArmadaKing-base-color.png"
+      },
+      "vfxPlan": "Gold Glitter loop around the crown; scepter-orb Light pulse; Star burst on Attack.",
+      "review": {
+        "id": "LoyalArmadaKing",
+        "name": "Armada King",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalArmadaKing_Props",
+          "Roster_LoyalArmadaKing_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 708,
+        "glb": "models/LoyalArmadaKing.glb",
+        "fbx": "models/LoyalArmadaKing-Bind.fbx",
+        "glbBytes": 342176
+      }
+    }
+  ]
+}

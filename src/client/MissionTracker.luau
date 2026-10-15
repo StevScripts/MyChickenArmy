@@ -88,9 +88,15 @@ function Tracker:UpdateMarkers()
 			marker={gui=gui,name=label(gui,"Name",mission.name,0,.6,tint),info=label(gui,"Info","",.6,.4,WHITE)}
 			self.markers[mission.id]=marker
 		end
-		marker.info.Text=if mission.locked then "Locked · "..(Operations.Tiers[mission.tier] or "").." tier"
-			else "Leaves in "..clock(self:Remaining(mission.id) or mission.expiresIn)
-		marker.info.TextColor3=if mission.locked then MUTED else WHITE
+		-- October 15: a held site stays while its holder's Army is stationed there.
+		local remaining=self:Remaining(mission.id) or mission.expiresIn
+		marker.info.Text=if mission.yours then (if mission.busy then "Your Army is defending!" else "Held by your Army")
+			elseif mission.holder then "Held by "..mission.holder..(if mission.busy then " · under attack" else "")
+			elseif mission.busy then "Battle in progress"
+			elseif mission.locked then "Locked · "..(Operations.Tiers[mission.tier] or "").." tier"
+			elseif remaining<=0 then "Leaving soon"
+			else "Leaves in "..clock(remaining)
+		marker.info.TextColor3=if mission.yours then GOLD elseif mission.locked then MUTED else WHITE
 	end
 	for id,marker in self.markers do
 		if not wanted[id] then marker.gui:Destroy();self.markers[id]=nil end

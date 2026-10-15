@@ -19,6 +19,9 @@ local KingEncounter=require(script.Parent.KingEncounter)
 local Airship=require(script.Parent.InvasionAirship)
 local Camp=require(script.Parent.InvasionCamp)
 local MissionSite=require(script.Parent.MissionSite)
+local WorldBuilder=require(script.Parent.WorldBuilder)
+local TerritoryContest=require(script.Parent.TerritoryContest)
+local PetCatalog=require(Shared.PetCatalog)
 local FlockLayout=require(Shared.FlockLayout)
 local InvasionLayout=require(Shared.InvasionLayout)
 local March=require(Shared.ArmyMarch)
@@ -104,7 +107,7 @@ local function populateGuards(site)
 		local foot=if spot then Vector3.new(spot.X,site.landing.Y,spot.Z) else (site.frame*CFrame.new(x,0,z)).Position
 		local actor=PetActor.new(folder,"Guard"..i,pet.species,pet.stars or 1,foot,facing)
 		if pet.boss then
-			KingVisual.Apply(actor.model,KingEncounter.Scale)
+			KingVisual.Apply(actor.model,KingEncounter.Scale,PetCatalog[pet.species].enemyOnly)
 			actor.footOffset=actor.model:GetAttribute("FootOffset")
 		end
 		PetView.Level(actor.model,pet.level or 1)
@@ -138,7 +141,12 @@ end
 Service.FirstSpawnSeconds=20 -- after the first player unlocks them
 Service.SpawnEverySeconds=45 -- refill delay once a site leaves or is taken
 Service.MinSites,Service.MaxSites=3,6 -- 2 + one per eligible player, clamped
-Service.WaitSeconds=360 -- a site leaves if nobody attacks it in time
+-- October 15 owner request: a site stays LifeSeconds. A won site keeps the winner's
+-- army stationed under their flag (any other army may take it); a holder who leaves
+-- early lowers the flag and the guards return. Once the time is up the site packs up
+-- the moment nobody's army holds it. docs/team/MISSION_TERRITORIES.md.
+Service.LifeSeconds=900
+Service.GuardReturnSeconds=3
 Service.RareChance=.1 -- gold sites pay double
 -- Cash reward: minutes of the player's egg income by tier, never below the
 -- encounter's old replay reward.
@@ -226,8 +234,11 @@ function Service:Spawn(session,now,forcedId,forcedTheme,sharedTier)
 		end)
 	end
 	local airship=MissionSite.UsesAirship[theme]
+	model:SetAttribute("CampName",definition.name) -- the conquest flag's title
+	-- holder/holdBattle: the stationed army; busy: the fight in progress; rewarded:
+	-- players already paid here (once per site, so two armies can't trade it for cash).
 	local site={id=siteId,encounterId=id,landing=landing,frame=frame,model=model,rare=rare,
-		spawnedAt=now,expiresAt=now+Service.WaitSeconds,shared=session==nil,
+		spawnedAt=now,expiresAt=now+Service.LifeSeconds,shared=session==nil,rewarded={},
 		spots=if airship then spots else nil,
 		guardsAt=now+(if airship then Airship.InboundSeconds+CRATE_FALL_SECONDS+.5 else BUILT_GUARD_DELAY)}
 	if session and self.analytics then self.analytics:LaunchCount(session,"mission.spawn."..definition.tier) end
@@ -241,6 +252,105 @@ function Service:SpawnNow(_session,now,forcedId,forcedTheme)
 	self.shared.sites[site.id]=site
 	for _,other in self.sessions do other:Touch() end
 	return true,"TEST: "..Catalog.Encounters[site.encounterId].name.." appeared on the island."
+end
+
+function Service:RemoveSite(site)
+	if self.shared.sites[site.id]~=site then return end
+	self.shared.sites[site.id]=nil
+	stopGuards(site)
+	if site.model then Camp.FadeOut(site.model,0) end
+	for _,session in self.sessions do session:Touch() end
+end
+
+-- Raise (session) or lower (nil) the conquest flag over a site.
+function Service:SetHolder(site,session,battle)
+	site.holder=if session then session.userId else nil
+	site.holderName=if session then session.name else nil
+	site.holdBattle=if battle then battle.id else nil
+	if site.model and site.model.Parent then
+		WorldBuilder.ApplyCampOwnership(site.model,site.frame,site.holder,site.holderName)
+	end
+	for _,other in self.sessions do other:Touch() end
+end
+
+-- Without a holder the guards come back (or the site leaves, once its time is up).
+function Service:Vacate(site,now)
+	self:SetHolder(site,nil,nil)
+	if now>=site.expiresAt then self:RemoveSite(site);return end
+	site.actors,site.patrols=nil,{}
+	site.guardsAt=now+Service.GuardReturnSeconds
+end
+
+-- The site this hold battle stands on, if it still holds it.
+function Service:HeldSite(battle)
+	local site=battle.missionSite and self.shared.sites[battle.missionSite]
+	return if site and site.holdBattle==battle.id then site else nil
+end
+
+-- Pays the conquest reward once per player per site; returns what was credited.
+function Service:Conquered(session,site,battle)
+	if site.rewarded[session.userId] then return 0,false end
+	site.rewarded[session.userId]=true
+	local first=not session.research.operationWins[battle.operationId]
+	session.research.pendingOperationReward=session:EarnedAmount(Service.Reward(session,battle.operationId,battle.missionRare),"battle")
+	local reward=Service.ClaimReward(session)
+	if first then session.research.operationWins[battle.operationId]=true;session.research.revision+=1 end
+	return reward,first
+end
+
+-- Egg-value bonus per player from stationed armies (BattleService:RefreshTerritoryBonus).
+function Service:HoldBonuses()
+	local totals={}
+	for _,site in self.shared.sites do
+		if not site.holder then continue end
+		local bonus=Config.Territories.MissionBonus[Catalog.Encounters[site.encounterId].tier] or 0
+		if site.busy then bonus*=Config.Territories.ContestedShare end
+		totals[site.holder]=(totals[site.holder] or 0)+bonus
+	end
+	return totals
+end
+
+function Service:HoldCount(userId)
+	local count=0
+	for _,site in self.shared.sites do if site.holder==userId then count+=1 end end
+	return count
+end
+
+-- Leaving a held site (redirect, recall, leaving the game) lowers the flag.
+function Service:Release(battle,now)
+	local site=self:HeldSite(battle)
+	if not site then return end
+	self:Vacate(site,now)
+	local session=self.sessions[battle.attacker]
+	if session then session.lastResult=Catalog.Encounters[site.encounterId].name.." released. Its guards are moving back in.";session:Touch() end
+end
+
+-- The HUD recall of a stationed army: flag down, then the normal walk home.
+function Service:Recall(battle,session,now)
+	self:Release(battle,now)
+	battle:Finish("Recall",now)
+	session.armyState,session.returnAt,session.stationedAt="Returning",now+Config.ReturnSeconds,nil
+	session:Touch();self.world:UpdateSession(session)
+	return true,"Army returning home."
+end
+
+-- A beaten army goes straight back to its base and recovers there.
+function Service:SendHome(session,battle,side,now)
+	if not session then return end
+	for _,unit in battle.units do
+		if unit.side~=side or not unit.petId then continue end
+		local actor=battle.actors and battle.actors:TakeUnit(unit.id)
+		if actor and not session.closing and self.world.RestoreActor then
+			actor:Teleport(self.world:ReturnPosition(session,unit.petId))
+			self.world:RestoreActor(session,unit.petId,actor)
+		elseif actor then actor:Destroy() end
+	end
+	if session.outgoing==battle.id then
+		session.outgoing,session.stationedAt,session.awayPets=nil,nil,{}
+		session.returnAt,session.armyState=now+Config.ReturnSeconds,"Recovering"
+		session:RefreshArmy();session:Touch()
+		if not session.closing then self.world:UpdateSession(session) end
+	end
 end
 
 -- Spawn, expire and clean up the island's random sites. They roll from the
@@ -257,12 +367,13 @@ function Service:StepSites(now)
 	end
 	local count=0
 	for siteId,site in pool.sites do
-		if now>=site.expiresAt or topTier==0 then
-			pool.sites[siteId]=nil
-			stopGuards(site)
-			if site.model then Camp.FadeOut(site.model,0) end
-			for _,session in self.sessions do session:Touch() end
-		else count+=1;stepGuards(site,now) end
+		-- A held or contested site never leaves; it goes once only its guards remain.
+		if (now>=site.expiresAt or topTier==0) and not site.holder and not site.busy then
+			self:RemoveSite(site)
+		else
+			count+=1
+			if not site.holder and not site.busy then stepGuards(site,now) end
+		end
 	end
 	if topTier==0 then pool.nextAt=now+Service.FirstSpawnSeconds;return end
 	local target=math.clamp(2+eligible,Service.MinSites,Service.MaxSites)
@@ -285,11 +396,22 @@ end
 function Service:StartMission(session,siteId,now)
 	local pool=self.shared.sites
 	local site=type(siteId)=="string" and pool[siteId] or nil
-	if not site or not site.model or not site.model.Parent then return false,"That mission is gone. Another army may have taken it." end
+	if not site or not site.model or not site.model.Parent then return false,"That mission is gone." end
 	local id=site.encounterId
 	local definition=Catalog.Encounters[id]
+	if site.holder==session.userId then return false,"Your army already holds "..definition.name.."." end
+	if site.busy then return false,"Another army is already fighting at "..definition.name..". Try again soon." end
 	if Service.Tier(session)<definition.tier then return false,Service.LockedMessage(definition.tier) end
 	if session.research.pendingOperationReward>0 then return false,"Spend some cash to receive your saved mission reward first." end
+	local held,holdLimit=self.battles:HoldCount(session),self.battles:HoldLimit(session)
+	if held>=holdLimit then return false,"Holding "..held.."/"..holdLimit.." territories. Unclaim one first." end
+	-- A held site is fought against its holder's stationed army.
+	local holdBattle=site.holdBattle and self.battles.battles[site.holdBattle]
+	local holder=site.holder and self.sessions[site.holder]
+	if site.holder and not (holdBattle and holder and holdBattle.phase=="Holding") then
+		self:Vacate(site,now) -- stale hold; the guards are back
+		return false,definition.name.."'s guards are moving back in. Try again in a moment."
+	end
 	-- October 15: an army already out (a camp fight, another Mission, marching home)
 	-- goes straight here; its old fight's progress stays behind (BattleService).
 	local previous=self.battles.battles[session.outgoing]
@@ -301,7 +423,6 @@ function Service:StartMission(session,siteId,now)
 	if #roster==0 then return false,"Select an army first." end
 	local root=self.world.root
 	if not root then return false,"Missions are not ready yet." end
-	pool[siteId]=nil
 	for _,other in self.sessions do other:Touch() end
 	local landing,frame=site.landing,site.frame
 	local home=self.world:Position(session.plotIndex)
@@ -321,11 +442,12 @@ function Service:StartMission(session,siteId,now)
 		if previous.operationId and not previous.paid then
 			self:Resolve(previous,"Abandoned",now)
 			session.lastResult=previous.name.." left behind · no completion reward."
+		elseif previous.operationId then self:Release(previous,now)
 		else self.battles:LeaveProgress(previous,now) end
 		-- The same birds and rigs walk over; Missions never respawn the fallen, so
 		-- a knocked-out bird gets up and comes along.
 		battle.serial=previous.serial
-		local departure=if turning then nil else previous:DepartureSite()
+		local departure=if turning or previous.phase=="Travel" then nil else previous:DepartureSite()
 		for _,old in previous.units do if old.side=="A" then
 			local u=table.clone(old);u.pendingAttack=nil;u.targetId=nil;u.firstAttack=true
 			local revived=u.hp<=0
@@ -360,22 +482,36 @@ function Service:StartMission(session,siteId,now)
 	session.stationedAt,session.returnAt=nil,0
 	for _,unit in battle.units do if unit.side=="A" and unit.petId then session.awayPets[unit.petId]=true end end
 	battle:ApplyResearch("A",session.researchEffects,os.time()<(session.rallyActiveUntil or 0))
-	battle.zone=site.model
-	battle:AddArmy("B",Catalog.Roster(id),landing)
-	-- The loyalists already wandering the site join the fight where they stand;
-	-- Sync creates any rig that has not appeared yet.
-	local guards=site.actors or {}
-	stopGuards(site);site.actors=nil
-	local guardIndex=0
-	for _,unit in battle.units do if unit.side=="B" then
-		guardIndex+=1
-		local actor=guards[guardIndex]
-		if actor and not actor.destroyed and actor.model.Parent then battle.actors:Adopt(unit,actor) end
-	end end
+	-- The site model belongs to the site (it outlives this battle), never to battle.zone.
+	site.busy=battle.id
+	if holder and holdBattle then
+		-- The holder's stationed chickens defend where they stand, with their own health.
+		battle.defender,battle.missionContest=holder.userId,true
+		TerritoryContest.Transfer(holdBattle,battle,"A","B")
+		battle:ApplyResearch("B",holder.researchEffects,os.time()<(holder.rallyActiveUntil or 0))
+		site.holdBattle=nil
+		self.battles:Remove(holdBattle)
+		holder.outgoing,holder.armyState,holder.stationedAt=battle.id,"Fighting",nil
+		holder.lastResult=session.name.."'s army is attacking "..definition.name.."!"
+		holder:Touch()
+	else
+		battle:AddArmy("B",Catalog.Roster(id),landing)
+		-- The loyalists already wandering the site join the fight where they stand;
+		-- Sync creates any rig that has not appeared yet.
+		local guards=site.actors or {}
+		stopGuards(site);site.actors=nil
+		local guardIndex=0
+		for _,unit in battle.units do if unit.side=="B" then
+			guardIndex+=1
+			local actor=guards[guardIndex]
+			if actor and not actor.destroyed and actor.model.Parent then battle.actors:Adopt(unit,actor) end
+		end end
+	end
 	self.battles.battles[battle.id]=battle
 	session:Touch();self.world:UpdateSession(session)
 	battle.actors:Sync(now);battle.actors:Publish(now)
 	if self.analytics then self.analytics:LaunchCount(session,"mission.start."..definition.tier) end
+	if holder then return true,"Army sent to take "..definition.name.." from "..holder.name.."! You have 3 minutes to win." end
 	return true,"Army sent to "..definition.name.."! You have 3 minutes to win."
 end
 
@@ -387,23 +523,91 @@ function Service.ClaimReward(session)
 	return credited
 end
 
+-- Fallen chickens get back up where they fell (finite encounters never respawn).
+local function revive(battle,side)
+	for _,unit in battle.units do
+		if unit.side==side and unit.petId and unit.hp<=0 then
+			unit.hp,unit.respawnAt=unit.maxHp,nil
+			if battle.actors then battle.actors:Respawn(unit,unit.x,unit.z) end
+		end
+	end
+end
+
+local function present(session,battle)
+	return session~=nil and not session.closing and not session.saveLost and session.outgoing==battle.id
+end
+
+-- Station the winning side (always side A here) under its flag at the site.
+function Service:Station(battle,session,site,now)
+	revive(battle,"A")
+	battle:Hold(now)
+	self:SetHolder(site,session,battle)
+	session.armyState,session.stationedAt,session.returnAt="Deployed",battle.name,0
+	session:Touch();self.world:UpdateSession(session)
+end
+
+-- A fight against another player's stationed army. The winner holds the site; the
+-- beaten army recovers at its base. Either commander leaving hands the site over.
+function Service:ResolveContest(battle,outcome,now,site)
+	local attacker,defender=self.sessions[battle.attacker],self.sessions[battle.defender]
+	local attackerHere,defenderHere=present(attacker,battle),present(defender,battle)
+	local name=battle.name
+	local attackerWins=if outcome=="A" then attackerHere else attackerHere and not defenderHere
+	if attackerWins and site then
+		local previousHolder=site.holderName or "another army"
+		self:SendHome(defender,battle,"B",now)
+		local kept={}
+		for _,unit in battle.units do if unit.side=="A" then table.insert(kept,unit) end end
+		battle.units,battle.defender,battle.missionContest=kept,nil,nil
+		self:Station(battle,attacker,site,now)
+		local reward=self:Conquered(attacker,site,battle)
+		attacker.lastResult=name.." captured from "..previousHolder.."! "..(if reward>0 then "+$"..reward else "No second reward here.")
+		if defender then defender.lastResult=attacker.name.." took "..name..". Your army is recovering at your base.";defender:Touch() end
+		attacker:Touch()
+		return
+	end
+	if defenderHere and site then
+		-- The holder stays: the challenger goes home and the defenders become side A again.
+		self:SendHome(attacker,battle,"A",now)
+		local kept={}
+		for _,unit in battle.units do if unit.side=="B" then unit.side="A";table.insert(kept,unit) end end
+		battle.units=kept
+		battle.attacker,battle.defender,battle.missionContest,battle.plotIndex=defender.userId,nil,nil,defender.plotIndex
+		if battle.actors then for _,unit in kept do
+			local actor=battle.actors.actors[unit.id]
+			if actor then battle.actors:Adopt(unit,actor) end -- re-tag owner/side on the rig
+		end end
+		self:Station(battle,defender,site,now)
+		defender.lastResult="Your army held "..name.."!"
+		if attacker then attacker.lastResult=name.." held out. Your army is recovering at your base.";attacker:Touch() end
+		return
+	end
+	-- Nobody is left to hold it.
+	self:SendHome(attacker,battle,"A",now)
+	self:SendHome(defender,battle,"B",now)
+	battle.units={}
+	battle:Finish("B",now)
+	if site then self:Vacate(site,now) end
+end
+
 function Service:Resolve(battle,outcome,now)
 	if battle.paid then return end
 	battle.paid=true -- Exactly once, before reward or cleanup.
+	local site=battle.missionSite and self.shared.sites[battle.missionSite]
+	if site and site.busy==battle.id then site.busy=nil end
+	if battle.missionContest then return self:ResolveContest(battle,outcome,now,site) end
 	local session=self.sessions[battle.attacker]
 	local definition=Catalog.Encounters[battle.operationId]
+	local won=outcome=="A" and session~=nil and not session.closing and not session.saveLost
 	if session then
-		local won=outcome=="A" and not session.closing and not session.saveLost
-		local first=won and not session.research.operationWins[battle.operationId]
-		local reward=0
-		if won then
+		local first,reward=false,0
+		if won and site then
+			reward,first=self:Conquered(session,site,battle)
+		elseif won then
 			-- Keep the exact earned amount if the wallet fills during this fight.
 			-- A pending reward prevents another deployment, so these cannot overflow.
-			-- Missions pay the income-scaled reward (doubled on gold sites); first
-			-- clears still record banner progress in operationWins.
-			local amount=if battle.missionSite then Service.Reward(session,battle.operationId,battle.missionRare)
-				elseif first then definition.firstCash else definition.replayCash
-			session.research.pendingOperationReward=session:EarnedAmount(amount,"battle")
+			first=not session.research.operationWins[battle.operationId]
+			session.research.pendingOperationReward=session:EarnedAmount(if first then definition.firstCash else definition.replayCash,"battle")
 			reward=Service.ClaimReward(session)
 			if first then session.research.operationWins[battle.operationId]=true;session.research.revision+=1 end
 		end
@@ -411,26 +615,27 @@ function Service:Resolve(battle,outcome,now)
 			heldReward=session.research.pendingOperationReward,
 			bannerTier=Catalog.BannerTier(session.research.operationWins)}
 			if self.analytics then self.analytics:LaunchCount(session,"mission."..(if won then "won." elseif outcome=="Expired" then "timeout." else "lost.")..definition.tier) end
-			session.lastResult=if won then definition.name.." conquered! "..(if reward>0 then "+$"..reward else "$"..session.research.pendingOperationReward.." saved until your wallet has room")..(if first then " · first clear" else "")
+			session.lastResult=if won then definition.name.." conquered! Your army holds it. "..(if reward>0 then "+$"..reward elseif session.research.pendingOperationReward>0 then "$"..session.research.pendingOperationReward.." saved until your wallet has room" else "No second reward here.")..(if first then " · first clear" else "")
 				elseif outcome=="Expired" then "Time's up! The loyalists held out. Your army is marching home."
 				else definition.name.." ended. Your army is marching home; no completion reward."
 		session:Touch()
 	end
-	-- The loyalists (standing or fallen) fade away, then their camp packs up.
+	-- The loyalists (standing or fallen) fade away.
 	fadeInvaders(battle,self.world.root or workspace)
-	if battle.zone then Camp.FadeOut(battle.zone,FADE_SPREAD*.6);battle.zone=nil end
+	-- October 15: a won site keeps the army stationed under its flag.
+	if won and site and session and session.outgoing==battle.id then
+		self:Station(battle,session,site,now)
+		return
+	end
+	-- Otherwise the guards move back in (or the site leaves once its time is up).
+	if site and not site.holder then self:Vacate(site,now) end
 	-- The army walks home through the normal Returning flow (BattleService restores
 	-- the rigs and the session on arrival). A leaving player is simply removed.
 	if session and not session.closing and session.outgoing==battle.id then
 		session.armyState="Returning"
 		-- Fallen chickens never respawn mid-Invasion; they get back up where they
 		-- fell and walk home with the rest (the homecoming waits for every bird).
-		for _,unit in battle.units do
-			if unit.side=="A" and unit.petId and unit.hp<=0 then
-				unit.hp,unit.respawnAt=unit.maxHp,nil
-				if battle.actors then battle.actors:Respawn(unit,unit.x,unit.z) end
-			end
-		end
+		revive(battle,"A")
 		battle:Finish(if outcome=="A" then "A" else "B",now)
 		self.world:UpdateSession(session)
 	else
@@ -455,6 +660,7 @@ function Service:Step(now)
 	local aborted={}
 	for _,battle in self.battles.battles do if battle.operationId and not battle.paid then
 		if not Players:GetPlayerByUserId(battle.attacker) then table.insert(aborted,{battle,"Abandoned"})
+		elseif battle.missionContest and not Players:GetPlayerByUserId(battle.defender) then table.insert(aborted,{battle,"DefenderLeft"})
 		elseif battle.invasionExpiresAt and now>=battle.invasionExpiresAt then table.insert(aborted,{battle,"Expired"}) end
 	end end
 	for _,entry in aborted do self:Resolve(entry[1],entry[2],now) end
@@ -480,11 +686,25 @@ function Service:MissionList(session)
 	local now=os.clock()
 	for _,site in self.shared.sites do
 		local definition=Catalog.Encounters[site.encounterId]
+		-- A held site is fought against the stationed army (same power formula as Catalog.Power).
+		local holdBattle=site.holder and self.battles.battles[site.holdBattle or site.busy or ""]
+		local power,count=Catalog.Power(site.encounterId),#Catalog.Roster(site.encounterId)
+		if holdBattle then
+			local side=if holdBattle.defender==site.holder then "B" else "A"
+			power,count=0,0
+			for _,unit in holdBattle.units do if unit.side==side then
+				count+=1
+				power+=math.sqrt(unit.maxHp*unit.damage/unit.interval)*(if unit.splash then 1.35 else 1)
+			end end
+			power=math.floor(power)
+		end
+		local rewarded=site.rewarded[session.userId]==true
 		table.insert(list,{id=site.id,name=definition.name,tier=definition.tier,boss=definition.boss~=nil,
-			locked=definition.tier>tier,
-			power=Catalog.Power(site.encounterId),count=#Catalog.Roster(site.encounterId),
-			-- What a win would pay now, including 2x Cash (same as Resolve).
-			reward=session:EarnedAmount(Service.Reward(session,site.encounterId,site.rare),"battle"),rare=site.rare,
+			locked=definition.tier>tier,power=power,count=count,
+			-- What a win would pay now, including 2x Cash (same as Resolve); once per site.
+			reward=if rewarded then 0 else session:EarnedAmount(Service.Reward(session,site.encounterId,site.rare),"battle"),
+			rewarded=rewarded,rare=site.rare,
+			holder=site.holderName,yours=site.holder==session.userId,busy=site.busy~=nil,
 			expiresIn=math.max(0,math.ceil(site.expiresAt-now)),x=site.landing.X,z=site.landing.Z})
 	end
 	table.sort(list,function(a,b) return a.expiresIn<b.expiresIn end)

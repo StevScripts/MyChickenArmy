@@ -20,7 +20,8 @@ local function piece(model, name, size, cframe, color, material, shape)
 	return part
 end
 
-function KingVisual.Apply(model, scale)
+-- crownless: authored boss chickens that already wear their own headgear (mission bosses).
+function KingVisual.Apply(model, scale, crownless)
 	if model:GetAttribute("ChickenKing") then return end
 	local root = model.PrimaryPart
 	local foot = root.Position - Vector3.new(0, model:GetAttribute("FootOffset"), 0)
@@ -31,6 +32,7 @@ function KingVisual.Apply(model, scale)
 	end
 	model:PivotTo(CFrame.new(foot + Vector3.new(0, model:GetAttribute("FootOffset"), 0)) * root.CFrame.Rotation)
 	model:SetAttribute("ChickenKing", true)
+	if crownless then model:SetAttribute("KingCrownless", true); return end
 	local size = model:GetAttribute("Size")
 	local height = model:GetAttribute("VisualHeight") - model:GetAttribute("FootOffset")
 	-- Seated on top of the head, a little back from the beak, with a jaunty tilt.

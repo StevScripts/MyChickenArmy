@@ -240,6 +240,9 @@ function RollStation:Sync(session)
 	self.model:SetAttribute("RollTier", if self.offer then self.offer.tier or self.recruitTier else self.recruitTier)
 	self.model:SetAttribute("RollLuck", if self.offer then self.offer.luck or self.luck else self.luck)
 	self.model:SetAttribute("RollId", if self.offer then self.offer.id else nil)
+	-- October 15 owner request: name the result at roll start so clients can load
+	-- its mesh/texture hidden during the shuffle. The reveal still waits for landing.
+	self.model:SetAttribute("PendingSpecies", if self.offer then self.offer.species else nil)
 	if self.pet then self.pet:Destroy(); self.pet = nil end
 	self:Step(os.clock(), true)
 end
@@ -299,7 +302,7 @@ function RollStation:Clear()
 	self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
-	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
+	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
 	self.model:SetAttribute("Rolling", false)
 end
 

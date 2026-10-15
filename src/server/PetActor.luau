@@ -186,7 +186,7 @@ function PetActor:Recover(foot: Vector3?, reason: string, now: number?): boolean
 	local facing = self.root.CFrame.LookVector
 	local replacement = PetActor.new(self.parent, old.Name, self.species, self.stars, safe, if finiteVector(facing) then facing else nil)
 	PetView.Level(replacement.model, attributes.Level or 1, attributes.GiantSize)
-	if attributes.ChickenKing then KingVisual.Apply(replacement.model, scale / replacement.model:GetScale()) end
+	if attributes.ChickenKing then KingVisual.Apply(replacement.model, scale / replacement.model:GetScale(), attributes.KingCrownless) end
 	for name, value in attributes do replacement.model:SetAttribute(name, value) end
 	self.model, self.root, self.humanoid = replacement.model, replacement.root, replacement.humanoid
 	self.body = replacement.body

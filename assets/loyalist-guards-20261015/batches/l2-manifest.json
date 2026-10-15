@@ -1,0 +1,449 @@
+{
+  "batch": "l2",
+  "blend": "Chicken-Roster-Expansion.blend",
+  "lineup": "batches/l2-lineup.png",
+  "chickens": [
+    {
+      "id": "LoyalShadowBulwark",
+      "name": "Shadow Bulwark",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Shadow Battery",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalShadowBulwark.png",
+      "preview": "previews/LoyalShadowBulwark.png",
+      "poses": [
+        "previews/LoyalShadowBulwark-Chicken_Walk.png",
+        "previews/LoyalShadowBulwark-Chicken_Peck.png",
+        "previews/LoyalShadowBulwark-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalShadowBulwark-base-color.png"
+      },
+      "vfxPlan": "Violet visor-slit glow (Light, pulse).",
+      "review": {
+        "id": "LoyalShadowBulwark",
+        "name": "Shadow Bulwark",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalShadowBulwark_Props",
+          "Roster_LoyalShadowBulwark_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 528,
+        "glb": "models/LoyalShadowBulwark.glb",
+        "fbx": "models/LoyalShadowBulwark-Bind.fbx",
+        "glbBytes": 317364
+      }
+    },
+    {
+      "id": "LoyalShadowGunner",
+      "name": "Shadow Gunner",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Shadow Battery",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalShadowGunner.png",
+      "preview": "previews/LoyalShadowGunner.png",
+      "poses": [
+        "previews/LoyalShadowGunner-Chicken_Walk.png",
+        "previews/LoyalShadowGunner-Chicken_Peck.png",
+        "previews/LoyalShadowGunner-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalShadowGunner-base-color.png"
+      },
+      "vfxPlan": "Violet muzzle flash + Smoke on Attack.",
+      "review": {
+        "id": "LoyalShadowGunner",
+        "name": "Shadow Gunner",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalShadowGunner_Props",
+          "Roster_LoyalShadowGunner_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 444,
+        "glb": "models/LoyalShadowGunner.glb",
+        "fbx": "models/LoyalShadowGunner-Bind.fbx",
+        "glbBytes": 312416
+      }
+    },
+    {
+      "id": "LoyalNightCaptain",
+      "name": "Night Captain",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Shadow Battery",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalNightCaptain.png",
+      "preview": "previews/LoyalNightCaptain.png",
+      "poses": [
+        "previews/LoyalNightCaptain-Chicken_Walk.png",
+        "previews/LoyalNightCaptain-Chicken_Peck.png",
+        "previews/LoyalNightCaptain-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalNightCaptain-base-color.png"
+      },
+      "vfxPlan": "Violet lantern Light (pulse) + Glitter motes.",
+      "review": {
+        "id": "LoyalNightCaptain",
+        "name": "Night Captain",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalNightCaptain_Props",
+          "Roster_LoyalNightCaptain_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 408,
+        "glb": "models/LoyalNightCaptain.glb",
+        "fbx": "models/LoyalNightCaptain-Bind.fbx",
+        "glbBytes": 306108
+      }
+    },
+    {
+      "id": "LoyalFleetMarine",
+      "name": "Fleet Marine",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Iron Fleet",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalFleetMarine.png",
+      "preview": "previews/LoyalFleetMarine.png",
+      "poses": [
+        "previews/LoyalFleetMarine-Chicken_Walk.png",
+        "previews/LoyalFleetMarine-Chicken_Peck.png",
+        "previews/LoyalFleetMarine-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalFleetMarine-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalFleetMarine",
+        "name": "Fleet Marine",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalFleetMarine_Props",
+          "Roster_LoyalFleetMarine_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 384,
+        "glb": "models/LoyalFleetMarine.glb",
+        "fbx": "models/LoyalFleetMarine-Bind.fbx",
+        "glbBytes": 302072
+      }
+    },
+    {
+      "id": "LoyalDeckRaider",
+      "name": "Deck Raider",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Iron Fleet",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalDeckRaider.png",
+      "preview": "previews/LoyalDeckRaider.png",
+      "poses": [
+        "previews/LoyalDeckRaider-Chicken_Walk.png",
+        "previews/LoyalDeckRaider-Chicken_Peck.png",
+        "previews/LoyalDeckRaider-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalDeckRaider-base-color.png"
+      },
+      "vfxPlan": "None.",
+      "review": {
+        "id": "LoyalDeckRaider",
+        "name": "Deck Raider",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalDeckRaider_Props",
+          "Roster_LoyalDeckRaider_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 384,
+        "glb": "models/LoyalDeckRaider.glb",
+        "fbx": "models/LoyalDeckRaider-Bind.fbx",
+        "glbBytes": 303376
+      }
+    },
+    {
+      "id": "LoyalFrostGunner",
+      "name": "Frost Gunner",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Iron Fleet",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalFrostGunner.png",
+      "preview": "previews/LoyalFrostGunner.png",
+      "poses": [
+        "previews/LoyalFrostGunner-Chicken_Walk.png",
+        "previews/LoyalFrostGunner-Chicken_Peck.png",
+        "previews/LoyalFrostGunner-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalFrostGunner-base-color.png"
+      },
+      "vfxPlan": "Frost sparkle (Glitter, pale blue) on Attack.",
+      "review": {
+        "id": "LoyalFrostGunner",
+        "name": "Frost Gunner",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalFrostGunner_Props",
+          "Roster_LoyalFrostGunner_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 384,
+        "glb": "models/LoyalFrostGunner.glb",
+        "fbx": "models/LoyalFrostGunner-Bind.fbx",
+        "glbBytes": 304204
+      }
+    },
+    {
+      "id": "LoyalHonorGuard",
+      "name": "Honor Guard",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Dragon Commander",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalHonorGuard.png",
+      "preview": "previews/LoyalHonorGuard.png",
+      "poses": [
+        "previews/LoyalHonorGuard-Chicken_Walk.png",
+        "previews/LoyalHonorGuard-Chicken_Peck.png",
+        "previews/LoyalHonorGuard-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalHonorGuard-base-color.png"
+      },
+      "vfxPlan": "Ember burst on Attack.",
+      "review": {
+        "id": "LoyalHonorGuard",
+        "name": "Honor Guard",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalHonorGuard_Props",
+          "Roster_LoyalHonorGuard_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 468,
+        "glb": "models/LoyalHonorGuard.glb",
+        "fbx": "models/LoyalHonorGuard-Bind.fbx",
+        "glbBytes": 312364
+      }
+    },
+    {
+      "id": "LoyalEmberAdept",
+      "name": "Ember Adept",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Dragon Commander",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalEmberAdept.png",
+      "preview": "previews/LoyalEmberAdept.png",
+      "poses": [
+        "previews/LoyalEmberAdept-Chicken_Walk.png",
+        "previews/LoyalEmberAdept-Chicken_Peck.png",
+        "previews/LoyalEmberAdept-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalEmberAdept-base-color.png",
+        "emission": "textures/LoyalEmberAdept-emission.png"
+      },
+      "vfxPlan": "Orb Light pulse + rising Ember loop; Ember burst on Attack.",
+      "review": {
+        "id": "LoyalEmberAdept",
+        "name": "Ember Adept",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalEmberAdept_Props",
+          "Roster_LoyalEmberAdept_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 2,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 396,
+        "glb": "models/LoyalEmberAdept.glb",
+        "fbx": "models/LoyalEmberAdept-Bind.fbx",
+        "glbBytes": 305836
+      }
+    },
+    {
+      "id": "LoyalDragonCommander",
+      "name": "Dragon Commander",
+      "rarity": "Loyalist",
+      "band": null,
+      "zone": "Dragon Commander (boss)",
+      "earn": "enemy only",
+      "concept": "concepts/LoyalDragonCommander.png",
+      "preview": "previews/LoyalDragonCommander.png",
+      "poses": [
+        "previews/LoyalDragonCommander-Chicken_Walk.png",
+        "previews/LoyalDragonCommander-Chicken_Peck.png",
+        "previews/LoyalDragonCommander-Chicken_Celebrate.png"
+      ],
+      "textures": {
+        "baseColor": "textures/LoyalDragonCommander-base-color.png"
+      },
+      "vfxPlan": "Ember loop from the flame sword; dragon-eye Light; Ember + Smoke burst on Attack.",
+      "review": {
+        "id": "LoyalDragonCommander",
+        "name": "Dragon Commander",
+        "ok": true,
+        "meshNodes": [
+          "Roster_LoyalDragonCommander_Props",
+          "Roster_LoyalDragonCommander_Skin"
+        ],
+        "allMeshesSkinned": true,
+        "jointsPerSkin": [
+          18
+        ],
+        "animations": [
+          "Chicken_Celebrate",
+          "Chicken_Defeat",
+          "Chicken_Hit",
+          "Chicken_Idle",
+          "Chicken_Peck",
+          "Chicken_Walk"
+        ],
+        "embeddedImages": 1,
+        "previewObjectsExported": [],
+        "baseVertices": 168,
+        "baseVertexDelta": 0.0,
+        "unweightedVertices": 0,
+        "triangles": 768,
+        "glb": "models/LoyalDragonCommander.glb",
+        "fbx": "models/LoyalDragonCommander-Bind.fbx",
+        "glbBytes": 351244
+      }
+    }
+  ]
+}

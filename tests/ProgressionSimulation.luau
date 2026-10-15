@@ -659,8 +659,8 @@ local function report(results)
 	local lines={}
 	local function line(text) table.insert(lines,text) end
 	local o=results.options
-	line(string.format("ProgressionSimulation · %s seed(s) · tick %ss · horizon %sh · Rebirth %s x%s per rank, enemies +%s/rank · %.1fs runtime",
-		tostring(o.seeds),tostring(o.tickSeconds),tostring(o.hours),money(Config.Rebirth.BaseCost),tostring(Config.Rebirth.CostGrowth),
+	line(string.format("ProgressionSimulation · %s seed(s) · tick %ss · horizon %sh · Rebirth %s first, +%s per rank after the list, enemies +%s/rank · %.1fs runtime",
+		tostring(o.seeds),tostring(o.tickSeconds),tostring(o.hours),money(Config.Rebirth.Costs[1]),money(Config.Rebirth.CostStep),
 		tostring(Config.Rebirth.EnemyHealthPerRank),results.seconds))
 	line(string.format("%-20s %9s %7s %12s %12s %9s %6s  %s","Milestone","Minutes","Hours","Cash","Egg $/s","Power","Flock","Target (plan 6.9)"))
 	for _,row in ROWS do

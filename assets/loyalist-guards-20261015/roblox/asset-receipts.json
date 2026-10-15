@@ -1,0 +1,106 @@
+{
+ "LoyalAnvilBrute": {
+  "image": 99124660330164,
+  "mesh": 81764822215381
+ },
+ "LoyalArmadaKing": {
+  "mesh": 101416562585202,
+  "image": 117141291576177
+ },
+ "LoyalCrateScout": {
+  "mesh": 70646074776905,
+  "image": 73322467406011
+ },
+ "LoyalDeckRaider": {
+  "image": 105113938276505,
+  "mesh": 120233064930606
+ },
+ "LoyalDragonCommander": {
+  "mesh": 109853836972849,
+  "image": 89895526491623
+ },
+ "LoyalDrakeKnight": {
+  "mesh": 81899124623458,
+  "image": 124628663888761
+ },
+ "LoyalDropTrooper": {
+  "mesh": 104257147341973,
+  "image": 86897874406671
+ },
+ "LoyalEmberAdept": {
+  "image": 140403813718692,
+  "mesh": 93850746115089
+ },
+ "LoyalFlameGuard": {
+  "image": 114261075545941,
+  "mesh": 113646683187066
+ },
+ "LoyalFleetMarine": {
+  "mesh": 77677224292242,
+  "image": 109877937442124
+ },
+ "LoyalFrostGuard": {
+  "mesh": 126212169895021,
+  "image": 81588034115117
+ },
+ "LoyalFrostGunner": {
+  "mesh": 140329584477531,
+  "image": 86424260940028
+ },
+ "LoyalGlacierLancer": {
+  "mesh": 99229427258618,
+  "image": 114786901237922
+ },
+ "LoyalHonorGuard": {
+  "mesh": 75694486080147,
+  "image": 86438208104936
+ },
+ "LoyalLancer": {
+  "mesh": 82114523456087,
+  "image": 140265995452423
+ },
+ "LoyalMortarHen": {
+  "image": 137740608336184,
+  "mesh": 104845326445190
+ },
+ "LoyalNightCaptain": {
+  "image": 115743640642645,
+  "mesh": 106122320141727
+ },
+ "LoyalRoyalWarden": {
+  "image": 111453395934278,
+  "mesh": 96158309058984
+ },
+ "LoyalSergeant": {
+  "mesh": 84177710279256,
+  "image": 74601909660415
+ },
+ "LoyalShadowBulwark": {
+  "image": 123072343354170,
+  "mesh": 104229961049760
+ },
+ "LoyalShadowGunner": {
+  "image": 105646978557676,
+  "mesh": 75318286912853
+ },
+ "LoyalShieldbearer": {
+  "image": 118760697392894,
+  "mesh": 84690236423416
+ },
+ "LoyalSpyglassScout": {
+  "mesh": 101639246537460,
+  "image": 95849948460438
+ },
+ "LoyalStormHerald": {
+  "image": 140036359735525,
+  "mesh": 100400188521087
+ },
+ "LoyalThunderGuard": {
+  "image": 96219463416016,
+  "mesh": 83245828719597
+ },
+ "LoyalVanguardPaladin": {
+  "image": 73550042135175,
+  "mesh": 112670768095984
+ }
+}
