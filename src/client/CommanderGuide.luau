@@ -59,15 +59,20 @@ function Commander.new(app)
 end
 
 function Commander:FitInstruction()
-	-- TextScaled enables wrapping in Roblox. Cap it at the largest one-line
-	-- size; only text/frame changes remeasure, never a frame-by-frame loop.
+	-- TextScaled enables wrapping in Roblox. Cap it at the largest size that fits;
+	-- only text/frame changes remeasure, never a frame-by-frame loop. The full guide
+	-- card stays one line. October 15 (owner, mobile): the quiet post-guide line may
+	-- wrap to two lines, so long goals stay readable on a phone instead of shrinking.
 	local label=self.instruction
 	local space=label.AbsoluteSize
 	if space.X<=0 or space.Y<=0 then return end
-	local low,high,best=1,100,1
+	local wrapWidth=if self.quiet then math.max(1,space.X-4) else 100000
+	-- The quiet line is taller so phones (height-limited) get larger text; cap it so
+	-- wide desktop screens don't blow it up.
+	local low,high,best=1,if self.quiet then 30 else 100,1
 	while low<=high do
 		local size=math.floor((low+high)/2)
-		local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(100000,100000))
+		local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(wrapWidth,100000))
 		if bounds.X<=math.max(1,space.X-4) and bounds.Y<=space.Y*.96 then
 			best,low=size,size+1
 		else high=size-1 end
@@ -79,7 +84,7 @@ end
 -- no typewriter or entrance motion. The full card belongs to the guide itself.
 local FULL = {card=UDim2.fromScale(.86,.115), aspect=7.4, bodyPosition=UDim2.fromScale(.1,.13), bodySize=UDim2.fromScale(.9,.78),
 	bodyTransparency=.28, textPosition=UDim2.fromScale(.18,.19), textSize=UDim2.fromScale(.795,.66)}
-local QUIET = {card=UDim2.fromScale(.46,.07), aspect=9.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
+local QUIET = {card=UDim2.fromScale(.46,.11), aspect=7.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
 	bodyTransparency=.45, textPosition=UDim2.fromScale(.04,.18), textSize=UDim2.fromScale(.92,.64)}
 
 function Commander:SetQuiet(quiet)

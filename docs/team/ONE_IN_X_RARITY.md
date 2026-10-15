@@ -57,3 +57,26 @@ stronger and earn more; none become weaker.
   Rebirth 1 68 → 73 min, Rebirth 2 179 → 198 min, Rebirth 3 272 → 307 min. The model's
   payback-based buyer stops buying Mythics; real players bought 46% of Mythic offers.
 - Studio playtest: Index shows the "1 in X" badges; no new errors.
+
+## October 15 follow-up: early-game prices (owner playtest)
+
+The owner's playtest felt slow after the tutorial: a new player could only ever afford the
+basic Chicken. `Catalog.EarlyPrices` now sets level-1 prices for Common, Uncommon and Rare
+chickens by their odds (log-interpolated, rounded to $100), replacing the rarity curve there:
+
+- Common: basic Chicken and Noob Chick $600; Brown $1,800; 1-in-33 commons $2,000;
+  1-in-91 $2,200; 1-in-129 $2,500.
+- Uncommon: $3,000 (1 in 42) to $6,000 (1 in 167).
+- Rare: $8,000 (1 in 73) to $25,000 (1 in 400). Epic and above are unchanged.
+
+Common and Uncommon chickens keep only the within-tier income bonus (tier income x r^0.2),
+because cheap commons with the game-wide income curve snowballed.
+
+Simulation (3 seeds, free player): first 10 minutes went from 1 chicken bought ($50/s) to 6
+($274/s); 30 minutes from 18 bought ($652/s) to 52 ($15,480/s). King 56 -> 36 min, Rebirth 1
+73 -> 50 min, Rebirth 2 197 -> 174, Rebirth 3 305 -> 281. Rare/Uncommon prices barely moved
+pacing in variants; the commons drive it. In 60 post-starter rolls on a fresh profile, 41
+offers cost $2,500 or less (previously only the basic Chicken did).
+
+The quiet post-guide "Next:" line (CommanderGuide) is taller and may wrap, with text capped
+at 30 px; measured text: phone 844x390 13 -> 18 px, desktop 30 px.

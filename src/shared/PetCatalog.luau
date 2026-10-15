@@ -296,7 +296,8 @@ end
 
 -- Rarer always means better, and rarity sets the price. R is a chicken's odds
 -- relative to the basic Chicken (1 in ~3.6); r is relative to its stat tier's most
--- common member. Income = max(tier income x r^0.2, 4 x R^0.5): never below today's
+-- common member. Income = max(tier income x r^0.2, 4 x R^0.5; Common/Uncommon use
+-- only the first term): never below today's
 -- tier value, so no owned chicken is weakened. HP and damage follow the income gain
 -- gently (square root, at most x2). Price = max(600 s of income, 2,400 x
 -- R^(0.25 + 0.17 log10 R)): commons stay near their old prices, and the curve
@@ -329,7 +330,11 @@ do
 		if not ProtectedStats[id] then
 			local relative = math.max(1, definition.oneIn / Catalog.Duck.oneIn)
 			local tierRatio = math.max(1, definition.oneIn / floor[definition.economyBase or id])
-			local income = math.max(definition.income * tierRatio ^ 0.2, 4 * relative ^ 0.5)
+			-- October 15 owner playtest: Common/Uncommon prices are now very low (EarlyPrices),
+			-- so they keep only the within-tier bonus; the game-wide curve made cheap
+			-- commons snowball (simulated 30-minute income 47x the old pace).
+			local early = definition.rarity == "Common" or definition.rarity == "Uncommon"
+			local income = math.max(definition.income * tierRatio ^ 0.2, if early then 0 else 4 * relative ^ 0.5)
 			income = math.floor(income + 0.5)
 			local strength = math.min(2, (income / definition.income) ^ 0.5)
 			definition.income = income
@@ -339,6 +344,37 @@ do
 		definition.price = Catalog.RarityPrice(definition.oneIn, definition.income)
 		if definition.oneIn >= Catalog.SecretOneIn then definition.rarity = "Secret" end
 	end
+end
+
+-- October 15 owner playtest ("the first 10 minutes must be very easy"): Common,
+-- Uncommon and Rare chickens use this level-1 price schedule instead of the rarity
+-- curve, so a new player's ~$2,000 buys a real choice of chickens. Income and stats
+-- are unchanged (cheaper chickens just pay back faster). Points are {odds, price};
+-- prices between points are interpolated on log odds and rounded to $100.
+Catalog.EarlyPrices = {
+	Common = {{3.57, 600}, {23.8, 1800}, {33.3, 2000}, {90.9, 2200}, {128.6, 2500}},
+	Uncommon = {{41.7, 3000}, {55.6, 3500}, {102.3, 4500}, {166.7, 6000}},
+	Rare = {{72.7, 8000}, {90.9, 9000}, {145.5, 11000}, {160, 14000}, {200, 16000},
+		{222.2, 17000}, {266.7, 19000}, {400, 25000}},
+}
+Catalog.EarlyPriceOverrides = {Noob = 600}
+function Catalog.EarlyPrice(oneIn: number, rarity: string): number?
+	local points = Catalog.EarlyPrices[rarity]
+	if not points then return nil end
+	if oneIn <= points[1][1] then return points[1][2] end
+	for index = 2, #points do
+		local low, high = points[index - 1], points[index]
+		if oneIn <= high[1] then
+			local t = math.log(oneIn / low[1]) / math.log(high[1] / low[1])
+			return math.floor((low[2] + (high[2] - low[2]) * t) / 100 + 0.5) * 100
+		end
+	end
+	return points[#points][2]
+end
+for _, id in Catalog.Order do
+	local definition = Catalog[id]
+	local early = definition.oneIn and (Catalog.EarlyPriceOverrides[id] or Catalog.EarlyPrice(definition.oneIn, definition.rarity))
+	if early then definition.price = early end
 end
 
 -- "1 in 4", "1 in 129", "1 in 2,900", "1 in 444,500": three significant figures.
