@@ -1,5 +1,9 @@
 # Mission territories: held sites and Loyalist guards (October 15, 2026)
 
+**Later October 15 owner decision (supersedes stationing):** a won site disappears at once,
+like before (`OperationService:Resolve` calls `RemoveSite`), and the army walks home. No flag,
+holding, contests or hold bonus happen; that code stays dormant. Guards and the site life remain.
+
 Owner request: each spawning mission territory (Scout Landing … The King Returns) gets its own
 guard chickens. A conquered territory stays on the island like a camp instead of vanishing.
 

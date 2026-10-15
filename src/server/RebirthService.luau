@@ -35,7 +35,11 @@ end
 
 -- Earned ranks keep their bonus and their stronger enemies even while Enabled is
 -- false: the switch only stops new re-enlists.
+-- EggGrowthPerRank (October 15) multiplies egg cash by that factor per rank; without it
+-- the bonus is the older additive 1 + EggBonusPerRank * rank.
 function RebirthService.Multiplier(rank: number): number
+	local growth = settings().EggGrowthPerRank
+	if type(growth) == "number" then return growth ^ clampRank(rank) end
 	return 1 + settings().EggBonusPerRank * clampRank(rank)
 end
 

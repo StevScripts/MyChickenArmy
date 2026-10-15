@@ -1,7 +1,6 @@
 --!strict
 local Config = require(script.Parent.Config)
 local Catalog = require(script.Parent.PetCatalog)
-local Progression = require(script.Parent.Progression)
 local ChickenLuck = require(script.Parent.ChickenLuck)
 local Giant = require(script.Parent.GiantChicken)
 local Rules = {}
@@ -54,12 +53,13 @@ end
 
 -- Develop a species by merging; later offers supply copies one level behind it.
 -- Never sell the rank's top merge level directly. Selling a species can lower future offers.
-function Rules.RecruitLevel(pets, species: string, promotion: number): number
+function Rules.RecruitLevel(pets, species: string, _promotion: number): number
 	local highest = 1
 	for _, pet in pets do
 		if pet.species == species then highest = math.max(highest, pet.level or 1) end
 	end
-	return math.clamp(highest - 1, 1, math.max(1, Progression.Get(promotion).levelCap - 1))
+	-- October 15: no rank cap (Fuse reaches Lv 10 from the start).
+	return math.clamp(highest - 1, 1, Config.MaxPetLevel - 1)
 end
 
 function Rules.SellValue(investment: number): number

@@ -183,7 +183,7 @@ function Guide.NextGoal(state, ignoreSkip)
 			if value and value.price and value.canSpend and value.unlocked ~= false then
 				return goal("Value", "Buy Egg Value in Upgrades to grow faster", "Upgrades")
 			end
-			return goal("Grow:" .. id, "Roll or upgrade chickens for " .. name, "RollStation")
+			return goal("Grow:" .. id, "Roll or Fuse chickens for " .. name, "RollStation")
 		end
 		return goal("Attack:" .. id, if id == "king:1" then "Challenge the Chicken King" else "Attack " .. name, where)
 	end

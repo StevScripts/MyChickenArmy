@@ -93,6 +93,8 @@ local DEFAULTS={
 	utilityFraction=0.10,savingUtilityFraction=0.02,savingCombatFraction=0.10,
 	targetRank=3,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=40,
 	print=true,
+	-- October 15: Fuse is the only chicken leveling; set true to model the retired cash levels.
+	chickenCashUpgrades=Config.Features.ChickenCashUpgrades,
 }
 
 -- Utility research, cheapest-useful first. Prerequisites are enforced by ResearchRules.Status.
@@ -328,7 +330,7 @@ local function economyCandidates(state,failed,now)
 		table.insert(list,{key=key,price=price,payback=price/gain+(delay or 0),buy=buy})
 	end
 	local full=cashRate(s,false)
-	for id,pet in s.pets do
+	for id,pet in if state.options.chickenCashUpgrades then s.pets else {} do
 		local level=pet.level or 1
 		local price=Rules.ChickenUpgradePrice(pet.species,level)
 		if price and s:IsPetHome(id) then
@@ -390,7 +392,7 @@ local function combatCandidates(state,failed)
 		table.insert(list,{key=key,price=price,ratio=gain/price,buy=buy})
 	end
 	local lineup,inLineup,weakest=lineupInfo(s)
-	for _,entry in lineup do
+	for _,entry in if state.options.chickenCashUpgrades then lineup else {} do
 		local pet=s.pets[entry.id]
 		local level=pet.level or 1
 		local price=Rules.ChickenUpgradePrice(pet.species,level)
@@ -696,6 +698,9 @@ function Simulation.Run(options)
 	local merged=table.clone(DEFAULTS)
 	for key,value in options or {} do merged[key]=value end
 	local previousSizeRandom=Army.SizeRandom
+	-- The server checks this switch too; restored below.
+	local previousCashLevels=Config.Features.ChickenCashUpgrades
+	Config.Features.ChickenCashUpgrades=merged.chickenCashUpgrades
 	local runs={}
 	local started=os.clock()
 	local ok,problem=pcall(function()
@@ -705,6 +710,7 @@ function Simulation.Run(options)
 		end
 	end)
 	Army.SizeRandom=previousSizeRandom
+	Config.Features.ChickenCashUpgrades=previousCashLevels
 	if not ok then error(problem,0) end
 	local results={options=merged,runs=runs,seconds=os.clock()-started,
 		assumptions="Free player, continuous active play, coarse closed-form egg accrual with 60 s deposits; "

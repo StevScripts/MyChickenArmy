@@ -562,7 +562,10 @@ function Browser:Resize()
  Theme.Aspect(self.detailHalo,1)
  rect(self.stats,14,510,507,48,535,detailHeight)
  rect(self.upgrade,14,566,507,86,535,detailHeight)
- rect(self.mergeHint,14,660,507,28,535,detailHeight)
+ -- October 15: with cash levels off, the Fuse progress line takes the Upgrade spot.
+ if Config.Features.ChickenCashUpgrades then rect(self.mergeHint,14,660,507,28,535,detailHeight)
+ else rect(self.mergeHint,14,566,507,86,535,detailHeight) end
+ self.mergeHint.TextWrapped=true
  rect(self.actions,14,696,507,72,535,detailHeight)
  self.actionLayout.Padding=UDim.new(12/507,0)
  self.assign.Size,self.sell.Size=UDim2.fromScale(331/507,1),UDim2.fromScale(164/507,1)
@@ -680,7 +683,7 @@ function Browser:UpdateAction()
 	self.salePanel.Visible=reviewing
 
 	self.stats.Visible,self.assign.Visible,self.sell.Visible=not reviewing,not reviewing,not reviewing
-	self.upgrade.Visible,self.mergeHint.Visible=not reviewing,not reviewing and pet~=nil
+	self.upgrade.Visible,self.mergeHint.Visible=not reviewing and Config.Features.ChickenCashUpgrades,not reviewing and pet~=nil
 	self.detailNotice.Visible=not reviewing and self.detailNotice.Text~=""
 	enabled(self.saleConfirm,canSell and reviewing)
 	enabled(self.saleCancel,self.pending==nil)
@@ -690,13 +693,38 @@ function Browser:UpdateAction()
 		self.saleConfirm.Text=if self.pending then "Selling…" else "Sell for $"..Theme.Money(quote.refund)
 	end
 	self.mergeHint.Text=""
-	if pet then
+	if pet and not Config.Features.ChickenCashUpgrades then
+		self.mergeHint.Text=self:FuseHint(pet)
+	elseif pet then
 		self.mergeHint.Text=if self.pending and self.pending.action=="UpgradeChicken" then ""
 			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
 			elseif pet.canUpgrade==false then pet.upgradeReason or "Return this chicken home to upgrade."
+			elseif self:FuseReady(pet) then self:FuseHint(pet)
 			elseif not affordable then "Not enough cash"
 			else "Boosts damage and eggs · bought levels reset on Rebirth"
 	end
+end
+
+-- Owned chickens that could Fuse with this one (same species, stars and level; itself included).
+function Browser:FuseMatches(pet): number
+	local matching=0
+	for _,other in self.app.state.pets or {} do
+		if other.species==pet.species and other.stars==pet.stars and (other.level or 1)==(pet.level or 1) then matching+=1 end
+	end
+	return matching
+end
+
+function Browser:FuseReady(pet): boolean
+	return self.app.state.mergeUnlocked~=false and (pet.level or 1)<Config.MaxPetLevel and self:FuseMatches(pet)>=3
+end
+
+-- How close this chicken is to its next Fuse level (the whole line when cash levels are off).
+function Browser:FuseHint(pet): string
+	if (pet.level or 1)>=Config.MaxPetLevel then return "Max level reached" end
+	if self.app.state.mergeUnlocked==false then return "Unlock the Fuse Machine in Upgrades to level up chickens." end
+	local matching,nextLevel=self:FuseMatches(pet),(pet.level or 1)+1
+	if matching>=3 then return "Ready! Fuse 3 at the Fuse Machine to reach Lv "..nextLevel end
+	return "Fuse 3 matching to reach Lv "..nextLevel.." · You have "..matching.."/3"
 end
 
 function Browser:UpgradeSelected()

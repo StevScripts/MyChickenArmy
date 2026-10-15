@@ -46,7 +46,7 @@ AppController.__index = AppController
 local C = Theme.Colors
 local MenuLayout = require(script.Parent.MenuLayout)
 -- Routine army commands confirm themselves on the HUD (status line, Army count); only failures notify.
-local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true}
+local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true}
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -660,6 +660,16 @@ function AppController:RenderSettings()
 	toggle("ToggleMusic", "Music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	toggle("ToggleEffects", "Sound effects", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
 	toggle("ReducedMotion", "Reduced motion", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	-- October 15 Auto Roll (research): on/off and what it stops for (mutations always).
+	local auto=self.state.autoRoll
+	if auto and auto.unlocked then
+		toggle("ToggleAutoRoll", "Auto Roll", auto.enabled, function() self:Request("SetAutoRoll",{enabled=not auto.enabled}) end)
+		local names={Upgrade="Army upgrade",Rare="Rare+",Epic="Epic+",Legendary="Legendary+",Mythic="Mythic"}
+		local index=table.find(Config.AutoRollStops,auto.stopAt) or 1
+		self:Button("AutoRollStop", "Auto Roll stops at  ·  "..(names[auto.stopAt] or "Army upgrade"), function()
+			self:Request("SetAutoRoll",{stopAt=Config.AutoRollStops[index%#Config.AutoRollStops+1]})
+		end, Theme.ActionColors.navigation)
+	end
 	-- After the guide, a quiet next-goal line points to the next camp until the King.
 	if tutorial.guideCompleted or tutorial.wonCamp then
 		local hidden=tutorial.goalsHidden==true

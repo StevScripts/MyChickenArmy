@@ -90,7 +90,10 @@ function RollPresentationController:StepCameraZoom(now)
  local root=character and character:FindFirstChild("HumanoidRootPart")
  local humanoid=character and character:FindFirstChildOfClass("Humanoid")
  local activeStation,activeRollId,activeStartedAt,activeDuration
- if root and humanoid and humanoid.Health>0 and not self.app.panel.Visible and not self.app.dialogueActive then
+ -- Auto Roll repeats every few seconds; the camera zoom is for lever pulls only.
+ local auto=self.app.state and self.app.state.autoRoll
+ local autoOn=auto~=nil and auto.enabled==true
+ if root and humanoid and humanoid.Health>0 and not self.app.panel.Visible and not self.app.dialogueActive and not autoOn then
   for station,record in self.records do
    local startedAt=station:GetAttribute("RollStartedAt")
    local duration=station:GetAttribute("RollDuration") or Config.RollRevealSeconds

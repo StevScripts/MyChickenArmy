@@ -56,6 +56,46 @@ function RollService:Roll(session, now: number)
 	return true, "Rolling on your podiums…"
 end
 
+-- October 15 Auto Roll (owner decision: free research unlock, stop-on-good only,
+-- works anywhere). Rolls whenever the lever is ready; stops while an offer worth
+-- keeping waits on a podium (any mutation, or the player's stopAt setting) and
+-- tells the player once. Recruiting it, or pulling the lever, lets it roll on.
+local RANK={Common=1,Uncommon=2,Rare=3,Epic=4,Legendary=5,Mythic=6}
+function RollService.Keeper(session, offer): boolean
+	if offer.mutation then return true end
+	local stop=session.autoRoll and session.autoRoll.stopAt or "Upgrade"
+	if stop=="Upgrade" then
+		local _,improves=session:OfferAdvice(offer.species,offer.level,offer.mutation)
+		return improves==true
+	end
+	local definition=Catalog[offer.species]
+	return definition~=nil and (RANK[definition.rarity] or 0)>=(RANK[stop] or math.huge)
+end
+
+function RollService:StepAuto(session, now: number): boolean
+	local auto=session.autoRoll
+	if not auto or not auto.enabled or (session.researchEffects.autoRoll or 0)<1 then
+		if auto then auto.heldOffer=nil end
+		return false
+	end
+	if session:StarterRecruitPending() or now<session.rollReadyAt then return false end
+	for index=1,session.rollSlotCount or 1 do
+		local offer=session.offers and session.offers[index]
+		if offer and RollService.Keeper(session,offer) then
+			if auto.heldOffer~=offer.id then
+				auto.heldOffer=offer.id
+				local definition=Catalog[offer.species]
+				session.banner="Auto Roll paused: "..(if offer.mutation then offer.mutation.." " else "")
+					..definition.rarity.." "..definition.name.." is waiting on your podium!"
+				session:Touch()
+			end
+			return false
+		end
+	end
+	if auto.heldOffer then auto.heldOffer=nil;session:Touch() end
+	return (self:Roll(session,now))
+end
+
 function RollService:Buy(session, offerId, now: number?, context)
 	if (now or os.clock()) < session.rollRevealAt then return false, "Wait for the chicken to land on the podium." end
 	if type(offerId)~="string" or #offerId>80 then return false,"That offer is no longer available." end

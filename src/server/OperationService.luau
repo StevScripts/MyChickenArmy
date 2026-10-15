@@ -615,20 +615,18 @@ function Service:Resolve(battle,outcome,now)
 			heldReward=session.research.pendingOperationReward,
 			bannerTier=Catalog.BannerTier(session.research.operationWins)}
 			if self.analytics then self.analytics:LaunchCount(session,"mission."..(if won then "won." elseif outcome=="Expired" then "timeout." else "lost.")..definition.tier) end
-			session.lastResult=if won then definition.name.." conquered! Your army holds it. "..(if reward>0 then "+$"..reward elseif session.research.pendingOperationReward>0 then "$"..session.research.pendingOperationReward.." saved until your wallet has room" else "No second reward here.")..(if first then " · first clear" else "")
+			session.lastResult=if won then definition.name.." conquered! "..(if reward>0 then "+$"..reward elseif session.research.pendingOperationReward>0 then "$"..session.research.pendingOperationReward.." saved until your wallet has room" else "No second reward here.")..(if first then " · first clear" else "")
 				elseif outcome=="Expired" then "Time's up! The loyalists held out. Your army is marching home."
 				else definition.name.." ended. Your army is marching home; no completion reward."
 		session:Touch()
 	end
 	-- The loyalists (standing or fallen) fade away.
 	fadeInvaders(battle,self.world.root or workspace)
-	-- October 15: a won site keeps the army stationed under its flag.
-	if won and site and session and session.outgoing==battle.id then
-		self:Station(battle,session,site,now)
-		return
-	end
-	-- Otherwise the guards move back in (or the site leaves once its time is up).
-	if site and not site.holder then self:Vacate(site,now) end
+	-- Later October 15 owner decision: a won site packs up and disappears, like
+	-- before; the army walks home (no stationing, so no flag or contests). A lost
+	-- or abandoned site keeps its guards (or leaves once its time is up).
+	if won and site then self:RemoveSite(site)
+	elseif site and not site.holder then self:Vacate(site,now) end
 	-- The army walks home through the normal Returning flow (BattleService restores
 	-- the rigs and the session on arrival). A leaving player is simply removed.
 	if session and not session.closing and session.outgoing==battle.id then

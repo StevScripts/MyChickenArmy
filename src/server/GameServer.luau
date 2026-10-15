@@ -211,6 +211,17 @@ function GameServer:Handle(player,request)
 		end
 	elseif action=="SetCommerceToggle" then
 		ok,message=self.commerce:SetAutomatic(session,request.key,request.enabled)
+	elseif action=="SetAutoRoll" then
+		-- October 15 Auto Roll: on/off and the stop setting (RollService.StepAuto).
+		if (session.researchEffects.autoRoll or 0)<1 then message="Research Auto Roll in Upgrades first."
+		elseif request.enabled~=nil and type(request.enabled)~="boolean" then message="Invalid Auto Roll setting."
+		elseif request.stopAt~=nil and not table.find(Config.AutoRollStops,request.stopAt) then message="Invalid Auto Roll setting."
+		else
+			if request.enabled~=nil then session.autoRoll.enabled=request.enabled end
+			if request.stopAt~=nil then session.autoRoll.stopAt=request.stopAt end
+			session.autoRoll.heldOffer=nil;session:Touch()
+			ok,message=true,if session.autoRoll.enabled then "Auto Roll on." else "Auto Roll off."
+		end
 	elseif action=="Roll" or action=="Buy" then
 		if not self.world:CanUseStation(player,session,request.stationIndex,action,request.offerId) then
 			message="Walk up to your own roll machine."
@@ -503,6 +514,19 @@ function GameServer:Step(dt)
 	local now=os.clock()
 	self.analytics:Step(dt)
 	self.operations:Step(now)
+	-- Auto Roll runs on the server for every loaded commander, wherever they are.
+	if now>=(self.autoRollAt or 0) then
+		self.autoRollAt=now+0.25
+		for _,session in self.sessions do
+			if session.loaded and not session.closing and not session.saveLost and session.userId>0 and self.rolls:StepAuto(session,now) then
+				for _,offer in session.offers or {} do
+					if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
+					if offer.event then self.analytics:LaunchCount(session,"event.offer."..offer.species) end
+				end
+				self.world:UpdateSession(session)
+			end
+		end
+	end
 	local wallTime=os.time()
 	if wallTime~=(self.researchCheckedAt or 0) then
 		self.researchCheckedAt=wallTime

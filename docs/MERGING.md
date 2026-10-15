@@ -248,3 +248,16 @@ purchase or new Roblox asset upload was performed.
 September 27 follow-up: `MergeGate` and `MergeStand` compile and match Studio through Rojo. The actual runtime machine has four moving sections (24 temporary pieces from 21 original parts); live samples confirm inward travel, 90-degree rotation and full concealment. Three cosmetic chickens entered, and the completion glow pulsed. Full-cycle, interrupted and repeated-celebration checks restored all original CFrames, transparency, collision, query and touch settings and removed temporary pieces/birds. Studio screenshots show the turn, fully open doorway and chickens entering. Evidence: `assets/fuse-garage-animation-20260927/`. The turning screenshot uses a slower diagnostic playback; the full cycle was checked at production timing. No new inventory transaction was needed for this presentation change. Play stopped; Studio is in Edit. Authored geometry and saved merge mechanics are unchanged.
 
 The user then corrected the world sequence: the three inputs are already inside; only the resulting chicken should emerge. That correction supersedes the incoming-bird sequence above. Live checks confirm closed-door charging, one correctly leveled output, inward-to-outward travel (local Z 1.65→−1.75), level-10 doorway fit, full reset, interruption and repeated-fusion cleanup. `result-exiting.jpg` and `result-exit-checks.json` record this revision. MergeStand is 8,305 bytes, polynomial hash 3089724103, compiled and matched to Studio. The session was stopped; Studio is in Edit.
+
+## October 15, 2026: no camp-rank cap on Fuse
+
+Supersedes the retained camp-rank merge caps above. (The same day briefly made Fuse
+the only leveling with a steeper fee; cash levels and the flat 25% fee were restored
+with the old Rebirth costs. See `docs/team/CHICKEN_CASH_UPGRADES.md`.)
+
+- Fuse reaches Lv 10 from the start: `mergeEligible` uses `Config.MaxPetLevel`, and the
+  snapshot's `levelCap` is always 10 (the "Win more camps" picker hint never shows).
+- Roll offers come one level below the player's best of that species, up to Lv 9
+  (`Rules.RecruitLevel`; the rank argument is unused). A new rank only opens camps;
+  its banner reads "New camps unlocked!".
+- The fee is unchanged: 25% of one input's recruit price (`Rules.MergePrice`).

@@ -37,6 +37,8 @@ function PlayerSession:Reset()
 	self.crateCredits=self.crateCredits or 0
 	self.guaranteedLuckRolls=self.guaranteedLuckRolls or 0
 	self.commerceAutomatic=self.commerceAutomatic or {AutoCollectEggs=true,AutoMerge=true}
+	-- Auto Roll settings (RollService.StepAuto); heldOffer is session-only.
+	self.autoRoll=self.autoRoll or {enabled=false,stopAt="Upgrade"}
 	self.coins, self.capacity, self.luck = Config.StartingCoins, Config.StartingSlots, 0
 	self.eggSpeedLevel, self.plotSizeLevel, self.rollSlotsUnlocked = 0, 0, 1
 	self.eggCarry={count=0,value=0}
@@ -326,6 +328,7 @@ function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
 	local pet=if type(id)=="string" and #id<=64 then self.pets[id] else nil
 	if not pet then return false,"Choose a chicken from your own flock." end
 	if (pet.level or 1)>=Config.MaxPetLevel then return false,"Max level reached." end
+	if not Config.Features.ChickenCashUpgrades then return false,"Fuse 3 matching chickens to level up." end
 	if not self:IsPetHome(id) or (self.incoming and self:FindSlot(id)) then
 		return false,"This chicken must return to your base before upgrading."
 	end
@@ -426,8 +429,9 @@ function PlayerSession:UnlockProgress()
  self.promotion,self.recruitTier=earned,earned
  -- A victory may happen while the player is rolling. Preserve that reveal and offer;
  -- Conquest ranks do not unlock cash upgrades or change roll odds. Rank names are
- -- internal; the notice names the real unlock (the Fuse level cap).
- self.banner="Fusion up to Lv "..Progression.Get(earned).levelCap.." unlocked!"
+ -- internal; the notice names the real unlock. October 15: Fuse reaches Lv 10 from
+ -- the start, so a new rank only opens its camps.
+ self.banner="New camps unlocked!"
  self:Touch()
  return true
 end
@@ -488,7 +492,7 @@ function PlayerSession:Snapshot(now: number)
 			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level,pet.mutation),
 			nextIncome=if (pet.level or 1)<Config.MaxPetLevel then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1,pet.mutation) else nil,
 			upgradePrice=Rules.ChickenUpgradePrice(pet.species,pet.level or 1),canUpgrade=canUpgrade,upgradeReason=upgradeReason,
-			levelCap=rank.levelCap,upgradeLocked=not canUpgrade,
+			levelCap=Config.MaxPetLevel,upgradeLocked=not canUpgrade,
 			investment=pet.investment,refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))})
 	end
 	table.sort(pets,function(a,b)
@@ -512,7 +516,7 @@ function PlayerSession:Snapshot(now: number)
 	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")*(1+(self.territoryBonus or 0))
 	return {research=ResearchService.Snapshot(self,os.time()),nextSlot=self:NextSlot(),
 		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=Config.MaxSlots+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
-			levelCap=rank.levelCap,ready=false,
+			levelCap=Config.MaxPetLevel,ready=false,
             goal=Progression.NextGoal(self.firstWins,self.frontierWins,self.kingCleared),
             requirement=Progression.Requirement(math.min(self.promotion+1,4)),
 			nextName=if self.promotion<Progression.Count() then Progression.Get(self.promotion+1).name else nil,
@@ -522,6 +526,8 @@ function PlayerSession:Snapshot(now: number)
 		frontierWins=table.clone(self.frontierWins),kingCleared=self.kingCleared,
         firstWins=table.clone(self.firstWins),homeCount=#self:HomePets(),reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,
 		offlineCash=if self.offlineCashReceipt then table.clone(self.offlineCashReceipt) else nil,
+		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt,
+			unlocked=(self.researchEffects.autoRoll or 0)>=1,holding=self.autoRoll.heldOffer~=nil},
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		mergeUnlocked=mergeUnlocked,mergeRequirement=mergeRequirement,
 		campsWon=campsWon,allCampsWon=self:Completed(),territoryBonus=self.territoryBonus or 0,
@@ -565,6 +571,7 @@ function PlayerSession:ToData()
  table.sort(frontier)
 	return {research=ResearchRules.Copy(self.research),dataRevision=Config.DataRevision,legacyCapacityGrant=self.legacyCapacityGrant or 0,
 		purchaseReceipts=table.clone(self.purchaseReceipts),crateCredits=self.crateCredits,commerceAutomatic=table.clone(self.commerceAutomatic),
+		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt},
 		guaranteedLuckRolls=self.guaranteedLuckRolls,
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,robuxSpent=self.robuxSpent,
 		eggProcessor=EggProcessor.Copy(self.eggProcessor),
@@ -712,6 +719,12 @@ function PlayerSession:LoadData(data)
    if automatic[key]==nil or type(value)~="boolean" then return false,"Invalid automatic settings." end
    automatic[key]=value
   end
+ end
+ -- October 15 Auto Roll settings; an odd saved value falls back to the defaults.
+ local autoRoll={enabled=false,stopAt="Upgrade"}
+ if type(data.autoRoll)=="table" then
+  autoRoll.enabled=data.autoRoll.enabled==true
+  if table.find(Config.AutoRollStops,data.autoRoll.stopAt) then autoRoll.stopAt=data.autoRoll.stopAt end
  end
  local revision=data.dataRevision or 1
 	if not numberIn(revision,1,Config.DataRevision,true) then return false,"Unsupported saved profile revision." end
@@ -905,6 +918,7 @@ function PlayerSession:LoadData(data)
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.
 	self.purchaseReceipts,self.crateCredits,self.commerceAutomatic=receipts,data.crateCredits or 0,automatic
+	self.autoRoll=autoRoll
 	self.guaranteedLuckRolls=guaranteedLuckRolls%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
 	self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,grant
 	self.eggSpeedLevel,self.plotSizeLevel,self.rollSlotsUnlocked=eggSpeedLevel,plotSizeLevel,rollSlotsUnlocked

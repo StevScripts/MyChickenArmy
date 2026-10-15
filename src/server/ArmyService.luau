@@ -7,7 +7,6 @@ local Catalog = require(Shared.PetCatalog)
 local Giant = require(Shared.GiantChicken)
 local MutationCatalog = require(Shared.MutationCatalog)
 local sizeRandom = Random.new()
-local Progression = require(Shared.Progression)
 local ArmyService = {}
 ArmyService.SizeRandom = sizeRandom
 
@@ -147,7 +146,7 @@ end
 local function mergeEligible(session, pet)
 	return pet and not pet.favorite and session:IsPetHome(pet.id)
 		and not (session.incoming and session:FindSlot(pet.id))
-		and (pet.level or 1) < Progression.Get(session.promotion).levelCap
+		and (pet.level or 1) < Config.MaxPetLevel -- October 15: no rank cap on Fuse.
 end
 
 -- Exact triples; keep a selected squad ID so the survivor retains its place.

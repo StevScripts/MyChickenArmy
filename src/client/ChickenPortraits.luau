@@ -18,7 +18,7 @@ return {
  Camo="rbxassetid://84613043986207", -- Camo Chick
  Bee="rbxassetid://88462567298666", -- Bee Chicken
  Bucket="rbxassetid://112302411319810", -- Robo-Cluck
- Jockey="rbxassetid://102334801314825", -- Chicken Jockey (current rider)
+ Jockey="rbxassetid://78700775884727", -- Chicken Jockey (October 15 retextured rider)
  Cardboard="rbxassetid://102920498471088", -- Cardboard Commando
  Cactus="rbxassetid://117655474132630", -- Cactus Clucker
  Zombie="rbxassetid://124151116106402", -- Zombie Chicken

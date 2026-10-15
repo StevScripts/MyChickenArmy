@@ -85,3 +85,28 @@ continuation growth raised from 1.35 to 1.6 (`Config.Economy.IncomePriceGrowth`,
 applied October 8 with the owner's approval) plus this level price maxed them on day 5–6. Treat these as model
 results, not measured play.
 
+
+## Retired: Fuse is the only leveling, October 15, 2026
+
+Owner decision after the October 8–15 live data (12 of ~21 players bought cash
+levels; they were the largest sink after Rebirth) and the design problem that a
+cash-levelled chicken no longer matched its copies for Fuse. `Config.Features.
+ChickenCashUpgrades=false`:
+
+- The Army inspector hides Upgrade; its spot shows Fuse progress for the selected
+  chicken ("Fuse 3 matching to reach Lv N · You have X/3", ready, locked or max).
+- `PlayerSession:ChickenUpgradeEligibility` refuses with "Fuse 3 matching chickens to
+  level up.", so `UpgradeChicken` cannot charge. All code above stays for a re-enable.
+- Saved levels, `cashLevels` (still removed on Rebirth), investment and refunds are
+  unchanged. Nothing is migrated.
+
+The replacement sink and caps are in `docs/MERGING.md` (October 15 section).
+
+## Restored the same day, October 15, 2026
+
+The owner restored the earlier Rebirth costs ($50M, $1T, $5T, $12T …) after player
+feedback. Those costs were fitted with cash levels: in `tests/ProgressionSimulation`
+without them, income stalls near $2.4M/s and Rebirth 2 is not reached in 12 h; with
+them Rebirth 2/3 come at about 2.9/4.6 h. `ChickenCashUpgrades` is back to `true`.
+The Upgrade button, quotes and rules above apply again. The Fuse progress helpers stay:
+when three matching chickens are ready, the hint line under Upgrade says so.

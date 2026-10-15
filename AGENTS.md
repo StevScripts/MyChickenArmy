@@ -32,7 +32,7 @@ Latest September 29 Plot1 correction: start with a 30×30 square, extend a 30-st
 
 September 29 Roll Slots supersede the old six-slot luxury ladder: support eight physically authored podiums, with prices $1,200 / $4,800 / $120,000 / $6M / $150M / $300M / $500M. The user's target is all eight after roughly 8–9 active F2P hours; this is initial model-based tuning, not a time gate or verified player duration. Fresh profiles start with one, missing-field legacy saves retain six, and all owned slots remain intact. See `docs/team/EIGHT_ROLL_PODIUMS.md`.
 
-September 29 individual chicken upgrades: the simplified Army inspector now buys levels with cash through level 10, without camp/rank prerequisites. Initial quote is 75% of the current-level recruit price. Preserve saved levels, real investment/refunds and earned sizes. Giant odds now follow the October 14 Giants rule below. See `docs/team/CHICKEN_CASH_UPGRADES.md`.
+September 29 individual chicken upgrades: the simplified Army inspector buys levels with cash through level 10, without camp/rank prerequisites (`Config.Features.ChickenCashUpgrades=true`). Initial quote is 75% of the current-level recruit price. Preserve saved levels, real investment/refunds and earned sizes. Giant odds follow the October 14 Giants rule below. October 15: the owner briefly made Fuse the only leveling, then restored cash upgrades the same day with the old Rebirth costs (the simulation showed $1T+ Rebirths are unreachable without them); keep the switch on. Kept from that change: Fuse reaches Lv 10 without a camp-rank cap, roll offers come one level below the player's best of that species up to Lv 9, and the inspector's hint shows "Ready! Fuse 3…" when three match. See `docs/team/CHICKEN_CASH_UPGRADES.md` and `docs/MERGING.md`.
 
 Edit code in this repository and sync with Rojo. Do not simultaneously write mapped scripts through Studio MCP; Rojo can overwrite those edits. Use Studio Flow for readback and asset work. Canonical Pet Roll Test place ID: 96683186622050. Check its identity and Edit state before connecting. Do not publish or push to a GitHub remote without user authorization.
 
@@ -98,6 +98,9 @@ army under a flag; other players may take it. Leaving early lowers the flag and 
 guards return; after 15 minutes a site leaves as soon as no player holds it. Conquest
 pays once per player per site; holding adds a small egg-value percentage
 (`Config.Territories.MissionBonus`). See `docs/team/MISSION_TERRITORIES.md`.
+Later October 15 owner decision (supersedes the stationing above): a won site
+disappears at once, like before, and the army walks home. No flag, holding,
+contests or hold bonus; Loyalist guards and the 15-minute life remain.
 
 ## Chicken UI Lab (October 15)
 The owner tweaks UI in the Studio plugin (`tools/ui-lab`, guide `docs/UI_LAB.md`) and

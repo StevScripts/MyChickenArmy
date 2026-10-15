@@ -1,5 +1,13 @@
 # Rebirth ladder: 50 ranks, no walls (October 15, 2026)
 
+> **Superseded later on October 15, 2026 (owner decision after player feedback).** Players
+> found this ladder far too easy ("$5B … I got that in like 1 minute") and preferred the
+> earlier wall ("$12T was pretty good"): Rebirths should be a long objective with fewer ranks.
+> `Config.Rebirth` is back to the earlier 20-rank table, MaxRank 20:
+> $50M, $1T, $5T, $12T, $18T, $28T, $38T, $45T, $50T, $55T, $62T, $80T, $95T, $115T, $125T,
+> $135T, $150T, $165T, $175T, $185T. Saved ranks above 20 load as 20 (never rejected).
+> The rest of this page records the reverted ladder.
+
 ## Owner request
 
 The owner asked for more Rebirths without the "million → billion → trillion" walls, and for

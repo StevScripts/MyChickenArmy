@@ -29,7 +29,9 @@ end
 
 local Config = {
 	-- Manual three-chicken merging is enabled; paid automation is a separate rollout.
-	Features = {Merging = true, AutoMerging = false, IntroCutscene = true},
+	-- ChickenCashUpgrades: the Army inspector's Upgrade button. Briefly off on October 15
+	-- (Fuse-only); back on the same day with the restored Rebirth costs, which need it.
+	Features = {Merging = true, AutoMerging = false, IntroCutscene = true, ChickenCashUpgrades = true},
 	Economy = Economy,
  Version="1.20.0-launch", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's
@@ -62,18 +64,16 @@ local Config = {
  -- levels. Costs (explicit, all below the 2^53 coin cap) were tuned with
  -- tests/ProgressionSimulation: Rebirth 1 ≈ 1.8 h, Rebirth 2 ≈ 4.3 h, Rebirth 3 in the
  -- 10–20 h band.
- Rebirth={Enabled=true,MaxRank=50,
-  -- October 15 owner request: more Rebirths without million -> billion -> trillion walls
-  -- (the 20-rank table jumped x20,000 from Rebirth 1 to 2). Each listed rank costs at most
-  -- x3.6 the one before, easing to x1.15 by Rebirth 20; after the list every rank costs
-  -- CostStep more ($45T, $52.5T, $60T … $270T at Rebirth 50, far below the 2^53 coin cap).
-  -- Fitted with tests/ProgressionSimulation, see docs/team/REBIRTH_LADDER.md:
-  -- fast / casual player reach R1 68/90 min, R10 2.9/3.9 h, R20 7.5/9.5 h, R30 16/20 h,
-  -- R50 36/44 h. Runs take ~12/16 min early and ~60/72 min from Rebirth 30 on.
+ Rebirth={Enabled=true,MaxRank=20,
+  -- Later October 15 owner decision (player feedback: "$12T was pretty good, $5B is way too
+  -- easy"; Rebirths should be a long objective with fewer ranks): restores the earlier
+  -- 20-rank table. Fitted then with tests/ProgressionSimulation (fast / casual player):
+  -- R1 66/77 min, R2 2.8/4 h, R5 8.3/10.3 h, R10 17/20 h, R15 24.5/27.8 h, R20 31.3/35.4 h.
   -- Rebirth 1 still needs the King. Saved ranks above MaxRank keep the highest rank.
-  Costs={5e7,1.8e8,6.2e8,2e9,5.9e9,1.7e10,4.4e10,1.1e11,2.6e11,5.6e11,
-   1.2e12,2.2e12,4.1e12,6.9e12,1.1e13,1.7e13,2.3e13,3.1e13,3.9e13,4.5e13},
-  CostStep=7.5e12,
+  -- The brief $50M…$45T ladder (MaxRank 50) is in docs/team/REBIRTH_LADDER.md.
+  Costs={5e7,1e12,5e12,1.2e13,1.8e13,2.8e13,3.8e13,4.5e13,5e13,5.5e13,
+   6.2e13,8e13,9.5e13,1.15e14,1.25e14,1.35e14,1.5e14,1.65e14,1.75e14,1.85e14},
+  CostStep=7.5e12, -- Only used for ranks past the list (none while MaxRank is 20).
   EggBonusPerRank=1.0,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
@@ -85,6 +85,9 @@ local Config = {
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.
  RollSlotsUnlocked=8,
  RollRevealSeconds=2.4,RollInteractDistance=14,
+ -- Auto Roll (research AutoRoll) stops on any mutated offer or at this setting:
+ -- "Upgrade" = an offer that fills or strengthens the army, else a rarity floor.
+ AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic"},
  SlotLevels={3,4,5,6,7,8,9,10},
  SlotUnlocks={
   [3]={capacity=4,price=1200},
