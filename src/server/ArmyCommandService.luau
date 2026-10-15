@@ -132,6 +132,16 @@ function Commands:Attack(session,targetId,now)
 	return ok,why
 end
 
+-- A following army is released before it marches to a Mission, like Attack.
+function Commands:StartMission(session,operations,missionId,now)
+	local record=self.following[session.userId]
+	local player=record and record.player
+	if record then self:Release(session,false) end
+	local ok,why=operations:StartMission(session,missionId,now)
+	if not ok and player then self:StartFollowing(session,player) end
+	return ok,why
+end
+
 function Commands:Step(now)
 	local dt=math.clamp(if self.lastStep then now-self.lastStep else 1/60,0,0.1)
 	self.lastStep=now

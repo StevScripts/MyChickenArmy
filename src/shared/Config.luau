@@ -62,8 +62,14 @@ local Config = {
  -- levels. Costs (explicit, all below the 2^53 coin cap) were tuned with
  -- tests/ProgressionSimulation: Rebirth 1 ≈ 1.8 h, Rebirth 2 ≈ 4.3 h, Rebirth 3 in the
  -- 10–20 h band. BaseCost/CostGrowth remain the fallback for ranks without an entry.
- Rebirth={Enabled=true,MaxRank=10,BaseCost=5e9,CostGrowth=4,
-  Costs={5e9,5e12,1e14,5e14,1.2e15,2e15,3e15,4.2e15,6e15,8.5e15},
+ Rebirth={Enabled=true,MaxRank=20,BaseCost=5e9,CostGrowth=4,
+  -- October 15 owner decision: 20 Rebirths spaced evenly, Rebirth 1 at ~1 h and
+  -- Rebirth 20 at ~33 h (one every ~1.5-2 h). Costs fitted with tests/ProgressionSimulation
+  -- (fast / casual player): R1 66/77 min, R2 2.8/4h, R5 8.3/10.3h, R10 17/20h,
+  -- R15 24.5/27.8h, R20 31.3/35.4h. Rebirth 1 still needs the King (cleared ~50 min).
+  -- Every cost stays far below the 2^53 coin cap.
+  Costs={5e7,1e12,5e12,1.2e13,1.8e13,2.8e13,3.8e13,4.5e13,5e13,5.5e13,
+   6.2e13,8e13,9.5e13,1.15e14,1.25e14,1.35e14,1.5e14,1.65e14,1.75e14,1.85e14},
   EggBonusPerRank=1.0,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
@@ -90,6 +96,10 @@ local Config = {
  PassiveIncomeMultiplier=1,
  SplashDamageFraction=0.5,
  AttackerRespawnSeconds=5,EnemyReclaimSeconds=4,
+ -- October 15: a camp an army leaves mid-fight keeps its progress; the bar drains
+ -- to empty over LeftProgressDrainSeconds and fallen guards stand back up one per
+ -- LeftDefenderRespawnSeconds (BattleService:LeaveProgress/ResumeProgress).
+ LeftProgressDrainSeconds=90,LeftDefenderRespawnSeconds=12,
  LuckPrices={pacedPrice(1,Economy.LuckUpgradeSeconds),pacedPrice(2,Economy.LuckUpgradeSeconds),pacedPrice(3,Economy.LuckUpgradeSeconds),pacedPrice(4,Economy.LuckUpgradeSeconds)},LuckWeightPerLevel=0.10,
  LuckOpeningLevels=4,LuckContinuationWeightPerLevel=0.10,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,

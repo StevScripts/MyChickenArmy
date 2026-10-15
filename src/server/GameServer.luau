@@ -176,7 +176,7 @@ function GameServer:Handle(player,request)
 		ok,message=ArmyService.ApplyFormation(session,request.slot,request.expectedIds,request.expectedRevision)
 	elseif action=="StartOperation" then
 		-- October 14: Missions spawn on the island; the old menu start is retired.
-		if type(request.missionId)=="string" then ok,message=self.operations:StartMission(session,request.missionId,now)
+		if type(request.missionId)=="string" then ok,message=self.armyCommands:StartMission(session,self.operations,request.missionId,now)
 		else message="Missions now appear on the island by themselves. Send your army to one!" end
 	elseif action=="LeaveOperation" then
 		local operation=self.battles.battles[session.outgoing]

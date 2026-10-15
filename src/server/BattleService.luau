@@ -51,7 +51,7 @@ end
 BattleService.EnemyScale=enemyScale
 
 function BattleService.new(sessions,world)
-	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},funnelFailures={},
+	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},funnelFailures={},leftProgress={},
   territoryIncome=TerritoryIncome.new((Config.IncomeOutpost and Config.IncomeOutpost.Rate) or 0),
   income={graceUntil=0,retry={},eligibleTime=0,warningAfter=(Config.IncomeOutpost and Config.IncomeOutpost.WarningAfter) or 120}},BattleService)
 end
@@ -122,7 +122,11 @@ end
 -- Only this player's outgoing NPC encounter can be redirected. Shared income
 -- contests retain their separate participant/withdrawal rules.
 function BattleService:CanRedirect(session,battle)
- if battle==nil or battle.operationId or battle.attacker~=session.userId or battle.defender then return false end
+ if battle==nil or battle.attacker~=session.userId or battle.defender then return false end
+ -- October 15: a Mission in progress can be left for another target (it is forfeited).
+ if battle.operationId and not battle.paid then
+  return battle.phase=="Travel" or battle.phase=="Fight" or battle.phase=="Capture"
+ end
  if battle.phase=="Returning" then return self:CanTurnAround(battle) end
  return (not battle.incomeSite or battle.phase=="Holding")
   and (battle.phase=="Travel" or battle.phase=="Fight" or battle.phase=="Capture" or battle.phase=="Holding")
@@ -813,6 +817,12 @@ function BattleService:Attack(session,targetId,now,keepRoute)
  battle.routeGoalName=if battle.routeGoal then self:TargetName(session,battle.routeGoal) else nil
 	battle.defender=if defender then defender.userId else nil
 	if moving then
+		-- October 15: the old fight's progress stays at its camp and drains slowly
+		-- (LeaveProgress); leaving a Mission forfeits it.
+		if previous.operationId and not previous.paid then
+			self.operations:Resolve(previous,"Abandoned",now)
+			session.lastResult=previous.name.." left behind · no completion reward."
+		else self:LeaveProgress(previous,now) end
 		-- Carry the same lives and every incoming/relieved bird across encounter boundaries.
 		battle.serial=previous.serial
 		for _,old in previous.units do if old.side=="A" then
@@ -838,6 +848,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	end
 
 	battle:AddArmy("B",defenders,destination)
+	self:ResumeProgress(session,battle,now)
 	if self.world.root then
 		local folder=self.world.root:FindFirstChild("Battles")
 		if not folder then folder=Instance.new("Folder");folder.Name="Battles";folder.Parent=self.world.root end
@@ -1377,7 +1388,7 @@ function BattleService:ReturnHome(session,now)
   if battle.incomeSite then battle.incomeDeparture=true end
 		session.armyState,session.returnAt,session.stationedAt="Returning",now+Config.ReturnSeconds,nil
 		session:Touch()
-	else self:Finish(battle,"Retreat",now) end
+	else self:LeaveProgress(battle,now);self:Finish(battle,"Retreat",now) end
 	return true,"Army returning home."
 end
 
@@ -1542,10 +1553,64 @@ function BattleService:CloseHill(now)
  if self.world.SetHillMode then self.world:SetHillMode(false) end
 end
 
+local function leftState(record,now)
+ local elapsed=now-record.at
+ local progress=math.max(0,record.progress-elapsed/Config.LeftProgressDrainSeconds)
+ local stood=math.floor(elapsed/Config.LeftDefenderRespawnSeconds)
+ return progress,math.max(0,#record.dead-stood),stood
+end
+
+-- October 15 (owner request): an army that leaves a fight, for another target or
+-- home, leaves its progress at that camp. The bar drains over
+-- LeftProgressDrainSeconds and fallen guards stand back up one every
+-- LeftDefenderRespawnSeconds. The same commander resumes what is left.
+function BattleService:LeaveProgress(battle,now)
+ if not battle.campKey or not battle:IsConquest() or battle.friendlyTerritory or battle.outcome~=nil then return end
+ if battle.phase~="Fight" and battle.phase~="Capture" then return end
+ local dead,index={},0
+ for _,u in battle.units do if u.side=="B" and not u.petId then
+  index+=1
+  -- A fallen boss (noRespawn) is back at full strength on return.
+  if u.hp<=0 and not u.noRespawn then table.insert(dead,index) end
+ end end
+ local progress=math.clamp(battle.captureElapsed/battle:CaptureDuration(),0,1)
+ if progress<=0 and #dead==0 then return end
+ self.leftProgress[battle.campKey]={attacker=battle.attacker,progress=progress,dead=dead,at=now,
+  x=battle.destination.X,y=battle.destination.Y,z=battle.destination.Z,name=battle.name}
+end
+
+-- A new fight at a camp consumes its left progress; only the same commander keeps it.
+function BattleService:ResumeProgress(session,battle,now)
+ local record=battle.campKey and self.leftProgress[battle.campKey]
+ if not record then return end
+ self.leftProgress[battle.campKey]=nil
+ if record.attacker~=session.userId or battle.friendlyTerritory then return end
+ local progress,down,stood=leftState(record,now)
+ battle.captureElapsed=progress*battle:CaptureDuration()
+ battle.captureStarted=progress>0
+ -- The earliest fallen stand up first; the rest keep their place in that queue.
+ local guards={}
+ for _,u in battle.units do if u.side=="B" and not u.petId then table.insert(guards,u) end end
+ for k=1,down do
+  local u=guards[record.dead[stood+k]]
+  if u then u.hp=0;u.respawnAt=record.at+(stood+k)*Config.LeftDefenderRespawnSeconds end
+ end
+end
+
 function BattleService:Snapshots(now)
 	local result={}
 	for _,battle in self.battles do
   table.insert(result,battle:Snapshot(now))
+ end
+ -- Left progress shows as a draining meter at its camp (BattleController reclaim view).
+ for key,record in self.leftProgress do
+  local progress,down=leftState(record,now)
+  if progress<=0 and down==0 then self.leftProgress[key]=nil
+  elseif progress>0 then
+   table.insert(result,{id="left:"..key,territoryReclaim=true,abandoned=true,conquest=true,phase="Returning",
+    attacker=record.attacker,captureProgress=progress,enemyReclaiming=true,defendersDown=down,
+    x=record.x,y=record.y,z=record.z,name=record.name,units={}})
+  end
  end
 	return result
 end

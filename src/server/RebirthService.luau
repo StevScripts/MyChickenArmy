@@ -241,8 +241,7 @@ function RebirthService.Rebirth(session, expectedRank, server): (boolean, string
 	session.eggCarry = {count = 0, value = 0}
 	session.rebirths = nextRank
 	-- The checkpoint at the new rate; DataService:Capture rewrites it on every save.
-	session.offlineCash = {at = os.time(), rate = OfflineCash.Rate(session),
-		maxSeconds = (session.researchEffects and session.researchEffects.offlineHours or 8) * 3600}
+	session.offlineCash = OfflineCash.Checkpoint(session, os.time())
 	-- 7. Derived state. Research effects read only research, which is kept.
 	-- GameServer runs armyCommands:Sync and world:UpdateSession after this returns.
 	session:RefreshArmy()

@@ -30,6 +30,9 @@ return function(sources)
 	local Eggs = loadModule(server.EggService)
 	local Session = loadModule(server.PlayerSession)
 	local Offline = loadModule(server.OfflineCash)
+	local OfflineTuning = loadModule(shared.OfflineCashConfig)
+	-- October 14: checkpoints without an efficiency were saved at the legacy 2% and pay at today's rate.
+	local legacyScale = OfflineTuning.Efficiency / OfflineTuning.LegacyEfficiency
 	local Products = loadModule(server.ProductService)
 	local Commerce = loadModule(server.CommerceService)
 	local Army = loadModule(server.ArmyService)
@@ -108,7 +111,7 @@ return function(sources)
 	end)
 	check("Offline credits use expanded wallet headroom without changing time/efficiency", function()
 		local reward = Offline.Reward({at = 100, rate = 10}, 200, 1e12)
-		assert(reward.amount == 1000 and reward.countedSeconds == 100)
+		assert(reward.amount == math.floor(1000 * legacyScale + 1e-7) and reward.countedSeconds == 100)
 		assert(Offline.Reward({at = 100, rate = 10}, 200, Currency.MaxCoins - 30).amount == 30)
 	end)
 	check("Paid cash stays exact above one trillion, replays once, and defers overflow", function()
@@ -202,12 +205,13 @@ return function(sources)
 		local s = fresh(4); s.pets = {}; s.slots = {}
 		for _ = 1, 10 do local p = s:AddPet("StormDuck", 1); p.level = 3 end
 		local old = Offline.Rate(s)
-		assert(old == 8 * 4 * 0.02)
-		s.eggProcessor.level = 5; assert(Offline.Rate(s) == 9 * 4 * 0.02)
-		s.entitlements.DoubleEggSpawn = true; assert(Offline.Rate(s) == 18 * 4 * 0.02)
+		local efficiency = OfflineTuning.Efficiency
+		assert(old == 8 * 4 * efficiency)
+		s.eggProcessor.level = 5; assert(Offline.Rate(s) == 9 * 4 * efficiency)
+		s.entitlements.DoubleEggSpawn = true; assert(Offline.Rate(s) == 18 * 4 * efficiency)
 		s.entitlements.DoubleEggSpawn = false
 		s.eggProcessor.level = 100; local productionLimited = Offline.Rate(s)
-		assert(productionLimited > old and productionLimited < Config.Rate(100) * 4 * 0.02)
+		assert(productionLimited > old and productionLimited < Config.Rate(100) * 4 * efficiency)
 		s.eggProcessor.level = 1000; assert(Offline.Rate(s) == productionLimited)
 	end)
 	return results

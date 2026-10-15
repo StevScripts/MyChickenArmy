@@ -40,15 +40,8 @@ function Extras.new(app)
 	self.operations.AnchorPoint,self.operations.Position,self.operations.Size=Vector2.new(1,.5),UDim2.fromScale(.988,.56),UDim2.fromScale(.082,.16)
 	Theme.Aspect(self.operations,136/132);self.operations.Visual.Label.TextScaled=true
 	Theme.ScaleText(self.operations);self.operations.Visible=false
-	self.goal=Theme.Button(app.hudLayer,"ResearchGoal","",function()
-		local data=app.state and app.state.research
-		if data and data.pinned then app:OpenPage("Research");app.research:Center(data.pinned);app.research:Select(data.pinned,true) end
-	end,Theme.ActionColors.navigation)
-	self.goal.AnchorPoint,self.goal.Position,self.goal.Size=Vector2.new(1,0),UDim2.fromScale(.985,.12),UDim2.fromScale(.24,.045)
-	Theme.Aspect(self.goal,7);Theme.ScaleText(self.goal);self.goal.Visible=false
-	self:ApplyInputLayout()
-	-- Deferred so HudController:ApplyInputLayout has updated settingsBottom first.
-	table.insert(self.connections,UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function() task.defer(function() self:ApplyInputLayout() end) end))
+	-- October 14 owner request: no pinned-research goal chip on the HUD (the
+	-- Upgrades tree still shows the pinned node).
 	local elapsed=0
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
 		elapsed+=dt;if elapsed>=.25 then elapsed=0;self:UpdateRally() end
@@ -58,15 +51,6 @@ function Extras.new(app)
 		app:Request("Rally");return Enum.ContextActionResult.Sink
 	end,false,Enum.KeyCode.G,Enum.KeyCode.ButtonL2)
 	return self
-end
-
--- Touch enlarges Settings (HudController:ApplyInputLayout exposes its lowest
--- screen Y as hud.settingsBottom); keep the goal chip just below it. The lifted
--- totals sit above the Invasions icon / Rally slot, so those stay put.
-function Extras:ApplyInputLayout()
-	local hud=self.app.hud
-	local bottom=tonumber(hud and hud.settingsBottom) or .084
-	self.goal.Position=UDim2.fromScale(.985,math.max(.12,bottom+.012))
 end
 
 function Extras:UpdateRally()
@@ -86,13 +70,6 @@ end
 
 function Extras:Receive(state,result)
 	local data=state.research;if not data then return end
-	local id=data.pinned
-	self.goal.Visible=id~=nil
-	if id then
-		local steps,cursor=0,id
-		while cursor and not data.completed[cursor] do steps+=1;cursor=Research.Nodes[cursor].prerequisite end
-		self.goal.Text=Research.Nodes[id].name..(if steps>0 then " · "..steps.." to go" else " · completed")
-	end
 	self:UpdateRally()
 	if result and result.ok and result.action=="StartOperation" then self.app:ClosePanel() end
 	local encounter=state.operations
@@ -197,7 +174,7 @@ end
 function Extras:Destroy()
 	ContextActionService:UnbindAction("PetRollRally")
 	for _,connection in self.connections do connection:Disconnect() end
-	self.rally:Destroy();self.operations:Destroy();self.goal:Destroy()
+	self.rally:Destroy();self.operations:Destroy()
 end
 
 return Extras

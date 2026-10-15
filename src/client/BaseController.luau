@@ -109,10 +109,13 @@ function BaseController:MissionCommand(model,missionId)
 	for _,entry in (state.operations or {}).missions or {} do if entry.id==missionId then mission=entry end end
 	if not mission then return nil end
 	local _, _, _, selectedCount = self.app:Counts()
-	local home=state.armyState=="Home" or state.armyState=="Following"
-	local allowed=home and selectedCount>0 and not state.outgoing and not state.incoming and not mission.locked
+	-- October 15: an army already out can be sent straight here (the server
+	-- forfeits a Mission it leaves and keeps a camp's progress draining there).
+	local canMove=state.armyState=="Home" or state.armyState=="Following" or state.armyState=="Deployed"
+		or state.armyState=="Traveling" or state.armyState=="Fighting" or state.armyState=="Returning"
+	local allowed=canMove and selectedCount>0 and not mission.locked
 	local reason=if mission.locked then "Unlock this Mission tier in Upgrades"
-		elseif not home or state.outgoing then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
+		elseif not canMove then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
 	local hint=Guide.Difficulty(state.power,mission.power).." · "..mission.count.." loyalists · $"..Theme.CompactMoney(mission.reward)
 	return {model=model,action=if allowed then "StartOperation" else nil,missionId=missionId,targetId="mission:"..missionId,
 		hint=if allowed then hint else nil,locked=not allowed,reason=reason,title=mission.name,

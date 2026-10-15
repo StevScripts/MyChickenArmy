@@ -18,7 +18,10 @@ function OfflineCash.Read(value)
 		or not finite(value.rate, Currency.MaxCoins) then return nil end
 	local maximum=value.maxSeconds or Tuning.MaxSeconds
 	if not finite(maximum,12*3600) or maximum<Tuning.MaxSeconds or maximum%1~=0 then return nil end
-	return {at = value.at, rate = value.rate, maxSeconds=maximum}
+	-- Older checkpoints have no efficiency (recorded at LegacyEfficiency). An odd
+	-- value is treated as legacy rather than failing the load.
+	local efficiency = if finite(value.efficiency, 1) and value.efficiency > 0 then value.efficiency else nil
+	return {at = value.at, rate = value.rate, maxSeconds=maximum, efficiency = efficiency}
 end
 
 function OfflineCash.Rate(session)
@@ -37,14 +40,22 @@ function OfflineCash.Rate(session)
 	return session:EarnedAmount(raw, "eggs") * Tuning.Efficiency
 end
 
+-- A checkpoint as saved: the frozen rate plus the efficiency it was recorded at.
+function OfflineCash.Checkpoint(session, at)
+	return {at = at, rate = OfflineCash.Rate(session), efficiency = Tuning.Efficiency,
+		maxSeconds = (session.researchEffects and session.researchEffects.offlineHours or 8) * 3600}
+end
+
 function OfflineCash.Reward(checkpoint, now, coins)
 	local away = if checkpoint.at > 0 then math.max(0, now - checkpoint.at) else 0
 	local maximum=checkpoint.maxSeconds or Tuning.MaxSeconds
 	local counted = math.min(away, maximum)
-	local amount = if away >= Tuning.MinSeconds then math.floor(counted * checkpoint.rate + 1e-7) else 0
+	-- Pay every checkpoint at today's efficiency (older saves were frozen at 2%).
+	local rate = checkpoint.rate * Tuning.Efficiency / (checkpoint.efficiency or Tuning.LegacyEfficiency)
+	local amount = if away >= Tuning.MinSeconds then math.floor(counted * rate + 1e-7) else 0
 	amount = math.max(0, math.min(amount, math.floor(Currency.MaxCoins - coins)))
 	return {amount = amount, awaySeconds = away, countedSeconds = counted,
-		rate = checkpoint.rate, efficiency = Tuning.Efficiency, maxSeconds = maximum,
+		rate = rate, efficiency = Tuning.Efficiency, maxSeconds = maximum,
 		capped = away > maximum}
 end
 

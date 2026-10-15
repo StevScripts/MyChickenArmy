@@ -21,6 +21,13 @@ end
 
 -- The world meter displays server-owned control values.
 local function capturePresentation(battle)
+	-- October 15: progress left at a camp drains while its guards regroup.
+	if battle.abandoned then
+		local down=battle.defendersDown or 0
+		return {completed=false,paused=false,value=math.clamp(battle.captureProgress or 0,0,1),stage="Conquest",
+			title="Progress fading",color=Theme.Conquest.Progress,
+			detail=(battle.name or "Camp")..(if down>0 then " · "..down.." defenders regrouping" else ""),active=true}
+	end
 	local completed=battle.captureProgress==1 and (battle.phase=="Holding" or (battle.phase=="Returning" and battle.outcome=="A"))
 	local reclaiming=battle.enemyReclaiming==true
 	if battle.conquest then
@@ -279,7 +286,10 @@ function BattleController:Receive(snapshots)
 	-- A recovering empty territory has a meter, but no troop combat effects.
 	local reclaims,battles={},{}
 	for _,snapshot in snapshots do
-		if snapshot.territoryReclaim then table.insert(reclaims,snapshot) else table.insert(battles,snapshot) end
+		if snapshot.territoryReclaim then
+			-- Left progress is shown only to the commander who left it.
+			if not snapshot.abandoned or snapshot.attacker==Players.LocalPlayer.UserId then table.insert(reclaims,snapshot) end
+		else table.insert(battles,snapshot) end
 	end
 	snapshots=battles
 	self.snapshots = snapshots

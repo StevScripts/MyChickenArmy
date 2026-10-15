@@ -235,7 +235,13 @@ function Service:StartMission(session,siteId,now)
 	local definition=Catalog.Encounters[id]
 	if Service.Tier(session)<definition.tier then return false,Service.LockedMessage(definition.tier) end
 	if session.research.pendingOperationReward>0 then return false,"Spend some cash to receive your saved mission reward first." end
-	if session.outgoing or session.incoming or session:IsArmyLocked() or session.armyState~="Home" then return false,"Bring your army home before starting a mission." end
+	-- October 15: an army already out (a camp fight, another Mission, marching home)
+	-- goes straight here; its old fight's progress stays behind (BattleService).
+	local previous=self.battles.battles[session.outgoing]
+	local moving=self.battles:CanRedirect(session,previous)
+	if not moving and (session.outgoing or session.incoming or session:IsArmyLocked() or session.armyState~="Home") then
+		return false,"Your army is recovering or defending. Wait until it is ready."
+	end
 	local roster=session:Lineup()
 	if #roster==0 then return false,"Select an army first." end
 	local root=self.world.root
@@ -244,32 +250,60 @@ function Service:StartMission(session,siteId,now)
 	for _,other in self.sessions do other:Touch() end
 	local landing,frame=site.landing,site.frame
 	local home=self.world:Position(session.plotIndex)
-	local battle=Battle.new(HttpService:GenerateGUID(false),session.userId,"operation:"..id,home,landing,now)
+	local turning=moving and previous.phase=="Returning"
+	local origin=if moving then previous.destination else home
+	local battle=Battle.new(HttpService:GenerateGUID(false),session.userId,"operation:"..id,origin,landing,now)
 	battle.operationId,battle.name,battle.plotIndex=id,definition.name,session.plotIndex
 	battle.missionSite,battle.missionRare=siteId,site.rare
 	battle.finiteRoster,battle.frame=true,frame
 	battle.invasionExpiresAt=now+Service.TimeLimit
 	battle.operationReadyAt=now+.5
-	battle:AddArmy("A",roster,home)
 	battle.marchDestination=(frame*CFrame.new(0,0,Config.CampHalfSize-2)).Position
-	for i,u in battle.units do
-		local slot=roster[i].slot
-		local returnAt=if self.world.ReturnPosition then self.world:ReturnPosition(session,u.petId,slot) else home
-		local start=(if self.world.PetPosition then self.world:PetPosition(session.plotIndex,u.petId) else nil) or returnAt
-		u.x,u.z,u.startX,u.startZ=start.X,start.Z,start.X,start.Z
-		u.homeX,u.homeZ=returnAt.X,returnAt.Z
-	end
 	local actorsFolder=root:FindFirstChild("Battles")
 	if not actorsFolder then actorsFolder=Instance.new("Folder");actorsFolder.Name="Battles";actorsFolder.Parent=root end
 	battle.actors=LiveActors.new(actorsFolder,battle)
+	if moving then
+		if previous.operationId and not previous.paid then
+			self:Resolve(previous,"Abandoned",now)
+			session.lastResult=previous.name.." left behind · no completion reward."
+		else self.battles:LeaveProgress(previous,now) end
+		-- The same birds and rigs walk over; Missions never respawn the fallen, so
+		-- a knocked-out bird gets up and comes along.
+		battle.serial=previous.serial
+		local departure=if turning then nil else previous:DepartureSite()
+		for _,old in previous.units do if old.side=="A" then
+			local u=table.clone(old);u.pendingAttack=nil;u.targetId=nil;u.firstAttack=true
+			local revived=u.hp<=0
+			if revived then u.hp,u.respawnAt,u.reinforcing=u.maxHp,nil,false end
+			local x,z=FlockLayout.Entry(u.slot or 1,session:Capacity(),"A")
+			local at=(frame*CFrame.new(x,0,z)).Position
+			u.entryX,u.entryZ=at.X,at.Z;u.startX,u.startZ=u.x,u.z
+			table.insert(battle.units,u)
+			local actor=previous.actors and previous.actors:TakePet(u.petId,"A")
+			if actor then
+				battle.actors:Adopt(u,actor)
+				if revived then battle.actors:Respawn(u,u.x,u.z) end
+			end
+			March.Approach(u,battle.destination,now,departure)
+		end end
+		self.battles:RewardKills(previous,now)
+		self.battles:Remove(previous,battle)
+	else
+		battle:AddArmy("A",roster,home)
+		for i,u in battle.units do
+			local slot=roster[i].slot
+			local returnAt=if self.world.ReturnPosition then self.world:ReturnPosition(session,u.petId,slot) else home
+			local start=(if self.world.PetPosition then self.world:PetPosition(session.plotIndex,u.petId) else nil) or returnAt
+			u.x,u.z,u.startX,u.startZ=start.X,start.Z,start.X,start.Z
+			u.homeX,u.homeZ=returnAt.X,returnAt.Z
+			local actor=self.world.TakeActor and self.world:TakeActor(session.plotIndex,u.petId)
+			if actor then battle.actors:Adopt(u,actor) end
+			March.Approach(u,battle.destination,now)
+		end
+	end
 	session.outgoing,session.armyState,session.awayPets=battle.id,"Traveling",{}
 	session.stationedAt,session.returnAt=nil,0
-	for _,unit in battle.units do
-		session.awayPets[unit.petId]=true
-		local actor=self.world.TakeActor and self.world:TakeActor(session.plotIndex,unit.petId)
-		if actor then battle.actors:Adopt(unit,actor) end
-		March.Approach(unit,battle.destination,now)
-	end
+	for _,unit in battle.units do if unit.side=="A" and unit.petId then session.awayPets[unit.petId]=true end end
 	battle:ApplyResearch("A",session.researchEffects,os.time()<(session.rallyActiveUntil or 0))
 	battle.zone=site.model
 	battle:AddArmy("B",Catalog.Roster(id),landing)

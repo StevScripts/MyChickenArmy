@@ -1,5 +1,13 @@
 # Offline cash
 
+**October 14 fix (owner: "offline cash doesn't even work"):** the receipt and payout
+worked, but 2% efficiency paid so little that players thought it was broken (three
+starter chickens away 3h earned $2.6K). Efficiency is now 20% (eight hours pays 96
+minutes of egg income). Checkpoints now save their `efficiency`; older ones without
+it were frozen at 2% (`LegacyEfficiency`) and are scaled up when paid, so the first
+return after the update already pays the new rate. Built by `OfflineCash.Checkpoint`
+(DataService save/release and Rebirth). Mentions of 2% below are historical.
+
 **September 29 direction:** egg deposits now pay immediately with the existing Money
 effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
 balances, seller levels and paid finish credits remain compatible. This supersedes

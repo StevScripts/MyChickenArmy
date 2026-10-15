@@ -276,16 +276,15 @@ function Hud:Layout()
 	self:UpdateArmyCommands(true)
 end
 
--- Touch: lift the corner readouts above the thumbstick and jump button (the
--- cash readout moves beside the left shortcut column; the Camps held/Flock lines
--- sit above the jump button; the Rebirth icon sits just below them) and
--- enlarge Settings to a thumb-sized target that ends above the research goal chip
--- (top 0.12). Keyboard/gamepad keep the authored bottom corners.
+-- Touch: the cash readout keeps its bottom-left corner like PC (owner request,
+-- October 14); the Camps held/Flock lines lift above the jump button, the Rebirth
+-- icon sits just below them, and
+-- enlarge Settings to a thumb-sized target
+-- (top 0.12 at most). Keyboard/gamepad keep the authored bottom corners.
 -- settingsBottom: lowest screen Y scale the Settings button can reach (for neighbours).
 function Hud:ApplyInputLayout()
 	local touch=touchPrimary()
-	self.cashReadout.AnchorPoint=Vector2.new(0,1)
-	self.cashReadout.Position=if touch then UDim2.fromScale(0.105,0.7) else UDim2.fromScale(0.012,0.98)
+	self.cashReadout.AnchorPoint,self.cashReadout.Position=Vector2.new(0,1),UDim2.fromScale(0.012,0.98)
 	self:PlaceRebirth()
 	self.settings.Size=if touch then UDim2.fromScale(0.065,0.105) else UDim2.fromScale(0.04,0.072)
 	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
