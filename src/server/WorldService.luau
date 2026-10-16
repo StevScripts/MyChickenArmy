@@ -588,6 +588,11 @@ function WorldService:UpdateSession(session)
 	self.revisions[session.userId] = session.revision
 end
 
+function WorldService:SyncPlotBuild(session,now)
+	local plot=self.plots[session.plotIndex]
+	if plot and plot.ownerId==session.userId then plot.upgrades:SetBuild(session.plotBuild,now) end
+end
+
 function WorldService:Step(now)
 	if self.kingArena then self.kingArena:Step(now) end
 	for _,plot in self.plots do for _,station in plot.stations do station:Step(now) end end
@@ -721,6 +726,7 @@ function WorldService:Release(session)
 		plot.researchWalk=0
 		plot.roaming, plot.homeOrdinals, plot.ownerId = {}, {}, nil
 		plot.upgrades:SetLevel(0)
+		plot.upgrades:SetBuild(nil,0)
 		for _,station in plot.stations do station:Clear() end
 		if plot.mergeStand then plot.mergeStand:Clear() end
 		if plot.trophy then plot.trophy:Destroy(); plot.trophy = nil end

@@ -41,6 +41,7 @@ function PlayerSession:Reset()
 	self.autoRoll=self.autoRoll or {enabled=false,stopAt="Upgrade"}
 	self.coins, self.capacity, self.luck = Config.StartingCoins, Config.StartingSlots, 0
 	self.eggSpeedLevel, self.plotSizeLevel, self.rollSlotsUnlocked = 0, 0, 1
+	self.plotBuild = nil
 	self.eggCarry={count=0,value=0}
 	self.offlineCash = {at=0,rate=0}
 	self.offlineCashReceipt = nil
@@ -132,6 +133,17 @@ end
 
 function PlayerSession:CollectionLimit(): number
  return UpgradeCatalog.PlotCapacity(self.plotSizeLevel)
+end
+
+-- October 16 timed yard builds: the paid level applies once its build time ends.
+function PlayerSession:CompletePlotBuild(now: number): boolean
+ local build=self.plotBuild
+ if not build or now<build.endsAt then return false end
+ self.plotBuild=nil
+ self.plotSizeLevel=math.max(self.plotSizeLevel,build.level)
+ self.banner="Yard expansion finished! Flock capacity: "..self:CollectionLimit().."."
+ self:Touch()
+ return true
 end
 
 function PlayerSession:EggProductionMultiplier(): number
@@ -580,6 +592,7 @@ function PlayerSession:ToData()
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
+		plotBuild=if self.plotBuild then table.clone(self.plotBuild) else nil,
 		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
@@ -741,6 +754,14 @@ function PlayerSession:LoadData(data)
 		return false,"Invalid saved board upgrades."
 	end
 	if oldPlotProgress then plotSizeLevel += 3 end
+	-- Additive, lenient (October 16): an unreadable yard build is ignored, never rejected.
+	local plotBuild=nil
+	local savedBuild=data.plotBuild
+	if type(savedBuild)=="table" and savedBuild.level==plotSizeLevel+1 and plotSizeLevel<#UpgradeCatalog.PlotPrices
+		and numberIn(savedBuild.endsAt,0,1e10,false) then
+		plotBuild={level=savedBuild.level,endsAt=savedBuild.endsAt,
+			startedAt=if numberIn(savedBuild.startedAt,0,savedBuild.endsAt,false) then savedBuild.startedAt else savedBuild.endsAt}
+	end
 	local legacy=revision==1
 	-- New carried eggs are distinct from the already-converted revision-1 egg bag.
 	local carry=data.eggCarry or {count=0,value=0}
@@ -922,12 +943,14 @@ function PlayerSession:LoadData(data)
 	self.guaranteedLuckRolls=guaranteedLuckRolls%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
 	self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,grant
 	self.eggSpeedLevel,self.plotSizeLevel,self.rollSlotsUnlocked=eggSpeedLevel,plotSizeLevel,rollSlotsUnlocked
+	self.plotBuild=plotBuild
 	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills;self.robuxSpent=robuxSpent
 	self.eggProcessor=processor
 	self.offlineCash,self.offlineCashReceipt=offlineCash,nil
 	self.research=research;self.researchEffects=ResearchRules.Effects(research)
 	self.researchRecap={};self.rallyActiveUntil=0
 	ResearchService.Complete(self,os.time())
+	self:CompletePlotBuild(os.time())
 	-- Preserve saved ranks and validation; always use the best earned odds now.
 	self.promotion,self.recruitTier=promotion,promotion
  self.frontierWins,self.kingCleared=frontier,king

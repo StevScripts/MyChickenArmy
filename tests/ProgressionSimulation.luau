@@ -352,11 +352,12 @@ local function economyCandidates(state,failed,now)
 	end
 	local plot=s.plotSizeLevel
 	local plotPrice=UpgradeCatalog.PlotPrices[plot+1]
-	if plotPrice and s:Count()>=s:CollectionLimit()-1 then
+	if plotPrice and not s.plotBuild and s:Count()>=s:CollectionLimit()-1 then
 		-- Room is only worth what future recruits lay: half the average chicken per new space.
+		-- October 16: a full flock buys the yard when affordable; the timed build itself is the wait.
 		local extra=UpgradeCatalog.PlotCapacity(plot+1)-s:CollectionLimit()
 		add("PlotSize",plotPrice,extra*full/math.max(1,s:Count())*0.5,0,
-			function() return upgrades:Buy(nil,s,"PlotSize",plot,plotPrice) end)
+			function() return upgrades:Buy(nil,s,"PlotSize",plot,plotPrice,now) end)
 	end
 	if researchSlotFree(s) then
 		for id,node in ResearchCatalog.Nodes do
@@ -616,6 +617,13 @@ local function runOnce(seed,options)
 		now+=dt
 		if now>=nextDeposit then deposit(state);nextDeposit+=options.depositSeconds end
 		Research.Complete(s,math.floor(now))
+		s:CompletePlotBuild(math.floor(now))
+		for _,limit in {40,50,75,100} do
+			if s:CollectionLimit()>=limit and not state.milestones["Flock"..limit] then mark(state,"Flock"..limit,now) end
+		end
+		for _,minutes in {10,30,60} do
+			if now>=minutes*60 and not state.milestones["Min"..minutes] then mark(state,"Min"..minutes,now) end
+		end
 		if state.deploy and now>=state.deploy.returnAt then resolve(state,now) end
 		tryRebirth(state,now)
 		local ctx=context(state)
@@ -632,6 +640,13 @@ local function runOnce(seed,options)
 end
 
 local ROWS={
+	{"Min10","At 10 min",nil},
+	{"Min30","At 30 min",nil},
+	{"Min60","At 60 min",nil},
+	{"Flock40","Flock 40",nil},
+	{"Flock50","Flock 50",nil},
+	{"Flock75","Flock 75",nil},
+	{"Flock100","Flock 100",nil},
 	{"FirstCamp","First camp",nil},
 	{"AllCamps","All 3 camps",nil},
 	{"King","First King clear","45-90 min"},

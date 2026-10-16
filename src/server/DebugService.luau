@@ -185,7 +185,7 @@ DebugService.Launch.TestEverything=function(self,player,session,_argument,now)
 	for i=1,#Progression.Outposts() do session.frontierWins[i]=true end
 	readyForRebirth(session)
 	session.capacity=Config.MaxSlots
-	session.plotSizeLevel=#UpgradeCatalog.PlotPrices
+	session.plotSizeLevel=#UpgradeCatalog.PlotPrices;session.plotBuild=nil
 	session.rollSlotsUnlocked=Config.RollSlotsUnlocked
 	-- Every research node done, so every menu and Invasion tier is open.
 	for _,id in Research.Order do session.research.completed[id]=true end

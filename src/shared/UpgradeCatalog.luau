@@ -13,6 +13,9 @@ local UpgradeCatalog = {
 	PlotPrices = {480, 1200, 2400, 2880, 63000, 725760, 3628800},
 	-- The two final expansions open enough space for 75, then 100 chickens.
 	PlotCapacities = {25, 30, 35, 40, 45, 50, 75, 100},
+	-- October 16 (Option A): from Flock 40 up, builders take real time and the
+	-- capacity applies when they finish. See docs/team/TIMED_PLOT_BUILDS.md.
+	PlotBuildSeconds = {0, 0, 120, 300, 600, 1500, 3600},
 	-- September 29: ~8.5 active hours in the reference F2P pacing model.
 	-- Fixed prices; no time/rank gate. See docs/team/EIGHT_ROLL_PODIUMS.md.
 	RollSlotPrices = {

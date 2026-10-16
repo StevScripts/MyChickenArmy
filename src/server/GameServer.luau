@@ -531,7 +531,11 @@ function GameServer:Step(dt)
 	if wallTime~=(self.researchCheckedAt or 0) then
 		self.researchCheckedAt=wallTime
 		for _,session in self.sessions do
-			if session.loaded and not session.closing and not session.saveLost then ResearchService.Complete(session,wallTime) end
+			if session.loaded and not session.closing and not session.saveLost then
+				ResearchService.Complete(session,wallTime)
+				if session:CompletePlotBuild(wallTime) then self.world:UpdateSession(session) end
+				self.world:SyncPlotBuild(session,wallTime)
+			end
 		end
 	end
 	if now>=(self.nextDailyCheckAt or 0) then

@@ -4,6 +4,7 @@
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Definitions = require(Shared.UpgradeCatalog)
 local Layout = require(Shared.HomePlotLayout)
+local UIColors = require(Shared.UIColors)
 local PlotUpgradeService = {}
 PlotUpgradeService.__index = PlotUpgradeService
 
@@ -75,6 +76,7 @@ function PlotUpgradeService.new(folder, index, frame)
 	local self = setmetatable({folder = folder, index = index, frame = frame, parts = {}, attachments = {}, corners = {}, available = false}, PlotUpgradeService)
 	if not yard or not anchor or not anchor:IsA("BasePart") then return self end
 	self.available = true
+	self.anchor = anchor
 	self.center = anchor.CFrame
 	self.floorSize = anchor.Size
 	self.floorY = frame:PointToObjectSpace((anchor.CFrame * CFrame.new(0, if floor then anchor.Size.Y / 2 else 0, 0)).Position).Y
@@ -181,7 +183,45 @@ function PlotUpgradeService:SetLevel(level)
 	self.folder:SetAttribute("YardScale", scale)
 end
 
+-- October 16 timed builds: a countdown sign over the yard while builders work.
+local function buildSign(anchor)
+	local gui = Instance.new("BillboardGui")
+	gui.Name, gui.Size, gui.StudsOffsetWorldSpace, gui.MaxDistance = "YardBuildSign", UDim2.fromScale(16, 4.5), Vector3.new(0, 11, 0), 140
+	gui.AlwaysOnTop, gui.LightInfluence = false, 0
+	local function line(name, top, height, color, maxSize)
+		local label = Instance.new("TextLabel")
+		label.Name, label.BackgroundTransparency = name, 1
+		label.Position, label.Size = UDim2.fromScale(0, top), UDim2.fromScale(1, height)
+		label.Font, label.TextColor3, label.TextScaled = Enum.Font.SourceSansBold, color, true
+		local stroke = Instance.new("UIStroke")
+		stroke.Color, stroke.Thickness, stroke.Parent = UIColors.Border, 2, label
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MinTextSize, limit.MaxTextSize, limit.Parent = 1, maxSize, label
+		label.Parent = gui
+		return label
+	end
+	line("Title", 0, 0.55, UIColors.Text, 64).Text = "Builders at work"
+	line("Time", 0.58, 0.42, UIColors.Rewards, 48)
+	gui.Parent = anchor
+	return gui
+end
+
+function PlotUpgradeService:SetBuild(build, now: number)
+	if not build or not self.available then
+		if self.sign then self.sign:Destroy(); self.sign = nil end
+		return
+	end
+	self.sign = self.sign or buildSign(self.anchor)
+	local seconds = math.max(0, math.ceil(build.endsAt - now))
+	local text = "Flock " .. Definitions.PlotCapacity(build.level) .. " in "
+		.. (if seconds >= 3600 then string.format("%d:%02d:%02d", seconds // 3600, seconds % 3600 // 60, seconds % 60)
+			else string.format("%d:%02d", seconds // 60, seconds % 60))
+	local label = self.sign:FindFirstChild("Time") :: TextLabel
+	if label.Text ~= text then label.Text = text end
+end
+
 function PlotUpgradeService:Destroy()
+	if self.sign then self.sign:Destroy(); self.sign = nil end
 	Layout.SetYard(self.index, nil)
 	table.clear(self.parts)
 	table.clear(self.attachments)

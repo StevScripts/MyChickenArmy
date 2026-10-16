@@ -115,6 +115,7 @@ local function shortTime(seconds)
 end
 local function cashStatus(offer,coins)
 	if not offer or not offer.ready then return "Loading" end
+	if offer.building then return "Building" end
 	if not offer.price then return "Unavailable" end
 	if not offer.unlocked then return "Unavailable" end
 	return if offer.canSpend==false or coins<offer.price then "Unaffordable" else "Available"
@@ -739,7 +740,14 @@ function Browser:RenderCash(reveals)
 		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
 		view.icon.ImageTransparency,view.title.TextTransparency=if unavailable then .65 else 0,if unavailable then .35 else 0
 		view.title.TextOutline.Transparency=if unavailable then .35 else 0
-		view.bar.Visible=false
+		-- October 16 timed yard builds: the hex carries the build timer instead of a price.
+		local building=nextTier and state=="Building" and offer.building or nil
+		view.bar.Visible=building~=nil
+		if building then
+			view.bar.Position=UDim2.fromScale(.15,.80)
+			view.timer.Text=timeText(building.finishAt-self:Now())
+			self:UpdateProgress(view,view.progress,{id="PlotBuild"..building.level,startedAt=building.startedAt,finishAt=building.finishAt})
+		elseif view.progressJob then self:StopProgress(view) end
 		view.level.Visible,view.change.Visible=false,nextTier
 		-- Next tier: smaller icon so the before/after reads first.
 		view.icon.Position=UDim2.fromScale(.21,if nextTier then .155 else .14)
@@ -761,13 +769,13 @@ function Browser:RenderCash(reveals)
 			view.badgeText.TextColor3=WHITE
 		end
 		badgeFade(view,if unavailable then .5 else 0)
-		view.change.Text=if not offer or not offer.ready then "Loading…" elseif offer.nextText and not unavailable then offer.currentText.." → "..offer.nextText else offer.currentText
+		view.change.Text=if not offer or not offer.ready then "Loading…" elseif building then "Building → "..(offer.nextText or "") elseif offer.nextText and not unavailable then offer.currentText.." → "..offer.nextText else offer.currentText
 		if luck and nextTier and offer and offer.ready and offer.nextEpicPlusChance then
 			view.change.Text=if useTopLuckOdds(offer)
 				then string.format("Top %.1f%% → %.1f%%",offer.topBandChance*100,offer.nextTopBandChance*100)
 				else string.format("Epic+ %.1f%% → %.1f%%",offer.epicPlusChance*100,offer.nextEpicPlusChance*100)
 		end
-		view.cost.Visible=nextTier
+		view.cost.Visible=nextTier and not building
 		view.cashIcon.Visible=nextTier and state~="Loading" and not unavailable and not waiting
 		view.price.Position=UDim2.fromScale(if view.cashIcon.Visible then .28 else 0,0)
 		view.price.Size=UDim2.fromScale(if view.cashIcon.Visible then .72 else 1,1)
@@ -793,6 +801,11 @@ function Browser:Step()
 			for _,view in self.nodes do self:ResetNodeMotion(view) end
 			self:StopProgress(self.tipMotion)
 		end
+	end
+	local plot=self.cashOffers and self.cashOffers.PlotSize
+	if plot and plot.building then
+		local view=self.nodes[CashNodes.ByKey.PlotSize]
+		if view then view.timer.Text=timeText(plot.building.finishAt-self:Now()) end
 	end
 	for _,job in self.data.jobs do
 		local view=self.nodes[job.nodeId]
@@ -882,17 +895,20 @@ function Browser:RenderTooltip()
 			if eventOdds then effect..=" "..eventOdds.."." end
 		elseif owned then effect=baseBenefit.." Fully upgraded."
 		elseif not offer or not offer.ready then effect="Waiting for your flock to load."
+		elseif state=="Building" then
+			effect="Builders are expanding your yard: "..offer.currentText.." → "..(offer.nextText or "").." chickens in "..timeText(offer.building.finishAt-self:Now()).."."
 		elseif state=="Unavailable" then
 			effect=baseBenefit.." "..(if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.")
 		else
 			local change=if offer.nextText then offer.currentText.." → "..offer.nextText else offer.currentText
-			effect=change..". Instant upgrade. "..node.description
+			local build=offer.buildSeconds or 0
+			effect=change..". "..(if build>0 then "Builders take "..shortTime(build)..". " else "Instant upgrade. ")..node.description
 		end
 	end
 	if state=="Unaffordable" and offer and offer.spendReason and offer.spendReason~="" then effect..=" "..offer.spendReason end
 	local title,titleRows=wrap(if tier then tier.name else node.name,22)
 	local description,rows=wrap(effect,23)
-	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" else job~=nil or state~="Completed"
+	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" and state~="Building" else job~=nil or state~="Completed"
 	local primaryText,primaryStyle,pinText,pinStyle=self:TooltipActions(id,cashNode,offer,state,job,completed)
 	local actionRow=self.persistent and (primaryText~=nil or pinText~=nil)
 	-- One size on every device (October 15): thumb-friendly 44 px; the card has a pixel floor (TipWidth).
@@ -1040,7 +1056,7 @@ function Browser:PurchaseCash(id)
 	if CashNodes.Completed(key,offer)>=node.maxTier then return end
 	local state=cashStatus(offer,self.coins or 0)
 	if state~="Available" then
-		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash"
+		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Building" then offer.requirement elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash"
 		self:Feedback(text,RED,id);return
 	end
 	local requestId=self.app:Request("CashUpgrade",{upgradeKey=key,expectedLevel=offer.level,expectedPrice=offer.price})

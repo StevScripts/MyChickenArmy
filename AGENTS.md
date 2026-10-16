@@ -46,6 +46,8 @@ Preserve the current relative module paths, internal PetRoll/Duck IDs and save c
 
 October 15 "1 in X" rarity (owner decision): every rollable chicken shows its zero-Luck odds ("1 in 19,000") next to its rarity, and its price, income and power follow its own odds (`PetCatalog` RarityPrice/oneIn; Luck bands now live in `PetCatalog.LuckBands`, matched by `luckSignature`). Rarer chickens never earn less than their old tier value. A new **Secret** rarity covers 1 in 200,000 or rarer. The 11 original tier species keep their exact stats because enemies use them. See `docs/team/ONE_IN_X_RARITY.md`.
 
+October 16 timed yard builds (owner decision "Option A"): Flock Size 25→30→35 stays instant; from Flock 40 up each expansion is paid up front and finishes after `UpgradeCatalog.PlotBuildSeconds` (2, 5, 10, 25, 60 min), one at a time, counting offline. Plot prices are unchanged. Saved `plotBuild` is additive and lenient. This is a build time, not a camp/rank gate. See `docs/team/TIMED_PLOT_BUILDS.md`.
+
 ## Simple animations — use TweenService
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 

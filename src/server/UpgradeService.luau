@@ -33,7 +33,7 @@ function UpgradeService.new(_world, rolls)
 	return setmetatable({rolls = rolls}, UpgradeService)
 end
 
-function UpgradeService:Offers(session)
+function UpgradeService:Offers(session, now: number?)
 	local offers = {}
 	-- Cash upgrades never require camp visits, victories or an earned rank.
 	local function add(key, level, current, price, available)
@@ -50,6 +50,15 @@ function UpgradeService:Offers(session)
 		Definitions.EggSpeedPrices[session.eggSpeedLevel + 1])
 	add("PlotSize", session.plotSizeLevel, tostring(session:CollectionLimit()),
 		Definitions.PlotPrices[session.plotSizeLevel + 1], session.plotExpansionAvailable)
+	-- October 16 timed yard builds: one at a time; the hex shows its timer meanwhile.
+	offers.PlotSize.buildSeconds = Definitions.PlotBuildSeconds[session.plotSizeLevel + 1] or 0
+	local build = session.plotBuild
+	if build then
+		offers.PlotSize.unlocked = false
+		offers.PlotSize.requirement = "Your yard is being built. Ready in "
+			.. math.max(1, math.ceil((build.endsAt - (now or os.time())) / 60)) .. " min."
+		offers.PlotSize.building = {level = build.level, startedAt = build.startedAt, finishAt = build.endsAt}
+	end
 	local income = session:GlobalUpgrade("Income")
 	add("EggValue", session.incomeLevel,
 		"$" .. decimal(Rules.EggUnitValue(session.incomeLevel)),
@@ -92,9 +101,10 @@ function UpgradeService:Offers(session)
 	return offers
 end
 
-function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice)
+function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice, now: number?)
 	if type(key) ~= "string" or not table.find(Definitions.Order, key) then return false, "Choose a cash upgrade." end
-	local offer = self:Offers(session)[key]
+	local clock = now or os.time()
+	local offer = self:Offers(session, clock)[key]
 	if not offer.ready then return false, "Wait for your flock to load." end
 	if not offer.price then return false, "This upgrade is at its maximum." end
 	if not offer.unlocked then return false, offer.requirement end
@@ -112,8 +122,16 @@ function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice)
 		session.eggSpeedLevel += 1
 		message = "Your chickens now lay eggs faster!"
 	elseif key == "PlotSize" then
-		session.plotSizeLevel += 1
-		message = "Larger chicken yard! Flock capacity: " .. session:CollectionLimit() .. "."
+		local seconds = offer.buildSeconds or 0
+		if seconds > 0 then
+			-- Paid now; capacity applies when PlayerSession:CompletePlotBuild sees the end time.
+			session.plotBuild = {level = session.plotSizeLevel + 1, startedAt = clock, endsAt = clock + seconds}
+			message = "Builders started your yard expansion! Flock capacity "
+				.. Definitions.PlotCapacity(session.plotSizeLevel + 1) .. " in " .. math.ceil(seconds / 60) .. " min."
+		else
+			session.plotSizeLevel += 1
+			message = "Larger chicken yard! Flock capacity: " .. session:CollectionLimit() .. "."
+		end
 	else
 		session.rollSlotsUnlocked += 1
 		message = "Roll slot unlocked! Your next roll uses " .. session.rollSlotsUnlocked .. " podiums."
