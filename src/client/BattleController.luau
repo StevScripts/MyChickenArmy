@@ -85,6 +85,7 @@ function BattleController:UpdateCapture(battle)
 		gui.AlwaysOnTop,gui.MaxDistance,gui.LightInfluence,gui.Parent=true,Theme.Conquest.MaxDistance,0,Players.LocalPlayer.PlayerGui
 		local title=Theme.Display(gui,"Title","Conquering",27,Theme.Arcade.red)
 		title.Position,title.Size,title.TextXAlignment=UDim2.fromScale(0.08,0),UDim2.fromScale(0.84,0.35),Enum.TextXAlignment.Center
+		Theme.Motion:Center(title) -- stage pops grow from the middle; same place at rest
 		local detail=Theme.Display(gui,"Detail","",20)
 		detail.Position,detail.Size,detail.TextXAlignment=UDim2.fromScale(0.1,0.36),UDim2.fromScale(0.8,0.23),Enum.TextXAlignment.Center
 		local track,fill=Theme.SegmentedBar(gui,"Progress",UDim2.fromScale(1,0.27),Theme.Conquest.Segments)
@@ -97,6 +98,8 @@ function BattleController:UpdateCapture(battle)
 	if completed and not view.completedAt then view.completedAt=os.clock() end
 	local progress=presentation.value
 	local stageChanged=view.stage~=presentation.stage
+	-- Pop the title on a real stage change, not when the meter first appears.
+	if stageChanged and view.stage~=nil then Theme.Motion:PopScale(view.title,1.15) end
 	view.stage=presentation.stage
 	view.title.Text,view.title.TextColor3=presentation.title,presentation.color
 	view.detail.Text=presentation.detail
@@ -270,9 +273,19 @@ function BattleController:KillFeedback(battle)
   gui.Parent=anchor
   local text=Theme.Display(gui,"Amount","+$"..Theme.Money(drop.amount),25,C.gold)
   text.Size,text.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
+  Theme.Motion:Center(text)
+  Theme.Motion:PopScale(text,0.6)
   if not self.app.reducedMotion then
    TweenService:Create(anchor,TweenInfo.new(0.85,Enum.EasingStyle.Quad),{Position=position+Vector3.new(0,3,0)}):Play()
-   TweenService:Create(text,TweenInfo.new(0.3,Enum.EasingStyle.Linear,Enum.EasingDirection.Out,0,false,0.55),{TextTransparency=1,TextStrokeTransparency=1}):Play()
+   -- The root label is a transparent Display holder; its visible text is on these children.
+   local fade=TweenInfo.new(0.3,Enum.EasingStyle.Linear,Enum.EasingDirection.Out,0,false,0.55)
+   for _,name in {"TextFace","TextShadow"} do
+    local child=text:FindFirstChild(name)
+    if not child then continue end
+    TweenService:Create(child,fade,{TextTransparency=1}):Play()
+    local outline=child:FindFirstChild("TextOutline")
+    if outline then TweenService:Create(outline,fade,{Transparency=1}):Play() end
+   end
   end
   Debris:AddItem(anchor,0.9)
   task.delay(0.9,function() self.coinEffects=math.max(0,self.coinEffects-1) end)

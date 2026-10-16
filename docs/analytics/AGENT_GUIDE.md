@@ -2,8 +2,10 @@
 
 Written for AI agents first. If the user asks "how is the game doing", "where are
 we losing players", "is onboarding broken", or anything stats-shaped, start here.
-Built October 9, 2026 (schema version 1). Source of truth for every name:
-`src/server/AnalyticsSchema.luau`.
+Built October 9, 2026 (schema version 1); version 5 (October 16, 2026) adds feature
+funnels, client UI events, server events, real Robux, device/segment profiles and
+state snapshots (section 11; plan: `docs/analytics/TRACKING_PLAN.md`). Source of
+truth for every name: `src/server/AnalyticsSchema.luau`.
 
 ## 1. Fast path: answer a stats question
 
@@ -12,6 +14,10 @@ Built October 9, 2026 (schema version 1). Source of truth for every name:
    `get_connected_instances`, then `execute_luau` with the snippet in section 3.
 2. Pull `Report.Summary({days = 7, env = "live"})`. Read `flags` first, then
    `onboardingFunnel`, `onboardingExits`, `cohorts`, `guideDwell`, `rolls`, `health`.
+   Feature drop-offs: `featureFunnels`; menus/buttons/prompts: `ui`; money:
+   `robuxActual` and `devices`; who plays: `segments`; stalls: `stateSnapshots`,
+   `exits`; save/battle health: `serverEvents` (section 11).
+   "Who are our spenders": `Report.Players({env = "live", sortBy = "robux"})` (11.4).
 3. For concrete stories, pull `Report.Journeys({day = "YYYY-MM-DD", env = "live",
    onlyOnboarding = true})` and read the `trail` of players who quit early.
 4. Compare versions (`summary.versions`, or `Report.Summary({version = "..."})`)
@@ -68,6 +74,17 @@ Unknown (Unknown = the client report had not arrived, usually under 8 seconds in
 onboarding step sent to Roblox), `features[name]` (play-seconds at first use),
 `ret[dN]` (retention marks), `purchases`, `robux` (estimate from launch prices),
 `firstPurchase`, `lastSeen`. Concurrent writes merge with `Analytics.MergeProfile`.
+Version 5 adds (all optional; older profiles lack them): `dev` {platform, tier, vx,
+vy, inset, quality, mem, touch, kb, pad, accel, gyro, reducedMotion, locale,
+sysLocale, input, os}, `devices[platform]`, `geo`, `age`, `premium`, `followed`,
+`friendsInServer`, `joinSource`, `active`, `idle`, `life` (lifetime counters,
+`AnalyticsPlayer.LifeKeys`), `snap` (state snapshot at last exit), `lastExit` {menu,
+guide, action, idleBefore, seconds, day, coins, stage, at}, `log` (last 10 sessions
+{day, hourUTC, s, platform, earned, robux, stage}), `robuxActual`, `robuxEstimate`
+(AnalyticsPlayer's launch-price estimate; the v1 `robux` counts the same purchases),
+`robuxByKey`, `lastPurchase`, `firstPurchaseDevice`; from AnalyticsFunnels
+`fun[F][NN]` (play seconds at first reach), `funN` {buys, fuses, upgrades, levels,
+missions, pur} (milestone counters) and `funRbx` {d, s} (Roblox funnel sessions sent).
 
 ## 3. Pulling from Studio (copy exactly)
 
@@ -128,6 +145,7 @@ in the funnel, cohorts or retention.
 | 17 | Camp2 | Fort Roost first win |
 | 18 | Camp3 | Ironbeak HQ first win |
 | 19 | King | Chicken King first clear |
+| 20 | Rebirth1 | First re-enlist (Veteran I), since schema version 2 |
 
 Rules that matter when reading it:
 
@@ -228,10 +246,19 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
 - Progression path `MainRoute`: levels 1-4 (Cluck Camp, Fort Roost, Ironbeak HQ,
   Chicken King); Start on attack before first win, Complete on first win, Fail on loss.
 - Economy currency `Cash` (sources batched every 2 min per player; sinks live).
-- Custom events (30 of 100): TutorialService FTUE* and Conquest* events, plus
+- Version 5 funnels (9 of 10 dashboards with onboarding), sent from feature funnel
+  steps through `Schema.RobloxSteps`, one Roblox funnel session per player per funnel
+  per UTC day: `Research` (TreeOpened → Started → Completed), `Fuse` (Available →
+  Opened → Fused), `Rebirth` (Eligible → Opened → Rebirthed), `Mission` (Spawned →
+  Started → Won), `Daily` (Available → Opened → Claimed).
+- Custom events (35 of 100): TutorialService FTUE* and Conquest* events, plus
   `SessionEnded` (seconds; platform, stage, new/returning), `OnboardingExit`,
   `FeatureFirstUse`, `RobuxPurchase` (estimate; kind, key, stage), `ScriptError`
   (client), `ClientPerf` (fps; platform, fps bucket, version), `RollSummary`.
+  Version 5: `PlayerSegment` (session minutes; device tier, payer state, platform),
+  `RobuxSpend` (actual Robux; kind, key, device tier), `MenuDwell` (seconds; menu,
+  platform, stage), `FunnelDrop` (furthest step index; funnel, step id, platform;
+  sampled), `DeviceProfile` (memory MB; platform, tier, screen class).
 
 ## 8. Reading the data well
 
@@ -241,12 +268,21 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
   conversion; a young cohort is still converting, so compare cohorts of equal age.
 - Retention: `ret.dN` / `cohort.size`. A cohort's D7 is only final 8+ days after it.
 - Release effects: split by `version`; the version string is `Config.Version`.
-- Robux: `robux.estimate` uses launch prices; real revenue is on the dashboard.
+- Robux: `robux.estimate` uses launch prices; since version 5 `robux.actual` records
+  what was actually spent (before Roblox fees). Payouts are on the dashboard.
 - Starting heuristics (not Roblox guarantees): early adjacent step conversion below
   80% (steps 02-09) is worth a look; one guide step holding 30%+ of onboarding
   exits is the first suspect; D1 under 15% on a cohort of 50+ is weak; median FPS
   at or under 30 on a platform needs a perf pass; more than one script error per
   session is a bug hunt. `Report.Flags` implements these and names the numbers.
+  Version 5 flags: feature-funnel adjacent conversion under 50% with 30+ players at
+  the previous step (medium for steps 2-3, low later: late steps are milestones such
+  as Buys50 and are expected to be low); purchase-prompt cancel rate over 70% with
+  20+ results; median FPS at or under 30 on a device tier (`perf.fps.tier.<T>`, when
+  recorded) or platform; any `sev.data.saveFail`; 50+ dropped/rate-limited UI events
+  that are 10%+ of UI events; a menu opened 50+ times (and at least once per two
+  sessions) with median dwell in the first bucket (<= 5 s; the seconds buckets cannot
+  resolve 3 s), which hints at accidental or confusing opens.
 - Example narrow pull when the MCP truncates:
   `local s = Report.Summary({days = 7}); return HttpService:JSONEncode({f = s.flags, funnel = s.onboardingFunnel, exits = s.onboardingExits})`
 
@@ -276,3 +312,155 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
   `Report.Journeys` read them back. Roblox AnalyticsService calls were not exercised
   (Studio cannot send them); the Open Cloud puller's request path is untested
   without a key.
+- 2026-10-16 (version 5, coordinator): tests/AnalyticsChecks 13/13 in Studio (fresh loader). Studio
+  playtest (session-only save, fresh profile): both parts loaded; first ClientReport carried every
+  device field (tier High, quality, locale, input); ClientEvents batch reached the server (menu
+  open/close + dwell, tab, setting, prompt cancel, click, hint, leaderboard view, load phases;
+  a bogus name was dropped client-side); feature funnel steps Upgrades/Research/Shop/Army/
+  Settings/Leaderboard recorded; rejected Roll/OpenMerge correctly not counted. Stop -> Leave
+  -> BindToClose flush to the _Studio stores; Report.Summary({env = "studio"}) and
+  Report.Players({env = "studio"}) read back funnels, ui, exits, segments, snap and lastExit.
+  Not exercised: a real Robux receipt or pass purchase (CurrencySpent path), Roblox
+  AnalyticsService sends (live servers only), state-derived steps needing progress (the
+  test profile was fresh), Open Cloud --players.
+
+## 11. Version 5 (October 16, 2026)
+
+Plan and owners: `docs/analytics/TRACKING_PLAN.md`. Names below are ledger names; all
+are append-only and live in `AnalyticsSchema.luau` (`FeatureFunnels`, `ClientEvents`,
+`ServerEvents`, `DeviceTiers`, `StateSnapshot`, `Menus`, new bucket kinds `robux`,
+`hour`, `accountDays`, `percent`).
+
+### 11.1 New names
+
+Feature funnels (`Schema.FeatureFunnels`, 22 funnels: Roll, RollSlots, AutoRoll,
+Upgrades, Research, Fuse, ChickenLevel, Army, Route, Sell, Index, Shop, Crate, Pass,
+Rebirth, Mission, Daily, Offline, Plot, Hill, Settings, Leaderboard; NN = two-digit
+step index inside the funnel)
+- `fun.<F>.s.<NN>`: sessions that reached step NN (once per session)
+- `fun.<F>.p.<NN>`: players reaching it for the first time ever (profile `fun[F][NN]`)
+- `fun.<F>.t.<NN>` (seconds hist): play seconds from the player's first step of that funnel to this step
+- `fun.<F>.last.<NN>`: at session end, the furthest step of each funnel touched that session
+- `x[firstDay]["fun.<F>.<NN>"]`: cohort view (tracked players)
+- Pipeline health: `fun.unknown`, `analytics.funnelError`, `analytics.partError`,
+  `analytics.playerError`, `sev.unknown` (any nonzero raises a low `analytics` flag)
+- Steps may fire out of order (a Daily claim before the menu-open event arrives), so
+  a later step can exceed an earlier one; conversion is adjacent, player-based.
+
+Client UI events (`Schema.ClientEvents`, batched by `AnalyticsClient`, validated server side)
+- `ui.menu.open.<Menu>`, `ui.menu.dwell.<Menu>` (seconds hist), `ui.menu.blocked.<Menu>` (Menu from `Schema.Menus`, unknown = `Other`)
+- `ui.click` (counter) + top `ui.click` ("<Menu>/<Button>"), top `ui.tab`, top `ui.inspect`
+- `ui.prompt.shown` + top `ui.prompt.shown`, `ui.prompt.bought` / `ui.prompt.cancel` + top `ui.prompt.result` ("<key>:<result>")
+- `ui.idle.n` + `ui.idle.seconds` hist (idle = no input for `Schema.IdleSeconds`)
+- top `ui.setting`, top `ui.hint.shown` / `ui.hint.closed`, `ui.load.<phase>` (seconds hist)
+- top `ui.leaderboard.view`, `ui.camera.zoom`, `ui.chat.sent` (count only, never content), `ui.emote`
+- `ui.events.dropped`, `ui.events.rateLimited` (validation drops and the per-minute cap)
+- Note: the older `ui.<signal>` counters (Help, Resume, TreeOpen ...) share the prefix.
+
+Server events (`Schema.ServerEvents`, `Analytics:ServerEvent`)
+- `sev.<name>`, `sev.<name>.<detail>`, value hist `sev.<name>.v`. Names contain dots
+  (`data.saveFail`, `battle.end`, `mission.result`), details may too (`won.2`).
+  Emitted as of October 16: `sev.offline.shown` / `sev.offline.claimed.auto` (both
+  at load), `sev.plot.buildStart|buildDone.<level>`, `sev.research.complete.<node>`,
+  `sev.eggs.deposit` (+ value hist), `sev.battle.end.<kind:result>` (Hill fights only,
+  + duration hist), `sev.data.saveFail.<capture|lockLost|store_<code>|store>`,
+  `sev.data.saveOk`, `sev.remote.throttled.<Action>`, `sev.hill.enter|hold|win|lost`,
+  `sev.autoroll.stop.<reason>`, `sev.giant.result.<kind>`, `sev.unknown`.
+  In the schema but never emitted (no source yet): `plot.buildSkip`, `merchant.open`;
+  `egg.pickup`, `daily.shown` and `mission.result` only appear once a caller sends them.
+
+Robux (real amounts)
+- `robux.actual` (sum of Robux actually spent: receipt `CurrencySpent`, pass price at purchase), `robux.actual.n`
+- `robux.actual.<kind>.<key>`, `robux.actual|<Platform>`, `robux.actual.tier.<Tier>`, `robux.actual.premium.<yes|no>`
+- `robux.payer.tier.<Tier>`, `robux.payer|<Platform>`, top `robux.payer.geo`: counted once per player, at the first purchase
+- `robux.purchase` (robux hist of purchase sizes)
+- `robux.estimate` and the other version 1 Robux names stay for continuity.
+
+Segments and devices
+- `seg.session.tier.<Tier>` (counted at session end, so its total matches `session.count`;
+  `Unknown` = no client report), `seg.session.premium.<yes|no>`, top `seg.geo` (region
+  code), `seg.age.<bucket>`, `seg.join.<source>`, hists `seg.serverSize` and
+  `seg.friendsInServer` (count)
+- `seg.payer.session.<payer|non>`; hist `session.hourUTC` (hour buckets), `session.weekday.<0-6>`
+  (UTC; expected to follow `os.date("!%w")`, 0 = Sunday: confirm in `AnalyticsPlayer`),
+  `session.activeShare` (percent hist),
+  `session.activeSeconds` / `session.idleSeconds`
+- At the first client report: `client.tier.<Tier>`, top `client.viewport` ("<long>x<short>"),
+  top `client.locale`, `client.quality.<n>`, `client.inset.<yes|no>`
+
+State snapshots: hist `state.<name>` at every session end for each `Schema.StateSnapshot`
+key (rebirths, eggSpeed, eggValue, luck, rollSlots, plotLevel, armySize, flock,
+research, campsWon, missionsWon, coins, power, bestRarity, passes).
+
+Exits: top `exit.menu` (menu open when the session ended, `None` if none) and top
+`exit.action` (last action; `Action!` = the last action was rejected).
+
+**Device tier caveat.** Roblox exposes no device model. `Low` / `Mid` / `High` come
+from `AnalyticsPlayer.DeviceTier`, a proxy built from viewport size, safe-area insets,
+memory in use, frame rate and saved graphics quality; `Unknown` means no client report
+arrived. Treat tiers as "cheap vs expensive device" buckets, never as phone models.
+The Creator Dashboard splits its own charts by platform, OS and country.
+
+### 11.2 New Summary sections
+
+- `featureFunnels`: list in schema order, each `{funnel, started, steps, worstStep, cohorts}`.
+  Step rows `{id, nn, sessions, players, conversionFromPrev (% of previous step's
+  players; nil when the previous step had 0), timeP50, timeP90, timeN, lastStepSessions}`.
+  `worstStep` = lowest adjacent conversion with 20+ players at the previous step.
+  `cohorts` = `[{cohort, size, steps = {NN = players}}]`.
+- `ui`: `menus` (sorted by opens: `{menu, opens, blocked, dwellP50, dwellP90, dwellN}`),
+  `clicks`, `topClicks` (30), `tabs`, `inspects`, `prompts` {shown, bought, cancel,
+  cancelRate = cancel / (bought + cancel), byResult, byKey}, `idle` {n, p50, p90, ended},
+  `settings`, `hints` {shown, closed}, `loadPhases` {phase = {p50, p90, n}},
+  `leaderboards`, `cameraZoom`, `chatSent`, `emotes`, `events` {dropped, rateLimited}.
+- `devices`: `byTier` / `byPlatform` rows `{segment, sessions, payers, revenue, arppu,
+  payersPerSessionPct}`, `byPremium`, `sessionsByTier`, `firstReportByTier`,
+  `fpsByTier` (only if `perf.fps.tier.<T>` exists), `viewports`, `locales`, `quality`,
+  `inset`, `payersByGeo`, `newPayers`, `payerRate` (= new payers / unique players).
+- `robuxActual`: `total`, `purchases`, `byKey` (sorted), `byKind`, `purchaseSize`
+  (+ `purchaseSizeHist`), `newPayers`, `arppu`, `estimate`, `estimatePurchases`.
+- `segments`: `geo` (top 30), `accountAge`, `premium`, `joinSource`, `hourUTC`, `weekday`,
+  `serverSize` (+ hist),
+  `friendsInServer` (+ hist), `payerSessions`, `activeShare` (+ hist), `activeSeconds`,
+  `idleSeconds`, `activePct`, and `all` (every `seg.<group>.<value>` counter by group).
+- `stateSnapshots`: `[{name, kind, p50, p90, n, hist}]`.
+- `serverEvents`: `{[event] = {count, details = {[detail] = n}, value = {p50, p90, n}}}`.
+- `exits`: `{menu, action}` top lists.
+
+Reading Robux well: payers are counted at a player's first purchase, so a range's
+`payers` are its new payers while revenue includes repeat buyers. ARPPU over a short
+range therefore runs high; for "who pays" use `Report.Players`. `robuxActual.total`
+is real spend; the Creator Dashboard's revenue is still the ground truth (after fees).
+
+### 11.3 Example narrow pulls
+
+```lua
+local s = Report.Summary({days = 7})
+return HttpService:JSONEncode({flags = s.flags, worst = (function()
+  local out = {} for _, f in s.featureFunnels do out[f.funnel] = f.worstStep end return out end)(),
+  prompts = s.ui.prompts, robux = s.robuxActual, tiers = s.devices.byTier})
+```
+
+### 11.4 Report.Players
+
+`Report.Players({env = "live"|"studio", limit = 200, scan?, minRobux?, sortBy = "robux"|"play"|"lastSeen"})`
+lists `p/<userId>` profiles from `PetRollAnalyticsPlayers_v1` (Studio: `_Studio`) with
+`ListKeysAsync("p/")` and one `GetAsync` per key, waiting for the DataStore budget.
+It reads `scan` keys (default `limit`) in key order, sorts them and returns the first
+`limit` rows, so with more players than `scan` the list is not a global top list:
+raise `scan` (one GetAsync each, ~60/min in Studio Edit) or use the Open Cloud
+puller. `minRobux` compares with the larger of `robuxActual` and the estimate.
+
+Row: `{userId, first, lastSeen, days, sessions, play, active, idle, robux (estimate:
+max of `robux` and `robuxEstimate`), robuxActual, purchases, lastPurchase,
+firstPurchaseDevice, platform, tier, os, input, geo, premium, age, joinSource,
+friendsInServer, rebirths, onbMax, lastExit, snap, life, funN}`. Result: `{env, sortBy, scanned, listComplete, listError, readFailures, count,
+totals = {players, payers, revenue, revenueEstimate, play, payerRate, arppu, byTier,
+byPlatform, byGeo}, players}`. `Report.PlayersJSON(options)` returns it encoded.
+These rows identify players by UserId only; do not copy them outside our tools.
+
+Open Cloud: `python3 tools/analytics/pull_ledger.py --days 1 --players
+[--players-limit 200] [--players-sort robux]` writes `analytics-data/players_<env>.json`
+(same row and totals shape). The key then also needs DataStore "list entry keys"
+access. Its lite summary also gains `featureFunnels`, `robuxActual`, `devices` and
+`uiPrompts`; the funnel step ids are copied in `FEATURE_FUNNELS` and must match the schema.

@@ -196,12 +196,14 @@ function LoadingController.new(gui: ScreenGui)
 	skip.BackgroundColor3, skip.BackgroundTransparency = Color3.fromRGB(10, 18, 13), 0.12
 	skip.TextColor3 = Color3.new(1, 1, 1)
 	skip.Font, skip.TextScaled = Theme.Font, true
-	skip.AutoButtonColor, skip.Visible, skip.ZIndex = true, false, 103
+	skip.AutoButtonColor, skip.Visible, skip.ZIndex = false, false, 103
 	skip.Parent = overlay
 	Theme.Stroke(skip, Theme.ReferenceColors.Army, 2)
 	local skipAspect = Instance.new("UIAspectRatioConstraint")
 	skipAspect.AspectRatio, skipAspect.AspectType = 2.8, Enum.AspectType.FitWithinMaxSize
 	skipAspect.Parent = skip
+	-- Shared hover/press feel; UIScale keeps the aspect-constrained box intact.
+	Theme.Motion:BindButton(skip, Theme.Motion:ScaleOf(skip))
 
 	-- Lighting blur affects the 3D yard, not ScreenGui descendants. Keep the
 	-- ready HUD out of the backdrop until the loading veil reveals gameplay.
@@ -218,7 +220,7 @@ function LoadingController.new(gui: ScreenGui)
 		closing = false, profileReady = false, assetsReady = false, skipRequested = false}, LoadingController)
 	skip.Activated:Connect(function() self:Skip() end)
 	task.delay(SKIP_AFTER, function()
-		if overlay.Parent and not self.closing and not self.failed then skip.Visible = true end
+		if overlay.Parent and not self.closing and not self.failed then Theme.Motion:Appear(skip, true) end
 	end)
 	self:StartOrbit()
 	return self
@@ -228,7 +230,7 @@ function LoadingController:SetProgress(completed: number, total: number)
 	if self.closing then return end
 	local progress = if total == 0 then 1 else math.clamp(completed / total, 0, 1)
 	self.percentage.Text = string.format("%d%%", math.floor(progress * 100))
-	self.fill.Size = UDim2.fromScale(progress, 1)
+	Theme.Motion:Tween(self.fill, "progress", {Size = UDim2.fromScale(progress, 1)}, 0.2)
 	self.status.Text = if progress >= 1 then "Ready!" else string.format("Loading %d/%d items…", completed, total)
 end
 
@@ -292,7 +294,7 @@ function LoadingController:ConsiderState(state)
 		if not self.closing then self:StartPreload(state) end
 	elseif saveStatus == "error" and not self.profileReady then
 		self.failed = true
-		self.skip.Visible = false
+		Theme.Motion:Appear(self.skip, false)
 		self.status.Text = state.saveMessage or "Unable to load your flock. Please rejoin."
 	end
 end

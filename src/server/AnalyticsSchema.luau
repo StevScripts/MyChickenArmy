@@ -10,7 +10,10 @@ local Schema = {}
 -- sink/feature, launch counters and the bigCash/longSeconds buckets.
 -- 3 (October 14): mission.* launch counters.
 -- 4 (October 15): the Secret rarity (roll.offer/buy, Recruit sink, crate labels).
-Schema.Version = 4
+-- 5 (October 16): full tracking plan (docs/analytics/TRACKING_PLAN.md): feature
+-- funnels for every system, client UI events (menus, buttons, prompts, idle),
+-- server events, real Robux from receipts, device/segment profile, state snapshots.
+Schema.Version = 5
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -84,6 +87,13 @@ Schema.Funnels = {
 	Roll = {"Rolled", "AffordableOffer", "Recruited"},
 	Shop = {"Prompted", "Purchased"},
 	Camp = {"Deployed", "Won"},
+	-- Version 5: five more Roblox dashboards (9 of 10 with onboarding). Sent by
+	-- AnalyticsFunnels from the matching FeatureFunnels steps (RobloxSteps below).
+	Research = {"TreeOpened", "Started", "Completed"},
+	Fuse = {"Available", "Opened", "Fused"},
+	Rebirth = {"Eligible", "Opened", "Rebirthed"},
+	Mission = {"Spawned", "Started", "Won"},
+	Daily = {"Available", "Opened", "Claimed"},
 }
 Schema.RollFunnelSessionCap = 30 -- Roblox roll-funnel sessions per player session (rate budget)
 
@@ -162,6 +172,251 @@ Schema.LaunchHistograms = {
 }
 -- Analytics profile field: highest re-enlist rank seen (profile.rebirths).
 
+-- Feature funnels (version 5, ledger; docs/analytics/TRACKING_PLAN.md section 3).
+-- Each funnel is a linear list of step ids. AnalyticsFunnels records a step once
+-- per session (fun.<F>.s.<NN>) and once per player ever (fun.<F>.p.<NN>, profile
+-- field fun[F][NN] = play seconds), the play seconds from the funnel's first step
+-- to this one (fun.<F>.t.<NN>), and at session end the furthest step of every
+-- funnel started that session (fun.<F>.last.<NN>). NN = two-digit step index.
+-- `trigger` documents where the step comes from:
+--   action:<Action>      a successful request (Analytics:Action)
+--   fail:<Action>        a rejected request
+--   state:<fact>         derived from the client snapshot (Analytics:Observe)
+--   client:<event>[=d]   a validated client UI event (Analytics:ClientEvents)
+--   server:<event>[=d]   a server event (Analytics:ServerEvent / LaunchCount names)
+--   robux:<key prefix>   a granted Robux purchase
+-- Append steps only at the end of a funnel; never reorder.
+Schema.FeatureFunnels = {
+	{id = "Roll", steps = {
+		{id = "Pulled", trigger = "action:Roll"},
+		{id = "OfferAffordable", trigger = "action:Roll with an affordable offer"},
+		{id = "Recruited", trigger = "action:Buy"},
+		{id = "Recruited10", trigger = "10 recruits ever (profile life.buys)"},
+		{id = "RareOrBetter", trigger = "recruited a Rare+ chicken"},
+		{id = "EpicOrBetter", trigger = "recruited an Epic+ chicken"},
+		{id = "LegendaryOrBetter", trigger = "recruited a Legendary+ chicken"},
+	}},
+	{id = "RollSlots", steps = {
+		{id = "Unlocked2", trigger = "state:rollSlotCount>=2"},
+		{id = "Unlocked4", trigger = "state:rollSlotCount>=4"},
+		{id = "Unlocked8", trigger = "state:rollSlotCount>=8"},
+	}},
+	{id = "AutoRoll", steps = {
+		{id = "Available", trigger = "state:research completed AutoRoll"},
+		{id = "Enabled", trigger = "action:SetAutoRoll (on)"},
+		{id = "Stopped", trigger = "server:autoroll.stop"},
+	}},
+	{id = "Upgrades", steps = {
+		{id = "MenuOpened", trigger = "client:menu.open=Upgrades"},
+		{id = "Inspected", trigger = "client:inspect=Upgrades/*"},
+		{id = "FirstBuy", trigger = "action:CashUpgrade|BoardUpgrade|Luck|Income|Expand"},
+		{id = "Buys10", trigger = "10 cash upgrades ever"},
+		{id = "Buys50", trigger = "50 cash upgrades ever"},
+	}},
+	{id = "Research", steps = {
+		{id = "TreeOpened", trigger = "client:menu.open=Upgrades"},
+		{id = "NodeInspected", trigger = "client:inspect=Upgrades/node"},
+		{id = "Started", trigger = "action:StartResearch"},
+		{id = "Completed", trigger = "state:research.completed count rose"},
+		{id = "Completed5", trigger = "state:5 nodes completed"},
+		{id = "Completed15", trigger = "state:15 nodes completed"},
+		{id = "SkipPrompted", trigger = "action:PreparePurchase ResearchSkip*"},
+		{id = "SkipBought", trigger = "robux:ResearchSkip"},
+	}},
+	{id = "Fuse", steps = {
+		{id = "Unlocked", trigger = "state:mergeUnlocked"},
+		{id = "Available", trigger = "state:mergeOptions not empty"},
+		{id = "Opened", trigger = "action:OpenMerge or client:menu.open=Fuse"},
+		{id = "Fused", trigger = "action:Merge|MergeAll"},
+		{id = "Fused5", trigger = "5 fusions ever"},
+		{id = "Giant", trigger = "server:giant.fuse NewGiant/Giant"},
+		{id = "Colossal", trigger = "server:giant.fuse NewColossal/Colossal"},
+	}},
+	{id = "ChickenLevel", steps = {
+		{id = "ArmyOpened", trigger = "client:menu.open=Army"},
+		{id = "ChickenInspected", trigger = "client:inspect=Army/chicken"},
+		{id = "Upgraded", trigger = "action:UpgradeChicken"},
+		{id = "Upgraded10", trigger = "10 chicken levels ever"},
+	}},
+	{id = "Army", steps = {
+		{id = "ArmyOpened", trigger = "client:menu.open=Army"},
+		{id = "Selected", trigger = "action:SelectBest|SetArmy|Equip"},
+		{id = "Deployed", trigger = "action:Attack"},
+		{id = "Won", trigger = "camp first win (Progress firstWin)"},
+		{id = "CallArmy", trigger = "action:CallArmy"},
+		{id = "Rally", trigger = "action:Rally"},
+		{id = "Formation", trigger = "action:SaveFormation|ApplyFormation"},
+	}},
+	{id = "Route", steps = {
+		{id = "Camp1", trigger = "state:firstWins[1]"},
+		{id = "Camp2", trigger = "state:firstWins[2]"},
+		{id = "Camp3", trigger = "state:firstWins[3]"},
+		{id = "AllCamps", trigger = "state:allCampsWon"},
+		{id = "King", trigger = "state:kingCleared"},
+	}},
+	{id = "Sell", steps = {
+		{id = "Opened", trigger = "action:OpenSell or client:menu.open=Sell"},
+		{id = "Sold", trigger = "action:Sell"},
+	}},
+	{id = "Index", steps = {
+		{id = "Opened", trigger = "client:menu.open=Index"},
+		{id = "Inspected", trigger = "client:inspect=Index/*"},
+	}},
+	{id = "Shop", steps = {
+		{id = "Opened", trigger = "client:menu.open=Shop or action:RefreshShop"},
+		{id = "TabViewed", trigger = "client:tab=Shop/*"},
+		{id = "Prompted", trigger = "action:PreparePurchase"},
+		{id = "PromptShown", trigger = "client:prompt.shown"},
+		{id = "Purchased", trigger = "robux:*"},
+		{id = "Repeat", trigger = "second Robux purchase ever"},
+	}},
+	{id = "Crate", steps = {
+		{id = "Viewed", trigger = "client:tab=Shop/Crates or client:menu.open=Crate"},
+		{id = "Prompted", trigger = "action:PreparePurchase OuterSpaceCrate*"},
+		{id = "Bought", trigger = "robux:OuterSpaceCrate"},
+		{id = "Opened", trigger = "action:OpenCrate"},
+	}},
+	{id = "Pass", steps = {
+		{id = "Prompted", trigger = "action:PreparePurchase for a pass key"},
+		{id = "Bought", trigger = "robux pass"},
+		{id = "Toggled", trigger = "action:SetCommerceToggle"},
+	}},
+	{id = "Rebirth", steps = {
+		{id = "Eligible", trigger = "state:rebirth.eligible"},
+		{id = "Opened", trigger = "client:menu.open=Rebirth"},
+		{id = "Rebirthed", trigger = "action:Rebirth"},
+		{id = "Rebirth2", trigger = "state:rebirth.rank>=2"},
+		{id = "Rebirth5", trigger = "state:rebirth.rank>=5"},
+		{id = "Rebirth10", trigger = "state:rebirth.rank>=10"},
+	}},
+	{id = "Mission", steps = {
+		{id = "Spawned", trigger = "server:mission.spawn"},
+		{id = "Opened", trigger = "client:menu.open=Missions"},
+		{id = "Started", trigger = "action:StartOperation or server:mission.start"},
+		{id = "Won", trigger = "server:mission.won"},
+		{id = "Won5", trigger = "5 missions won ever"},
+	}},
+	{id = "Daily", steps = {
+		{id = "Available", trigger = "state:daily reward claimable"},
+		{id = "Opened", trigger = "client:menu.open=Daily"},
+		{id = "Claimed", trigger = "server:daily.claim"},
+		{id = "Streak3", trigger = "server:daily.claim with streak>=3"},
+		{id = "Streak7", trigger = "server:daily.claim with streak>=7"},
+	}},
+	{id = "Offline", steps = {
+		{id = "Shown", trigger = "server:offline.shown or client:menu.open=Offline"},
+		{id = "Claimed", trigger = "server:offline.claimed"},
+	}},
+	{id = "Plot", steps = {
+		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize"},
+		{id = "BuildStarted", trigger = "server:plot.buildStart"},
+		{id = "BuildDone", trigger = "server:plot.buildDone"},
+		{id = "Max", trigger = "state:collectionLimit>=100"},
+	}},
+	{id = "Hill", steps = {
+		{id = "Entered", trigger = "server:hill.enter"},
+		{id = "Held", trigger = "server:hill.hold"},
+		{id = "Won", trigger = "server:hill.win"},
+	}},
+	{id = "Settings", steps = {
+		{id = "Opened", trigger = "client:menu.open=Settings"},
+		{id = "Changed", trigger = "client:setting"},
+	}},
+	{id = "Leaderboard", steps = {
+		{id = "Viewed", trigger = "client:leaderboard.view"},
+	}},
+}
+Schema.FeatureFunnelIndex = {} :: {[string]: {[string]: number}}
+for _, funnel in Schema.FeatureFunnels do
+	local index = {}
+	for i, step in funnel.steps do index[step.id] = i end
+	Schema.FeatureFunnelIndex[funnel.id] = index
+end
+-- Feature funnel step -> Roblox funnel step (Schema.Funnels). One Roblox funnel
+-- session per player per funnel per UTC day.
+Schema.RobloxSteps = {
+	Research = {TreeOpened = 1, Started = 2, Completed = 3},
+	Fuse = {Available = 1, Opened = 2, Fused = 3},
+	Rebirth = {Eligible = 1, Opened = 2, Rebirthed = 3},
+	Mission = {Spawned = 1, Started = 2, Won = 3},
+	Daily = {Available = 1, Opened = 2, Claimed = 3},
+}
+
+-- Menus the client reports (menu.open / menu.close / ui.click / tab / inspect).
+-- Unknown menu names are stored as "Other".
+Schema.Menus = {
+	Army = true, Shop = true, Index = true, Upgrades = true, Fuse = true, Settings = true, Odds = true,
+	Offline = true, Rebirth = true, Daily = true, Missions = true, Sell = true, Formations = true,
+	Crate = true, Admin = true, Hud = true, Roll = true, Merchant = true, Leaderboard = true, Other = true,
+}
+
+-- Client UI events (Analytics:ClientEvents). Batched by AnalyticsClient; the server
+-- validates every name, clamps values and rate-limits (ClientEventsPerMinute).
+-- kind: "menu" detail must be a Schema.Menus key; "path" detail is "<Menu>/<Name>"
+-- (<= 48 chars, [%w_ /:%-%.]); "free" detail is a short token (<= 32 chars);
+-- "none" ignores detail. value: seconds or a count, clamped to 0..86400.
+Schema.ClientEvents = {
+	["menu.open"] = "menu",      -- a menu became visible
+	["menu.close"] = "menu",     -- value = seconds it was open (menu.dwell.<Menu> hist)
+	["ui.click"] = "path",       -- any button activated: "<Menu>/<ButtonName>" (top table + counter)
+	["tab"] = "path",            -- a tab/section chosen inside a menu: "<Menu>/<Tab>"
+	["inspect"] = "path",        -- a card/node/chicken opened for details: "<Menu>/<kind>"
+	["prompt.shown"] = "free",   -- a Roblox purchase prompt appeared: "<product|pass>:<key>"
+	["prompt.result"] = "free",  -- "<key>:<bought|cancel>"
+	["idle.start"] = "none",     -- no input for IdleSeconds
+	["idle.end"] = "none",       -- value = idle seconds
+	["setting"] = "free",        -- "<name>=<value>"
+	["hint.shown"] = "free",     -- a guide/hint card appeared: <hint id>
+	["hint.closed"] = "free",
+	["load.phase"] = "free",     -- value = seconds since join: <phase>
+	["leaderboard.view"] = "free", -- walked up to / opened a leaderboard: <board>
+	["camera.zoom"] = "none",    -- value = zoom changes this minute (engagement proxy)
+	["chat.sent"] = "none",      -- a chat message was sent (count only; never content)
+	["emote"] = "none",
+	["menu.blocked"] = "menu",   -- tried to open a menu that refused (locked/busy)
+}
+Schema.ClientEventsPerMinute = 120
+Schema.ClientEventBatch = 50
+Schema.IdleSeconds = 120
+
+-- Server events (Analytics:ServerEvent). name -> {detail = "free"|"none"|"tier"|"level"}.
+-- Counted as sev.<name>[.<detail>] and forwarded to AnalyticsFunnels/AnalyticsPlayer.
+Schema.ServerEvents = {
+	["offline.shown"] = "none",     -- value = cash offered
+	["offline.claimed"] = "free",   -- detail = how it was claimed
+	["plot.buildStart"] = "level",
+	["plot.buildDone"] = "level",
+	["plot.buildSkip"] = "level",
+	["hill.enter"] = "none",
+	["hill.hold"] = "none",         -- value = seconds held
+	["hill.win"] = "none",
+	["hill.lost"] = "none",
+	["autoroll.stop"] = "free",     -- detail = stop reason
+	["data.saveFail"] = "free",     -- detail = short reason
+	["data.saveOk"] = "none",
+	["remote.throttled"] = "free",  -- detail = action name
+	["research.complete"] = "free", -- detail = node id
+	["battle.end"] = "free",        -- detail = "<kind>:<result>", value = seconds
+	["merchant.open"] = "none",
+	["eggs.deposit"] = "none",      -- value = eggs deposited
+	["egg.pickup"] = "none",        -- value = eggs picked up (batched)
+	["daily.shown"] = "none",
+	["giant.result"] = "free",      -- detail = Fused/NewGiant/Giant/NewColossal/Colossal
+	["mission.result"] = "free",    -- detail = "<won|lost|timeout|expired>.<tier>"
+}
+
+-- Device tiers (AnalyticsPlayer.DeviceTier). A proxy from screen, memory, frame
+-- rate and graphics quality: Roblox does not expose the device model.
+Schema.DeviceTiers = {"Low", "Mid", "High", "Unknown"}
+
+-- Per-player state snapshot at session end (AnalyticsPlayer): ledger hist
+-- state.<name> with the bucket kind given here.
+Schema.StateSnapshot = {
+	rebirths = "count", eggSpeed = "count", eggValue = "count", luck = "count", rollSlots = "count",
+	plotLevel = "count", armySize = "count", flock = "count", research = "count", campsWon = "count",
+	missionsWon = "count", coins = "bigCash", power = "bigCash", bestRarity = "count", passes = "count",
+}
+
 -- Every Roblox custom event name this game may send (Roblox cap: 100).
 -- FTUE*/Conquest* come from TutorialService; the rest from Analytics.
 Schema.CustomEvents = {
@@ -171,6 +426,12 @@ Schema.CustomEvents = {
 	"FTUEInteraction", "FTUEHintShown", "FTUEReadySeconds", "FTUEStepStalled", "FTUESurvival",
 	"ConquestFirstWin", "KingFirstClear", "ConquestFailed",
 	"SessionEnded", "OnboardingExit", "FeatureFirstUse", "RobuxPurchase", "ScriptError", "ClientPerf", "RollSummary",
+	-- Version 5 (AnalyticsPlayer / AnalyticsFunnels).
+	"PlayerSegment",  -- value = session minutes; fields device tier, payer state, platform
+	"RobuxSpend",     -- value = actual Robux; fields kind, key, device tier
+	"MenuDwell",      -- value = seconds; fields menu, platform, stage
+	"FunnelDrop",     -- value = furthest step index; fields funnel, step id, platform
+	"DeviceProfile",  -- value = memory MB at first report; fields platform, tier, screen class
 }
 
 -- Histogram buckets. A value lands in the first bucket whose edge >= value
@@ -185,6 +446,10 @@ Schema.Buckets = {
 	memory  = {500, 1000, 1500, 2000, 3000, 4000},
 	days    = {1, 2, 3, 4, 5, 6, 7, 14, 30, 60, 90},
 	bigCash = {1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15},
+	robux   = {0, 5, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000},
+	hour    = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23},
+	accountDays = {7, 30, 90, 180, 365, 730, 1460, 2920},
+	percent = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100},
 	longSeconds = {1800, 3600, 5400, 7200, 10800, 14400, 21600, 28800, 43200, 72000, 108000, 172800, 360000},
 }
 

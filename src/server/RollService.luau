@@ -10,7 +10,7 @@ local RollService = {}
 RollService.__index = RollService
 
 function RollService.new()
-	return setmetatable({random=Random.new()}, RollService)
+	return setmetatable({random=Random.new(),analytics=nil::any}, RollService)
 end
 
 function RollService:Roll(session, now: number)
@@ -88,6 +88,10 @@ function RollService:StepAuto(session, now: number): boolean
 				session.banner="Auto Roll paused: "..(if offer.mutation then offer.mutation.." " else "")
 					..definition.rarity.." "..definition.name.." is waiting on your podium!"
 				session:Touch()
+				-- Observation only (Analytics ServerEvent, set by GameServer): why Auto Roll paused.
+				local analytics=self.analytics
+				local reason=if offer.mutation then "mutation" else tostring(auto.stopAt or "Upgrade")
+				if analytics then pcall(function() analytics:ServerEvent(session,"autoroll.stop",reason) end) end
 			end
 			return false
 		end

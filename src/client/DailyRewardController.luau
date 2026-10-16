@@ -7,7 +7,6 @@
 local GuiService = game:GetService("GuiService")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.UITheme)
 local MenuLayout = require(script.Parent.MenuLayout)
 local ShopArt = require(script.Parent.ShopPreviewArt)
@@ -110,11 +109,11 @@ function Controller:Dismiss(immediate: boolean?)
 	end
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
-	if self.pulse then self.pulse:Cancel();self.pulse = nil end
+	if self.todayCard then Theme.Motion:StopBreathe(self.todayCard) end
 	self.app:SetMenuBlur("daily",false)
 	local function finish()
 		if self.gui~=gui then return end
-		self.gui,self.panel,self.closing = nil,nil,false
+		self.gui,self.panel,self.closing,self.collecting,self.todayCard = nil,nil,false,false,nil
 		gui:Destroy()
 		-- A later day granted while this was open (crossing UTC midnight online).
 		if self.alive and self.pending then self:Schedule() end
@@ -223,7 +222,9 @@ function Controller:SecondsToReset(): number
 end
 
 function Controller:Collect(granted)
-	if not self.gui or self.closing then return end
+	-- collecting: a second click during the short celebration does nothing.
+	if not self.gui or self.closing or self.collecting then return end
+	self.collecting = true
 	local app = self.app
 	app.audio:Play("Click")
 	-- The reward is already in the wallet; this is presentation only.
@@ -233,7 +234,12 @@ function Controller:Collect(granted)
 	else
 		app.audio:Play("Pop",1.05,{volume=0.4,maxDuration=0.35})
 	end
-	self:Dismiss()
+	local card,gui = self.todayCard,self.gui
+	if not card or Theme.Motion.reduced then self:Dismiss();return end
+	Theme.Motion:StopBreathe(card)
+	Theme.Motion:PopScale(card,1.12,0.26)
+	if card.Parent then Theme.Motion:Burst(card.Parent,card.Position,GOLD) end
+	task.delay(0.25,function() if self.gui==gui then self:Dismiss() end end)
 end
 
 function Controller:Show(granted)
@@ -252,7 +258,7 @@ function Controller:Show(granted)
 	local gui = if app.editPreview then Theme.Container(app.other,"DailyStreak")
 		else Theme.InsetContainer(app.other,"DailyStreak",Enum.ScreenInsets.CoreUISafeInsets)
 	gui.ZIndex = 30
-	self.gui,self.closing = gui,false
+	self.gui,self.closing,self.collecting = gui,false,false
 	local frames = Theme.Container(gui,"FRAMES")
 	local backdropParent = if app.editPreview then frames
 		else Theme.InsetContainer(frames,"BackdropLayer",Enum.ScreenInsets.None)
@@ -309,15 +315,14 @@ function Controller:Show(granted)
 	if not app.reducedMotion then
 		panel.Size = UDim2.fromScale(restingSize.X.Scale*0.94,restingSize.Y.Scale*0.94)
 		panel.Position = UDim2.fromScale(restingPosition.X.Scale,restingPosition.Y.Scale+0.035)
-		-- Today's card breathes; reduced motion keeps it still.
-		if todayCard then
-			local scale = Instance.new("UIScale")
-			scale.Parent = todayCard
-			self.pulse = TweenService:Create(scale,TweenInfo.new(0.7,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Scale=1.04})
-			self.pulse:Play()
-		end
 	end
-	Theme.Motion:Tween(panel,"daily-size",{Size=restingSize},0.28,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+	-- Today's card breathes from its centre (same place at rest); reduced motion keeps it still.
+	self.todayCard = todayCard
+	if todayCard then
+		Theme.Motion:Center(todayCard)
+		Theme.Motion:Breathe(todayCard,1.04,0.7)
+	end
+	Theme.Motion:Tween(panel,"daily-size",{Size=restingSize},0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},0.28)
 	Theme.Motion:Tween(panel,"daily-fade",{GroupTransparency=0},0.22)
 	if app.editPreview then return end

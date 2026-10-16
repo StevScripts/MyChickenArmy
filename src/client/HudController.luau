@@ -4,7 +4,6 @@ local Theme=require(script.Parent.UITheme)
 local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
-local TweenService=game:GetService("TweenService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
 local HillHud=require(script.Parent.HillHud)
 local RebirthPanel=require(script.Parent.RebirthPanel)
@@ -85,6 +84,8 @@ function Hud.new(app,shell)
 	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
 	self.flock=Theme.Display(totals,"Flock","Flock 0/40",25,A.gold)
 	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
+	-- Pops grow from the middle of the line, not its corner (same place at rest).
+	Theme.Motion:Center(self.conquered);Theme.Motion:Center(self.flock)
 	self.hill=HillHud.new(app,shell,cash)
 	self:BuildSettingsTopbar()
 	-- The list centers whatever is visible.
@@ -233,7 +234,8 @@ function Hud:BuildSettingsTopbar()
 	caption.Parent=button
 	local captionCorner=Instance.new("UICorner");captionCorner.CornerRadius=UDim.new(0.03,0);captionCorner.Parent=caption
 	self.settings,self.settingsIcon,self.settingsCaption,self.settingsGui=button,icon,caption,gui
-	Theme.Motion:BindButton(button,button)
+	-- The button Size is rewritten by ApplyInputLayout; press the centred gear instead.
+	Theme.Motion:BindButton(button,icon)
 	local function hover(value) self.settingsHovered=value;self:UpdateSettingsTopbar() end
 	button.MouseEnter:Connect(function() hover(true) end)
 	button.MouseLeave:Connect(function() hover(false) end)
@@ -384,22 +386,23 @@ function Hud:UpdateRebirth(state)
 	local rank=tonumber(quote.rank) or 0
 	-- The Re-enlist icon appears once it matters: the King is beaten or a rank is earned.
 	local showIcon=quote.enabled~=false and (rank>=1 or quote.kingCleared==true)
-	if self.reenlist.Visible~=showIcon then self.reenlist.Visible=showIcon;self:PlaceRebirth() end
-	self.rebirthBadge.Visible=showIcon and quote.eligible==true
-	local pulse=showIcon and quote.eligible==true and not self.app.reducedMotion
-	if pulse~=(self.reenlistPulse~=nil) then
-		local visual=self.reenlist.Visual
-		if self.reenlistPulse then self.reenlistPulse:Cancel();self.reenlistPulse=nil end
-		visual.Size=UDim2.fromScale(1,1)
-		if pulse then
-			self.reenlistPulse=TweenService:Create(visual,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Size=UDim2.fromScale(1.08,1.08)})
-			self.reenlistPulse:Play()
-		end
+	if self.reenlist.Visible~=showIcon then
+		self.reenlist.Visible=showIcon;self:PlaceRebirth()
+		-- Grow in only when it newly unlocks this session, not on the first packet.
+		if showIcon and self.lastShowIcon==false then Theme.Motion:PopScale(self.reenlist.Visual,0.6,0.3) end
+	end
+	self.lastShowIcon=showIcon
+	Theme.Motion:Appear(self.rebirthBadge,showIcon and quote.eligible==true)
+	-- UIScale breathing; BindButton's press tween on Visual.Size never cancels it.
+	local pulse=showIcon and quote.eligible==true
+	if pulse~=(self.reenlistPulse==true) then
+		self.reenlistPulse=pulse
+		if pulse then Theme.Motion:Breathe(self.reenlist.Visual,1.08,0.8) else Theme.Motion:StopBreathe(self.reenlist.Visual) end
 	end
 	self.rank.Text=RebirthPanel.Title(rank)
 	-- The Hill countdown chip uses the same spot above the cash readout.
-	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waiting and self.hill.waiting.Visible)
-	if self.lastRank and rank>self.lastRank then Theme.Motion:Pop(self.rank,1.15) end
+	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waitingShown)
+	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15) end
 	self.lastRank=rank
 	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
 		self.rebirthToastShown=true
@@ -426,11 +429,18 @@ function Hud:UpdateAutoRoll(state)
 	local unlocked=auto~=nil and auto.unlocked==true
 	-- Point at the new button once, when the research finishes in this session.
 	if unlocked and self.autoRollUnlocked==false then self.app:Notify("Auto Roll unlocked! Use the Auto Roll button on the right to start rolling.",true) end
+	if unlocked and self.autoRollUnlocked==false then Theme.Motion:PopScale(self.autoRoll.Visual,0.6,0.3) end
 	self.autoRollUnlocked=unlocked
 	self.autoRoll.Visible=unlocked
 	if not unlocked then return end
 	local color=if not auto.enabled then A.red elseif auto.holding then A.gold else A.green
 	if self.autoRoll.BackgroundColor3~=color then self.autoRoll.BackgroundColor3=color end
+end
+
+-- The icon is aspect-constrained (anchor 0,0), so it swells from its corner; keep it small.
+function Hud:PopCash()
+	Theme.Motion:PopScale(self.cashIcon,1.12)
+	Theme.Motion:PopScale(self.money,1.06)
 end
 
 function Hud:Update(state,count,limit,capacity,selected,deployed)
@@ -439,6 +449,9 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateTerritory(state)
 	self:UpdateRebirth(state)
 	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.CompactMoney(value) end)
+	-- Confirmed gains only (never the first packet or a purchase).
+	if self.lastCoins and state.coins>self.lastCoins then self:PopCash() end
+	self.lastCoins=state.coins
 	self:UpdateEggLine(state.eggs or {})
 	self.flock.Text="Flock "..count.."/"..limit
 	local atHome=state.armyState=="Home"
@@ -475,9 +488,10 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	end
 	self.lastSaveStatus=state.saveStatus
 	if self.lastCount and (count~=self.lastCount or capacity~=self.lastCapacity) then Theme.Motion:Pop(self.army.Visual,1.1) end
+	if self.lastCount and count>self.lastCount then Theme.Motion:PopScale(self.flock,1.1) end
 	if self.lastConquered and held>self.lastConquered then
-		Theme.Motion:Pop(self.conquered,1.13)
-		Theme.Motion:Pop(self.cashIcon,1.14)
+		Theme.Motion:PopScale(self.conquered,1.13)
+		self:PopCash()
 		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,0.94),A.gold)
 	end
 	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,held

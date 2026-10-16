@@ -420,7 +420,8 @@ function BaseController:CreateCommandHeading()
 	gui.Enabled,gui.Adornee,gui.Parent=false,self.commandAnchor,Players.LocalPlayer.PlayerGui
 	local label=Theme.Display(gui,"Attack","⚔ ATTACK",36,C.red)
 	label.Size,label.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
-	self.commandHeading=gui
+	Theme.Motion:Center(label) -- grow-ins start from the middle; same place at rest
+	self.commandHeading,self.commandLabel=gui,label
 	-- Unavailable targets have no native prompt; this heading carries the reason.
 	local locked=Instance.new("BillboardGui")
 	locked.Name,locked.Size,locked.StudsOffsetWorldSpace="CampLockedHeading",UDim2.fromOffset(320,34),Vector3.new(0,5,0)
@@ -428,6 +429,7 @@ function BaseController:CreateCommandHeading()
 	locked.Enabled,locked.Parent=false,Players.LocalPlayer.PlayerGui
 	local reason=Theme.Display(locked,"Reason","",26,C.white)
 	reason.Size,reason.TextScaled,reason.TextXAlignment=UDim2.fromScale(1,1),true,Enum.TextXAlignment.Center
+	Theme.Motion:Center(reason)
 	self.lockedHeading,self.lockedLabel=locked,reason
 	self.commandPromptShown=false
 	table.insert(self.connections,self.commandPrompt.PromptShown:Connect(function()
@@ -450,7 +452,9 @@ function BaseController:UpdateCommandPresentation()
 	if command then
 		self.commandHighlight.FillColor,self.commandHighlight.OutlineColor=command.color,command.color
 	end
-	self.commandHeading.Enabled=visible and hostile==true
+	local heading=visible and hostile==true
+	if heading and not self.commandHeading.Enabled then Theme.Motion:PopScale(self.commandLabel,0.7) end
+	self.commandHeading.Enabled=heading
 end
 
 -- Attachments follow the character and objective natively. The existing poll
@@ -532,6 +536,7 @@ function BaseController:UpdateObjective()
   gui.AlwaysOnTop,gui.MaxDistance,gui.Parent=true,500,Players.LocalPlayer.PlayerGui
   local label=Theme.Display(gui,"Destination","NEXT",22,Color3.new(1,1,1))
   label.Size,label.TextScaled,label.TextXAlignment=UDim2.fromScale(1,.28),true,Enum.TextXAlignment.Center
+  Theme.Motion:Center(label)
   local arrow=GuideArrow(gui,"Arrow")
   arrow.Size,arrow.Position,arrow.AnchorPoint=UDim2.fromScale(.72,.72),UDim2.fromScale(.5,.64),Vector2.new(.5,.5)
   arrow.Rotation=90
@@ -605,6 +610,10 @@ function BaseController:UpdateObjective()
   elseif waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
   elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
+ -- Pop on a new goal only; the ticking countdown digits are ignored.
+ local captionKey=self.objectiveCaption.Text:gsub("[%d:]","")
+ if self.objectiveKey and captionKey~=self.objectiveKey then Theme.Motion:PopScale(self.objectiveCaption,1.15) end
+ self.objectiveKey=captionKey
  self.objective.Enabled=anchor~=nil and not self.app.panel.Visible and not self.app.dialogueActive
   and not (self.app.research and self.app.research.root.Visible) and not (self.app.offlineCash and self.app.offlineCash.gui)
   and (invasion~=nil or state.armyState=="Home" or state.armyState=="Following") and not state.incoming
@@ -666,6 +675,7 @@ function BaseController:PollCommand()
 		self.lockedHeading.Adornee=lockedPart
 		self.lockedLabel.Text="🔒 "..locked.reason
 	end
+	if lockedShown and not self.lockedHeading.Enabled then Theme.Motion:PopScale(self.lockedLabel,0.7) end
 	self.lockedHeading.Enabled=lockedShown
 	if nearest then
 		self.commandAnchor.Parent=bestPart

@@ -322,8 +322,9 @@ local function offerFace(card,top,bottom)
  return visual,face
 end
 
-function Browser:Activate(key,button)
- if not button.Active then return end
+function Browser:Activate(key,button,cardVisual)
+ -- A tap on an unavailable card answers with a small "no" instead of silence.
+ if not button.Active then if cardVisual then Theme.Motion:Shake(cardVisual) end return end
  self.app.audio:Play("Click")
  local state=self.app.commerce:State(key)
  if state=="owned" then self.app.commerce:Toggle(key)
@@ -361,7 +362,7 @@ function Browser:OfferCard(parent,key,definition,order)
  local description=text(visual,"Description",PASS_COPY[key] or Catalog.Definitions[key].description,20,UDim2.new(),UDim2.new(),FIGMA.text,false)
  local buy=self:PurchaseButton(visual,key)
  buy.ZIndex=12
- table.insert(self.connections,card.Activated:Connect(function() self:Activate(key,buy) end))
+ table.insert(self.connections,card.Activated:Connect(function() self:Activate(key,buy,visual) end))
  Theme.Motion:BindButton(card,visual,face)
  card:SetAttribute("Owned",false)
  return {root=card,visual=visual,face=face,title=title,art=art,rays=rays,description=description,buy=buy,palette=definition}
@@ -423,6 +424,19 @@ function Browser:UpdatePurchase(button,key,root)
  button:SetAttribute("State",state)
  button:SetAttribute("UnavailableReason",if ready(state) or automatic then nil else state)
  if root then root:SetAttribute("Owned",state=="owned") end
+ -- Presentation only: celebrate a purchase Roblox's checkout just confirmed.
+ local commerce=self.app.commerce
+ local bought=commerce.justBought and commerce.justBought[key]
+ if bought and (state=="owned" or Catalog.Products[key]~=nil) then
+  commerce.justBought[key]=nil
+  local visual=button.Parent
+  if commerce.clock()-bought<30 and visual and visual.Name=="Visual" then
+   Theme.Motion:Pop(visual,1.06)
+   local face=visual:FindFirstChild("Face")
+   if face then Theme.Motion:Shine(face) end
+   Theme.Motion:Burst(visual,UDim2.fromScale(0.5,0.45),P.gold)
+  end
+ end
 end
 
 function Browser:RenderExisting()
@@ -480,7 +494,7 @@ function Browser:CreateCash()
  vaultButton:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
  self.cashBuy=self:PurchaseButton(vault,"CommandersVault",P.gold)
  self.cashBuy.ZIndex=12
- table.insert(self.connections,vaultButton.Activated:Connect(function() self:Activate("CommandersVault",self.cashBuy) end))
+ table.insert(self.connections,vaultButton.Activated:Connect(function() self:Activate("CommandersVault",self.cashBuy,vault) end))
  Theme.Motion:BindButton(vaultButton,vault,vaultFace)
  local shelf=frame(section,"CashTiers",UDim2.fromScale(1,0.45),UDim2.fromScale(0,0.55))
  shelf.BackgroundTransparency=1
@@ -506,7 +520,7 @@ function Browser:CreateCash()
   note.Font=Theme.Font
   local buy=self:PurchaseButton(visual,definition.key)
   buy.ZIndex=12
-  table.insert(self.connections,card.Activated:Connect(function() self:Activate(definition.key,buy) end))
+  table.insert(self.connections,card.Activated:Connect(function() self:Activate(definition.key,buy,visual) end))
   Theme.Motion:BindButton(card,visual,face)
   self.cashViews[i]={root=card,key=definition.key,title=title,art=icon,rays=rays,note=note,buy=buy}
   self:BindOfferMotion(self.cashViews[i],"Cash")
@@ -517,7 +531,7 @@ function Browser:CreateDetails()
  local root=frame(self.body,"PurchaseDetails",UDim2.fromScale(1,1),UDim2.new(),P.ink)
  root.BackgroundTransparency,root.Visible,root.Active,root.ZIndex=0.04,false,true,20
  root:SetAttribute("OwnsPopupStyle",true)
- self.detailsRoot=root
+ self.detailsRoot,self.detailsRest=root,root.Position
  self.detailsTitle=text(root,"Title","Details",30,UDim2.fromScale(0.02,0.01),UDim2.fromScale(0.96,0.075))
  self.detailsDescription=plain(root,"Description","",19,UDim2.new(),UDim2.fromScale(0.98,0.23),P.white)
  self.detailsDescription.TextWrapped=true
@@ -563,13 +577,21 @@ function Browser:ShowDetails(kind,purchaseKey)
  self.detailsKind,self.detailsPurchase=kind,purchaseKey
  self.scroll.Visible,self.previewStatus.Visible=false,false
  self.scrollFade.Visible,self.previewBacking.Visible,self.navigation.Visible=false,false,false
+ if not self.detailsRoot.Visible then
+  -- Slide up into place; CloseDetails restores the resting Position.
+  self.detailsRoot.Position=self.detailsRest+UDim2.fromScale(0,0.02)
+  Theme.Motion:Tween(self.detailsRoot,"details",{Position=self.detailsRest},0.16)
+ end
  self.detailsRoot.Visible=true
  self.detailsScroll.CanvasPosition=Vector2.zero
  self:RenderDetails()
 end
 
 function Browser:CloseDetails()
- if self.detailsRoot then self.detailsRoot.Visible=false end
+ if self.detailsRoot then
+  Theme.Motion:Cancel(self.detailsRoot,"details")
+  self.detailsRoot.Visible,self.detailsRoot.Position=false,self.detailsRest
+ end
  self.scroll.Visible,self.previewStatus.Visible=true,true
  self.scrollFade.Visible,self.previewBacking.Visible,self.navigation.Visible=true,true,true
  self.detailsKind,self.detailsPurchase=nil,nil
@@ -750,9 +772,12 @@ function Browser:UpdateSection()
  if self.maxScroll>0 and y>=self.maxScroll-self.scroll.AbsoluteWindowSize.Y*0.003 then active="Cash" end
  if active==self.activeSection then return end
  self.activeSection=active
+ local animate=self.root.Visible
  for key,button in self.tabs do
   local selected=key==active
-  button.Visual.Caption.TextColor3=if selected then P.gold else P.white
+  local color=if selected then P.gold else P.white
+  if animate then Theme.Motion:Tween(button.Visual.Caption,"tab-color",{TextColor3=color},0.15) else button.Visual.Caption.TextColor3=color end
+  if animate and selected then Theme.Motion:Pop(button.Visual,1.08) end
   button:SetAttribute("Selected",selected)
  end
 end

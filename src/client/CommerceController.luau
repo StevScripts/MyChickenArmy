@@ -15,7 +15,7 @@ function Controller.new(app,dependencies)
 	return setmetatable({app=app,products={},connections={},alive=true,pending=nil,revision=0,
 		marketplace=deps.marketplace or Marketplace,player=deps.player or Players.LocalPlayer,
 		catalog=deps.catalog or Catalog,clock=deps.clock or os.clock,spawn=deps.spawn or task.spawn,
-		delay=deps.delay or task.delay,togglePending={},cratePresenting=false,crateResults={},crateResultOrder={},
+		delay=deps.delay or task.delay,togglePending={},justBought={},cratePresenting=false,crateResults={},crateResultOrder={},
 		presentationFactory=deps.presentationFactory or CrateRoll.new,presentationCatalog=deps.presentationCatalog or GalaxyPresentation},Controller)
 end
 
@@ -268,11 +268,13 @@ function Controller:Receive(result)
 end
 
 function Controller:Start()
-	table.insert(self.connections,self.marketplace.PromptGamePassPurchaseFinished:Connect(function(player,passId,_purchased)
+	table.insert(self.connections,self.marketplace.PromptGamePassPurchaseFinished:Connect(function(player,passId,purchased)
 		if player~=self.player or not self.alive then return end
 		local pending=self.pending
 		if not pending or pending.kind~="Pass" or pending.productId~=passId then return end
 		self.pending=nil
+		-- Presentation mark only: the Shop celebrates once the server confirms ownership.
+		if purchased==true then self.justBought[pending.key]=self.clock() end
 		-- This notification requests verification; it never grants an entitlement.
 		self.app:Request("RefreshShop")
 		self:Changed()
@@ -282,6 +284,7 @@ function Controller:Start()
 		local pending=self.pending
 		if not pending or not pending.prompted or pending.kind~="Product" or pending.productId~=productId then return end
 		self.pending=nil
+		if purchased==true then self.justBought[pending.key]=self.clock() end
 		-- Closing checkout is not proof of payment or receipt delivery.
 		local intent=pending.crateIntent
 		if intent and self.autoCrate==intent then

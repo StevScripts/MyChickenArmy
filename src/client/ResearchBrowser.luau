@@ -337,6 +337,7 @@ function Browser.new(app,parent)
 	Theme.Aspect(money,3.6);money.ZIndex=5
 	Theme.Image(money,"ResearcherIcon",Assets.lab,UDim2.fromScale(.075,.34))
 	self.researchers=label(money,"Researchers","Researchers: 0/1",.085,0,.915,.34,CYAN);self.researchers.TextXAlignment=Enum.TextXAlignment.Left
+	Theme.Motion:Center(self.researchers)
 	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.13,.53),UDim2.fromScale(0,.44))
 	self.cash=label(money,"Cash","$0",.15,.37,.85,.63,Theme.Colors.money);self.cash.TextXAlignment=Enum.TextXAlignment.Left
 	-- The shared square close X (Theme.HeaderClose's button and accent), in the
@@ -393,6 +394,8 @@ function Browser:BuildTooltip()
 		local stroke=Theme.Stroke(button,Color3.new(0,0,0),1.5);stroke.LineJoinMode=Enum.LineJoinMode.Round
 		stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
 		local caption=label(button,"Caption","",.05,.12,.9,.76);caption.ZIndex=11
+		-- RenderTooltip rewrites Position/Size, so press feedback rides a UIScale.
+		Theme.Motion:BindButton(button,Theme.Motion:ScaleOf(button))
 		button.Activated:Connect(function()
 			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
 			callback()
@@ -554,6 +557,8 @@ function Browser:Feedback(text,color,id)
 			view.flash=TweenService:Create(view.outline,TweenInfo.new(MOTION.FlashSeconds,Enum.EasingStyle.Quad),{ImageColor3=view.rimColor or WHITE})
 			view.flash:Play()
 		end
+		-- Position-only wiggle; SizeNode owns the same Visual's Size.
+		if color==RED then Theme.Motion:Shake(view.visual) end
 	end
 	task.delay(2.2,function()
 		if self.alive and version==self.feedbackVersion then self.message.Visible=false end
@@ -567,6 +572,8 @@ function Browser:Celebrate(ids)
 		table.insert(names,Catalog.Nodes[id].name)
 		self:PulseNode(self.nodes[id],nil,(index-1)*MOTION.CompletionStaggerSeconds)
 	end
+	local first=displayNodes[ids[1]]
+	if first then local p=point(first);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),CYAN) end
 	local more=if #ids>#names then " +"..(#ids-#names).." more" else ""
 	self:Feedback("Research complete: "..table.concat(names,", ")..more.."!",CYAN)
 end
@@ -577,6 +584,7 @@ function Browser:Receive(state,result)
 	self.data,self.coins,self.cashOffers=state.research,state.coins,state.boardUpgrades or {}
 	if oldSlots and self.data.effects.slots>oldSlots then
 		self.app.audio:Play("SkillTreeResearchSlotAdded",nil,{noFallback=true})
+		if self.root.Visible then Theme.Motion:PopScale(self.researchers,1.15) end
 	end
 	-- Integer server snapshots must not rewind the fractional client clock.
 	self.serverTime=if self.receivedAt>0 then math.max(self:Now(),state.research.serverTime) else state.research.serverTime
@@ -699,7 +707,7 @@ function Browser:Render()
 		link.line.BackgroundColor3=if completed then GREEN else Color3.fromRGB(51,58,54)
 		link.line.BackgroundTransparency=if completed then .72 else .35
 	end
-	self.cash.Text="$"..Theme.Money(self.coins or 0)
+	Theme.Motion:Count(self.cash,self.coins or 0,function(v) return "$"..Theme.Money(v) end)
 	self.researchers.Text="Researchers: "..#data.jobs.."/"..data.effects.slots
 	self:Step()
 end
@@ -826,10 +834,12 @@ function Browser:Select(id,persistent)
 		end
 		self:DismissTooltip();return
 	end
-	if self.selected~=id then self.confirmCancel=nil;self:StopProgress(self.tipMotion) end
+	local changed=self.selected~=id
+	if changed then self.confirmCancel=nil;self:StopProgress(self.tipMotion) end
 	self.selected,self.persistent=id,persistent
 	self.tip.Visible=true
 	self:RenderTooltip()
+	if changed then Theme.Motion:PopScale(self.tip,.94,.14) end
 end
 
 function Browser:DismissTooltip()

@@ -197,6 +197,17 @@ function Presentation:_Reveal()
 	self.root:SetAttribute("Phase","Result")
 	self.root:SetAttribute("CenteredRewardId",self.reward.id)
 	self:_Sound("RollReveal",1,0.3,0.9)
+	-- Landing bounce, a sweep of light and gold sparks above the reel and dim.
+	local winner=self.winner
+	if winner then
+		self.motion:PopScale(winner,1.12,0.3)
+		self.motion:Shine(winner)
+		local shine=winner:FindFirstChild("MotionShine")
+		if shine then (shine :: any).UICorner.CornerRadius=winner.UICorner.CornerRadius end
+	end
+	self.motion:Burst(self.root,CENTER,GOLD)
+	local sparkles=self.root:FindFirstChild("RewardSparkles")
+	if sparkles then sparkles.ZIndex=109 end
 	self:_Later(if self.reduced then self.timing.reducedHold else self.timing.hold,function() self:_Exit() end)
 end
 
@@ -242,6 +253,7 @@ function Presentation:Play(reward,pool,options)
 	self.reward=selected
 	self.completion=options.onComplete or self.onComplete
 	self.reduced=if options.reducedMotion~=nil then options.reducedMotion==true else self.reducedMotion
+	self.motion.reduced=self.reduced
 	self.root:SetAttribute("Phase","Entering")
 	self.root:SetAttribute("RewardId",selected.id)
 	self.root:SetAttribute("Preview",options.preview==true)

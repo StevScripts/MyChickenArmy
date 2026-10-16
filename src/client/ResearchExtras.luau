@@ -65,7 +65,7 @@ function Extras:UpdateRally()
 	if shown~=self.rallyShown then
 		self.rallyShown=shown
 		local rally=self.rally
-		if shown then rally.Visible=true end
+		if shown then rally.Visible=true else self.rallyCooling=false end
 		rally.Interactable=shown
 		Theme.Motion:Tween(rally,"slide",{Position=UDim2.fromScale(if shown then RALLY_SHOWN_X else RALLY_HIDDEN_X,.68)},
 			.32,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function()
@@ -79,6 +79,9 @@ function Extras:UpdateRally()
 	local input=UserInputService.PreferredInput
 	local hint=if input==Enum.PreferredInput.Gamepad then " (LT)" elseif input==Enum.PreferredInput.KeyboardAndMouse then " (G)" else ""
 	self.rally.Text=if active>0 then "Active "..active.."s" elseif cooldown>0 then "Rally "..cooldown.."s" else "Rally"..hint
+	-- A small pop the moment the cooldown ends, once per cooldown.
+	if cooldown==0 and self.rallyCooling then Theme.Motion:Pop(self.rally.Visual,1.12) end
+	self.rallyCooling=cooldown>0
 	self.rally.Active=cooldown==0
 end
 

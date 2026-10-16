@@ -112,7 +112,14 @@ function Controller:Receive(state)
 		panel.Size=UDim2.fromScale(restingSize.X.Scale*0.94,restingSize.Y.Scale*0.94)
 		panel.Position=UDim2.fromScale(restingPosition.X.Scale,restingPosition.Y.Scale+0.035)
 	end
-	Theme.Motion:Tween(panel,"receipt-size",{Size=restingSize},0.28,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+	Theme.Motion:Tween(panel,"receipt-size",{Size=restingSize},0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out,function()
+		Theme.Motion:PopScale(icon,1.15,0.3)
+		Theme.Motion:Burst(rewardView,UDim2.fromScale(0.5,0.45),GREEN)
+	end)
+	-- Display only: the receipt is already saved; the number rolls up to it.
+	local function money(value) return "+$"..Theme.Money(math.floor(value)) end
+	Theme.Motion:Count(amount,0,money)
+	Theme.Motion:Count(amount,reward.amount,money,0.7)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},0.28)
 	Theme.Motion:Tween(panel,"receipt-fade",{GroupTransparency=0},0.22)
 	if self.app.editPreview then return end

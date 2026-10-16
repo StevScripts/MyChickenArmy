@@ -8,10 +8,22 @@ local OfflineCash=require(script.Parent.OfflineCash)
 local DataService={}
 DataService.__index=DataService
 
+-- Observation only (Analytics ServerEvent, set by GameServer); never affects a save.
+local function report(self,session,name,detail)
+ local analytics=self.analytics
+ if analytics then pcall(function() analytics:ServerEvent(session,name,detail) end) end
+end
+
+-- Short failure token: a DataStore error code when the message starts with one.
+local function failReason(message)
+ local code=string.match(tostring(message),"^(%d+)")
+ return if code then string.sub("store_"..code,1,32) else "store"
+end
+
 function DataService.new(storeOverride,clockOverride,dependencies)
  dependencies=dependencies or {}
  local self=setmetatable({entries={},saving={},loading={},clock=clockOverride or os.time,closing=false,
-  wait=dependencies.wait or task.wait,monotonic=dependencies.monotonic or os.clock},DataService)
+  wait=dependencies.wait or task.wait,monotonic=dependencies.monotonic or os.clock,saveOkAt={},analytics=nil::any},DataService)
  self.token=(if game.JobId~="" then game.JobId else "studio")..":"..HttpService:GenerateGUID(false)
  self.store=storeOverride
  if not self.store and (not RunService:IsStudio() or game.GameId~=0) then
@@ -63,6 +75,9 @@ function DataService:Load(session)
   return false,session.saveMessage
  end
  local valid,why=session:LoadData(record.data)
+ -- A saved yard build that LoadData finished while the player was away (observation only).
+ local build=if type(record.data)=="table" then record.data.plotBuild else nil
+ local builtAway=if valid and type(build)=="table" and session.plotBuild==nil and build.level==session.plotSizeLevel then build.level else nil
  if not valid then
   -- Release only our lock; keep the unrecognized player data byte-for-byte logically intact.
   self:Update(key,function(old)
@@ -99,6 +114,7 @@ function DataService:Load(session)
  session.saveStatus="saved";session.saveMessage="Progress saved automatically."
  self.loading[session.userId]=nil
  session.loaded=true;session:Touch()
+ if builtAway then report(self,session,"plot.buildDone",builtAway) end
  return true,"Loaded."
 end
 
@@ -121,6 +137,7 @@ function DataService:Save(session,release,deadline,force)
  if not captured then
   self.saving[session.userId]=nil
   session.saveStatus="error";session.saveMessage="Saving interrupted. Your purchase will retry safely.";session:Touch()
+  report(self,session,"data.saveFail","capture")
   return false,tostring(payload)
  end
  local now=self.clock()
@@ -134,6 +151,7 @@ function DataService:Save(session,release,deadline,force)
   session.saveStatus="error";session.saveMessage="Saving interrupted. Retrying; keep this session open."
   if ok and not record then session.saveLost=true;session.saveMessage="Your save moved to another session. Rejoin to continue safely." end
   session:Touch()
+  report(self,session,"data.saveFail",if ok then "lockLost" else failReason(record))
   return false,if ok then "Session lock lost." else record
  end
  entry.lastSaved=now;entry.leaseExpires=now+Config.SaveLeaseSeconds
@@ -144,7 +162,10 @@ function DataService:Save(session,release,deadline,force)
  -- The store accepted our lease, so an earlier local expiry no longer applies.
  session.saveLost=false
  session.saveStatus="saved";session.saveMessage="Progress saved automatically.";session:Touch()
- if release then self.entries[session.userId]=nil end
+ -- data.saveOk at most once per 5 minutes per player.
+ local at=self.monotonic()
+ if at>=(self.saveOkAt[session.userId] or -math.huge) then self.saveOkAt[session.userId]=at+300;report(self,session,"data.saveOk") end
+ if release then self.entries[session.userId]=nil;self.saveOkAt[session.userId]=nil end
  return true,"Saved."
 end
 

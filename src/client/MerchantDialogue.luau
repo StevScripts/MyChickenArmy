@@ -125,8 +125,14 @@ function Dialogue:Show(text, choices, note)
   local ready, chosen, hovering = false, false, false
   local function hover(on)
    hovering = on
-   if ready and not chosen then self:Tween(response, 0.12, {Position = UDim2.fromScale((RESPONSE_X + (if on then HOVER else 0)) / WIDTH, 0)}) end
+   if ready and not chosen then self:Tween(response, 0.12, {Position = UDim2.fromScale((RESPONSE_X + (if on then HOVER else 0)) / WIDTH, 0), TextColor3 = WHITE}) end
   end
+  -- Press feedback: the held response warms to cream until release or leave.
+  local function press(on)
+   if ready and not chosen then self:Tween(response, if on then 0.06 else 0.12, {TextColor3 = if on then CREAM else WHITE}) end
+  end
+  row.MouseButton1Down:Connect(function() press(true) end)
+  row.MouseButton1Up:Connect(function() press(false) end)
   row.MouseEnter:Connect(function() hover(true) end)
   row.MouseLeave:Connect(function() hover(false) end)
   row.SelectionGained:Connect(function() hover(true) end)
@@ -137,6 +143,7 @@ function Dialogue:Show(text, choices, note)
    self.app.audio:Play("Click")
    -- Echo the chosen sentence above the merchant before the reply.
    self:Show(choice.text, {})
+   Theme.Motion:PopScale(self.speech, 0.9)
    self:After(if self.app.reducedMotion then 0.12 else 0.68, function()
     self:Tween(self.speech, 0.12, {TextTransparency = 1})
     self:After(if self.app.reducedMotion then 0 else 0.12, choice.run)

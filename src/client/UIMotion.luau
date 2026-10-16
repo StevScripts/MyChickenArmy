@@ -76,7 +76,8 @@ end
 -- A UIScale child animates without changing Size, so layout children, aspect-
 -- constrained items and Billboard/SurfaceGui art keep their geometry.
 function Motion:ScaleOf(item)
-	local scale=item:FindFirstChild("MotionScale")
+	-- Two UIScales on one object misbehave, so share an authored one if present.
+	local scale=item:FindFirstChildWhichIsA("UIScale")
 	if not scale then
 		scale=Instance.new("UIScale")
 		scale.Name="MotionScale"
@@ -143,7 +144,7 @@ function Motion:Breathe(item,amount,seconds)
 end
 
 function Motion:StopBreathe(item)
-	local scale=item:FindFirstChild("MotionScale")
+	local scale=item:FindFirstChildWhichIsA("UIScale")
 	if scale then self:StopLoop(scale,"breathe") end
 end
 

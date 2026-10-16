@@ -23,7 +23,8 @@ end
 
 local function label(parent,name,text,y,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
-	item.Position,item.Size=UDim2.fromScale(0,y),UDim2.fromScale(1,h)
+	-- Centre-anchored (same row) so the arrival pop grows from the middle.
+	item.AnchorPoint,item.Position,item.Size=Vector2.new(.5,.5),UDim2.fromScale(.5,y+h/2),UDim2.fromScale(1,h)
 	item.TextScaled,item.TextXAlignment=true,Enum.TextXAlignment.Center
 	return item
 end
@@ -87,6 +88,7 @@ function Tracker:UpdateMarkers()
 			local tint=if mission.rare then GOLD else (Operations.Colors[mission.tier] or WHITE):Lerp(WHITE,.35)
 			marker={gui=gui,name=label(gui,"Name",mission.name,0,.6,tint),info=label(gui,"Info","",.6,.4,WHITE)}
 			self.markers[mission.id]=marker
+			Theme.Motion:PopScale(marker.name,.6,.3);Theme.Motion:PopScale(marker.info,.6,.3)
 		end
 		-- October 15: a held site stays while its holder's Army is stationed there.
 		local remaining=self:Remaining(mission.id) or mission.expiresIn

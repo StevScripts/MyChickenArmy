@@ -1130,10 +1130,12 @@ function Intro:Lock()
 	skip.Name, skip.Text, skip.Font, skip.TextScaled = "Skip", "SKIP", Theme.Font, true
 	skip.AnchorPoint, skip.Position, skip.Size = Vector2.new(1, 0.5), UDim2.fromScale(0.975, 1 - BAR_HEIGHT / 2), UDim2.fromScale(0.1, BAR_HEIGHT * 0.5)
 	skip.TextColor3, skip.BackgroundColor3, skip.BackgroundTransparency = Color3.new(1, 1, 1), Color3.new(0, 0, 0), 0.2
-	skip.AutoButtonColor, skip.ZIndex, skip.Parent = true, 96, skipColumn
+	skip.AutoButtonColor, skip.ZIndex, skip.Parent = false, 96, skipColumn
 	local aspect = Instance.new("UIAspectRatioConstraint")
 	aspect.AspectRatio, aspect.Parent = 3.2, skip
 	Theme.Stroke(skip, Color3.new(1, 1, 1), 2)
+	-- Aspect-constrained, so it keeps its right-edge anchor; scale grows from there.
+	Theme.Motion:BindButton(skip, Theme.Motion:ScaleOf(skip))
 	skip.Activated:Connect(function() if self.playing then app.audio:Play("Click");self:Finish(true) end end)
 	-- One caption line, centred in the bottom bar and clear of SKIP on the right.
 	local caption = Theme.Label(skipColumn, "Caption", "", 30, Color3.new(1, 1, 1))
@@ -1228,7 +1230,7 @@ function Intro:Finish(skipped: boolean)
 	end
 	if layer then
 		for _, bar in self.bars do TweenService:Create(bar, TweenInfo.new(0.4, QUAD, OUT), {Size = UDim2.fromScale(1, 0)}):Play() end
-		local skip = layer:FindFirstChild("Skip")
+		local skip = layer:FindFirstChild("Skip", true)
 		if skip then skip:Destroy() end
 		if cover then TweenService:Create(cover, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play() end
 		task.delay(0.45, function() layer:Destroy() end)

@@ -61,17 +61,21 @@ function CommerceService:_ScheduleRefresh(record)
 	end)
 end
 
--- Top Supporters leaderboard only: adds the pass's current Robux price to the
--- player's lifetime total. Never affects ownership or benefits.
-function CommerceService:_RecordPassSpend(record, passId)
+-- Top Supporters leaderboard and the analytics hook: the pass's current Robux price
+-- (cached 10 minutes), looked up off the purchase path. Never affects ownership or benefits.
+function CommerceService:_RecordPassSpend(record, passId, key)
 	self.passPrices = self.passPrices or {}
 	task.spawn(function()
-		local price = self.passPrices[passId]
+		local cached = self.passPrices[passId]
+		local price = if cached and self.clock() - cached.at < 600 then cached.price else nil
 		if not price then
-			local ok, info = pcall(function() return self.marketplace:GetProductInfo(passId, Enum.InfoType.GamePass) end)
+			local ok, info = pcall(function() return self.marketplace:GetProductInfoAsync(passId, Enum.InfoType.GamePass) end)
+			if not ok then ok, info = pcall(function() return self.marketplace:GetProductInfo(passId, Enum.InfoType.GamePass) end) end
 			price = if ok and type(info) == "table" and type(info.PriceInRobux) == "number" then info.PriceInRobux else nil
-			if price then self.passPrices[passId] = price end
+			if price then self.passPrices[passId] = {price = price, at = self.clock()} end
 		end
+		-- Observation hook (Analytics) with the Robux charged, if known; never grants or blocks anything.
+		if self.onPassPurchased then pcall(self.onPassPurchased, record.player, key, price) end
 		local session = record.session
 		if price and price > 0 and not session.closing and not session.saveLost then
 			session.robuxSpent = math.min(1e12, (session.robuxSpent or 0) + math.floor(price))
@@ -91,9 +95,8 @@ function CommerceService:_PurchaseFinished(player, passId, wasPurchased)
 				record.purchased[key] = true
 				record.owned[key] = true
 				self:_ApplyBenefits(record)
-				-- Observation hook (Analytics); never grants or blocks anything.
-				if self.onPassPurchased then pcall(self.onPassPurchased, player, key) end
-				self:_RecordPassSpend(record, passId)
+				-- Also fires the Analytics hook once the price lookup finishes.
+				self:_RecordPassSpend(record, passId, key)
 			end
 			-- Cancellation grants nothing; a fresh ownership check still runs.
 			record.pending = true

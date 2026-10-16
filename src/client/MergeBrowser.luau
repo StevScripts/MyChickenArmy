@@ -211,11 +211,14 @@ function Browser:Resize()
  local slotWidth=(844-36)/3
  for i,slot in self.slots do
   local x=(i-1)*(slotWidth+18)
-  rect(slot.box,x,56,slotWidth,244,844,622)
+  -- Centre anchors keep the resting rects but let UIScale pops grow from the middle.
+  slot.box.AnchorPoint=Vector2.new(0.5,0.5)
+  rect(slot.box,x+slotWidth/2,56+122,slotWidth,244,844,622)
   Theme.Aspect(slot.box,slotWidth/244)
   rect(slot.title,4,2,slotWidth-8,34,slotWidth,244)
   rect(slot.level,3,157,slotWidth-6,28,slotWidth,244)
-  rect(slot.art,(slotWidth-172)/2,14,172,172,slotWidth,244)
+  slot.art.AnchorPoint=Vector2.new(0.5,0.5)
+  rect(slot.art,slotWidth/2,14+86,172,172,slotWidth,244)
   Theme.Aspect(slot.art,1)
   if self.selection.slots[i] then
    rect(slot.action,6,188,slotWidth-12,52,slotWidth,244)
@@ -223,7 +226,8 @@ function Browser:Resize()
    rect(slot.action,(slotWidth-184)/2,75,184,94,slotWidth,244)
   end
  end
- rect(self.result,294,366,256,250,844,622)
+ self.result.AnchorPoint=Vector2.new(0.5,0.5)
+ rect(self.result,294+128,366+125,256,250,844,622)
  Theme.Aspect(self.result,256/250)
  rect(self.resultTitle,4,2,248,36,256,250)
  rect(self.resultArt,11,14,234,234,256,250)
@@ -263,7 +267,8 @@ function Browser:Resize()
  rect(self.dpsChip,436,545,416,60,852,656)
  self.processing.Position,self.processing.Size=UDim2.new(),UDim2.fromScale(1,760/764)
  rect(self.processingArt,34,170,784,340,852,760)
- rect(self.processingText,0,524,852,64,852,760)
+ self.processingText.AnchorPoint=Vector2.new(0.5,0.5)
+ rect(self.processingText,426,524+32,852,64,852,760)
  rect(self.processingHint,12,590,828,60,852,760)
 end
 
@@ -281,6 +286,7 @@ function Browser:Slot(index)
  self.app.audio:Play("Click");self.notice=nil
  if self.selection.slots[index] then
   self.selection:Remove(index);self:Render(true)
+  Theme.Motion:PopScale(self.slots[index].box,0.96)
  else
   self.activeSlot=index;self.mode="Picker";self.search.Text="";self.query="";self.grid.CanvasPosition=Vector2.zero
   self:Render(true);self:Focus(self.cards[1] or self.back)
@@ -293,7 +299,8 @@ function Browser:Choose(key)
  if not self.selection:Add(self.app.state.mergeOptions,key,self.activeSlot or 1) then self:Render(true);return end
  self.app.audio:Play("Click");self.mode="Main";self.notice=nil;self.main.CanvasPosition=Vector2.zero
  self:Render(true)
- Theme.Motion:Pop(self.slots[self.activeSlot].art,1.08)
+ Theme.Motion:PopScale(self.slots[self.activeSlot].art,1.08)
+ if self.selection:Count()==3 then Theme.Motion:PopScale(self.result,1.05) end
  local focus=self.action
  for i=1,3 do if not self.selection.slots[i] then focus=self.slots[i].action;break end end
  self:Focus(focus)
@@ -381,6 +388,13 @@ function Browser:UpdateAction()
   elseif not affordable then "Need $"..Theme.Money(price-(self.app.state.coins or 0)).." more"
   else "Fuse · $"..Theme.Money(price)
  self.action.Active,self.action.Selectable=ready==true,ready==true
+ -- Becoming ready (third chicken, cash or walking up) answers once with a pop and shine.
+ -- Deferred past the button's own Active-changed settle, which would cancel the pop.
+ if ready and self.wasReady==false and self.root.Visible and self.mode=="Main" then
+  local visual=self.action.Visual
+  task.defer(function() Theme.Motion:Pop(visual,1.06);Theme.Motion:Shine(visual.Face) end)
+ end
+ self.wasReady=ready==true
  Theme.ApplyReferenceAccent(self.action,if ready then ACCENT else ColorSequence.new(Color3.fromRGB(50,24,66),Color3.fromRGB(37,17,49)))
  self.action.Visual.Face.InsetHighlight.UIStroke.Color=if ready then Color3.fromRGB(224,167,255) else LINE
  self.action.Visual.Caption.TextColor3=if ready then WHITE else MUTED
@@ -430,7 +444,9 @@ function Browser:RenderPicker()
    local card=Instance.new("TextButton")
    card.Name,card.Text,card.BackgroundTransparency,card.BorderSizePixel="Chicken_"..recipe.key,"",0,0
    card.AutoButtonColor,card.LayoutOrder,card.ZIndex,card.Parent=false,index,row.ZIndex+1,row
-   card.Position,card.Size=UDim2.fromScale((4+((index-1)%3)*284)/852,4/268),UDim2.fromScale(266/852,250/268)
+   -- Centre-anchored (same resting rect) so hover/press scale from the middle.
+   card.AnchorPoint=Vector2.new(0.5,0.5)
+   card.Position,card.Size=UDim2.fromScale((4+((index-1)%3)*284+133)/852,(4+125)/268),UDim2.fromScale(266/852,250/268)
    card.BackgroundColor3=INK
    Theme.Aspect(card,266/250)
    local rarity=Catalog[recipe.species].rarity
@@ -449,6 +465,7 @@ function Browser:RenderPicker()
    local level=label(card,"Level","Lv. "..recipe.level..(if recipe.stars>1 then " · "..recipe.stars.."★" else ""),20)
    level.Position,level.Size=UDim2.fromScale(2/266,224/250),UDim2.fromScale(262/266,24/250)
    card.Activated:Connect(function() self:Choose(recipe.key) end)
+   Theme.Motion:BindButton(card,Theme.Motion:ScaleOf(card),card)
    table.insert(self.cards,card)
   end
  end
@@ -495,7 +512,15 @@ function Browser:Render(force)
   self.processingText.Text=if self.pending and self.pending.checking then "Checking your Flock…" else "Fusing…"
   self.processingHint.Text=if self.pending and self.pending.checking then "You can close this while we check." else ""
  end
+ self:FusingPulse(self.mode=="Processing" and self.root.Visible)
  self.root:SetAttribute("FusePhase",self.mode)
+end
+
+-- Gentle breathing on "Fusing…" while the server confirms; started/stopped only on change.
+function Browser:FusingPulse(on)
+ if on==(self.pulsing==true) then return end
+ self.pulsing=on
+ if on then Theme.Motion:Breathe(self.processingText,1.04,0.6) else Theme.Motion:StopBreathe(self.processingText) end
 end
 
 function Browser:Merge()
@@ -559,9 +584,11 @@ function Browser:Receive(result)
   self.mode="Main"
  end
  self:Render(true)
+ Theme.Motion:Shake(self.message)
 end
 
 function Browser:Close()
+ self:FusingPulse(false)
  self.viewSerial+=1;self.animating=false;self.selection:Clear();self.recipe=nil;self.key="";self.notice=nil
  if self.presentation then self.presentation:Destroy();self.presentation=nil end
  self.mode="Main";self.completed=nil

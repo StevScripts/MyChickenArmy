@@ -199,7 +199,12 @@ function Shop:Render()
   view.price.TextColor3=if status=="restricted" or status=="offsale" then Theme.Colors.muted else WHITE
  end
  local credits=if shop and type(shop.crateCredits)=="number" then math.max(0,math.floor(shop.crateCredits)) else 0
- self.openButton.Visible=testing or credits>0
+ local showOpen=testing or credits>0
+ -- Grow in only when crates first become openable, not on every refresh.
+ if showOpen and not self.openButton.Visible then Theme.Motion:PopScale(self.openButton.Visual,0.6,0.26) end
+ self.openButton.Visible=showOpen
+ if self.lastCredits and credits>self.lastCredits then Theme.Motion:PopScale(self.creditLabel,1.12) end
+ self.lastCredits=credits
  self.openButton.Active=(testing or credits>0) and not busy and shop~=nil and (testing or shop.productReady==true)
   and shop.policyReady==true and shop.paidRandomAllowed==true and Catalog.Crate.enabled==true
  self.openButton.Selectable=self.openButton.Active

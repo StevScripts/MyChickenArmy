@@ -86,6 +86,13 @@ function Presentation:Waiting()
  self.output.Visible=false
  for _,bird in self.inputs do bird.Visible=true end
  self.plus.Visible=false
+ -- Staggered idle bobs while the server confirms; Cancel settles them at rest.
+ for i,bird in self.inputs do
+  self:Later((i-1)*0.15,function()
+   local rest=bird.Position
+   Theme.Motion:Loop(bird,"waitBob",{Position=rest-UDim2.fromScale(0,0.02)},{Position=rest},0.45)
+  end)
+ end
 end
 
 function Presentation:Play(onReveal,onComplete)
@@ -138,6 +145,7 @@ end
 
 function Presentation:Cancel()
  self.serial+=1
+ for _,bird in self.inputs do Theme.Motion:StopLoop(bird,"waitBob") end
  for _,track in self.tracks do Theme.Motion:Cancel(track[1],track[2]) end
  table.clear(self.tracks)
  if self.puff then self.puff:Destroy();self.puff=nil end

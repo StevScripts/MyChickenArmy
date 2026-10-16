@@ -19,6 +19,7 @@ local PRICE_REFRESH_SECONDS = 120
 local LABEL_DISTANCE = 55
 -- {top, height} as billboard scale; small gaps keep outlines from touching.
 local LABEL_ROWS = {Title = {0, 0.4}, Price = {0.43, 0.33}, Hint = {0.79, 0.21}}
+local BUYING = {preparing = true, pending = true}
 
 function Stand.new(app)
 	local ray = RaycastParams.new()
@@ -82,8 +83,9 @@ function Stand:Layout(gui)
 	for name, row in LABEL_ROWS do
 		local label = gui:FindFirstChild(name)
 		if not label or not label:IsA("TextLabel") then continue end
-		label.AnchorPoint, label.AutomaticSize = Vector2.zero, Enum.AutomaticSize.None
-		label.Position, label.Size = UDim2.fromScale(0, row[1]), UDim2.fromScale(1, row[2])
+		-- Centre-anchored (same rows) so a status pop grows from the middle.
+		label.AnchorPoint, label.AutomaticSize = Vector2.new(0.5, 0.5), Enum.AutomaticSize.None
+		label.Position, label.Size = UDim2.fromScale(0.5, row[1] + row[2]/2), UDim2.fromScale(1, row[2])
 		label.TextScaled, label.TextWrapped = true, false
 		label.TextXAlignment, label.TextYAlignment = Enum.TextXAlignment.Center, Enum.TextYAlignment.Center
 		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
@@ -140,6 +142,13 @@ function Stand:Render(view, status, price)
 	end
 	view.gui.Price.Text, view.gui.Price.TextColor3 = text, color
 	view.gui.Hint.Text = hint
+	-- Pop on purchase steps only (checkout opens, then Owned); join-time checks
+	-- and the periodic price refresh (loading -> ready) stay still.
+	local previous = view.shownStatus
+	if previous ~= status and ((BUYING[status] and previous ~= nil) or (status == "owned" and BUYING[previous])) then
+		Theme.Motion:PopScale(view.gui.Price, 1.15)
+	end
+	view.shownStatus = status
 end
 
 function Stand:Contact(view, root, humanoid)

@@ -39,7 +39,8 @@ local DAILY_CHECK_SECONDS=10
 
 function GameServer.new()
 	local self=setmetatable({sessions={},connections={},playerConnections={},limits={},stepAccumulator=0,
-		snapshotAccumulator=0,recruitObservations={},awayObservations={},syncs={},sent={}},GameServer)
+		snapshotAccumulator=0,recruitObservations={},awayObservations={},syncs={},sent={},
+		eventGates={},throttleNotes={},depositSeen={}},GameServer)
 	self.world=WorldService.new()
 	self.eggs=EggService.new(self.world)
 	self.leaderboards=LeaderboardService.new(self.world,self.sessions)
@@ -51,7 +52,7 @@ function GameServer.new()
 	self.hill=HillService.new(self.battles,self.world,self.sessions,os.clock())
 	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
 	-- Local loop observations also feed the agent analytics ledger.
-	self.telemetry=LoopTelemetry.new(function(event) if self.analytics then self.analytics:LoopEvent(event) end end)
+	self.telemetry=LoopTelemetry.new(function(event) if self.analytics then self.analytics:LoopEvent(event);pcall(self.BattleEnded,self,event) end end)
 	self.tutorial=TutorialService.new()
 	self.battles.telemetry=self.telemetry
 	self.debug=DebugService.new(self.sessions,self.battles,self.commerce)
@@ -62,11 +63,12 @@ function GameServer.new()
 	-- Observation only (docs/analytics/AGENT_GUIDE.md). Hooks never change gameplay.
 	self.analytics=Analytics.new({tutorial=self.tutorial,battles=self.battles})
 	self.operations.analytics=self.analytics
+	self.data.analytics,self.hill.analytics,self.rolls.analytics=self.analytics,self.analytics,self.analytics
 	TutorialService.Transport=function(player,name,value,fields) self.analytics:Custom(player,name,value,fields) end
 	TutorialService.onProgress=function(userId,name,value,step,detail) self.analytics:Progress(userId,name,value,step,detail) end
 	TutorialService.onIncome=function(session,source,amount,balance) self.analytics:Income(session,source,amount,balance) end
-	self.products.onGranted=function(session,productId,product) self.analytics:ProductGranted(session,productId,product) end
-	self.commerce.onPassPurchased=function(player,key) self.analytics:PassPurchased(player,key) end
+	self.products.onGranted=function(session,productId,product,receipt) self.analytics:ProductGranted(session,productId,product,receipt) end
+	self.commerce.onPassPurchased=function(player,key,robux) self.analytics:PassPurchased(player,key,robux) end
 	return self
 end
 
@@ -130,9 +132,17 @@ function GameServer:Handle(player,request)
 	if type(request)~="table" or type(request.action)~="string" or #request.action>40
 		or type(request.id)~="number" or request.id~=request.id or math.abs(request.id)>1e12 then return end
 	local now=os.clock()
+	-- Batched UI events from AnalyticsClient (~every 15 s): their own small gate
+	-- (burst 3, one per 5 s), so they never spend gameplay action tokens.
+	if request.action=="ClientEvents" then
+		local session,gate=self.sessions[player.UserId],self.eventGates[player.UserId] or {tokens=3,at=now}
+		gate.tokens=math.min(3,gate.tokens+(now-gate.at)/5);gate.at=now;self.eventGates[player.UserId]=gate
+		if session and gate.tokens>=1 then gate.tokens-=1;self.analytics:ClientEvents(session,request.events) end
+		return
+	end
 	local rate=self.limits[player.UserId] or {tokens=16,at=now}
 	rate.tokens=math.min(16,rate.tokens+(now-rate.at)*8);rate.at=now;self.limits[player.UserId]=rate
-	if rate.tokens<1 then return end
+	if rate.tokens<1 then self:Throttled(player,request.action,now);return end
 	rate.tokens-=1
 	local session=self.sessions[player.UserId]
 	if not session then return end
@@ -144,6 +154,7 @@ function GameServer:Handle(player,request)
 	local balanceBefore=session.coins
 	local receipt,purchase,crate
 	local selectedBefore=#session:BestPetIds()
+	local recapBefore=#(session.researchRecap or {})
 	local selectionBefore=if action=="SetArmy" or action=="SelectBest" then table.concat(session:BestPetIds(),":") else nil
 	if action=="Sync" then
 		local sync=self.syncs[player.UserId] or {readyAt=0};self.syncs[player.UserId]=sync
@@ -266,7 +277,7 @@ function GameServer:Handle(player,request)
     for _,result in receipt.results do
      local giant=session.pets[result.petId]
      if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
-     if result.outcome then self.analytics:LaunchCount(session,"giant.fuse."..result.outcome) end
+     if result.outcome then self.analytics:LaunchCount(session,"giant.fuse."..result.outcome);self.analytics:ServerEvent(session,"giant.result",result.outcome) end
     end
    end
   else
@@ -276,11 +287,13 @@ function GameServer:Handle(player,request)
     self.world:CelebrateMerge(session,petId)
     local giant=session.pets[petId]
     if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
-    if outcome then self.analytics:LaunchCount(session,"giant.fuse."..outcome) end
+    if outcome then self.analytics:LaunchCount(session,"giant.fuse."..outcome);self.analytics:ServerEvent(session,"giant.result",outcome) end
    end
   end
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
+		local building=session.plotBuild
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)
+		if ok and session.plotBuild and session.plotBuild~=building then self.analytics:ServerEvent(session,"plot.buildStart",session.plotBuild.level) end
 	elseif action=="EggSellerUpgrade" then
 		ok,message=self.eggs:Upgrade(player,session,request.expectedLevel,request.expectedPrice)
 	elseif action=="Expand" then ok,message=ArmyService.Expand(session)
@@ -305,6 +318,11 @@ function GameServer:Handle(player,request)
 		-- Yields while the real save is released; stop if this session ended meanwhile.
 		ok,message=self:StartNewPlayerTest(player,session,now)
 		if self.sessions[player.UserId]~=session or session.closing then return end
+	end
+	-- Research finished inside Start/Cancel/Skip (Step reports timer completions).
+	if action=="StartResearch" or action=="CancelResearch" or action=="SkipResearch" then
+		local recap=session.researchRecap or {}
+		for i=recapBefore+1,#recap do self.analytics:ServerEvent(session,"research.complete",recap[i]) end
 	end
 	self.tutorial:Action(session,action,ok,balanceBefore,request,selectionBefore)
 	self.analytics:Action(session,action,ok,message,balanceBefore,request,{petId=petId,crate=crate,purchase=purchase})
@@ -336,6 +354,52 @@ function GameServer:Handle(player,request)
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
 	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate})
+end
+
+-- Observation only: a request dropped by the action rate limit, at most once per 10 s per player.
+function GameServer:Throttled(player,action,now)
+	if now<(self.throttleNotes[player.UserId] or 0) then return end
+	self.throttleNotes[player.UserId]=now+10
+	local session=self.sessions[player.UserId]
+	if session then self.analytics:ServerEvent(session,"remote.throttled",string.sub(string.gsub(action,"[^%w]",""),1,24)) end
+end
+
+-- Observation only: Hill contests are the one battle end BattleService already reports (LoopTelemetry).
+function GameServer:BattleEnded(event)
+	local fields=event.fields
+	if event.name~="TerritoryContestResolved" or type(fields)~="table" or type(fields.result)~="string" then return end
+	local session=self.sessions[fields.userId]
+	if session then self.analytics:ServerEvent(session,"battle.end","Hill:"..string.gsub(fields.result,"[^%w]",""),fields.duration) end
+end
+
+-- Observation only: offline cash and research finished while away (both settled by the load).
+function GameServer:ReportLoad(session)
+	local receipt=session.offlineCashReceipt
+	if receipt and (tonumber(receipt.amount) or 0)>0 then
+		self.analytics:ServerEvent(session,"offline.shown",nil,receipt.amount)
+		self.analytics:ServerEvent(session,"offline.claimed","auto",receipt.amount)
+	end
+	for _,nodeId in session.researchRecap or {} do self.analytics:ServerEvent(session,"research.complete",nodeId) end
+end
+
+-- Observation only: sums EggService deposit receipts (player and vacuum) into at most
+-- one eggs.deposit per 30 s per player; flush sends the remainder when they leave.
+function GameServer:ObserveDeposits(session,now,flush)
+	local yard=self.eggs.yards[session.userId]
+	local seen=self.depositSeen[session.userId]
+	if yard and (not seen or seen.yard~=yard) then
+		seen={yard=yard,serial=0,eggs=if seen then seen.eggs else 0,at=if seen then seen.at else now};self.depositSeen[session.userId]=seen
+	end
+	if not seen then return end
+	local serial=if yard then yard.depositSerial or 0 else seen.serial
+	if serial>seen.serial then
+		local list=yard.deposits or {}
+		for i=math.max(1,#list-(serial-seen.serial)+1),#list do seen.eggs+=tonumber(list[i].count) or 0 end
+		seen.serial=serial
+	end
+	if seen.eggs>0 and (flush or now-seen.at>=30) then
+		self.analytics:ServerEvent(session,"eggs.deposit",nil,seen.eggs);seen.eggs,seen.at=0,now
+	end
 end
 
 -- Sends fresh state without a request result (admin rank changes).
@@ -442,6 +506,7 @@ function GameServer:AddPlayer(player)
   end
  end
  self.analytics:Loaded(session)
+ pcall(self.ReportLoad,self,session)
  self.world:UpdateSession(session);self:Send(player)
  task.spawn(function()
   if self.sessions[player.UserId]~=session or player.Parent~=Players then return end
@@ -460,6 +525,7 @@ function GameServer:RemovePlayer(player)
  local session=self.sessions[player.UserId]
  if not session or session.closing then return end
  self.tutorial:Release(session)
+ pcall(self.ObserveDeposits,self,session,os.clock(),true)
  self.analytics:Leave(session)
  session.closing=true
  self.armyCommands:Remove(player.UserId)
@@ -470,6 +536,7 @@ function GameServer:RemovePlayer(player)
  self.world:Release(session)
  self.sessions[player.UserId],self.limits[player.UserId]=nil,nil
  self.syncs[player.UserId],self.sent[player.UserId]=nil,nil
+ self.eventGates[player.UserId],self.throttleNotes[player.UserId],self.depositSeen[player.UserId]=nil,nil,nil
  local connection=self.playerConnections[player.UserId]
  if connection then connection:Disconnect();self.playerConnections[player.UserId]=nil end
  -- Release the profile lease first; the ranking write captures values before yielding.
@@ -532,8 +599,12 @@ function GameServer:Step(dt)
 		self.researchCheckedAt=wallTime
 		for _,session in self.sessions do
 			if session.loaded and not session.closing and not session.saveLost then
-				ResearchService.Complete(session,wallTime)
-				if session:CompletePlotBuild(wallTime) then self.world:UpdateSession(session) end
+				for _,nodeId in ResearchService.Complete(session,wallTime) do self.analytics:ServerEvent(session,"research.complete",nodeId) end
+				if session:CompletePlotBuild(wallTime) then
+					self.world:UpdateSession(session)
+					self.analytics:ServerEvent(session,"plot.buildDone",session.plotSizeLevel)
+				end
+				pcall(self.ObserveDeposits,self,session,now)
 				self.world:SyncPlotBuild(session,wallTime)
 			end
 		end

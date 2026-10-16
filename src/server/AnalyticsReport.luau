@@ -1,9 +1,10 @@
 --!strict
--- Agent-facing reader for the analytics ledger. Read-only except for rollup
--- caches (r/<day>) of finished days. Run from Studio Edit through the Studio
+-- Agent-facing reader for the analytics ledger and player profiles. Read-only
+-- except for rollup caches (r/<day>) of finished days. Run from Studio Edit through the Studio
 -- MCP; see docs/analytics/AGENT_GUIDE.md for the exact snippet and meanings.
 -- Usage: Report.Summary({days = 7, env = "live"}) -> summary table
 --        Report.SummaryJSON(...) -> string; Report.Journeys({day = "YYYY-MM-DD"})
+--        Report.Players({env = "live", limit = 200, sortBy = "robux"}) / PlayersJSON(...)
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local Schema = require(script.Parent.AnalyticsSchema)
@@ -89,10 +90,12 @@ end
 
 -- Histogram helpers ------------------------------------------------------------
 
+-- Labels are "le<edge>" / "gt<last edge>"; bigCash edges print as "1e+06".
 local function edge(label: string): number
-	local kind, number = string.match(label, "^(%a%a)(%d+)$")
-	if not kind then return math.huge end
-	return if kind == "gt" then (tonumber(number) or 0) + 0.5 else tonumber(number) or math.huge
+	local kind, number = string.match(label, "^(%a%a)(.+)$")
+	local value = if kind then tonumber(number) else nil
+	if not value then return math.huge end
+	return if kind == "gt" then value + 0.5 else value
 end
 
 -- Upper-bound percentile: "p50 <= label". Returns the label, the edge and the sample size.
@@ -135,6 +138,217 @@ local function sortedTop(map: {[string]: number}?, limit: number)
 	table.sort(list, function(a, b) return a.n > b.n end)
 	while #list > limit do table.remove(list) end
 	return list
+end
+
+-- Version 5 sections (docs/analytics/TRACKING_PLAN.md) -------------------------------
+
+local function keysOf(map: {[string]: any}): {string}
+	local list = {}
+	for key in map do table.insert(list, key) end
+	table.sort(list)
+	return list
+end
+
+-- Feature funnels: per step sessions/players, adjacent player conversion, time to
+-- convert, where sessions stalled, plus the cohort view for tracked players.
+local function featureFunnels(c: {[string]: number}, h: {[string]: any}, x: {[string]: {[string]: number}})
+	local list = {}
+	for _, funnel in Schema.FeatureFunnels do
+		local base = "fun." .. funnel.id
+		local steps, previous, worst = {}, nil :: number?, nil :: any
+		for index, step in funnel.steps do
+			local nn = Schema.StepCode(index)
+			local players = c[base .. ".p." .. nn] or 0
+			local times = h[base .. ".t." .. nn]
+			local p50, n = Report.Percentile(times, 0.5)
+			local p90 = Report.Percentile(times, 0.9)
+			local row = {id = step.id, nn = nn, sessions = c[base .. ".s." .. nn] or 0, players = players,
+				conversionFromPrev = pct(players, previous), timeP50 = p50, timeP90 = p90, timeN = n,
+				lastStepSessions = c[base .. ".last." .. nn] or 0}
+			local from = previous or 0
+			if from >= 20 and row.conversionFromPrev and (worst == nil or row.conversionFromPrev < worst.conversion) then
+				worst = {id = step.id, nn = nn, conversion = row.conversionFromPrev, fromPlayers = from, players = players}
+			end
+			table.insert(steps, row)
+			previous = players
+		end
+		local cohorts = {}
+		for day, counters in x do
+			local stepCounts, found = {}, false
+			for index in funnel.steps do
+				local n = counters[base .. "." .. Schema.StepCode(index)]
+				if n then stepCounts[Schema.StepCode(index)] = n; found = true end
+			end
+			if found then table.insert(cohorts, {cohort = day, size = counters["cohort.size"] or 0, steps = stepCounts}) end
+		end
+		table.sort(cohorts, function(a, b) return a.cohort < b.cohort end)
+		table.insert(list, {funnel = funnel.id, started = steps[1] and steps[1].players or 0, steps = steps,
+			worstStep = worst, cohorts = cohorts})
+	end
+	return list
+end
+
+local function uiSection(c: {[string]: number}, h: {[string]: any}, t: {[string]: any})
+	local menus, seen = {}, {}
+	for name in prefixed(c, "ui.menu.open.") do seen[name] = true end
+	for name in prefixed(h, "ui.menu.dwell.") do seen[name] = true end
+	for name in prefixed(c, "ui.menu.blocked.") do seen[name] = true end
+	for menu in seen do
+		local dwell = h["ui.menu.dwell." .. menu]
+		local p50, n = Report.Percentile(dwell, 0.5)
+		table.insert(menus, {menu = menu, opens = c["ui.menu.open." .. menu] or 0, blocked = c["ui.menu.blocked." .. menu] or 0,
+			dwellP50 = p50, dwellP90 = Report.Percentile(dwell, 0.9), dwellN = n})
+	end
+	table.sort(menus, function(a, b) return a.opens > b.opens end)
+	local loadPhases = {}
+	for phase, hist in prefixed(h, "ui.load.") do loadPhases[phase] = stat(hist) end
+	local bought, cancel = c["ui.prompt.bought"] or 0, c["ui.prompt.cancel"] or 0
+	return {
+		menus = menus, clicks = c["ui.click"] or 0, topClicks = sortedTop(t["ui.click"], 30),
+		tabs = sortedTop(t["ui.tab"], 30), inspects = sortedTop(t["ui.inspect"], 30),
+		prompts = {shown = c["ui.prompt.shown"] or 0, bought = bought, cancel = cancel,
+			cancelRate = pct(cancel, bought + cancel), byResult = sortedTop(t["ui.prompt.result"], 30),
+			byKey = sortedTop(t["ui.prompt.shown"], 30)},
+		idle = (function()
+			local s = stat(h["ui.idle.seconds"])
+			return {n = c["ui.idle.n"] or 0, p50 = s.p50, p90 = s.p90, ended = s.n}
+		end)(),
+		settings = sortedTop(t["ui.setting"], 30),
+		hints = {shown = sortedTop(t["ui.hint.shown"], 30), closed = sortedTop(t["ui.hint.closed"], 30)},
+		loadPhases = loadPhases, leaderboards = sortedTop(t["ui.leaderboard.view"], 10),
+		cameraZoom = c["ui.camera.zoom"] or 0, chatSent = c["ui.chat.sent"] or 0, emotes = c["ui.emote"] or 0,
+		events = {dropped = c["ui.events.dropped"] or 0, rateLimited = c["ui.events.rateLimited"] or 0},
+	}
+end
+
+-- Payers are counted once, at a player's first purchase, so a range's payers are
+-- its NEW payers while revenue includes repeat buyers: ARPPU runs high on short ranges.
+local function segmentRow(label: string, sessions: number, payers: number, revenue: number)
+	return {segment = label, sessions = sessions, payers = payers, revenue = revenue,
+		arppu = if payers > 0 then math.floor(revenue / payers * 10 + 0.5) / 10 else nil,
+		payersPerSessionPct = pct(payers, sessions)}
+end
+
+local function devicesSection(c: {[string]: number}, h: {[string]: any}, t: {[string]: any})
+	local tiers = {}
+	for _, tier in Schema.DeviceTiers do tiers[tier] = true end
+	for tier in prefixed(c, "seg.session.tier.") do tiers[tier] = true end
+	for tier in prefixed(c, "robux.payer.tier.") do tiers[tier] = true end
+	local byTier, fpsByTier, payersTotal = {}, {}, 0
+	for _, tier in keysOf(tiers) do
+		local payers = c["robux.payer.tier." .. tier] or 0
+		payersTotal += payers
+		table.insert(byTier, segmentRow(tier, c["seg.session.tier." .. tier] or 0, payers, c["robux.actual.tier." .. tier] or 0))
+		if h["perf.fps.tier." .. tier] then fpsByTier[tier] = stat(h["perf.fps.tier." .. tier]) end
+	end
+	local platforms = {}
+	for platform in Schema.Platforms do platforms[platform] = true end
+	local byPlatform, platformPayers = {}, 0
+	for _, platform in keysOf(platforms) do
+		local payers = c["robux.payer|" .. platform] or 0
+		platformPayers += payers
+		local row = segmentRow(platform, c["session.count|" .. platform] or 0, payers, c["robux.actual|" .. platform] or 0)
+		if row.sessions > 0 or row.payers > 0 or row.revenue > 0 then table.insert(byPlatform, row) end
+	end
+	local byPremium = {}
+	for _, premium in {"yes", "no"} do
+		table.insert(byPremium, {segment = premium, sessions = c["seg.session.premium." .. premium] or 0,
+			revenue = c["robux.actual.premium." .. premium] or 0})
+	end
+	local payers = if payersTotal > 0 then payersTotal else platformPayers
+	return {
+		sessionsByTier = prefixed(c, "seg.session.tier."), firstReportByTier = prefixed(c, "client.tier."),
+		byTier = byTier, byPlatform = byPlatform, byPremium = byPremium, fpsByTier = fpsByTier,
+		viewports = sortedTop(t["client.viewport"], 30), locales = sortedTop(t["client.locale"], 30),
+		payersByGeo = sortedTop(t["robux.payer.geo"], 30),
+		quality = prefixed(c, "client.quality."), inset = prefixed(c, "client.inset."),
+		newPayers = payers, payerRate = pct(payers, c["players.unique"]),
+		note = "Tier is a proxy (viewport, memory, FPS, graphics quality); Roblox exposes no device model.",
+	}
+end
+
+local function robuxActualSection(c: {[string]: number}, h: {[string]: any}, payers: number)
+	local byKey, byKind = {}, {}
+	for name, amount in prefixed(c, "robux.actual.") do
+		if name == "n" or string.sub(name, 1, 5) == "tier." or string.sub(name, 1, 8) == "premium." then continue end
+		table.insert(byKey, {key = name, robux = amount})
+		local kind = string.match(name, "^([^%.]+)%.") or name
+		byKind[kind] = (byKind[kind] or 0) + amount
+	end
+	table.sort(byKey, function(a, b) return a.robux > b.robux end)
+	local total = c["robux.actual"] or 0
+	return {total = total, purchases = c["robux.actual.n"] or 0, byKey = byKey, byKind = byKind,
+		purchaseSize = stat(h["robux.purchase"]), purchaseSizeHist = h["robux.purchase"] or {},
+		newPayers = payers, arppu = if payers > 0 then math.floor(total / payers * 10 + 0.5) / 10 else nil,
+		estimate = c["robux.estimate"] or 0, estimatePurchases = c["robux.purchases"] or 0}
+end
+
+local function segmentsSection(c: {[string]: number}, h: {[string]: any}, t: {[string]: any})
+	-- Every seg.<group>.<value> counter, so names added later still show up.
+	local groups: {[string]: {[string]: number}} = {}
+	for name, n in prefixed(c, "seg.") do
+		local group, value = string.match(name, "^([^%.]+)%.(.+)$")
+		if group and value then
+			local target = groups[group] or {}
+			groups[group] = target
+			target[value] = (target[value] or 0) + n
+		end
+	end
+	local active, idle = c["session.activeSeconds"] or 0, c["session.idleSeconds"] or 0
+	local friends = h["seg.friendsInServer"] or h["session.friendsInServer"]
+	local joinSource = groups.joinSource or groups.join or {}
+	return {
+		geo = if t["seg.geo"] then sortedTop(t["seg.geo"], 30) else sortedTop(groups.geo, 30),
+		accountAge = groups.age or {}, premium = prefixed(c, "seg.session.premium."), joinSource = joinSource,
+		hourUTC = h["session.hourUTC"] or {}, weekday = prefixed(c, "session.weekday."),
+		serverSize = stat(h["seg.serverSize"]), serverSizeHist = h["seg.serverSize"] or {},
+		friendsInServer = stat(friends), friendsInServerHist = friends or {},
+		payerSessions = prefixed(c, "seg.payer.session."),
+		activeShare = stat(h["session.activeShare"]), activeShareHist = h["session.activeShare"] or {},
+		activeSeconds = active, idleSeconds = idle, activePct = pct(active, active + idle),
+		all = groups,
+	}
+end
+
+local function stateSection(h: {[string]: any})
+	local out = {}
+	for _, name in keysOf(Schema.StateSnapshot) do
+		local hist = h["state." .. name]
+		local s = stat(hist)
+		table.insert(out, {name = name, kind = Schema.StateSnapshot[name], p50 = s.p50, p90 = s.p90, n = s.n, hist = hist or {}})
+	end
+	return out
+end
+
+-- sev.<name>[.<detail>] grouped by Schema.ServerEvents name (names contain dots,
+-- so the longest known name wins); value hists sev.<name>.v live in h.
+local function serverEventsSection(c: {[string]: number}, h: {[string]: any})
+	local names = keysOf(Schema.ServerEvents)
+	table.sort(names, function(a, b) return #a > #b end)
+	local out: {[string]: any} = {}
+	local function split(rest: string): (string, string?)
+		for _, name in names do
+			if rest == name then return name, nil end
+			if string.sub(rest, 1, #name + 1) == name .. "." then return name, string.sub(rest, #name + 2) end
+		end
+		local event, detail = string.match(rest, "^([^%.]+)%.(.+)$")
+		if event then return event, detail end
+		return rest, nil
+	end
+	local function group(event: string)
+		local entry = out[event]
+		if not entry then entry = {count = 0, details = {} :: {[string]: number}}; out[event] = entry end
+		return entry
+	end
+	for rest, n in prefixed(c, "sev.") do
+		local event, detail = split(rest)
+		local entry = group(event)
+		if detail then entry.details[detail] = (entry.details[detail] or 0) + n else entry.count += n end
+	end
+	for rest, hist in prefixed(h, "sev.") do
+		if string.sub(rest, -2) == ".v" then group(string.sub(rest, 1, -3)).value = stat(hist) end
+	end
+	return out
 end
 
 -- Summary ------------------------------------------------------------------------
@@ -278,10 +492,11 @@ function Report.Summarize(pulled: any, options: Options?)
 		topLoadFailures = sortedTop(total.t["data.loadFail"], 5), leftBeforeReady = c["players.leftBeforeReady"] or 0,
 		serverFrameMs = stat(h["server.frameMs"]), serverFrameMaxMs = stat(h["server.frameMaxMs"]),
 		loadServerSeconds = stat(h["load.serverSeconds"]), readySeconds = stat(h["load.readySeconds"]),
-		meta = prefixed(c, "analytics."),
+		meta = prefixed(c, "analytics."), funnelUnknown = c["fun.unknown"] or 0,
 	}
 
 	local sessions = c["session.count"] or 0
+	local devices = devicesSection(c, h, total.t)
 	local summary = {
 		schema = Schema.Version, range = {from = dayNames[1], to = dayNames[#dayNames], days = #dayNames},
 		versions = (function() local list = {} for v in perVersion do table.insert(list, v) end table.sort(list) return list end)(),
@@ -295,6 +510,12 @@ function Report.Summarize(pulled: any, options: Options?)
 		guideDwell = dwell, intro = prefixed(c, "intro."), economy = economy, rolls = rolls, camps = camps,
 		features = features, robux = robux, platforms = platforms, screens = prefixed(c, "client.screen."),
 		perf = perf, health = health, loop = prefixed(c, "loop."),
+		-- Version 5 sections.
+		featureFunnels = featureFunnels(c, h, total.x), ui = uiSection(c, h, total.t),
+		segments = segmentsSection(c, h, total.t), stateSnapshots = stateSection(h),
+		serverEvents = serverEventsSection(c, h),
+		exits = {menu = sortedTop(total.t["exit.menu"], 30), action = sortedTop(total.t["exit.action"], 30)},
+		devices = devices, robuxActual = robuxActualSection(c, h, devices.newPayers),
 	}
 	summary.flags = Report.Flags(summary)
 	return summary
@@ -348,6 +569,60 @@ function Report.Flags(s: any)
 	if (s.health.meta.ledgerFlushFail or 0) > 0 then
 		flag("low", "analytics", "Ledger flush failures: " .. s.health.meta.ledgerFlushFail .. " (data was requeued).")
 	end
+
+	-- Version 5 heuristics.
+	for _, funnel in s.featureFunnels or {} do
+		for i = 2, #funnel.steps do
+			local row, prev = funnel.steps[i], funnel.steps[i - 1]
+			if prev.players >= 30 and row.conversionFromPrev and row.conversionFromPrev < 50 then
+				-- Milestone steps (10 buys, Rebirth 5 ...) sit late in a funnel and are expected to be low.
+				flag(if i <= 3 then "medium" else "low", "funnel", funnel.funnel .. ": " .. prev.id .. " -> " .. row.id .. " keeps "
+					.. row.conversionFromPrev .. "% (" .. row.players .. " of " .. prev.players .. " players).")
+			end
+		end
+	end
+	local prompts = s.ui and s.ui.prompts
+	if prompts and prompts.bought + prompts.cancel >= 20 and prompts.cancelRate and prompts.cancelRate > 70 then
+		flag("medium", "monetization", "Purchase prompts are cancelled " .. prompts.cancelRate .. "% of the time ("
+			.. prompts.cancel .. " of " .. (prompts.bought + prompts.cancel) .. ").")
+	end
+	for tier, value in (s.devices and s.devices.fpsByTier) or {} do
+		if value.n >= 20 and value.p50 and (tonumber(string.match(value.p50, "%d+")) or 60) <= 30 then
+			flag("medium", "performance", "Median FPS on " .. tier .. "-tier devices is " .. value.p50 .. ".")
+		end
+	end
+	local pipeline = {}
+	for _, name in {"funnelError", "partError", "playerError"} do
+		local n = s.health.meta[name] or 0
+		if n > 0 then table.insert(pipeline, "analytics." .. name .. " " .. n) end
+	end
+	if (s.health.funnelUnknown or 0) > 0 then table.insert(pipeline, "fun.unknown " .. s.health.funnelUnknown) end
+	local unknownSev = s.serverEvents and s.serverEvents.unknown
+	if unknownSev and unknownSev.count > 0 then table.insert(pipeline, "sev.unknown " .. unknownSev.count) end
+	if #pipeline > 0 then flag("low", "analytics", "Analytics pipeline errors (numbers may be low): " .. table.concat(pipeline, ", ") .. ".") end
+	local saveFail = s.serverEvents and s.serverEvents["data.saveFail"]
+	if saveFail then
+		local n = saveFail.count
+		for _, d in saveFail.details do n = math.max(n, d) end
+		if n > 0 then flag("high", "health", n .. " game save failures (sev.data.saveFail).") end
+	end
+	if s.ui then
+		local dropped = s.ui.events.dropped + s.ui.events.rateLimited
+		local accepted = s.ui.clicks + s.ui.prompts.shown
+		for _, menu in s.ui.menus do accepted += menu.opens end
+		if dropped >= 50 and dropped / (dropped + accepted) >= 0.1 then
+			flag("low", "analytics", string.format("%d client UI events dropped or rate-limited (~%d%% of UI events).",
+				dropped, math.floor(dropped / (dropped + accepted) * 100)))
+		end
+		local sessions = s.totals.sessions
+		for _, menu in s.ui.menus do
+			-- Seconds buckets start at 5, so "le5" is the finest median (<= 5 s, not < 3 s).
+			if menu.opens >= 50 and menu.opens >= sessions * 0.5 and menu.dwellP50 == "le5" then
+				flag("low", "ui", "Menu " .. menu.menu .. " is opened " .. menu.opens .. " times with median dwell <= 5 s "
+					.. "(accidental or confusing opens?).")
+			end
+		end
+	end
 	return flags
 end
 
@@ -381,6 +656,110 @@ function Report.Journeys(options: {day: string?, env: string?, limit: number?, o
 	local limit = opts.limit or 100
 	while #list > limit do table.remove(list) end
 	return {day = day, count = #list, droppedAtWrite = dropped, journeys = list}
+end
+
+-- Players ------------------------------------------------------------------------
+
+type PlayerOptions = {env: string?, limit: number?, scan: number?, minRobux: number?, sortBy: string?, store: any?}
+
+local function spend(row: any): number
+	return math.max(row.robuxActual or 0, row.robux or 0)
+end
+
+-- One profile (`p/<userId>`) as a flat row. Profiles from before version 5 have
+-- no dev/geo/robuxActual fields; those stay nil (robuxActual 0). `robux` is the
+-- launch-price estimate: the larger of the v1 `robux` and the v5 `robuxEstimate`.
+function Report.PlayerRow(key: string, profile: any)
+	local dev = if type(profile.dev) == "table" then profile.dev else {}
+	return {userId = tonumber(string.match(key, "^p/(%d+)$")), first = profile.first, lastSeen = profile.lastSeen,
+		days = profile.days, sessions = profile.sessions or 0, play = profile.play or 0, active = profile.active,
+		idle = profile.idle, robux = math.max(tonumber(profile.robux) or 0, tonumber(profile.robuxEstimate) or 0),
+		robuxActual = tonumber(profile.robuxActual) or 0, purchases = tonumber(profile.purchases) or 0,
+		lastPurchase = profile.lastPurchase, firstPurchaseDevice = profile.firstPurchaseDevice,
+		platform = dev.platform, tier = dev.tier, os = dev.os, input = dev.input, geo = profile.geo,
+		premium = profile.premium, age = profile.age, joinSource = profile.joinSource,
+		friendsInServer = profile.friendsInServer, rebirths = profile.rebirths, onbMax = profile.onbMax,
+		lastExit = profile.lastExit, snap = profile.snap, life = profile.life, funN = profile.funN}
+end
+
+-- Lists analytics player profiles. Reads up to `scan` keys (default `limit`) in key
+-- order, then sorts by `sortBy` ("robux" default, "play", "lastSeen") and returns the
+-- first `limit` rows; totals cover every scanned profile that passed `minRobux`
+-- (compared with the larger of robuxActual and the launch-price estimate).
+-- Each profile costs one GetAsync (~60/min in Studio Edit), so keep `scan` modest.
+function Report.Players(options: PlayerOptions?)
+	local opts = options or {} :: PlayerOptions
+	local limit = math.clamp(math.floor(opts.limit or 200), 1, 5000)
+	local scan = math.clamp(math.floor(opts.scan or limit), limit, 20000)
+	local sortBy = opts.sortBy or "robux"
+	local real = opts.store == nil
+	local ds = opts.store or DataStoreService:GetDataStore(Schema.PlayerStore .. (if opts.env == "studio" then Schema.StudioSuffix else ""))
+	local function budget(kind: Enum.DataStoreRequestType) if real then waitBudget(kind) end end
+
+	local keys, listError, complete = {}, nil :: string?, false
+	budget(Enum.DataStoreRequestType.ListAsync)
+	local ok, pages = pcall(function() return ds:ListKeysAsync("p/", math.min(scan, 50)) end)
+	if not ok then
+		listError = tostring(pages)
+	else
+		while true do
+			local okPage, page = pcall(function() return pages:GetCurrentPage() end)
+			if not okPage then listError = tostring(page); break end
+			local truncated = false
+			for _, entry in page do
+				if #keys >= scan then truncated = true; break end
+				table.insert(keys, entry.KeyName)
+			end
+			if pages.IsFinished then complete = not truncated; break end
+			if #keys >= scan then break end
+			budget(Enum.DataStoreRequestType.ListAsync)
+			local advanced, why = pcall(function() pages:AdvanceToNextPageAsync() end)
+			if not advanced then listError = tostring(why); break end
+		end
+	end
+
+	local rows, readFailures = {}, 0
+	local totals = {players = 0, payers = 0, revenue = 0, revenueEstimate = 0, play = 0,
+		payerRate = nil :: number?, arppu = nil :: number?, byTier = {} :: {[string]: any}, byPlatform = {} :: {[string]: any}, byGeo = {} :: {[string]: any}}
+	local function add(map: {[string]: any}, key: string, row: any)
+		local entry = map[key]
+		if not entry then entry = {players = 0, payers = 0, revenue = 0, play = 0}; map[key] = entry end
+		entry.players += 1
+		entry.play += row.play
+		entry.revenue += row.robuxActual
+		if row.purchases > 0 or row.robuxActual > 0 then entry.payers += 1 end
+	end
+	for _, key in keys do
+		budget(Enum.DataStoreRequestType.GetAsync)
+		local okGet, profile = pcall(function() return ds:GetAsync(key) end)
+		if not okGet or type(profile) ~= "table" then readFailures += 1; continue end
+		local row = Report.PlayerRow(key, profile)
+		if opts.minRobux and spend(row) < opts.minRobux then continue end
+		table.insert(rows, row)
+		totals.players += 1
+		totals.play += row.play
+		totals.revenue += row.robuxActual
+		totals.revenueEstimate += row.robux
+		if row.purchases > 0 or row.robuxActual > 0 then totals.payers += 1 end
+		add(totals.byTier, tostring(row.tier or "Unknown"), row)
+		add(totals.byPlatform, tostring(row.platform or "Unknown"), row)
+		add(totals.byGeo, tostring(row.geo or "Unknown"), row)
+	end
+	local sorters = {
+		robux = function(a, b) if spend(a) ~= spend(b) then return spend(a) > spend(b) end return a.play > b.play end,
+		play = function(a, b) return a.play > b.play end,
+		lastSeen = function(a, b) return (a.lastSeen or 0) > (b.lastSeen or 0) end,
+	}
+	table.sort(rows, sorters[sortBy] or sorters.robux)
+	while #rows > limit do table.remove(rows) end
+	totals.payerRate = pct(totals.payers, totals.players)
+	totals.arppu = if totals.payers > 0 then math.floor(totals.revenue / totals.payers * 10 + 0.5) / 10 else nil
+	return {env = opts.env or "live", sortBy = sortBy, scanned = #keys, listComplete = complete, listError = listError,
+		readFailures = readFailures, count = #rows, totals = totals, players = rows}
+end
+
+function Report.PlayersJSON(options: PlayerOptions?): string
+	return HttpService:JSONEncode(Report.Players(options))
 end
 
 return Report

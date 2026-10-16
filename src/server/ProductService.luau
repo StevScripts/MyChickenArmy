@@ -102,7 +102,7 @@ function ProductService:_ProcessReceipt(receipt)
   return true
  end)
  -- Observation hook (Analytics); never affects the delivery decision.
- if saved and self.onGranted then pcall(self.onGranted,session,receipt.ProductId,product) end
+ if saved and self.onGranted then pcall(self.onGranted,session,receipt.ProductId,product,receipt) end
  return if saved then Granted else Pending
 end
 

@@ -4,7 +4,6 @@
 -- out to repel them. One column (October 14): tier tabs, three invasion bars,
 -- a status row and one big button. This module also
 -- shows the occasional "loyalists are gathering" alert. The server validates every Start/Leave.
-local TweenService=game:GetService("TweenService")
 local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
 local UserInputService=game:GetService("UserInputService")
@@ -48,6 +47,9 @@ local function hitArea(parent,name,callback)
 	button.Name,button.Text,button.BackgroundTransparency=name,"",1
 	button.Size,button.ZIndex,button.AutoButtonColor,button.Selectable=UDim2.fromScale(1,1),20,false,true
 	button.Parent=parent
+	-- Press feedback scales the card; it is rebuilt on Refresh, never repositioned.
+	Theme.Motion:Center(parent)
+	Theme.Motion:BindButton(button,Theme.Motion:ScaleOf(parent))
 	button.Activated:Connect(callback)
 	return button
 end
@@ -168,6 +170,7 @@ function Panel:Refresh(force: boolean?)
 	local state=app.state
 	local data=self:Data()
 	if not state or not data then return end
+	local pop=self.pop;self.pop=nil
 	local wins={}
 	for id in data.wins or {} do table.insert(wins,id) end
 	table.sort(wins)
@@ -183,6 +186,9 @@ function Panel:Refresh(force: boolean?)
 	self:BuildMissions(content,data)
 	self:BuildDetail(content,data,state)
 	Theme.ScaleText(content)
+	-- The clicked card was rebuilt; give the new selection a small pop.
+	local picked=pop and content:FindFirstChild(pop)
+	if picked then Theme.Motion:PopScale(picked,1.06) end
 	if not app.editPreview and self.deploy and UserInputService.PreferredInput==Enum.PreferredInput.Gamepad then
 		GuiService.SelectedObject=self.deploy
 	end
@@ -206,6 +212,7 @@ function Panel:BuildTabs(content,data)
 		hitArea(tab,"Select",function()
 			self.app.audio:Play("Click")
 			self.tier,self.selected=index,self:DefaultMission(data,index)
+			self.pop="Tab"..name
 			self:Refresh()
 		end)
 	end
@@ -236,6 +243,7 @@ function Panel:BuildMissions(content,data)
 		hitArea(row,"Select",function()
 			self.app.audio:Play("Click")
 			self.selected=index
+			self.pop="Mission"..index
 			self:Refresh()
 		end)
 	end
@@ -323,10 +331,10 @@ function Panel:ShowAlert()
 	self.app:Notify("Loyalists are gathering. Open Invasions to repel them.","info")
 	local icon=self.app.researchExtras and self.app.researchExtras.operations
 	local visual=icon and icon:FindFirstChild("Visual")
-	if visual and not self.app.reducedMotion then
-		local pulse=TweenService:Create(visual,TweenInfo.new(.35,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,5,true),{Size=UDim2.fromScale(1.15,1.15)})
-		pulse:Play()
-		pulse.Completed:Once(function() visual.Size=UDim2.fromScale(1,1) end)
+	if visual then
+		-- Shared Motion: honours reduced motion and the icon's own press channel.
+		Theme.Motion:Tween(visual,"pop",{Size=UDim2.fromScale(1.15,1.15)},.35,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,
+			function() visual.Size=UDim2.fromScale(1,1) end,5,true)
 	end
 end
 
@@ -340,6 +348,7 @@ function Panel:Render(state,result)
 	-- A successful deploy sends the army off; the menu gets out of the way.
 	if result and result.ok and result.action=="StartOperation" then self:Dismiss();return end
 	self:Refresh()
+	if result and not result.ok and result.action=="StartOperation" and self.deploy then Theme.Motion:Shake(self.deploy.Visual) end
 end
 
 function Panel:Destroy()

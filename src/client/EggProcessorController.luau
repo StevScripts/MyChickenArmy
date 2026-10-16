@@ -97,7 +97,7 @@ function Board:Render()
 	for _,view in self.views do
 		view.gui.Enabled=view.originalEnabled and offer~=nil and offer.enabled and view.index==state.plotIndex
 		if not offer then continue end
-		if view.cash then view.cash.Text="$"..Theme.Money(offer.readyCash) end
+		if view.cash then Theme.Motion:Count(view.cash,offer.readyCash,function(value) return "$"..Theme.Money(math.floor(value)) end) end
 		if view.content then
 			local c=view.content
 			c.QueuedCount.Text=Theme.Money(offer.queuedCount)
@@ -202,8 +202,16 @@ function Board:Activate(name)
 end
 
 function Board:Receive(result)
+	local upgraded=result and result.id==self.pending and result.ok==true
 	if result and result.id==self.pending then self.pending=nil end
 	self:Render()
+	if not upgraded then return end
+	for _,view in self.views do
+		local rate=view.content and view.content:FindFirstChild("Rate")
+		-- Skip authored labels that already carry their own UIScale.
+		local authored=rate and rate:FindFirstChildWhichIsA("UIScale")
+		if rate and (not authored or authored.Name=="MotionScale") then Theme.Motion:PopScale(rate,1.15) end
+	end
 end
 
 function Board:Start()

@@ -220,6 +220,138 @@ function Checks.Run()
 		assert(areas.onboarding and areas.retention, "expected onboarding and retention flags")
 	end)
 
+	check("Version 5 schema: feature funnels, Roblox steps, client events and menus are consistent", function()
+		local funnels = 1 -- onboarding
+		for _ in Schema.Funnels do funnels += 1 end
+		assert(funnels <= 10 and funnels <= Schema.RobloxLimits.funnels, "too many Roblox funnels: " .. funnels)
+		assert(#Schema.CustomEvents <= 100)
+		local funnelIds = {}
+		for _, funnel in Schema.FeatureFunnels do
+			assert(type(funnel.id) == "string" and string.match(funnel.id, "^%w+$"), "bad funnel id")
+			assert(not funnelIds[funnel.id], "duplicate funnel " .. funnel.id); funnelIds[funnel.id] = true
+			assert(#funnel.steps >= 1 and #funnel.steps <= 99, funnel.id .. " step count")
+			local ids = {}
+			for index, step in funnel.steps do
+				assert(type(step.id) == "string" and string.match(step.id, "^%w+$"), funnel.id .. " bad step id")
+				assert(not ids[step.id], funnel.id .. " repeats step " .. step.id); ids[step.id] = true
+				assert(Schema.FeatureFunnelIndex[funnel.id][step.id] == index)
+			end
+		end
+		for funnelId, map in Schema.RobloxSteps do
+			local roblox = Schema.Funnels[funnelId]
+			assert(roblox and funnelIds[funnelId], "RobloxSteps." .. funnelId .. " has no Roblox or feature funnel")
+			local used = {}
+			for stepId, robloxIndex in map do
+				assert(Schema.FeatureFunnelIndex[funnelId][stepId], funnelId .. "." .. stepId .. " is not a feature step")
+				assert(roblox[robloxIndex] and not used[robloxIndex], funnelId .. " Roblox step " .. tostring(robloxIndex))
+				used[robloxIndex] = true
+			end
+		end
+		local kinds = {menu = true, path = true, free = true, none = true}
+		for name, kind in Schema.ClientEvents do assert(kinds[kind], "client event " .. name .. " kind " .. tostring(kind)) end
+		local serverKinds = {free = true, none = true, tier = true, level = true}
+		for name, kind in Schema.ServerEvents do assert(serverKinds[kind], "server event " .. name .. " kind " .. tostring(kind)) end
+		assert(Schema.Menus.Other, "unknown menus fall back to Other")
+		for menu, on in Schema.Menus do
+			-- Menus are ledger name segments and the "<Menu>/" part of path details.
+			assert(on == true and string.match(menu, "^%w+$") and #menu <= 24, "menu name " .. menu)
+		end
+		for name, kind in Schema.StateSnapshot do assert(Schema.Buckets[kind], "state." .. name .. " bucket " .. kind) end
+		for _, tier in Schema.DeviceTiers do assert(string.match(tier, "^%w+$")) end
+	end)
+
+	check("Report computes feature funnels, UI, devices, Robux, server events and new flags", function()
+		local b = Ledger.NewBucket()
+		b.c["session.count"], b.c["players.unique"] = 200, 100
+		b.c["fun.Fuse.p.01"], b.c["fun.Fuse.p.02"], b.c["fun.Fuse.p.03"] = 100, 80, 20
+		b.c["fun.Fuse.s.01"], b.c["fun.Fuse.last.02"] = 150, 30
+		b.h["fun.Fuse.t.03"] = {le60 = 10, le600 = 10}
+		b.x["2026-10-08"] = {["cohort.size"] = 50, ["fun.Fuse.01"] = 40, ["fun.Fuse.03"] = 5}
+		b.c["ui.menu.open.Army"], b.c["ui.menu.open.Shop"] = 150, 10
+		b.h["ui.menu.dwell.Army"] = {le5 = 100, le60 = 20}
+		b.c["ui.prompt.bought"], b.c["ui.prompt.cancel"] = 5, 20
+		b.t["ui.click"] = {["Army/Close"] = 9, ["Shop/Buy"] = 3}
+		b.c["robux.actual"], b.c["robux.actual.n"] = 900, 3
+		b.c["robux.actual.product.CashPack"], b.c["robux.actual.pass.Luck"] = 400, 500
+		b.c["robux.actual.tier.Low"], b.c["robux.actual.premium.yes"] = 900, 900
+		b.c["robux.payer.tier.Low"], b.c["seg.session.tier.Low"] = 3, 60
+		b.c["sev.data.saveFail"], b.c["sev.data.saveFail.timeout"] = 2, 2
+		b.c["sev.mission.result.won.2"], b.c["sev.battle.end"] = 4, 6
+		b.h["sev.battle.end.v"] = {le60 = 6}
+		b.h["state.rebirths"] = {le0 = 7, le1 = 3}
+		b.h["perf.fps.tier.Low"] = {le20 = 25, le60 = 5}
+		local s = Report.Summarize({["2026-10-09"] = {v = {v1 = b}, shards = 1, source = "shards"}})
+		local fuse
+		for _, f in s.featureFunnels do if f.funnel == "Fuse" then fuse = f end end
+		assert(fuse and fuse.started == 100 and fuse.steps[1].conversionFromPrev == nil)
+		assert(fuse.steps[2].conversionFromPrev == 80 and fuse.steps[3].conversionFromPrev == 25)
+		assert(fuse.steps[3].timeP50 == "le60" and fuse.steps[3].timeP90 == "le600" and fuse.steps[2].lastStepSessions == 30)
+		assert(fuse.steps[4].conversionFromPrev == 0, "20 -> 0 players is 0%")
+		assert(fuse.worstStep and fuse.worstStep.id == "Fused" and fuse.worstStep.fromPlayers == 20, "worst needs >= 20 at prev")
+		assert(fuse.cohorts[1].cohort == "2026-10-08" and fuse.cohorts[1].steps["03"] == 5 and fuse.cohorts[1].size == 50)
+		assert(s.ui.menus[1].menu == "Army" and s.ui.menus[1].dwellP50 == "le5" and s.ui.topClicks[1].key == "Army/Close")
+		assert(s.ui.prompts.cancelRate == 80)
+		assert(s.robuxActual.total == 900 and #s.robuxActual.byKey == 2 and s.robuxActual.byKind.pass == 500)
+		assert(s.robuxActual.newPayers == 3 and s.robuxActual.arppu == 300)
+		local low
+		for _, row in s.devices.byTier do if row.segment == "Low" then low = row end end
+		assert(low and low.sessions == 60 and low.revenue == 900 and low.arppu == 300 and s.devices.payerRate == 3)
+		assert(s.serverEvents["data.saveFail"].count == 2 and s.serverEvents["data.saveFail"].details.timeout == 2)
+		assert(s.serverEvents["mission.result"].details["won.2"] == 4 and s.serverEvents["battle.end"].value.p50 == "le60")
+		local rebirths
+		for _, row in s.stateSnapshots do if row.name == "rebirths" then rebirths = row end end
+		assert(rebirths and rebirths.p50 == "le0" and rebirths.n == 10)
+		local texts = {}
+		for _, f in s.flags do texts[f.area] = (texts[f.area] or "") .. f.text .. "\n" end
+		assert(texts.funnel and string.find(texts.funnel, "Available -> Opened", 1, true), "funnel flag")
+		assert(texts.monetization, "prompt cancel flag")
+		assert(texts.health and string.find(texts.health, "save failures", 1, true), "save fail flag")
+		assert(texts.performance and string.find(texts.performance, "Low-tier", 1, true), "tier fps flag")
+		assert(texts.ui and string.find(texts.ui, "Army", 1, true), "fast-dwell menu flag")
+		assert(Report.Percentile({["le1e+06"] = 1, ["gt1e+15"] = 1, ["le1e+07"] = 2}, 0.5) == "le1e+07", "bigCash labels sort")
+	end)
+
+	check("Report.Players lists profiles through a fake store, pages, filters and sorts", function()
+		local data = {
+			["p/1"] = {play = 100, sessions = 2, robuxActual = 50, robux = 40, purchases = 1, geo = "US",
+				dev = {platform = "Mobile", tier = "Low"}, lastExit = {menu = "Shop"}, lastSeen = 30},
+			["p/2"] = {play = 900, sessions = 9, robux = 0, lastSeen = 20},
+			["p/3"] = {play = 50, robuxActual = 400, purchases = 2, geo = "BR", dev = {platform = "Desktop", tier = "High"}, lastSeen = 10},
+			["p/4"] = "corrupt",
+		}
+		local order = {"p/1", "p/2", "p/3", "p/4"}
+		local store = {gets = 0}
+		function store:GetAsync(key) store.gets += 1; return data[key] end
+		function store:ListKeysAsync(prefix, pageSize)
+			assert(prefix == "p/")
+			local pages = {IsFinished = false, at = 1, size = 2}
+			function pages:GetCurrentPage()
+				local page = {}
+				for i = self.at, math.min(self.at + self.size - 1, #order) do table.insert(page, {KeyName = order[i]}) end
+				return page
+			end
+			function pages:AdvanceToNextPageAsync()
+				self.at += self.size
+				self.IsFinished = self.at + self.size > #order
+			end
+			return pages
+		end
+		local all = Report.Players({store = store, limit = 10})
+		assert(all.scanned == 4 and all.listComplete and all.readFailures == 1 and all.count == 3)
+		assert(all.players[1].userId == 3 and all.players[2].userId == 1 and all.players[3].userId == 2, "robux sort")
+		assert(all.players[2].tier == "Low" and all.players[2].platform == "Mobile" and all.players[2].lastExit.menu == "Shop")
+		assert(all.totals.players == 3 and all.totals.payers == 2 and all.totals.revenue == 450)
+		assert(all.totals.byTier.Low.revenue == 50 and all.totals.byGeo.BR.payers == 1 and all.totals.byPlatform.Unknown.players == 1)
+		local byPlay = Report.Players({store = store, limit = 1, scan = 4, sortBy = "play"})
+		assert(byPlay.count == 1 and byPlay.players[1].userId == 2 and byPlay.totals.players == 3)
+		local payers = Report.Players({store = store, minRobux = 41})
+		assert(payers.count == 2 and payers.totals.payers == 2)
+		local capped = Report.Players({store = store, limit = 1})
+		assert(capped.scanned == 1 and not capped.listComplete)
+		local json = game:GetService("HttpService"):JSONEncode(all)
+		assert(#json > 0)
+	end)
+
 	return results
 end
 

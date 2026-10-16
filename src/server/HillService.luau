@@ -22,7 +22,7 @@ end
 function HillService.new(battles,world,sessions,now)
  local self=setmetatable({battles=battles,world=world,sessions=sessions,random=Random.new(),
   phase="Break",endsAt=(now or os.clock())+Config.Hill.FirstBreakSeconds,round=0,
-  seconds={},holderId=nil,heldSince=0,deliverAt=0,lastWinner=nil},HillService)
+  seconds={},holderId=nil,heldSince=0,deliverAt=0,lastWinner=nil,entered={},analytics=nil::any},HillService)
  battles.hill=self
  return self
 end
@@ -32,6 +32,22 @@ end
 function HillService.PetRate(session,pet)
  return Rules.EggRate(pet.species,pet.stars,pet.level)*session:EggProductionMultiplier()
   *Rules.EggUnitValue(session.incomeLevel)*(1+(session.researchEffects and session.researchEffects.eggValue or 0))
+end
+
+-- Observation only (Analytics ServerEvent, set by GameServer); never changes the Hill.
+function HillService:Report(userId,name,value)
+ local analytics,session=self.analytics,userId and self.sessions[userId]
+ if analytics and session then pcall(function() analytics:ServerEvent(session,name,nil,value) end) end
+end
+
+-- hill.enter once per round per player, when their army engages the Hill or holds it.
+function HillService:NoteEntry(session)
+ if self.entered[session.userId]==self.round then return end
+ local own=self.battles.battles[session.outgoing]
+ if self.holderId==session.userId or (own~=nil and own.incomeSite==true and own.phase~="Returning") then
+  self.entered[session.userId]=self.round
+  self:Report(session.userId,"hill.enter")
+ end
 end
 
 function HillService:Boost(userId,now)
@@ -85,6 +101,7 @@ function HillService:Close(now)
  if seconds<Config.Hill.MinWinSeconds then winnerId=nil end
  self.battles:CloseHill(now)
  self.phase,self.endsAt=("Break"),now+Config.Hill.BreakSeconds
+ if self.holderId then self:Report(self.holderId,"hill.hold",now-self.heldSince) end
  self.holderId,self.lastWinner=nil,nil
  local winner=winnerId and self.sessions[winnerId]
  if ready(winner) then
@@ -95,11 +112,15 @@ function HillService:Close(now)
   winner.banner=if granted[1] then "You won the Hill! Hill Roll: "..Catalog[granted[1]].name.." joined your flock."
    else "You won the Hill! Make room in your flock to receive your Hill Roll."
   winner:Touch()
+  self:Report(winner.userId,"hill.win")
   if self.battles.telemetry then
    self.battles.telemetry:Record("HillRoundWon",{userId=winner.userId,seconds=math.floor(seconds),wins=winner.hillWins,round=self.round},"hill:"..self.round)
   end
  end
  for _,session in self.sessions do
+  if ready(session) and session~=winner and ((self.seconds[session.userId] or 0)>0 or self.entered[session.userId]==self.round) then
+   self:Report(session.userId,"hill.lost")
+  end
   if ready(session) and session~=winner and (self.seconds[session.userId] or 0)>0 then
    session.banner=if winner then winner.name.." won the Hill round." else "The Hill round ended."
    session:Touch()
@@ -141,13 +162,17 @@ function HillService:Step(dt,now)
  if self.phase=="Open" then
   local owner=self.battles.campOwners["income:1"]
   local ownerId=owner and ready(self.sessions[owner.userId]) and owner.userId or nil
-  if ownerId~=self.holderId then self.holderId,self.heldSince=ownerId,now end
+  if ownerId~=self.holderId then
+   if self.holderId then self:Report(self.holderId,"hill.hold",now-self.heldSince) end
+   self.holderId,self.heldSince=ownerId,now
+  end
   if ownerId then self.seconds[ownerId]=(self.seconds[ownerId] or 0)+dt end
   if now>=self.endsAt then self:Close(now) end
  end
  if now>=self.deliverAt then
   self.deliverAt=now+2
   for _,session in self.sessions do
+   if self.phase=="Open" and ready(session) then self:NoteEntry(session) end
    if ready(session) and ((session.hillRollCredits or 0)>0 or ((session.hillWins or 0)>=Config.Hill.ChampionWins and not session.hillChampion)) then
     self:Deliver(session)
    end
@@ -187,7 +212,7 @@ function HillService:Snapshot(session,now)
 end
 
 function HillService:Release(userId)
- self.seconds[userId]=nil
+ self.seconds[userId],self.entered[userId]=nil,nil
  if self.holderId==userId then self.holderId=nil end
 end
 

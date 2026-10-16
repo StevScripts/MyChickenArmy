@@ -313,7 +313,7 @@ function Panel:RenderPanel()
 	-- Only the first Rebirth needs the King (quote.kingRequired; older quotes lack it).
 	local needKing=quote.kingCleared==false and quote.kingRequired~=false
 	local progress=if needKing then 0 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 1
-	self.costFill.Size=UDim2.fromScale(progress,1)
+	Theme.Motion:Tween(self.costFill,"fill",{Size=UDim2.fromScale(progress,1)},.25)
 	self.costIcon.Image=if needKing then Theme.Assets.Padlock else Theme.Assets.Cash
 	if self.message then
 		self.costText.Text,self.costText.TextColor3=self.message,self.messageColor or RED
@@ -342,7 +342,12 @@ function Panel:RenderPanel()
 end
 
 function Panel:BeginHold(input)
-	if self.holding or not self:CanConfirm() then return end
+	if self.holding then return end
+	if not self:CanConfirm() then
+		-- Inactive mouse/touch presses already shake through BindButton.
+		if self.hold and (input=="gamepad" or self.hold.Active) then Theme.Motion:Shake(self.hold.Visual,4) end
+		return
+	end
 	self.holding,self.holdInput=true,input
 	self.holdToken+=1
 	local token=self.holdToken
@@ -363,8 +368,14 @@ function Panel:EndHold()
 	self.holding,self.holdInput=false,nil
 	self.holdToken+=1
 	if self.fillTween then self.fillTween:Cancel();self.fillTween=nil end
+	self:DrainFill()
+end
+
+-- Eases the hold fill back to empty (released early or refused by the server).
+function Panel:DrainFill()
 	local fill=self.holdFill
 	if not fill then return end
+	if self.drain then self.drain:Cancel();self.drain=nil end
 	local progress=fill.Size.X.Scale
 	if self.app.reducedMotion or progress<=0 then fill.Size=UDim2.fromScale(0,1);return end
 	self.drain=TweenService:Create(fill,TweenInfo.new(.35*progress,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.fromScale(0,1)})
@@ -381,6 +392,7 @@ function Panel:Confirm()
 	self.pending={id=id,rank=rank}
 	self.message=nil
 	self.app.audio:Play("Click")
+	if self.hold then Theme.Motion:Pop(self.hold.Visual,1.06);Theme.Motion:Shine(self.hold.Visual.Face) end
 	self:RenderPanel()
 	-- Unlock after a lost reply; the server's expectedRank check rejects repeats.
 	task.delay(10,function()
@@ -458,7 +470,8 @@ function Panel:Render(state,result)
 		self.pending=nil
 		if not result.ok then
 			self.message,self.messageColor=result.message or "Couldn't rebirth. Try again.",RED
-			if self.holdFill then self.holdFill.Size=UDim2.fromScale(0,1) end
+			self:DrainFill()
+			if self.hold then Theme.Motion:Shake(self.hold.Visual) end
 		end
 	end
 	if promoted then

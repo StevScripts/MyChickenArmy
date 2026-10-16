@@ -10,6 +10,7 @@ local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
 local PetView = require(Shared.PetView)
 local UIColors = require(Shared.UIColors)
+local Theme = require(script.Parent.UITheme)
 local Mutations = require(Shared.MutationCatalog)
 local MutationVFX = require(script.Parent.SpecialChickenVFX)
 local RollPresentationController = {}
@@ -286,6 +287,7 @@ function RollPresentationController:SetIdleHint(record, visible: boolean)
  local hint=record.idleHint
  if not visible then
   if hint then hint.Enabled=false end
+  if hint and record.idleBob then record.idleBob=nil;Theme.Motion:StopLoop(hint,"bob") end
   return
  end
  if not hint then
@@ -303,6 +305,10 @@ function RollPresentationController:SetIdleHint(record, visible: boolean)
   record.idleHint=hint
  end
  hint.Enabled=true
+ -- Gentle bob, started once per showing; reduced motion keeps it still.
+ if record.idleBob then return end
+ record.idleBob=true
+ Theme.Motion:Loop(hint,"bob",{StudsOffsetWorldSpace=Vector3.new(0,4.8,0)},{StudsOffsetWorldSpace=Vector3.new(0,4.5,0)},0.9)
 end
 
 function RollPresentationController:Sound(record, name, pitch, volume, duration)

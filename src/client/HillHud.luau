@@ -46,6 +46,7 @@ function HillHud.new(app,shell: Instance,cash: Instance)
 	self.top=top
 	self.title=scaled(Theme.Display(top,"Title","KING OF THE HILL",30,A.gold))
 	self.title.Position,self.title.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,0.38)
+	Theme.Motion:Center(self.title) -- title pops grow from its middle; same place at rest
 	local trackColor=Theme.Conquest.Track
 	local track=Theme.Frame(top,"Round",UDim2.fromScale(0.9,0.245),trackColor)
 	track.Position,track.ZIndex=UDim2.fromScale(0.05,0.445),2
@@ -124,12 +125,14 @@ function HillHud:Update(state)
 	local involved=open and (hill.engaged==true or hill.holding==true or nearHill())
 	local lesson=app.commander~=nil and app.commander.lessonVisible==true
 	self.bannerVisible=involved and not quiet and not lesson
-	self.waiting.Visible=eligible and not quiet and not self.bannerVisible
-	if self.waiting.Visible then
+	-- waitingShown is the wanted state; Visible lingers through Appear's shrink-out.
+	self.waitingShown=eligible and not quiet and not self.bannerVisible
+	Theme.Motion:Appear(self.waiting,self.waitingShown,0.8)
+	if self.waitingShown then
 		self.waitClock.Text=if open then "Hill fight "..clock(remaining)
 			elseif hill.phase=="Opening" then "Hill opening soon" else "Hill in "..clock(remaining)
 	end
-	self.top.Visible=self.bannerVisible
+	Theme.Motion:Appear(self.top,self.bannerVisible,0.85)
 	self:SetTint(open)
 	if not open then self.kind=nil;return end
 
@@ -140,12 +143,14 @@ function HillHud:Update(state)
 		self.kind=kind
 		self.title.Text,self.title.TextColor3=style.title,style.color
 		self.fillGradient.Color=ColorSequence.new(style.color:Lerp(Color3.new(1,1,1),0.35),style.color)
-		if not first and not app.reducedMotion and Theme.Motion and Theme.Motion.Pop then
-			pcall(function() Theme.Motion:Pop(self.title,1.08) end)
+		if not first then
+			Theme.Motion:PopScale(self.title,1.12)
+			if kind=="defend" then Theme.Motion:Shake(self.track,6)
+			elseif kind=="hold" then Theme.Motion:Burst(self.top,UDim2.fromScale(0.5,0.2),style.color) end
 		end
 	end
 	self.clock.Text=clock(remaining)
-	self.fill.Size=UDim2.fromScale(math.clamp(remaining/math.max(1,hill.roundSeconds or 300),0,1),1)
+	Theme.Motion:Tween(self.fill,"fill",{Size=UDim2.fromScale(math.clamp(remaining/math.max(1,hill.roundSeconds or 300),0,1),1)},0.3)
 
 	local leader=hill.leaderName
 	local leaderText=if leader and leader~=state.name then leader.." leads "..clock(hill.leaderSeconds or 0)

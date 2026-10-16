@@ -16,6 +16,18 @@ local Guide = require(Shared.TutorialGuide)
 local Schema = require(script.Parent.AnalyticsSchema)
 local Ledger = require(script.Parent.AnalyticsLedger)
 
+-- Version 5 parts (docs/analytics/TRACKING_PLAN.md). Loaded defensively: a missing
+-- or broken part only loses its data, never the game or the rest of analytics.
+local function optional(name: string): any
+	local module = script.Parent:FindFirstChild(name)
+	if not module then return nil end
+	local ok, result = pcall(require, module)
+	if not ok then warn("[Analytics] " .. name .. " unavailable: " .. tostring(result)); return nil end
+	return result
+end
+local Funnels = optional("AnalyticsFunnels")
+local PlayerInfo = optional("AnalyticsPlayer")
+
 local Analytics = {}
 Analytics.__index = Analytics
 -- Studio (and tests) record what would have been sent to Roblox here.
@@ -87,6 +99,9 @@ function Analytics.MergeProfile(old: any, ours: any): any
 	if old.firstPurchase and (not ours.firstPurchase or old.firstPurchase < ours.firstPurchase) then
 		result.firstPurchase = old.firstPurchase
 	end
+	for _, part in {Funnels, PlayerInfo} do
+		if part and part.MergeProfile then pcall(part.MergeProfile, old, ours, result) end
+	end
 	return result
 end
 
@@ -120,7 +135,26 @@ function Analytics.new(deps: Deps?)
 		local product = ShopCatalog.Products[key]
 		if product and product.productId then self.productKeys[product.productId] = key end
 	end
+	for _, entry in {{"funnels", Funnels}, {"playerInfo", PlayerInfo}} do
+		local module = entry[2]
+		if module then
+			local ok, part = pcall(module.new, self)
+			if ok and part then self[entry[1]] = part else warn("[Analytics] " .. entry[1] .. " failed to start: " .. tostring(part)) end
+		end
+	end
 	return self
+end
+
+-- Calls `method` on a version 5 part. Errors are counted, never raised.
+function Analytics:_Part(part: any, method: string, ...)
+	if not part then return end
+	local fn = part[method]
+	if type(fn) ~= "function" then return end
+	local ok, why = pcall(fn, part, ...)
+	if not ok then
+		self.ledger:Count("analytics.partError")
+		if not self.partWarned then self.partWarned = true; warn("[Analytics] " .. method .. " failed: " .. tostring(why)) end
+	end
 end
 
 function Analytics:Start()
@@ -208,6 +242,8 @@ function Analytics:Join(player: Player, session)
 		observedAt = -math.huge, sessionIndex = 0}
 	self.players[session.userId] = st
 	self.ledger:Count("players.joinAttempt")
+	self:_Part(self.funnels, "Join", st)
+	self:_Part(self.playerInfo, "Join", st, player, session)
 	self:_Reach(st, Schema.OnboardingIndex.Joined)
 end
 
@@ -286,6 +322,8 @@ function Analytics:_Resolve(st, ok: boolean, profile: any, fresh: boolean)
 	for _, index in st.queue do self:_Record(st, index) end
 	st.queue = {}
 	self:_SendOnboarding(st)
+	self:_Part(self.funnels, "Profile", st)
+	self:_Part(self.playerInfo, "Profile", st)
 end
 
 -- Onboarding -----------------------------------------------------------------
@@ -364,6 +402,8 @@ function Analytics:Observe(session, state)
 		if step then self.ledger:Count("guide.enter." .. step); self:_Trail(st, "guide:" .. step) end
 		st.guideStep, st.guideStepAt = step, now
 	end
+	st.lastState = state
+	self:_Part(self.funnels, "State", st, session, state)
 	if not st.tracked then return end
 	local t = session.tutorial or {}
 	local I = Schema.OnboardingIndex
@@ -440,6 +480,7 @@ function Analytics:_Sink(st, session, action: string, spent: number, request: an
 	self.ledger:Count("econ.sink." .. sku, spent)
 	self.ledger:Count("econ.sink." .. sku .. ".n")
 	self.ledger:Count("econ.sinkTotal", spent)
+	self:_Part(self.playerInfo, "Spent", st, spent, sku)
 	local player, balance, transaction = st.player, session.coins, definition.transaction
 	self:_Queue(false, "economy:Sink:" .. sku, function()
 		AnalyticsService:LogEconomyEvent(player, Enum.AnalyticsEconomyFlowType.Sink, Schema.Currency, spent,
@@ -449,8 +490,15 @@ end
 
 function Analytics:Action(session, action: string, ok: boolean, message: any, before: number, request: any, extra: any?)
 	local st = self:_State(session)
-	if not st or action == "Sync" or action == "TutorialSignal" or action == "ClientReport" then return end
+	if not st or action == "Sync" or action == "TutorialSignal" or action == "ClientReport" or action == "ClientEvents" then return end
 	local info = extra or {}
+	self:_ActionCore(st, session, action, ok, message, before, request, info)
+	st.lastAction = action
+	self:_Part(self.funnels, "Action", st, session, action, ok, message, request or {}, info)
+	self:_Part(self.playerInfo, "Action", st, session, action, ok, request or {}, info)
+end
+
+function Analytics:_ActionCore(st, session, action: string, ok: boolean, message: any, before: number, request: any, info: any)
 	self:_Trail(st, if ok then action else action .. "!")
 	if not ok then
 		self.ledger:Count("act." .. action .. ".fail")
@@ -568,6 +616,8 @@ function Analytics:Progress(userId: number, name: string, value: number, step: s
 	self.ledger:Hist("camp." .. step .. "." .. result .. ".seconds", "seconds", value or 0)
 	if not st then return end
 	self:_Trail(st, step .. ":" .. result)
+	self:_Part(self.funnels, "Progress", st, step, result)
+	self:_Part(self.playerInfo, "Progress", st, step, result)
 	local player, path = st.player, Schema.MainRoute
 	if result == "firstWin" then
 		local id = st.userId .. "-" .. step
@@ -593,6 +643,7 @@ function Analytics:Income(session, source: string, amount: number, balance: numb
 	self.ledger:Count("econ.srcTotal", amount)
 	st.econ[name] = (st.econ[name] or 0) + amount
 	st.sessionEarned += amount
+	self:_Part(self.playerInfo, "Income", st, name, amount)
 end
 
 function Analytics:_FlushEconomy(st)
@@ -613,7 +664,7 @@ end
 
 -- Robux --------------------------------------------------------------------------
 
-function Analytics:_Purchase(st, kind: string, key: string, price: number)
+function Analytics:_Purchase(st, kind: string, key: string, price: number, actual: number?)
 	local profile = st.profile
 	self.ledger:Count("robux.purchases")
 	self.ledger:Count("robux." .. kind .. "." .. key)
@@ -631,6 +682,9 @@ function Analytics:_Purchase(st, kind: string, key: string, price: number)
 		end
 	end
 	self:_Trail(st, "robux:" .. key)
+	-- Version 5: the real amount (receipt CurrencySpent / pass price) when known.
+	self:_Part(self.funnels, "Purchase", st, kind, key, actual or price)
+	self:_Part(self.playerInfo, "Purchase", st, kind, key, actual or price, actual ~= nil)
 	local player, id = st.player, st.shopFunnel[key] or game:GetService("HttpService"):GenerateGUID(false)
 	st.shopFunnel[key] = nil
 	self:_Queue(true, "custom:RobuxPurchase", function()
@@ -639,7 +693,7 @@ function Analytics:_Purchase(st, kind: string, key: string, price: number)
 	end)
 end
 
-function Analytics:ProductGranted(session, productId: number, product: any)
+function Analytics:ProductGranted(session, productId: number, product: any, receipt: any?)
 	local st = self:_State(session)
 	local key = self.productKeys[productId] or ("Product" .. tostring(productId))
 	if product and type(product.coins) == "number" then
@@ -653,13 +707,17 @@ function Analytics:ProductGranted(session, productId: number, product: any)
 			end)
 		end
 	end
-	if st then self:_Purchase(st, "product", key, product and product.proposedPrice or 0) end
+	local actual = nil
+	if type(receipt) == "table" and receipt.CurrencyType == Enum.CurrencyType.Robux then
+		actual = finite(receipt.CurrencySpent, 0, 1e7)
+	end
+	if st then self:_Purchase(st, "product", key, product and product.proposedPrice or 0, actual) end
 end
 
-function Analytics:PassPurchased(player: Player, key: string)
+function Analytics:PassPurchased(player: Player, key: string, robux: number?)
 	local st = self.players[player.UserId]
 	local definition = ShopCatalog.Definitions and ShopCatalog.Definitions[key]
-	if st then self:_Purchase(st, "pass", key, definition and definition.proposedPrice or 0) end
+	if st then self:_Purchase(st, "pass", key, definition and definition.proposedPrice or 0, finite(robux, 0, 1e7)) end
 end
 
 -- Client reports -----------------------------------------------------------------
@@ -687,6 +745,8 @@ function Analytics:ClientReport(session, report: any)
 	if fps then
 		st.fpsSum += fps; st.fpsN += 1
 		self.ledger:Hist("perf.fps|" .. platform, "fps", fps)
+		-- Version 5: device tier from AnalyticsPlayer (set after the first report).
+		if type(st.tier) == "string" then self.ledger:Hist("perf.fps.tier." .. st.tier, "fps", fps) end
 		if fpsMin then self.ledger:Hist("perf.fpsMin|" .. platform, "fps", fpsMin) end
 		if mem then self.ledger:Hist("perf.memMb|" .. platform, "memory", mem) end
 		if now >= st.nextClientPerf then
@@ -715,6 +775,136 @@ function Analytics:ClientReport(session, report: any)
 			self.ledger:Count("err.client", total)
 			self:_Trail(st, "clientError")
 		end
+	end
+	self:_Part(self.playerInfo, "Device", st, report)
+end
+
+-- Version 5 client UI events (Schema.ClientEvents; TRACKING_PLAN section 4) --------
+
+local DETAIL_PATTERN = "^[%w_ /:%-%.=%*]+$" -- "*" = an id the client masked
+local MENU_DWELL_EVENTS = 6 -- MenuDwell custom events per session (rate budget)
+
+function Analytics:_UiEvent(st, name: string, detail: string?, value: number?)
+	local ledger = self.ledger
+	if name == "menu.open" then
+		ledger:Count("ui.menu.open." .. (detail :: string))
+		self:_Trail(st, "menu:" .. (detail :: string))
+	elseif name == "menu.close" then
+		ledger:Hist("ui.menu.dwell." .. (detail :: string), "seconds", value or 0)
+		st.menuDwellSent = (st.menuDwellSent or 0) + 1
+		if st.menuDwellSent <= MENU_DWELL_EVENTS then
+			local player, menu, platform, stage = st.player, detail, st.platform, self:_Stage(st)
+			self:_Queue(false, "custom:MenuDwell", function()
+				AnalyticsService:LogCustomEvent(player, "MenuDwell", math.floor(value or 0), fields(menu, platform, stage))
+			end)
+		end
+	elseif name == "menu.blocked" then
+		ledger:Count("ui.menu.blocked." .. (detail :: string))
+	elseif name == "ui.click" then
+		ledger:Count("ui.click")
+		ledger:Top("ui.click", detail :: string)
+	elseif name == "tab" then
+		ledger:Top("ui.tab", detail :: string)
+	elseif name == "inspect" then
+		ledger:Top("ui.inspect", detail :: string)
+	elseif name == "prompt.shown" then
+		ledger:Count("ui.prompt.shown")
+		ledger:Top("ui.prompt.shown", detail :: string)
+	elseif name == "prompt.result" then
+		local result = string.match(detail :: string, ":(%a+)$")
+		if result == "bought" then ledger:Count("ui.prompt.bought") elseif result == "cancel" then ledger:Count("ui.prompt.cancel") end
+		ledger:Top("ui.prompt.result", detail :: string)
+	elseif name == "idle.start" then
+		ledger:Count("ui.idle.n")
+	elseif name == "idle.end" then
+		ledger:Hist("ui.idle.seconds", "seconds", value or 0)
+	elseif name == "setting" then
+		ledger:Top("ui.setting", detail :: string)
+	elseif name == "hint.shown" or name == "hint.closed" then
+		ledger:Top("ui." .. name, detail :: string)
+	elseif name == "load.phase" then
+		if string.match(detail :: string, "^[%w_]+$") and #(detail :: string) <= 16 then
+			ledger:Hist("ui.load." .. (detail :: string), "seconds", value or 0)
+		end
+	elseif name == "leaderboard.view" then
+		ledger:Top("ui.leaderboard.view", detail :: string)
+	elseif name == "camera.zoom" or name == "chat.sent" or name == "emote" then
+		ledger:Count("ui." .. name, math.max(1, math.floor(value or 1)))
+	end
+end
+
+function Analytics:ClientEvents(session, events: any)
+	local st = self:_State(session)
+	if not st or type(events) ~= "table" then return end
+	local okAll, why = pcall(function()
+		local now = self.clock()
+		if now - (st.eventWindowAt or -math.huge) >= 60 then st.eventWindowAt, st.eventCount = now, 0 end
+		local seen = 0
+		for index, event in events do
+			seen += 1
+			if seen > Schema.ClientEventBatch then self.ledger:Count("ui.events.dropped"); break end
+			if st.eventCount >= Schema.ClientEventsPerMinute then self.ledger:Count("ui.events.rateLimited"); break end
+			st.eventCount += 1
+			local name = if type(index) == "number" and type(event) == "table" then event.n else nil
+			local kind = if type(name) == "string" then Schema.ClientEvents[name] else nil
+			if not kind then self.ledger:Count("ui.events.dropped"); continue end
+			local detail = event.d
+			local value = finite(event.v, 0, 86400)
+			if kind == "none" then
+				detail = nil
+			elseif type(detail) ~= "string" or #detail == 0 or #detail > (if kind == "path" then 48 else 32)
+				or not string.match(detail, DETAIL_PATTERN) then
+				self.ledger:Count("ui.events.dropped"); continue
+			end
+			if kind == "menu" and not Schema.Menus[detail] then detail = "Other" end
+			if kind == "path" then
+				local menu, rest = string.match(detail, "^([^/]+)/(.+)$")
+				if not menu or not Schema.Menus[menu] then detail = string.sub("Other/" .. (rest or detail), 1, 48) end
+			end
+			st.lastClientAt = now
+			self:_UiEvent(st, name, detail, value)
+			self:_Part(self.funnels, "Client", st, name, detail, value)
+			self:_Part(self.playerInfo, "Client", st, name, detail, value)
+		end
+	end)
+	if not okAll then
+		self.ledger:Count("analytics.partError")
+		if not self.partWarned then self.partWarned = true; warn("[Analytics] ClientEvents failed: " .. tostring(why)) end
+	end
+end
+
+-- Version 5 server events (Schema.ServerEvents), called by gameplay services. -------
+
+local SERVER_VALUE_KIND = {["offline.shown"] = "bigCash", ["hill.hold"] = "seconds", ["battle.end"] = "seconds",
+	["eggs.deposit"] = "count", ["egg.pickup"] = "count"}
+
+function Analytics:ServerEvent(session, name: string, detail: any?, value: number?)
+	local okAll, why = pcall(function()
+		local kind = if type(name) == "string" then Schema.ServerEvents[name] else nil
+		if not kind then self.ledger:Count("sev.unknown"); return end
+		local st = self:_State(session)
+		-- Only real joined players count (a new-player test session has no state);
+		-- save health still counts after Leave.
+		if not st and name ~= "data.saveFail" and name ~= "data.saveOk" then return end
+		local clean: string? = nil
+		if kind == "level" or kind == "tier" then
+			local number = tonumber(detail)
+			clean = if number then tostring(math.clamp(math.floor(number), 0, 999)) else nil
+		elseif kind == "free" and detail ~= nil then
+			clean = if type(detail) == "string" and string.match(detail, "^[%w_:%.%-]+$") then string.sub(detail, 1, 32) else "other"
+		end
+		local amount = finite(value, 0, 1e15)
+		self.ledger:Count("sev." .. name)
+		if clean then self.ledger:Count("sev." .. name .. "." .. clean) end
+		if amount and SERVER_VALUE_KIND[name] then self.ledger:Hist("sev." .. name .. ".v", SERVER_VALUE_KIND[name], amount) end
+		if st then
+			self:_Part(self.funnels, "Server", st, name, clean, amount)
+			self:_Part(self.playerInfo, "Server", st, name, clean, amount)
+		end
+	end)
+	if not okAll then
+		self.ledger:Count("analytics.partError")
+		if not self.partWarned then self.partWarned = true; warn("[Analytics] ServerEvent failed: " .. tostring(why)) end
 	end
 end
 
@@ -780,6 +970,8 @@ function Analytics:Leave(session)
 		end)
 	end
 	self:_FlushEconomy(st)
+	self:_Part(self.funnels, "Leave", st, session)
+	self:_Part(self.playerInfo, "Leave", st, session)
 	if onboarding or self.random() < JOURNEY_SAMPLE then
 		local rejects = {}
 		for action, count in st.rejects do table.insert(rejects, action .. "x" .. count) end
@@ -816,8 +1008,12 @@ local function launchPrefix(list: {[string]: any}, name: any): string?
 end
 
 function Analytics:LaunchCount(session, name: string, n: number?)
-	if not self:_State(session) or not launchPrefix(Schema.LaunchCounters, name) then return end
+	local st = self:_State(session)
+	if not st or not launchPrefix(Schema.LaunchCounters, name) then return end
 	self.ledger:Count(name, n)
+	-- Version 5: funnels and lifetime counters read these names (mission.won.2 ...).
+	self:_Part(self.funnels, "Server", st, name, nil, n)
+	self:_Part(self.playerInfo, "Server", st, name, nil, n)
 end
 
 function Analytics:LaunchHist(session, name: string, value: number)
