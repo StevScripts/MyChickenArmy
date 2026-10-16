@@ -11,6 +11,7 @@ local Extras={}
 Extras.__index=Extras
 -- Matches ArmyService.SaveFormation / ResearchRules.Read: 1-40 bytes of UTF-8.
 local MAX_FORMATION_NAME=40
+local RALLY_SHOWN_X,RALLY_HIDDEN_X=.988,1.12
 
 local function clampName(text)
 	if #text<=MAX_FORMATION_NAME then return text end
@@ -28,10 +29,13 @@ end
 
 function Extras.new(app)
 	local self=setmetatable({app=app,tier=1,connections={}},Extras)
-	-- A battle command, not a purchase: the Army colour.
-	self.rally=Theme.Button(app.hudLayer,"Rally","Rally",function() app:Request("Rally") end,Theme.Arcade.army)
-	self.rally.AnchorPoint,self.rally.Position,self.rally.Size=Vector2.new(1,.5),UDim2.fromScale(.985,.58),UDim2.fromScale(.16,.07)
-	Theme.Aspect(self.rally,3.9);Theme.ScaleText(self.rally);self.rally.Visible=false
+	-- October 16 owner request: a war-horn icon that slides in from the right edge
+	-- while the army is fighting, like Call Army / My Base pop out of My Army.
+	self.rally=Theme.IconButton(app.hudLayer,"Rally","Rally",Theme.Assets.Rally,function() app.audio:Play("Click");app:Request("Rally") end)
+	self.rally.AnchorPoint,self.rally.Position,self.rally.Size=Vector2.new(1,.5),UDim2.fromScale(RALLY_HIDDEN_X,.68),UDim2.fromScale(.082,.16)
+	Theme.Aspect(self.rally,136/132);self.rally.Visual.Label.TextScaled=true;self.rally.Visual.Label.Position=UDim2.fromScale(0,.64)
+	Theme.ScaleText(self.rally);self.rally.Visible,self.rally.Interactable=false,false
+	self.rallyShown=false
 	-- October 14 launch: a King clear opens Invasions without research, so the page
 	-- needs an entry besides the completed S15 node. Shares Rally's slot; Rally only
 	-- shows while Fighting and this only while the army is home.
@@ -47,7 +51,7 @@ function Extras.new(app)
 		elapsed+=dt;if elapsed>=.25 then elapsed=0;self:UpdateRally() end
 	end))
 	ContextActionService:BindAction("PetRollRally",function(_,state)
-		if state~=Enum.UserInputState.Begin or UserInputService:GetFocusedTextBox() or app.panel.Visible or app.research.root.Visible or not self.rally.Visible then return Enum.ContextActionResult.Pass end
+		if state~=Enum.UserInputState.Begin or UserInputService:GetFocusedTextBox() or app.panel.Visible or app.research.root.Visible or not self.rallyShown then return Enum.ContextActionResult.Pass end
 		app:Request("Rally");return Enum.ContextActionResult.Sink
 	end,false,Enum.KeyCode.G,Enum.KeyCode.ButtonL2)
 	return self
@@ -57,15 +61,25 @@ function Extras:UpdateRally()
 	local state=self.app.state;local data=state and state.research
 	-- October 14 Missions replace the Invasions menu; MissionTracker owns this slot.
 	self.operations.Visible=false
-	self.rally.Visible=data~=nil and data.effects.rallySeconds>0 and state.armyState=="Fighting" and not self.app.panel.Visible
-	if not self.rally.Visible then return end
+	local shown=data~=nil and data.effects.rallySeconds>0 and state.armyState=="Fighting" and not self.app.panel.Visible
+	if shown~=self.rallyShown then
+		self.rallyShown=shown
+		local rally=self.rally
+		if shown then rally.Visible=true end
+		rally.Interactable=shown
+		Theme.Motion:Tween(rally,"slide",{Position=UDim2.fromScale(if shown then RALLY_SHOWN_X else RALLY_HIDDEN_X,.68)},
+			.32,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function()
+				if not self.rallyShown then rally.Visible=false end
+			end)
+	end
+	if not shown then return end
 	local now=self.app.research:Now()
 	local active=math.max(0,math.ceil((data.rallyActiveUntil or 0)-now))
 	local cooldown=math.max(0,math.ceil(data.rallyReadyAt-now))
 	local input=UserInputService.PreferredInput
 	local hint=if input==Enum.PreferredInput.Gamepad then " (LT)" elseif input==Enum.PreferredInput.KeyboardAndMouse then " (G)" else ""
-	self.rally.Text=if active>0 then "Rally active · "..active.."s" elseif cooldown>0 then "Rally · "..cooldown.."s" else "Rally"..hint
-	self.rally.Active,self.rally.Interactable=cooldown==0,cooldown==0
+	self.rally.Text=if active>0 then "Active "..active.."s" elseif cooldown>0 then "Rally "..cooldown.."s" else "Rally"..hint
+	self.rally.Active=cooldown==0
 end
 
 function Extras:Receive(state,result)

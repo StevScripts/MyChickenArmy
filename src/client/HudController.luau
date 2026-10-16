@@ -102,20 +102,17 @@ function Hud.new(app,shell)
 		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
-	-- October 15 Auto Roll: the fourth slot, shown once researched. A tap turns it
-	-- on or off; the badge reads ON, PAUSED (a keeper waits on the podium) or OFF.
-	local autoRoll=Theme.IconButton(shortcuts,"AutoRoll","Auto Roll",Theme.Assets.Luck,function()
+	-- October 16 owner request: Auto Roll is a plain text toggle on the right, like
+	-- Mini War's Auto Sell / Auto Collect, just above the Camps/Flock totals. Shown
+	-- once researched; green ON, red OFF, gold while a keeper waits on the podium.
+	local autoRoll=Theme.Button(shell,"AutoRoll","Auto Roll",function()
 		local auto=app.state and app.state.autoRoll
 		if auto and auto.unlocked then app.audio:Play("Click");app:Request("SetAutoRoll",{enabled=not auto.enabled}) end
-	end)
-	autoRoll.LayoutOrder,autoRoll.Visible=4,false
+	end,A.red)
+	autoRoll.AnchorPoint,autoRoll.Position,autoRoll.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.875),UDim2.fromScale(0.15,0.08)
+	autoRoll.TextColor3,autoRoll.Visible=Color3.new(1,1,1),false
+	Theme.Aspect(autoRoll,3.4);Theme.ScaleText(autoRoll)
 	self.autoRoll=autoRoll
-	local stateBadge=Theme.Label(autoRoll.Visual,"State","OFF",20,Color3.new(1,1,1))
-	stateBadge.AnchorPoint,stateBadge.Position,stateBadge.Size=Vector2.new(1,0),UDim2.fromScale(1.04,-0.04),UDim2.fromScale(0.62,0.26)
-	stateBadge.BackgroundTransparency,stateBadge.BackgroundColor3,stateBadge.TextScaled,stateBadge.ZIndex=0,Theme.ActionColors.disabled,true,5
-	stateBadge.TextXAlignment=Enum.TextXAlignment.Center
-	Theme.Round(stateBadge)
-	self.autoRollBadge=stateBadge
 	-- Rebirth: its own icon at the middle of the right edge (October 14 owner
 	-- request; the left column keeps Shop, Index and Upgrades).
 	local rebirthCorner=Theme.Frame(shell,"RebirthCorner",UDim2.fromScale(0.082,0.16))
@@ -284,7 +281,7 @@ function Hud:Layout()
 	end
 	self.armyCount.Position,self.armyCount.Size=UDim2.fromScale(0,0.86),UDim2.fromScale(1,0.135)
 	-- October 15 owner request: labels sit closer to their icons (0.712 -> 0.64).
-	for _,page in {"Shop","Index","Upgrades","AutoRoll"} do
+	for _,page in {"Shop","Index","Upgrades"} do
 		local button=self.shortcuts:FindFirstChild(page)
 		Theme.Aspect(button,136/132)
 		button.Visual.Label.TextScaled=true
@@ -411,18 +408,16 @@ function Hud:UpdateRebirth(state)
 	end
 end
 
--- Three slots by default; once Auto Roll shows, the column grows to fit a fourth
--- (4 x 0.234 + 3 x 0.0215 padding) with buttons nearly the same size.
+-- Three slots: Shop, Upgrades, Index (Auto Roll moved to the right on October 16).
 function Hud:LayoutShortcuts()
-	local four=self.autoRoll.Visible
 	local column=self.shortcuts
-	column.Size=UDim2.fromScale(0.096,if four then 0.66 else 0.53)
+	column.Size=UDim2.fromScale(0.096,0.53)
 	local aspect=column:FindFirstChildOfClass("UIAspectRatioConstraint")
-	if aspect then aspect.AspectRatio=if four then 136/564 else 136/420 end
+	if aspect then aspect.AspectRatio=136/420 end
 	local layout=column:FindFirstChildOfClass("UIListLayout")
-	if layout then layout.Padding=UDim.new(if four then 0.0215 else 0.0286,0) end
-	for _,page in {"Shop","Index","Upgrades","AutoRoll"} do
-		column[page].Size=UDim2.fromScale(1,if four then 0.234 else 0.314)
+	if layout then layout.Padding=UDim.new(0.0286,0) end
+	for _,page in {"Shop","Index","Upgrades"} do
+		column[page].Size=UDim2.fromScale(1,0.314)
 	end
 end
 
@@ -430,13 +425,12 @@ function Hud:UpdateAutoRoll(state)
 	local auto=state.autoRoll
 	local unlocked=auto~=nil and auto.unlocked==true
 	-- Point at the new button once, when the research finishes in this session.
-	if unlocked and self.autoRollUnlocked==false then self.app:Notify("Auto Roll unlocked! Tap Auto Roll on the left to start rolling.",true) end
+	if unlocked and self.autoRollUnlocked==false then self.app:Notify("Auto Roll unlocked! Use the Auto Roll button on the right to start rolling.",true) end
 	self.autoRollUnlocked=unlocked
-	if self.autoRoll.Visible~=unlocked then self.autoRoll.Visible=unlocked;self:LayoutShortcuts() end
+	self.autoRoll.Visible=unlocked
 	if not unlocked then return end
-	local label=if not auto.enabled then "OFF" elseif auto.holding then "PAUSED" else "ON"
-	self.autoRollBadge.Text=label
-	self.autoRollBadge.BackgroundColor3=if label=="ON" then Theme.Arcade.green elseif label=="PAUSED" then Theme.Arcade.gold else Theme.ActionColors.disabled
+	local color=if not auto.enabled then A.red elseif auto.holding then A.gold else A.green
+	if self.autoRoll.BackgroundColor3~=color then self.autoRoll.BackgroundColor3=color end
 end
 
 function Hud:Update(state,count,limit,capacity,selected,deployed)
