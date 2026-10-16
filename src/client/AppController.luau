@@ -655,7 +655,12 @@ function AppController:RenderSettings()
 	self.panelTitle.Text = "Settings"
 	-- Toggles read at a glance: green when ON, gray when OFF.
 	local function toggle(name, label, on, callback)
-		return self:Button(name, label .. "  ·  " .. (if on then "ON" else "OFF"), callback, if on then Theme.Arcade.green else Theme.ActionColors.disabled)
+		return self:Button(name, label .. "  ·  " .. (if on then "ON" else "OFF"), function()
+			callback()
+			-- The row is rebuilt with its new state; let the fresh switch land with a pop.
+			local fresh=self.content:FindFirstChild(name)
+			if fresh and fresh:FindFirstChild("Visual") then Theme.Motion:Pop(fresh.Visual,1.06) end
+		end, if on then Theme.Arcade.green else Theme.ActionColors.disabled)
 	end
 	toggle("ToggleMusic", "Music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	toggle("ToggleEffects", "Sound effects", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
@@ -913,6 +918,10 @@ function AppController:Receive(packet)
 	self.dailyReward:Render(state,result)
 	self.operationsPanel:Render(state,result)
 	if self.commander then self.commander:Update() end
+	if result and not result.ok then
+		local source=self:CommandButton(result.action)
+		if source then Theme.Motion:Shake(source.Visual,6) end
+	end
 	if result and result.ok then
 		local changed=if (result.action=="Expand" or result.action=="Income" or result.action=="Luck")
 			and (not shownProduction or newProduction) then self.progression.row else nil
@@ -921,10 +930,17 @@ function AppController:Receive(packet)
 			local card=changed:FindFirstChild(name)
 			if card and card:FindFirstChild("Icon") then Theme.Motion:Pop(card.Icon,1.18) end
 		end
-		-- Keep reward motion local to the action, not behind notification text.
-		if result.action=="Sell" then Theme.Motion:Pop(self.hud.cashIcon,1.14) end
+		-- Quiet HUD commands confirm on the button that sent them. (Cash gains pop in HudController.)
+		local source=self:CommandButton(result.action)
+		if source then Theme.Motion:Pop(source.Visual,1.1) end
 		if result.action=="TestNewPlayer" and self.intro then self.intro:PlayAsNewPlayer() end
 	end
+end
+
+function AppController:CommandButton(action)
+	local hud=self.hud
+	local button=if action=="CallArmy" then hud.callArmy elseif action=="GoBase" then hud.myBase elseif action=="SetAutoRoll" then hud.autoRoll else nil
+	return if button and button.Parent and button:FindFirstChild("Visual") then button else nil
 end
 
 function AppController:Start()
@@ -936,6 +952,8 @@ function AppController:Start()
 	self.eggBoard:Start()
 	self.audio:Start()
 	self.audio:BindUI(self.gui)
+	-- Every Motion-bound button clicks; hand-written Click calls share the voice key and cooldown.
+	Theme.Motion.sound=function(cue) self.audio:Play(cue) end
 	self.feedback:Start()
 	self.commerce:Start()
 	self.eggs:Start()

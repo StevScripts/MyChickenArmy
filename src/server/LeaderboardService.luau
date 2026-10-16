@@ -1,10 +1,11 @@
 --!strict
 -- Global rankings are a projection of authoritative sessions, never a money source.
 -- October 9: Strongest Army (best possible army power), all-time. October 14:
--- Top Rebirths (session.rebirths) replaces the displayed Top Supporters board;
--- Robux spent is still recorded to its unchanged store but never published.
+-- Top Rebirths (session.rebirths) replaces the displayed Top Supporters board.
+-- October 15: Most Robux Spent is shown again on each plot's third board
+-- (Leaderboard3), read from the same unchanged store, so its history carries over.
 -- The server writes OrderedDataStores and publishes the top rows to
--- ReplicatedStorage.PetRoll.Leaderboards; the client module LeaderboardBoards draws them on every plot's Leaderboard1/Leaderboard2 screen.
+-- ReplicatedStorage.PetRoll.Leaderboards; the client module LeaderboardBoards draws them on every plot's Leaderboard1/2/3 screen.
 local Players=game:GetService("Players")
 local DataStoreService=game:GetService("DataStoreService")
 local RunService=game:GetService("RunService")
@@ -19,8 +20,7 @@ Leaderboards.Top=100 -- Boards scroll (LeaderboardBoards); 100 is one GetSortedA
 Leaderboards.Definitions={
  {key="ArmyPower",title="STRONGEST ARMY"},
  {key="Rebirths",title="TOP REBIRTHS"},
- -- Hidden: keeps writing <SaveName>_Global_RobuxSpent_v1, never read or shown.
- {key="RobuxSpent",title="TOP SUPPORTERS",hidden=true},
+ {key="RobuxSpent",title="MOST ROBUX SPENT"},
 }
 
 local function valueOf(session,key)

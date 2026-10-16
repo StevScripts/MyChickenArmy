@@ -1,7 +1,7 @@
 --!strict
 -- Draws every plot's world leaderboards (Leaderboard1 = Strongest Army,
 -- Leaderboard2 = Top Rebirths since October 14; its SurfaceGui keeps the old
--- Leaderboard_RobuxSpent name) from rankings the server publishes in
+-- Leaderboard_RobuxSpent name; Leaderboard3 = Most Robux Spent since October 15) from rankings the server publishes in
 -- ReplicatedStorage.PetRoll.Leaderboards. Presentation only; uses the shared
 -- UITheme kit: studded gradient header, dark content, outlined display text.
 local Players = game:GetService("Players")
@@ -21,6 +21,8 @@ local EMPTY_TILE = Color3.fromRGB(58, 62, 70)
 local STYLE = {
 	ArmyPower = {model = "Leaderboard1", color = Theme.PageColors.Army, icon = Theme.Assets.Army, valueColor = Theme.Arcade.gold},
 	Rebirths = {model = "Leaderboard2", surface = "RobuxSpent", color = Theme.ReferenceColors.Army, icon = Theme.Assets.Reenlist, valueColor = Theme.Arcade.green},
+	-- October 15: the third board on every plot.
+	RobuxSpent = {model = "Leaderboard3", surface = "MostRobux", color = Theme.PageColors.Shop, icon = Theme.Assets.Shop, valueColor = Theme.Arcade.green, money = true},
 }
 local MEDALS = {Theme.Arcade.gold, Color3.fromRGB(198, 208, 220), Color3.fromRGB(219, 134, 64)}
 
