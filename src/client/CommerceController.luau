@@ -249,7 +249,9 @@ function Controller:Receive(result)
 			or purchase.kind~=pending.kind or purchase.id~=pending.productId then
 			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
 			-- Research skips are bought outside the Shop page, so say why it stopped.
-			if pending.jobId and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false) end
+			-- Chicken offers are bought from the HUD, so they say why too.
+			local definition=self.catalog.Products[pending.key]
+			if (pending.jobId or (definition and definition.chickenOffer)) and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false) end
 			self.pending=nil;self:Changed();return
 		end
 		-- A validated server response permits the native checkout, never a local grant.

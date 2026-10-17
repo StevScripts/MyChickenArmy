@@ -1,0 +1,6 @@
+Chicken Jockey|9|3719084263
+Rainbow Rider|49|3719084274
+Glitch Chicken|150|3719084284
+Eclipse Chicken|250|3719084303
+Rift Walker|500|3719084320
+Cosmic Galaxy Overlord|1200|3719084332

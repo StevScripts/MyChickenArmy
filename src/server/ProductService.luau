@@ -3,6 +3,7 @@
 local MarketplaceService=game:GetService("MarketplaceService")
 local Players=game:GetService("Players")
 local ShopCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
+local PetCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local EggProcessor=require(script.Parent.EggProcessor)
 local ResearchService=require(script.Parent.ResearchService)
 local ProductService={}
@@ -83,6 +84,15 @@ function ProductService:_ProcessReceipt(receipt)
    -- The job chosen at checkout (transient); otherwise the longest running job.
    ResearchService.PaidSkip(session,product.researchSkipSeconds,session.researchSkipTarget,os.time())
    session.researchSkipTarget=nil
+  elseif product.chickenOffer~=nil and integer(product.chickenOffer,1,#ShopCatalog.ChickenOfferOrder)
+   and PetCatalog[product.species]~=nil then
+   -- October 16 chicken offer: always delivered once paid (a full Flock may go over
+   -- its limit, which it already tolerates); the ladder never moves backwards.
+   local pet=session:AddPet(product.species,1,product.mutation)
+   pet.investment=0
+   session.chickenOfferStep=math.max(session.chickenOfferStep or 0,product.chickenOffer)
+   session.chickenOfferPetId=pet.id -- Transient: GameServer spawns it after the save.
+   session:RefreshArmy()
   elseif product.coins~=nil and product.crates==nil and integer(product.coins,1,MaxCoins)
    and integer(cash,product.coins,MaxCoins) and integer(session.coins,0,MaxCoins-cash) then
    -- Minutes of current income, never below the listed floor. Earned-income

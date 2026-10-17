@@ -25,6 +25,7 @@ local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
 local EggProcessorController = require(script.Parent.EggProcessorController)
 local OfflineCashController = require(script.Parent.OfflineCashController)
+local FreeGiftController = require(script.Parent.FreeGiftController)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
@@ -62,6 +63,7 @@ function AppController.new()
 	-- Launch sprint panels (docs/team/launch); foundation stubs render nothing.
 	self.rebirthPanel=RebirthPanel.new(self)
 	self.dailyReward=DailyRewardController.new(self)
+	self.freeGift=FreeGiftController.new(self)
 	self.operationsPanel=OperationsPanel.new(self)
 	self.base, self.battle = BaseController.new(self), BattleController.new(self)
 	return self
@@ -378,7 +380,7 @@ function AppController:OpenPage(page)
 	end,false,2500,Enum.KeyCode.ButtonB)
 end
 
--- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily".
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift".
 -- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
 -- closed menu releases only its own blur owner, so the shared blur stays on.
 -- Safe with nothing open. The offline receipt is always dismissed (already paid).
@@ -394,6 +396,7 @@ function AppController:CloseOtherMenus(keep: string?)
 		rebirth:Dismiss(true)
 	end
 	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
+	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
@@ -916,6 +919,7 @@ function AppController:Receive(packet)
 	-- After the offline receipt so the daily popup can wait for it.
 	self.rebirthPanel:Render(state,result)
 	self.dailyReward:Render(state,result)
+	self.freeGift:Render(state,result)
 	self.operationsPanel:Render(state,result)
 	if self.commander then self.commander:Update() end
 	if result and not result.ok then

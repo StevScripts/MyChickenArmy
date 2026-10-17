@@ -269,6 +269,12 @@ function CommerceService:PreparePurchase(player,session,key,productReady,jobId)
   if record.owned[key] then return false,"You already own this pass." end
  elseif not productReady then return false,"Purchases need a safely loaded, saved profile." end
  if definition.coins and session.coins>Currency.MaxCoins-definition.coins then return false,"Spend some cash before buying this pack." end
+ if definition.chickenOffer then
+  -- One step at a time; the chicken needs a free Flock spot.
+  if (session.chickenOfferStep or 0)>=definition.chickenOffer then return false,"You already own this offer." end
+  if (session.chickenOfferStep or 0)+1~=definition.chickenOffer then return false,"Unlock the earlier offers first." end
+  if session:Count()>=session:CollectionLimit() then return false,"Make room in your Flock first." end
+ end
  if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
  if definition.researchSkipSeconds then
   -- Remaining time only shrinks, so a tier that covers it now still covers it at delivery.

@@ -66,13 +66,11 @@ function Commander:FitInstruction()
 	local label=self.instruction
 	local space=label.AbsoluteSize
 	if space.X<=0 or space.Y<=0 then return end
-	local wrapWidth=if self.quiet then math.max(1,space.X-4) else 100000
-	-- The quiet line is taller so phones (height-limited) get larger text; cap it so
-	-- wide desktop screens don't blow it up.
-	local low,high,best=1,if self.quiet then 30 else 100,1
+	if self.quiet then self:FitQuiet();return end
+	local low,high,best=1,100,1
 	while low<=high do
 		local size=math.floor((low+high)/2)
-		local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(wrapWidth,100000))
+		local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(100000,100000))
 		if bounds.X<=math.max(1,space.X-4) and bounds.Y<=space.Y*.96 then
 			best,low=size,size+1
 		else high=size-1 end
@@ -84,8 +82,40 @@ end
 -- no typewriter or entrance motion. The full card belongs to the guide itself.
 local FULL = {card=UDim2.fromScale(.86,.115), aspect=7.4, bodyPosition=UDim2.fromScale(.1,.13), bodySize=UDim2.fromScale(.9,.78),
 	bodyTransparency=.28, textPosition=UDim2.fromScale(.18,.19), textSize=UDim2.fromScale(.795,.66)}
-local QUIET = {card=UDim2.fromScale(.46,.11), aspect=7.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
+-- The quiet card's height allowance (.3) only matters when FitQuiet lowers its aspect.
+local QUIET = {card=UDim2.fromScale(.46,.3), aspect=7.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
 	bodyTransparency=.45, textPosition=UDim2.fromScale(.04,.18), textSize=UDim2.fromScale(.92,.64)}
+
+-- October 16 (owner, mobile: "super shrunk"): a landscape phone is short, so the
+-- 7.5:1 quiet line was only ~40pt tall and long goals fell to ~12pt. One layout for
+-- every device: when the text would drop below QUIET_MIN_TEXT, the card gets taller
+-- (lower aspect) so it wraps at that size instead. Measured from the screen width
+-- allowance only, so the resize it causes cannot change the answer (no feedback loop).
+local QUIET_MIN_TEXT, QUIET_MAX_TEXT, QUIET_MIN_ASPECT = 20, 30, 3
+function Commander:FitQuiet()
+	local label,area=self.instruction,self.card.Parent.AbsoluteSize
+	local cardWidth=math.min(area.X*QUIET.card.X.Scale,area.Y*QUIET.card.Y.Scale*QUIET.aspect)
+	local textWidth=math.max(1,cardWidth*QUIET.textSize.X.Scale-4)
+	local function largest(textHeight)
+		local low,high,best=1,QUIET_MAX_TEXT,1
+		while low<=high do
+			local size=math.floor((low+high)/2)
+			local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(textWidth,100000))
+			if bounds.X<=textWidth and bounds.Y<=textHeight*.96 then best,low=size,size+1 else high=size-1 end
+		end
+		return best
+	end
+	local aspect=QUIET.aspect
+	local best=largest(cardWidth/aspect*QUIET.textSize.Y.Scale)
+	if best<QUIET_MIN_TEXT then
+		local bounds=TextService:GetTextSize(label.Text,QUIET_MIN_TEXT,label.Font,Vector2.new(textWidth,100000))
+		-- 2% headroom so the minimum size itself passes the fit test after rounding.
+		aspect=math.clamp(cardWidth*QUIET.textSize.Y.Scale*.96/(math.max(1,bounds.Y)*1.02),QUIET_MIN_ASPECT,QUIET.aspect)
+		best=largest(cardWidth/aspect*QUIET.textSize.Y.Scale)
+	end
+	if self.cardAspect and self.cardAspect.AspectRatio~=aspect then self.cardAspect.AspectRatio=aspect end
+	for _,limit in self.instructionLimits do limit.MaxTextSize=best end
+end
 
 function Commander:SetQuiet(quiet)
 	if self.quiet == quiet then return end

@@ -1,5 +1,12 @@
 # Offline cash
 
+**October 16 (owner: players thought they didn't get it):** the server still credits
+and saves the reward before the receipt shows (unchanged). The HUD now leaves the
+receipt amount out of the displayed balance while the receipt is open; closing it
+(Collect, X, Escape, or another menu replacing it) flies cash icons from the receipt
+into the cash readout and counts the balance up to the real total
+(`HudController:ReleaseOfflineCash`, display only). The button reads "Collect".
+
 **October 14 fix (owner: "offline cash doesn't even work"):** the receipt and payout
 worked, but 2% efficiency paid so little that players thought it was broken (three
 starter chickens away 3h earned $2.6K). Efficiency is now 20% (eight hours pays 96

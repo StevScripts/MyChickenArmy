@@ -18,6 +18,7 @@ local LeaderboardService=require(script.Parent.LeaderboardService)
 local CommerceService=require(script.Parent.CommerceService)
 local ProductService=require(script.Parent.ProductService)
 local CrateService=require(script.Parent.CrateService)
+local FreeGiftService=require(script.Parent.FreeGiftService)
 local LoopTelemetry=require(script.Parent.LoopTelemetry)
 local Analytics=require(script.Parent.Analytics)
 local TutorialService=require(script.Parent.TutorialService)
@@ -67,7 +68,15 @@ function GameServer.new()
 	TutorialService.Transport=function(player,name,value,fields) self.analytics:Custom(player,name,value,fields) end
 	TutorialService.onProgress=function(userId,name,value,step,detail) self.analytics:Progress(userId,name,value,step,detail) end
 	TutorialService.onIncome=function(session,source,amount,balance) self.analytics:Income(session,source,amount,balance) end
-	self.products.onGranted=function(session,productId,product,receipt) self.analytics:ProductGranted(session,productId,product,receipt) end
+	self.products.onGranted=function(session,productId,product,receipt)
+		self.analytics:ProductGranted(session,productId,product,receipt)
+		-- A bought chicken walks onto the plot right away.
+		local petId=session.chickenOfferPetId
+		if product.chickenOffer and petId then
+			session.chickenOfferPetId=nil
+			pcall(function() self.world:Recruit(session,petId);self.world:UpdateSession(session) end)
+		end
+	end
 	self.commerce.onPassPurchased=function(player,key,robux) self.analytics:PassPurchased(player,key,robux) end
 	return self
 end
@@ -152,7 +161,7 @@ function GameServer:Handle(player,request)
  local action=request.action
 	local ok,message,petId,recruit=false,"Unknown action.",nil,nil
 	local balanceBefore=session.coins
-	local receipt,purchase,crate
+	local receipt,purchase,crate,freeGift
 	local selectedBefore=#session:BestPetIds()
 	local recapBefore=#(session.researchRecap or {})
 	local selectionBefore=if action=="SetArmy" or action=="SelectBest" then table.concat(session:BestPetIds(),":") else nil
@@ -204,6 +213,19 @@ function GameServer:Handle(player,request)
 		if request.key=="FinishEggs" and not self.eggs:CanUseBoard(player,session) then
 			message="Walk up to your egg selling board."
 		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session),request.jobId) end
+	elseif action=="ClaimFreeGift" then
+		-- The group lookup is a web call: at most one every 3 s per player.
+		if session.freeGiftClaimed then message="You already claimed your free chicken!"
+		elseif now<(session.freeGiftCheckAt or 0) then message="Checking… try again in a moment."
+		else
+			session.freeGiftCheckAt=now+3
+			local inGroup=FreeGiftService.InGroup(player)
+			if self.sessions[player.UserId]~=session or session.closing or session.saveLost then return end
+			ok,message,petId=FreeGiftService.Claim(session,inGroup)
+			-- Lets the client open Roblox's join-group prompt right away.
+			if inGroup==false and not ok then freeGift={notInGroup=true} end
+			if ok then self.world:Recruit(session,petId) end
+		end
 	elseif action=="OpenCrate" then
 		if not self.products:CanPurchase(session) then message="Crates need a safely loaded, saved profile."
 		else
@@ -353,7 +375,7 @@ function GameServer:Handle(player,request)
  end
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
-	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate})
+	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift})
 end
 
 -- Observation only: a request dropped by the action rate limit, at most once per 10 s per player.

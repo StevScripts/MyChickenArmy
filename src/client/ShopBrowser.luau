@@ -484,10 +484,14 @@ function Browser:CreateCash()
  self.cashFeatured,self.cashFeaturedButton=vaultButton,vaultButton
  self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
  self.cashRays.ZIndex=4
- local art=frame(vault,"CashOverflow",UDim2.fromScale(0.5,1.25),UDim2.fromScale(0.5,-0.18))
- art.BackgroundTransparency,art.ZIndex=1,5
+ -- October 16 (owner): the biggest pack's art is the card's full background; the
+ -- text sits on top of it (labels are ZIndex 7). The rays would only cover it.
+ self.cashRays.Visible=false
+ local art=frame(vault,"CashOverflow",UDim2.fromScale(1,1),UDim2.fromScale(0,0))
+ art.BackgroundTransparency,art.ZIndex=1,3
  self.cashArt=art
  self.cashOverflow=Art.CashOverflow(art)
+ self.cashOverflow.ScaleType,self.cashOverflow.ZIndex=Enum.ScaleType.Crop,3
  self.cashTitle=text(vault,"Title","Commander's Vault",30,UDim2.fromScale(0.03,0.07),UDim2.fromScale(0.5,0.2))
  self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.fromScale(0.03,0.29),UDim2.fromScale(0.5,0.3),FIGMA.text,false)
  self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.03,0.56),UDim2.fromScale(0.4,0.12),Color3.fromRGB(255,240,90))

@@ -4,9 +4,12 @@ local Theme=require(script.Parent.UITheme)
 local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
+local TweenService=game:GetService("TweenService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
 local HillHud=require(script.Parent.HillHud)
 local RebirthPanel=require(script.Parent.RebirthPanel)
+local FreeGiftController=require(script.Parent.FreeGiftController)
+local ShopCatalog=require(game.ReplicatedStorage.PetRoll.Shared.ShopCatalog)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
@@ -136,6 +139,34 @@ function Hud.new(app,shell)
 	local mark=Theme.Label(badge,"Mark","!",28,Color3.new(1,1,1))
 	mark.Size,mark.TextScaled,mark.ZIndex,mark.TextXAlignment=UDim2.fromScale(1,1),true,9,Enum.TextXAlignment.Center
 	self.rebirthBadge=badge
+	-- October 16 free gift: a gift icon above Rebirth until the free chicken is claimed.
+	local giftCorner=Theme.Frame(shell,"FreeGiftCorner",UDim2.fromScale(0.082,0.16))
+	giftCorner.BackgroundTransparency,giftCorner.AnchorPoint=1,Vector2.new(1,0.5)
+	giftCorner.Position=UDim2.fromScale(0.988,0.31)
+	Theme.Aspect(giftCorner,136/132)
+	self.freeGiftCorner=giftCorner
+	self.freeGift=Theme.IconButton(giftCorner,"FreeGift","Free Chicken!",FreeGiftController.Assets.Gift,function()
+		app.audio:Play("Click")
+		if app.freeGift then app.freeGift:Open() end
+	end)
+	self.freeGift.Size,self.freeGift.Visible=UDim2.fromScale(1,1),false
+	-- Golden sunburst behind the chicken (centred on the icon), slowly spinning.
+	local burst=Theme.Image(self.freeGift.Visual,"Sunburst",Theme.Assets.Rays,UDim2.fromScale(1.25,1.25),UDim2.fromScale(0.5,0.37))
+	burst.AnchorPoint,burst.ZIndex=Vector2.new(0.5,0.5),2
+	burst.ImageColor3,burst.ImageTransparency=Color3.fromRGB(255,184,0),0
+	Theme.Aspect(burst,1)
+	Theme.Motion:Tween(burst,"spin",{Rotation=360},10,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
+	-- Golden caption with a shine sweeping across it on repeat.
+	self.freeGift.TextColor3=Color3.new(1,1,1)
+	local shine=Instance.new("UIGradient")
+	shine.Name="GoldShine"
+	shine.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,178,2)),
+		ColorSequenceKeypoint.new(0.4,Color3.fromRGB(255,214,40)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,250,205)),
+		ColorSequenceKeypoint.new(0.6,Color3.fromRGB(255,214,40)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,178,2))})
+	shine.Rotation,shine.Offset=20,Vector2.new(-1,0)
+	shine.Parent=self.freeGift.Visual.Label
+	Theme.Motion:Tween(shine,"shine",{Offset=Vector2.new(1,0)},1.8,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
+	self:BuildChickenOffer(shell)
 	-- Below the status line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
@@ -293,6 +324,8 @@ function Hud:Layout()
 	self.reenlist.Size=UDim2.fromScale(1,1)
 	self.reenlist.Visual.Label.TextScaled=true
 	self.reenlist.Visual.Label.Position=UDim2.fromScale(0,0.64)
+	self.freeGift.Visual.Label.TextScaled=true
+	self.freeGift.Visual.Label.Position=UDim2.fromScale(0,0.64)
 	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
@@ -302,6 +335,7 @@ function Hud:Layout()
 	Theme.ScaleText(self.navigation)
 	Theme.ScaleText(self.shortcuts)
 	Theme.ScaleText(self.rebirthCorner)
+	Theme.ScaleText(self.freeGiftCorner)
 	Theme.ScaleText(self.settings)
 	-- Top status lines get the shared readable text floor (wide boxes, no overlap risk).
 	for _,label in {self.status,self.objective,self.save} do Theme.ScaleText(label) end
@@ -437,10 +471,142 @@ function Hud:UpdateAutoRoll(state)
 	if self.autoRoll.BackgroundColor3~=color then self.autoRoll.BackgroundColor3=color end
 end
 
+-- Shown until the free chicken is claimed; breathes to invite a tap.
+function Hud:UpdateFreeGift(state)
+	local gift=state.freeGift
+	local shown=type(gift)=="table" and gift.enabled==true and gift.claimed~=true
+	if shown==(self.freeGiftShown==true) then return end
+	self.freeGiftShown=shown
+	self.freeGift.Visible=shown
+	if shown then Theme.Motion:Breathe(self.freeGift.Visual,1.08,0.8) else Theme.Motion:StopBreathe(self.freeGift.Visual) end
+end
+
+-- October 16 chicken offers: the Robux ladder takes the free gift's spot once the
+-- free chicken is claimed. Tapping opens Roblox's purchase prompt; the server checks
+-- the step and grants the chicken (docs/team/CHICKEN_OFFERS.md).
+local RAINBOW=ColorSequence.new({
+	ColorSequenceKeypoint.new(0,Color3.fromRGB(255,72,72)),ColorSequenceKeypoint.new(0.17,Color3.fromRGB(255,170,40)),
+	ColorSequenceKeypoint.new(0.33,Color3.fromRGB(255,240,60)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(70,240,110)),
+	ColorSequenceKeypoint.new(0.67,Color3.fromRGB(60,190,255)),ColorSequenceKeypoint.new(0.83,Color3.fromRGB(170,100,255)),
+	ColorSequenceKeypoint.new(1,Color3.fromRGB(255,72,72))})
+local OFFER_RAYS="rbxassetid://90649675688974"
+local ROBUX_GREEN=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(0,255,67)),
+	ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(105,255,91)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,223,6))})
+
+function Hud:BuildChickenOffer(shell)
+	local app=self.app
+	local corner=Theme.Frame(shell,"ChickenOfferCorner",UDim2.fromScale(0.082,0.16))
+	corner.BackgroundTransparency,corner.AnchorPoint=1,Vector2.new(1,0.5)
+	corner.Position=UDim2.fromScale(0.988,0.31)
+	Theme.Aspect(corner,136/132)
+	self.offerCorner=corner
+	local button=Theme.IconButton(corner,"ChickenOffer","",ShopCatalog.Products.ChickenOffer1.image,function()
+		local key=self.offerKey
+		if not key or not app.commerce then return end
+		app.audio:Play("Click")
+		app.commerce:Load(key)
+		if app.commerce:State(key)~="ready" then app:Notify("Getting the offer ready… try again in a moment.",false);return end
+		app.commerce:Buy(key)
+	end)
+	button.Size,button.Visible,button.TextColor3=UDim2.fromScale(1,1),false,Color3.new(1,1,1)
+	self.offer=button
+	local visual=button.Visual
+	-- Brighter rainbow sunburst: a smooth gradient that turns while the rays spin.
+	-- Solid white rays (assets/chicken-ladder-20261016/sunburst-white.png) so the
+	-- rainbow gradient shows at full strength; the gradient turns while the rays spin.
+	local rays=Theme.Image(visual,"Sunburst",OFFER_RAYS,UDim2.fromScale(1.75,1.75),UDim2.fromScale(0.5,0.4))
+	rays.AnchorPoint,rays.ZIndex,rays.ImageColor3,rays.ImageTransparency=Vector2.new(0.5,0.5),2,Color3.new(1,1,1),0.1
+	Theme.Aspect(rays,1)
+	local rainbow=Instance.new("UIGradient")
+	rainbow.Name,rainbow.Color,rainbow.Parent="Rainbow",RAINBOW,rays
+	Theme.Motion:Tween(rays,"spin",{Rotation=360},10,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
+	Theme.Motion:Tween(rainbow,"hue",{Rotation=360},4,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
+	-- Offer art has padding around the chicken; draw it larger than a menu icon.
+	visual.Icon.AnchorPoint,visual.Icon.Size,visual.Icon.Position=Vector2.new(0.5,0.5),UDim2.fromScale(1.45,1.3),UDim2.fromScale(0.5,0.4)
+	local price=Instance.new("UIGradient")
+	price.Rotation,price.Color,price.Parent=90,ROBUX_GREEN,visual.Label
+	visual.Label.TextScaled=true
+	visual.Label.Position,visual.Label.Size=UDim2.fromScale(-0.1,0.74),UDim2.fromScale(1.2,0.36)
+	Theme.ScaleText(corner)
+end
+
+function Hud:UpdateChickenOffer(state)
+	local gift=state.freeGift
+	local giftDone=type(gift)~="table" or gift.enabled~=true or gift.claimed==true
+	local step=tonumber(state.chickenOfferStep) or 0
+	local key=ShopCatalog.ChickenOfferOrder[step+1]
+	local product=key and ShopCatalog.Products[key]
+	local shown=giftDone and product~=nil
+	-- A step bought this session: celebrate, then show the next offer.
+	if self.offerStep~=nil and step>self.offerStep then
+		local bought=ShopCatalog.Products[ShopCatalog.ChickenOfferOrder[step]]
+		if bought then self.app:Notify(bought.name.." joined your Flock!",true) end
+		if shown then Theme.Motion:PopScale(self.offer.Visual,0.6,0.35) end
+	end
+	self.offerStep=step
+	if product and key~=self.offerKey then
+		self.offerKey=key
+		self.offer.Visual.Icon.Image=product.image
+		if self.app.commerce then self.app.commerce:Load(key) end
+	end
+	if product then
+		local entry=self.app.commerce and self.app.commerce.products[key]
+		local robux=if entry and type(entry.price)=="number" then entry.price else product.proposedPrice
+		self.offer.Text=utf8.char(0xE002)..Theme.Money(robux)
+	end
+	if shown==(self.offerShown==true) then return end
+	self.offerShown=shown
+	self.offer.Visible=shown
+	if shown then Theme.Motion:Breathe(self.offer.Visual,1.06,0.8) else Theme.Motion:StopBreathe(self.offer.Visual) end
+end
+
 -- The icon is aspect-constrained (anchor 0,0), so it swells from its corner; keep it small.
 function Hud:PopCash()
 	Theme.Motion:PopScale(self.cashIcon,1.12)
 	Theme.Motion:PopScale(self.money,1.06)
+end
+
+-- Called when the offline receipt closes: a few cash icons fly from the receipt
+-- (origin: absolute screen point, or nil) into the cash readout, then the
+-- balance counts up to the real total. Plain TweenService tweens.
+function Hud:ReleaseOfflineCash(receiptId,origin)
+	if receiptId==nil or self.releasedReceipt==receiptId or self.releasingReceipt==receiptId then return end
+	-- Keep holding through the flight; settle() lets the full balance show.
+	self.releasingReceipt=receiptId
+	local app=self.app
+	local function settle()
+		self.releasedReceipt,self.heldCash=receiptId,0
+		local coins=app.state and app.state.coins or 0
+		Theme.Motion:Count(self.money,coins,function(value) return "$"..Theme.CompactMoney(value) end,1)
+		self.lastCoins=coins
+		self:PopCash()
+		app.audio:Play("CashTick",1,{voiceKey="OfflineCash",maxVoices=2})
+	end
+	local layer=app.hudLayer
+	if app.reducedMotion or not origin or not layer then settle();return end
+	local base=layer.AbsolutePosition
+	local target=self.cashIcon.AbsolutePosition+self.cashIcon.AbsoluteSize/2-base
+	local start=origin-base
+	local size=math.max(36,self.cashIcon.AbsoluteSize.X*0.7)
+	local arrived=false
+	for index=1,7 do
+		local icon=Instance.new("ImageLabel")
+		icon.Name,icon.Image,icon.BackgroundTransparency="OfflineCashFly",Theme.Assets.Cash,1
+		icon.AnchorPoint,icon.Size,icon.ZIndex=Vector2.new(0.5,0.5),UDim2.fromOffset(size,size),40
+		-- Start in a loose cluster, then arc down-left into the readout.
+		local spread=Vector2.new(math.random(-60,60),math.random(-40,40))
+		icon.Position=UDim2.fromOffset(start.X+spread.X,start.Y+spread.Y)
+		icon.Parent=layer
+		local delay=(index-1)*0.07
+		local flight=TweenService:Create(icon,TweenInfo.new(0.55,Enum.EasingStyle.Quad,Enum.EasingDirection.In,0,false,delay),
+			{Position=UDim2.fromOffset(target.X,target.Y),Size=UDim2.fromOffset(size*0.6,size*0.6),Rotation=math.random(-40,40)})
+		flight.Completed:Once(function()
+			icon:Destroy()
+			Theme.Motion:PopScale(self.cashIcon,1.12)
+			if not arrived then arrived=true;settle() end
+		end)
+		flight:Play()
+	end
 end
 
 function Hud:Update(state,count,limit,capacity,selected,deployed)
@@ -448,10 +614,19 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateAutoRoll(state)
 	self:UpdateTerritory(state)
 	self:UpdateRebirth(state)
-	Theme.Motion:Count(self.money,state.coins,function(value) return "$"..Theme.CompactMoney(value) end)
+	self:UpdateFreeGift(state)
+	self:UpdateChickenOffer(state)
+	-- October 16 owner request: the offline receipt's cash (already saved by the
+	-- server) stays out of the displayed balance until the receipt is closed, then
+	-- flies in (ReleaseOfflineCash). Display only; state.coins is untouched.
+	local receipt=state.offlineCash
+	self.heldCash=if type(receipt)=="table" and (tonumber(receipt.amount) or 0)>0 and receipt.id~=self.releasedReceipt
+		then receipt.amount else 0
+	local shown=math.max(0,state.coins-self.heldCash)
+	Theme.Motion:Count(self.money,shown,function(value) return "$"..Theme.CompactMoney(value) end)
 	-- Confirmed gains only (never the first packet or a purchase).
-	if self.lastCoins and state.coins>self.lastCoins then self:PopCash() end
-	self.lastCoins=state.coins
+	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
+	self.lastCoins=shown
 	self:UpdateEggLine(state.eggs or {})
 	self.flock.Text="Flock "..count.."/"..limit
 	local atHome=state.armyState=="Home"

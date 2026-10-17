@@ -46,7 +46,7 @@ for index = #guaranteed, 1, -1 do
 end
 local ShopCatalog = {
 	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
-	ProductOrder = {"PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs",
+	ProductOrder = {"ChickenOffer1", "ChickenOffer2", "ChickenOffer3", "ChickenOffer4", "ChickenOffer5", "ChickenOffer6", "PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs",
 		"ResearchSkip1m", "ResearchSkip5m", "ResearchSkip15m", "ResearchSkip30m", "ResearchSkip1h", "ResearchSkip2h", "ResearchSkip4h", "ResearchSkip8h", "ResearchSkip12h", "ResearchSkip24h"},
 	-- October 15: Robux research skips, shortest first. The Upgrades card offers the
 	-- smallest tier that covers the job's remaining time; never listed in the Shop.
@@ -85,7 +85,16 @@ local ShopCatalog = {
 		ResearchSkip8h = {productId=3718778696, name="Skip Research (8 hr)", researchSkipSeconds=28800, proposedPrice=299},
 		ResearchSkip12h = {productId=3718778705, name="Skip Research (12 hr)", researchSkipSeconds=43200, proposedPrice=399},
 		ResearchSkip24h = {productId=3718778720, name="Skip Research (24 hr)", researchSkipSeconds=86400, proposedPrice=549},
+		-- October 16 chicken offers (docs/team/CHICKEN_OFFERS.md): a Robux ladder in the free
+		-- gift's HUD slot, one step at a time. `image` is the offer art (portrait + light VFX).
+		ChickenOffer1 = {productId=3719084263, name="Chicken Jockey", proposedPrice=9, chickenOffer=1, species="Jockey", image="rbxassetid://94324670825392"},
+		ChickenOffer2 = {productId=3719084274, name="Rainbow Rider", proposedPrice=49, chickenOffer=2, species="Rainbow", image="rbxassetid://130925911317702"},
+		ChickenOffer3 = {productId=3719084284, name="Glitch Chicken", proposedPrice=150, chickenOffer=3, species="IceDuck", image="rbxassetid://99244169798833"},
+		ChickenOffer4 = {productId=3719084303, name="Eclipse Chicken", proposedPrice=250, chickenOffer=4, species="Eclipse", image="rbxassetid://99434923012329"},
+		ChickenOffer5 = {productId=3719084320, name="Rift Walker", proposedPrice=500, chickenOffer=5, species="RiftWalker", image="rbxassetid://70776617003564"},
+		ChickenOffer6 = {productId=3719084332, name="Cosmic Galaxy Overlord", proposedPrice=1200, chickenOffer=6, species="StormDuck", mutation="Cosmic", image="rbxassetid://111079345447458"},
 	},
+	ChickenOfferOrder = {"ChickenOffer1", "ChickenOffer2", "ChickenOffer3", "ChickenOffer4", "ChickenOffer5", "ChickenOffer6"},
 	RadiusMultiplier = 2,
 	BountyMultiplier = 2,
 	Definitions = {

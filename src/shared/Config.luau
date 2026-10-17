@@ -148,6 +148,9 @@ local Config = {
  TravelTimeout=85,ReturnTimeout=95,
  PlotPositions={{320.50122,-180.00012},{319.00177,185.64453},{0.25604,369.73779},{-317.31348,188.24377},{-318.81384,-182.59717},{0.25464,-366.74768}},
  DebugUserIds={146710616},
+ -- October 16 free gift: one free chicken for joining the group. "Like the game" is
+ -- honor-system (Roblox exposes no like check); only group membership is verified.
+ FreeGift={Enabled=true,GroupId=778575811,Species="Bucket"},
  Camps={
   {name="Cluck Camp",position={0,-273},roster={"Duck","Duck","Duck"}},
   {name="Fort Roost",position={0,-190},roster={{species="Bucket",level=1},{species="Sailor",level=1},{species="Mallard",level=1},{species="Mallard",level=1}}},

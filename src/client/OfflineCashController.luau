@@ -1,5 +1,7 @@
 --!strict
 -- Displays an already-saved server receipt; dismissal never grants currency.
+-- October 16: the HUD holds this amount back until the receipt closes, then the
+-- cash flies into the balance (HudController:ReleaseOfflineCash; display only).
 local GuiService = game:GetService("GuiService")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
@@ -24,6 +26,11 @@ function Controller:Dismiss(immediate)
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
 	self.app:SetMenuBlur("offline",false)
+	if self.app.hud and self.receiptId then
+		local amount=self.amountLabel
+		local origin=if amount and amount.Parent then amount.AbsolutePosition+amount.AbsoluteSize/2 else nil
+		self.app.hud:ReleaseOfflineCash(self.receiptId,origin)
+	end
 	local function finish()
 		if self.gui~=gui then return end
 		self.gui,self.panel,self.closing=nil,nil,false
@@ -38,8 +45,8 @@ end
 function Controller:Receive(state)
 	local reward=state.offlineCash
 	if not reward or reward.amount<=0 or reward.id==self.seen then return end
-	self.seen=reward.id
 	self:Dismiss(true)
+	self.seen,self.receiptId=reward.id,reward.id
 	-- Acquire before closing the main panel so its exit cannot clear our blur.
 	self.app:SetMenuBlur("offline",true)
 	self.app:ClosePanel()
@@ -86,9 +93,10 @@ function Controller:Receive(state)
 	local amount=label(rewardView,"Amount","+$"..Theme.Money(reward.amount),54,Color3.new(1,1,1))
 	amount.AnchorPoint,amount.Position,amount.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.95),UDim2.fromScale(1,0.18918919563293457)
 	amount.ZIndex=4
+	self.amountLabel=amount
 	local gradient=Instance.new("UIGradient")
 	gradient.Color,gradient.Rotation,gradient.Parent=Theme.ReferenceGradients.Army,90,amount
-	local saved=label(main,"Saved","✓ Added to your cash",24,GREEN)
+	local saved=label(main,"Saved","Collect it to add it to your Cash!",24,GREEN)
 	saved.Position,saved.Size=UDim2.fromScale(0.1,0.745),UDim2.fromScale(0.8,0.055)
 	local function close()
 		if not self.gui or self.closing then return end
@@ -99,7 +107,7 @@ function Controller:Receive(state)
 	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.965),UDim2.fromScale(0.4,0.1551724076271057)
 	Theme.Aspect(actions,4.329331874847412)
 	Theme.HeaderClose(header,close)
-	local continue=Theme.ActionButton(actions,"Continue","Continue",close,GREEN)
+	local continue=Theme.ActionButton(actions,"Continue","Collect",close,GREEN)
 	continue.Position,continue.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,1)
 	Theme.Studs(continue.Visual.Face,0.07,28,0)
 	continue.Visual.Caption.Position,continue.Visual.Caption.Size=UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8)

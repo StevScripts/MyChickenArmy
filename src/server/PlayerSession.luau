@@ -82,6 +82,10 @@ function PlayerSession:Reset()
 	-- Set when an admin gives chickens, research, camp wins or army size
 	-- (AdminService); keeps the Strongest Army board earned. Saved.
 	self.adminAssisted = false
+	-- October 16 free gift (FreeGiftService): one chicken for joining the group. Saved.
+	self.freeGiftClaimed = false
+	-- October 16 chicken offers (ProductService): how many ladder steps are bought (0-6). Saved.
+	self.chickenOfferStep = 0
 	self.discovered = {}
 	-- Raw saved entries for species this build does not know; written back unchanged.
 	self.unrecognizedPets, self.unrecognizedDiscovered = {}, {}
@@ -557,6 +561,8 @@ function PlayerSession:Snapshot(now: number)
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
 		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner,
 		rebirth=RebirthService.Quote(self),giantPity=self.giantPity or 0,
+		freeGift={enabled=Config.FreeGift.Enabled==true,claimed=self.freeGiftClaimed==true,species=Config.FreeGift.Species,groupId=Config.FreeGift.GroupId},
+		chickenOfferStep=self.chickenOfferStep or 0,
 		daily={streak=self.daily.streak,lastDay=self.daily.lastDay,best=self.daily.best,
 			granted=if self.dailyGranted then table.clone(self.dailyGranted) else nil}}
 end
@@ -593,7 +599,7 @@ function PlayerSession:ToData()
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
 		plotBuild=if self.plotBuild then table.clone(self.plotBuild) else nil,
-		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
+		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,freeGiftClaimed=self.freeGiftClaimed==true,chickenOfferStep=self.chickenOfferStep or 0,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
@@ -968,6 +974,10 @@ function PlayerSession:LoadData(data)
 	self.laneCamps=readLaneCamps(data.laneCamps,data.laneWins)
 	-- Additive field; anything but true reads as false.
 	self.adminAssisted=data.adminAssisted==true
+	self.freeGiftClaimed=data.freeGiftClaimed==true
+	-- Additive and lenient: anything unexpected reads as no offers bought.
+	local offerStep=data.chickenOfferStep
+	self.chickenOfferStep=if type(offerStep)=="number" and offerStep==offerStep then math.clamp(math.floor(offerStep),0,#ShopCatalog.ChickenOfferOrder) else 0
 	self.fusionUnlocked=fusionUnlocked
 	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered
