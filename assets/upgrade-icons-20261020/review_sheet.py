@@ -10,7 +10,16 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 HEX = Image.open(REPO / "assets/research-20261002/icons/research-hex-mask.png").getchannel("A")
-RALLY = REPO / "assets/generated/rally-icon-20261016/rally-horn-20261016-031355.png"
+ATLAS = Path.home() / "Documents/ChatGPT/My Chicken Army/output/upgrades-concept/separate-icons"
+RESEARCH = REPO / "assets/research-20261002/icons"
+# Nodes kept on the approved in-game icon (already uploaded; see README.md).
+IN_GAME = {
+    "EggSpeed": ATLAS / "egg-laying-speed.png", "EggValue": REPO / "assets/gold-coins-20261020/upload/EggValueCoins.png",
+    "Luck": ATLAS / "luck.png", "FlockSize": ATLAS / "plot-size.png", "ArmySize": ATLAS / "army-size.png",
+    "RollSlot": ATLAS / "roll-slots.png", "ChickenFeed": RESEARCH / "feed.png", "MarchSpeed": RESEARCH / "boots.png",
+    "Health": RESEARCH / "medkit.png", "Recovery": RESEARCH / "bandages.png",
+    "Rally": REPO / "assets/generated/rally-icon-20261016/rally-horn-20261016-031355.png",
+}
 FONT = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 BLACK = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
 
@@ -27,12 +36,12 @@ PURPLE = ((168, 94, 242), (116, 49, 196))
 # (key, label, note, tier numeral or "", container colours or None)
 GROUPS = [
     ("Main tree", [
-        ("EggSpeed", "Egg Speed", "I–IV", "II", BLUE),
-        ("EggValue", "Egg Value", "I–IV", "II", BLUE),
-        ("Luck", "Luck", "I–IV · Gem Extra Luck", "II", BLUE),
-        ("FlockSize", "Flock Size", "ladder", "II", BLUE),
-        ("ArmySize", "Army Size", "I–IV", "II", BLUE),
-        ("RollSlot", "Roll Slot", "I–VII", "II", BLUE),
+        ("EggSpeed", "Egg Speed", "in game · I–IV", "II", BLUE),
+        ("EggValue", "Egg Value", "in game · I–IV", "II", BLUE),
+        ("Luck", "Luck", "in game · Gem Extra Luck", "II", BLUE),
+        ("FlockSize", "Flock Size", "in game · ladder", "II", BLUE),
+        ("ArmySize", "Army Size", "in game · I–IV", "II", BLUE),
+        ("RollSlot", "Roll Slot", "in game · I–VII", "II", BLUE),
         ("RollSpeed", "Roll Speed", "I–III · Gem Roll Speed", "II", BLUE),
         ("GoldMachine", "Gold Machine", "", "", BLUE),
         ("GoldRate", "Gold Rate", "I–II", "II", BLUE),
@@ -49,7 +58,7 @@ GROUPS = [
         ("EggVacuum", "Egg Vacuum", "tool", "", BLUE),
         ("VacuumCapacity", "Vacuum Capacity", "I–IV · Gem too", "II", BLUE),
         ("VacuumRange", "Vacuum Range", "I–II", "II", BLUE),
-        ("ChickenFeed", "Chicken Feed", "tool", "", BLUE),
+        ("ChickenFeed", "Chicken Feed", "in game · tool", "", BLUE),
     ]),
     ("Player", [
         ("WalkSpeed", "Walk Speed", "", "", BLUE),
@@ -58,19 +67,19 @@ GROUPS = [
     ]),
     ("Army", [
         ("Damage", "Damage", "", "", BLUE),
-        ("Health", "Health", "", "", BLUE),
-        ("MarchSpeed", "March Speed", "", "", BLUE),
+        ("Health", "Health", "in game", "", BLUE),
+        ("MarchSpeed", "March Speed", "in game", "", BLUE),
         ("Armor", "Armor", "", "", BLUE),
-        ("Recovery", "Recovery", "", "", BLUE),
+        ("Recovery", "Recovery", "in game", "", BLUE),
         ("BossDamage", "Boss Damage", "", "", BLUE),
         ("Bounty", "Bounty", "", "", BLUE),
         ("CaptureSpeed", "Capture Speed", "", "", BLUE),
     ]),
     ("Gem Upgrades", [
         ("RollSpeed", "Roll Speed", "tree icon", "", PURPLE),
-        ("Luck", "Extra Luck", "tree icon", "", PURPLE),
+        ("Luck", "Extra Luck", "in game (Luck)", "", PURPLE),
         ("VacuumCapacity", "Vacuum Capacity", "tree icon", "", PURPLE),
-        ("AutoRoll", "Auto Roll", "", "", PURPLE),
+        ("AutoRoll", "Auto Roll", "placeholder: needs credits", "", PURPLE),
         ("CoinBoost", "Coin Boost", "", "", PURPLE),
         ("AutoRebirth", "Auto Rebirth", "", "", PURPLE),
         ("TimeSkip", "Time Skip", "", "", PURPLE),
@@ -101,16 +110,15 @@ def font(size, path=FONT):
 
 
 def load(key):
-    if key == "Rally":
-        path = RALLY
-    else:
+    path = IN_GAME.get(key)
+    if path is None:
         path = HERE / "upload" / f"{key}.png"
         if not path.exists():
             path = HERE / f"{key}.png"
     if not path.exists():
         return None
     image = Image.open(path).convert("RGBA")
-    bbox = image.getchannel("A").getbbox()
+    bbox = image.getchannel("A").point(lambda v: 255 if v > 16 else 0).getbbox()
     image = image.crop(bbox)
     side = round(max(image.size) / 0.86)
     square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
@@ -199,9 +207,9 @@ def main():
     height = 190 + len(GROUPS) * 62 + rows * CELL_H + 110 + len(backgrounds) * (strip_rows * (small + gap) + 30) + MARGIN
     sheet = Image.new("RGBA", (W, height), BG + (255,))
     draw = ImageDraw.Draw(sheet)
-    outlined(draw, (MARGIN, 64), "My Chicken Army · upgrade icons · Oct 20 overhaul (S6 review)", 46, anchor="lm")
-    draw.text((MARGIN, 120), "43 new icons, plus the Rally horn already in the game. Hex colours, names and the tier "
-              "number are mock-ups of S9's live UI (tier shown as II); numbers are live text, not part of the art.",
+    outlined(draw, (MARGIN, 64), "My Chicken Army · upgrade icons v2 · Oct 20 overhaul (S6 review)", 46, anchor="lm")
+    draw.text((MARGIN, 120), "v2 in the in-game icon style: 32 new icons, Auto Roll still a placeholder, and 11 nodes kept on "
+              "their approved in-game icon. Hex colours, names and tier numbers are mock-ups of S9's live UI.",
               font=font(22), fill=MUTED, anchor="lm")
     y = 170
     for title, entries in GROUPS:

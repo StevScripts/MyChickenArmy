@@ -21,12 +21,22 @@ HERE = Path(__file__).resolve().parent
 SIZE = 512
 OCCUPANCY = 0.86
 EDGE = 6
-# The generator keyed out these dark interiors (the helmet's underside), leaving see-through
-# holes enclosed by the outline. Their colour is intact, so only the alpha comes back.
-FILL_HOLES = {"OpenArmy"}
-# Edits of the Re-enlist icon kept losing its heavy outline (a hairline floats ~20 px out).
-# A near-black stroke of this many master pixels restores the set's contour and drops the hairline.
-STROKE = {"AutoRebirth": 22}
+# The generator keyed out these enclosed parts (the breastplate's inside, Mutation Luck's
+# sparkle fills, the Rainbow Machine's slot and window), leaving see-through holes inside
+# the outline. Their colour is intact, so only the alpha comes back.
+FILL_HOLES = {"Armor", "MutationLuck", "RainbowMachine"}
+# Every approved in-game icon carries a heavy near-black contour about 2.2% of its longest
+# side. These masters came back with thin, grey or coloured edges, so the same contour is
+# laid under the artwork. AutoRebirth (an edit of the Re-enlist icon) also drops a stray
+# hairline that floats ~20 px outside its ring.
+OUTLINE = 0.022
+STROKE = {"AutoRebirth", "Armor", "ArmyPower", "BossDamage", "Bounty", "CoinBoost", "Damage", "DiamondMachine",
+          "EggVacuum", "FriendBoost", "GoldMachine", "GoldRate", "GoldRush", "KeepUpgrades", "MutationLuck",
+          "OpenArmy", "OpenTools", "RainbowMachine", "RebirthChickenOdds", "RollSpeed", "VacuumCapacity"}
+CLIP_HAIRLINE = {"AutoRebirth"}
+# Still the v1 placeholder: the v2 generation ran out of OpenAI credits. Run
+# ./generate.sh AutoRoll, copy the chosen raw/AutoRoll-*.png to AutoRoll.png, then remove it here.
+PENDING = {"AutoRoll"}
 INK = (16, 23, 18)
 
 
@@ -53,10 +63,13 @@ def fill_enclosed(image: Image.Image) -> None:
     image.putalpha(Image.frombytes("L", image.size, bytes(alpha)))
 
 
-def stroke(image: Image.Image, radius: int) -> Image.Image:
+def stroke(image: Image.Image, clip: bool) -> Image.Image:
     """Lay a crisp near-black outline under the artwork, grown from its solid shape."""
     solid = image.getchannel("A").point(lambda v: 255 if v > 128 else 0)
-    solid = solid.filter(ImageFilter.MinFilter(7)).filter(ImageFilter.MaxFilter(7))  # drop hairlines
+    box = solid.getbbox()
+    radius = OUTLINE * max(box[2] - box[0], box[3] - box[1])
+    opening = 7 if clip else 3  # drop hairlines (clip) or single-pixel specks
+    solid = solid.filter(ImageFilter.MinFilter(opening)).filter(ImageFilter.MaxFilter(opening))
     grown = solid.copy()
     for r in (radius, radius * 2 / 3, radius / 3):
         steps = max(12, int(2 * math.pi * r / 3))
@@ -64,7 +77,8 @@ def stroke(image: Image.Image, radius: int) -> Image.Image:
             t = 2 * math.pi * k / steps
             grown = ImageChops.lighter(grown, ImageChops.offset(solid, round(r * math.cos(t)), round(r * math.sin(t))))
     grown = grown.filter(ImageFilter.GaussianBlur(1.0))
-    image.putalpha(ImageChops.darker(image.getchannel("A"), grown))
+    if clip:
+        image.putalpha(ImageChops.darker(image.getchannel("A"), grown))
     under = Image.new("RGBA", image.size, INK + (0,))
     under.putalpha(grown)
     under.alpha_composite(image)
@@ -81,7 +95,7 @@ def prepare(key: str) -> Image.Image:
     if key in FILL_HOLES:
         fill_enclosed(image)
     if key in STROKE:
-        image = stroke(image, STROKE[key])
+        image = stroke(image, key in CLIP_HAIRLINE)
     image = image.crop(image.getchannel("A").getbbox())
     side = round(max(image.size) / OCCUPANCY)
     canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
@@ -98,7 +112,8 @@ def prepare(key: str) -> Image.Image:
 def main() -> None:
     args = sys.argv[1:]
     rgba = "--rgba" in args
-    keys = [a for a in args if a != "--rgba"] or sorted(p.stem for p in HERE.glob("*.png") if p.stem[0].isupper())
+    keys = [a for a in args if a != "--rgba"] or sorted(
+        p.stem for p in HERE.glob("*.png") if p.stem[0].isupper() and p.stem not in PENDING)
     out = HERE / "upload"
     out.mkdir(exist_ok=True)
     for key in keys:
