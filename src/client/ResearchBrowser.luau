@@ -1,31 +1,17 @@
 --!strict
--- A full-screen research map. Graph geometry uses a native aspect constraint;
--- input changes only its pan/zoom, never the layout of individual nodes.
+-- The full-screen Upgrades tree (October 20 overhaul, docs/team/UPGRADES_SCREEN.md):
+-- a main map around Start, plus Tools, Player and Army subtrees opened from orange
+-- Open hexes and left through a red Back hex. Graph geometry uses a native aspect
+-- constraint; input changes only each map's pan/zoom, never the layout of individual
+-- nodes. The server owns every status, price and badge (state.upgradeTree).
 local UserInputService=game:GetService("UserInputService")
 local ContextActionService=game:GetService("ContextActionService")
 local GuiService=game:GetService("GuiService")
-local RunService=game:GetService("RunService")
 local TweenService=game:GetService("TweenService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
-local Catalog=require(Shared.ResearchCatalog)
-local Rules=require(Shared.ResearchRules)
-local ShopCatalog=require(Shared.ShopCatalog)
 local Theme=require(script.Parent.UITheme)
 local Assets=require(script.Parent.ResearchAssets)
-local CashNodes=require(script.Parent.CashUpgradeNodes)
--- Cash tiers and research share display positions, but keep their saved progress
--- separate. These coordinate overrides never alter ResearchCatalog's contracts.
-local displayOrder,displayNodes=table.clone(Catalog.Order),{}
-for id,node in Catalog.Nodes do
-	local display=table.clone(node)
-	if node.effect=="rollingLuck" then
-		display.description="Timed research: +"..string.format("%g",node.value*100).."% Luck strength. Favors stronger chickens; replaces earlier Luck research."
-	end
-	local position=CashNodes.ResearchPositions[id]
-	if position then display.q,display.r=position.q,position.r end
-	displayNodes[id]=display
-end
-for _,id in CashNodes.Order do table.insert(displayOrder,id);displayNodes[id]=CashNodes.Nodes[id] end
+local View=require(script.Parent.CashUpgradeNodes)
 local Browser={}
 Browser.__index=Browser
 
@@ -46,29 +32,27 @@ function Browser.EventOdds(now:number):(string?,Color3?)
 		definition.name,string.format("%g",event.OfferChance*100),MONTHS[ends.month],ends.day)
 	return text,Theme.Rarities[definition.rarity] or Color3.fromRGB(255,255,255)
 end
-local GREEN=Color3.fromRGB(76,250,32)
+local WHITE=Color3.fromRGB(255,255,255)
+local MUTED=Color3.fromRGB(172,172,172)
+local RED=Color3.fromRGB(255,77,86)
 -- October 20: affordable coin prices are gold, like every Coin amount.
 local COIN=Theme.Colors.coins
-local CYAN=Color3.fromRGB(0,226,250)
-local WHITE=Color3.fromRGB(255,255,255)
-local MUTED=Color3.fromRGB(64,67,65)
-local RED=Color3.fromRGB(255,77,86)
--- Node kinds read at a glance: timed research is cyan with a clock badge,
--- instant cash buys are gold with an INSTANT badge.
-local RESEARCH_RIM=Color3.fromRGB(0,226,250)
-local INSTANT_RIM=Color3.fromRGB(255,201,30)
--- Owned/maxed tiles read as "done": a deep green fill, quiet rim, no glow and an
--- OWNED (or MAX) badge, so only tiles you can still buy stay bright.
-local DONE_FILL=Color3.fromRGB(32,104,42)
-local DONE_RIM=Color3.fromRGB(104,178,96)
-local DONE_BADGE,DONE_BADGE_RIM=Color3.fromRGB(22,84,30),Color3.fromRGB(179,255,155)
--- Only tiles you can buy right now glow at full strength; the rest sit back.
-local function dim(color) return color:Lerp(Color3.new(0,0,0),.5) end
-local function haloStrength(i,buyable) return 1-(if buyable then .045+i*.016 else .01+i*.004) end
-local function setRim(view,rim)
-	view.rimColor=rim
-	if not view.flash or view.flash.PlaybackState~=Enum.PlaybackState.Playing then view.outline.ImageColor3=rim end
-end
+-- October 20 overhaul: bought and maxed hexes use the bright Army green.
+local GREEN=Color3.fromRGB(163,255,0)
+local ALERT=Color3.fromRGB(235,45,45)
+local LINK=Color3.fromRGB(70,76,72)
+-- Each hex look: the art, its tint or vertical gradient, and the dark rim around it.
+-- Unbought hexes are dark like the reference; "?" hexes are a lighter grey.
+local LOOKS={
+	owned={art="hexMask",gradient=ColorSequence.new(GREEN,Color3.fromRGB(0,211,0)),rim=Color3.fromRGB(14,84,0)},
+	start={art="hexMask",gradient=Theme.ReferenceGradients.Upgrades,rim=Color3.fromRGB(0,72,112)},
+	open={art="hexMask",gradient=Theme.ReferenceGradients.Base,rim=Color3.fromRGB(122,64,0)},
+	back={art="hexMask",gradient=ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)),rim=Color3.fromRGB(112,10,22)},
+	available={art="hexFill",rim=Color3.fromRGB(12,12,14)},
+	unknown={art="hexMask",tint=Color3.fromRGB(86,88,92),rim=Color3.fromRGB(34,35,38)},
+}
+-- The free Egg Vacuum always counts as owned; price color alone marks unaffordable.
+LOOKS.tool,LOOKS.unaffordable=LOOKS.owned,LOOKS.available
 local TOOLTIP_WIDTH=.218
 local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
@@ -76,8 +60,7 @@ local MOTION={
 	OpenScale=0,OpenSeconds=.24,OpenStaggerSeconds=.045,OpenWaveSeconds=.80,
 	FrontierEntryScale=.88,FrontierSeconds=.18,FrontierWaveSeconds=.08,FrontierScale=1.025,
 	HoverScale=1.025,PressScale=.96,PressSeconds=.055,SettleSeconds=.13,
-	ConfirmScale=1.045,ConfirmRiseSeconds=.10,ConfirmSettleSeconds=.18,
-	TintSeconds=.20,FlashSeconds=.35,CompletionLimit=3,CompletionStaggerSeconds=.04,
+	ConfirmScale=1.045,ConfirmRiseSeconds=.10,ConfirmSettleSeconds=.18,FlashSeconds=.35,
 }
 local function cancelTween(owner,key)
 	local tween=owner[key]
@@ -91,53 +74,6 @@ local function cancelSize(view)
 end
 local function point(node)
 	return Vector2.new((690+154*(node.q+node.r/2))/1440,(450+133.4*node.r)/930)
-end
-local function timeText(seconds)
-	seconds=math.max(0,math.ceil(seconds))
-	if seconds>=86400 then return string.format("%dd %dh",math.floor(seconds/86400),math.floor(seconds%86400/3600)) end
-	if seconds>=3600 then return string.format("%dh %dm",math.floor(seconds/3600),math.floor(seconds%3600/60)) end
-	if seconds>=60 then return string.format("%dm %02ds",math.floor(seconds/60),seconds%60) end
-	return seconds.."s"
-end
--- Prices sit beside the gold coin image, so they show the number only (October 20).
-local function priceText(amount)
-	return Theme.Number(amount or 0)
-end
--- Badge-length durations: 45s, 2m, 1m 30s, 1h, 2h 15m.
-local function shortTime(seconds)
-	seconds=math.max(0,math.ceil(seconds or 0))
-	if seconds>=3600 then
-		local h,m=math.floor(seconds/3600),math.floor(seconds%3600/60)
-		return if m>0 then string.format("%dh %dm",h,m) else h.."h"
-	end
-	if seconds>=60 then
-		local m,sec=math.floor(seconds/60),seconds%60
-		return if sec>0 then string.format("%dm %ds",m,sec) else m.."m"
-	end
-	return seconds.."s"
-end
-local function cashStatus(offer,coins)
-	if not offer or not offer.ready then return "Loading" end
-	if offer.building then return "Building" end
-	if not offer.price then return "Unavailable" end
-	if not offer.unlocked then return "Unavailable" end
-	return if offer.canSpend==false or coins<offer.price then "Unaffordable" else "Available"
-end
-local function luckOdds(offer,withNext,topBand)
-	if not offer then return nil end
-	local current=if topBand then offer.topBandChance else offer.epicPlusChance
-	local nextChance=if topBand then offer.nextTopBandChance else offer.nextEpicPlusChance
-	if type(current)~="number" then return nil end
-	local text=string.format("%.2f%%",current*100)
-	if withNext and type(nextChance)=="number" then
-		text..=" → "..string.format("%.2f%%",nextChance*100)
-	end
-	return text
-end
-local function useTopLuckOdds(offer)
-	return offer and type(offer.epicPlusChance)=="number" and type(offer.nextEpicPlusChance)=="number"
-		and type(offer.topBandChance)=="number" and type(offer.nextTopBandChance)=="number"
-		and string.format("%.1f",offer.epicPlusChance*100)==string.format("%.1f",offer.nextEpicPlusChance*100)
 end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
@@ -160,34 +96,38 @@ local function wrap(text,limit)
 	if line~="" then table.insert(rows,line) end
 	return table.concat(rows,"\n"),math.max(1,#rows)
 end
-local function badgeFade(view,amount)
-	view.badge.BackgroundTransparency,view.badgeStroke.Transparency,view.badgeText.TextTransparency=amount,amount,amount
-	view.badgeText.TextOutline.Transparency=amount
-	for _,part in view.clock:GetDescendants() do
-		if part:IsA("Frame") then part.BackgroundTransparency=amount end
-	end
-end
 local function round(item,radius)
 	Theme.Round(item).CornerRadius=UDim.new(radius,0)
 end
-local function glow(parent,asset,ratio)
-	local layers={}
-	for i=1,6 do
-		local spread=(7-i)*.018
-		local image=Theme.Image(parent,"Halo"..i,asset,UDim2.fromScale(1+spread,1+spread),UDim2.fromScale(.5,.5))
-		image.AnchorPoint,image.ZIndex=Vector2.new(.5,.5),1
-		image.ImageTransparency=1-(.025+i*.009)
-		if ratio then Theme.Aspect(image,ratio) end
-		table.insert(layers,image)
-	end
-	return layers
+-- October 20 (owner): phones buy on tap and never show the card; a mouse hover or
+-- gamepad focus does.
+local function touching()
+	return UserInputService:GetLastInputType()==Enum.UserInputType.Touch
+end
+-- Luck odds (docs/team/LUCK_WINDOW.md) from the server's upgradeTree.luck block:
+-- Epic+ now → next, or the strongest band once Epic+ rounds to the same value.
+local function luckText(luck,withNext)
+	if type(luck)~="table" or type(luck.epicPlusChance)~="number" then return nil end
+	withNext=withNext and type(luck.nextEpicPlusChance)=="number"
+	local top=withNext and type(luck.topBandChance)=="number" and type(luck.nextTopBandChance)=="number"
+		and string.format("%.1f",luck.epicPlusChance*100)==string.format("%.1f",luck.nextEpicPlusChance*100)
+	local now=if top then luck.topBandChance else luck.epicPlusChance
+	local after=if top then luck.nextTopBandChance else luck.nextEpicPlusChance
+	local text=(if top then "Strongest chickens: " else "Epic+ per chicken: ")..string.format("%.2f%%",now*100)
+	if withNext then text..=" → "..string.format("%.2f%%",after*100) end
+	text..=". Bonuses included."
+	if type(luck.windowText)=="string" then text..=" Favored now: "..luck.windowText.."." end
+	if withNext and type(luck.nextWindowText)=="string" then text..=" Next: "..luck.nextWindowText.."." end
+	return text
 end
 
 function Browser.new(app,parent)
-	local self=setmetatable({app=app,nodes={},links={},connections={},zoom=1,pan=Vector2.zero,alive=true,receivedAt=0,serverTime=0,cashPending={},cashRequests={}},Browser)
+	local self=setmetatable({app=app,nodes={},links={},layers={},connections={},zoom=1,pan=Vector2.zero,alive=true,
+		category="Main",saved={},coins=0,pending={},requests={}},Browser)
 	local root=Instance.new("TextButton")
 	root.Name,root.Text,root.Size="Research","",UDim2.fromScale(1,1)
 	root:SetAttribute("HoverAudioCue","SkillTreeHover")
+	-- October 20 (owner): the tree keeps its solid black backdrop.
 	root.BackgroundColor3,root.BorderSizePixel=Color3.new(0,0,0),0
 	root.Visible,root.Active,root.Modal,root.AutoButtonColor=false,true,true,false
 	root.Selectable,root.ClipsDescendants,root.ZIndex=false,true,15
@@ -199,123 +139,14 @@ function Browser.new(app,parent)
 	Theme.Aspect(map,1440/930)
 	map.UIAspectRatioConstraint.DominantAxis=Enum.DominantAxis.Height
 	self.map=map
-	-- Adjacent hexes already read as a path. Bridge only longer prerequisite
-	-- gaps, using the same map coordinates so native aspect/pan/zoom owns sizing.
-	for _,id in displayOrder do
-		local node=displayNodes[id]
-		local parentNode=node.prerequisite and displayNodes[node.prerequisite]
-		if parentNode then
-			local dq,dr=node.q-parentNode.q,node.r-parentNode.r
-			if math.max(math.abs(dq),math.abs(dr),math.abs(dq+dr))>1 then
-				local from,to=point(parentNode),point(node)
-				local delta=Vector2.new((to.X-from.X)*1440,(to.Y-from.Y)*930)
-				local line=Theme.Frame(map,"Link_"..id,UDim2.fromScale(delta.Magnitude/1440,2/930),Color3.fromRGB(51,58,54))
-				line.AnchorPoint,line.Position=Vector2.new(.5,.5),UDim2.fromScale((from.X+to.X)/2,(from.Y+to.Y)/2)
-				line.Rotation=math.deg(math.atan2(delta.Y,delta.X))
-				line.BackgroundTransparency,line.Visible,line.ZIndex=.35,false,1
-				self.links[id]={line=line,parentId=node.prerequisite}
-			end
-		end
-	end
-	for _,id in displayOrder do
-		local node=displayNodes[id];local p=point(node)
-		local button=Instance.new("ImageButton")
-		button.Name,button.Image,button.BackgroundTransparency=id,"",1
-		button.Size,button.AnchorPoint,button.Position=NODE_SIZE,Vector2.new(.5,.5),UDim2.fromScale(p.X,p.Y)
-		button.AutoButtonColor,button.Visible,button.Parent=false,false,map
-		Theme.Aspect(button,144/164)
-		local visual=Theme.Container(button,"Visual")
-		visual.AnchorPoint,visual.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
-		local halos=glow(visual,Assets.hexMask)
-		local outline=Theme.Image(visual,"Outline",Assets.hexMask,UDim2.fromScale(1,1));outline.ZIndex=2
-		local fill=Theme.Image(visual,"Fill",Assets.hexFill,UDim2.fromScale(.951,.951),UDim2.fromScale(.0245,.0245));fill.ZIndex=3
-		local gradient=Theme.Gradient(fill,WHITE,Color3.fromRGB(226,244,221))
-		local icon=Theme.Image(visual,"Icon",Assets[node.icon],UDim2.fromScale(.60,.52),UDim2.fromScale(.20,.14));icon.ZIndex=4
-		local title=label(visual,"Title",node.name,.025,.665,.95,.12);title.ZIndex=5
-		local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.22,.795),UDim2.fromScale(.56,.115),5
-		local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
-		local price=label(cost,"Price","",.28,0,.72,1,COIN);price.TextXAlignment=Enum.TextXAlignment.Left;price.ZIndex=5
-		-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
-		local hidden=label(visual,"Hidden","?",.25,.3,.5,.32);hidden.ZIndex=5
-		hidden.TextTransparency,hidden.TextOutline.Transparency=.5,.5
-		local bar=Theme.Frame(visual,"Progress",UDim2.fromScale(.70,.085),Color3.fromRGB(0,157,184))
-		bar.Position,bar.ZIndex=UDim2.fromScale(.15,.735),5;round(bar,.12)
-		local progress=Theme.Frame(bar,"Fill",UDim2.fromScale(0,1),Color3.fromRGB(87,246,255));progress.ZIndex=6;round(progress,.12)
-		local timer=label(bar,"Time","",.035,.04,.93,.9);timer.ZIndex=7
-		-- Pill tucked into the hex's top point (plain Frame; a CanvasGroup per node is too costly).
-		local badge=Instance.new("Frame")
-		badge.Name,badge.BackgroundColor3,badge.BorderSizePixel="KindBadge",Color3.fromRGB(4,46,58),0
-		badge.AnchorPoint,badge.Position,badge.Size=Vector2.new(.5,0),UDim2.fromScale(.5,.05),UDim2.fromScale(.5,.125)
-		badge.ZIndex,badge.Visible=6,false
-		badge.Parent=visual
-		round(badge,.5)
-		local badgeStroke=Instance.new("UIStroke");badgeStroke.Thickness,badgeStroke.Parent=1.5,badge
-		local clock=Theme.Container(badge,"Clock")
-		clock.AnchorPoint,clock.Position,clock.Size=Vector2.new(0,.5),UDim2.fromScale(.08,.5),UDim2.fromScale(.7,.7)
-		Theme.Aspect(clock,1);clock.ZIndex=7
-		local dial=Theme.Frame(clock,"Dial",UDim2.fromScale(1,1),WHITE);dial.ZIndex=7;round(dial,.5)
-		local center=Theme.Frame(dial,"Inner",UDim2.fromScale(.66,.66),Color3.fromRGB(4,46,58));center.ZIndex=8;round(center,.5)
-		center.AnchorPoint,center.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
-		for _,hand in {{0,.3},{90,.22}} do
-			local stick=Theme.Frame(dial,"Hand",UDim2.fromScale(.12,hand[2]),WHITE);stick.ZIndex=9
-			stick.AnchorPoint,stick.Position,stick.Rotation=Vector2.new(.5,1),UDim2.fromScale(.5,.5),hand[1]
-		end
-		local badgeText=label(badge,"Text","",.1,.02,.86,.96,WHITE);badgeText.ZIndex=8
-		badgeText.TextOutline.Thickness=.02
-		local level,change
-		if CashNodes.Nodes[id] or node.effect=="rollingLuck" then
-			level=label(visual,"Level","",.21,.055,.58,.085,CYAN);level.ZIndex=5
-		end
-		if CashNodes.Nodes[id] then
-			change=label(visual,"Benefit","",.09,.665,.82,.105);change.ZIndex=5
-		end
-		self.nodes[id]={button=button,visual=visual,halos=halos,outline=outline,fill=fill,gradient=gradient,icon=icon,title=title,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,bar=bar,progress=progress,timer=timer,level=level,change=change,
-			badge=badge,badgeStroke=badgeStroke,badgeText=badgeText,clock=clock}
-		-- A tap or click buys (or starts) the node directly; the card is information
-		-- only. Right-click or a long press pins the card for Cancel and Pin goal.
-		button.Activated:Connect(function()
-			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
-			if not (self.persistent and self.selected==id) then self:Select(id,false) end
-			self:Buy(id)
-			if UserInputService.PreferredInput==Enum.PreferredInput.Touch and not self.persistent then
-				-- Touch has no hover to clear the info card, so it fades on its own.
-				local stamp=os.clock();self.touchTip=stamp
-				task.delay(2.5,function()
-					if self.touchTip==stamp and self.selected==id and not self.persistent then self:DismissTooltip() end
-				end)
-			end
-		end)
-		button.MouseEnter:Connect(function()
-			if self.pinchScale or (self.drag and self.drag.moved) then return end
-			local view=self.nodes[id];view.hovered=true;self:RestNode(view)
-			if self.root.Visible and not self.persistent and not self.drag then self:Select(id,false) end
-		end)
-		button.MouseLeave:Connect(function()
-			local view=self.nodes[id];view.hovered=false;view.pressed=false;self:RestNode(view)
-			if not self.persistent and self.selected==id then self:DismissTooltip() end
-		end)
-		button.MouseButton2Click:Connect(function() self:Select(id,true) end)
-		button.SelectionGained:Connect(function()
-			local view=self.nodes[id];view.focused=true;self:RestNode(view)
-			if self.root.Visible then self:Select(id,true) end
-		end)
-		button.SelectionLost:Connect(function()
-			local view=self.nodes[id];view.focused=false;view.pressed=false;self:RestNode(view)
-		end)
-		button.InputBegan:Connect(function(input)
-			if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
-				local view=self.nodes[id];view.pressInput=input;view.pressed=true;self:RestNode(view)
-				if input.UserInputType==Enum.UserInputType.Touch then
-					-- Long press: pin the card instead of buying on release.
-					task.delay(0.45,function()
-						if view.pressInput==input and view.pressed and not (self.drag and self.drag.moved) and self.root.Visible then
-							self.suppressUntil=os.clock()+0.6
-							self:Select(id,true)
-						end
-					end)
-				end
-			end
-		end)
+	-- One layer per category map; only the open one shows. They share coordinates,
+	-- so every category's center hex sits where Start does.
+	for _,category in View.Categories do
+		local layer=Theme.Container(map,category)
+		layer.Visible=category=="Main"
+		self.layers[category]=layer
+		self:BuildLinks(category,layer)
+		for _,id in View.Order[category] do self:BuildNode(id,layer) end
 	end
 	-- Soft dark bands so the title, balance and Exit never sit on top of nodes.
 	for _,spec in {{"TopFade",0,.15,90,0},{"BottomFade",.8,.2,-90,1}} do
@@ -326,44 +157,130 @@ function Browser.new(app,parent)
 		gradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.55,.15),NumberSequenceKeypoint.new(1,1)})
 		gradient.Parent=fade
 	end
-	-- Screen title in the shared header lettering; the offline line is its subtitle.
+	-- Screen title in the shared header lettering; a subtree adds its name.
 	local title=Theme.Display(root,"Title","Upgrades",50,WHITE)
 	title.Position,title.Size,title.ZIndex=UDim2.fromScale(.3,.01),UDim2.fromScale(.4,.06),5
 	title.TextScaled,title.TextXAlignment=true,Enum.TextXAlignment.Center
 	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,.055
 	title.TextShadow.TextTransparency,title.TextShadow.TextOutline.Enabled=.35,false
 	self.title=title
-	self.banner=label(root,"OfflineMessage","Your research works offline!",.3,.068,.4,.03,Color3.fromRGB(200,214,205))
-	self.banner.ZIndex=5
 	local money=Theme.Container(root,"ResearchBalance")
-	money.AnchorPoint,money.Position,money.Size=Vector2.new(0,1),UDim2.fromScale(.012,.975),UDim2.fromScale(.26,.105)
-	Theme.Aspect(money,3.6);money.ZIndex=5
-	Theme.Image(money,"ResearcherIcon",Assets.lab,UDim2.fromScale(.075,.34))
-	self.researchers=label(money,"Researchers","Researchers: 0/1",.085,0,.915,.34,CYAN);self.researchers.TextXAlignment=Enum.TextXAlignment.Left
-	Theme.Motion:Center(self.researchers)
-	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.13,.53),UDim2.fromScale(0,.44))
-	self.cash=label(money,"Cash","0",.15,.37,.85,.63,Theme.Colors.coins);self.cash.TextXAlignment=Enum.TextXAlignment.Left
+	money.AnchorPoint,money.Position,money.Size=Vector2.new(0,1),UDim2.fromScale(.012,.975),UDim2.fromScale(.26,.07)
+	Theme.Aspect(money,5.4);money.ZIndex=5
+	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.19,1))
+	self.cash=label(money,"Cash","0",.21,0,.79,1,Theme.Colors.coins);self.cash.TextXAlignment=Enum.TextXAlignment.Left
 	-- The shared square close X (Theme.HeaderClose's button and accent), in the
 	-- top-right corner like every other menu; large enough for a thumb on phones.
 	self.exit=Theme.ActionButton(root,"Exit","X",function() self.app.audio:Play("Click");self:Close() end,Theme.ActionColors.danger)
 	Theme.ApplyReferenceAccent(self.exit,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
 	self.exit.AnchorPoint,self.exit.Position,self.exit.Size,self.exit.ZIndex=Vector2.new(1,0),UDim2.fromScale(.985,.012),UDim2.fromScale(.14,.105),6
 	Theme.Aspect(self.exit,120/115)
-	self.message=label(root,"Feedback","",.15,.17,.70,.055,CYAN)
+	self.message=label(root,"Feedback","",.15,.17,.70,.055,GREEN)
 	self.message.ZIndex,self.message.Visible=12,false
 
 	self:BuildTooltip()
-	-- Tapping empty map closes a pinned card (nodes and the card sink their own input).
+	-- Tapping empty map closes a gamepad card (nodes sink their own input).
 	root.Activated:Connect(function()
 		if self.persistent and os.clock()>=(self.suppressUntil or 0) then self:DismissTooltip() end
 	end)
 	self:BindInput()
-	local elapsed=0
-	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
-		elapsed+=dt
-		if elapsed>=.25 then elapsed=0;if self.root.Visible then self:Step() end end
-	end))
 	return self
+end
+
+-- Adjacent hexes already read as a path. Bridge only longer prerequisite gaps,
+-- using the same map coordinates so native aspect/pan/zoom owns sizing.
+function Browser:BuildLinks(category,layer)
+	for _,id in View.Order[category] do
+		local node=View.Nodes[id]
+		local parentNode=node.prerequisite and View.Nodes[node.prerequisite]
+		if parentNode and parentNode.category==category then
+			local dq,dr=node.q-parentNode.q,node.r-parentNode.r
+			if math.max(math.abs(dq),math.abs(dr),math.abs(dq+dr))>1 then
+				local from,to=point(parentNode),point(node)
+				local delta=Vector2.new((to.X-from.X)*1440,(to.Y-from.Y)*930)
+				local line=Theme.Frame(layer,"Link_"..id,UDim2.fromScale(delta.Magnitude/1440,4/930),LINK)
+				line.AnchorPoint,line.Position=Vector2.new(.5,.5),UDim2.fromScale((from.X+to.X)/2,(from.Y+to.Y)/2)
+				line.Rotation=math.deg(math.atan2(delta.Y,delta.X))
+				line.BackgroundTransparency,line.Visible,line.ZIndex=.35,false,1
+				self.links[id]={line=line,parentId=node.prerequisite}
+			end
+		end
+	end
+end
+
+function Browser:BuildNode(id,layer)
+	local node=View.Nodes[id];local p=point(node)
+	local kind=node.kind
+	local button=Instance.new("ImageButton")
+	button.Name,button.Image,button.BackgroundTransparency=id,"",1
+	button.Size,button.AnchorPoint,button.Position=NODE_SIZE,Vector2.new(.5,.5),UDim2.fromScale(p.X,p.Y)
+	button.AutoButtonColor,button.Visible,button.Parent=false,false,layer
+	Theme.Aspect(button,144/164)
+	local visual=Theme.Container(button,"Visual")
+	visual.AnchorPoint,visual.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
+	local outline=Theme.Image(visual,"Outline",Assets.hexMask,UDim2.fromScale(1,1));outline.ZIndex=2
+	local fill=Theme.Image(visual,"Fill",Assets.hexFill,UDim2.fromScale(.92,.92),UDim2.fromScale(.04,.04));fill.ZIndex=3
+	local gradient=Instance.new("UIGradient")
+	gradient.Rotation,gradient.Enabled,gradient.Parent=90,false,fill
+	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.62,.5),UDim2.fromScale(.19,.1));icon.ZIndex=4
+	-- The tier is live text over the icon's lower right, never part of the art.
+	local numeral=label(visual,"Tier",View.Numeral(node) or "",.5,.36,.34,.26)
+	numeral.TextXAlignment,numeral.TextWrapped,numeral.ZIndex=Enum.TextXAlignment.Right,false,6
+	numeral.TextOutline.Thickness=.09
+	local title=label(visual,"Title",node.name,-.12,.585,1.24,.13)
+	title.TextWrapped,title.ZIndex=false,6
+	-- "Open" under an Open hex's name; the category's name under Back.
+	local caption=label(visual,"Caption","",.1,.69,.8,.16,if kind=="open" then Color3.fromRGB(255,240,90) else WHITE)
+	caption.TextWrapped,caption.ZIndex,caption.Visible=false,6,kind=="open" or kind=="back"
+	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.17,.725),UDim2.fromScale(.66,.13),5
+	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
+	local price=label(cost,"Price","",.29,0,.71,1,COIN);price.TextXAlignment,price.TextWrapped,price.ZIndex=Enum.TextXAlignment.Left,false,5
+	-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
+	local hidden=label(visual,"Hidden","?",.22,.22,.56,.5,Color3.fromRGB(150,152,156));hidden.ZIndex=5
+	-- Red circle at the top right: "!" on a hex you can buy now, a count on Open hexes.
+	local badge=Theme.Frame(visual,"Alert",UDim2.fromScale(.3,.3),ALERT)
+	badge.AnchorPoint,badge.Position,badge.ZIndex,badge.Visible=Vector2.new(.5,.5),UDim2.fromScale(.82,.17),7,false
+	Theme.Aspect(badge,1);round(badge,.5)
+	-- Round joins: a Miter stroke draws a square box around a circle.
+	Theme.Stroke(badge,Color3.new(0,0,0),2).LineJoinMode=Enum.LineJoinMode.Round
+	local badgeText=label(badge,"Text","!",.1,.1,.8,.8);badgeText.TextWrapped,badgeText.ZIndex=false,8
+	if kind=="start" then
+		icon.Position,icon.Size=UDim2.fromScale(.17,.08),UDim2.fromScale(.66,.54)
+		title.Position,title.Size=UDim2.fromScale(.02,.62),UDim2.fromScale(.96,.16)
+	elseif kind=="open" or kind=="back" then
+		icon.Position,icon.Size=UDim2.fromScale(.2,.07),UDim2.fromScale(.6,.44)
+		title.Position,title.Size=UDim2.fromScale(.02,.5),UDim2.fromScale(.96,.16)
+		local category=if kind=="back" then View.OpenNode(node.category) else nil
+		caption.Text=if kind=="open" then "Open" elseif category then category.name else ""
+	end
+	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,numeral=numeral,
+		title=title,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
+	-- A click or tap acts on the hex at once: buy, open a subtree or go back.
+	button.Activated:Connect(function()
+		if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
+		self:Press(id)
+	end)
+	button.MouseEnter:Connect(function()
+		if self.pinchScale or (self.drag and self.drag.moved) then return end
+		local view=self.nodes[id];view.hovered=true;self:RestNode(view)
+		if self.root.Visible and not self.persistent and not self.drag and not touching() then self:Select(id,false) end
+	end)
+	button.MouseLeave:Connect(function()
+		local view=self.nodes[id];view.hovered=false;view.pressed=false;self:RestNode(view)
+		if not self.persistent and self.selected==id then self:DismissTooltip() end
+	end)
+	button.SelectionGained:Connect(function()
+		local view=self.nodes[id];view.focused=true;self:RestNode(view)
+		if self.root.Visible then self:Select(id,true) end
+	end)
+	button.SelectionLost:Connect(function()
+		local view=self.nodes[id];view.focused=false;view.pressed=false;self:RestNode(view)
+	end)
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+			local view=self.nodes[id];view.pressInput=input;view.pressed=true;self:RestNode(view)
+		end
+	end)
 end
 
 function Browser:BuildTooltip()
@@ -374,56 +291,22 @@ function Browser:BuildTooltip()
 	aspect.AspectType,aspect.DominantAxis=Enum.AspectType.ScaleWithParentSize,Enum.DominantAxis.Height
 	round(tip,.045);Theme.Stroke(tip,Color3.fromRGB(206,206,206),1.5).LineJoinMode=Enum.LineJoinMode.Round
 	tip.Visible,tip.Active,tip.ZIndex=false,false,8
-	self.tip,self.tipAspect,self.tipMotion=tip,aspect,{}
+	self.tip,self.tipAspect=tip,aspect
 	self.tipTitle=label(tip,"Name","",.055,.06,.89,.18);self.tipTitle.ZIndex=9
 	self.tipTitle.TextOutline.Enabled=false
 	self.tipDivider=Theme.Frame(tip,"Divider",UDim2.fromScale(.83,.005),Color3.fromRGB(77,77,77))
 	self.tipDivider.Position,self.tipDivider.ZIndex=UDim2.fromScale(.085,.27),9
-	self.tipEffect=label(tip,"Effect","",.06,.31,.88,.39,Color3.fromRGB(172,172,172));self.tipEffect.ZIndex=9;self.tipEffect.TextOutline.Enabled=false
+	self.tipEffect=label(tip,"Effect","",.06,.31,.88,.39,MUTED);self.tipEffect.ZIndex=9;self.tipEffect.TextOutline.Enabled=false
+	-- Current → next value in green, like the reference's highlighted number.
+	self.tipChange=label(tip,"Change","",.06,.5,.88,.1,GREEN);self.tipChange.ZIndex=9;self.tipChange.TextOutline.Enabled=false
 	self.tipCost=Theme.Container(tip,"Cost");self.tipCost.ZIndex=9
 	self.tipCash=Theme.Image(self.tipCost,"CashIcon",Assets.cash,UDim2.fromScale(.25,1));self.tipCash.ZIndex=10
 	self.tipPrice=label(self.tipCost,"Price","",.27,0,.73,1,COIN);self.tipPrice.TextXAlignment=Enum.TextXAlignment.Left;self.tipPrice.ZIndex=10
-	self.tipBar=Theme.Frame(tip,"Progress",UDim2.fromScale(.87,.15),Color3.fromRGB(3,48,56));self.tipBar.ZIndex=9;round(self.tipBar,.14)
-	self.tipProgress=Theme.Frame(self.tipBar,"Fill",UDim2.fromScale(0,1),Color3.fromRGB(0,166,206));self.tipProgress.ZIndex=10;round(self.tipProgress,.14)
-	self.tipTimer=label(self.tipBar,"Time","",.03,.07,.94,.86);self.tipTimer.ZIndex=11
-	-- Explicit actions inside the pinned card; a tap on a hex never spends.
-	-- The card sinks input only while pinned, so hover cards never block the map.
-	local function action(name,callback)
-		local button=Instance.new("TextButton")
-		button.Name,button.Text,button.AutoButtonColor,button.BorderSizePixel=name,"",false,0
-		button.BackgroundColor3,button.ZIndex,button.Visible,button.Selectable=GREEN,10,false,true
-		button.Parent=tip
-		round(button,.22)
-		local stroke=Theme.Stroke(button,Color3.new(0,0,0),1.5);stroke.LineJoinMode=Enum.LineJoinMode.Round
-		stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-		local caption=label(button,"Caption","",.05,.12,.9,.76);caption.ZIndex=11
-		-- RenderTooltip rewrites Position/Size, so press feedback rides a UIScale.
-		Theme.Motion:BindButton(button,Theme.Motion:ScaleOf(button))
-		button.Activated:Connect(function()
-			if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
-			callback()
-		end)
-		return {button=button,caption=caption}
-	end
-	self.primaryAction=action("PrimaryAction",function() self:Primary() end)
-	self.secondaryAction=action("PinGoal",function() self.app.audio:Play("Click");self:Secondary() end)
-end
-
-local ACTION_STYLES={
-	buy={GREEN,Color3.fromRGB(10,40,6)}, open={CYAN,Color3.fromRGB(2,36,42)},
-	cancel={RED,WHITE}, pin={Color3.fromRGB(58,62,60),WHITE}, off={Color3.fromRGB(70,72,71),Color3.fromRGB(176,176,176)},
-}
-local function styleAction(view,text,style)
-	view.button.Visible=text~=nil
-	if not text then return end
-	local colors=ACTION_STYLES[style] or ACTION_STYLES.off
-	view.caption.Text,view.button.BackgroundColor3,view.caption.TextColor3=text,colors[1],colors[2]
-	view.caption.TextOutline.Enabled=colors[2]==WHITE
-	view.button:SetAttribute("ActionStyle",style)
+	self.tipFooter=label(tip,"Resets","Resets on Rebirth",.06,.9,.88,.08,MUTED);self.tipFooter.ZIndex=9;self.tipFooter.TextOutline.Enabled=false
 end
 
 function Browser:RestScale(view)
-	if self.app.reducedMotion or view.kind=="Hidden" then return 1 end
+	if self.app.reducedMotion or view.look=="unknown" then return 1 end
 	return if view.pressed then MOTION.PressScale elseif view.hovered or view.focused then MOTION.HoverScale else 1
 end
 
@@ -461,16 +344,17 @@ function Browser:RevealNodes(reveals)
 	if not opening and self.revealOrigin and self.root.Visible then
 		self.app.audio:Play("SkillTreeNodeAdded",nil,{noFallback=true,voiceKey="SkillTreeNodeAdded",cooldown=.1})
 	end
-	local origin=point(displayNodes[if opening then "Start" else self.revealOrigin or "Start"])
+	local root=View.Roots[self.category]
+	local origin=point(View.Nodes[if opening then root else self.revealOrigin or root])
 	table.sort(reveals,function(a,b)
-		local da,db=(point(displayNodes[a.id])-origin).Magnitude,(point(displayNodes[b.id])-origin).Magnitude
+		local da,db=(point(View.Nodes[a.id])-origin).Magnitude,(point(View.Nodes[b.id])-origin).Magnitude
 		return if da==db then a.id<b.id else da<db
 	end)
-	local far=(point(displayNodes[reveals[#reveals].id])-origin).Magnitude
+	local far=(point(View.Nodes[reveals[#reveals].id])-origin).Magnitude
 	local stagger=math.min(MOTION.OpenStaggerSeconds,MOTION.OpenWaveSeconds/math.max(1,#reveals-1))
 	for index,entry in reveals do
 		local view=self.nodes[entry.id]
-		local distance=(point(displayNodes[entry.id])-origin).Magnitude
+		local distance=(point(View.Nodes[entry.id])-origin).Magnitude
 		local delay=if opening then (index-1)*stagger else (if self.revealOrigin then MOTION.ConfirmRiseSeconds else 0)+(if far>0 then distance/far else 0)*MOTION.FrontierWaveSeconds
 		if self.app.reducedMotion then cancelSize(view);view.visual.Size=UDim2.fromScale(1,1)
 		elseif entry.new then
@@ -503,25 +387,6 @@ function Browser:RevealNodes(reveals)
 	self.opening=false
 end
 
-function Browser:StopProgress(owner)
-	cancelTween(owner,"progressTween")
-	owner.progressJob,owner.progressFinish=nil,nil
-end
-
-function Browser:UpdateProgress(owner,fill,job)
-	local now=self:Now()
-	local ratio=math.clamp((now-job.startedAt)/math.max(1,job.finishAt-job.startedAt),0,1)
-	if self.app.reducedMotion then self:StopProgress(owner);fill.Size=UDim2.fromScale(ratio,1);return end
-	if owner.progressJob==job.id and owner.progressFinish==job.finishAt then return end
-	self:StopProgress(owner)
-	owner.progressJob,owner.progressFinish=job.id,job.finishAt
-	fill.Size=UDim2.fromScale(ratio,1)
-	local remaining=math.max(0,job.finishAt-now)
-	if remaining==0 then fill.Size=UDim2.fromScale(1,1);return end
-	owner.progressTween=TweenService:Create(fill,TweenInfo.new(remaining,Enum.EasingStyle.Linear),{Size=UDim2.fromScale(1,1)})
-	owner.progressTween:Play()
-end
-
 function Browser:ReleasePress(input,clearHover)
 	local function release(view)
 		if clearHover or view.pressInput==input then
@@ -534,16 +399,15 @@ function Browser:ReleasePress(input,clearHover)
 end
 
 function Browser:ResetNodeMotion(view)
-	cancelSize(view);cancelTween(view,"tint");cancelTween(view,"flash")
-	self:StopProgress(view)
+	cancelSize(view);cancelTween(view,"flash")
 	view.pulsing,view.hovered,view.focused,view.pressed=false,false,false,false
 	view.pressInput=nil;view.visual.Size=UDim2.fromScale(1,1)
-	if view.fillColor then view.fill.ImageColor3=view.fillColor end
 	if view.rimColor then view.outline.ImageColor3=view.rimColor end
 end
 
+-- Server clock for older callers (ResearchExtras' Rally countdown).
 function Browser:Now()
-	return self.serverTime+math.max(0,os.clock()-self.receivedAt)
+	return workspace:GetServerTimeNow()
 end
 
 function Browser:Feedback(text,color,id)
@@ -552,8 +416,8 @@ function Browser:Feedback(text,color,id)
 	self.feedbackVersion=(self.feedbackVersion or 0)+1
 	local version=self.feedbackVersion
 	if color==RED then self.app.audio:Play("SkillTreeError",nil,{noFallback=true,voiceKey="ErrorNotification",cooldown=.25}) end
-	if id then
-		local view=self.nodes[id]
+	local view=id and self.nodes[id]
+	if view then
 		cancelTween(view,"flash")
 		if not self.app.reducedMotion then
 			view.outline.ImageColor3=color
@@ -568,277 +432,132 @@ function Browser:Feedback(text,color,id)
 	end)
 end
 
-function Browser:Celebrate(ids)
-	local names={}
-	for index,id in ids do
-		if index>MOTION.CompletionLimit then break end
-		table.insert(names,Catalog.Nodes[id].name)
-		self:PulseNode(self.nodes[id],nil,(index-1)*MOTION.CompletionStaggerSeconds)
-	end
-	local first=displayNodes[ids[1]]
-	if first then local p=point(first);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),CYAN) end
-	local more=if #ids>#names then " +"..(#ids-#names).." more" else ""
-	self:Feedback("Research complete: "..table.concat(names,", ")..more.."!",CYAN)
+-- The server's entry for a node ({status, price?, spendReason?}); nil while loading.
+function Browser:Info(id)
+	local tree=self.tree;if not tree then return nil end
+	local info=type(tree.nodes)=="table" and tree.nodes[id] or nil
+	return if type(info)=="table" then info else {status="Locked"}
+end
+
+-- Affordable upgrades in a category, counted by the server (starter reserve included).
+function Browser:Badge(category)
+	local badges=self.tree and self.tree.badges
+	local count=type(badges)=="table" and badges[category] or 0
+	return if type(count)=="number" then count else 0
+end
+
+-- Special hexes (Start, Open, Back, the free Egg Vacuum) always count as owned.
+function Browser:Known(id)
+	local node=id and View.Nodes[id]
+	if not node then return false end
+	if node.kind~="upgrade" then return true end
+	local info=self:Info(id)
+	return info~=nil and (info.status=="Owned" or info.status=="Available" or info.status=="Unaffordable")
 end
 
 function Browser:Receive(state,result)
-	if not state or not state.research then return end
-	local oldSlots=self.data and self.data.effects.slots
-	self.data,self.coins,self.cashOffers=state.research,state.coins,state.boardUpgrades or {}
-	if oldSlots and self.data.effects.slots>oldSlots then
-		self.app.audio:Play("SkillTreeResearchSlotAdded",nil,{noFallback=true})
-		if self.root.Visible then Theme.Motion:PopScale(self.researchers,1.15) end
+	if not state then return false end
+	self.coins=state.coins or 0
+	self.tree=if type(state.upgradeTree)=="table" then state.upgradeTree else nil
+	View.Remember(self.tree and self.tree.families)
+	local request=result and result.action=="BuyUpgrade" and self.requests[result.id] or nil
+	if request then
+		self.requests[result.id]=nil
+		if self.pending[request.nodeId]==result.id then self.pending[request.nodeId]=nil end
 	end
-	-- Integer server snapshots must not rewind the fractional client clock.
-	self.serverTime=if self.receivedAt>0 then math.max(self:Now(),state.research.serverTime) else state.research.serverTime
-	self.receivedAt=os.clock()
-	local recap=state.research.recap or {}
-	local completedRecap
-	if #recap>0 and not self.acknowledging then
-		self.acknowledging=true
-		self.app.audio:Play("SkillTreeResearchCompleted",nil,{noFallback=true})
-		local names={};for _,id in recap do table.insert(names,Catalog.Nodes[id].name) end
-		if self.root.Visible then completedRecap=recap else self.app:Notify("Research complete: "..table.concat(names,", "),true) end
-		self.app:Request("AcknowledgeResearch")
-	elseif #recap==0 then self.acknowledging=false end
-	local attempted=self.pending and self.pending.nodeId
-	if self.pending and (self.data.revision~=self.pending.revision or os.clock()-self.pending.at>1) then self.pending=nil end
-	local cashRequest=result and result.action=="CashUpgrade" and self.cashRequests[result.id]
-	if cashRequest then
-		self.cashRequests[result.id]=nil
-		if result.ok then self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true}) end
-		if self.cashPending[cashRequest.key]==result.id then self.cashPending[cashRequest.key]=nil end
-	end
-	if result and result.ok and result.action=="StartResearch" then
-		self.app.audio:Play("SkillTreeResearchStarted",nil,{noFallback=true})
-	end
-	if self.root.Visible then
-		self.revealOrigin=if cashRequest and result.ok then cashRequest.nodeId elseif completedRecap then completedRecap[1] else nil
-		self:Render();self.revealOrigin=nil
-		if completedRecap then self:Celebrate(completedRecap) end
-	end
-	if cashRequest and self.root.Visible then
-		local id=cashRequest.nodeId
-		local offer=self.cashOffers[cashRequest.key]
-		local text=if result.ok and offer then (displayNodes[id].tileName or displayNodes[id].name)..": "..cashRequest.currentText.." → "..offer.currentText else result.message or "Upgrade changed. Try again."
-		self:Feedback(text,if result.ok then CYAN else RED,id)
-		if result.ok then
-			self:PulseNode(self.nodes[id])
-			-- Keep the card on this track: the next tier is now the one to buy.
-			local nextId=CashNodes.NextId(cashRequest.key,offer)
-			local nextView=nextId and self.nodes[nextId]
-			if self.selected==id and self.persistent and nextId~=id and nextView and nextView.button.Visible and nextView.kind~="Hidden" then
-				self:Select(nextId,true)
-			end
+	if not self.root.Visible then return false end
+	local id=request and request.nodeId
+	self.revealOrigin=if request and result.ok and View.Nodes[id].category==self.category then id else nil
+	self:Render();self.revealOrigin=nil
+	if not request then return false end
+	if result.ok then
+		self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true})
+		self:Feedback(View.Nodes[id].name..": "..request.before.." → "..request.after,GREEN,id)
+		local view=self.nodes[id]
+		self:PulseNode(view)
+		local p=point(View.Nodes[id]);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),GREEN)
+		-- Keep a gamepad card on the family: its next tier is now the one to buy.
+		local nextId=View.NextId(View.Nodes[id].family,self.tree)
+		local nextView=nextId and nextId~=id and self.nodes[nextId]
+		if nextView and nextView.button.Visible and nextView.look~="unknown" and GuiService.SelectedObject==view.button then
+			GuiService.SelectedObject=nextView.button
 		end
-		return true
-	end
-	local handled=self.root.Visible and result and (result.action=="StartResearch" or result.action=="CancelResearch" or result.action=="PinResearch" or result.action=="SkipResearch")
-	if handled and (not result.ok or result.action~="StartResearch") then
-		self:Feedback(result.message or "Research changed. Try again.",if result.ok then CYAN else RED,if not result.ok then attempted else nil)
-	end
-	return handled==true
+	else self:Feedback(result.message or "Upgrade changed. Try again.",RED,id) end
+	return true
 end
 
 function Browser:Render()
-	local data=self.data;if not data then return end
-	local known={}
-	for _,id in Catalog.Order do
-		local node=Catalog.Nodes[id]
-		known[id]=data.completed[id] or Rules.Job(data,id)~=nil or (node.prerequisite and (data.completed[node.prerequisite] or Rules.Job(data,node.prerequisite)~=nil)) or false
-	end
 	local reveals={}
-	for _,id in Catalog.Order do
-		local node,view=Catalog.Nodes[id],self.nodes[id]
-		local offer=data.offers[id];local state=offer.status
-		local visible=known[id] or (node.prerequisite and known[node.prerequisite]) or false
-		local hidden=not known[id]
-		local owned,active=state=="Completed",state=="Researching"
-		local preview=state=="Locked" and not hidden
-		local buyable=state=="Available" and #data.jobs<data.effects.slots
-		local rim=if owned then DONE_RIM elseif active then Color3.fromRGB(170,255,255) elseif preview then Color3.fromRGB(34,40,37) elseif hidden then MUTED elseif buyable then RESEARCH_RIM else dim(RESEARCH_RIM)
-		if view.lastState~=state or view.lastHidden~=hidden then
-			cancelTween(view,"flash")
-			view.fill.Image=if owned or active then Assets.hexMask else Assets.hexFill
-			local color=if owned then DONE_FILL elseif active then CYAN elseif preview then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
-			view.fillColor=color
-			cancelTween(view,"tint")
-			if view.button.Visible and view.lastState and not self.app.reducedMotion then
-				view.tint=TweenService:Create(view.fill,TweenInfo.new(MOTION.TintSeconds,Enum.EasingStyle.Sine),{ImageColor3=color});view.tint:Play()
-			else view.fill.ImageColor3=color end
-			view.gradient.Enabled=owned or active
+	for _,category in View.Categories do
+		for _,id in View.Order[category] do
+			local entry=self:RenderNode(id)
+			if entry and category==self.category then table.insert(reveals,entry) end
 		end
-		setRim(view,rim)
-		for i,halo in view.halos do
-			halo.ImageColor3=if owned then GREEN else CYAN
-			halo.ImageTransparency=if preview or owned then 1 elseif hidden then .99 else haloStrength(i,buyable or active)
-		end
-		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
-		view.icon.ImageTransparency,view.title.TextTransparency=if preview then .83 else 0,if preview then .77 else 0
-		view.title.TextOutline.Transparency=if preview then .8 else 0
-		if view.level then view.level.Visible=false end
-		-- Timed research: cyan clock badge with how long it takes; green OWNED once done.
-		view.badge.Visible=not hidden and not active and ((owned and id~="Start") or (not owned and (offer.duration or node.duration or 0)>0))
-		view.badge.BackgroundColor3=if owned then DONE_BADGE else Color3.fromRGB(4,46,58)
-		view.badgeStroke.Color=if owned then DONE_BADGE_RIM else RESEARCH_RIM
-		badgeFade(view,if preview then .7 else 0)
-		view.clock.Visible=not owned
-		if owned then view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.06,.02),UDim2.fromScale(.88,.96)
-		else view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.28,.02),UDim2.fromScale(.66,.96) end
-		view.badgeText.Text=if owned then "OWNED" else shortTime(offer.duration or node.duration)
-		view.badgeText.TextColor3=WHITE
-		view.cost.Visible=not hidden and not owned and not active and not preview
-		view.price.Text=priceText(offer.price)
-		view.price.TextColor3=if state=="Unaffordable" then RED else COIN
-		view.bar.Visible=active
-		if not active then self:StopProgress(view) end
-		view.icon.Position=UDim2.fromScale(.20,if active then .115 else .14)
-		view.icon.Size=UDim2.fromScale(.60,if active then .48 else .52)
-		view.title.Position=UDim2.fromScale(.025,if active then .615 else .665)
-		view.title.Size=UDim2.fromScale(.95,if active then .105 else .12)
-		if visible and (not view.button.Visible or view.lastHidden and not hidden) then table.insert(reveals,{id=id,new=not view.button.Visible}) end
-		view.button.Visible,view.button.Selectable=visible,visible and not hidden
-		view.lastState,view.lastHidden,view.kind=state,hidden,if hidden then "Hidden" else state
-		view.button:SetAttribute("ResearchState",view.kind)
 	end
-	self:RenderCash(reveals)
 	self:RevealNodes(reveals)
 	for id,link in self.links do
 		local view=self.nodes[id]
 		link.line.Visible=view.button.Visible and self.nodes[link.parentId].button.Visible
-		local completed=view.kind=="Completed"
-		link.line.BackgroundColor3=if completed then GREEN else Color3.fromRGB(51,58,54)
-		link.line.BackgroundTransparency=if completed then .72 else .35
+		local owned=view.look=="owned"
+		link.line.BackgroundColor3=if owned then GREEN else LINK
+		link.line.BackgroundTransparency=if owned then .45 else .35
 	end
 	Theme.Motion:Count(self.cash,self.coins or 0,function(v) return Theme.Money(v) end)
-	self.researchers.Text="Researchers: "..#data.jobs.."/"..data.effects.slots
-	self:Step()
-end
-
-function Browser:RenderCash(reveals)
-	local ownReveals=not reveals
-	reveals=reveals or {}
-	for _,id in CashNodes.Order do
-		local node,view=CashNodes.Nodes[id],self.nodes[id]
-		local offer=self.cashOffers and self.cashOffers[node.upgradeKey]
-		-- One hex per track: it always shows the next tier, or MAX once the track is full.
-		local tier,maxed,completed=CashNodes.Shown(node.upgradeKey,offer)
-		local owned,nextTier=maxed,not maxed
-		local luck=node.upgradeKey=="Luck"
-		local visible,hidden=true,false
-		local state=if owned then "Completed" elseif hidden then "Hidden" else cashStatus(offer,self.coins or 0)
-		local waiting=nextTier and self.cashPending[node.upgradeKey]~=nil
-		local unavailable=state=="Unavailable"
-		local buyable=nextTier and state=="Available" and not waiting
-		local rim=if owned then DONE_RIM elseif hidden or unavailable then MUTED elseif buyable then INSTANT_RIM else dim(INSTANT_RIM)
-		if view.lastState~=state then
-			cancelTween(view,"flash")
-			view.fill.Image=if owned then Assets.hexMask else Assets.hexFill
-			local color=if owned then DONE_FILL elseif unavailable then Color3.fromRGB(62,62,62) else Color3.fromRGB(164,164,164)
-			view.fillColor=color
-			cancelTween(view,"tint")
-			if view.button.Visible and view.lastState and not self.app.reducedMotion then
-				view.tint=TweenService:Create(view.fill,TweenInfo.new(MOTION.TintSeconds,Enum.EasingStyle.Sine),{ImageColor3=color});view.tint:Play()
-			else view.fill.ImageColor3=color end
-			view.gradient.Enabled=owned
-		end
-		setRim(view,rim)
-		for i,halo in view.halos do
-			halo.ImageColor3=if owned then GREEN else INSTANT_RIM
-			halo.ImageTransparency=if unavailable or owned then 1 elseif hidden then .99 else haloStrength(i,buyable)
-		end
-		view.title.Text=node.tileName
-		view.icon.Visible,view.title.Visible,view.hidden.Visible=not hidden,not hidden,hidden
-		view.icon.ImageTransparency,view.title.TextTransparency=if unavailable then .65 else 0,if unavailable then .35 else 0
-		view.title.TextOutline.Transparency=if unavailable then .35 else 0
-		-- October 16 timed yard builds: the hex carries the build timer instead of a price.
-		local building=nextTier and state=="Building" and offer.building or nil
-		view.bar.Visible=building~=nil
-		if building then
-			view.bar.Position=UDim2.fromScale(.15,.80)
-			view.timer.Text=timeText(building.finishAt-self:Now())
-			self:UpdateProgress(view,view.progress,{id="PlotBuild"..building.level,startedAt=building.startedAt,finishAt=building.finishAt})
-		elseif view.progressJob then self:StopProgress(view) end
-		view.level.Visible,view.change.Visible=false,nextTier
-		-- Next tier: smaller icon so the before/after reads first.
-		view.icon.Position=UDim2.fromScale(.21,if nextTier then .155 else .14)
-		view.icon.Size=UDim2.fromScale(.58,if nextTier then .37 else .52)
-		view.title.Position=UDim2.fromScale(.025,if nextTier then .53 else .665)
-		view.title.Size=UDim2.fromScale(.95,if nextTier then .1 else .12)
-		view.change.Position,view.change.Size=UDim2.fromScale(.07,.635),UDim2.fromScale(.86,.13)
-		-- Level badge instead of a timer: gold with the owned level, green MAX once full.
-		view.badge.Visible=not hidden
-		view.clock.Visible=false
-		view.badgeText.Position,view.badgeText.Size=UDim2.fromScale(.06,.02),UDim2.fromScale(.88,.96)
-		if nextTier then
-			view.badge.BackgroundColor3,view.badgeStroke.Color=INSTANT_RIM,Color3.fromRGB(120,72,0)
-			view.badgeText.Text="LV "..completed.."/"..node.maxTier
-			view.badgeText.TextColor3=Color3.fromRGB(60,32,0)
-		else
-			view.badge.BackgroundColor3,view.badgeStroke.Color=DONE_BADGE,DONE_BADGE_RIM
-			view.badgeText.Text="MAX"
-			view.badgeText.TextColor3=WHITE
-		end
-		badgeFade(view,if unavailable then .5 else 0)
-		view.change.Text=if not offer or not offer.ready then "Loading…" elseif building then "Building → "..(offer.nextText or "") elseif offer.nextText and not unavailable then offer.currentText.." → "..offer.nextText else offer.currentText
-		if luck and nextTier and offer and offer.ready and offer.nextEpicPlusChance then
-			view.change.Text=if useTopLuckOdds(offer)
-				then string.format("Top %.1f%% → %.1f%%",offer.topBandChance*100,offer.nextTopBandChance*100)
-				else string.format("Epic+ %.1f%% → %.1f%%",offer.epicPlusChance*100,offer.nextEpicPlusChance*100)
-		end
-		view.cost.Visible=nextTier and not building
-		view.cashIcon.Visible=nextTier and state~="Loading" and not unavailable and not waiting
-		view.price.Position=UDim2.fromScale(if view.cashIcon.Visible then .28 else 0,0)
-		view.price.Size=UDim2.fromScale(if view.cashIcon.Visible then .72 else 1,1)
-		view.price.TextXAlignment=if view.cashIcon.Visible then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center
-		view.price.Text=if waiting then "…" elseif state=="Loading" then "Loading" elseif unavailable then "No space" else priceText(if offer and offer.price then offer.price else tier.price)
-		view.price.TextColor3=if state=="Unaffordable" or unavailable then RED elseif waiting then CYAN else COIN
-		if visible and (not view.button.Visible or view.lastHidden and not hidden) then table.insert(reveals,{id=id,new=not view.button.Visible}) end
-		view.button.Visible,view.button.Selectable=visible,visible and not hidden
-		view.lastState,view.lastHidden,view.kind=state,hidden,state
-		view.button:SetAttribute("UpgradeKey",node.upgradeKey)
-		view.button:SetAttribute("CashUpgradeTier",tier.tier)
-		view.button:SetAttribute("CashUpgradeState",state)
-	end
-	if ownReveals then self:RevealNodes(reveals) end
-end
-
-function Browser:Step()
-	if not self.data then return end
-	local reduced=self.app.reducedMotion==true
-	if reduced~=self.motionReduced then
-		self.motionReduced=reduced
-		if reduced then
-			for _,view in self.nodes do self:ResetNodeMotion(view) end
-			self:StopProgress(self.tipMotion)
-		end
-	end
-	local plot=self.cashOffers and self.cashOffers.PlotSize
-	if plot and plot.building then
-		local view=self.nodes[CashNodes.ByKey.PlotSize]
-		if view then view.timer.Text=timeText(plot.building.finishAt-self:Now()) end
-	end
-	for _,job in self.data.jobs do
-		local view=self.nodes[job.nodeId]
-		view.timer.Text=timeText(job.finishAt-self:Now())
-		self:UpdateProgress(view,view.progress,job)
-	end
 	if self.selected then self:RenderTooltip() end
 end
 
-function Browser:Select(id,persistent)
-	if not self.data or not self.nodes[id] then return end
-	local view=self.nodes[id]
-	if not view.button.Visible or view.kind=="Hidden" then
-		if persistent then
-			local prerequisite=displayNodes[id].prerequisite
-			while prerequisite and (not self.nodes[prerequisite].button.Visible or self.nodes[prerequisite].kind=="Hidden") do prerequisite=displayNodes[prerequisite].prerequisite end
-			if prerequisite then self:Center(prerequisite);self:Select(prerequisite,true);return end
-		end
-		self:DismissTooltip();return
+-- Styles one hex from the snapshot; returns a reveal entry when it newly shows.
+function Browser:RenderNode(id)
+	local node,view=View.Nodes[id],self.nodes[id]
+	local kind=node.kind
+	local look,visible=kind,true
+	local info=if kind=="upgrade" then self:Info(id) else nil
+	if kind=="upgrade" then
+		local status=info and info.status
+		look=if status=="Owned" then "owned" elseif status=="Available" then "available" elseif status=="Unaffordable" then "unaffordable" else "unknown"
+		-- A locked hex shows as "?" beside one you can see; further out it stays hidden.
+		visible=info~=nil and (look~="unknown" or self:Known(node.prerequisite))
 	end
+	local hidden=look=="unknown"
+	if view.look~=look then
+		local style=LOOKS[look] or LOOKS.available
+		view.fill.Image,view.fill.ImageColor3=Assets[style.art],style.tint or WHITE
+		view.gradient.Enabled=style.gradient~=nil
+		if style.gradient then view.gradient.Color=style.gradient end
+		view.rimColor=style.rim
+		if not view.flash or view.flash.PlaybackState~=Enum.PlaybackState.Playing then view.outline.ImageColor3=style.rim end
+	end
+	local waiting=self.pending[id]~=nil
+	view.icon.Visible=not hidden and view.icon.Image~=""
+	view.title.Visible,view.hidden.Visible=not hidden,hidden
+	view.numeral.Visible=not hidden and view.numeral.Text~=""
+	-- Prices only on hexes you can still buy: gold when affordable, red when not.
+	local buyable=look=="available" or look=="unaffordable"
+	view.cost.Visible=buyable
+	view.cashIcon.Visible=not waiting
+	view.price.Position=UDim2.fromScale(if waiting then 0 else .29,0)
+	view.price.Size=UDim2.fromScale(if waiting then 1 else .71,1)
+	view.price.TextXAlignment=if waiting then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+	view.price.Text=if waiting then "…" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
+	view.price.TextColor3=if look=="unaffordable" then RED else COIN
+	-- Red badge (October 20 owner): "!" when you can buy this hex right now; on an
+	-- Open hex, how many upgrades inside you can buy.
+	local count=if kind=="open" then self:Badge(node.opens) else 0
+	view.badge.Visible=(look=="available" and not waiting) or count>0
+	view.badgeText.Text=if kind=="open" then (if count>99 then "99+" else tostring(count)) else "!"
+	local entry
+	if visible and (not view.button.Visible or view.lastHidden and not hidden) then entry={id=id,new=not view.button.Visible} end
+	view.button.Visible,view.button.Selectable=visible,visible and not hidden
+	view.look,view.lastHidden=look,hidden
+	view.button:SetAttribute("UpgradeState",look)
+	return entry
+end
+
+function Browser:Select(id,persistent)
+	local view=id and self.nodes[id]
+	-- October 20 (owner): no card on phones, even when a shortcut opens a node.
+	if not view or not view.button.Visible or touching() then self:DismissTooltip();return end
 	local changed=self.selected~=id
-	if changed then self.confirmCancel=nil;self:StopProgress(self.tipMotion) end
 	self.selected,self.persistent=id,persistent
 	self.tip.Visible=true
 	self:RenderTooltip()
@@ -846,9 +565,7 @@ function Browser:Select(id,persistent)
 end
 
 function Browser:DismissTooltip()
-	self:StopProgress(self.tipMotion)
-	self:ReleaseActionFocus()
-	self.selected,self.persistent,self.confirmCancel=nil,false,nil
+	self.selected,self.persistent=nil,false
 	self.tip.Visible=false
 end
 
@@ -871,248 +588,157 @@ function Browser:PlaceTooltip()
 	self.tip.Position=UDim2.fromScale(x/rootSize.X,y/rootSize.Y)
 end
 
-function Browser:RenderTooltip()
-	local id,data=self.selected,self.data;if not id or not data then return end
-	local node=displayNodes[id]
-	local cashNode=CashNodes.Nodes[id]
-	local offer=if cashNode then self.cashOffers[cashNode.upgradeKey] else data.offers[id]
-	local tier,maxed,completed
-	if cashNode then tier,maxed,completed=CashNodes.Shown(cashNode.upgradeKey,offer) else completed=0 end
-	local owned=cashNode and maxed
-	local state=if owned then "Completed" elseif cashNode then cashStatus(offer,self.coins or 0) else offer.status
-	local job=if cashNode then nil else Rules.Job(data,id)
-	local effect=node.description
-	if cashNode then
-		local baseBenefit=if tier.benefit:lower():find("base",1,true) then tier.benefit else "Base upgrade: "..tier.benefit
-		if cashNode.upgradeKey=="Luck" then
-			local limit=if offer and offer.maxLevel then offer.maxLevel else node.maxTier
-			local progress=tostring(completed).."/"..limit
-			if owned then
-				local odds=luckOdds(offer,false)
-				effect="Luck level "..progress.." · MAX."
-				if odds then effect..=" Epic+ per chicken: "..odds..". Bonuses included." end
-				local topOdds=luckOdds(offer,false,true)
-				if topOdds then effect..=" Strongest chickens: "..topOdds.."." end
-				if offer and offer.windowText then effect..=" Favored bands: "..offer.windowText.."." else effect..=" "..baseBenefit end
-				effect..=" All normal chickens remain possible."
-			elseif not offer or not offer.ready then effect="Waiting for your flock to load."
-			else
-				local topBand=useTopLuckOdds(offer)
-				local odds=luckOdds(offer,true,topBand)
-				effect="Luck level "..progress..". "..(if odds then (if topBand then "Strongest chickens: " else "Epic+ per chicken: ")..odds..". Bonuses included." else baseBenefit)
-				if offer.windowText then effect..=" Favored now: "..offer.windowText.."." end
-				if offer.nextWindowText then effect..=" Next: "..offer.nextWindowText.."." end
-				effect..=" All normal chickens remain possible."
-			end
-			local eventOdds=Browser.EventOdds(workspace:GetServerTimeNow())
-			if eventOdds then effect..=" "..eventOdds.."." end
-		elseif owned then effect=baseBenefit.." Fully upgraded."
-		elseif not offer or not offer.ready then effect="Waiting for your flock to load."
-		elseif state=="Building" then
-			effect="Builders are expanding your yard: "..offer.currentText.." → "..(offer.nextText or "").." chickens in "..timeText(offer.building.finishAt-self:Now()).."."
-		elseif state=="Unavailable" then
-			effect=baseBenefit.." "..(if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.")
-		else
-			local change=if offer.nextText then offer.currentText.." → "..offer.nextText else offer.currentText
-			local build=offer.buildSeconds or 0
-			effect=change..". "..(if build>0 then "Builders take "..shortTime(build)..". " else "Instant upgrade. ")..node.description
-		end
+-- Card text: name, what it does (current → next), price and "Resets on Rebirth".
+function Browser:TooltipText(id)
+	local node,view=View.Nodes[id],self.nodes[id]
+	local look=view.look
+	if node.kind=="start" then return "Start","Buy upgrades with Coins. Everything here resets on Rebirth.",nil,nil,nil end
+	if node.kind=="back" then return "Back","Return to the main Upgrades tree.",nil,nil,nil end
+	if node.kind=="open" then
+		local count=self:Badge(node.opens)
+		return node.name,"Open the "..node.name.." upgrades.",if count>0 then count.." ready to buy" else nil,nil,nil
 	end
-	if state=="Unaffordable" and offer and offer.spendReason and offer.spendReason~="" then effect..=" "..offer.spendReason end
-	local title,titleRows=wrap(if tier then tier.name else node.name,22)
-	local description,rows=wrap(effect,23)
-	local footer=if cashNode then not owned and state~="Loading" and state~="Unavailable" and state~="Building" else job~=nil or state~="Completed"
-	local primaryText,primaryStyle,pinText,pinStyle=self:TooltipActions(id,cashNode,offer,state,job,completed)
-	local actionRow=self.persistent and (primaryText~=nil or pinText~=nil)
-	-- One size on every device (October 15): thumb-friendly 44 px; the card has a pixel floor (TipWidth).
-	local buttonHeight=44
-	local actionHeight=if actionRow then buttonHeight+14 else 0
+	if node.kind=="tool" then
+		local tools=self.app.state and self.app.state.tools
+		local owned=type(tools)=="table" and tools.eggVacuum==true
+		return node.name,if owned then "Your Egg Vacuum. Upgrade it here." else "Free when the Commander guide ends. You can upgrade it before then.",nil,nil,nil
+	end
+	if look=="unknown" then
+		local prerequisite=node.prerequisite and View.Nodes[node.prerequisite]
+		return "Locked",if prerequisite then "Buy "..prerequisite.name.." first." else "Not available yet.",nil,nil,nil
+	end
+	local info=self:Info(id) or {}
+	local body=View.Description(node)
+	local before,after=View.Change(node)
+	local change=if look=="owned" then "Owned: "..after else before.." → "..after
+	if node.family=="Luck" then
+		local nextId=View.NextId("Luck",self.tree)
+		local odds=if id==nextId and self.tree then luckText(self.tree.luck,look~="owned") else nil
+		if odds then body..=" "..odds end
+		body..=" All normal chickens remain possible."
+		local eventOdds=Browser.EventOdds(workspace:GetServerTimeNow())
+		if eventOdds then body..=" "..eventOdds.."." end
+	end
+	if look=="unaffordable" and type(info.spendReason)=="string" and info.spendReason~="" then body..=" "..info.spendReason end
+	local price=if look~="owned" and type(info.price)=="number" then info.price else nil
+	return node.name,body,change,price,"Resets on Rebirth"
+end
+
+function Browser:RenderTooltip()
+	local id=self.selected;if not id or not self.nodes[id] then return end
+	local title,body,change,price,footer=self:TooltipText(id)
+	local titleText,titleRows=wrap(title,22)
+	local bodyText,bodyRows=wrap(body,26)
+	local changeText,changeRows=wrap(change or "",22)
+	if not change then changeRows=0 end
+	-- Heights in card units; the card is 240 units wide (TipWidth).
+	local y=10+30*titleRows+5
+	local dividerY=y;y+=8
+	local bodyY=y;y+=bodyRows*24+4
+	local changeY=y;y+=changeRows*27+(if change then 4 else 0)
+	local costY=y;if price then y+=42 end
+	local footerY=y;if footer then y+=24 end
+	local height=y+8
 	local tipWidth=self:TipWidth()
-	local titleHeight=30*titleRows
-	local height=18+titleHeight+12+rows*27+(if footer then 52 else 14)+actionHeight
-	local bottom=height-actionHeight
 	self.tip.Size=UDim2.fromScale(1,tipWidth*height/240)
 	self.tipAspect.AspectRatio=240/height
 	self.tip.UICorner.CornerRadius=UDim.new(10/height,0)
-	self.tipTitle.Text=title;self.tipTitle.Position,self.tipTitle.Size=UDim2.fromScale(.055,10/height),UDim2.fromScale(.89,titleHeight/height)
-	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.085,(15+titleHeight)/height),UDim2.fromScale(.83,1/height)
-	self.tipEffect.Text=description;self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.06,(24+titleHeight)/height),UDim2.fromScale(.88,rows*27/height)
-	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(bottom-44)/height),UDim2.fromScale(.62,34/height)
-	self.tipPrice.Text=if offer and offer.price then priceText(offer.price) else "";self.tipPrice.TextColor3=if state=="Unaffordable" or state=="Unavailable" then RED else COIN
-	self.tipCost.Visible,self.tipBar.Visible=footer and not job,job~=nil
-	self.tipBar.Position,self.tipBar.Size=UDim2.fromScale(.065,(bottom-40)/height),UDim2.fromScale(.87,29/height)
-	if job then
-		self.tipTimer.Text=timeText(job.finishAt-self:Now())
-		self:UpdateProgress(self.tipMotion,self.tipProgress,job)
-	else self:StopProgress(self.tipMotion) end
-	self.tip.Active=self.persistent==true
-	styleAction(self.primaryAction,if actionRow then primaryText else nil,primaryStyle)
-	styleAction(self.secondaryAction,if actionRow then pinText else nil,pinStyle or "pin")
-	local both=actionRow and primaryText~=nil and pinText~=nil
-	local y,h=(height-buttonHeight-8)/height,buttonHeight/height
-	self.primaryAction.button.Position,self.primaryAction.button.Size=UDim2.fromScale(.065,y),UDim2.fromScale(if both then .52 else .87,h)
-	self.secondaryAction.button.Position,self.secondaryAction.button.Size=UDim2.fromScale(if both then .605 else .065,y),UDim2.fromScale(if both then .33 else .87,h)
-	local focused=GuiService.SelectedObject
-	if (focused==self.primaryAction.button or focused==self.secondaryAction.button) and not focused.Visible then self:FocusActions(false) end
+	self.tipTitle.Text=titleText
+	self.tipTitle.Position,self.tipTitle.Size=UDim2.fromScale(.055,10/height),UDim2.fromScale(.89,30*titleRows/height)
+	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.085,dividerY/height),UDim2.fromScale(.83,1/height)
+	self.tipEffect.Text=bodyText;self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.06,bodyY/height),UDim2.fromScale(.88,bodyRows*24/height)
+	self.tipChange.Visible=change~=nil
+	self.tipChange.Text=changeText;self.tipChange.Position,self.tipChange.Size=UDim2.fromScale(.06,changeY/height),UDim2.fromScale(.88,changeRows*27/height)
+	self.tipCost.Visible=price~=nil
+	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(costY+4)/height),UDim2.fromScale(.62,34/height)
+	self.tipPrice.Text=if price then Theme.Money(price) else ""
+	self.tipPrice.TextColor3=if self.nodes[id].look=="unaffordable" then RED else COIN
+	self.tipFooter.Visible=footer~=nil
+	self.tipFooter.Position,self.tipFooter.Size=UDim2.fromScale(.06,footerY/height),UDim2.fromScale(.88,20/height)
 	self:PlaceTooltip()
 end
 
--- Height-relative card width, with a ~200 px floor so phone text and buttons stay usable.
+-- Height-relative card width, with a ~200 px floor so phone text stays usable.
 function Browser:TipWidth()
 	local rootHeight=self.root.AbsoluteSize.Y
 	if rootHeight<=0 then return TOOLTIP_WIDTH end
 	return math.clamp(200/rootHeight,TOOLTIP_WIDTH,.5)
 end
 
--- Returns the pinned card's primary label/style and the goal toggle label.
-function Browser:TooltipActions(id,cashNode,offer,state,job,completed)
-	local data=self.data
-	-- Buying, starting and opening happen by tapping the hex itself, so the card
-	-- only carries research management: Cancel and Pin goal.
-	if cashNode then return nil,nil,nil end
-	if state=="Completed" and not job then return nil,nil,nil end
-	local pin=if data.pinned==id then "Clear goal" else "Pin goal"
-	local pinStyle="pin"
-	if job then
-		-- Studio/admins finish the timer free (server rechecks access); everyone else
-		-- buys the smallest Robux skip tier covering the time left (October 15).
-		if self:CanSkip() then pin="Finish now"
-		else
-			local key=self:SkipProduct(job)
-			if key then
-				local commerce=self.app.commerce
-				commerce:Load(key)
-				local status,price=commerce:State(key)
-				pin=if status=="ready" and type(price)=="number" then "Finish  R$ "..Theme.Number(price)
-					elseif status=="preparing" or status=="pending" then "Opening…" else "Finish now"
-				pinStyle="buy"
-			end
-		end
-		return (if self.confirmCancel==job.id then "Confirm · refund "..Theme.CompactCoins(job.paid) else "Cancel research"),"cancel",pin,pinStyle
-	end
-	return nil,nil,pin,pinStyle
-end
-
--- Robux skip tier for a running job; a 2 s margin covers client/server clock drift.
-function Browser:SkipProduct(job)
-	return ShopCatalog.ResearchSkipFor(job.finishAt-self:Now()+2)
-end
-
--- Gamepad: A on a hex moves focus into its card; B returns to the hex.
-function Browser:FocusActions(enter)
-	local view=self.selected and self.nodes[self.selected]
-	if enter then
-		local target=if self.primaryAction.button.Visible then self.primaryAction.button elseif self.secondaryAction.button.Visible then self.secondaryAction.button else nil
-		if target then GuiService.SelectedObject=target end
-		return target~=nil
-	end
-	if view then GuiService.SelectedObject=view.button end
-	return true
-end
-
-function Browser:ReleaseActionFocus()
-	local focused=GuiService.SelectedObject
-	if focused and (focused==self.primaryAction.button or focused==self.secondaryAction.button) then
-		local view=self.selected and self.nodes[self.selected]
-		GuiService.SelectedObject=if view and view.button.Visible then view.button else nil
-	end
-end
-
--- Spends on the node under the pointer: the same path the old card button used.
-function Browser:Buy(id)
-	if self.selected~=id then return end
+-- A click, tap or gamepad A: a small press, then the hex's action.
+function Browser:Press(id)
 	local view=self.nodes[id]
 	if view then
 		view.pulsing=false
 		self:SizeNode(view,MOTION.PressScale,MOTION.PressSeconds,0,function() self:RestNode(view) end)
 	end
-	self:Activate()
+	self:Activate(id)
 end
 
-function Browser:Primary()
-	local id,data=self.selected,self.data;if not id or not data then return end
-	if not CashNodes.Nodes[id] and Rules.Job(data,id) then self.app.audio:Play("Click");self:CancelSelected();return end
-	local view=self.nodes[id]
-	if view then
-		view.pulsing=false
-		self:SizeNode(view,MOTION.PressScale,MOTION.PressSeconds,0,function() self:RestNode(view) end)
-	end
-	self:Activate()
-end
-
-function Browser:Activate()
-	local id,data=self.selected,self.data;if not id or not data then return end
+function Browser:Activate(id)
+	local node=View.Nodes[id];if not node then return end
 	self.app.audio:Play("Click")
-	if CashNodes.Nodes[id] then self:PurchaseCash(id);return end
-	local node,offer=Catalog.Nodes[id],data.offers[id]
-	if Rules.Job(data,id) then return end
-	if offer.status=="Completed" then
-		if node.effect=="formations" then self.app:OpenPage("Formations")
-		elseif node.effect=="operations" then self.app:OpenPage("Operations") end
-	elseif offer.status=="Locked" then self:Feedback("Research "..Catalog.Nodes[node.prerequisite].name.." first",RED,id)
-	elseif offer.status=="Unaffordable" then self:Feedback(offer.spendReason or "Not enough coins",RED,id)
-	elseif offer.status=="Available" then
-		if #data.jobs>=data.effects.slots then self:Feedback("All researchers are busy",RED,id);return end
-		if self.pending and self.pending.revision==data.revision and os.clock()-self.pending.at<1 then return end
-		self.pending={nodeId=id,revision=data.revision,at=os.clock()}
-		self.app:Request("StartResearch",{nodeId=id,expectedRevision=data.revision,expectedPrice=offer.price,expectedDuration=offer.duration})
-		self:RenderTooltip()
+	if node.kind=="open" then self:ShowCategory(node.opens);return end
+	if node.kind=="back" then self:ShowCategory("Main");return end
+	if node.kind~="upgrade" or self.pending[id] then return end
+	local info=self:Info(id)
+	if not info then self:Feedback("Upgrades are loading…",WHITE,id);return end
+	if info.status=="Owned" then self:Feedback(node.name..": owned",GREEN,id)
+	elseif info.status=="Available" and type(info.price)=="number" then self:Purchase(id,info.price)
+	elseif info.status=="Unaffordable" then
+		self:Feedback(if type(info.spendReason)=="string" and info.spendReason~="" then info.spendReason else "Not enough Coins",RED,id)
+	else
+		local prerequisite=node.prerequisite and View.Nodes[node.prerequisite]
+		self:Feedback(if prerequisite then "Buy "..prerequisite.name.." first" else "Not available yet",RED,id)
 	end
 end
 
-function Browser:PurchaseCash(id)
-	local node=CashNodes.Nodes[id];if not node then return end
-	local key=node.upgradeKey
-	if self.cashPending[key] then return end
-	local offer=self.cashOffers and self.cashOffers[key]
-	-- A maxed track only inspects; otherwise the hex always buys its next tier.
-	if CashNodes.Completed(key,offer)>=node.maxTier then return end
-	local state=cashStatus(offer,self.coins or 0)
-	if state~="Available" then
-		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Building" then offer.requirement elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough coins"
-		self:Feedback(text,RED,id);return
-	end
-	local requestId=self.app:Request("CashUpgrade",{upgradeKey=key,expectedLevel=offer.level,expectedPrice=offer.price})
+function Browser:Purchase(id,price)
+	local before,after=View.Change(View.Nodes[id])
+	local requestId=self.app:Request("BuyUpgrade",{nodeId=id,expectedPrice=price})
 	if not requestId then return end
-	self.cashPending[key]=requestId
-	self.cashRequests[requestId]={key=key,nodeId=id,currentText=offer.currentText}
-	self:RenderCash()
-	if self.selected then self:RenderTooltip() end
-	-- Unlock the control after a lost reply; its server quote still rejects repeats.
+	self.pending[id]=requestId
+	self.requests[requestId]={nodeId=id,before=before,after=after}
+	self:Render()
+	-- Unlock the hex after a lost reply; its server quote still rejects repeats.
 	task.delay(8,function()
-		if self.alive and self.cashPending[key]==requestId then
-			self.cashPending[key]=nil
-			if self.root.Visible then self:RenderCash() end
+		if self.alive and self.pending[id]==requestId then
+			self.pending[id]=nil
+			if self.root.Visible then self:Render() end
 		end
 	end)
-	task.delay(30,function() if self.alive then self.cashRequests[requestId]=nil end end)
+	task.delay(30,function() if self.alive then self.requests[requestId]=nil end end)
 end
 
-function Browser:CancelSelected()
-	local data,id=self.data,self.selected;if not data or not id then return end
-	local job=Rules.Job(data,id);if not job then return end
-	if self.confirmCancel~=job.id then self.confirmCancel=job.id;self:RenderTooltip();return end
-	self.app:Request("CancelResearch",{jobId=job.id,expectedRevision=data.revision})
-	self.confirmCancel=nil
+function Browser:SetCategory(category)
+	self.category=category
+	for name,layer in self.layers do layer.Visible=name==category end
+	local open=category~="Main" and View.OpenNode(category)
+	self.title.Text=if open then "Upgrades · "..open.name else "Upgrades"
 end
 
-function Browser:CanSkip(): boolean
-	local state=self.app.state
-	return state~=nil and state.researchSkipAllowed==true
-end
-
-function Browser:Secondary()
-	local job=self.selected and self.data and not CashNodes.Nodes[self.selected] and Rules.Job(self.data,self.selected)
-	if job and self:CanSkip() then
-		self.app:Request("SkipResearch",{jobId=job.id,expectedRevision=self.data.revision})
-		return
+-- Open a subtree (its hexes pop in from Back) or return to the main tree where
+-- the player left it.
+function Browser:ShowCategory(category)
+	if not self.layers[category] or category==self.category then return end
+	self:DismissTooltip()
+	self.saved[self.category]={zoom=self.zoom,pan=self.pan}
+	self:SetCategory(category)
+	local saved=self.saved[category]
+	if category~="Main" then
+		saved=nil
+		for _,id in View.Order[category] do
+			local view=self.nodes[id];self:ResetNodeMotion(view);view.button.Visible=false
+		end
+		self.opening=true
+		self.app.audio:Play("SkillTreeOpen",nil,{noFallback=true})
 	end
-	if job then
-		local key=self:SkipProduct(job)
-		if key then self.app.commerce:Buy(key,job.id);return end
-	end
-	if self.selected and self.data and not CashNodes.Nodes[self.selected] and self.data.completed[self.selected]~=true then
-		self.app:Request("PinResearch",{nodeId=if self.data.pinned==self.selected then nil else self.selected})
+	self:Render()
+	self.opening=false
+	if saved then self.zoom,self.pan=saved.zoom,saved.pan;self:Transform() else self.zoom=1;self:Center(View.Roots[category]) end
+	if UserInputService.GamepadEnabled then
+		local root=self.nodes[View.Roots[category]]
+		if root then GuiService.SelectedObject=root.button end
 	end
 end
 
@@ -1121,9 +747,9 @@ function Browser:ClampPan()
 	local root=self.root.AbsoluteSize
 	if root.X>0 and root.Y>0 then
 		local minX,minY,maxX,maxY=math.huge,math.huge,-math.huge,-math.huge
-		for _,id in displayOrder do
+		for _,id in View.Order[self.category] or {} do
 			if self.nodes[id].button.Visible then
-				local p=point(displayNodes[id]);minX=math.min(minX,p.X);minY=math.min(minY,p.Y);maxX=math.max(maxX,p.X);maxY=math.max(maxY,p.Y)
+				local p=point(View.Nodes[id]);minX=math.min(minX,p.X);minY=math.min(minY,p.Y);maxX=math.max(maxX,p.X);maxY=math.max(maxY,p.Y)
 			end
 		end
 		if minX==math.huge then return false end
@@ -1140,8 +766,10 @@ function Browser:Transform()
 	self:PlaceTooltip()
 end
 
+-- Pan to a node, switching to its map first (callers may name any category's node).
 function Browser:Center(id)
-	local node=displayNodes[id or "Start"];if not node then return end
+	local node=id and View.Nodes[id];if not node then return end
+	if node.category~=self.category and self.root.Visible then self:ShowCategory(node.category) end
 	local p=point(node)-Vector2.new(.5,.5)
 	local root=self.root.AbsoluteSize
 	-- Use the native height-dominant aspect projection, not a previous frame's
@@ -1165,12 +793,12 @@ function Browser:Zoom(amount,at)
 end
 
 function Browser:Navigate(direction)
-	local from=point(displayNodes[self.selected or "Start"])
+	local from=point(View.Nodes[self.selected or View.Roots[self.category]])
 	local best,score=nil,math.huge
-	for _,id in displayOrder do
-		local delta=point(displayNodes[id])-from
+	for _,id in View.Order[self.category] do
+		local delta=point(View.Nodes[id])-from
 		local d=Vector2.new(delta.X*1440,delta.Y*930)
-		if self.nodes[id].button.Visible and self.nodes[id].kind~="Hidden" and d.Magnitude>0 and d.Unit:Dot(direction)>.5 then
+		if self.nodes[id].button.Visible and self.nodes[id].look~="unknown" and d.Magnitude>0 and d.Unit:Dot(direction)>.5 then
 			local value=d.Magnitude/(d.Unit:Dot(direction)^3)
 			if value<score then best,score=id,value end
 		end
@@ -1196,7 +824,7 @@ function Browser:BindInput()
 		local mouse=input.UserInputType==Enum.UserInputType.MouseButton1
 		if not mouse and input.UserInputType~=Enum.UserInputType.Touch then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y)
-		if not inside(self.root,p) or inside(self.exit,p) or (self.tip.Visible and self.persistent and inside(self.tip,p)) then return end
+		if not inside(self.root,p) or inside(self.exit,p) then return end
 		if self.drag then self.drag=nil;self.suppressUntil=os.clock()+.4;return end
 		self.drag={input=input,at=p,pan=self.pan,moved=false,mouse=mouse}
 	end)
@@ -1233,24 +861,26 @@ end
 function Browser:Focus()
 	self:DismissTooltip()
 	self.zoom=1
-	self:Center("Start")
-	if UserInputService.GamepadEnabled then self:Select("Start",true);GuiService.SelectedObject=self.nodes.Start.button end
+	local root=View.Roots[self.category]
+	self:Center(root)
+	local view=root and self.nodes[root]
+	if UserInputService.GamepadEnabled and view then self:Select(root,true);GuiService.SelectedObject=view.button end
 end
 
+-- Older entry points (My Army's Flock/Army Size shortcuts) name a board key or family.
 function Browser:OpenCash(upgradeKey)
-	self:Open()
-	if upgradeKey and CashNodes.ByKey[upgradeKey] then
-		local offer=self.cashOffers and self.cashOffers[upgradeKey]
-		local id=CashNodes.NextId(upgradeKey,offer)
-		if id then self:Center(id);self:Select(id,true) end
-	end
+	local id=upgradeKey and View.NextId(upgradeKey,self.tree)
+	if id then self:OpenNode(id) else self:Open() end
 end
 
 function Browser:OpenNode(id)
 	self:Open()
-	if not self.nodes[id] then return end
+	local view=self.nodes[id]
+	if not view then return end
 	self:Center(id)
 	self:Select(id,true)
+	-- Phones get no card, so the hex pulses once the opening wave has passed.
+	if touching() then task.delay(MOTION.OpenWaveSeconds,function() if self.alive and self.root.Visible then self:PulseNode(view) end end) end
 	if UserInputService.GamepadEnabled and self.selected then
 		GuiService.SelectedObject=self.nodes[self.selected].button
 	end
@@ -1269,34 +899,22 @@ function Browser:Open()
 	-- of phone corners, without a second ScreenGui or viewport sizing code.
 	self.app.gui.SafeAreaCompatibility=Enum.SafeAreaCompatibility.FullscreenExtension
 	self.app.gui.ScreenInsets=Enum.ScreenInsets.DeviceSafeInsets
+	-- Every visit starts on the main tree around Start.
+	self:SetCategory("Main");self.saved={}
 	for _,view in self.nodes do view.button.Visible=false end
 	self.opening=true
 	self.root.Visible=true;self.app.hudLayer.Visible=false
 	self:Receive(self.app.state)
+	self.opening=false
 	self:Focus()
 	ContextActionService:BindActionAtPriority("ResearchNavigation",function(_,state,input)
 		if state~=Enum.UserInputState.Begin then return Enum.ContextActionResult.Sink end
 		local key=input.KeyCode
-		local focused=GuiService.SelectedObject
-		local inCard=focused~=nil and (focused==self.primaryAction.button or focused==self.secondaryAction.button)
-		if key==Enum.KeyCode.ButtonB or key==Enum.KeyCode.Escape then
-			if inCard then self:FocusActions(false) else self:Close() end
-		elseif key==Enum.KeyCode.ButtonA then
-			if focused==self.primaryAction.button then self:Primary()
-			elseif focused==self.secondaryAction.button then self.app.audio:Play("Click");self:Secondary()
-			elseif self.selected then
-				-- A buys like a tap; on running research it moves into the card to cancel.
-				if not CashNodes.Nodes[self.selected] and Rules.Job(self.data,self.selected) then
-					if not self.persistent then self:Select(self.selected,true) end
-					self:FocusActions(true)
-				else self:Buy(self.selected) end
-			end
-		elseif inCard and (key==Enum.KeyCode.DPadLeft or key==Enum.KeyCode.DPadRight or key==Enum.KeyCode.Left or key==Enum.KeyCode.Right) then
-			local other=if focused==self.primaryAction.button then self.secondaryAction.button else self.primaryAction.button
-			if other.Visible then GuiService.SelectedObject=other end
-		elseif inCard and (key==Enum.KeyCode.DPadUp or key==Enum.KeyCode.DPadDown or key==Enum.KeyCode.Up or key==Enum.KeyCode.Down) then
-			self:FocusActions(false)
-		elseif key==Enum.KeyCode.ButtonY then if self.selected then self.app.audio:Play("Click");self:Secondary() end
+		if key==Enum.KeyCode.ButtonB then
+			-- Back goes up one level; on the main tree it closes.
+			if self.category~="Main" then self:ShowCategory("Main") else self:Close() end
+		elseif key==Enum.KeyCode.Escape then self:Close()
+		elseif key==Enum.KeyCode.ButtonA then if self.selected then self:Press(self.selected) end
 		elseif key==Enum.KeyCode.ButtonX or key==Enum.KeyCode.Home then self:Focus()
 		elseif key==Enum.KeyCode.ButtonR1 then self:Zoom(1.12)
 		elseif key==Enum.KeyCode.ButtonL1 then self:Zoom(1/1.12)
@@ -1306,9 +924,10 @@ function Browser:Open()
 			if directions[key] then self:Navigate(directions[key]) end
 		end
 		return Enum.ContextActionResult.Sink
-	end,false,3500,Enum.KeyCode.ButtonB,Enum.KeyCode.ButtonA,Enum.KeyCode.ButtonY,Enum.KeyCode.Escape,Enum.KeyCode.ButtonX,Enum.KeyCode.Home,Enum.KeyCode.ButtonL1,Enum.KeyCode.ButtonR1,
+	end,false,3500,Enum.KeyCode.ButtonB,Enum.KeyCode.ButtonA,Enum.KeyCode.Escape,Enum.KeyCode.ButtonX,Enum.KeyCode.Home,Enum.KeyCode.ButtonL1,Enum.KeyCode.ButtonR1,
 		Enum.KeyCode.DPadLeft,Enum.KeyCode.DPadRight,Enum.KeyCode.DPadUp,Enum.KeyCode.DPadDown,Enum.KeyCode.Left,Enum.KeyCode.Right,Enum.KeyCode.Up,Enum.KeyCode.Down)
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.nodes[self.selected or "Start"].button end
+	local root=self.nodes[View.Roots.Main]
+	if UserInputService.GamepadEnabled and root then GuiService.SelectedObject=self.nodes[self.selected or View.Roots.Main].button end
 end
 
 function Browser:Close()
@@ -1319,10 +938,9 @@ function Browser:Close()
 	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil
 	for _,view in self.nodes do
 		self:ResetNodeMotion(view)
-		-- Re-render the stable saved state even if a tint was interrupted.
-		view.lastState,view.lastHidden=nil,nil
+		-- Re-style the stable saved state on the next visit even if a flash was cut.
+		view.look=nil
 	end
-	self:StopProgress(self.tipMotion)
 	if self.previousInsets then self.app.gui.ScreenInsets=self.previousInsets;self.previousInsets=nil end
 	if self.previousSafeAreaCompatibility then self.app.gui.SafeAreaCompatibility=self.previousSafeAreaCompatibility;self.previousSafeAreaCompatibility=nil end
 	self:DismissTooltip()
