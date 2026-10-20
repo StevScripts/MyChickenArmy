@@ -17,7 +17,6 @@ local Mutations=require(Shared.MutationCatalog)
 local WHITE=Color3.fromRGB(249,251,242)
 local MUTED=Color3.fromRGB(181,205,223)
 local GREEN=Theme.ReferenceColors.Army
-local RED=Color3.fromRGB(255,82,66)
 local EDGE=Color3.fromRGB(66,119,149)
 local INK=Color3.fromRGB(3,11,14)
 local CYAN=Color3.fromRGB(0,223,255)
@@ -254,7 +253,7 @@ end
 function Menu:BuildConfirm()
 	local shade=frame(self.root,"ConfirmSale")
 	shade.Size,shade.ZIndex=UDim2.fromScale(1,1),self.root.ZIndex+40
-	shade.BackgroundColor3,shade.BackgroundTransparency,shade.Active,shade.Visible=Color3.new(),0.45,true,false
+	shade.BackgroundTransparency,shade.Active,shade.Visible=1,true,false
 	local card=frame(shade,"Card")
 	card.AnchorPoint,card.Position,card.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.53),UDim2.fromScale(708/W,1)
 	Theme.Aspect(card,708/610)
@@ -301,7 +300,7 @@ function Menu:BuildConfirm()
 	self.confirm,self.confirmCard,self.confirmTitle,self.confirmAmount=shade,card,heading,amount
 end
 
--- Hover/gamepad tooltip, as in the reference: name, rarity and odds, value, level.
+-- Hover/gamepad tooltip, as in the reference: name, rarity and odds, earnings, level.
 function Menu:BuildTooltip()
 	local tip=frame(self.root,"ChickenTooltip")
 	tip.Size,tip.ZIndex,tip.Visible=UDim2.fromScale(280/W,1),self.root.ZIndex+30,false
@@ -326,7 +325,7 @@ function Menu:BuildTooltip()
 	local value=label(tip,"Value","",GOLD,true)
 	Theme.RelativeRect(value,118,142,150,46,280,330)
 	parts.Value=value
-	line("Caption",186,26,GOLD).Text="Sell value"
+	line("Caption",186,26,GOLD).Text="Per Second"
 	divider(tip,"Divider3",16,220,248,330)
 	line("Level",228,40,CYAN,true)
 	line("Mutation",276,36,WHITE)
@@ -343,7 +342,7 @@ function Menu:ShowTooltip(card,pet)
 	parts.Name.Text=definition.name
 	parts.Rarity.Text,parts.Rarity.TextColor3=definition.rarity,RARITIES[definition.rarity] or RARITIES.Common
 	parts.Odds.Text=Catalog.OneInText(pet.species) or ""
-	parts.Value.Text=Theme.Money(pet.refund)
+	parts.Value.Text=Theme.Number(pet.income or 0)
 	parts.Level.Text="Level "..(pet.level or 1)
 	local mutation=Mutations.Get(pet.mutation)
 	parts.Mutation.Text=if mutation then mutation.name else ""
@@ -460,8 +459,11 @@ function Menu:Card(parent,pet,order)
 	if portrait:IsA("ViewportFrame") then portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1) end
 	local name=label(card,"Name",(definition.name:gsub(" Chicken$","")),WHITE)
 	name.Position,name.Size,name.TextXAlignment=UDim2.fromScale(5/210,161/220),UDim2.fromScale(200/210,26/220),Enum.TextXAlignment.Center
-	local level=label(card,"Level","Lv. "..(pet.level or 1),Color3.fromRGB(255,221,96),true)
-	level.Position,level.Size,level.TextXAlignment=UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),Enum.TextXAlignment.Center
+	local stats=Rules.Stats(pet.species,pet.stars or 1,pet.level)
+	local effects=self.app.state and self.app.state.research and self.app.state.research.effects
+	local damage=stats.damage*(1+(effects and effects.damage or 0))
+	local strength=label(card,"Damage",Theme.Number(damage/stats.interval).." DPS",Color3.fromRGB(255,221,96),true)
+	strength.Position,strength.Size,strength.TextXAlignment=UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),Enum.TextXAlignment.Center
 	local mutation=MutationVFX.Badge(card,pet.mutation)
 	if mutation then mutation.Position,mutation.Size=UDim2.fromScale(92/210,36/220),UDim2.fromScale(112/210,28/220) end
 	-- Selected for sale: a dark cell under the red trash can (or a SELL tag until uploaded).
@@ -483,7 +485,7 @@ function Menu:Card(parent,pet,order)
 	outline.Size,outline.ZIndex=UDim2.fromScale(1,1),card.ZIndex+11
 	local border=Theme.Stroke(outline,color,Theme.Border.Card)
 	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	self.cards[pet.id]={card=card,mark=mark,border=border,color=color,portrait=portrait}
+	self.cards[pet.id]={card=card,mark=mark}
 	card.Activated:Connect(function()
 		if self.pending or self.confirm.Visible then return end
 		self.app.audio:Play("Click")
@@ -507,9 +509,6 @@ function Menu:UpdateSelection()
 	for id,entry in self.cards do
 		local on=self.chosen[id]==true
 		entry.mark.Visible=on
-		entry.border.Color=if on then RED else entry.color
-		entry.border.Thickness=if on then 3 else Theme.Border.Card
-		if entry.portrait:IsA("ImageLabel") then entry.portrait.ImageTransparency=if on then 0.55 else 0 end
 	end
 	self.count.Text=#ids.." Selected -"
 	self.countValue.Text=Theme.Money(total)
@@ -602,7 +601,7 @@ function Menu:Review()
 	if self.pending or self.confirm.Visible then return end
 	local ids,total=self:UpdateSelection()
 	if #ids==0 then
-		self:Note("Click chickens to choose what to sell.",nil);Theme.Motion:Shake(self.sell.Visual,6)
+		Theme.Motion:Shake(self.sell.Visual,6)
 		return
 	end
 	self.app.audio:Play("Click")

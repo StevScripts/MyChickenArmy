@@ -50,16 +50,20 @@ copied 1:1. The only change: it opens from the **Sell** buttons in My Army (S10 
 - Header "Sell Chickens" with the storage count (`12/1000`) and the close button.
 - "N Selected - [coin] X" totals the chosen chickens' sale values.
 - Grid: only chickens the server marks sellable (`canSell`): never Army, Flock,
-  favorites or chickens that are away. One card per chicken, 48 at a time with
-  "Show more". A click toggles a chicken: chosen cards darken under the red trash can
-  (`Art.Trash`, S6's `SellTrash` icon; a red SELL tag until the lead uploads it).
-- Hover (mouse) or gamepad selection shows a tooltip: name, rarity, "1 in X",
-  sale value and level.
+  favorites or chickens that are away. Cards are My Army's cards (rarity art, name,
+  DPS); one per chicken, 48 at a time with "Show more". A click toggles a chicken:
+  a chosen card turns into a dark cell under the red trash can (`Art.Trash`, S6's
+  `SellTrash` icon; a red SELL tag until the lead uploads it).
+- Hover (mouse) or gamepad selection shows the reference's tooltip: name, rarity,
+  "1 in X", earnings ("Per Second", the reference's "Per Drop") and level.
 - Bottom bar in the reference order: Search, **Back** (to My Army), **Sort: Value /
   Name**, **Sell (N)**.
-- Sell (N) opens the gold **"Sell N Chickens?"** card: "YOU WILL GET:", the Pocket
-  Coins pile with "+X", then **Sell!** and **Cancel**. Sell! sends one request;
-  the toast then reads "Sold N chickens for X Coins".
+- Sell (N) opens the gold **"Sell N Chickens?"** card over the screen (no dimming):
+  "YOU WILL GET:", the Pocket Coins pile with "+X", then **Sell!** and **Cancel**.
+  Cancel keeps the selection. Sell! sends one request; the screen stays open with
+  the selection cleared and the toast reads "Sold N chickens for X Coins".
+- Not shown in the recording, so kept minimal: Sell (0) only gives the button's
+  small "no" shake.
 
 ### Server
 
