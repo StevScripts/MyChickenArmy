@@ -10,6 +10,9 @@
 #   ./generate.sh variants        edits of chosen bases (Vacuum*, *Machine, GoldRate, AutoRoll, MoreGems)
 #   ./generate.sh outline KEY...  redraw chosen masters with the set's heavy outer outline
 #
+# AutoRoll and SellTrash were made with the Codex CLI after the API credits ran out; their
+# prompts are in codex/ (see README.md). The AutoRoll entry below is the equivalent API edit.
+#
 # Not generated, because an approved in-game icon already covers the node (see README.md):
 # EggSpeed, EggValue, Luck, FlockSize, ArmySize, RollSlot, ChickenFeed, MarchSpeed, Health,
 # Recovery and Rally.

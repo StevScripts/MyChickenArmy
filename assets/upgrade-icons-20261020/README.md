@@ -3,9 +3,13 @@
 Icons for the October 20 overhaul: the new Upgrades tree, the Gem Upgrades, the Gems currency
 and the new HUD pieces. Plan: `docs/team/OVERHAUL_PLAN_20261020.md`, section S6.
 
-**Status:** v2, waiting for Stevin's review. Nothing is uploaded, nothing was done in Studio,
-and no game code changed. Auto Roll still needs one generation once the OpenAI account has
-credits again.
+**Status:** Stevin approved v2 ("Alright this is perfect"). Two icons were added afterwards and
+are on the review sheet for his look:
+- `AutoRoll`, which replaces the v1 placeholder;
+- `SellTrash`, the Sell menu marker that S13 asked for.
+
+Both were made with the Codex CLI's built-in image tool, because the OpenAI API credits ran out.
+Nothing is uploaded, nothing was done in Studio, and no game code changed.
 
 ## Why v2
 
@@ -23,11 +27,12 @@ in-game icons.
 
 | File | What it is |
 | --- | --- |
-| `<Key>.png` | The 1024² masters, exactly as generated. `AutoRoll.png` is still the v1 placeholder. |
-| `upload/<Key>.png` | 512² upload copies of the 32 new icons, made by `prepare.py` (see Clean-up). |
+| `<Key>.png` | The masters, exactly as generated: 1024² from the API, 1254² from Codex (`AutoRoll`, `SellTrash`). |
+| `upload/<Key>.png` | 512² upload copies of the 34 new icons, made by `prepare.py` (see Clean-up). |
 | `review-sheet.png` | Every node's icon in a mock tree hex or Gem card, with the in-game ones marked, plus a 64 px strip on four backgrounds. |
 | `pilot-v2-vs-ingame.png` | The v2 pilots beside the in-game icons. |
 | `generate.sh`, `prepare.py`, `review_sheet.py` | Prompts and references, upload copies, review sheet. |
+| `codex/<Key>.prompt.txt` | The Codex CLI prompts for `AutoRoll` and `SellTrash`. |
 
 ## Decisions
 
@@ -55,7 +60,7 @@ in-game icons.
 
 - **"Rainbow Machine"** is a working name for the tier above Diamond; S12 can rename the node.
 
-## New icons (32, plus Auto Roll pending)
+## New icons (34)
 
 | Group | Keys |
 | --- | --- |
@@ -64,8 +69,9 @@ in-game icons.
 | Tools | `EggVacuum` (tool hex and hotbar tool), `VacuumCapacity` (also Gem Vacuum Capacity), `VacuumRange` |
 | Player | `WalkSpeed`, `ClickRange`, `OfflineTime` |
 | Army | `Damage`, `Armor`, `BossDamage`, `Bounty`, `CaptureSpeed` |
-| Gem Upgrades | `AutoRoll` (pending), `CoinBoost`, `AutoRebirth`, `TimeSkip`, `MoreGems`, `KeepUpgrades`, `MutationLuck`, `OfflineCoins`, `ArmyPower`, `RebirthChickenOdds` |
+| Gem Upgrades | `AutoRoll`, `CoinBoost`, `AutoRebirth`, `TimeSkip`, `MoreGems`, `KeepUpgrades`, `MutationLuck`, `OfflineCoins`, `ArmyPower`, `RebirthChickenOdds` |
 | Currency and HUD | `Gems`, `FriendBoost` (Friend Boost line), `GoldRush` (countdown chip) |
+| Sell menu (S13) | `SellTrash`: the red trash can over a chicken card picked for sale. It goes in `Art.Trash` in `src/client/SellMenu.luau`. |
 
 `AutoRebirth` is the Re-enlist icon (the in-game Rebirth button) with a gear added, so it pairs
 with the Rebirth button.
@@ -106,7 +112,7 @@ The masters themselves are untouched; these fixes only go into the upload copies
 
 ## Checks run
 
-- **Upload copies:** all 32 are 512² RGBA, with transparent corners and 84–88% occupancy.
+- **Upload copies:** all 34 are 512² RGBA, with transparent corners and 84–88% occupancy.
 - **Holes:** a scan of the upload copies for see-through holes inside the artwork found only real
   gaps (arrow centres, the ripple ring, clock bells, the space inside the Rebirth ring, between
   falling coins and between legs).
@@ -119,13 +125,13 @@ The masters themselves are untouched; these fixes only go into the upload copies
 
 After Stevin approves:
 
-1. Upload `upload/*.png` (32 files) as group-owned Images, the same way as the gold coins
+1. Upload `upload/*.png` (34 files) as group-owned Images, the same way as the gold coins
    (`assets/gold-coins-20261020/README.md`). `python3 prepare.py --rgba` also writes the raw
    RGBA bytes for the EditableImage path.
 2. Record the asset ids in `upload-receipts.json` here.
 
-The 11 in-game icons above need no upload. Auto Roll follows once it is generated. The file
-keys are meant to be the registry keys in `ResearchAssets` / `UITheme`.
+The 11 in-game icons above need no upload. The file keys are meant to be the registry keys in
+`ResearchAssets` / `UITheme`.
 
 ## Regenerating
 
@@ -139,17 +145,23 @@ Other modes:
   masters into their variants. Auto Roll is the `RollSpeed` edit.
 - `./generate.sh outline KEY...` redraws a master with a heavy outline.
 
-To finish Auto Roll once the OpenAI account has credits:
+Without API credits, use the Codex CLI. Its built-in `image_gen` runs on Stevin's ChatGPT plan
+and supports transparency. Pass the prompt on stdin, because `-i` swallows a trailing argument.
+codex-cli 0.144.1 needs `-m gpt-5.6-sol`, since the configured `gpt-6-astra` requires a newer CLI.
+From this folder:
 
-1. Run `./generate.sh AutoRoll`.
-2. Copy the chosen raw file to `AutoRoll.png`.
-3. Remove `AutoRoll` from `PENDING` in `prepare.py`.
-4. Run `python3 prepare.py AutoRoll` and `python3 review_sheet.py`.
+```bash
+codex exec -m gpt-5.6-sol -C "$PWD" --sandbox workspace-write -c model_reasoning_effort="medium" -i RollSpeed.png -i GoldRate.png -i ../research-20261002/icons/boots.png -i ../research-20261002/icons/medkit.png < codex/AutoRoll.prompt.txt
+```
+
+Each prompt tells Codex to copy its image to `raw/<Key>-codex.png`. Pick it the same way as an
+API candidate. `SellTrash` attaches the boots, the first-aid kit and `EggVacuum.png`.
 
 ## Cost
 
 - v1: 58 image calls.
 - v2: 33 image calls (4 model-test calls, 6 pilot calls, 23 for the rest). The gpt-image-2 test
-  and the Auto Roll call returned errors and produced no image.
+  and the first Auto Roll call returned errors and produced no image.
+- Codex: two generations (`AutoRoll`, `SellTrash`) on the ChatGPT plan, not API credits.
 
-Check the OpenAI usage page for the exact cost.
+Check the OpenAI usage page for the exact API cost.

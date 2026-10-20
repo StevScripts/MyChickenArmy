@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Auto Roll icon for the Roblox game My Chicken Army (a Gem Upgrade that keeps the roll lever rolling by itself). It belongs to the same approved set as the four attached images: image 1 is the Roll Speed icon (a chunky voxel roll lever) and is the edit target; image 2 is the Gold Rate icon and shows the exact green circular arrows to use; images 3 and 4 (boots, first-aid kit) show the in-game style: voxel blocks, bright clean colors, simple face shading and a heavy near-black outline.
+
+Edit image 1 using it as the actual image input: keep the same lever, red cube knob, stepped base, colors, outline weight, perspective and framing. Remove the gold lightning bolt. Add a chunky gray blocky gear behind the lever base, and chunky bright-green circular double arrows with a thick black outline at the lower left, drawn like the arrows in image 2, with no disc or badge behind them.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/AutoRoll-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.
