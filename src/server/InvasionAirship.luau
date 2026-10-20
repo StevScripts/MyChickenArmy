@@ -1,7 +1,7 @@
 --!strict
 -- October 14 Invasions: the Chicken King's loyalist airship and its parachute
 -- supply crates. Chunky code-built props in the map's style (Plastic blocks with
--- the island's stud texture on top faces); no physics, prompts or collisions.
+-- the map's stud MaterialVariants); no physics, prompts or collisions.
 -- All motion is TweenService only.
 local TweenService = game:GetService("TweenService")
 local Airship = {}
@@ -17,22 +17,20 @@ Airship.GEM = Color3.fromRGB(230, 60, 90)
 local PURPLE, DEEP, GOLD, WOOD, DARKWOOD, DARK, WHITE, GEM =
 	Airship.PURPLE, Airship.DEEP, Airship.GOLD, Airship.WOOD, Airship.DARKWOOD, Airship.DARK, Airship.WHITE, Airship.GEM
 
--- The island's stud texture, as the authored map applies it (black, 80% transparent).
-local STUDS = "rbxassetid://6372755229"
+-- October 20 (owner): the map's stud MaterialVariants, matching MissionSite.Studify:
+-- studs when the part's middle dimension is at least 2, the weld pattern from 0.8.
+local STUDS, WELD = "Studs 2x2 Plastic", "Weld 2x2 Plastic"
 
--- One chunky prop block. `kind` may be "WedgePart"; `studs=false` skips the texture.
+-- One chunky prop block. `kind` may be "WedgePart"; `studs=false` keeps it plain.
 function Airship.Block(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3, kind: string?, studs: boolean?): BasePart
 	local item = Instance.new(kind or "Part") :: BasePart
 	item.Name, item.Size, item.Color, item.Material = name, size, color, Enum.Material.Plastic
 	item.Anchored, item.CanCollide, item.CanQuery, item.CanTouch, item.CastShadow = true, false, false, false, true
 	item.TopSurface, item.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
 	item.CFrame = cframe
-	if studs ~= false and not kind and size.X >= 1.5 and size.Z >= 1.5 then
-		local texture = Instance.new("Texture")
-		texture.Texture, texture.Face = STUDS, Enum.NormalId.Top
-		texture.StudsPerTileU, texture.StudsPerTileV = 4, 4
-		texture.Color3, texture.Transparency = Color3.new(0, 0, 0), 0.8
-		texture.Parent = item
+	if studs ~= false and not kind then
+		local side = size.X + size.Y + size.Z - math.max(size.X, size.Y, size.Z) - math.min(size.X, size.Y, size.Z)
+		if side >= 2 then item.MaterialVariant = STUDS elseif side >= 0.8 then item.MaterialVariant = WELD end
 	end
 	item.Parent = parent
 	return item
