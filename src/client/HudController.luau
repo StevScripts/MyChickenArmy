@@ -556,6 +556,24 @@ function Hud:PopCash()
 	Theme.Motion:PopScale(self.money,1.06)
 end
 
+-- October 20 egg-sale coin burst: Coins still flying in from the sell pad stay out of
+-- the readout until each coin lands (ActionFeedback). Display only.
+function Hud:ShownCoins(state)
+	local feedback=self.app.feedback
+	local flying=if feedback then feedback:CoinsInFlight() else 0
+	return math.max(0,(state.coins or 0)-(self.heldCash or 0)-flying)
+end
+
+-- A coin landed: count the readout up to it and pop the icon.
+function Hud:RefreshCoins()
+	local state=self.app.state
+	if not state then return end
+	local shown=self:ShownCoins(state)
+	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
+	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
+	self.lastCoins=shown
+end
+
 -- Called when the offline receipt closes: a few coin icons fly from the receipt
 -- (origin: absolute screen point, or nil) into the coin readout, then the
 -- balance counts up to the real total. Plain TweenService tweens.
@@ -566,7 +584,7 @@ function Hud:ReleaseOfflineCash(receiptId,origin)
 	local app=self.app
 	local function settle()
 		self.releasedReceipt,self.heldCash=receiptId,0
-		local coins=app.state and app.state.coins or 0
+		local coins=if app.state then self:ShownCoins(app.state) else 0
 		Theme.Motion:Count(self.money,coins,function(value) return Theme.CompactMoney(value) end,1)
 		self.lastCoins=coins
 		self:PopCash()
@@ -612,7 +630,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local receipt=state.offlineCash
 	self.heldCash=if type(receipt)=="table" and (tonumber(receipt.amount) or 0)>0 and receipt.id~=self.releasedReceipt
 		then receipt.amount else 0
-	local shown=math.max(0,state.coins-self.heldCash)
+	local shown=self:ShownCoins(state)
 	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
 	-- Confirmed gains only (never the first packet or a purchase).
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end

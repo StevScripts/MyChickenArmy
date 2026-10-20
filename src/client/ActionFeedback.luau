@@ -8,13 +8,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.PetRoll.Shared
 local Feel = require(Shared.CollectionFeel)
 local Theme = require(script.Parent.UITheme)
+local CoinBurst = require(script.Parent.CoinBurst)
 local Feedback = {}
 Feedback.__index = Feedback
 local GOLD = Theme.Colors.gold
 local GREEN = Theme.Arcade.green
 
 function Feedback.new(app)
-	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, conquestEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0}, Feedback)
+	return setmetatable({app = app, alive = false, depositEffects = {}, cashEffects = {}, conquestEffects = {}, bursts = 0, last = {}, nextDeposit = 0, collectionSerial = 0,
+		coinBurst = CoinBurst.new(), coinsHeld = 0, holdUntil = 0}, Feedback)
 end
 
 function Feedback:Root()
@@ -159,17 +161,68 @@ function Feedback:Deposit(receipt)
 	-- keeping exact confirmed totals and the distinction between queued and paid.
 	if not self.depositPending then self.depositPending={};self.nextDeposit=math.max(self.nextDeposit,os.clock()+Feel.Deposit.GroupWindow) end
 	local key=(if receipt.queued then "queue" else "paid")..(receipt.collector or "player")
-	local pending = self.depositPending[key] or {value = 0, count = 0, queued=receipt.queued,collector=receipt.collector}
+	local pending = self.depositPending[key] or {value = 0, count = 0, held = 0, queued=receipt.queued,collector=receipt.collector}
 	pending.value += receipt.value
 	pending.count += receipt.count
+	if receipt.targetX then pending.origin=Vector3.new(receipt.targetX,receipt.targetY,receipt.targetZ) end
+	-- A player's sale waits for its coin burst. Held here, before this snapshot
+	-- reaches the HUD, so the Coins readout never jumps ahead of the coins.
+	if self.alive and not receipt.queued and receipt.collector~="rover" and not self.app.reducedMotion then
+		pending.held += receipt.value
+		self:HoldCoins(receipt.value)
+	end
 	self.depositPending[key] = pending
+end
+
+-- October 20 coin burst: held Coins stay out of the HUD readout until their coins
+-- land (HudController:ShownCoins). Display only; the server has already paid.
+function Feedback:CoinsInFlight()
+	return self.coinsHeld
+end
+
+function Feedback:HoldCoins(value: number)
+	if value <= 0 then return end
+	self.coinsHeld += value
+	self.holdUntil = math.max(self.holdUntil, os.clock() + Feel.CoinBurst.HoldTimeout)
+end
+
+function Feedback:ReleaseCoins(value: number?)
+	if not value or value <= 0 or self.coinsHeld <= 0 then return end
+	self.coinsHeld = math.max(0, self.coinsHeld - value)
+	if self.app.hud then self.app.hud:RefreshCoins() end
+end
+
+function Feedback:ReleaseAllCoins()
+	self.coinBurst:Clear()
+	if self.coinsHeld <= 0 then return end
+	self.coinsHeld = 0
+	if self.alive and self.app.hud then self.app.hud:RefreshCoins() end
+end
+
+-- Each coin carries an equal share of the held sale and counts into the HUD as it lands.
+function Feedback:SaleCoins(receipt)
+	if receipt.held <= 0 or not receipt.origin or self.app.reducedMotion then return false end
+	local state = self.app.state
+	local played = self.coinBurst:Play(receipt.origin, receipt.held, receipt.count, state and state.plotIndex, function(share: number, index: number, quiet: boolean)
+		self:ReleaseCoins(share)
+		if quiet or not self.alive then return end
+		local tick = Feel.CoinBurst
+		if index == 1 then self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,voiceKey="CashPayoff",maxVoices=3,cooldown=0.08}) end
+		self.app.audio:Play("Collect",math.min(tick.PitchMax,1+(index-1)*tick.PitchStep),{volume=tick.TickVolume,maxDuration=0.5,voiceKey="SaleCoin",maxVoices=4,cooldown=0.03})
+	end)
+	if played then self.holdUntil = math.max(self.holdUntil, os.clock() + Feel.CoinBurst.HoldTimeout) end
+	return played
 end
 
 function Feedback:DepositBurst(root)
 	if not self.alive or self.app.reducedMotion then return end
 	local template = ReplicatedStorage:FindFirstChild("EggDepositEffects")
 	if not template or not template:IsA("Attachment") then
-		warn("Egg deposit effect needs ReplicatedStorage.EggDepositEffects")
+		-- Once per session: the place has shipped without this template before.
+		if not self.warnedDeposit then
+			self.warnedDeposit = true
+			warn("Egg deposit effect needs ReplicatedStorage.EggDepositEffects")
+		end
 		return
 	end
 	local effect = template:Clone()
@@ -201,13 +254,18 @@ function Feedback:ShowDeposit(receipt)
 	if not self.alive or receipt.collector=="rover" then return end
 	local root = self:Root()
 	if not root or not root:IsA("BasePart") then
+		self:ReleaseCoins(receipt.held)
 		self.app:Notify(if receipt.queued then "Deposited "..Theme.Money(receipt.count).." eggs" else "+"..Theme.Coins(receipt.value),true)
 		return
 	end
 	self:DepositBurst(root)
 	self.app.audio:Play("EggDeposit",1.12,{volume=Feel.Deposit.Volume,maxDuration=0.35,voiceKey="EggDeposit",maxVoices=3,cooldown=0.1})
 	if receipt.queued then self.app:Notify("Deposited "..Theme.Money(receipt.count).." eggs",true)
-	else self:ShowCash(root.Position,receipt.value) end
+	elseif not self:SaleCoins(receipt) then
+		-- No burst (reduced motion, coin budget, far away): the Money burst or "+N" text as before.
+		self:ReleaseCoins(receipt.held)
+		self:ShowCash(root.Position,receipt.value)
+	end
 end
 
 function Feedback:Action(kind)
@@ -282,7 +340,10 @@ function Feedback:Step(now)
 		self.depositPending, self.nextDeposit = nil, now + Feel.Deposit.GroupGap
 		for _,receipt in pending do self:ShowDeposit(receipt) end
 	end
+	-- A lost coin (destroyed character, long hitch) never keeps Coins out of the HUD.
+	if self.coinsHeld>0 and now>=self.holdUntil then self:ReleaseAllCoins() end
 	if self.app.reducedMotion then
+		if self.coinsHeld>0 or self.coinBurst.active>0 then self:ReleaseAllCoins() end
 		self:ClearCash();self:ClearDeposits()
 		for effect in self.conquestEffects do effect:Destroy();self.conquestEffects[effect]=nil end
 	end
@@ -292,6 +353,7 @@ function Feedback:ResetCollections()
 	self.collectionSerial+=1
 	self.depositPending,self.cashPending=nil,nil
 	self.nextDeposit=0
+	self:ReleaseAllCoins()
 	self:ClearCash()
 	self:ClearDeposits()
 end
