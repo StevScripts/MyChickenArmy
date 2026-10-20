@@ -199,6 +199,11 @@ Schema.LaunchCounters = {
 	["rebirthChicken.bought"] = true,  -- that offer recruited (S12)
 	["passGems"] = true,          -- passGems.<passKey>: a retired pass's one-time Gems gift
 	["migration"] = true,         -- migration.economy2: a save converted to the tree and Gems
+	-- Version 7, S12 (Auto Roll and Gold rolls; GameServer emits them).
+	["goldRoll.pull"] = true,     -- goldRoll.pull.<Gold|Diamond|Prism>: one per special lever pull
+	["autoRoll.recruit"] = true,  -- Auto Roll bought an offer at the recruit value
+	["autoRoll.recruitHeld"] = true, -- recruited from the hit alert, from anywhere
+	["autoRoll.skip"] = true,     -- Skip on the hit alert
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {

@@ -301,8 +301,7 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 ## 7. Rebirth v2 (`RebirthService`, `Config.Rebirth`)
 
 - **Requirement:** Coins on hand only (no camps, no King). Army home and no Mission
-  running. 30 ranks. Draft costs: 50K, 200K, 600K, 1.5M, 4M, 10M, 25M, 60M,
-  150M, 350M, then up to about 31T at Rebirth 30 (P0 fits them).
+  running. 30 ranks, from 50K Coins to 180T (fitted costs in §10).
 - **Rewards:**
   - Egg Coins x(1 + rank).
   - Gems = (40 + 10 × rank) × (1 + `gemBonus`), floored.
@@ -421,24 +420,92 @@ ownership is verified. Their benefits end, except the Commander Banner cosmetic.
 Research skip products leave the game; a late receipt for one pays Gems at the
 1-per-5-minutes rate.
 
-## 10. P0 and what can still change
+## 10. P0 cost fit (October 20)
 
-`tests/ProgressionSimulation.luau` models Flock-only laying, the full reset,
-Gem spending, the tools and Gold Rush (x2 Coins for 5 of every 20 minutes). It
-fits the tree prices, tier values, Flock ladder, vacuum capacities, Rebirth costs,
-Gem prices and Time Skip. Targets from plan v2: Rebirth 1 in about 10 minutes for
-the fast simulated player, then one every 8–30 minutes for the first 3 hours.
-Anything numeric may change; ids, keys, shapes and request names will not change
+**How.** `tests/ProgressionSimulation.luau` is rewritten for this economy; its header
+lists the model and its assumptions. It still runs from the Studio command bar. S7
+also ran it outside Studio with Lune 0.10.5 and a small Roblox shim (not committed).
+
+A per-rank fit reran the real simulation and moved each Rebirth cost toward plan
+v2's fast-player times: Rebirth 1 ≈ 10 min, 2 ≈ 18 min, 5 ≈ 54 min, 10 ≈ 2.9 h,
+15 ≈ 6.4 h, 20 ≈ 11.6 h, 30 ≈ 34 h. Passes:
+- 6 rounds × 2 seeds;
+- 2 rounds × 3 seeds;
+- after the 4 s roll reveal (S2 v2) and the Time Skip change, 3 rounds × 3 seeds;
+- a final smoothing from Rebirth 11 on.
+
+**Costs** (`Config.Rebirth.Costs`, Coins):
+
+| Rebirth | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 50K | 42M | 680M | 4.8B | 19B | 33B | 69B | 130B | 270B | 460B |
+
+| Rebirth | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 580B | 1T | 1.2T | 1.8T | 2.5T | 3.1T | 3.7T | 4.4T | 5.3T | 6.4T |
+
+| Rebirth | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 9.1T | 12T | 18T | 24T | 34T | 46T | 61T | 82T | 120T | 180T |
+
+**Results with these costs** (median minutes of continuous play):
+
+| Rebirth | 1 | 2 | 3 | 5 | 7 | 10 | 12 | 15 | 20 | 25 | 30 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Fast, 3 seeds | 11.5 | 19 | 28 | 51 | 83 | 157 | 228 | 372 | 636 | 992 | 1935 |
+| Casual, 2 seeds | 11 | 24 | 32 | 55 | 91 | 168 | 234 | 315 | 531 | 919 | 1764 |
+| Plan v2 target | 10 | 18 | 26 | 54 | 86 | 174 | 239 | 384 | 696 | 1192 | 2040 |
+
+- Every fast seed reached Rebirth 30, in 27.7–37.2 h. One casual seed took 55 h.
+- The Gem board completes at about Rebirth 25 (16.5 h fast), as plan v2 expected.
+- Gold Rush: steady sellers get about +25%. "Rush savers", who sell only during
+  rushes, were slower, not faster (Rebirth 5 at 91 min instead of 55), because they
+  lose compounding.
+- Time Skip paid about 13% as many Coins as eggs over a whole game (fast: 62–82T
+  vs 575–587T).
+
+**What drives a run.** Each run rebuys the tree within minutes. Chicken Feed
+levels do most of the work: each level doubles a Flock chicken's eggs and costs ×5
+the last (the October 8 curve). Flock Size adds more layers. The Rebirth multiplier,
+the permanent chickens and the Gem Upgrades carry over. Rebirth costs are the
+pacing knob. Peak Flock laying per run goes from about 85 eggs/s at Rebirth 1 to
+millions late, which is why vacuum capacity is sized in seconds.
+
+**Held as drafts** (the fit did not move them): tree tier values and prices, the
+Flock ladder, Gem prices, Feed prices.
+
+**Rules P0 changed** (all in this contract):
+- `Rules.RecruitLevel` ignores Feed levels.
+- Vacuum capacity is sized in seconds of laying (Stevin).
+- Time Skip pays from the income just before the Rebirth.
+
+**Not modelled:** offline time, the Hill, passes, Friend Boost, Mission replays,
+Rebirth-chicken podium offers, Mutation Luck and Gold rolls (S12's hooks). Real
+players took 1.5–1.8× the fast simulation's time at launch.
+
+Anything numeric may change. Ids, keys, shapes and request names will not change
 without a message to the affected session and the lead.
 
 ## 11. Analytics (S7, append only)
 
-`AnalyticsSchema.Version` 6 → 7. New names:
-- `rebirth2.rank.N`, `rebirth2.playSeconds.N`, `rebirth2.skip`, `rebirth2.auto`
+`AnalyticsSchema.Version` 6 → 7.
+
+New LaunchCounters:
+- `rebirth2.rank.N`, `rebirth2.skip`, `rebirth2.auto`
 - `gems.earned`, `gems.spent.<id>`, `gemUpgrade.buy.<id>`
 - `upgrade.buy.<nodeId>`
-- `rebirthChicken.granted`, `rebirthChicken.offered`, `rebirthChicken.bought`
+- `rebirthChicken.granted`, `.offered`, `.bought`
 - `passGems.<passKey>`
 - `migration.economy2`
+- For S12: `goldRoll.pull.<Gold|Diamond|Prism>`, `autoRoll.recruit`,
+  `autoRoll.recruitHeld`, `autoRoll.skip`
 
-Feature funnel steps go to the ledger's FeatureFunnels.
+Also new:
+- Histogram `rebirth2.playSeconds.N`.
+- Coins source `rebirth` (sku `TimeSkip`); sink `BuyUpgrade` (sku `Upgrade:<nodeId>`);
+  features `BuyUpgrade`, `BuyGemUpgrade`, `SetAutoRebirth`.
+- Gems as a second currency: `Analytics:Gems(session, "Source"|"Sink", amount, sku)`
+  writes ledger `gems.source.*` / `gems.sink.*` and Roblox "Gems" economy events.
+- Funnels: `BuyUpgrade` counts for Upgrades FirstBuy and Plot Expanded (`Flock*`
+  nodes). Plot `Max` is retired; Plot `FlockMax` is appended (top Flock tier). The
+  AutoRoll funnel's Available step reads `effects.autoRoll`.

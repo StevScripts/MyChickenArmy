@@ -58,14 +58,15 @@ local Config = {
  -- Coins reset to StartingCoins, then Time Skip pays. Each rank adds +100% egg Coins
  -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
  -- then +EnemyScalePerRank per rank of the attacker. Mission tiers open at King clear
- -- or MissionTierRanks (Veteran, Elite, Royal). Costs are drafts for the P0 fit in
- -- tests/ProgressionSimulation (targets: Rebirth 1 ≈ 10 min fast play, then one every
- -- 8–30 min for the first 3 hours). Saved ranks above MaxRank keep the highest rank.
+ -- or MissionTierRanks (Veteran, Elite, Royal). Costs are the P0 fit with
+ -- tests/ProgressionSimulation (fast player, 4 s rolls; plan v2 times: Rebirth 1 ≈ 10 min,
+ -- 5 ≈ 54 min, 10 ≈ 2.9 h, 20 ≈ 11.6 h, 30 ≈ 34 h). Results and method:
+ -- docs/team/OVERHAUL_CONTRACT_20261020.md §10. Saved ranks above MaxRank keep the highest rank.
  -- The Oct 15 $50M…$185T 20-rank ladder is history (docs/team/REBIRTH_LADDER.md).
  Rebirth={Enabled=true,Version=2,MaxRank=30,
-  Costs={5e4,2e7,2.6e8,2.8e9,1.5e10,1.9e10,4.2e10,8.9e10,1.8e11,4.2e11,
-   5.3e11,6.6e11,8.3e11,1.3e12,3.2e12,4e12,5e12,6.3e12,7.9e12,1e13,
-   1.6e13,2.7e13,4.4e13,5.5e13,6.9e13,8.9e13,1.1e14,1.4e14,1.8e14,2.3e14},
+  Costs={5e4,4.2e7,6.8e8,4.8e9,1.9e10,3.3e10,6.9e10,1.3e11,2.7e11,4.6e11,
+   5.8e11,1e12,1.2e12,1.8e12,2.5e12,3.1e12,3.7e12,4.4e12,5.3e12,6.4e12,
+   9.1e12,1.2e13,1.8e13,2.4e13,3.4e13,4.6e13,6.1e13,8.2e13,1.2e14,1.8e14},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,
   GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
