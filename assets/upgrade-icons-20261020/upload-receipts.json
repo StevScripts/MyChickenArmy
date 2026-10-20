@@ -37,6 +37,17 @@
       "content": "rbxassetid://114580276298082"
     },
     {
+      "key": "AutoRoll",
+      "file": "upload/AutoRoll.png",
+      "size": [
+        512,
+        512
+      ],
+      "assetId": 83070773137079,
+      "content": "rbxassetid://83070773137079",
+      "approval": "Stevin approved the updated sheet in S6's session; uploaded by the lead"
+    },
+    {
       "key": "Back",
       "file": "upload/Back.png",
       "size": [
@@ -287,6 +298,17 @@
       "content": "rbxassetid://70386312720480"
     },
     {
+      "key": "SellTrash",
+      "file": "upload/SellTrash.png",
+      "size": [
+        512,
+        512
+      ],
+      "assetId": 111469244237912,
+      "content": "rbxassetid://111469244237912",
+      "approval": "Stevin approved in S13's session; uploaded by the lead"
+    },
+    {
       "key": "TimeSkip",
       "file": "upload/TimeSkip.png",
       "size": [
@@ -383,9 +405,5 @@
       "assetId": 91702817085017,
       "content": "rbxassetid://91702817085017"
     }
-  ],
-  "notUploaded": {
-    "AutoRoll": "waiting for Stevin's look at the updated sheet",
-    "SellTrash": "waiting for Stevin's look at the updated sheet"
-  }
+  ]
 }
