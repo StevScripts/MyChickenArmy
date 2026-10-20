@@ -16,6 +16,7 @@ local ResearchService = require(script.Parent.ResearchService)
 local TutorialGuide = require(Shared.TutorialGuide)
 local MutationCatalog = require(Shared.MutationCatalog)
 local RebirthService = require(script.Parent.RebirthService)
+local GoldRushService = require(script.Parent.GoldRushService)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 -- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
@@ -27,6 +28,8 @@ function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	self.revision = 0
 	-- Verified by CommerceService per visit; never serialized or reset with coins.
 	self.entitlements = {}
+	-- October 20 Friend Boost (FriendBoostService): live, never saved or reset with coins.
+	self.friendBoost = 0
 	self:Reset()
 	return self
 end
@@ -179,11 +182,14 @@ function PlayerSession:AdvanceGuaranteedLuck(): string?
  return if guarantee.rollsRemaining==1 then guarantee.nextSpecies else nil
 end
 
-function PlayerSession:EarnedAmount(amount: number, source: string): number
+function PlayerSession:EarnedAmount(amount: number, source: string, steady: boolean?): number
  local earned=source=="eggs" or source=="battle" or source=="territory"
  -- Re-enlist pays a permanent egg multiplier (1 at rank 0); offline cash routes here too.
  local rebirth=if source=="eggs" then RebirthService.Multiplier(self.rebirths or 0) else 1
- return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth
+ -- October 20 live boosts on earned Coins, counted when Coins are paid: Gold Rush
+ -- (server-wide) and Friend Boost. `steady` leaves both out (offline earnings).
+ local live=if earned and not steady then GoldRushService.Multiplier()*(1+(self.friendBoost or 0)) else 1
+ return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth * live
 end
 
 function PlayerSession:Count(): number
