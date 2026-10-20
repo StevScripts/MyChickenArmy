@@ -80,10 +80,12 @@ local families: {Family} = {
 		format = "unlock", description = "Special rolls reach the highest tier.",
 		tiers = tiers({{3, 1000000}}), positions = {{1, -6}}, prerequisite = "DiamondMachine"},
 	-- Tools ----------------------------------------------------------------------
-	-- Bonus eggs on top of the Egg Vacuum's base capacity (S11's VacuumConfig).
+	-- October 20 (Stevin): capacity is sized in seconds of the Flock's current laying
+	-- and shown in eggs (seconds x Flock eggs/s). Values are bonus seconds on top of
+	-- the Egg Vacuum's 30 s base (S11's VacuumConfig): 45, 60, 90, 120 s in total.
 	{id = "VacuumCapacity", name = "Vacuum Capacity", category = "Tools", icon = "vacuumCapacity", effect = "vacuumCapacity", base = 0,
-		format = "bonusCount", unit = "eggs", description = "Your Egg Vacuum holds more eggs.",
-		tiers = tiers({{150, 500}, {400, 3000}, {900, 12000}, {2400, 40000}}),
+		format = "seconds", unit = "of eggs", description = "Your Egg Vacuum holds more eggs (seconds of your Flock's laying).",
+		tiers = tiers({{15, 500}, {30, 3000}, {60, 12000}, {90, 40000}}),
 		positions = {{-2, 0}, {-3, 0}, {-4, 0}, {-5, 0}}, prerequisite = "EggVacuum"},
 	{id = "VacuumRange", name = "Vacuum Range", category = "Tools", icon = "vacuumRange", effect = "vacuumRange", base = 0,
 		format = "studs", description = "Your Egg Vacuum reaches eggs from farther away.",
@@ -235,6 +237,7 @@ function Catalog.ValueText(familyId: string, tier: number): string
 	elseif format == "count" then return tostring(value) .. " " .. (family.unit or "")
 	elseif format == "bonusCount" then return "+" .. tostring(value) .. " " .. (family.unit or "")
 	elseif format == "studs" then return "+" .. decimal(value) .. " studs"
+	elseif format == "seconds" then return "+" .. decimal(value) .. " s " .. (family.unit or "")
 	elseif format == "hours" then return tostring(value) .. " h"
 	elseif format == "level" then return if value > 0 then family.name .. " " .. (ROMAN[value] or tostring(value)) else "None"
 	end

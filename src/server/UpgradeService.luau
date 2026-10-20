@@ -34,6 +34,39 @@ local function purpose(familyId: string?): string?
 	return if familyId == "ArmySize" then "ArmySize" else nil
 end
 
+-- Normal individual roll outcomes for the Luck hex; same odds as ordinary rolls
+-- (Extra Luck and the verified 2x Luck pass included).
+local function luckChances(session, level, window)
+	local rarePlus, epicPlus, topBand = 0, 0, 0
+	for id, probability in Rules.Odds(level, session.recruitTier,
+		session:PaidLuckMultiplier(), session.researchEffects.rollingLuck) do
+		local rarity = Catalog[id].rarity
+		if rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" or rarity == "Secret" then
+			rarePlus += probability
+			epicPlus += probability
+		elseif rarity == "Rare" then
+			rarePlus += probability
+		end
+		if Catalog[id].income >= window.topIncome then topBand += probability end
+	end
+	return rarePlus, epicPlus, topBand
+end
+
+-- state.upgradeTree.luck: today's and the next Luck tier's odds for the tooltip
+-- (docs/team/LUCK_WINDOW.md). next* fields are nil at the top tier.
+local function luckSummary(session)
+	local level = session.luck
+	local window = Rules.LuckWindow(level, session:PaidLuckMultiplier(), session.researchEffects.rollingLuck)
+	local summary = {multiplier = window.multiplier, windowText = window.rangeText}
+	summary.rarePlusChance, summary.epicPlusChance, summary.topBandChance = luckChances(session, level, window)
+	if level < #Tree.Families.Luck.tiers then
+		local nextWindow = Rules.LuckWindow(level + 1, session:PaidLuckMultiplier(), session.researchEffects.rollingLuck)
+		summary.nextMultiplier, summary.nextWindowText = nextWindow.multiplier, nextWindow.rangeText
+		summary.nextRarePlusChance, summary.nextEpicPlusChance, summary.nextTopBandChance = luckChances(session, level + 1, nextWindow)
+	end
+	return summary
+end
+
 -- One node's server quote: status ("Owned", "Available", "Unaffordable", "Locked",
 -- or a special hex's kind), price and the reason it can't be bought right now.
 function UpgradeService.NodeOffer(session, nodeId: string)
@@ -67,7 +100,7 @@ function UpgradeService:Snapshot(session)
 	end
 	local families = {}
 	for _, id in Tree.FamilyOrder do families[id] = Tree.Tier(session.upgradeTree, id) end
-	return {families = families, nodes = nodes, badges = badges}
+	return {families = families, nodes = nodes, badges = badges, luck = luckSummary(session)}
 end
 
 -- A bought Army slot adds the best reserves to a manual lineup without replacing it.
@@ -127,23 +160,6 @@ function UpgradeService:BuyFamily(session, familyId: string): (boolean, string)
 	local family = Tree.Families[familyId]
 	if not family or tier >= #family.tiers then return false, (if family then family.name else "This upgrade") .. " is at its maximum." end
 	return self:BuyNode(session, Tree.NodeId(familyId, tier + 1), Tree.Price(familyId, tier + 1, session.rebirths))
-end
-
--- Normal individual roll outcomes for the Luck hex; same odds as ordinary rolls.
-local function luckChances(session, level, window)
-	local rarePlus, epicPlus, topBand = 0, 0, 0
-	for id, probability in Rules.Odds(level, session.recruitTier,
-		session:PaidLuckMultiplier(), session.researchEffects.rollingLuck) do
-		local rarity = Catalog[id].rarity
-		if rarity == "Epic" or rarity == "Legendary" or rarity == "Mythic" or rarity == "Secret" then
-			rarePlus += probability
-			epicPlus += probability
-		elseif rarity == "Rare" then
-			rarePlus += probability
-		end
-		if Catalog[id].income >= window.topIncome then topBand += probability end
-	end
-	return rarePlus, epicPlus, topBand
 end
 
 -- Pre-tree board offers (state.boardUpgrades) for the old cash hexes, until S9 ships.

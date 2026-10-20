@@ -13,8 +13,9 @@ export type Upgrade = {
 }
 
 -- Draft Gem prices; the P0 cost fit (tests/ProgressionSimulation) owns the numbers.
--- Vacuum Capacity's bonus eggs per level are fitted with the Tools tiers.
-Catalog.VacuumCapacityPerLevel = 250
+-- Vacuum Capacity adds seconds of the Flock's laying (October 20, Stevin), like the
+-- Tools tiers; S11 converts seconds to eggs.
+Catalog.VacuumCapacityPerLevel = 15
 
 local upgrades: {Upgrade} = {
 	{id = "RollSpeed", name = "Roll Speed", row = 1, column = 1, unlockRank = 0, maxLevel = 5, startLevel = 0,
@@ -25,7 +26,7 @@ local upgrades: {Upgrade} = {
 		text = "+10% roll luck", icon = "gemExtraLuck"},
 	{id = "VacuumCapacity", name = "Vacuum Capacity", row = 2, column = 1, unlockRank = 0, maxLevel = 3, startLevel = 0,
 		prices = {10, 25, 50}, effect = "vacuumCapacity", perLevel = Catalog.VacuumCapacityPerLevel,
-		text = "+" .. Catalog.VacuumCapacityPerLevel .. " eggs in your vacuum", icon = "gemVacuumCapacity"},
+		text = "+" .. Catalog.VacuumCapacityPerLevel .. " s of eggs in your vacuum", icon = "gemVacuumCapacity"},
 	{id = "AutoRoll", name = "Auto Roll", row = 2, column = 2, unlockRank = 0, maxLevel = 1, startLevel = 0,
 		prices = {15}, effect = "autoRoll", perLevel = 1,
 		text = "Unlocks Auto Roll: your podiums keep rolling for you", icon = "gemAutoRoll"},

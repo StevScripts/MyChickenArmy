@@ -605,6 +605,8 @@ function PlayerSession:Snapshot(now: number)
 			unlocked=(self.researchEffects.autoRoll or 0)>=1,holding=self.autoRoll.heldOffer~=nil},
 		-- October 20 economy (contract §8); GameServer adds upgradeTree and gemUpgrades.
 		gems=self.gems,gemsEarned=self.gemsEarned,effects=table.clone(self.researchEffects),
+		-- Rally timing (server epoch seconds) outside the retired research snapshot (S9).
+		rally={readyAt=self.research.rallyReadyAt or 0,activeUntil=self.rallyActiveUntil or 0},
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		mergeUnlocked=mergeUnlocked,mergeRequirement=mergeRequirement,
 		campsWon=campsWon,allCampsWon=self:Completed(),territoryBonus=self.territoryBonus or 0,

@@ -151,7 +151,7 @@ free vacuum, shown for context, never bought).
 | Main | `GoldRate` (Gold Rate) | 2 | 1, 2 | `goldRate` |
 | Main | `DiamondMachine` | 1 | unlock | `goldMachine` = 2 |
 | Main | `PrismMachine` (placeholder name; S12/Stevin may rename) | 1 | unlock | `goldMachine` = 3 |
-| Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | bonus eggs (S11 + P0 set) | `vacuumCapacity` |
+| Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | +15, +30, +60, +90 s of laying (45/60/90/120 s with the 30 s base) | `vacuumCapacity` |
 | Tools | `VacuumRange` (Vacuum Range) | 2 | bonus studs | `vacuumRange` |
 | Tools | `ChickenFeed` (Chicken Feed) | 1 | unlock | `chickenFeed` = 1 |
 | Player | `WalkSpeed` (Walk Speed) | 3 | +5%, +10%, +15% | `walk` |
@@ -198,7 +198,7 @@ Upgrade levels. Where a key has both, they add.
 | `rallySeconds` | 0 | – | Rally: 8 s, then 12 s | ArmyAbilities (unchanged) |
 | `callArmy` | 1 | – | – | Always 1 (free) |
 | `flockSize` | 3 | Flock | – | S10 (`session:FlockSize()`) |
-| `vacuumCapacity` | 0 | Vacuum Capacity | Vacuum Capacity (bonus eggs) | S11: capacity = `VacuumConfig` base + this |
+| `vacuumCapacity` | 0 | Vacuum Capacity (bonus seconds) | Vacuum Capacity +15 s/level | S11: seconds = 30 s base (`VacuumConfig`) + this; capacity in eggs = seconds × the Flock's current eggs/s (Stevin, Oct 20) |
 | `vacuumRange` | 0 | Vacuum Range | – | S11 |
 | `chickenFeed` | 0 | Chicken Feed = 1 | – | S11; `ArmyService.UpgradeChicken` requires it (S7 gate) |
 | `goldMachine` | 0 | Gold 1, Diamond 2, Prism 3 | – | S12 |
@@ -227,7 +227,8 @@ Hooks other owners add (one call each):
 - **S10:** Flock-only laying online and offline. `OfflineCash.Rate` counts Flock
   layers only. OfflineCash belongs to S4 in wave 1; the lead assigns the edit.
   The same edit applies `offlineEfficiency`.
-- **S11:** click range = base + `pickupStuds`; vacuum capacity and range as above;
+- **S11:** click range = base + `pickupStuds`; vacuum capacity is sized in seconds of the
+  Flock's laying and shown in eggs (carried / capacity), range as above;
   Feed calls `ArmyService.UpgradeChicken`.
 - **S4 (already in flight):** Gold Rush and Friend Boost live in `EarnedAmount` next
   to S7's Coin Boost line. The lead merges the two edits.
@@ -254,6 +255,8 @@ Hooks other owners add (one call each):
   multiplier, Coin Boost, 2x Coins and 2x Egg Spawn, with a floor of
   `DailyService.MinIncome`. It is credited through `Credit(..., "rebirth")`
   (analytics source `TimeSkip`). `state.rebirth.timeSkipCoins` previews that exact amount.
+- `BuyUpgrade` counts like `CashUpgrade` in `TutorialService:Action`, `AnalyticsFunnels`
+  (Upgrades FirstBuy; a `Flock*` node counts as Plot Expanded) and `AnalyticsPlayer`.
 - Admin (lead-approved): `upgrade <target> <all|node>` (replaces `research`), `army`
   (tree sizes 3/4/6/8/10), `gems`, `setrebirth`, `gemupgrade <all|id> [level]`,
   `skip [count]`.
@@ -277,7 +280,7 @@ GemUpgradeCatalog.Upgrades[id] = {
 |---|---|---|---|---|---|---|
 | 1 | start | `RollSpeed` | Roll Speed | 5 | +10% faster rolls | 5, 10, 20, 35, 60 |
 | 1 | start | `ExtraLuck` | Extra Luck | 5 | +10% roll luck | 5, 10, 20, 35, 60 |
-| 2 | start | `VacuumCapacity` | Vacuum Capacity | 3 | +N eggs in your vacuum | 10, 25, 50 |
+| 2 | start | `VacuumCapacity` | Vacuum Capacity | 3 | +15 s of eggs in your vacuum | 10, 25, 50 |
 | 2 | start | `AutoRoll` | Auto Roll | 1 | Unlocks Auto Roll | 15 |
 | 3 | start | `CoinBoost` | Coin Boost | 10 | +10% Coins from eggs | 10, 15, 25, 40, 60, 90, 135, 200, 300, 450 |
 | 3 | start | `AutoRebirth` | Auto Rebirth | 1 | Rebirths for you when you have enough Coins | 25 |
@@ -375,6 +378,8 @@ rebirth = {
 | `gemUpgrades` | S7 | `{order, items={[id]={id, level, maxLevel, price?, status, row, column, unlockRank, text}}, autoRebirth={owned, enabled}}`; status `Locked` / `Available` / `Unaffordable` / `Maxed` |
 | `upgradeTree` | S7 | `{families={[family]=tier}, nodes={[nodeId]={status, price?, spendReason?}}, badges={Main, Tools, Player, Army, total}}`; status `Owned` / `Available` / `Unaffordable` / `Locked` (prerequisite missing); special nodes report their kind. `Available` respects the starter reserve; badges count `Available` per category and in total |
 | `effects` | S7 | copy of `researchEffects` |
+| `upgradeTree.luck` | S7 | Luck tooltip (S9): `{multiplier, windowText, rarePlusChance, epicPlusChance, topBandChance, nextMultiplier?, nextWindowText?, nextRarePlusChance?, nextEpicPlusChance?, nextTopBandChance?}`; bonuses included, next = the next Luck tier |
+| `rally` | S7 | `{readyAt, activeUntil}` in server epoch seconds (S9's Rally button); `rallySeconds` is in `effects` |
 | `rebirth` | S7 | section 7 |
 | `research`, `boardUpgrades` | S7 | **Legacy, until S9 merges.** The old screen keeps working on S7's branch; S9 stops reading them and the lead removes them |
 | `flock` | S10 | at least `{size, ids, mode}` |

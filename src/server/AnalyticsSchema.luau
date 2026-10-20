@@ -246,7 +246,7 @@ Schema.FeatureFunnels = {
 	{id = "Upgrades", steps = {
 		{id = "MenuOpened", trigger = "client:menu.open=Upgrades"},
 		{id = "Inspected", trigger = "client:inspect=Upgrades/*"},
-		{id = "FirstBuy", trigger = "action:CashUpgrade|BoardUpgrade|Luck|Income|Expand"},
+		{id = "FirstBuy", trigger = "action:CashUpgrade|BoardUpgrade|BuyUpgrade|Luck|Income|Expand"},
 		{id = "Buys10", trigger = "10 cash upgrades ever"},
 		{id = "Buys50", trigger = "50 cash upgrades ever"},
 	}},
@@ -345,7 +345,7 @@ Schema.FeatureFunnels = {
 		{id = "Claimed", trigger = "server:offline.claimed"},
 	}},
 	{id = "Plot", steps = {
-		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize"},
+		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize|BuyUpgrade Flock*"},
 		{id = "BuildStarted", trigger = "server:plot.buildStart"},
 		{id = "BuildDone", trigger = "server:plot.buildDone"},
 		{id = "Max", trigger = "state:collectionLimit>=100"},

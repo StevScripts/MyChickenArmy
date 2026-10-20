@@ -33,7 +33,8 @@
 --     a minute of laying). The casual profile sells every 120 s, pulls the lever every
 --     20 s and accepts slower paybacks.
 --  3. Gold Rush: x2 Coins for 5 of every 20 minutes (seeded phase), on egg sales and
---     battle/Mission Coins; never offline.
+--     battle/Mission Coins; never offline. Steady sellers get about +25%; the
+--     rushSaver option sells only during rushes (up to x2 egg Coins, slower spending).
 --  4. Battles are not simulated. A camp/King is attacked at "Close fight" or better,
 --     a Mission first clear at "Should win"; every attack wins. Army upgrades (Damage,
 --     Health, Armor) are ignored because the displayed power ignores them.
@@ -80,7 +81,8 @@ local DEFAULTS={
 	campSeconds=90,kingSeconds=150,invasionSeconds=150,
 	savingPaybackFraction=0.5,utilityFraction=0.10,savingUtilityFraction=0.04,savingCombatFraction=0.25,
 	targetRank=30,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=60,
-	goldRush=true,rushEvery=1200,rushSeconds=300,
+	-- rushSaver: sell only during Gold Rush (S4: up to 2x egg Coins for savers).
+	goldRush=true,rushEvery=1200,rushSeconds=300,rushSaver=false,
 	print=true,
 }
 
@@ -150,6 +152,8 @@ end
 
 local function deposit(state,now)
 	local s=state.session
+	-- A rush saver keeps clicked eggs in the bag and sells only during Gold Rush.
+	if state.options.rushSaver and state.options.goldRush and rushFactor(state,now)<2 then return end
 	local whole=math.floor(state.bag*rushFactor(state,now))
 	if whole<1 then return end
 	local credited=s:Credit(whole,"eggs")
@@ -501,7 +505,7 @@ local function spend(state,ctx)
 	end
 end
 
-local function spendGems(state)
+local function spendGems(state,now)
 	local s=state.session
 	for _=1,10 do
 		local bought=false
@@ -514,8 +518,12 @@ local function spendGems(state)
 				end
 			end
 		end
-		if not bought then return end
+		if not bought then break end
 	end
+	for _,id in Gems.Order do
+		if GemService.Status(s,id)~="Maxed" then return end
+	end
+	mark(state,"GemBoardDone",now)
 end
 
 local function judgeOffers(state,ctx,at)
@@ -591,7 +599,7 @@ local function tryRebirth(state,now)
 	state.bag=0
 	state.stats.gemsEarned+=receipt.gems
 	state.stats.timeSkip+=receipt.timeSkipCoins
-	spendGems(state)
+	spendGems(state,now)
 	state.milestones["Rebirth"..s.rebirths]={minutes=now/60,coins=before,income=cashRate(s),
 		power=armyPower(s),flock=s:Count(),rank=s.rebirths,cost=cost,eggs=state.peakEggs,timeSkip=receipt.timeSkipCoins}
 	state.peakEggs=0
@@ -648,6 +656,7 @@ local ROWS={
 	{"Rebirth12","Rebirth 12",nil},{"Rebirth15","Rebirth 15","~6.4 h"},{"Rebirth20","Rebirth 20","~11.6 h"},
 	{"Rebirth25","Rebirth 25",nil},{"Rebirth30","Rebirth 30","~34 h"},
 	{"GoldenSeen","First Golden offer",nil},{"MythicSeen","First Mythic offer",nil},{"MythicOwned","First Mythic owned",nil},
+	{"GemBoardDone","Gem Upgrades complete","~R25-28"},
 }
 
 local function report(results)

@@ -63,9 +63,9 @@ local Config = {
  -- 8–30 min for the first 3 hours). Saved ranks above MaxRank keep the highest rank.
  -- The Oct 15 $50M…$185T 20-rank ladder is history (docs/team/REBIRTH_LADDER.md).
  Rebirth={Enabled=true,Version=2,MaxRank=30,
-  Costs={5e4,2e5,6e5,1.5e6,4e6,1e7,2.5e7,6e7,1.5e8,3.5e8,
-   8e8,1.6e9,3.2e9,6.5e9,1.4e10,2.7e10,5e10,9e10,1.6e11,2.8e11,
-   4.5e11,7.2e11,1.15e12,1.85e12,2.95e12,4.7e12,7.5e12,1.2e13,1.92e13,3.1e13},
+  Costs={5e4,2e7,3e8,2.2e9,8.6e9,1.5e10,2.4e10,8.2e10,1.8e11,3.7e11,
+   4.6e11,6.5e11,8.1e11,1.4e12,3.3e12,4.1e12,5.1e12,6.4e12,9e12,1.2e13,
+   2.2e13,2.8e13,4.9e13,6.1e13,7.6e13,9.5e13,1.2e14,1.5e14,1.9e14,2.4e14},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,
   GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
