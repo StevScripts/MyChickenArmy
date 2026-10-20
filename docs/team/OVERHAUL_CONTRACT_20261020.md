@@ -86,6 +86,7 @@ in `PlayerSession` (one line) and list it in your hand-off.
 | `Rebirth` | `expectedRank`, `useSkip?` | S7 | `useSkip=true` spends one Skip credit |
 | `PreparePurchase` | `key="RebirthSkip"` | S7 | Server picks the rank band's product; returns `purchase={key, kind="Product", id}` |
 | `CashUpgrade` / `BoardUpgrade` | old six keys | S7 | Kept until S9 lands: maps EggSpeed, EggValue, Luck, ArmySize, RollSlots, PlotSize (= Flock) to the family's next node |
+| `Expand`, `Income`, `Luck` | – | S7 | Old shortcuts; each buys that family's next tree tier at today's quote |
 | `StartResearch`, `CancelResearch`, `SkipResearch`, `PinResearch`, `AcknowledgeResearch` | – | S7 | Retired: reply "Research is now instant in Upgrades." |
 | `FlockEquip` / `FlockUnequip` | `petId` | S10 | |
 | `FlockBest` | – | S10 | Back to automatic best layers |
@@ -231,6 +232,32 @@ Hooks other owners add (one call each):
 - **S4 (already in flight):** Gold Rush and Friend Boost live in `EarnedAmount` next
   to S7's Coin Boost line. The lead merges the two edits.
 
+### Rule changes other sessions build on (S7, landed on the branch)
+
+- `Rules.RecruitLevel` ignores Chicken Feed levels: a species' roll offers come one
+  level below the best level that chicken was rolled (or fused) at. Without this,
+  one fed chicken would buy permanent high-level rolls (P0 found it). Affects S12
+  and S11.
+- `ArmyService.UpgradeChicken` (Chicken Feed) now needs the `ChickenFeed` node
+  (`PlayerSession:ChickenUpgradeEligibility`): "Buy Chicken Feed in Upgrades > Tools first."
+- `ArmyService.Expand`, `ArmyService.UpgradeIncome` and `RollService:UpgradeLuck` are
+  no longer called (GameServer routes those requests to the tree). Owners (S10, S12)
+  may delete them; until then, they would bypass the tree if called.
+- `PlayerSession:CollectionLimit()` returns `Config.StorageLimit` (1000).
+  `CompletePlotBuild` is a no-op; `plotBuild` is always nil.
+- `session.plotSizeLevel` (the yard stage) follows the Flock tier's `yardStage` (0–7),
+  so `WorldService`/`PlotUpgradeService` keep growing the yard. `UpgradeCatalog`
+  keeps `PlotPrices`/`PlotScales`/`PlotCapacity`/`EggSpeedPrices`/`RollSlotPrices` as
+  compatibility views for those readers and the old cash hexes; S9/S10 may drop them.
+- Time Skip pays `timeSkipMinutes` × the post-Rebirth egg income of the best
+  `Flock.base` (3) chickens. That income uses the kept tiers, the new rank's
+  multiplier, Coin Boost, 2x Coins and 2x Egg Spawn, with a floor of
+  `DailyService.MinIncome`. It is credited through `Credit(..., "rebirth")`
+  (analytics source `TimeSkip`). `state.rebirth.timeSkipCoins` previews that exact amount.
+- Admin (lead-approved): `upgrade <target> <all|node>` (replaces `research`), `army`
+  (tree sizes 3/4/6/8/10), `gems`, `setrebirth`, `gemupgrade <all|id> [level]`,
+  `skip [count]`.
+
 ## 6. Gem Upgrades (`GemUpgradeCatalog`)
 
 ```lua
@@ -274,8 +301,8 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 - **Rewards:**
   - Egg Coins x(1 + rank).
   - Gems = (40 + 10 × rank) × (1 + `gemBonus`), floored.
-  - Time Skip: `timeSkipMinutes` of post-reset egg income, using the same rule
-    as the daily reward's minutes (`DailyService.CashFor`).
+  - Time Skip: `timeSkipMinutes` of post-reset egg income (exact rule in
+    "Rule changes" under §5).
   - That rank's Rebirth chicken, Lv 1, free. Above `StorageLimit` it waits in
     `rebirthChickenCredits`.
   - Mutation unlocks: Rainbow at Rebirth 1, Shadow at 5, Cosmic at 10.
@@ -307,8 +334,9 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
   pays every reward. Products are by next-rank band: `RebirthSkip1` (Rebirth 1–5,
   49 R$), `RebirthSkip2` (6–15, 99 R$), `RebirthSkip3` (16–30, 199 R$). They are
   paid-random (Gems buy luck), so they are hidden where paid random items are
-  restricted. Product ids arrive after Stevin approves the live creation; until
-  then they are off.
+  restricted. Product ids arrive after Stevin approves the live creation (dry runs:
+  `tools/monetization.py create-product --name "Skip Rebirth 1-5" --price 49 …`);
+  until then `ShopCatalog.ProductOnSale` is false and `rebirth.skip.onSale` is false.
 - **Auto Rebirth:** when owned and `autoRebirth` is on, the server rebirths as
   soon as the quote is eligible.
 - **Rebirth chickens:** `PetCatalog.Veteran1`…`Veteran30` (placeholder names from
