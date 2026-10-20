@@ -13,4 +13,4 @@ return {
 	cashArmySize="rbxassetid://92487563557623", cashRollSlots="rbxassetid://91702817085017",
 	hexMask="rbxassetid://117593460258785", hexFill="rbxassetid://103453394949472",
 }
---s
+--st
