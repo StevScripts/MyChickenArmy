@@ -711,16 +711,11 @@ function Simulation.Run(options)
 	for key,value in PROFILES[merged.profile] or PROFILES.fast do
 		if not (options and options[key]~=nil) then merged[key]=value end
 	end
-	local previousSizeRandom=Army.SizeRandom
 	local runs={}
 	local started=os.clock()
 	local ok,problem=pcall(function()
-		for seed=1,merged.seeds do
-			Army.SizeRandom=lcg(seed*104729)
-			table.insert(runs,runOnce(seed,merged))
-		end
+		for seed=1,merged.seeds do table.insert(runs,runOnce(seed,merged)) end
 	end)
-	Army.SizeRandom=previousSizeRandom
 	if not ok then error(problem,0) end
 	local results={options=merged,runs=runs,seconds=os.clock()-started,
 		assumptions="Free player, continuous active play; Flock-only laying with clicked eggs sold every deposit; "

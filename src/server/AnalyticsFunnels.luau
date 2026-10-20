@@ -408,10 +408,12 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 	if slots >= 4 then named(self, st, "RollSlots", "Unlocked4") end
 	if slots >= 8 then named(self, st, "RollSlots", "Unlocked8") end
 
+	-- October 20: Auto Roll is a Gem Upgrade (effects.autoRoll), no longer research.
+	local effects = state.effects
+	if type(effects) == "table" and (tonumber(effects.autoRoll) or 0) >= 1 then named(self, st, "AutoRoll", "Available") end
 	local research = state.research
 	local completed = if type(research) == "table" then research.completed else nil
 	if type(completed) == "table" then
-		if completed.AutoRoll then named(self, st, "AutoRoll", "Available") end
 		local count = countCompleted(completed)
 		if cache.research ~= nil and count > cache.research then named(self, st, "Research", "Completed") end
 		if cache.research == nil or count > cache.research then cache.research = count end
