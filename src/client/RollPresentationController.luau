@@ -17,9 +17,10 @@ local RollCamera = require(script.Parent.RollCamera)
 local RollPresentationController = {}
 RollPresentationController.__index = RollPresentationController
 
--- A quick shuffle, three slower beats, then a short suspense hold. Sound and
+-- A quick shuffle that slows steadily, then a short suspense hold. Sound and
 -- preview changes use these exact beats, rather than independent repeating timers.
-local BEATS = {0.065, 0.10, 0.14, 0.185, 0.235, 0.295, 0.365, 0.455, 0.56, 0.69, 0.84}
+-- Oct 20: more beats for the ~4 s Drop a Fruit-length roll (every 0.12–0.38 s).
+local BEATS = {0.04, 0.07, 0.105, 0.145, 0.19, 0.245, 0.3, 0.365, 0.435, 0.51, 0.59, 0.675, 0.765, 0.86}
 local GOLD = UIColors.Rewards
 local BLUE = Color3.fromRGB(67, 181, 222)
 local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Secret=7}
@@ -28,12 +29,12 @@ local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Sec
 local MUTATION_BADGE_DELAY = 0.3
 
 function RollPresentationController.new(app)
- return setmetatable({app=app, records={}, connections={}, scanAt=0, rollCamera=RollCamera.new()}, RollPresentationController)
+ return setmetatable({app=app, records={}, connections={}, scanAt=0, rollCamera=RollCamera.new(app)}, RollPresentationController)
 end
 
 -- The roll camera follows the local player's own lever podium (slot 1) within
 -- 24 studs, with motion on, the normal camera, and no menu, Upgrades screen,
--- dialogue or crate opening up. Reveals follow the rarest chicken that landed on
+-- dialogue or crate opening up. Reveals follow the rarest chicken appearing on
 -- any of their podiums this frame (StepRecord notes it).
 function RollPresentationController:StepCamera(now)
  local app=self.app
@@ -62,15 +63,10 @@ function RollPresentationController:StepCamera(now)
  end
  -- Auto Roll repeats every few seconds, so it gets the lighter version.
  local auto=app.state and app.state.autoRoll
- local landing=self.landing
- self.landing=nil
- -- Buying (or rolling over) the chicken being orbited ends the orbit early.
- local target=landing or self.cameraTarget
- local gone=target~=nil and target.record.result~=target.result
- self.cameraTarget=if gone then nil else target
- self.rollCamera:Step(camera,now,{ok=ok,near=near,roll=roll,landing=landing,gone=gone,
-  auto=auto~=nil and auto.enabled==true and auto.unlocked~=false,
-  moving=humanoid~=nil and humanoid.MoveDirection.Magnitude>0.1})
+ local reveal=self.reveal
+ self.reveal=nil
+ self.rollCamera:Step(camera,now,{ok=ok,near=near,roll=roll,reveal=reveal,
+  auto=auto~=nil and auto.enabled==true and auto.unlocked~=false})
 end
 
 function RollPresentationController:Track(station)
@@ -395,7 +391,13 @@ function RollPresentationController:StepRecord(record, now)
    record.finishPlayed=not fresh
    record.revealFresh=fresh
    self:Preview(record,species)
-   if fresh then self:Sound(record,"Pop",1.12,0.45,0.35) end
+   if fresh then
+    self:Sound(record,"Pop",1.12,0.45,0.35)
+    -- The roll camera reveals with the rarest chicken appearing on your podiums.
+    if station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId and (not self.reveal or rank>self.reveal.rank) then
+     self.reveal={rank=rank,color=UIColors.Rarities[def.rarity]}
+    end
+   end
   end
   local age=now-record.landedAt
   if not record.finishPlayed and age>=0.16 then
@@ -405,11 +407,6 @@ function RollPresentationController:StepRecord(record, now)
    if record.burst and not reduced then
     record.burst.Color=ColorSequence.new(tint,GOLD)
     record.burst:Emit(if rank>=4 then 26 else 12)
-   end
-   -- The landing thump: the roll camera reacts to the rarest one on your podiums.
-   if station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId and (not self.landing or rank>self.landing.rank) then
-    self.landing={rank=rank,foot=record.foot,front=record.frame.LookVector,record=record,result=result,
-     height=record.preview and record.preview:GetAttribute("VisualHeight") or 3,ignore={self.folder}}
    end
   end
   local hop=0

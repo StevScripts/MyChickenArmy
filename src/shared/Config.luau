@@ -82,7 +82,9 @@ local Config = {
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.
  RollSlotsUnlocked=8,
- RollRevealSeconds=2.4,RollInteractDistance=14,
+ -- Oct 20 (Stevin): a roll lasts about as long as Drop a Fruit's (~3.9 s; was 2.4).
+ -- Roll Speed divides it (RollService).
+ RollRevealSeconds=4,RollInteractDistance=14,
  -- Auto Roll (research AutoRoll) stops on any mutated offer or at this setting:
  -- "Upgrade" = an offer that fills or strengthens the army, else a rarity floor.
  AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic","Secret"},
