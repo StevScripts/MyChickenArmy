@@ -1,5 +1,9 @@
 # Manual chicken merging
 
+> **Retired October 20, 2026.** Fuse is removed and old Giants are ordinary chickens.
+> Current contract: [team/FUSE_REMOVAL_AND_SELL.md](team/FUSE_REMOVAL_AND_SELL.md).
+> The rest of this page is history.
+
 ## October 6 skill-tree unlock — current contract
 
 Fuse Machine is a research node (`FuseMachine`) behind Lucky Feathers I and Roll

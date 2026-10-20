@@ -161,19 +161,6 @@ function Checks.Run()
   assert(paid%1==0 and s.coins%1==0,"Fractional credit "..paid)
   assert(paid==math.floor(101*Rebirth.Multiplier(1)))
  end)
-
- test("Fusion keeps its result with the neutral mutation stub",function()
-  local s=Session.new(-955,"Fuser",1);s.loaded=true;s.fusionUnlocked=true;s.tutorial.guideCompleted=true
-  local Army=require(Server.ArmyService)
-  local ids={}
-  for i=1,3 do local pet=s:AddPet("Bucket",1);ids[i]=pet.id end
-  s.coins=1e9
-  local price=Rules.MergePrice("Bucket",1)
-  local ok,message,petId=Army.Merge(s,ids[1],ids[2],ids[3],1,price)
-  assert(ok,message)
-  local giant=s.pets[petId]
-  assert(giant and giant.level==2 and giant.mutation==nil) -- October 14: a Giant is now a chance, not guaranteed
- end)
  local failed=0
  for _,r in results do if not r.passed then failed+=1 end end
  print(("FoundationChecks: %d passed, %d failed"):format(#results-failed,failed))

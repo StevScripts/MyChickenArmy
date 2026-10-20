@@ -4,12 +4,8 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
 local Catalog = require(Shared.PetCatalog)
-local Giant = require(Shared.GiantChicken)
-local MutationCatalog = require(Shared.MutationCatalog)
 local Currency = require(Shared.CurrencyLimits)
-local sizeRandom = Random.new()
 local ArmyService = {}
-ArmyService.SizeRandom = sizeRandom
 
 -- Selection is intent only, editable during combat. BattleService moves the rigs.
 
@@ -144,234 +140,22 @@ function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
 	return true,Catalog[pet.species].name.." upgraded to Lv. "..pet.level.."!",pet.id
 end
 
-local function mergeEligible(session, pet)
-	return pet and not pet.favorite and session:IsPetHome(pet.id)
-		and not (session.incoming and session:FindSlot(pet.id))
-		and (pet.level or 1) < Config.MaxPetLevel -- October 15: no rank cap on Fuse.
-end
-
--- Exact triples; keep a selected squad ID so the survivor retains its place.
-function ArmyService.MergeOptions(session, automatic: boolean?)
-	if not Config.Features.Merging then return {} end
-	if not session:MergeAccess() then return {} end
-	if session:Count()-2<session:StarterFlockMinimum() then return {} end
-	local groups,options,protected={},{},{}
-	if automatic and session.armySelection then
-		for _,id in session.armySelection do protected[id]=true end
-	end
-	for _,pet in session.pets do
-		if not protected[pet.id] and mergeEligible(session,pet) then
-			local key=pet.species..":"..(pet.stars or 1)..":"..(pet.level or 1)
-			groups[key]=groups[key] or {};table.insert(groups[key],pet)
-		end
-	end
-	for key,pets in groups do
-		if #pets<3 then continue end
-		table.sort(pets,function(a,b)
-			-- Giants, then mutated chickens first: a Giant input guarantees a Giant
-			-- result, and the picker's default triple keeps the best mutation.
-			local ga,gb=Giant.IsGiant(a),Giant.IsGiant(b)
-			if ga~=gb then return ga end
-			local ma,mb=MutationCatalog.Rank(a.mutation),MutationCatalog.Rank(b.mutation)
-			if ma~=mb then return ma>mb end
-			local sa,sb=session:FindSlot(a.id) or math.huge,session:FindSlot(b.id) or math.huge
-			if sa~=sb then return sa<sb end
-			return a.id<b.id
-		end)
-		local a,b,c=pets[1],pets[2],pets[3]
-		local level,stars=a.level or 1,a.stars or 1
-		local ids={};for _,pet in pets do table.insert(ids,pet.id) end
-		local before,after=Rules.Stats(a.species,stars,level),Rules.Stats(a.species,stars,level+1)
-		local income=session:DisplayedPetIncome(a.species,stars,level)
-		table.insert(options,{key=key,firstId=a.id,secondId=b.id,thirdId=c.id,
-			species=a.species,stars=stars,level=level,count=#pets,merges=math.floor(#pets/3),petIds=ids,
-			price=Rules.MergePrice(a.species,level),
-			inputIncome=income,beforeIncome=income*3,
-			inputEggRate=session:PetEggRate(a.species,stars,level),
-			afterEggRate=session:PetEggRate(a.species,stars,level+1),
-			afterIncome=session:DisplayedPetIncome(a.species,stars,level+1),
-			beforeDps=before.damage/before.interval,afterDps=after.damage/after.interval})
-	end
-	table.sort(options,function(a,b)
-		if a.species~=b.species then return Catalog[a.species].price<Catalog[b.species].price
-			or (Catalog[a.species].price==Catalog[b.species].price and a.species<b.species) end
-		if a.level~=b.level then return a.level<b.level end
-		return a.stars<b.stars
-	end)
-	return options
-end
-
-local function mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
-	if type(firstId)~="string" or type(secondId)~="string" or type(thirdId)~="string"
-		or #firstId>64 or #secondId>64 or #thirdId>64
-		or firstId==secondId or firstId==thirdId or secondId==thirdId then
-		return nil,"Choose three different owned chickens."
-	end
-	local a,b,c=session.pets[firstId],session.pets[secondId],session.pets[thirdId]
-	for _,pet in {a or false,b or false,c or false} do
-		if not mergeEligible(session,pet) then
-			return nil,"Choose unprotected chickens at your base below your Fuse level cap."
-		end
-	end
-	local level,stars=a.level or 1,a.stars or 1
-	if a.species~=b.species or a.species~=c.species or stars~=(b.stars or 1) or stars~=(c.stars or 1)
-		or level~=(b.level or 1) or level~=(c.level or 1) or level~=expectedLevel then
-		return nil,"Those chickens changed. Match the same chicken and level."
-	end
-	local price=Rules.MergePrice(a.species,level)
-	if expectedPrice~=price then return nil,"The fusion price changed. Choose again." end
-	local investment=(a.investment or Rules.Investment(a.species,level))
-		+(b.investment or Rules.Investment(b.species,level))+(c.investment or Rules.Investment(c.species,level))
-	if investment~=investment or investment<0 or investment>1e12 then
-		return nil,"This fusion exceeds the saved investment limit."
-	end
-	-- The result keeps the inputs' cash-bought levels (all three share one level).
-	local cashLevels=math.max(a.cashLevels or 0,b.cashLevels or 0,c.cashLevels or 0)
-	return {first=a,second=b,third=c,level=level,investment=investment,price=price,cashLevels=cashLevels}
-end
-
-local function consumeTriple(session,triple)
-	local a,b,c,level=triple.first,triple.second,triple.third,triple.level
-	-- October 14 Giants: a normal fusion only levels up, with a chance (and an
-	-- every-PityLimit guarantee) to become a Giant. A Giant input keeps the result
-	-- a Giant; three Giants roll for a Colossal. Sizes never shrink.
-	local sizeRandom=ArmyService.SizeRandom -- Injectable for deterministic checks.
-	local rarity=Catalog[a.species].rarity
-	local largest=math.max(a.giantSize or 0,b.giantSize or 0,c.giantSize or 0)
-	local kind=Giant.FusionKind({a,b,c})
-	local giantSize,outcome=nil,"Fused"
-	if kind=="Colossal" then
-		giantSize,outcome=largest,"Colossal"
-	elseif kind=="ColossalChance" then
-		if sizeRandom:NextNumber()<Giant.ColossalFromGiantsChance then
-			giantSize,outcome=Giant.ColossalSize(sizeRandom:NextNumber(),largest),"NewColossal"
-		else
-			giantSize,outcome=Giant.OrdinarySize(rarity,sizeRandom:NextNumber(),largest),"Giant"
-		end
-	elseif kind=="Giant" then
-		giantSize,outcome=Giant.OrdinarySize(rarity,sizeRandom:NextNumber(),largest),"Giant"
-	else
-		local pity=(session.giantPity or 0)+1
-		if pity>=Giant.PityLimit or sizeRandom:NextNumber()<Giant.Chance(level) then
-			giantSize,outcome=Giant.OrdinarySize(rarity,sizeRandom:NextNumber()),"NewGiant"
-			session.giantPity=0
-		else
-			session.giantPity=pity
-		end
-	end
-	-- Validate everything before mutation, without yielding. Existing saves already
-	-- store the retained ID, level and investment; no new progression currency.
-	a.investment=triple.investment
-	a.cashLevels=if triple.cashLevels>0 then triple.cashLevels else nil
-	session.pets[b.id],session.pets[c.id]=nil,nil
-	if session.armySelection then
-		for index=#session.armySelection,1,-1 do
-			local id=session.armySelection[index]
-			if id==b.id or id==c.id then table.remove(session.armySelection,index) end
-		end
-	end
-	a.level=level+1
-	a.giantSize=giantSize
-	-- The result keeps the best input mutation.
-	a.mutation=MutationCatalog.Best({a,b,c}) or a.mutation
-	return outcome
-end
-
--- Player-facing result line for one fusion outcome.
-local function fusionMessage(pet,outcome): string
-	local name=Catalog[pet.species].name.." Lv "..(pet.level or 1)
-	if outcome=="NewColossal" then return "COLOSSAL! "..name.." · army +"..math.floor(Giant.ColossalArmyDamage*100+0.5).."% damage" end
-	if outcome=="NewGiant" then return "GIANT! "..name.." · ×"..Giant.HealthMultiplier.." HP, ×"..Giant.DamageMultiplier.." damage, stomp" end
-	if outcome=="Colossal" then return "Colossal "..name end
-	if outcome=="Giant" then return "Giant "..name end
-	return "Fused · "..name
-end
-ArmyService.FusionMessage=fusionMessage
-
-function ArmyService.Merge(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
-	if not Config.Features.Merging then return false,"Fuse is unavailable." end
-	local unlocked,requirement=session:MergeAccess()
-	if not unlocked then return false,requirement end
-	local triple,reason=mergeTriple(session,firstId,secondId,thirdId,expectedLevel,expectedPrice)
-	if not triple then return false,reason end
-	if session:Count()-2<session:StarterFlockMinimum() then return false,"Keep your starter army for the first mission." end
-	local canSpend,spendReason=session:CanSpendCash(triple.price)
-	if not canSpend then return false,spendReason end
-	-- The fee is a service cost, not refundable chicken purchase investment.
-	session.coins-=triple.price
-	local outcome=consumeTriple(session,triple)
-	local a=triple.first
-	session.tutorial.upgraded=true
-	session:RefreshArmy();session:Touch()
-	return true,fusionMessage(a,outcome),a.id,outcome
-end
-
-function ArmyService.MergeAll(session,triples)
-	if not Config.Features.Merging then return false,"Fuse is unavailable." end
-	local unlocked,requirement=session:MergeAccess()
-	if not unlocked then return false,requirement end
-	local limit=math.floor(Config.LegacyCollectionLimit/3)
-	if type(triples)~="table" or #triples<1 or #triples>limit then return false,"Choose matching groups to fuse." end
-	local validated,seen,count,total={},{},0,0
-	for index,request in triples do
-		count+=1
-		if count>limit or type(index)~="number" or index%1~=0 or index<1 or index>#triples or type(request)~="table" then
-			return false,"Invalid Fuse selection."
-		end
-		local triple,reason=mergeTriple(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
-		if not triple then return false,reason end
-		for _,pet in {triple.first,triple.second,triple.third} do
-			if seen[pet.id] then return false,"Each chicken can only fuse once." end
-			seen[pet.id]=true
-		end
-		validated[index]=triple
-		total+=triple.price
-	end
-	if count~=#triples then return false,"Invalid Fuse selection." end
-	if session:Count()-2*count<session:StarterFlockMinimum() then return false,"Keep your starter army for the first mission." end
-	local canSpend,spendReason=session:CanSpendCash(total)
-	if not canSpend then return false,spendReason end
-	session.coins-=total
-	local results={}
-	local giants,colossals=0,0
-	for _,triple in validated do
-		local outcome=consumeTriple(session,triple)
-		if outcome=="NewGiant" then giants+=1 elseif outcome=="NewColossal" then colossals+=1 end
-		table.insert(results,{petId=triple.first.id,species=triple.first.species,level=triple.first.level,giantSize=triple.first.giantSize,outcome=outcome})
-	end
-	session.tutorial.upgraded=true;session:RefreshArmy();session:Touch()
-	local extra=if colossals>0 then " · "..colossals.." COLOSSAL!" elseif giants>0 then " · "..giants.." new GIANT"..(if giants>1 then "S" else "").."!" else ""
-	return true,"Fused "..count.." "..(if count==1 then "group" else "groups")..extra,{count=count,results=results,price=total}
-end
-
-function ArmyService.AutoMerge(session)
-	if not Config.Features.Merging or not Config.Features.AutoMerging then return false,"Auto Fuse is unavailable." end
-	if not session.loaded or session.closing or session.saveLost or not session:AutomaticEnabled("AutoMerge") then
-		return false,"Auto Fuse is off."
-	end
-	local triples={}
-	local limit=math.floor(Config.LegacyCollectionLimit/3)
-	for _,option in ArmyService.MergeOptions(session,true) do
-		for index=1,#option.petIds-2,3 do
-			if #triples>=limit then break end
-			table.insert(triples,{firstId=option.petIds[index],secondId=option.petIds[index+1],
-				thirdId=option.petIds[index+2],level=option.level,expectedPrice=option.price})
-		end
-		if #triples>=limit then break end
-	end
-	if #triples==0 then return false,"No matching chickens at your base are ready." end
-	return ArmyService.MergeAll(session,triples)
-end
+-- October 20: Fuse is removed (archive/fuse-20261020). Saved giantPity and
+-- fusionUnlocked still load; nothing here creates Giants any more.
 
 function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	-- The client flag is only legacy request shape. Protection is unconditional.
-	if type(petIds)~="table" or #petIds==0 or #petIds>Config.LegacyCollectionLimit then return false,"Select reserve chickens to sell." end
+	-- October 20 Sell menu: one bulk request may hold the whole storage.
+	local limit=math.max(Config.LegacyCollectionLimit,session:CollectionLimit())
+	if type(petIds)~="table" or #petIds==0 or #petIds>limit then return false,"Select reserve chickens to sell." end
+	-- One protection context for the whole batch where the session offers it.
+	local context=if session.SaleContext then session:SaleContext() else nil
 	local seen,total,count={},0,0
 	for index,id in petIds do
 		count+=1
 		if type(index)~="number" or index%1~=0 or index<1 or index>#petIds then return false,"Invalid chicken selection." end
 		if type(id)~="string" or seen[id] then return false,"Invalid chicken selection." end
-		local allowed,reason=session:SaleEligibility(id)
+		local allowed,reason=session:SaleEligibility(id,context)
 		if not allowed then return false,reason end
 		local pet=session.pets[id]
 		seen[id]=true
@@ -388,7 +172,8 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	for id in seen do session.pets[id]=nil end
 	session:RefreshArmy()
 	session:Credit(total,"sale")
-	return true,"Sold "..count.." reserve "..(if count==1 then "chicken" else "chickens").." for "..Currency.Text(total)..".",{count=count,total=total}
+	-- The Sell screen's toast, as in the reference: "Sold 2 chickens for 8 Coins".
+	return true,"Sold "..count.." "..(if count==1 then "chicken" else "chickens").." for "..Currency.Text(total),{count=count,total=total}
 end
 
 function ArmyService.Expand(session)

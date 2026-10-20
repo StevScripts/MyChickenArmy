@@ -1,5 +1,9 @@
 # Giant chicken fusion
 
+> **Retired October 20, 2026.** No new Giants can be made, and saved Giants and
+> Colossals play as ordinary chickens (their size stays in the save). Current contract:
+> [FUSE_REMOVAL_AND_SELL.md](FUSE_REMOVAL_AND_SELL.md). The rest of this page is history.
+
 ## October 14 redesign (current rules)
 
 Owner request: Giants felt pointless (every fusion made one, size did nothing, and

@@ -23,7 +23,7 @@ local ROOTS: {Root} = {
 	{path = "Shell/FRAMES/Panel", menu = "@main"},                          -- AppController:BuildUI
 	{path = "Shell/FRAMES/Panel/StandardPage", menu = "@main"},             -- Odds/Settings/Admin/Formations (title)
 	{path = "Shell/FRAMES/Panel/ChickenBrowser", menu = "Army", open = "page"},
-	{path = "Shell/FRAMES/Panel/MergeBrowser", menu = "Fuse", open = "page"},
+	{path = "Shell/FRAMES/Panel/SellMenu", menu = "Sell", open = "page"},     -- October 20 (Fuse removed)
 	{path = "Shell/FRAMES/Panel/ShopBrowser", menu = "Shop", open = "page"},
 	{path = "Shell/FRAMES/Panel/UpgradesBrowser", menu = "Upgrades", open = "page"}, -- legacy cash board
 	{path = "Shell/FRAMES/Panel/StandardPage/Main/IndexBrowser", menu = "Index", open = "page"},

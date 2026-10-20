@@ -203,11 +203,9 @@ end
 
 function BaseController:FilterStationPrompt(prompt, world)
 	if not prompt:IsA("ProximityPrompt") or self.promptFilters[prompt] then return end
-	local isMerge = prompt.Name == "MergePrompt"
-	if prompt.Name ~= "RollPrompt" and prompt.Name ~= "BuyPrompt" and prompt.Name ~= "RecruitTierPrompt" and not isMerge then return end
-	local anchorName = if isMerge then "MergeStand" else "RollStation"
+	if prompt.Name ~= "RollPrompt" and prompt.Name ~= "BuyPrompt" and prompt.Name ~= "RecruitTierPrompt" then return end
 	local station = prompt.Parent
-	while station and station~=world and station.Name~=anchorName and not (not isMerge and station:GetAttribute("IsRollStation")) do station=station.Parent end
+	while station and station~=world and station.Name~="RollStation" and not station:GetAttribute("IsRollStation") do station=station.Parent end
 	if not station or station == world then return end
 	local ownerSource = station
 	local entry = {distance = prompt.MaxActivationDistance, connections = {}, closed = false}
@@ -215,7 +213,7 @@ function BaseController:FilterStationPrompt(prompt, world)
 	local function apply()
 		if entry.closed or not prompt.Parent then return end
 		local owner = ownerSource:GetAttribute("OwnerUserId") or ownerSource:GetAttribute("OwnerId")
-		local allowedOwner = owner == Players.LocalPlayer.UserId and (not isMerge or Config.Features.Merging)
+		local allowedOwner = owner == Players.LocalPlayer.UserId
 		if allowedOwner and (prompt.Name=="RollPrompt" or prompt.Name=="BuyPrompt") then
 			allowedOwner=self:RollPromptChoice(station)==prompt.Name
 		end
@@ -293,13 +291,6 @@ function BaseController:UpdateOwnSign()
 		end
 		if real.Enabled then real.Enabled = false end
 		self.hiddenSign = real
-	end
-end
-
-function BaseController:UpdateMergeStand()
-	if self.app.panel.Visible and self.app.page=="Merge" then
-		local browser=self.app.mergeBrowser
-		if not browser or not browser:NearStand() then self.app:ClosePanel() else browser:UpdateAction() end
 	end
 end
 
@@ -397,7 +388,7 @@ function BaseController:Start()
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
 		self.poll+=dt
 		if self.poll<0.1 then return end
-		self.poll=0;self:RefreshPromptOwnership();self:PollCommand();self:UpdateObjective();self.app:StepRecruitFeedback();self:UpdateMergeStand()
+		self.poll=0;self:RefreshPromptOwnership();self:PollCommand();self:UpdateObjective();self.app:StepRecruitFeedback()
 		if self.autoCollectStand then self.autoCollectStand:Step() end
 		self.app.hud:UpdateTerritory(self.app.state)
 	end))

@@ -1,7 +1,7 @@
 --!strict
 -- Studio owns each menu's Scale geometry and native aspect constraint.
 local Layout={}
-Layout.Names={Army="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settings="Settings",Odds="Odds",Merge="Fuse",Offline="OfflineEarnings"}
+Layout.Names={Army="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settings="Settings",Odds="Odds",Offline="OfflineEarnings"}
 -- GUI.FRAMES proportions expressed against our full-screen parent (the original
 -- FRAMES is a small proxy). No viewport math, size limits, or device breakpoints.
 Layout.Defaults={
@@ -13,11 +13,14 @@ Layout.Defaults={
 	Upgrades={size=Vector2.new(0.660243,0.461530),position=Vector2.new(0.514634,0.501785),aspect=2.93},
 	Settings={size=Vector2.new(0.411726,0.541205),position=Vector2.new(0.489130,0.5),aspect=1.543928},
 	Odds={size=Vector2.new(0.411726,0.541205),aspect=1.543928},
-	Merge={size=Vector2.new(0.39,0.82),aspect=1},
 	Offline={size=Vector2.new(0.330251,0.421687),aspect=1.391571045},
 }
 
+-- October 20: the Sell screen is My Army's sell mode and uses My Army's saved frame.
+Layout.Shared={Sell="Army"}
+
 function Layout.Control(gui,page)
+	page=Layout.Shared[page] or page
 	local folder=gui:FindFirstChild("MenuLayouts")
 	return folder and folder:FindFirstChild(Layout.Names[page] or page)
 end
@@ -29,6 +32,7 @@ function Layout.Number(gui,page,name,fallback,minimum,maximum)
 end
 
 function Layout.Apply(gui,page,panel)
+	page=Layout.Shared[page] or page
 	local definition=Layout.Defaults[page] or Layout.Defaults.Settings
 	local control=Layout.Control(gui,page)
 	local sourceAspect=control and control:FindFirstChildWhichIsA("UIAspectRatioConstraint")
@@ -62,7 +66,7 @@ function Layout.CreateControls(gui)
 			frame.Parent=folder
 		end
 		if not frame:GetAttribute("NativeAspectLayout") then
-			if fresh or (page~="Army" and page~="Merge") then
+			if fresh or page~="Army" then
 				frame.Size=UDim2.fromScale(definition.size.X,definition.size.Y)
 				local position=definition.position or Vector2.new(0.5,0.5)
 				frame.Position,frame.AnchorPoint=UDim2.fromScale(position.X,position.Y),Vector2.new(0.5,0.5)

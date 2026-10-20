@@ -7,10 +7,11 @@ local Stories={}
 Stories.List={
 	{id="Hud",name="HUD (in-game overlay)"},
 	{id="MyArmy",name="My Army"},
+	{id="Sell",name="Sell Chickens"},
+	{id="SellConfirm",name="Sell Chickens · confirm"},
 	{id="Shop",name="Shop"},
 	{id="Index",name="Chicken Index"},
 	{id="Upgrades",name="Upgrades tree"},
-	{id="Fuse",name="Fuse Machine"},
 	{id="Rebirth",name="Rebirth"},
 	{id="Invasions",name="Invasions / Missions"},
 	{id="Daily",name="Daily reward"},
@@ -78,6 +79,24 @@ Render.MyArmy=function(ctx)
 	browser:Render(true)
 end
 
+-- October 20 Sell screen: two chickens chosen, optionally with the confirmation open.
+local function sellStory(ctx,confirm)
+	local app=makeApp(ctx)
+	local frame=menuFrame(ctx,"Sell")
+	local menu=require(ctx.code.SellMenu).new(app,frame)
+	app.sellMenu,app.page=menu,"Sell"
+	menu.root.Visible=true
+	menu:Begin(nil)
+	local chosen=0
+	for _,pet in ctx.state.pets or {} do
+		if chosen<2 and pet.canSell and not pet.favorite and not pet.selected and pet.home~=false then menu:Toggle(pet.id,true);chosen+=1 end
+	end
+	menu:Render(true)
+	if confirm then menu:Review() end
+end
+Render.Sell=function(ctx) sellStory(ctx,false) end
+Render.SellConfirm=function(ctx) sellStory(ctx,true) end
+
 Render.Shop=function(ctx)
 	local app=makeApp(ctx)
 	app.page="Shop"
@@ -105,15 +124,6 @@ Render.Upgrades=function(ctx)
 	browser.root.Visible=true
 	browser:Receive(ctx.state)
 	browser:Render()
-end
-
-Render.Fuse=function(ctx)
-	local app=makeApp(ctx)
-	app.page="Merge"
-	local browser=require(ctx.code.MergeBrowser).new(app,menuFrame(ctx,"Merge","Fuse"))
-	app.mergeBrowser=browser
-	browser.root.Visible=true
-	browser:Render(true)
 end
 
 Render.Rebirth=function(ctx)

@@ -28,10 +28,11 @@ local function pacedPrice(rank: number, seconds: number): number
 end
 
 local Config = {
-	-- Manual three-chicken merging is enabled; paid automation is a separate rollout.
+	-- October 20: Fuse (Merging, paid AutoMerging) is removed; its code is in
+	-- archive/fuse-20261020. Both stay false for older readers such as ShopCatalog.
 	-- ChickenCashUpgrades: the Army inspector's Upgrade button. Briefly off on October 15
 	-- (Fuse-only); back on the same day with the restored Rebirth costs, which need it.
-	Features = {Merging = true, AutoMerging = false, IntroCutscene = true, ChickenCashUpgrades = true},
+	Features = {Merging = false, AutoMerging = false, IntroCutscene = true, ChickenCashUpgrades = true},
 	Economy = Economy,
  Version="1.20.0-launch", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's

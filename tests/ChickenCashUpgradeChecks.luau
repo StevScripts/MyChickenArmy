@@ -65,13 +65,15 @@ function Checks.Run()
 		s.armyState="Home";s.incoming="defense";assert(not buy(s,pet))
 		s.incoming=nil;pet.favorite=true;assert(buy(s,pet))
 	end)
-	check("Level, cash, investment, favorites and earned Colossal size survive saving",function()
-		local s,pet=setup();pet.favorite=true;pet.giantSize=24.5
+	check("Level, cash, investment, favorites and a retired Colossal size survive saving",function()
+		local s,pet=setup();pet.favorite=true;pet.retiredGiantSize=24.5
 		assert(buy(s,pet))
 		local restored=Session.new(-9292,"Restored fixture",1)
 		assert(restored:LoadData(s:ToData()))
 		local saved=restored.pets[pet.id]
-		assert(saved.level==2 and saved.investment==pet.investment and saved.favorite and saved.giantSize==24.5)
+		-- October 20: Giants are retired; the size round-trips but never plays.
+		assert(saved.level==2 and saved.investment==pet.investment and saved.favorite
+			and saved.retiredGiantSize==24.5 and saved.giantSize==nil)
 		assert(restored.coins==s.coins)
 	end)
 	check("Cash purchases add their real cost to refunds without repricing old saves",function()
@@ -92,12 +94,6 @@ function Checks.Run()
 		local shown=s:Snapshot(0).pets[1]
 		assert(shown.eggsPerSecond==quote.eggsPerSecond*2 and after.damage==before.damage*1.25)
 		assert(shown.upgradePrice==9000 and shown.nextIncome~=nil)
-	end)
-	check("Cash-upgraded matching triples still use the current guaranteed Giant fusion",function()
-		local s,a=setup();local b,c=s:AddPet("Duck",1),s:AddPet("Duck",1)
-		for _,pet in {a,b,c} do assert(buy(s,pet)) end
-		assert(Army.Merge(s,a.id,b.id,c.id,2,Rules.MergePrice("Duck",2)))
-		assert(s:Count()==1 and a.level==3 and a.giantSize>=4 and a.giantSize<=6)
 	end)
 	return results
 end

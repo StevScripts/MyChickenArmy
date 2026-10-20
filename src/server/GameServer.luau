@@ -102,7 +102,6 @@ function GameServer:Send(player,result)
 	state.targets=self.battles:Targets(session,now)
 	state.incomeOutpost=if self.battles.IncomeSummary then self.battles:IncomeSummary(session,now) else nil
 	state.hill=self.hill:Snapshot(session,now)
-	state.mergeOptions=ArmyService.MergeOptions(session)
 	state.operations=self.operations:Snapshot(session)
 	local battle=self.battles.battles[session.outgoing]
 	state.travelStage=if battle and battle.phase=="Travel" then (if battle.assembling then "Assembling" else "Marching") else nil
@@ -288,32 +287,8 @@ function GameServer:Handle(player,request)
 		ok,message,receipt=ArmyService.Sell(session,request.petIds,true,request.expectedTotal)
 	elseif action=="OpenSell" then message="Select a reserve chicken in the Army menu to sell it."
 	elseif action=="OpenMerge" or action=="Merge" or action=="MergeAll" then
-  local unlocked,requirement=session:MergeAccess()
-  if not Config.Features.Merging then message="Fuse is unavailable."
-  elseif not unlocked then message=requirement
-  elseif not self.world:CanUseMergeStand(player,session,request.stationIndex) then
-   message="Walk to the Fuse Machine at your base."
-  elseif action=="OpenMerge" then ok,message=true,"Choose three matching chickens to fuse."
-  elseif action=="MergeAll" then
-   ok,message,receipt=ArmyService.MergeAll(session,request.triples)
-   if ok then
-    petId=receipt.results[1].petId;self.world:CelebrateMerge(session,petId)
-    for _,result in receipt.results do
-     local giant=session.pets[result.petId]
-     if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
-     if result.outcome then self.analytics:LaunchCount(session,"giant.fuse."..result.outcome);self.analytics:ServerEvent(session,"giant.result",result.outcome) end
-    end
-   end
-  else
-   local outcome
-   ok,message,petId,outcome=ArmyService.Merge(session,request.firstId,request.secondId,request.thirdId,request.level,request.expectedPrice)
-   if ok then
-    self.world:CelebrateMerge(session,petId)
-    local giant=session.pets[petId]
-    if giant and giant.mutation then self.analytics:LaunchCount(session,"mutation.fuse."..giant.mutation) end
-    if outcome then self.analytics:LaunchCount(session,"giant.fuse."..outcome);self.analytics:ServerEvent(session,"giant.result",outcome) end
-   end
-  end
+		-- October 20: Fuse is removed. Older clients get a plain answer.
+		message="Fuse has been removed."
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
 		local building=session.plotBuild
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)
@@ -637,12 +612,6 @@ function GameServer:Step(dt)
 		self.nextDailyCheckAt=now+DAILY_CHECK_SECONDS
 		for _,session in self.sessions do
 			if session.dailyReady and session.loaded and not session.closing and not session.saveLost then DailyService.Check(session,wallTime,self) end
-		end
-	end
-	if Config.Features.Merging and now>=(self.nextAutomaticAt or 0) then
-		self.nextAutomaticAt=now+1
-		for _,session in self.sessions do
-			if session.loaded and not session.closing and not session.saveLost then ArmyService.AutoMerge(session) end
 		end
 	end
 	self.armyCommands:Step(now)

@@ -6,7 +6,6 @@ local Progression=require(Shared.Progression)
 local Catalog=require(Shared.PetCatalog)
 local ShopCatalog=require(Shared.ShopCatalog)
 local PlayerSession=require(script.Parent.PlayerSession)
-local Giant=require(Shared.GiantChicken)
 local Mutations=require(Shared.MutationCatalog)
 local Research=require(Shared.ResearchCatalog)
 local ResearchRules=require(Shared.ResearchRules)
@@ -157,10 +156,11 @@ function DebugService:Run(player,session,command,argument,now)
 end
 
 -- Launch-feature test commands (Studio test tools → Launch features).
-local function giveChicken(session,species,level,giantSize,mutation)
+-- A size makes an old (retired) Giant: saved like before, played as an ordinary chicken.
+local function giveChicken(session,species,level,retiredGiantSize,mutation)
 	local pet=session:AddPet(species,1,mutation)
 	pet.level=math.clamp(level,1,Config.MaxPetLevel)
-	pet.giantSize=giantSize
+	pet.retiredGiantSize=retiredGiantSize
 	return pet
 end
 
@@ -191,9 +191,8 @@ DebugService.Launch.TestEverything=function(self,player,session,_argument,now)
 	for _,id in Research.Order do session.research.completed[id]=true end
 	session.research.jobs={};session.research.revision+=1
 	session.researchEffects=ResearchRules.Effects(session.research)
-	session.fusionUnlocked=true
-	-- Showcase flock: a strong army, a fusion that is guaranteed to make a Giant,
-	-- three Giants for a Colossal try, a Colossal, mutations and the event chicken.
+	-- Showcase flock: a strong army, old Giants and a Colossal (now ordinary chickens),
+	-- mutations and the event chicken.
 	session.pets,session.slots,session.armySelection={},{},nil
 	for _=1,6 do giveChicken(session,"Dragon",8) end
 	for _=1,3 do giveChicken(session,"Knight",3) end
@@ -204,14 +203,13 @@ DebugService.Launch.TestEverything=function(self,player,session,_argument,now)
 	giveChicken(session,"Wizard",5,nil,golden)
 	giveChicken(session,"IceDuck",4,12,rainbow)
 	if Catalog.Pumpkin then giveChicken(session,"Pumpkin",3) end
-	session.giantPity=Giant.PityLimit-1
 	-- Day 7 of the streak is granted within a few seconds.
 	local today=math.floor(os.time()/DailyService.DaySeconds)
 	session.daily={streak=6,lastDay=today-1,best=6}
 	session.dailyGranted=nil
 	DailyService.Check(session,os.time(),nil)
-	return true,"TEST: everything unlocked. Try Rebirth, Missions (all tiers), Fuse (Knights = guaranteed Giant, "
-		.."Bucket Giants = Colossal try), mutations, the Pumpkin, Day 7 streak and all passes."
+	return true,"TEST: everything unlocked. Try Rebirth, Missions (all tiers), selling (old Bucket and Storm Giants "
+		.."are ordinary now), mutations, the Pumpkin, Day 7 streak and all passes."
 end
 
 DebugService.Launch.RebirthReady=function(_self,_player,session)
@@ -243,17 +241,11 @@ DebugService.Launch.DailyNextDay=function(_self,_player,session)
 	return true,"TEST: Day "..granted.streak.." streak granted."
 end
 
-DebugService.Launch.GiantGuarantee=function(_self,_player,session)
-	session.fusionUnlocked=true
-	for _=1,3 do giveChicken(session,"Knight",3) end
-	session.giantPity=Giant.PityLimit-1
-	return true,"TEST: three Lv3 Knights added and the next fusion is a guaranteed Giant. Use the Fuse Machine."
-end
-
-DebugService.Launch.ColossalTry=function(_self,_player,session)
-	session.fusionUnlocked=true
-	for _,size in {7,8,9} do giveChicken(session,"Bucket",2,size) end
-	return true,"TEST: three Lv2 Bucket Giants added. Fusing them is a 25% Colossal try."
+-- October 20: Giants are retired. Saved sizes stay in the save; the chickens are ordinary.
+DebugService.Launch.OldGiants=function(_self,_player,session)
+	giveChicken(session,"Bucket",2,9)
+	giveChicken(session,"StormDuck",6,22.5)
+	return true,"TEST: an old Bucket Giant and an old Storm Colossal added. Both should look and fight like ordinary chickens."
 end
 
 DebugService.Launch.Mutations=function(_self,_player,session)

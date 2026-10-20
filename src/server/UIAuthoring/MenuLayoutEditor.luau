@@ -62,9 +62,6 @@ function Editor.Open()
 		elseif page=="Upgrades" then
 			browser=require(code.ProgressionBrowser).new(app);browser:Mount(canvas)
 			render=function() browser:Render() end
-		elseif page=="Merge" then
-			browser=require(code.MergeBrowser).new(app,canvas)
-			render=function() browser:Render(true) end
 		elseif page=="Offline" then
 			browser=require(code.OfflineCashController).new(app)
 			browser:Receive({offlineCash={id="editor-preview",amount=12345,seconds=3600}})
