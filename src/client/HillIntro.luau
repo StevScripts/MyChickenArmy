@@ -86,8 +86,9 @@ function HillIntro:Busy(): boolean
 	local app = self.app
 	if app.panel.Visible or app.research.root.Visible or app.dialogueActive == true or next(app.menuBlurOwners) ~= nil then return true end
 	if app.commerce.cratePresenting or (app.intro ~= nil and app.intro:Pending()) then return true end
-	local roller = app.base and app.base.roller
-	if roller and roller.cameraZoom ~= nil then return true end
+	-- The roll camera (RollCamera, Oct 20): a push-in/punch zoom or an orbit/shake layer.
+	local rollCamera = app.base and app.base.roller and app.base.roller.rollCamera
+	if rollCamera and (rollCamera.zoom ~= nil or rollCamera.layer ~= nil) then return true end
 	local camera = workspace.CurrentCamera
 	return camera == nil or camera.CameraType ~= Enum.CameraType.Custom
 end
