@@ -50,9 +50,7 @@ function Hud.new(app,shell)
 	self.armyCount=Theme.Display(self.army.Visual,"ArmyCount","",20,Theme.PageColors.Army)
 	self.armyCount.TextXAlignment=Enum.TextXAlignment.Center
 	self.armyCount.ZIndex=4
-	self.status=Theme.Display(shell,"ArmyStatus","",21)
-	self.status.AnchorPoint,self.status.Position,self.status.Size,self.status.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
-	self.status.Visible=false
+	-- October 20 (owner): no top army status line ("Marching to X", "Returning home"…).
 	self.objective=Theme.Display(shell,"OpeningObjective","",21,A.gold)
 	self.objective.AnchorPoint,self.objective.Position,self.objective.Size,self.objective.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self.objective.Visible=false
@@ -168,7 +166,7 @@ function Hud.new(app,shell)
 	shine.Parent=self.freeGift.Visual.Label
 	Theme.Motion:Tween(shine,"shine",{Offset=Vector2.new(1,0)},1.8,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
 	self:BuildChickenOffer(shell)
-	-- Below the status line, clear of the Settings corner; errors also raise a toast.
+	-- Below the top-centre line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self:Layout()
@@ -327,10 +325,9 @@ function Hud:Layout()
 	self.reenlist.Visual.Label.Position=UDim2.fromScale(0,0.64)
 	self.freeGift.Visual.Label.TextScaled=true
 	self.freeGift.Visual.Label.Position=UDim2.fromScale(0,0.64)
-	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
+	for _,label in {self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
-	Theme.Aspect(self.status,19)
 	Theme.Aspect(self.objective,19)
 	Theme.Aspect(self.save,19)
 	Theme.ScaleText(self.navigation)
@@ -339,7 +336,7 @@ function Hud:Layout()
 	Theme.ScaleText(self.freeGiftCorner)
 	Theme.ScaleText(self.settings)
 	-- Top status lines get the shared readable text floor (wide boxes, no overlap risk).
-	for _,label in {self.status,self.objective,self.save} do Theme.ScaleText(label) end
+	for _,label in {self.objective,self.save} do Theme.ScaleText(label) end
 	self:ApplyInputLayout()
 	self:UpdateArmyCommands(true)
 end
@@ -383,14 +380,6 @@ function Hud:UpdateOpening(state)
 	local guidance=self.app.base.OpeningGuidance(state)
 	self.objective.Text=if guidance then guidance.text else ""
 	self.objective.Visible=guidance~=nil and not self.app.panel.Visible and self.app.commander==nil
-end
-
--- Top-centre priority: lesson card > army status > next-goal line. The Hill
--- title also owns the top line while it shows; the army status returns after.
-function Hud:SyncStatus()
-	local commander=self.app.commander
-	local lesson=commander~=nil and commander.lessonVisible==true
-	self.status.Visible=self.statusWanted==true and not (self.hill and self.hill.bannerVisible) and not lesson
 end
 
 function Hud:UpdateTerritory(state)
@@ -634,20 +623,9 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
 	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
-	self.status.Text=if atHome then ""
-		elseif state.armyState=="Following" then "Army following you"
-		elseif state.armyState=="Returning" then "Returning home"
-		elseif state.stationedAt then "Holding "..state.stationedAt
-		elseif state.marchingTo then "Marching to "..state.marchingTo
-		else "Army deployed"
 	local callUnlocked=callArmyUnlocked(state)
 	if callUnlocked~=self.callUnlocked then self.callUnlocked=callUnlocked;self:UpdateArmyCommands(false) end
 	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
-	if state.armyState~="Returning" and (state.recoveringCount or 0)+(state.reinforcingCount or 0)>0 then
-		self.status.Text=(state.recoveringCount or 0)+(state.reinforcingCount or 0).." reinforcing"
-	end
-	self.statusWanted=not atHome and self.status.Text~=""
-	self:SyncStatus()
 	local explored=0
  for _,won in state.frontierWins or {} do if won then explored+=1 end end
  local outpostCount=#Progression.Outposts()

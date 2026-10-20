@@ -57,6 +57,9 @@ local TONES={
  Red={Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59),Color3.fromRGB(142,16,40),Color3.fromRGB(255,180,186)},
  Off={Color3.fromRGB(122,132,138),Color3.fromRGB(86,95,101),Color3.fromRGB(48,54,58),Color3.fromRGB(160,170,176)},
 }
+-- October 20 (owner): the Stats button and Army Info's Formations button stay
+-- hidden for now; their code is kept. Set true to show both again.
+local SHOW_ARMY_INFO=false
 local Browser={}
 Browser.__index=Browser
 
@@ -218,7 +221,9 @@ function Browser.new(app,parent)
  Theme.Aspect(root,1274/876)
  local background=frame(root,"ArmyBackground",UDim2.new(),UDim2.new())
  -- The shared header's window contour also frames this full-height background.
- surface(background,Color3.fromRGB(18,32,41),Color3.fromRGB(18,32,41),INK,3).Enabled=false
+ -- October 20 (owner): black at 10% transparency.
+ surface(background,Color3.new(0,0,0),Color3.new(0,0,0),INK,3).Enabled=false
+ background.BackgroundTransparency=0.1
  local header,title=Theme.Header(root,"Header","My Army",GREEN)
  Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
  header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
@@ -271,6 +276,7 @@ function Browser.new(app,parent)
   self.showInfo,self.showCapacity,self.inspecting=true,false,false;self.placing=nil;self:Render(true)
  end,CYAN)
  self.infoButton.Position,self.infoButton.Size=UDim2.new(),UDim2.new()
+ self.infoButton.Visible=SHOW_ARMY_INFO
  self.inventoryPanel=frame(inventory,"InventoryPanel",UDim2.new(),UDim2.new())
  surface(self.inventoryPanel,Color3.fromRGB(27,40,47),Color3.fromRGB(13,29,38),EDGE,2)
  local searchShell=frame(self.inventoryPanel,"Search",UDim2.new(),UDim2.new())
@@ -345,6 +351,7 @@ function Browser.new(app,parent)
 	end
 	self.infoBack=button(self.armyInfo,"BackToChickens","Back to Chickens",back,Theme.ReferenceColors.Upgrades)
 	self.infoFormations=button(self.armyInfo,"Formations","Formations",function() self.app:OpenPage("Formations") end,Theme.ActionColors.navigation)
+	self.infoFormations.Visible=SHOW_ARMY_INFO
 	self.statTiles={}
 	for _,definition in {{"Damage","COMBINED DAMAGE",GREEN},{"Health","COMBINED HEALTH",Theme.ReferenceColors.Upgrades},
 		{"Deployed","ARMY SELECTED",WHITE},{"Flock","TOTAL FLOCK",WHITE}} do
@@ -536,7 +543,8 @@ function Browser:Resize()
  rect(self.capacity,569,10+32,102,64,width,85)
  rect(self.capacityPlus,676,13,66,62,width,85)
  Theme.Aspect(self.capacityPlus,66/62)
- rect(self.best,975,13,294,64,width,85)
+ -- With Stats hidden, Select Best takes its place at the toolbar's right edge.
+ rect(self.best,if SHOW_ARMY_INFO then 975 else 1166,13,294,64,width,85)
  rect(self.infoButton,1280,13,180,64,width,85)
  rect(self.inventoryPanel,6,92,903,inventoryHeight,width,bodyHeight)
  -- While replacing, the search box narrows to make room for Cancel.
