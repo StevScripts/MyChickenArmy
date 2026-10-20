@@ -590,15 +590,20 @@ function PlayerSession:GlobalUpgrade(kind: string)
 	return {price=price,unlocked=true,requirement=""}
 end
 
--- Compare a reveal to the best owned squad, including pending replacements while away.
--- Pass AutoBestPetIds when advising several offers (one sort for all of them).
-function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?, autoBest: {string}?): (string, boolean)
-	local best=autoBest or self:AutoBestPetIds()
-	if #best<self:Capacity() then
+-- Compare a reveal to the Army the player picked, the same rule as Auto Roll's
+-- Army-upgrade stop: an open slot counts only while the Army is automatic, where a
+-- recruit joins it. Pass BestPetIds when advising several offers.
+function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?, army: {string}?): (string, boolean)
+	local picked=army or self:BestPetIds()
+	if #picked==0 or (self.armySelection==nil and #picked<self:Capacity()) then
 		return "Fills an army slot",true
 	end
-	local weakest=self.pets[best[#best]]
-	if weakest and Rules.PetPower(species,1,level)>Rules.PetPower(weakest.species,weakest.stars,weakest.level,weakest.giantSize) then
+	local weakest=math.huge
+	for _,id in picked do
+		local pet=self.pets[id]
+		if pet then weakest=math.min(weakest,Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize)) end
+	end
+	if Rules.PetPower(species,1,level)>weakest then
 		return "Makes your army stronger",true
 	end
 	local income=self:DisplayedPetIncome(species,1,level,mutation)
@@ -679,13 +684,12 @@ function PlayerSession:Snapshot(now: number)
 	end
 	local flock,laying=self:FlockIds(),self:LayingIds()
 	local pets=self:PetEntries(best,deployedIds,flock,laying)
-	local offers,autoBest={},nil
+	local offers={}
 	for slot=1,self.rollSlotCount or 1 do
 		local value=self.offers and self.offers[slot]
 		if value then
-			autoBest=autoBest or self:AutoBestPetIds()
 			local offer=table.clone(value);offer.slot=slot
-			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation,autoBest)
+			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation,best)
 			table.insert(offers,offer)
 		end
 	end
