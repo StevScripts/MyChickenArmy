@@ -58,8 +58,10 @@ function Hud.new(app,shell)
 	self.objective.Visible=false
 	local cash=Theme.Container(shell,"CashReadout")
 	self.cashReadout=cash
-	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.14)
-	Theme.Aspect(cash,3.2)
+	-- October 20: one row taller (was 0.14, aspect 3.2) for the Friend Boost line under
+	-- the number. Rows below are rescaled so every item keeps its on-screen size.
+	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.176)
+	Theme.Aspect(cash,2.545)
 	-- October 15 owner UI Lab tweak: larger coin number with a gradient face; October 20
 	-- (gold Coins): the face is gold beside the gold coin, and the number has no "$".
 	self.money=Theme.Display(cash,"Money","0",46,Color3.fromRGB(252,248,255))
@@ -68,17 +70,20 @@ function Hud.new(app,shell)
 	moneyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,247,57)),
 		ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(255,214,48)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,153,0))})
 	moneyGradient.Parent=self.money.TextFace
-	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Coin,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0.0021,0.0532))
+	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Coin,UDim2.fromScale(0.22,0.509),UDim2.fromScale(0.0021,0.0423))
 	Theme.Aspect(self.cashIcon,1)
-	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0772),UDim2.fromScale(0.76,0.5628)
+	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0614),UDim2.fromScale(0.76,0.4477)
+	-- Friend Boost row (FriendBoost.luau mounts into it); the yard Bag line stays last.
+	self.friendBoostSlot=Theme.Container(cash,"FriendBoostSlot")
+	self.friendBoostSlot.Position,self.friendBoostSlot.Size=UDim2.fromScale(0,0.515),UDim2.fromScale(1,0.2)
 	self.income=Theme.Display(cash,"Income","",20)
-	self.income.Position,self.income.Size=UDim2.fromScale(0,0.68),UDim2.fromScale(1,0.3)
+	self.income.Position,self.income.Size=UDim2.fromScale(0,0.735),UDim2.fromScale(1,0.239)
 	self.income.TextWrapped,self.income.Visible=false,false
 	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
-	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
+	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.159),false
 	-- Rebirth rank ("Rebirth 2") sits just above the money; hidden at rank 0.
 	self.rank=Theme.Display(cash,"RebirthRank","",24,Theme.ReferenceColors.Army)
-	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.26)
+	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.207)
 	self.rank.Visible=false
 	local totals=Theme.Container(shell,"ArmyTotals")
 	self.totals=totals

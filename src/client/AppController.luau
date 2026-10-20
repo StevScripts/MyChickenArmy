@@ -26,6 +26,8 @@ local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
 local EggProcessorController = require(script.Parent.EggProcessorController)
 local OfflineCashController = require(script.Parent.OfflineCashController)
 local FreeGiftController = require(script.Parent.FreeGiftController)
+local GoldRushController = require(script.Parent.GoldRushController)
+local FriendBoost = require(script.Parent.FriendBoost)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
@@ -380,7 +382,7 @@ function AppController:OpenPage(page)
 	end,false,2500,Enum.KeyCode.ButtonB)
 end
 
--- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift".
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift" | "friendBoost".
 -- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
 -- closed menu releases only its own blur owner, so the shared blur stays on.
 -- Safe with nothing open. The offline receipt is always dismissed (already paid).
@@ -397,6 +399,7 @@ function AppController:CloseOtherMenus(keep: string?)
 	end
 	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
+	if keep~="friendBoost" and self.friendBoost then self.friendBoost:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
@@ -950,6 +953,9 @@ end
 function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
+	-- October 20 live Coin boosts: the Gold Rush chip/sky/air and the Friend Boost line.
+	self.goldRush=GoldRushController.new(self)
+	self.friendBoost=FriendBoost.new(self)
 	self.commander=CommanderGuide.new(self)
 	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)
@@ -1014,6 +1020,8 @@ function AppController:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
 	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy()
+	if self.goldRush then self.goldRush:Destroy() end
+	if self.friendBoost then self.friendBoost:Destroy() end
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
 	table.clear(self.menuBlurOwners)
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
