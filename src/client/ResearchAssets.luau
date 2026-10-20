@@ -16,42 +16,42 @@ local Assets={
 	cashArmySize="rbxassetid://92487563557623", cashRollSlots="rbxassetid://91702817085017",
 	hexMask="rbxassetid://117593460258785", hexFill="rbxassetid://103453394949472",
 }
--- October 20 Upgrades tree: one icon per UpgradeCatalog `icon` key. S6's art
--- (assets/upgrade-icons-20261020/upload, file named after each comment) is not
--- uploaded yet: until its ids are pasted here, each key shows today's closest art.
--- The tier number is live text on the hex, never part of the art.
+-- October 20 Upgrades tree: one icon per UpgradeCatalog `icon` key. S6's approved
+-- set (assets/upgrade-icons-20261020; ids in upload-receipts.json), with the receipts'
+-- reused in-game art for the original six tracks, Chicken Feed, March Speed, Health
+-- and Recovery. The tier number is live text on the hex, never part of the art.
 Assets.upgrades={
-	start=Assets.index, -- no S6 file: the Start flag
-	back="", -- Back.png (the hex also says "Back")
-	openTools=Assets.magnet, -- OpenTools.png
-	openPlayer=Theme.Assets.Commander, -- OpenPlayer.png
-	openArmy=Assets.army, -- OpenArmy.png
-	eggSpeed=Assets.cashEggSpeed, -- EggSpeed.png
-	eggValue=Assets.cashEggValue, -- EggValue.png
-	luck=Assets.cashLuck, -- Luck.png
-	flockSize=Assets.cashPlotSize, -- FlockSize.png
-	armySize=Assets.cashArmySize, -- ArmySize.png
-	rollSlots=Assets.cashRollSlots, -- RollSlot.png
-	rollSpeed=Assets.boots, -- RollSpeed.png
-	goldMachine=Assets.cashRollSlots, -- GoldMachine.png
-	goldRate=Assets.cashRollSlots, -- GoldRate.png
-	diamondMachine=Assets.cashRollSlots, -- DiamondMachine.png
-	prismMachine=Assets.cashRollSlots, -- RainbowMachine.png (catalog name is a placeholder)
-	eggVacuum=Assets.magnet, -- EggVacuum.png
-	vacuumCapacity=Assets.magnet, -- VacuumCapacity.png
-	vacuumRange=Assets.magnet, -- VacuumRange.png
-	chickenFeed=Assets.feed, -- ChickenFeed.png
-	walkSpeed=Assets.boots, -- WalkSpeed.png
-	clickRange=Assets.magnet, -- ClickRange.png
-	offlineTime=Assets.feed, -- OfflineTime.png
-	damage=Assets.army, -- Damage.png
-	health=Assets.bandages, -- Health.png
-	marchSpeed=Assets.boots, -- MarchSpeed.png
-	armor=Assets.army, -- Armor.png
-	recovery=Assets.medkit, -- Recovery.png
-	bossDamage=Assets.army, -- BossDamage.png
-	bounty=Assets.cash, -- Bounty.png
-	captureSpeed=Assets.index, -- CaptureSpeed.png
+	start=Assets.index, -- no S6 icon for Start
+	back="rbxassetid://74062628727086",
+	openTools="rbxassetid://135859626721110",
+	openPlayer="rbxassetid://100646125537844",
+	openArmy="rbxassetid://131832119562907",
+	eggSpeed=Assets.cashEggSpeed,
+	eggValue=Assets.cashEggValue,
+	luck=Assets.cashLuck,
+	flockSize=Assets.cashPlotSize,
+	armySize=Assets.cashArmySize,
+	rollSlots=Assets.cashRollSlots,
+	rollSpeed="rbxassetid://70386312720480",
+	goldMachine="rbxassetid://75354767460656",
+	goldRate="rbxassetid://117354946749376",
+	diamondMachine="rbxassetid://113120386630417",
+	prismMachine="rbxassetid://90010215769789", -- S6's RainbowMachine (catalog name is a placeholder)
+	eggVacuum="rbxassetid://130089766443010",
+	vacuumCapacity="rbxassetid://72175945483273",
+	vacuumRange="rbxassetid://82362785406642",
+	chickenFeed=Assets.feed,
+	walkSpeed="rbxassetid://85985460964540",
+	clickRange="rbxassetid://76024349131743",
+	offlineTime="rbxassetid://112666918598506",
+	damage="rbxassetid://95203381451260",
+	health=Assets.medkit,
+	marchSpeed=Assets.boots,
+	armor="rbxassetid://100107542181359",
+	recovery=Assets.bandages,
+	bossDamage="rbxassetid://102931726698589",
+	bounty="rbxassetid://111140823257162",
+	captureSpeed="rbxassetid://112004220419400",
 }
 return Assets
 --stevin

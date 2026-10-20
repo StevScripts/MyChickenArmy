@@ -73,11 +73,12 @@ normal chickens remain possible." and any limited event's podium chance.
 
 ## Icons
 
-`ResearchAssets.upgrades` maps every catalog `icon` key to an image. S6's art
-(`assets/upgrade-icons-20261020/upload/`) is not uploaded yet, so each key shows
-today's closest art; the comment beside each key names its S6 file. The top
-machine is `prismMachine` in the catalog and `RainbowMachine.png` in S6's set. Start
-has no S6 icon.
+`ResearchAssets.upgrades` maps every catalog `icon` key to an image: S6's approved
+set, uploaded October 20 (ids in `assets/upgrade-icons-20261020/upload-receipts.json`),
+with the receipts' reused in-game art for Egg Speed, Egg Value, Luck, Flock Size,
+Army Size, Roll Slot, Chicken Feed, March Speed, Health and Recovery. The top
+machine is `prismMachine` in the catalog and `RainbowMachine` in S6's set. Start has
+no S6 icon and keeps the Index art.
 
 ## For older callers
 

@@ -253,7 +253,7 @@ function Browser:BuildNode(id,layer)
 		title.Position,title.Size=UDim2.fromScale(.02,.5),UDim2.fromScale(.96,.16)
 		local category=if kind=="back" then View.OpenNode(node.category) else nil
 		caption.Text=if kind=="open" then "Open" elseif category then category.name else ""
-		-- Until S6's arrow is uploaded, Back's words fill the hex instead.
+		-- Without its arrow icon, Back's words fill the hex instead.
 		if icon.Image=="" then
 			title.Position,title.Size=UDim2.fromScale(.1,.24),UDim2.fromScale(.8,.22)
 			caption.Position,caption.Size=UDim2.fromScale(.1,.5),UDim2.fromScale(.8,.2)
