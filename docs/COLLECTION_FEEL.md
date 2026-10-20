@@ -2,7 +2,41 @@
 
 Tune `src/shared/CollectionFeel.luau`, then restart Play. ModuleScripts are cached.
 
+## Egg sales: coin burst (October 20)
+
+Selling eggs on the green pad bursts gold coins out of the pad. They bounce, spin,
+then fly into the player one after another, and the HUD Coins readout counts up as
+each coin lands. It is presentation only: the server paid when the deposit happened.
+Any non-robot deposit receipt with a pad position gets it, so the hand vacuum's
+unload will too. Robot vacuum deliveries stay quiet.
+
+- `client/CoinBurst.luau` builds each coin in code: a BillboardGui with the HUD coin
+  image (`Theme.Assets.Coin`), 1.4 studs, not always-on-top. Every move is a
+  TweenService tween. The coin's Attachment (under Terrain) slides across the pad
+  while the gui's `StudsOffsetWorldSpace` rises and then drops with a Bounce ease.
+  A Size squash fakes the spin. For the fly-in, the Attachment moves onto the
+  HumanoidRootPart, so a walking player is followed without a frame loop.
+- One coin per egg sold, 3 to 14 (7 on touch screens without a keyboard), and at
+  most 28 (14) alive at once. A sale that can't get coins (budget, distance, no pad
+  position) plays the Money burst below instead.
+- `ActionFeedback:Deposit` holds the receipt's value as soon as the receipt
+  arrives, before that snapshot reaches the HUD. Each landing coin releases an equal
+  share; the last one carries the remainder. `HudController:ShownCoins` subtracts
+  what is still held. Reset, teardown, reduced motion and a 4-second `HoldTimeout`
+  release everything at once, so the readout always catches up.
+- Sounds: EggDeposit when the coins pop, CashTick (Money) on the first landing,
+  then Collect on each coin with a rising pitch.
+- Reduced motion: no coins. The existing "+N" amount text and CashTick play, and
+  the readout updates at once.
+
+Tune `CollectionFeel.CoinBurst`: coin counts and budgets, `Size`, landing `Radius`
+and `Spill`, pop `Height`, the `Rise/Fall/Rest/Fly` seconds and staggers, the
+flip, the tick sound and `HoldTimeout`.
+
 ## Cash: authored Money particle burst
+
+Since October 20, egg sales use the coin burst above. The Money burst stays for
+chicken sales, daily rewards, the legacy cash claim and the coin burst's fallback.
 
 Cash collection clones the user's `Money` Attachment from
 `ReplicatedStorage.PetRoll.Assets.Money` into the local player's HumanoidRootPart.
@@ -50,7 +84,8 @@ The old deposit egg-sprite flights are removed; there is no fallback to them.
 
 The existing receipt grouping, sound and deposit confirmation remain. Player and
 rover deposits both use this attachment; September 29 instant sales mark these deposits paid, so the same receipt also
-plays the authored Money burst and sound. Saved legacy processor cash uses its
+plays the coin burst (October 20; the Money burst before that). The place currently
+lacks `EggDepositEffects`; the burst warns once per session and the sale continues. Saved legacy processor cash uses its
 separate confirmed recovery receipt at the deposit pad. Reset/teardown clears active deposit
 clones, and reduced motion retains confirmation while suppressing the burst.
 
