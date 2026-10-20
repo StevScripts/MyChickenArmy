@@ -29,9 +29,8 @@ next to the 2x Coins pass and the Rebirth egg multiplier.
 - Displays that go through `EarnedAmount` show the boosted values live: HUD income,
   "Lays eggs worth", egg values and "Bag … Worth". `GoldRushService` touches every
   session when a rush starts or ends, so these refresh at once.
-- Side effect, left as is: the daily login reward is "N minutes of income" through
-  `DailyService.Income`. A daily reward granted during a rush or with friends present
-  is therefore boosted. To exclude it, pass `steady` there.
+- The daily login reward ("N minutes of income", `DailyService.Income`) uses the
+  steady amount too (Stevin, October 20), so it is never boosted.
 
 ## Gold Rush clock (server)
 
@@ -72,8 +71,9 @@ next to the 2x Coins pass and the Rebirth egg multiplier.
     Friend sets are dropped when a player leaves.
   - `Refresh` writes `session.friendBoost` (never saved, never reset with coins) and
     touches the session on a change. It also sets the Player attributes `FriendBoost`
-    (0–0.5) and `FriendBoostFriends`. It runs on every change and every second, so a
-    profile that loads late still gets its boost.
+    (0–0.5, read by the HUD) and `FriendBoostFriends` (the friend count; no client
+    reads it today). It runs on every change and every second, so a profile that loads
+    late still gets its boost.
   - In Studio, local test players (negative user ids) count as friends
     (`Config.FriendBoost.StudioTestPlayersAreFriends`).
 - **HUD (`client/FriendBoost.luau`):**
@@ -84,12 +84,12 @@ next to the 2x Coins pass and the Rebirth egg multiplier.
     size.
   - The text turns green above 0%. A live increase pops it and shows "A friend is
     here!".
-- **Popup (opened by the +):**
-  - The friend icon from the owner's reference GUI (`rbxassetid://120623411385668`).
-  - "+N% Coins", the number of friends in the server, the rule, and **Invite
-    Friends**. That button calls `SocialService:CanSendGameInviteAsync`, then
-    `PromptGameInvite` with an `ExperienceInviteOptions` message.
-  - It joins `AppController:CloseOtherMenus` as `"friendBoost"`.
+- **The + button:** opens Roblox's own friends invite list straight away. There is no
+  popup of our own (Stevin, October 20: "no need for a second UI").
+  - It calls `SocialService:CanSendGameInviteAsync`, then `PromptGameInvite` with an
+    `ExperienceInviteOptions` message: "Invite friends! Each friend in your server
+    gives you +10% Coins."
+  - If the account can't send invites, it shows "Invites aren't available right now."
 
 ## Checks
 
@@ -100,6 +100,5 @@ next to the 2x Coins pass and the Rebirth egg multiplier.
 ## Follow-ups
 
 - Analytics events (the schema belongs to S7).
-- S6 icons for Gold Rush and Friend Boost should replace the coin and friend icons
-  once they're uploaded.
+- S6's Gold Rush icon should replace the coin on the chip once it's uploaded.
 - An optional `GoldRush` sound in `SoundService.MyChickenArmyAudio`.
