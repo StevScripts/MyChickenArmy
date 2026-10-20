@@ -53,7 +53,7 @@ copied 1:1. The only change: it opens from the **Sell** buttons in My Army (S10 
   favorites or chickens that are away. Cards are My Army's cards (rarity art, name,
   DPS); one per chicken, 48 at a time with "Show more". A click toggles a chicken:
   a chosen card turns into a dark cell under the red trash can (`Art.Trash`, S6's
-  `SellTrash` icon; a red SELL tag until the lead uploads it).
+  approved `SellTrash` icon, rbxassetid://111469244237912).
 - Hover (mouse) or gamepad selection shows the reference's tooltip: name, rarity,
   "1 in X", earnings ("Per Second", the reference's "Per Drop") and level.
 - Bottom bar in the reference order: Search, **Back** (to My Army), **Sort: Value /

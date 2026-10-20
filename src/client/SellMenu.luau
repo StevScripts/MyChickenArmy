@@ -25,8 +25,8 @@ local Art={
 	Helmet="rbxassetid://80504375672119",
 	Search="rbxassetid://111902627409710",
 	CoinPile="rbxassetid://107445346366690", -- Pocket Coins (GOLD_COINS.md)
-	-- S6's SellTrash icon; set its id after the lead uploads it. Empty shows a SELL tag.
-	Trash="",
+	-- S6's SellTrash icon (approved and uploaded October 20). Empty would show a SELL tag.
+	Trash="rbxassetid://111469244237912",
 	Card={
 		Common="rbxassetid://122916116818277",Uncommon="rbxassetid://125764068767248",
 		Rare="rbxassetid://99342664851264",Epic="rbxassetid://81561273552383",
