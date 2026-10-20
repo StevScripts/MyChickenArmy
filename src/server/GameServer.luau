@@ -124,12 +124,20 @@ function GameServer:Send(player,result)
 	state.admin=if adminRank then {rank=adminRank} else nil
 	state.researchSkipAllowed=self:ResearchSkipAllowed(player)
 	GameServer.ShowRebirths(player,session.rebirths)
-	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation}
+	-- October 20 storage (up to Config.StorageLimit chickens): an unchanged chicken list
+	-- is left out; AppController keeps the last one. A Sync reply always carries it.
+	local last=self.sent[player.UserId]
+	if last and state.petsVersion~=nil and last.petsVersion==state.petsVersion and not (result and result.action=="Sync") then
+		state.pets=nil
+	end
+	self.sent[player.UserId]={at=now,revision=session.revision,eggs=state.eggs.revision,generation=state.eggs.generation,
+		petsVersion=state.petsVersion}
 	self.remotes.StateChanged:FireClient(player,{state=state,result=result})
 end
 
--- The client replaces its whole state per packet, so every send stays a full
--- snapshot. Only the cadence drops while nothing session-owned has changed.
+-- The client replaces its whole state per packet (keeping an unchanged chicken
+-- list), so every send stays a full snapshot. Only the cadence drops while nothing
+-- session-owned has changed.
 function GameServer:SnapshotDue(session,now)
 	local last=self.sent[session.userId]
 	if not last or now-last.at>=IDLE_SNAPSHOT_SECONDS or session.revision~=last.revision then return true end
@@ -278,6 +286,9 @@ function GameServer:Handle(player,request)
 		end
 	elseif action=="SetArmy" then ok,message=ArmyService.SetSelection(session,request.petIds,request.expectedIds)
 	elseif action=="SelectBest" then ok,message=ArmyService.SelectBest(session)
+	elseif action=="FlockEquip" then ok,message=ArmyService.FlockEquip(session,request.petId,request.replaceId)
+	elseif action=="FlockUnequip" then ok,message=ArmyService.FlockUnequip(session,request.petId)
+	elseif action=="FlockBest" then ok,message=ArmyService.FlockBest(session)
 	elseif action=="Place" or action=="Equip" or action=="Unplace" then message="Choose chickens in the Army menu."
 	elseif action=="Favorite" then ok,message=ArmyService.Favorite(session,request.petId)
 	elseif action=="UpgradeChicken" then

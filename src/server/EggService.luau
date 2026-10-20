@@ -202,19 +202,25 @@ function EggService:Lay(session,yard,petId,layer,now)
 end
 
 function EggService:Produce(session,dt,now)
+ session:RefreshFlock()
  if session:EggsHeld(now) then return end
  local yard=self:Yard(session)
  local production=session:EggProductionMultiplier()
  -- Held territories raise live egg value only (offline uses OfflineCash.Rate).
  local unitValue=Rules.EggUnitValue(session.incomeLevel)*(1+session.researchEffects.eggValue)*(1+(session.territoryBonus or 0))
- for id,pet in session.pets do
+ -- October 20 Flock: only Flock chickens lay (at home, plus fill-ins for Flock
+ -- chickens away with the Army). Chickens in storage lay nothing.
+ local laying={}
+ for _,id in session:LayingIds() do
+  local pet=session.pets[id]
+  if not pet then continue end
+  laying[id]=true
   local layer=yard.layers[id]
   if not layer then
    yard.ordinal+=1
    layer={count=0,value=0,fraction=0,elapsed=0,ordinal=yard.ordinal}
    yard.layers[id]=layer
   end
-  if not session:IsPetHome(id) then continue end
   -- Speed changes affect future production only; partial eggs survive upgrades
   -- and time away. Price each completed egg once, at the shared current value.
   -- Launch: a mutation multiplies this chicken's eggs (1 with the foundation stub).
@@ -231,7 +237,14 @@ function EggService:Produce(session,dt,now)
    self:Lay(session,yard,id,layer,now)
   end
  end
- for id in yard.layers do if not session.pets[id] then yard.layers[id]=nil end end
+ for id,layer in yard.layers do
+  if not session.pets[id] then yard.layers[id]=nil
+  elseif not laying[id] and layer.count>0 and session:IsPetHome(id) then
+   -- A chicken that left the Flock at home still lays the eggs it had started.
+   layer.elapsed=0
+   self:Lay(session,yard,id,layer,now)
+  end
+ end
 end
 
 function EggService:Pay(session,yard,drop,now)

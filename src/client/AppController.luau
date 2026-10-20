@@ -50,7 +50,8 @@ AppController.__index = AppController
 local C = Theme.Colors
 local MenuLayout = require(script.Parent.MenuLayout)
 -- Routine army commands confirm themselves on the HUD (status line, Army count); only failures notify.
-local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true}
+local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true,
+	FlockEquip = true, FlockUnequip = true, FlockBest = true}
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -849,6 +850,20 @@ end
 function AppController:Receive(packet)
 	if type(packet) ~= "table" or type(packet.state) ~= "table" then return end
 	local old = self.state
+	-- October 20 storage: the server leaves out an unchanged chicken list (same
+	-- petsVersion). Keep the last one; anything else asks for a full snapshot.
+	if packet.state.pets == nil then
+		local same = old ~= nil and old.pets ~= nil and old.petsVersion == packet.state.petsVersion
+		packet.state.pets = if old and old.pets then old.pets else {}
+		if not same then
+			-- The kept list stays labeled with its own version until a full one arrives.
+			packet.state.petsVersion = if old then old.petsVersion else nil
+			if os.clock() >= (self.petsSyncAt or 0) then
+				self.petsSyncAt = os.clock() + 2
+				self:Request("Sync")
+			end
+		end
+	end
 	self.state = packet.state
 	local state = self.state
 	-- Before any guide/objective refresh, so a first-visit intro can hold them.

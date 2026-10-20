@@ -10,6 +10,8 @@ local Rules=require(Shared.Rules)
 local Catalog=require(Shared.PetCatalog)
 local Giant=require(Shared.GiantChicken)
 local Mutations=require(Shared.MutationCatalog)
+local Upgrades=require(Shared.UpgradeCatalog)
+local EggArt=require(Shared.EggArt)
 local MutationVFX=require(script.Parent.SpecialChickenVFX)
 -- Approved Figma 456:3625, 1536 x 1024. Only this browser owns these local tokens.
 local WHITE=Color3.fromRGB(249,251,242)
@@ -56,10 +58,14 @@ local TONES={
  Blue={Color3.fromRGB(0,231,255),Color3.fromRGB(0,154,255),Color3.fromRGB(0,91,157),Color3.fromRGB(179,233,255)},
  Red={Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59),Color3.fromRGB(142,16,40),Color3.fromRGB(255,180,186)},
  Off={Color3.fromRGB(122,132,138),Color3.fromRGB(86,95,101),Color3.fromRGB(48,54,58),Color3.fromRGB(160,170,176)},
+ Gold={Color3.fromRGB(255,214,48),Color3.fromRGB(255,153,0),Color3.fromRGB(140,82,0),Color3.fromRGB(255,240,170)},
 }
 -- October 20 (owner): the Stats button and Army Info's Formations button stay
 -- hidden for now; their code is kept. Set true to show both again.
 local SHOW_ARMY_INFO=false
+-- October 20 storage holds up to Config.StorageLimit chickens: cards are built a page at a time.
+local STORAGE_PAGE=48
+local FLOCK_ACTIONS={FlockEquip=true,FlockUnequip=true,FlockBest=true}
 local Browser={}
 Browser.__index=Browser
 
@@ -98,6 +104,13 @@ local function surface(item,top,bottom,border,thickness)
  return stroke
 end
 
+-- October 20 (owner): every My Army panel is black at 10% transparency; strokes stay.
+local function blackPanel(item,border,thickness)
+ local stroke=surface(item,Color3.new(0,0,0),Color3.new(0,0,0),border,thickness)
+ item.BackgroundTransparency=0.1
+ return stroke
+end
+
 local function dark(item,color,profile)
  local top,bottom=Color3.fromRGB(27,40,47),Color3.fromRGB(23,39,48)
  if profile=="Inspector" then top,bottom=Color3.fromRGB(20,38,47),Color3.fromRGB(33,52,61) end
@@ -119,7 +132,8 @@ end
 local function applyButtonColor(item)
  local color=item:GetAttribute("ArmyAccent")
  -- Unavailable actions turn gray so they never look pressable.
- local tone=if not item.Active then TONES.Off elseif color==RED then TONES.Red elseif color==CYAN then TONES.Blue else TONES.Green
+ local tone=if not item.Active then TONES.Off elseif color==RED then TONES.Red elseif color==CYAN then TONES.Blue
+  elseif color==GOLD then TONES.Gold else TONES.Green
  Theme.ApplyReferenceAccent(item,ColorSequence.new(tone[1],tone[2]))
  local visual=item.Visual
  visual.Face.UIGradient.Transparency=NumberSequence.new(if item.Active then 0 else 0.35)
@@ -198,6 +212,15 @@ local function fitCanvas(scroll,layout)
  return function() task.defer(fit) end
 end
 
+-- The same for the sideways Flock strip.
+local function fitCanvasX(scroll,layout)
+ scroll.AutomaticCanvasSize=Enum.AutomaticSize.None
+ local function fit() scroll.CanvasSize=UDim2.fromOffset(math.ceil(layout.AbsoluteContentSize.X),0) end
+ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
+ fit()
+ return function() task.defer(fit) end
+end
+
 local function scrollingPanel(parent,name)
  local item=Instance.new("ScrollingFrame")
  item.Name,item.BackgroundTransparency,item.BorderSizePixel=name,1,0
@@ -209,9 +232,9 @@ local function scrollingPanel(parent,name)
 end
 
 function Browser.new(app,parent)
-	local self=setmetatable({app=app,parent=parent,key="",pending=nil,connections={},slots={},cards={},
-		suppressUntil=0,placing=nil,notice=nil,inspecting=false,showInfo=false,showCapacity=false,
-		query="",sort="Best"},Browser)
+	local self=setmetatable({app=app,parent=parent,key="",pending=nil,connections={},slots={},cards={},stripSlots={},
+		suppressUntil=0,placing=nil,flockPlacing=nil,notice=nil,inspecting=false,showInfo=false,showCapacity=false,
+		query="",sort="Best",storage={},storageShown=0,storageWanted=STORAGE_PAGE},Browser)
 	local root=Instance.new("Frame")
 	root.Name,root.BackgroundTransparency,root.BorderSizePixel="ChickenBrowser",1,0
 	root.Visible,root.ClipsDescendants=false,false
@@ -233,21 +256,18 @@ function Browser.new(app,parent)
  self.inventory=frame(self.body,"Inventory",UDim2.fromScale(1,1))
  local inventory=self.inventory
  self.toolbar=frame(inventory,"CapacityToolbar",UDim2.new())
- surface(self.toolbar,Color3.fromRGB(27,39,45),Color3.fromRGB(32,45,53),Color3.fromRGB(3,11,16),2)
+ blackPanel(self.toolbar,Color3.fromRGB(3,11,16),2)
  self.flockLabel=label(self.toolbar,"FlockLabel","FLOCK",33,UDim2.new(),UDim2.new(),WHITE)
  self.summary=label(self.toolbar,"FlockCount","",36,UDim2.new(),UDim2.new(),WHITE,true)
  self.summary.RichText=true
- -- Both "+" buttons lead to their cash upgrade in Upgrades; the Robux pass is
- -- the fallback only once cash Army Size is maxed.
+ -- Both "+" buttons lead to their upgrade in Upgrades; the Robux pass is
+ -- the fallback only once Army Size is maxed.
  self.flockPlus=button(self.toolbar,"FlockCapacity","+",function()
-  self.app.audio:Play("Click")
-  local offer=self:CashOffer("PlotSize")
-  if offer and offer.ready and offer.price==nil then
-   local limit=self.app.state.collectionLimit or Config.CollectionLimit
-   self.notice,self.noticeUntil="Your Flock is at its maximum of "..limit.." chickens.",os.clock()+4
-   self:UpdateAction();self:Refuse();return
+  self.app.audio:Play("Click");self:CancelPointer(true)
+  if not self:OpenUpgrade("Flock","PlotSize") then
+   self.notice,self.noticeUntil="Your Flock is at its biggest size.",os.clock()+4
+   self:UpdateAction();self:Refuse()
   end
-  self:CancelPointer(true);self.app.research:OpenCash("PlotSize")
  end,GREEN)
  self.flockPlus.Position,self.flockPlus.Size,self.flockPlus.TextSize=UDim2.new(),UDim2.new(),44
  local divider=frame(self.toolbar,"Divider",UDim2.new(),UDim2.new())
@@ -257,9 +277,8 @@ function Browser.new(app,parent)
  self.capacity.RichText=true
  self.capacityPlus=button(self.toolbar,"MoreArmySlots","+",function()
   self.app.audio:Play("Click");self:CancelPointer(true)
-  local offer=self:CashOffer("ArmySize")
-  if not (offer and offer.ready and offer.price==nil) then self.app.research:OpenCash("ArmySize");return end
-  self.showCapacity,self.showInfo,self.inspecting=true,false,false;self.placing=nil;self:Render(true)
+  if self:OpenUpgrade("ArmySize","ArmySize") then return end
+  self.showCapacity,self.showInfo,self.inspecting=true,false,false;self.placing,self.flockPlacing=nil,nil;self:Render(true)
  end,GREEN)
  self.capacityPlus.Position,self.capacityPlus.Size,self.capacityPlus.TextSize=UDim2.new(),UDim2.new(),44
  for _,plus in {self.flockPlus,self.capacityPlus} do
@@ -267,7 +286,7 @@ function Browser.new(app,parent)
  end
  self.best=button(self.toolbar,"SelectBest","Select Best",function()
   if not self:CanEdit() then return end
-  self.placing,self.placingExpected,self.saleQuote=nil,nil,nil
+  self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
   self.search.Text="";self.grid.CanvasPosition=Vector2.zero;self:Send("SelectBest")
  end,GREEN)
  self.best.Position,self.best.Size=UDim2.new(),UDim2.new()
@@ -278,7 +297,30 @@ function Browser.new(app,parent)
  self.infoButton.Position,self.infoButton.Size=UDim2.new(),UDim2.new()
  self.infoButton.Visible=SHOW_ARMY_INFO
  self.inventoryPanel=frame(inventory,"InventoryPanel",UDim2.new(),UDim2.new())
- surface(self.inventoryPanel,Color3.fromRGB(27,40,47),Color3.fromRGB(13,29,38),EDGE,2)
+ blackPanel(self.inventoryPanel,EDGE,2)
+ -- October 20 Flock strip: the chickens laying eggs, above storage. It scrolls
+ -- sideways once Flock Size outgrows the panel.
+ self.flockHeader=frame(self.inventoryPanel,"FlockHeader",UDim2.new(),UDim2.new())
+ self.flockTitle=label(self.flockHeader,"Title","LAYING EGGS",30,UDim2.new(),UDim2.new(),WHITE,true)
+ self.flockRate=label(self.flockHeader,"Rate","",26,UDim2.new(),UDim2.new(),GOLD)
+ self.flockBest=button(self.flockHeader,"EquipBest","Equip Best",function()
+  if not self:CanEdit() then return end
+  self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
+  self:Send("FlockBest")
+ end,GOLD)
+ local strip=Instance.new("ScrollingFrame")
+ strip.Name,strip.BackgroundTransparency,strip.BorderSizePixel="FlockStrip",1,0
+ strip.ScrollBarThickness,strip.ScrollingDirection=0,Enum.ScrollingDirection.X
+ strip.HorizontalScrollBarInset=Enum.ScrollBarInset.Always
+ strip.CanvasSize,strip.ClipsDescendants=UDim2.new(),true
+ strip.ZIndex,strip.Parent=inventory.ZIndex+2,self.inventoryPanel
+ local stripLayout=Instance.new("UIListLayout")
+ stripLayout.FillDirection,stripLayout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
+ stripLayout.Padding,stripLayout.Parent=UDim.new(0,0),strip
+ self.strip=strip
+ self.fitStrip=fitCanvasX(strip,stripLayout)
+ self.storageDivider=frame(self.inventoryPanel,"StorageDivider",UDim2.new(),UDim2.new())
+ self.storageDivider.BackgroundColor3,self.storageDivider.BackgroundTransparency=Color3.fromRGB(132,154,167),0.35
  local searchShell=frame(self.inventoryPanel,"Search",UDim2.new(),UDim2.new())
  surface(searchShell,Color3.fromRGB(28,42,49),Color3.fromRGB(24,38,45),Color3.fromRGB(142,175,193),Theme.Border.Card)
  art(searchShell,"SearchIcon",Art.Search,UDim2.new(),UDim2.new())
@@ -304,15 +346,18 @@ function Browser.new(app,parent)
  art(sort,"Chevron",Art.Chevron,UDim2.new(),UDim2.new())
  sort.Activated:Connect(function()
   self.app.audio:Play("Click")
-  self.sort=if self.sort=="Best" then "Name" else "Best"
+  self.sort=if self.sort=="Best" then "Eggs" elseif self.sort=="Eggs" then "Name" else "Best"
+  self.storageWanted=STORAGE_PAGE
   self.grid.CanvasPosition=Vector2.zero;self:Render(true)
   Theme.Motion:PopScale(sortCaption,1.1)
  end)
  Theme.Motion:BindButton(sort,Theme.Motion:ScaleOf(sort),sort)
- -- Replace mode gets its own Cancel beside the search box; the sort control stays.
+ -- Opens the Sell screen for picking many chickens at once.
+ self.sellMany=button(self.inventoryPanel,"SellChickens","Sell",function() self:OpenSell(nil) end,RED)
+ -- Replace mode gets its own Cancel in Sell's place; the sort control stays.
  self.placeCancel=button(self.inventoryPanel,"CancelReplace","Cancel",function()
   self.app.audio:Play("Click")
-  self.placing,self.placingExpected=nil,nil
+  self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
   self:Render(true)
  end,RED)
  self.placeCancel.Visible=false
@@ -337,7 +382,14 @@ function Browser.new(app,parent)
  self.hint.ZIndex,self.hint.Visible=inventory.ZIndex+20,false
  table.insert(self.connections,search:GetPropertyChangedSignal("Text"):Connect(function()
   self.query=string.lower(search.Text):match("^%s*(.-)%s*$") or ""
+  self.storageWanted=STORAGE_PAGE
   self.grid.CanvasPosition=Vector2.zero;self:Render(true)
+ end))
+ -- The next page of storage loads as the grid nears its end.
+ table.insert(self.connections,grid:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+  if not self.moreRow then return end
+  local window=grid.AbsoluteWindowSize.Y
+  if grid.CanvasPosition.Y+window>=grid.AbsoluteCanvasSize.Y-window*0.5 then self:ShowMoreStorage() end
  end))
 
 	self.armyInfo=scrollingPanel(self.body,"ArmyInfo")
@@ -354,8 +406,8 @@ function Browser.new(app,parent)
 	self.infoFormations.Visible=SHOW_ARMY_INFO
 	self.statTiles={}
 	for _,definition in {{"Damage","COMBINED DAMAGE",GREEN},{"Health","COMBINED HEALTH",Theme.ReferenceColors.Upgrades},
-		{"Deployed","ARMY SELECTED",WHITE},{"Flock","TOTAL FLOCK",WHITE}} do
-		local tile=frame(self.armyInfo,definition[1],UDim2.new());dark(tile,EDGE)
+		{"Deployed","ARMY SELECTED",WHITE},{"Flock","CHICKENS",WHITE}} do
+		local tile=frame(self.armyInfo,definition[1],UDim2.new());blackPanel(tile,EDGE,1.5)
 		self.statTiles[definition[1]]={
 			frame=tile,title=label(tile,"Title",definition[2],14,UDim2.new(),UDim2.new(),MUTED),
 			value=label(tile,"Value","",40,UDim2.new(),UDim2.new(),definition[3],true),
@@ -393,7 +445,7 @@ function Browser.new(app,parent)
 
  -- Fixed inline inspector. Equipment is represented by checks, never a Reserve badge.
  self.detail=scrollingPanel(self.body,"SelectedChicken")
- self.detailBorder=surface(self.detail,Color3.fromRGB(16,35,44),Color3.fromRGB(16,35,44),CYAN,2)
+ self.detailBorder=blackPanel(self.detail,CYAN,2)
  self.name=label(self.detail,"Name","Choose a chicken",49,UDim2.new(),UDim2.new(),WHITE,true)
  self.name.TextXAlignment=Enum.TextXAlignment.Center
  fitInspectorLine(self.name,49,16)
@@ -419,36 +471,27 @@ function Browser.new(app,parent)
  self.actionLayout.Parent=self.actions
  self.assign=button(self.actions,"AssignChicken","Add to Army",function() self:AssignSelected() end,GREEN)
  fitInspectorLine(self.assign,42,14)
- self.sell=button(self.actions,"SellChicken","Sell",function() self:ReviewSale() end,RED)
+ self.sell=button(self.actions,"SellChicken","Sell",function() self:OpenSell(self.app.selected) end,RED)
  self.assign.LayoutOrder,self.sell.LayoutOrder=1,2
  fitInspectorLine(self.sell,38,14)
- self.mergeHint=label(self.detail,"MergeHint","",23,UDim2.new(),UDim2.new(),MUTED)
- self.mergeHint.TextXAlignment=Enum.TextXAlignment.Center
- fitInspectorLine(self.mergeHint,23,12)
- self.detailBack=button(self.body,"BackToFlock","Back to Flock",function()
+ -- October 20 Flock: whether this chicken lays, and the button that moves it.
+ self.flockStatus=label(self.detail,"FlockStatus","",23,UDim2.new(),UDim2.new(),MUTED)
+ self.flockStatus.TextXAlignment,self.flockStatus.TextWrapped=Enum.TextXAlignment.Center,true
+ fitInspectorLine(self.flockStatus)
+ self.flockAction=button(self.detail,"FlockChicken","Add to Flock",function() self:FlockSelected() end,GOLD)
+ fitInspectorLine(self.flockAction)
+ self.detailBack=button(self.body,"BackToFlock","Back",function()
   self.app.audio:Play("Click");self.inspecting=false;self.app.selected=nil
-  self.saleQuote=nil;self:Render(true)
+  self:Render(true)
  end,CYAN)
  self.detailBack.Visible=false
-
-	self.salePanel=frame(self.detail,"ConfirmSale",UDim2.new())
-	dark(self.salePanel,RED)
-	self.salePrompt=label(self.salePanel,"Quote","",14,UDim2.new(),UDim2.new(),WHITE)
-	self.salePrompt.TextWrapped,self.salePrompt.TextTruncate=true,Enum.TextTruncate.None
-	self.salePrompt.TextYAlignment=Enum.TextYAlignment.Top
-	self.saleConfirm=button(self.salePanel,"ConfirmSale","Confirm sale",function() self:ConfirmSale() end,RED)
-	self.saleConfirm.Position,self.saleConfirm.Size=UDim2.new(),UDim2.new()
-	self.saleCancel=button(self.salePanel,"KeepChicken","Keep chicken",function()
-		self.app.audio:Play("Click");self.saleQuote=nil;self:UpdateAction()
-	end,CYAN)
-	self.saleCancel.Position,self.saleCancel.Size=UDim2.new(),UDim2.new()
-	self.salePanel.Visible=false
 	table.insert(self.connections,UserInputService.InputChanged:Connect(function(input) self:PointerChanged(input) end))
 	table.insert(self.connections,UserInputService.InputEnded:Connect(function(input) self:PointerEnded(input) end))
 	table.insert(self.connections,UserInputService.WindowFocusReleased:Connect(function() self:CancelPointer(true) end))
 	local function visibilityChanged()
 		if not root.Visible or not parent.Visible then
-			self:CancelPointer(true);self.placing,self.placingExpected=nil,nil
+			self:CancelPointer(true);self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
+			self.storageWanted=STORAGE_PAGE
 			self.showInfo,self.showCapacity,self.inspecting=false,false,false
 			self.app.selected,self.lastSelected=nil,nil
 			search:ReleaseFocus()
@@ -467,6 +510,36 @@ end
 function Browser:CashOffer(key)
 	local offers=self.app.state and self.app.state.boardUpgrades
 	return offers and offers[key]
+end
+
+-- Opens Upgrades at the family's next tier; false once the family is maxed.
+function Browser:OpenUpgrade(family,legacyKey): boolean
+	local tree=self.app.state and self.app.state.upgradeTree
+	local definition=Upgrades.Families and Upgrades.Families[family]
+	if type(tree)=="table" and definition then
+		local tier=tree.families and tree.families[family] or 0
+		if tier>=#definition.tiers then return false end
+		self.app.research:OpenNode(Upgrades.NodeId(family,tier+1))
+		return true
+	end
+	-- Snapshots without the Upgrades tree still carry the old cash offers.
+	local offer=self:CashOffer(legacyKey)
+	if offer and offer.ready and offer.price==nil then return false end
+	if self.app.research.OpenCash then self.app.research:OpenCash(legacyKey) else self.app.research:Open() end
+	return true
+end
+
+-- The Sell screen picks many chickens at once; `petId` starts selected when it can be sold.
+function Browser:OpenSell(petId)
+	if self.pending or not self.app.OpenSell then return end
+	self.app.audio:Play("Click");self:CancelPointer(true)
+	self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
+	self.app:OpenSell(petId)
+end
+
+-- The Coins level-up button stays until Chicken Feed arrives (the snapshot gains `tools`).
+function Browser:UpgradeShown(): boolean
+	return Config.Features.ChickenCashUpgrades and self.app.state~=nil and self.app.state.tools==nil
 end
 
 function Browser:CanEdit()
@@ -508,10 +581,10 @@ function Browser:OpenInventory()
 		end
 	end
 	local id=if pet then pet.id else nil
-	if self.app.selected~=id then self.saleQuote=nil end
 	self.app.selected,self.lastSelected=id,id
 	self.inspecting,self.showInfo,self.showCapacity=pet~=nil,false,false
-	self.placing,self.placingExpected=nil,nil
+	self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
+	self.storageWanted=STORAGE_PAGE
 end
 
 function Browser:Resize()
@@ -547,20 +620,29 @@ function Browser:Resize()
  rect(self.best,if SHOW_ARMY_INFO then 975 else 1166,13,294,64,width,85)
  rect(self.infoButton,1280,13,180,64,width,85)
  rect(self.inventoryPanel,6,92,903,inventoryHeight,width,bodyHeight)
- -- While replacing, the search box narrows to make room for Cancel.
- local searchWidth=if self.placing then 410 else 584
- rect(self.searchShell,16,12,searchWidth,60,903,inventoryHeight)
- rect(self.searchShell.SearchIcon,16,12,38,38,searchWidth,60)
+ -- October 20: the Flock strip sits above storage; its cards are 146 x 150 slots.
+ rect(self.flockHeader,16,10,871,46,903,inventoryHeight)
+ rect(self.flockTitle,0,0,250,46,871,46)
+ rect(self.flockRate,262,0,377,46,871,46)
+ self.flockTitle.TextXAlignment,self.flockRate.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
+ rect(self.flockBest,651,1,220,44,871,46)
+ rect(self.strip,13,62,877,150,903,inventoryHeight)
+ rect(self.storageDivider,16,222,871,2,903,inventoryHeight)
+ rect(self.searchShell,16,234,430,56,903,inventoryHeight)
+ rect(self.searchShell.SearchIcon,16,10,36,36,430,56)
  Theme.Aspect(self.searchShell.SearchIcon,1)
- rect(self.search,75,0,searchWidth-104,60,searchWidth,60)
+ rect(self.search,66,0,340,56,430,56)
  Theme.ScaleText(self.search)
- self.placeCancel.Visible=self.placing~=nil
- rect(self.placeCancel,436,12,164,60,903,inventoryHeight)
+ -- While replacing, Cancel takes Sell's place.
+ local placing=self.placing~=nil or self.flockPlacing~=nil
+ self.placeCancel.Visible,self.sellMany.Visible=placing,not placing
+ rect(self.placeCancel,458,234,146,56,903,inventoryHeight)
+ rect(self.sellMany,458,234,146,56,903,inventoryHeight)
  self.sortButton.AnchorPoint=Vector2.new(0.5,0.5)
- rect(self.sortButton,614+135,12+30,270,60,903,inventoryHeight)
- rect(self.sortButton.Caption,18,0,195,60,270,60)
- rect(self.sortButton.Chevron,221,18,34,24,270,60)
- rect(self.grid,13,87,877,inventoryHeight-99,903,inventoryHeight)
+ rect(self.sortButton,614+135,234+28,270,56,903,inventoryHeight)
+ rect(self.sortButton.Caption,18,0,195,56,270,56)
+ rect(self.sortButton.Chevron,221,16,34,24,270,56)
+ rect(self.grid,13,300,877,inventoryHeight-312,903,inventoryHeight)
  self.grid.ScrollBarThickness=0
  rect(self.hint,19,bodyHeight-48,887,44,width,bodyHeight)
  self.hint.TextWrapped=true
@@ -570,26 +652,31 @@ function Browser:Resize()
  self.name.AnchorPoint=Vector2.new(0.5,0.5)
  rect(self.name,14+253.5,16+27,507,54,535,detailHeight)
  rect(self.metadata,14,78,507,28,535,detailHeight)
- self.previewSize=UDim2.fromScale(414/535,414/detailHeight)
- self.previewPosition=UDim2.fromScale(60.5/535,102/detailHeight)
- rect(self.detailHalo,73.5,114,388,388,535,detailHeight)
+ -- Two inspector layouts: with the Coins level-up button (until Chicken Feed), and without.
+ if self:UpgradeShown() then
+  self.previewSize=UDim2.fromScale(330/535,330/detailHeight)
+  self.previewPosition=UDim2.fromScale(102.5/535,100/detailHeight)
+  rect(self.detailHalo,112.5,110,310,310,535,detailHeight)
+  rect(self.stats,14,436,507,40,535,detailHeight)
+  rect(self.flockStatus,14,478,507,32,535,detailHeight)
+  rect(self.upgrade,14,514,507,72,535,detailHeight)
+  rect(self.flockAction,14,594,507,72,535,detailHeight)
+  rect(self.actions,14,674,507,72,535,detailHeight)
+  rect(self.detailNotice,14,754,507,44,535,detailHeight)
+ else
+  self.previewSize=UDim2.fromScale(380/535,380/detailHeight)
+  self.previewPosition=UDim2.fromScale(77.5/535,100/detailHeight)
+  rect(self.detailHalo,89.5,112,356,356,535,detailHeight)
+  rect(self.stats,14,484,507,42,535,detailHeight)
+  rect(self.flockStatus,14,528,507,40,535,detailHeight)
+  rect(self.flockAction,14,576,507,76,535,detailHeight)
+  rect(self.actions,14,660,507,76,535,detailHeight)
+  rect(self.detailNotice,14,744,507,44,535,detailHeight)
+ end
  Theme.Aspect(self.detailHalo,1)
- rect(self.stats,14,510,507,48,535,detailHeight)
- rect(self.upgrade,14,566,507,86,535,detailHeight)
- -- October 15: with cash levels off, the Fuse progress line takes the Upgrade spot.
- if Config.Features.ChickenCashUpgrades then rect(self.mergeHint,14,660,507,28,535,detailHeight)
- else rect(self.mergeHint,14,566,507,86,535,detailHeight) end
- self.mergeHint.TextWrapped=true
- rect(self.actions,14,696,507,72,535,detailHeight)
  self.actionLayout.Padding=UDim.new(12/507,0)
  self.assign.Size,self.sell.Size=UDim2.fromScale(331/507,1),UDim2.fromScale(164/507,1)
- rect(self.detailNotice,14,780,507,44,535,detailHeight)
  self.detailNotice.TextWrapped=true
- self.salePanel.AnchorPoint=Vector2.new(0.5,0.5)
- rect(self.salePanel,14+253.5,510+133,507,266,535,detailHeight)
- rect(self.salePrompt,8,8,491,120,507,266)
- rect(self.saleConfirm,8,140,491,52,507,266)
- rect(self.saleCancel,8,204,491,48,507,266)
  self.armyInfo.Position,self.capacityPage.Position=UDim2.fromScale(0.012,0.015),UDim2.fromScale(0.012,0.015)
  self.armyInfo.Size,self.capacityPage.Size=UDim2.fromScale(0.976,0.97),UDim2.fromScale(0.976,0.97)
  self.armyInfo.CanvasSize,self.capacityPage.CanvasSize=UDim2.new(),UDim2.new()
@@ -627,9 +714,9 @@ function Browser:Send(action,payload)
 	if self.pending then return end
 	self.app.audio:Play("Click")
 	local id=self.app:Request(action,payload)
-	self.pending={id=id,at=os.clock(),action=action,petId=if action=="Sell" and payload then payload.petIds[1] else payload and payload.petId,
-		before=table.clone(self.app.state.selectedIds or {})}
-	if action~="Sell" then self.saleQuote=nil end
+	local flock=self.app.state.flock
+	self.pending={id=id,at=os.clock(),action=action,petId=payload and payload.petId,
+		before=table.clone(self.app.state.selectedIds or {}),flockBefore=table.clone(flock and flock.ids or {})}
 	self.notice=nil
 	self:UpdateAction()
 end
@@ -640,15 +727,10 @@ function Browser:Receive(result)
 	if self.pending and result and result.id==self.pending.id then
 		local pending=self.pending
 		self.pending=nil
-		if pending.action=="Sell" then
-			self.saleQuote=nil
-			if result.ok and (self.app.selected==pending.petId or self.lastSelected==pending.petId) then
-				self.app.selected,self.lastSelected,self.inspecting=nil,nil,false
-			end
-		end
 		if pending.action=="UpgradeChicken" and result.ok then self.app.feedback:Action("Income") end
-		-- Confirmed Army edits pop the changed cards on the next render only.
+		-- Confirmed Army and Flock edits pop the changed cards on the next render only.
 		if result.ok and (pending.action=="SetArmy" or pending.action=="SelectBest") then self.armyPop={before=pending.before,at=os.clock()} end
+		if result.ok and FLOCK_ACTIONS[pending.action] then self.flockPop={before=pending.flockBefore,at=os.clock()} end
 		self.notice=if result.ok then nil else result.message
 		self.noticeUntil=os.clock()+4
 		if not result.ok then self:Refuse() end
@@ -675,37 +757,63 @@ function Browser:PopArmyChanges(before,ids)
 	if changed then Theme.Motion:PopScale(self.capacity,1.12) end
 end
 
+-- Chickens new to the Flock pop in the strip after a confirmed Flock change.
+function Browser:PopFlockChanges(before)
+	local was={}
+	for _,id in before do was[id]=true end
+	for id,entry in self.cards do
+		if entry.strip and not was[id] then Theme.Motion:PopScale(entry.card,1.06) end
+	end
+	Theme.Motion:PopScale(self.summary,1.12)
+end
+
+-- What this chicken does for eggs, plus how to level it once Chicken Feed replaces the Coins button.
+function Browser:FlockStatus(pet,upgradeShown): string
+	if not pet then return "" end
+	local text=if pet.flock and pet.laying then "Laying eggs in your Flock"
+		elseif pet.flock then "In your Flock · away with your Army"
+		elseif pet.laying then "Laying in place of a Flock chicken that's away"
+		else "In storage · not laying eggs"
+	if upgradeShown or (pet.level or 1)>=Config.MaxPetLevel then return text end
+	local tools=self.app.state.tools
+	return text.."\n"..(if type(tools)=="table" and tools.chickenFeed then "Level it up: equip Chicken Feed and walk up to it"
+		else "Level it up with Chicken Feed (Upgrades > Tools)")
+end
+
 function Browser:UpdateAction()
 	local state=self.app.state
 	if not state then return end
 	if self.pending and os.clock()-self.pending.at>5 then
-		self.pending=nil;self.saleQuote=nil
+		self.pending=nil
 		self.notice="No response yet. Try again.";self.noticeUntil=os.clock()+4
 	end
 	if self.notice and os.clock()>(self.noticeUntil or 0) then self.notice=nil end
 	local pet=self.app:Pet(self.app.selected)
-	if self.saleQuote and not self.pending and not self:SaleQuoteValid() then
-		self.saleQuote=nil
-		self.notice,self.noticeUntil="Your Flock changed. Review the chicken again.",os.clock()+4
-	end
 	local canEdit=self:CanEdit()
+	local flock=state.flock
+	local members=if flock then flock.ids or {} else {}
 	enabled(self.best,canEdit)
 	self.best.Text=if self.pending and self.pending.action=="SelectBest" then "Selecting…" else "Select Best"
+	enabled(self.flockBest,canEdit and flock~=nil)
+	self.flockBest.Text=if self.pending and self.pending.action=="FlockBest" then "Equipping…" else "Equip Best"
 	self.hint.Text=if self.notice then self.notice
-		elseif self.pending then (if self.pending.action=="Sell" then "Selling chicken…" elseif self.pending.action=="UpgradeChicken" then "Upgrading chicken…" else "Updating Army…")
+		elseif self.pending then (if self.pending.action=="UpgradeChicken" then "Upgrading chicken…"
+			elseif FLOCK_ACTIONS[self.pending.action] then "Updating Flock…" else "Updating Army…")
 		elseif self.placing then "Choose a green-checked chicken to replace, or choose Cancel."
+		elseif self.flockPlacing then "Choose a Flock chicken to swap out, or choose Cancel."
 		elseif not canEdit then "Updating Army…"
 		else ""
 	self.hint.Visible=self.hint.Text~=""
 	self.hint.TextColor3=if self.notice then Color3.fromRGB(255,120,132) else MUTED
-	-- A home reserve can be sold even while the rest of the Army is away.
-	local canSell=self.pending==nil and self:SaleEligible(pet)
+	-- A home chicken in storage can be sold even while the rest of the Army is away.
+	local canSell=self.pending==nil and self.app.OpenSell~=nil and self:SaleEligible(pet)
 	self.detailNotice.Text=if self.notice then self.notice
 		elseif self.pending then "Updating…"
 		elseif pet and self:ColossalSlot(pet.id) then "Only 1 Colossal per Army."
-		elseif pet and not canSell then self:SaleBlockedReason(pet)
+		elseif pet and not self:SaleEligible(pet) then self:SaleBlockedReason(pet)
 		else ""
 	self.detailNotice.TextColor3=self.hint.TextColor3
+	local upgradeShown=self:UpgradeShown()
 	local price=pet and pet.upgradePrice
 	local affordable=type(price)=="number" and state.coins>=price
 	enabled(self.upgrade,canEdit and pet~=nil and pet.canUpgrade==true and affordable)
@@ -717,65 +825,30 @@ function Browser:UpdateAction()
 		elseif pet and self:ColossalSlot(pet.id) then "Replace Colossal"
 		elseif #(state.selectedIds or {})>=state.capacity then "Replace…" else "Add to Army"
 	enabled(self.sell,canSell)
-	self.sell.Text=if self.pending and self.pending.action=="Sell" then "Selling…" else "Sell"
-	local reviewing=self.saleQuote~=nil
-	self.salePanel.Visible=reviewing
-
-	self.stats.Visible,self.assign.Visible,self.sell.Visible=not reviewing,not reviewing,not reviewing
-	self.upgrade.Visible,self.mergeHint.Visible=not reviewing and Config.Features.ChickenCashUpgrades,not reviewing and pet~=nil
-	self.detailNotice.Visible=not reviewing and self.detailNotice.Text~=""
-	enabled(self.saleConfirm,canSell and reviewing)
-	enabled(self.saleCancel,self.pending==nil)
-	if self.saleQuote then
-		local quote=self.saleQuote
-		self.salePrompt.Text="Sell "..quote.name.." permanently?\nHome egg income -"..Theme.Coins(quote.income).."/s."
-		self.saleConfirm.Text=if self.pending then "Selling…" else "Sell for "..Theme.Coins(quote.refund)
-	end
-	self.mergeHint.Text=""
-	if pet and not Config.Features.ChickenCashUpgrades then
-		self.mergeHint.Text=self:FuseHint(pet)
-	elseif pet then
-		self.mergeHint.Text=if self.pending and self.pending.action=="UpgradeChicken" then ""
-			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
-			elseif pet.canUpgrade==false then pet.upgradeReason or "Return this chicken home to upgrade."
-			elseif self:FuseReady(pet) then self:FuseHint(pet)
-			elseif not affordable then "Not enough coins"
-			else "Boosts damage and eggs · bought levels reset on Rebirth"
-	end
-end
-
--- Owned chickens that could Fuse with this one (same species, stars and level; itself included).
-function Browser:FuseMatches(pet): number
-	local matching=0
-	for _,other in self.app.state.pets or {} do
-		if other.species==pet.species and other.stars==pet.stars and (other.level or 1)==(pet.level or 1) then matching+=1 end
-	end
-	return matching
-end
-
-function Browser:FuseReady(pet): boolean
-	return self.app.state.mergeUnlocked~=false and (pet.level or 1)<Config.MaxPetLevel and self:FuseMatches(pet)>=3
-end
-
--- How close this chicken is to its next Fuse level (the whole line when cash levels are off).
-function Browser:FuseHint(pet): string
-	if (pet.level or 1)>=Config.MaxPetLevel then return "Max level reached" end
-	if self.app.state.mergeUnlocked==false then return "Unlock the Fuse Machine in Upgrades to level up chickens." end
-	local matching,nextLevel=self:FuseMatches(pet),(pet.level or 1)+1
-	if matching>=3 then return "Ready! Fuse 3 at the Fuse Machine to reach Lv "..nextLevel end
-	return "Fuse 3 matching to reach Lv "..nextLevel.." · You have "..matching.."/3"
+	enabled(self.sellMany,self.pending==nil and self.app.OpenSell~=nil)
+	-- The last Flock chicken stays: an empty Flock would lay nothing.
+	enabled(self.flockAction,canEdit and pet~=nil and flock~=nil and not (pet.flock and #members<=1))
+	self.flockAction.Text=if self.pending and FLOCK_ACTIONS[self.pending.action] then "Updating…"
+		elseif pet and self.flockPlacing==pet.id then "Pick one to swap…"
+		elseif pet and pet.flock then "Remove from Flock"
+		elseif flock and #members>=flock.size then "Swap into Flock…" else "Add to Flock"
+	self.flockStatus.Text=self:FlockStatus(pet,upgradeShown)
+	self.flockStatus.TextColor3=if pet and pet.laying then GOLD else MUTED
+	self.upgrade.Visible=upgradeShown
+	self.flockStatus.Visible,self.flockAction.Visible=pet~=nil,pet~=nil
+	self.detailNotice.Visible=self.detailNotice.Text~=""
 end
 
 function Browser:UpgradeSelected()
 	local pet=self.app:Pet(self.app.selected)
 	if not self:CanEdit() or not pet or pet.canUpgrade~=true or type(pet.upgradePrice)~="number"
-		or self.app.state.coins<pet.upgradePrice or self.saleQuote then return end
-	self:CancelPointer(true);self.placing,self.placingExpected=nil,nil
+		or self.app.state.coins<pet.upgradePrice then return end
+	self:CancelPointer(true);self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
 	self:Send("UpgradeChicken",{petId=pet.id,expectedLevel=pet.level,expectedPrice=pet.upgradePrice})
 end
 
 function Browser:SaleEligible(pet)
-	return pet~=nil and pet.canSell==true and not pet.selected and not pet.favorite
+	return pet~=nil and pet.canSell==true and not pet.selected and not pet.flock and not pet.favorite
 		and not pet.deployed and pet.home~=false and type(pet.refund)=="number"
 		and pet.refund>=0 and pet.refund<math.huge
 end
@@ -786,47 +859,66 @@ function Browser:SaleBlockedReason(pet): string
 	if pet.favorite then return "Favorited chickens can't be sold." end
 	if pet.deployed or pet.home==false then return "Sell this chicken once it's back home." end
 	if pet.selected then return "Remove this chicken from your Army to sell it." end
+	if pet.flock then return "Remove this chicken from your Flock to sell it." end
 	if pet.canSell==false and type(pet.saleReason)=="string" then return pet.saleReason end
 	return ""
 end
 
-function Browser:SaleQuoteValid()
-	local quote=self.saleQuote
-	if not quote or self.app.selected~=quote.id or not self.app.state then return false end
-	local pet=self.app:Pet(quote.id)
-	return self:SaleEligible(pet) and pet.level==quote.level and pet.refund==quote.refund
-		and self.app:PetIncome(pet)==quote.income
-end
-
-function Browser:ReviewSale()
+-- The inspector's Flock button: add, remove, or (when full) pick a Flock chicken to swap out.
+function Browser:FlockSelected()
 	local pet=self.app:Pet(self.app.selected)
-	if self.pending or not self:SaleEligible(pet) then return end
-	self.app.audio:Play("Click");self:CancelPointer(true)
-	self.placing,self.placingExpected=nil,nil
-	self.saleQuote={id=pet.id,name=Catalog[pet.species].name,level=pet.level,
-		refund=pet.refund,income=self.app:PetIncome(pet)}
-	self:UpdateAction()
-	Theme.Motion:PopScale(self.salePanel,0.94)
+	local flock=self.app.state and self.app.state.flock
+	if not pet or not flock or not self:CanEdit() then return end
+	self:CancelPointer(true);self.placing,self.placingExpected=nil,nil
+	if pet.flock then self:Send("FlockUnequip",{petId=pet.id});return end
+	if #(flock.ids or {})<flock.size then self:Send("FlockEquip",{petId=pet.id});return end
+	self.app.audio:Play("Click")
+	self.flockPlacing=if self.flockPlacing==pet.id then nil else pet.id
+	self:Render(true)
 end
 
-function Browser:ConfirmSale()
-	if self.pending or not self.root.Visible or not self.parent.Visible then return end
-	if not self:SaleQuoteValid() then
-		self.saleQuote=nil
-		self.notice,self.noticeUntil="Your Flock changed. Review the chicken again.",os.clock()+4
-		self:UpdateAction();self:Refuse();return
+function Browser:SwapIntoFlock(targetId)
+	local id=self.flockPlacing
+	self.flockPlacing=nil
+	if id and self:CanEdit() then self:Send("FlockEquip",{petId=id,replaceId=targetId}) end
+	self:Render(true)
+end
+
+-- An empty strip slot takes the chicken being inspected.
+function Browser:FillFlockSlot()
+	local pet=self.app:Pet(self.app.selected)
+	if pet and not pet.flock and self:CanEdit() then self:Send("FlockEquip",{petId=pet.id});return end
+	self.app.audio:Play("Click")
+	self.notice,self.noticeUntil="Choose a chicken in storage, then Add to Flock.",os.clock()+4
+	self:UpdateAction()
+end
+
+-- A drag dropped on the strip (slot index, 0 for an open spot) or out of it (-1).
+function Browser:FlockDrop(id,target)
+	local pet=self.app:Pet(id)
+	local flock=self.app.state and self.app.state.flock
+	if not pet or not flock or not self:CanEdit() then return end
+	local members=flock.ids or {}
+	if target==-1 then
+		if pet.flock then self:Send("FlockUnequip",{petId=id}) end
+		return
 	end
-	local quote=self.saleQuote
-	-- The server rechecks ownership, protection and the exact refund; no stand is required.
-	self:Send("Sell",{petIds={quote.id},expectedTotal=quote.refund,sparesOnly=true})
+	if pet.flock then return end
+	local replaceId=if target>0 then members[target] else nil
+	if replaceId then self:Send("FlockEquip",{petId=id,replaceId=replaceId})
+	elseif #members<flock.size then self:Send("FlockEquip",{petId=id})
+	else
+		self.notice,self.noticeUntil="Your Flock is full. Drop it on a Flock chicken to swap.",os.clock()+4
+		self:UpdateAction();self:Refuse()
+	end
 end
 
 
 function Browser:Inspect(id)
-	if os.clock()<self.suppressUntil or (self.pending and self.pending.action=="Sell") then return end
+	if os.clock()<self.suppressUntil then return end
 	self.app.audio:Play("Click")
 	self.app.selected,self.placing,self.inspecting=id,nil,true
-	self.placingExpected,self.saleQuote=nil,nil
+	self.placingExpected,self.flockPlacing=nil,nil
 	self.showInfo,self.showCapacity=false,false
 	-- Not forced: a selection change keeps the grid, so the clicked card can animate.
 	self:Render()
@@ -850,7 +942,7 @@ function Browser:TogglePet(id)
 	end
 	local pet=self.app:Pet(id)
 	if not pet then return end
-	self.saleQuote=nil
+	self.flockPlacing=nil
 	local ids=self.app.state.selectedIds or {}
 	local slot=table.find(ids,id)
 	if self.placing then
@@ -866,7 +958,7 @@ function Browser:TogglePet(id)
 	end
 end
 
-function Browser:Drop(id,slot,toFlock,expected)
+function Browser:Drop(id,slot,leaveArmy,expected)
 	if not self:CanEdit() then return end
 	local current=self.app.state.selectedIds or {}
 	if table.concat(current,"|")~=table.concat(expected,"|") then
@@ -881,7 +973,7 @@ function Browser:Drop(id,slot,toFlock,expected)
 			if ids[slot] then ids[old],ids[slot]=ids[slot],id
 			else table.remove(ids,old);table.insert(ids,id) end
 		else ids[math.min(slot,#ids+1)]=id end
-	elseif toFlock and old then table.remove(ids,old)
+	elseif leaveArmy and old then table.remove(ids,old)
 	else return end
 	local colossals=0
 	for _,petId in ids do local pet=self.app:Pet(petId);if pet and Giant.IsColossal(pet.giantSize) then colossals+=1 end end
@@ -894,12 +986,17 @@ function Browser:Drop(id,slot,toFlock,expected)
 end
 
 
-function Browser:Highlight(target,toFlock)
+-- `target`: an Army slot being dragged onto; `flockTarget`: a Flock strip slot (0 = any open one).
+function Browser:Highlight(target,flockTarget)
 	for _,entry in self.cards do
-		local targetSlot=entry.slot and entry.slot==target
+		local targetSlot=(entry.slot~=nil and entry.slot==target)
+			or (flockTarget~=nil and flockTarget>0 and entry.flockIndex==flockTarget)
 		local viewing=self.inspecting and self.app.selected==entry.id
-		local color=if targetSlot then WHITE elseif viewing then SELECTED elseif entry.equipped then EQUIPPED else entry.color
-		local thickness=if targetSlot or viewing then 2.5 elseif entry.equipped then 2 else Theme.Border.Card
+		-- While swapping into the Flock, the strip's chickens are the choices.
+		local swapping=self.flockPlacing~=nil and entry.strip==true
+		local color=if targetSlot then WHITE elseif viewing then SELECTED elseif swapping then GOLD
+			elseif entry.equipped then EQUIPPED else entry.color
+		local thickness=if targetSlot or viewing or swapping then 2.5 elseif entry.equipped then 2 else Theme.Border.Card
 		-- Fresh cards snap; later changes (selection, drag target) ease. Drag moves repeat values.
 		if entry.shownColor==nil then entry.border.Color,entry.border.Thickness=color,thickness
 		elseif entry.shownColor~=color or entry.shownThickness~=thickness then
@@ -909,28 +1006,40 @@ function Browser:Highlight(target,toFlock)
 		if entry.viewing then entry.viewing.Visible=viewing end
 		if entry.selectedEdge then entry.selectedEdge.Visible=viewing end
 	end
+	for index,slot in self.stripSlots do
+		if slot.empty then slot.border.Color=if flockTarget==index or flockTarget==0 then WHITE else EDGE end
+	end
 end
 
+-- Returns an Army slot (or leaving the Army) for storage drops, and for the Flock
+-- strip a slot index (0 for anywhere on it); a Flock chicken dragged out gives -1.
 function Browser:DropTarget(point)
-	if not inside(self.root,point) then return nil,false end
-	if not inside(self.grid,point) then return nil,false end
-	for index,entry in self.slots do
-		if inside(entry.card,point) then return index,false end
-	end
+	if not inside(self.root,point) then return nil,false,nil end
 	local pointer=self.pointer
-	if pointer then
-		if table.find(pointer.expected,pointer.id) then return nil,true end
-		if #pointer.expected<self.app.state.capacity then return #pointer.expected+1,false end
+	if inside(self.strip,point) then
+		for index,slot in self.stripSlots do
+			if inside(slot.card,point) then return nil,false,index end
+		end
+		return nil,false,0
 	end
-	return nil,false
+	if not inside(self.grid,point) then return nil,false,nil end
+	if pointer and pointer.fromStrip then return nil,false,-1 end
+	for index,entry in self.slots do
+		if inside(entry.card,point) then return index,false,nil end
+	end
+	if pointer then
+		if table.find(pointer.expected,pointer.id) then return nil,true,nil end
+		if #pointer.expected<self.app.state.capacity then return #pointer.expected+1,false,nil end
+	end
+	return nil,false,nil
 end
 
 function Browser:CancelPointer(suppress)
 	if suppress and self.pointer then self.suppressUntil=os.clock()+0.3 end
 	self.pointer=nil
 	if self.dragGui then self.dragGui:Destroy();self.dragGui=nil end
-	self.grid.ScrollingEnabled=true
-	self:Highlight(nil,false)
+	self.grid.ScrollingEnabled,self.strip.ScrollingEnabled=true,true
+	self:Highlight(nil,nil)
 end
 
 function Browser:StartDrag()
@@ -940,7 +1049,7 @@ function Browser:StartDrag()
 	local playerGui=self.root:FindFirstAncestorOfClass("PlayerGui")
 	if not pet or not playerGui then return end
 	pointer.dragging=true
-	self.grid.ScrollingEnabled=false
+	self.grid.ScrollingEnabled,self.strip.ScrollingEnabled=false,false
 	local gui=Theme.InsetContainer(self.app.other,"ArmyDragPreview",Enum.ScreenInsets.None)
 	gui.ZIndex=40
 	self.dragGui=gui
@@ -955,17 +1064,16 @@ function Browser:StartDrag()
 	name.TextXAlignment=Enum.TextXAlignment.Center
 	pointer.ghost=ghost
 	ghost.Position=UDim2.fromOffset(pointer.point.X,pointer.point.Y)
-	local target,toFlock=self:DropTarget(pointer.point);self:Highlight(target,toFlock)
+	local target,_,flockTarget=self:DropTarget(pointer.point);self:Highlight(target,flockTarget)
 end
 
-function Browser:BeginPointer(pet,input)
+function Browser:BeginPointer(pet,input,fromStrip)
 	local touch=input.UserInputType==Enum.UserInputType.Touch
 	if not touch and input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
 	if not self:CanEdit() then return end
-	if self.saleQuote then self.saleQuote=nil;self:UpdateAction() end
 	self:CancelPointer(false)
 	local point=pointOf(input)
-	local pointer={id=pet.id,input=input,touch=touch,start=point,point=point,
+	local pointer={id=pet.id,input=input,touch=touch,start=point,point=point,fromStrip=fromStrip==true,
 		expected=table.clone(self.app.state.selectedIds or {}),dragging=false}
 	self.pointer=pointer
 	if touch then
@@ -988,7 +1096,7 @@ function Browser:PointerChanged(input)
 	end
 	if pointer.dragging and pointer.ghost then
 		pointer.ghost.Position=UDim2.fromOffset(pointer.point.X,pointer.point.Y)
-		local target,toFlock=self:DropTarget(pointer.point);self:Highlight(target,toFlock)
+		local target,_,flockTarget=self:DropTarget(pointer.point);self:Highlight(target,flockTarget)
 	end
 end
 
@@ -997,11 +1105,12 @@ function Browser:PointerEnded(input)
 	if not pointer then return end
 	if pointer.touch then if input~=pointer.input then return end
 	elseif input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
-	local target,toFlock=self:DropTarget(pointer.point)
+	local target,leaveArmy,flockTarget=self:DropTarget(pointer.point)
 	local dragged=pointer.dragging
 	self:CancelPointer(dragged)
 	if dragged then
-		self:Drop(pointer.id,target,toFlock,pointer.expected)
+		if flockTarget then self:FlockDrop(pointer.id,flockTarget)
+		else self:Drop(pointer.id,target,leaveArmy,pointer.expected) end
 		self:Render(true)
 	end
 end
@@ -1067,6 +1176,12 @@ function Browser:Card(parent,pet,slot,order)
  if mutation then
   mutation.Position,mutation.Size=UDim2.fromScale(92/210,36/220),UDim2.fromScale(112/210,28/220)
  end
+ -- Laying in place of a Flock chicken that's away: its own egg in the corner.
+ if pet.laying then
+  local egg=art(card,"Laying",EggArt.Image(pet.species),UDim2.fromScale(40/210,40/220),UDim2.fromScale(166/210,2/220))
+  egg.ZIndex=card.ZIndex+8
+  Theme.Aspect(egg,1)
+ end
  card.Activated:Connect(function()
   if os.clock()<self.suppressUntil then return end
   if self.placing then self:TogglePet(pet.id) else self:Inspect(pet.id) end
@@ -1077,23 +1192,155 @@ function Browser:Card(parent,pet,slot,order)
  return card
 end
 
+-- A Flock strip card: compact, with eggs per second instead of DPS. 138 x 150 inside a 146 x 150 slot.
+function Browser:SlotCard(holder,pet,armySlot,index)
+ local card=Instance.new("TextButton")
+ card.Name,card.Text,card.AutoButtonColor="Chicken_"..pet.id,"",false
+ card.AnchorPoint,card.Position,card.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(138/146,1)
+ card.BorderSizePixel,card.BackgroundTransparency,card.ClipsDescendants=0,1,true
+ card.ZIndex,card.Parent=holder.ZIndex+1,holder
+ Theme.Round(card)
+ local definition=Catalog[pet.species]
+ local rarity=definition.rarity
+ local color=RARITIES[rarity] or RARITIES.Common
+ local background=art(card,"RarityBackground",Art.Card[rarity] or Art.Card.Common,UDim2.fromScale(1,1))
+ background.ScaleType=Enum.ScaleType.Stretch
+ Theme.Round(background)
+ local portrait=Preview.Create(card,pet,UDim2.fromScale(118/138,118/150),UDim2.fromScale(10/138,2/150))
+ Theme.Aspect(portrait,1)
+ portrait.ZIndex=card.ZIndex+3
+ if portrait:IsA("ViewportFrame") then
+  portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
+ end
+ local name=label(card,"Name",(if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..definition.name:gsub(" Chicken$",""),20,
+  UDim2.fromScale(4/138,110/150),UDim2.fromScale(130/138,20/150),WHITE)
+ name.TextXAlignment=Enum.TextXAlignment.Center
+ local eggs=label(card,"Eggs",Theme.Count(pet.eggsPerSecond or 0,"egg/s","eggs/s"),20,
+  UDim2.fromScale(4/138,130/150),UDim2.fromScale(130/138,18/150),GOLD,true)
+ eggs.TextXAlignment=Enum.TextXAlignment.Center
+ -- A Flock chicken out with the Army: another chicken lays in its place until it's back.
+ if not pet.laying then
+  local away=frame(card,"Away",UDim2.fromScale(1,1))
+  away.BackgroundColor3,away.BackgroundTransparency,away.ZIndex=Color3.new(0,0,0),0.45,card.ZIndex+6
+  local text=label(away,"Text","AWAY",28,UDim2.fromScale(0,0.3),UDim2.fromScale(1,0.28),WHITE,true)
+  text.TextXAlignment=Enum.TextXAlignment.Center
+ end
+ local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
+ outline.ZIndex=card.ZIndex+7
+ Theme.Round(outline)
+ local equipped=armySlot~=nil
+ local border=Theme.Stroke(outline,if equipped then EQUIPPED else color,if equipped then 2 else Theme.Border.Card)
+ border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+ self.cards[pet.id]={card=card,border=border,id=pet.id,color=color,equipped=equipped,flockIndex=index,strip=true}
+ self.stripSlots[index]={card=card}
+ card:SetAttribute("PetId",pet.id);card:SetAttribute("InArmy",equipped);card:SetAttribute("InFlock",true)
+ if equipped then
+  local badge=frame(card,"EquippedCheck",UDim2.fromScale(0.26,0.24))
+  badge.ZIndex=card.ZIndex+8
+  surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),Theme.Border.Control)
+  art(badge,"Check",Art.Check,UDim2.fromScale(0.75,0.65),UDim2.fromScale(0.1,0.15))
+ end
+ card.Activated:Connect(function()
+  if os.clock()<self.suppressUntil then return end
+  if self.placing then self:TogglePet(pet.id)
+  elseif self.flockPlacing then self:SwapIntoFlock(pet.id)
+  else self:Inspect(pet.id) end
+ end)
+ card.MouseButton2Click:Connect(function() self:Inspect(pet.id) end)
+ card.InputBegan:Connect(function(input) self:BeginPointer(pet,input,true) end)
+ Theme.Motion:BindButton(card,Theme.Motion:ScaleOf(card),background)
+ return card
+end
+
+-- An open Flock slot: tapping it adds the chicken being inspected.
+function Browser:EmptySlot(holder,index)
+ local slot=Instance.new("TextButton")
+ slot.Name,slot.Text,slot.AutoButtonColor="EmptySlot","",false
+ slot.AnchorPoint,slot.Position,slot.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(138/146,1)
+ slot.BorderSizePixel,slot.ZIndex,slot.Parent=0,holder.ZIndex+1,holder
+ local border=dark(slot,EDGE)
+ local plus=label(slot,"Plus","+",48,UDim2.fromScale(0,0.18),UDim2.fromScale(1,0.4),MUTED,true)
+ plus.TextXAlignment=Enum.TextXAlignment.Center
+ local text=label(slot,"Open","Open slot",20,UDim2.fromScale(0.05,0.62),UDim2.fromScale(0.9,0.16),MUTED)
+ text.TextXAlignment=Enum.TextXAlignment.Center
+ self.stripSlots[index]={card=slot,border=border,empty=true}
+ slot.Activated:Connect(function()
+  if os.clock()<self.suppressUntil then return end
+  self:FillFlockSlot()
+ end)
+ Theme.Motion:BindButton(slot,Theme.Motion:ScaleOf(slot),slot)
+ return slot
+end
+
+-- The strip shows every Flock slot: its chickens in order, then open slots.
+function Browser:RenderStrip(pets,flock,chosen)
+ clear(self.strip)
+ self.stripSlots={}
+ local members=if flock then flock.ids or {} else {}
+ local size=if flock then flock.size or 0 else 0
+ for index=1,math.max(size,#members) do
+  local pet=members[index] and pets[members[index]]
+  local holder=frame(self.strip,"Slot"..index,UDim2.fromScale(1,1))
+  holder.LayoutOrder=index
+  Theme.Aspect(holder,146/150)
+  if pet then self:SlotCard(holder,pet,chosen[pet.id],index) else self:EmptySlot(holder,index) end
+ end
+ self.fitStrip()
+end
+
+-- Storage cards are added a page at a time (storage can hold up to Config.StorageLimit chickens).
+function Browser:ShowStorage(count)
+ local visible=self.storage
+ local target=math.min(#visible,count)
+ if self.moreRow then self.moreRow:Destroy();self.moreRow=nil end
+ for index=self.storageShown+1,target do
+  if (index-1)%4==0 then
+   local row=frame(self.grid,"Row"..math.ceil(index/4),UDim2.fromScale(1,1))
+   row.LayoutOrder=math.ceil(index/4)
+   Theme.Aspect(row,877/(((877-36)/4)*220/210+16))
+   self.storageRow=row
+  end
+  local pet=visible[index]
+  self:Card(self.storageRow,pet,self.chosen[pet.id],index)
+ end
+ self.storageShown=math.max(self.storageShown,target)
+ if self.storageShown<#visible then
+  local more=Instance.new("TextButton")
+  more.Name,more.Text,more.AutoButtonColor="ShowMore","",false
+  more.Size,more.LayoutOrder,more.BackgroundTransparency=UDim2.fromScale(1,1),100000,1
+  more.ZIndex,more.Parent=self.grid.ZIndex+1,self.grid
+  Theme.Aspect(more,877/80)
+  local text=label(more,"Text","Show more chickens ("..(#visible-self.storageShown).." more)",22,
+   UDim2.fromScale(0,0.15),UDim2.fromScale(1,0.7),MUTED)
+  text.TextXAlignment=Enum.TextXAlignment.Center
+  more.Activated:Connect(function() self:ShowMoreStorage() end)
+  self.moreRow=more
+ end
+end
+
+function Browser:ShowMoreStorage()
+ if not self.moreRow then return end
+ self.storageWanted=self.storageShown+STORAGE_PAGE
+ self:ShowStorage(self.storageWanted)
+ self:Highlight(nil,nil);self.fitGrid()
+end
+
 -- Permanent army research is visible in inventory and combined stats.
 function Browser:ResearchStats(pet)
  local stats=Rules.Stats(pet.species,pet.stars,pet.level,pet.giantSize)
- local research=self.app.state and self.app.state.research
- if research then
-  stats.damage*=1+research.effects.damage
-  stats.hp*=1+research.effects.health
+ -- Upgrades effects (state.effects since October 20; research.effects before).
+ local state=self.app.state
+ local effects=state and (state.effects or (state.research and state.research.effects))
+ if effects then
+  stats.damage*=1+(effects.damage or 0)
+  stats.hp*=1+(effects.health or 0)
  end
  return stats
 end
 
 function Browser:RenderArmyInfo(pets,ids)
 	clear(self.infoRoster)
-	local dps,hp,homeCount=0,0,0
-	for _,pet in pets do
-		if pet.home then homeCount+=1 end
-	end
+	local dps,hp=0,0
 	for index,id in ids do
 		local pet=pets[id]
 		if not pet then continue end
@@ -1124,18 +1371,22 @@ function Browser:RenderArmyInfo(pets,ids)
 		health.TextXAlignment=Enum.TextXAlignment.Center
 	end
 	local state=self.app.state
+	local effects=state.effects or (state.research and state.research.effects) or {}
+	local damage,health=effects.damage or 0,effects.health or 0
 	self.statTiles.Damage.value.Text=Theme.Number(dps)
-	self.statTiles.Damage.note.Text=if state.research and state.research.effects.damage>0 then "includes +"..math.round(state.research.effects.damage*100).."% from Upgrades" else "damage per second"
+	self.statTiles.Damage.note.Text=if damage>0 then "includes +"..math.round(damage*100).."% from Upgrades" else "damage per second"
 	self.statTiles.Health.value.Text=Theme.Number(hp)
-	self.statTiles.Health.note.Text=if state.research and state.research.effects.health>0 then "includes +"..math.round(state.research.effects.health*100).."% from Upgrades" else "maximum hit points"
+	self.statTiles.Health.note.Text=if health>0 then "includes +"..math.round(health*100).."% from Upgrades" else "maximum hit points"
 	self.statTiles.Deployed.value.Text=#ids.." / "..state.capacity
 	self.statTiles.Deployed.note.Text="Army slots in use"
 	self.statTiles.Flock.value.Text=tostring(#(state.pets or {}))
 	self.statTiles.Flock.note.Text="owned chickens"
 	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual Army is selected." else "Best chickens selected automatically."
-	self.infoFooter.Text="Army stats only. Best uses damage, health and splash.\nHome Flock: "..homeCount.." chickens / "..Theme.Count(state.homeEggsPerSecond or 0,"egg/s","eggs/s")
+	local flock=state.flock
+	self.infoFooter.Text="Army stats only. Best uses damage, health and splash.\nFlock: "..(if flock then #(flock.laying or {}) else 0)
+		.." laying · "..Theme.Count(state.homeEggsPerSecond or 0,"egg/s","eggs/s")
 	if #ids==0 then
-		label(self.infoRoster,"Empty","No chickens in your Army. Return to your Flock and add some.",18,
+		label(self.infoRoster,"Empty","No chickens in your Army. Go back and add some.",18,
 			UDim2.fromScale(0.01,0.01),UDim2.fromScale(0.98,0.12),MUTED)
 	end
 end
@@ -1191,72 +1442,99 @@ function Browser:Render(force)
 		else self:UpdateAction();return end
 	end
 	local ids=state.selectedIds or {}
-	local pets,chosen,ordered={},{},{}
-	for _,pet in state.pets or {} do pets[pet.id]=pet;table.insert(ordered,pet) end
+	local flock=state.flock
+	local members=if flock then flock.ids or {} else {}
+	local pets,chosen,inFlock={},{},{}
+	for _,id in members do inFlock[id]=true end
+	local stored=0
+	for _,pet in state.pets or {} do
+		pets[pet.id]=pet
+		if not inFlock[pet.id] then stored+=1 end
+	end
 	for slot,id in ids do chosen[id]=slot end
-	table.sort(ordered,function(a,b)
-		if self.sort=="Name" then
-			local an,bn=Catalog[a.species].name,Catalog[b.species].name
-			if an~=bn then return an<bn end
-		end
-		local pa,pb=Rules.PetPower(a.species,a.stars,a.level,a.giantSize),Rules.PetPower(b.species,b.stars,b.level,b.giantSize)
-		if pa~=pb then return pa>pb end
-		return a.id<b.id
-	end)
 	if self.app.selected and not pets[self.app.selected] then self.app.selected=nil;self.inspecting=false end
 	if self.app.selected and self.app.selected~=self.lastSelected then
 		self.inspecting,self.showInfo,self.showCapacity=true,false,false
 	end
 	self.lastSelected=self.app.selected
-	if not self.inspecting or self.showInfo or self.showCapacity or not self.app.selected then self.saleQuote=nil end
 	if not self:CanEdit() or (self.placing and not pets[self.placing]) then self.placing,self.placingExpected=nil,nil end
+	if not self:CanEdit() or (self.flockPlacing and (not pets[self.flockPlacing] or inFlock[self.flockPlacing])) then
+		self.flockPlacing=nil
+	end
 	local dimensions=self:Resize()
 	self.app.panelTitle.Text=if self.showInfo then "Army Info"
 		elseif self.showCapacity then "More Army Slots" else "My Army"
 	self.title.Text=self.app.panelTitle.Text
 	local mode=if state.selectionMode=="Manual" then "Manual Army" else "Best selected"
-	self.summary.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ordered,state.collectionLimit or Config.CollectionLimit)
+	-- October 20: FLOCK counts the chickens laying against Flock Size; storage shows no cap.
+	self.summary.Text=if flock then string.format('<font color="#F9CE43">%d</font> / %d',#members,flock.size)
+		else string.format('<font color="#F9CE43">%d</font> / %d',#(state.pets or {}),state.collectionLimit or Config.CollectionLimit)
 	self.capacity.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ids,state.capacity)
-	self.sortButton.Text=if self.sort=="Name" then "Name A-Z" else "Best first"
+	self.flockRate.Text=Theme.Count(if flock then flock.eggsPerSecond or 0 else state.homeEggsPerSecond or 0,"egg/s","eggs/s")
+	self.sortButton.Text=if self.sort=="Name" then "Name A-Z" elseif self.sort=="Eggs" then "Most eggs" else "Best first"
+	self.search.PlaceholderText="Search "..stored.." "..(if stored==1 then "chicken" else "chickens").."…"
+	local effects=state.effects or (state.research and state.research.effects)
 	local keys={dimensions,table.concat(ids,","),tostring(state.capacity),mode,
 		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
-		tostring(state.homeEggsPerSecond),self.query,self.sort}
+		tostring(state.homeEggsPerSecond),self.query,self.sort,tostring(self.placing~=nil),
+		table.concat(members,","),tostring(flock and flock.size),
+		tostring(effects and effects.damage),tostring(effects and effects.health)}
 	table.insert(keys,tostring(state.research and state.research.revision))
-	for _,pet in state.pets or {} do
-		table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap)..":"..tostring(pet.mutation))
+	-- The server's version number stands for the whole chicken list when it sends one.
+	if state.petsVersion~=nil then table.insert(keys,"v"..state.petsVersion)
+	else
+		for _,pet in state.pets or {} do
+			table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)
+				..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap)..":"..tostring(pet.mutation)..":"..tostring(pet.laying))
+		end
 	end
 	-- Cards never read selection/placing; those only re-highlight, so the grid survives a click.
 	local gridKey=table.concat(keys,"|")
-	local key=gridKey.."|"..(self.app.selected or "").."|"..tostring(self.inspecting).."|"..(self.placing or "")
+	local key=gridKey.."|"..(self.app.selected or "").."|"..tostring(self.inspecting).."|"..(self.placing or "").."|"..(self.flockPlacing or "")
 	if key==self.key and not force then self:UpdateAction();return end
 	self.key=key
 	if force or gridKey~=self.gridKey then
 		self.gridKey=gridKey
+		self.slots,self.cards={},{}
+		self:RenderStrip(pets,flock,chosen)
 		local scroll=self.grid.CanvasPosition
-		clear(self.grid);self.slots,self.cards={},{}
-		local visible={}
-		for _,pet in ordered do
+		clear(self.grid)
+		-- Storage: every chicken outside the Flock strip.
+		local visible,power={},{}
+		for _,pet in state.pets or {} do
+			if inFlock[pet.id] then continue end
 			-- Player-facing words only: never internal species IDs such as "Duck".
 			local mutation=Mutations.Get(pet.mutation)
 			local searchText=string.lower(Catalog[pet.species].name.." "..Catalog[pet.species].rarity
 				..(if mutation then " "..mutation.name else ""))
-			if self.query=="" or string.find(searchText,self.query,1,true) then table.insert(visible,pet) end
+			if self.query=="" or string.find(searchText,self.query,1,true) then
+				table.insert(visible,pet)
+				power[pet.id]=Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize)
+			end
 		end
-		local row
-	 for index,pet in visible do
-	  if (index-1)%4==0 then
-	   row=frame(self.grid,"Row"..math.ceil(index/4),UDim2.fromScale(1,1))
-	   row.LayoutOrder=math.ceil(index/4)
-	   Theme.Aspect(row,877/(((877-36)/4)*220/210+16))
-	  end
-	  self:Card(row,pet,chosen[pet.id],index)
-	 end
+		local replacing=self.placing~=nil
+		table.sort(visible,function(a,b)
+			-- While replacing an Army chicken, the Army comes first.
+			if replacing and (chosen[a.id]~=nil)~=(chosen[b.id]~=nil) then return chosen[a.id]~=nil end
+			if self.sort=="Name" then
+				local an,bn=Catalog[a.species].name,Catalog[b.species].name
+				if an~=bn then return an<bn end
+			elseif self.sort=="Eggs" then
+				local ea,eb=a.eggsPerSecond or 0,b.eggsPerSecond or 0
+				if ea~=eb then return ea>eb end
+			end
+			if power[a.id]~=power[b.id] then return power[a.id]>power[b.id] end
+			return a.id<b.id
+		end)
+		self.storage,self.chosen,self.storageShown,self.storageRow,self.moreRow=visible,chosen,0,nil,nil
+		self:ShowStorage(self.storageWanted)
 		self.grid.CanvasPosition=scroll
 		if #visible==0 then
 			local holder=frame(self.grid,"EmptyRow",UDim2.fromScale(1,1))
 	  Theme.Aspect(holder,877/220)
 			local empty=label(holder,"Empty",if self.query~="" then "No matching chickens"
-				else "Your Flock is empty. Roll chickens at the lever in your yard!",
+				elseif #(state.pets or {})>0 then "Every chicken is in your Flock. Roll more at the lever in your yard!"
+				else "No chickens yet. Roll chickens at the lever in your yard!",
 				18,UDim2.new(),UDim2.fromScale(1,1),MUTED)
 			empty.TextWrapped,empty.TextTruncate=true,Enum.TextTruncate.None
 			empty.TextXAlignment=Enum.TextXAlignment.Center
@@ -1272,12 +1550,17 @@ function Browser:Render(force)
 	end
 	if self.showInfo then self:RenderArmyInfo(pets,ids) end
 	self:RenderDetail(pets[self.app.selected])
-	self:Highlight(nil,false);self:UpdateAction()
-	self.fitGrid();self.fitRoster()
+	self:Highlight(nil,nil);self:UpdateAction()
+	self.fitGrid();self.fitRoster();self.fitStrip()
 	local pop=self.armyPop
 	if pop then
 		self.armyPop=nil
 		if os.clock()-pop.at<1 then self:PopArmyChanges(pop.before,ids) end
+	end
+	local flockPop=self.flockPop
+	if flockPop then
+		self.flockPop=nil
+		if os.clock()-flockPop.at<1 then self:PopFlockChanges(flockPop.before) end
 	end
 end
 

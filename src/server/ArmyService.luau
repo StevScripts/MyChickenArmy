@@ -49,6 +49,38 @@ function ArmyService.SelectBest(session)
 	return true,"Best chickens selected."
 end
 
+-- October 20 Flock: which chickens lay eggs. Equipping turns the Flock into the
+-- player's own picks (kept exactly); FlockBest goes back to the automatic best layers.
+function ArmyService.FlockEquip(session,petId,replaceId)
+	local pet=if type(petId)=="string" and #petId<=64 then session.pets[petId] else nil
+	if not pet then return false,"Choose one of your own chickens." end
+	local picks=session:FlockIds()
+	if table.find(picks,petId) then return false,"That chicken is already in your Flock." end
+	if replaceId~=nil then
+		local index=if type(replaceId)=="string" then table.find(picks,replaceId) else nil
+		if not index then return false,"Your Flock changed. Choose again." end
+		picks[index]=petId
+	elseif #picks<session:FlockSlots() then table.insert(picks,petId)
+	else return false,"Your Flock is full. Choose a Flock chicken to swap out." end
+	session.flockSelection=picks;session:Touch()
+	return true,Catalog[pet.species].name.." joined your Flock."
+end
+
+function ArmyService.FlockUnequip(session,petId)
+	local picks=session:FlockIds()
+	local index=if type(petId)=="string" then table.find(picks,petId) else nil
+	if not index then return false,"That chicken isn't in your Flock." end
+	if #picks<=1 then return false,"Keep at least one chicken laying eggs." end
+	table.remove(picks,index)
+	session.flockSelection=picks;session:Touch()
+	return true,"Moved to storage. It won't lay eggs."
+end
+
+function ArmyService.FlockBest(session)
+	session.flockSelection=nil;session:Touch()
+	return true,"Your best egg layers are in your Flock."
+end
+
 local function formationSlot(session,slot)
 	return type(slot)=="number" and slot%1==0 and slot>=1 and slot<=session.researchEffects.formations
 end
