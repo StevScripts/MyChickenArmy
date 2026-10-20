@@ -69,7 +69,10 @@ reveals the next hexes.
 Name, the family description, current → next value in green, the price beside the
 gold coin, and "Resets on Rebirth". Luck shows the server's Epic+ (or strongest
 band) odds now → next from `upgradeTree.luck` (docs/team/LUCK_WINDOW.md), "All
-normal chickens remain possible." and any limited event's podium chance.
+normal chickens remain possible." and any limited event's podium chance. The Gold
+Machine, Gold Rate, Diamond Machine and Prism Machine read S12's `Config.GoldRolls`
+("Every 10 rolls: x2 Luck", "Every 10 → 8 rolls", "x2 → x5 Luck"); without it they
+show only their description.
 
 ## Icons
 

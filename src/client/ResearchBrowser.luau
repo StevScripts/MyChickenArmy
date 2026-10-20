@@ -479,7 +479,7 @@ function Browser:Receive(state,result)
 	if result.ok then
 		self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true})
 		local node=View.Nodes[id]
-		self:Feedback(if View.Plain(node) then node.name.." bought!" else node.name..": "..request.before.." → "..request.after,GREEN,id)
+		self:Feedback(request.text,GREEN,id)
 		local view=self.nodes[id]
 		self:PulseNode(view)
 		local p=point(node);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),GREEN)
@@ -617,7 +617,9 @@ function Browser:TooltipText(id)
 	local info=self:Info(id) or {}
 	local body=View.Description(node)
 	local before,after=View.Change(node)
-	local change=if View.Plain(node) then (if look=="owned" then "Owned" else nil)
+	local gold,goldOwned=View.GoldText(node,self.app.state and self.app.state.effects)
+	local change=if gold then (if look=="owned" then "Owned: "..goldOwned else gold)
+		elseif View.Plain(node) then (if look=="owned" then "Owned" else nil)
 		elseif look=="owned" then "Owned: "..after else before.." → "..after
 	if node.family=="Luck" then
 		local nextId=View.NextId("Luck",self.tree)
@@ -702,11 +704,15 @@ function Browser:Activate(id)
 end
 
 function Browser:Purchase(id,price)
-	local before,after=View.Change(View.Nodes[id])
+	-- The success line, worded from the card's state before the purchase.
+	local node=View.Nodes[id]
+	local before,after=View.Change(node)
+	local gold=View.GoldText(node,self.app.state and self.app.state.effects)
+	local text=if gold then node.name..": "..gold elseif View.Plain(node) then node.name.." bought!" else node.name..": "..before.." → "..after
 	local requestId=self.app:Request("BuyUpgrade",{nodeId=id,expectedPrice=price})
 	if not requestId then return end
 	self.pending[id]=requestId
-	self.requests[requestId]={nodeId=id,before=before,after=after}
+	self.requests[requestId]={nodeId=id,text=text}
 	self:Render()
 	-- Unlock the hex after a lost reply; its server quote still rejects repeats.
 	task.delay(8,function()

@@ -3,6 +3,7 @@
 -- Layout, names, icons and value text come from UpgradeCatalog; statuses, prices and
 -- badges only ever come from the server snapshot (state.upgradeTree).
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
+local Config=require(Shared.Config)
 local Tree=require(Shared.UpgradeCatalog)
 local View={Categories={},Roots={},Nodes={},Order={},Families={}}
 
@@ -57,6 +58,27 @@ end
 function View.Plain(node:any):boolean
 	local family=node.family and Tree.Families[node.family]
 	return family~=nil and (family.format=="unlock" or family.format=="level")
+end
+
+-- Gold rolls (S12's Config.GoldRolls; absent before it merges): the machine and rate
+-- hexes say what they change, "Every 10 → 8 rolls" or "x2 → x5 Luck". Returns the
+-- card's change line and the owned line, or nil.
+function View.GoldText(node:any,effects:any):(string?,string?)
+	local gold=Config.GoldRolls
+	local family=node.family and Tree.Families[node.family]
+	local entry=family and family.tiers[node.tier]
+	if type(gold)~="table" or type(gold.Every)~="table" or type(gold.Luck)~="table" or not entry then return nil,nil end
+	local value=entry.value
+	if family.effect=="goldRate" and gold.Every[value] and gold.Every[value+1] then
+		return "Every "..gold.Every[value].." → "..gold.Every[value+1].." rolls","Every "..gold.Every[value+1].." rolls"
+	elseif family.effect=="goldMachine" and gold.Luck[value] then
+		local boost="x"..gold.Luck[value].." Luck"
+		if gold.Luck[value-1] then return "x"..gold.Luck[value-1].." → "..boost,boost end
+		local rate=type(effects)=="table" and tonumber(effects.goldRate) or 0
+		local every=gold.Every[math.clamp(math.floor(rate),0,#gold.Every-1)+1]
+		return "Every "..every.." rolls: "..boost,boost.." every "..every.." rolls"
+	end
+	return nil,nil
 end
 
 function View.Description(node:any):string
