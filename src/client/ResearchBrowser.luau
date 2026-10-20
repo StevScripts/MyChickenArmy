@@ -261,9 +261,9 @@ function Browser:BuildNode(id,layer)
 		self:Press(id)
 	end)
 	button.MouseEnter:Connect(function()
-		if self.pinchScale or (self.drag and self.drag.moved) then return end
+		if self.pinchScale or (self.drag and self.drag.moved) or touching() then return end
 		local view=self.nodes[id];view.hovered=true;self:RestNode(view)
-		if self.root.Visible and not self.persistent and not self.drag and not touching() then self:Select(id,false) end
+		if self.root.Visible and not self.persistent and not self.drag then self:Select(id,false) end
 	end)
 	button.MouseLeave:Connect(function()
 		local view=self.nodes[id];view.hovered=false;view.pressed=false;self:RestNode(view)
@@ -472,12 +472,13 @@ function Browser:Receive(state,result)
 	if not request then return false end
 	if result.ok then
 		self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true})
-		self:Feedback(View.Nodes[id].name..": "..request.before.." → "..request.after,GREEN,id)
+		local node=View.Nodes[id]
+		self:Feedback(if View.Plain(node) then node.name.." bought!" else node.name..": "..request.before.." → "..request.after,GREEN,id)
 		local view=self.nodes[id]
 		self:PulseNode(view)
-		local p=point(View.Nodes[id]);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),GREEN)
-		-- Keep a gamepad card on the family: its next tier is now the one to buy.
-		local nextId=View.NextId(View.Nodes[id].family,self.tree)
+		local p=point(node);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),GREEN)
+		-- Keep gamepad focus on the family: its next tier is now the one to buy.
+		local nextId=View.NextId(node.family,self.tree)
 		local nextView=nextId and nextId~=id and self.nodes[nextId]
 		if nextView and nextView.button.Visible and nextView.look~="unknown" and GuiService.SelectedObject==view.button then
 			GuiService.SelectedObject=nextView.button
@@ -610,7 +611,8 @@ function Browser:TooltipText(id)
 	local info=self:Info(id) or {}
 	local body=View.Description(node)
 	local before,after=View.Change(node)
-	local change=if look=="owned" then "Owned: "..after else before.." → "..after
+	local change=if View.Plain(node) then (if look=="owned" then "Owned" else nil)
+		elseif look=="owned" then "Owned: "..after else before.." → "..after
 	if node.family=="Luck" then
 		local nextId=View.NextId("Luck",self.tree)
 		local odds=if id==nextId and self.tree then luckText(self.tree.luck,look~="owned") else nil
@@ -793,7 +795,9 @@ function Browser:Zoom(amount,at)
 end
 
 function Browser:Navigate(direction)
-	local from=point(View.Nodes[self.selected or View.Roots[self.category]])
+	local current=View.Nodes[self.selected or View.Roots[self.category]]
+	if not current then return false end
+	local from=point(current)
 	local best,score=nil,math.huge
 	for _,id in View.Order[self.category] do
 		local delta=point(View.Nodes[id])-from

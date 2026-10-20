@@ -52,6 +52,13 @@ function View.Change(node:any):(string,string)
 	return Tree.ValueText(node.family,node.tier-1),Tree.ValueText(node.family,node.tier)
 end
 
+-- Unlocks (Gold Machine, Chicken Feed) and named levels (Gold Rate) read better by
+-- name than as "Locked → Unlocked".
+function View.Plain(node:any):boolean
+	local family=node.family and Tree.Families[node.family]
+	return family~=nil and (family.format=="unlock" or family.format=="level")
+end
+
 function View.Description(node:any):string
 	local family=node.family and Tree.Families[node.family]
 	return if family and type(family.description)=="string" then family.description else ""

@@ -110,6 +110,17 @@ function Hud.new(app,shell)
 		local button=Theme.IconButton(shortcuts,page,page,if page=="Upgrades" then ResearchAssets.lab else Theme.Assets[page],function() app:TogglePage(page) end)
 		button.LayoutOrder=i
 	end
+	-- October 20 overhaul (S9): a red count of the upgrades you can buy right now
+	-- (server-counted, starter reserve respected); UpdateUpgradesBadge sets it.
+	local upgradesBadge=Theme.Frame(shortcuts.Upgrades.Visual,"UpgradesReady",UDim2.fromScale(0.3,0.3),Color3.fromRGB(235,45,45))
+	upgradesBadge.AnchorPoint,upgradesBadge.Position,upgradesBadge.ZIndex,upgradesBadge.Visible=Vector2.new(0.5,0.5),UDim2.fromScale(0.86,0.1),8,false
+	Theme.Aspect(upgradesBadge,1)
+	Theme.Round(upgradesBadge).CornerRadius=UDim.new(0.5,0)
+	Theme.Stroke(upgradesBadge,Color3.new(0,0,0),2).LineJoinMode=Enum.LineJoinMode.Round
+	local upgradesCount=Theme.Label(upgradesBadge,"Count","",28,Color3.new(1,1,1))
+	upgradesCount.AnchorPoint,upgradesCount.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+	upgradesCount.Size,upgradesCount.TextScaled,upgradesCount.ZIndex,upgradesCount.TextXAlignment=UDim2.fromScale(0.8,0.8),true,9,Enum.TextXAlignment.Center
+	self.upgradesBadge,self.upgradesCount=upgradesBadge,upgradesCount
 	-- October 16 owner request: Auto Roll is a plain text toggle on the right, like
 	-- Mini War's Auto Sell / Auto Collect, just above the Camps/Flock totals. Shown
 	-- once researched; green ON, red OFF, gold while a keeper waits on the podium.
@@ -622,11 +633,24 @@ function Hud:ReleaseOfflineCash(receiptId,origin)
 	end
 end
 
+-- October 20 overhaul (S9): state.upgradeTree.badges.total; hidden at zero.
+function Hud:UpdateUpgradesBadge(state)
+	local tree=state.upgradeTree
+	local badges=type(tree)=="table" and tree.badges or nil
+	local total=type(badges)=="table" and tonumber(badges.total) or 0
+	self.upgradesCount.Text=if total>99 then "99+" else tostring(total)
+	local previous=self.upgradesReady
+	Theme.Motion:Appear(self.upgradesBadge,total>0)
+	if previous and previous>0 and total>previous then Theme.Motion:PopScale(self.upgradesBadge,1.25) end
+	self.upgradesReady=total
+end
+
 function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateOpening(state)
 	self:UpdateAutoRoll(state)
 	self:UpdateTerritory(state)
 	self:UpdateRebirth(state)
+	self:UpdateUpgradesBadge(state)
 	self:UpdateFreeGift(state)
 	self:UpdateChickenOffer(state)
 	-- October 16 owner request: the offline receipt's coins (already saved by the
