@@ -457,13 +457,19 @@ function Panel:Confetti()
 	task.delay(2.6,function() holder:Destroy() end)
 end
 
-function Panel:Celebrate(before,quote)
+-- `receipt` is the Rebirth result's {rank, gems, species, skip, ...} when this packet
+-- carries it (player, Skip credit or Auto Rebirth); otherwise the last quote says
+-- what the rank paid.
+function Panel:Celebrate(before,quote,receipt)
 	local rank=tonumber(quote.rank) or 0
 	self.app.audio:Play("Victory",nil,{noFallback=true})
 	local parts={Panel.Title(rank).."!"}
+	if receipt and receipt.skip==true then table.insert(parts,"Upgrades kept") end
 	local reward=if type(before)=="table" then before.nextChicken else nil
-	if type(reward)=="table" and type(reward.name)=="string" then table.insert(parts,reward.name.." joined your Flock") end
-	local gems=tonumber(type(before)=="table" and before.gemsNext)
+	local granted=receipt and type(receipt.species)=="string" and PetCatalog[receipt.species]
+	local name=if granted then granted.name elseif type(reward)=="table" then reward.name else nil
+	if type(name)=="string" then table.insert(parts,name.." joined your Flock") end
+	local gems=tonumber(receipt and receipt.gems) or tonumber(type(before)=="table" and before.gemsNext)
 	if gems and gems>0 then table.insert(parts,"+"..Theme.Gems(gems)) end
 	table.insert(parts,multiplierText(quote.multiplierNow).." egg Coins")
 	local unlock=if type(before)=="table" then before.unlockNext else nil
@@ -535,7 +541,9 @@ function Panel:Render(state,result)
 	end
 	if promoted then
 		self.pending=nil
-		self:Celebrate(before,quote)
+		local receipt=if type(result)=="table" and result.action=="Rebirth" and result.ok and type(result.receipt)=="table"
+			then result.receipt else nil
+		self:Celebrate(before,quote,receipt)
 	end
 	self:RenderPanel()
 end

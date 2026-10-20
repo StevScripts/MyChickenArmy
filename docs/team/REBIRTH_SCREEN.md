@@ -63,6 +63,9 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
   - Buying Skip calls `CommerceController:Buy(state.rebirth.skip.productKey)`.
 - The success messages of these requests are quiet (`AppController.QUIET_SUCCESS`);
   the screen shows its own feedback. Refusals still show the server's message.
+- The Rebirth toast reads the result's `receipt` (`gems`, `species`, `skip`; the
+  server also sends one for a spent Skip credit and for Auto Rebirth). Without a
+  receipt it uses the last quote's `gemsNext` and `nextChicken`.
 
 ## HUD and Index
 
