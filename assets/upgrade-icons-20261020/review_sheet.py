@@ -79,7 +79,7 @@ GROUPS = [
         ("RollSpeed", "Roll Speed", "tree icon", "", PURPLE),
         ("Luck", "Extra Luck", "in game (Luck)", "", PURPLE),
         ("VacuumCapacity", "Vacuum Capacity", "tree icon", "", PURPLE),
-        ("AutoRoll", "Auto Roll", "placeholder: needs credits", "", PURPLE),
+        ("AutoRoll", "Auto Roll", "", "", PURPLE),
         ("CoinBoost", "Coin Boost", "", "", PURPLE),
         ("AutoRebirth", "Auto Rebirth", "", "", PURPLE),
         ("TimeSkip", "Time Skip", "", "", PURPLE),
@@ -95,6 +95,9 @@ GROUPS = [
         ("Gems", "Gems", "currency", "", None),
         ("FriendBoost", "Friend Boost", "HUD", "", None),
         ("GoldRush", "Gold Rush", "HUD event", "", None),
+    ]),
+    ("Sell menu (S13)", [
+        ("SellTrash", "Sell marker", "over a picked card", "", None),
     ]),
 ]
 
@@ -208,8 +211,8 @@ def main():
     sheet = Image.new("RGBA", (W, height), BG + (255,))
     draw = ImageDraw.Draw(sheet)
     outlined(draw, (MARGIN, 64), "My Chicken Army · upgrade icons v2 · Oct 20 overhaul (S6 review)", 46, anchor="lm")
-    draw.text((MARGIN, 120), "v2 in the in-game icon style: 32 new icons, Auto Roll still a placeholder, and 11 nodes kept on "
-              "their approved in-game icon. Hex colours, names and tier numbers are mock-ups of S9's live UI.",
+    draw.text((MARGIN, 120), "v2 in the in-game icon style: 34 new icons and 11 nodes kept on their approved in-game icon "
+              "(\"in game\"). Hex colours, names and tier numbers are mock-ups of S9's live UI.",
               font=font(22), fill=MUTED, anchor="lm")
     y = 170
     for title, entries in GROUPS:

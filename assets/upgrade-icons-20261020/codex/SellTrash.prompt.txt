@@ -1,0 +1,7 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Sell marker icon for the Roblox game My Chicken Army. It sits over a chicken card that the player picked for sale. Subject: one chunky red trash can, a bin with a lid, a small handle on the lid and vertical ribs down its sides, built from chunky voxel blocks and beveled edges like the three attached approved in-game icons (boots, first-aid kit, Egg Vacuum). Bright red with lighter top faces and darker right faces, a few small crisp highlights, and a heavy continuous near-black outer outline like the attached icons. Slight top-down three-quarter view, upper-left light. It must read clearly at 80 to 110 pixels over a dark card.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/SellTrash-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

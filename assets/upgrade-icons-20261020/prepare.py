@@ -34,9 +34,6 @@ STROKE = {"AutoRebirth", "Armor", "ArmyPower", "BossDamage", "Bounty", "CoinBoos
           "EggVacuum", "FriendBoost", "GoldMachine", "GoldRate", "GoldRush", "KeepUpgrades", "MutationLuck",
           "OpenArmy", "OpenTools", "RainbowMachine", "RebirthChickenOdds", "RollSpeed", "VacuumCapacity"}
 CLIP_HAIRLINE = {"AutoRebirth"}
-# Still the v1 placeholder: the v2 generation ran out of OpenAI credits. Run
-# ./generate.sh AutoRoll, copy the chosen raw/AutoRoll-*.png to AutoRoll.png, then remove it here.
-PENDING = {"AutoRoll"}
 INK = (16, 23, 18)
 
 
@@ -112,8 +109,7 @@ def prepare(key: str) -> Image.Image:
 def main() -> None:
     args = sys.argv[1:]
     rgba = "--rgba" in args
-    keys = [a for a in args if a != "--rgba"] or sorted(
-        p.stem for p in HERE.glob("*.png") if p.stem[0].isupper() and p.stem not in PENDING)
+    keys = [a for a in args if a != "--rgba"] or sorted(p.stem for p in HERE.glob("*.png") if p.stem[0].isupper())
     out = HERE / "upload"
     out.mkdir(exist_ok=True)
     for key in keys:
