@@ -69,27 +69,26 @@ Theme.Assets = {
 }
 Theme.Assets.Cash = Theme.Assets.Coin
 -- October 20 overhaul (S8): Gems, the Rebirth currency, in the premium purple
--- (docs/team/OVERHAUL_CONTRACT_20261020.md §6-8). S6 drew the art
--- (assets/upgrade-icons-20261020; file names = keys); paste each uploaded id here.
--- Until then GemIcon draws a placeholder gem and Gem Upgrade cards borrow the
--- nearest existing icon (GEM_ART_FALLBACK).
+-- (docs/team/OVERHAUL_CONTRACT_20261020.md §6-8). S6's art, keyed by its file names
+-- (assets/upgrade-icons-20261020/upload-receipts.json); Extra Luck and Rally reuse
+-- in-game icons. An empty id borrows GEM_ART_FALLBACK, else GemIcon draws a gem.
 Theme.GemColors = {
 	Number=Color3.fromRGB(214,173,255), Top=Color3.fromRGB(168,94,242), Bottom=Color3.fromRGB(116,49,196),
 	SkipTop=Color3.fromRGB(201,117,245), SkipBottom=Color3.fromRGB(139,53,209),
 	LockedText=Color3.fromRGB(217,168,255), Effect=Color3.fromRGB(166,255,110), Level=Color3.fromRGB(188,199,190),
 }
 Theme.GemArt = {
-	Gems="", TimeSkip="", RollSpeed="", ExtraLuck="", VacuumCapacity="", AutoRoll="", CoinBoost="",
-	AutoRebirth="", MoreGems="", KeepUpgrades="", Rally="", MutationLuck="", OfflineCoins="",
-	ArmyPower="", RebirthChickenOdds="",
+	Gems="rbxassetid://73702372942908", TimeSkip="rbxassetid://74175802298844",
+	RollSpeed="rbxassetid://70386312720480", ExtraLuck="rbxassetid://136683191941433", -- Luck tree icon
+	VacuumCapacity="rbxassetid://72175945483273", AutoRoll="", -- waits for Stevin's look
+	CoinBoost="rbxassetid://135324018337151", AutoRebirth="rbxassetid://114580276298082",
+	MoreGems="rbxassetid://100810362507044", KeepUpgrades="rbxassetid://112863599177649",
+	Rally=Theme.Assets.Rally, MutationLuck="rbxassetid://131360952198245",
+	OfflineCoins="rbxassetid://139396997085549", ArmyPower="rbxassetid://103869254129016",
+	RebirthChickenOdds="rbxassetid://114829354407655",
 }
 local GEM_ART_FALLBACK = {
-	TimeSkip="rbxassetid://71023601644268", RollSpeed="rbxassetid://91702817085017", -- egg speed, roll slots
-	ExtraLuck=Theme.Assets.Luck, VacuumCapacity=Theme.Assets.EggMagnet, AutoRoll="rbxassetid://91702817085017",
-	CoinBoost="rbxassetid://131663330897554", AutoRebirth=Theme.Assets.Reenlist, -- egg with coins
-	KeepUpgrades="rbxassetid://85565793294890", Rally=Theme.Assets.Rally, -- Upgrades lab
-	MutationLuck="rbxassetid://109799576309561", OfflineCoins=Theme.Assets.Coin, -- egg
-	ArmyPower=Theme.Assets.ArmyHud, RebirthChickenOdds=Theme.Assets.RecruitBadge,
+	AutoRoll="rbxassetid://91702817085017", -- Roll Slot icon until S6's Auto Roll art is approved
 }
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a
