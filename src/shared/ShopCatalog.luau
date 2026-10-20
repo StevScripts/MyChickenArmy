@@ -98,11 +98,11 @@ local ShopCatalog = {
 		ResearchSkip24h = {productId=3718778720, name="Skip Research (24 hr)", researchSkipSeconds=86400, proposedPrice=549, retired=true},
 		-- October 20 Rebirth Skip: a saved credit (DataService:CommitPurchase via
 		-- ProductService); the Rebirth spends it. Paid-random because Gems buy luck.
-		RebirthSkip1 = {productId=0, name="Skip Rebirth 1-5", rebirthSkip=true, ranks={1, 5}, proposedPrice=49, paidRandom=true,
+		RebirthSkip1 = {productId=3720462949, name="Skip Rebirth 1-5", rebirthSkip=true, ranks={1, 5}, proposedPrice=49, paidRandom=true,
 			description="Rebirth now and keep your upgrades (Rebirth 1-5)."},
-		RebirthSkip2 = {productId=0, name="Skip Rebirth 6-15", rebirthSkip=true, ranks={6, 15}, proposedPrice=99, paidRandom=true,
+		RebirthSkip2 = {productId=3720462968, name="Skip Rebirth 6-15", rebirthSkip=true, ranks={6, 15}, proposedPrice=99, paidRandom=true,
 			description="Rebirth now and keep your upgrades (Rebirth 6-15)."},
-		RebirthSkip3 = {productId=0, name="Skip Rebirth 16-30", rebirthSkip=true, ranks={16, 30}, proposedPrice=199, paidRandom=true,
+		RebirthSkip3 = {productId=3720462985, name="Skip Rebirth 16-30", rebirthSkip=true, ranks={16, 30}, proposedPrice=199, paidRandom=true,
 			description="Rebirth now and keep your upgrades (Rebirth 16-30)."},
 		-- October 16 chicken offers (docs/team/CHICKEN_OFFERS.md): a Robux ladder in the free
 		-- gift's HUD slot, one step at a time. `image` is the offer art (portrait + light VFX).
