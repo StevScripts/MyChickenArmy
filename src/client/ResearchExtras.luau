@@ -153,7 +153,7 @@ function Extras:RenderOperations()
 	app.panelTitle.Text="Invasions"
 	if not data then return end
 	if (data.pendingReward or 0)>0 then
-		app:Text("PendingReward","$"..Theme.Money(data.pendingReward).." earned and saved. Spend some cash; this reward pays automatically when your wallet has room.",20,70)
+		app:Text("PendingReward",Theme.Coins(data.pendingReward).." earned and saved. Spend some coins; this reward pays automatically when your wallet has room.",20,70)
 		return
 	end
 	if data.activeId then
@@ -180,7 +180,7 @@ function Extras:RenderOperations()
 		local id=self.tier..":"..index;local definition=Operations.Encounters[id];local cleared=data.wins[id]
 		app:Text("Title"..index,(if cleared then "✓ " else "")..definition.name,25,40,Operations.Colors[self.tier])
 		app:Text("Details"..index,definition.description.."\nEnemy power "..Theme.Money(Operations.Power(id)),18,50)
-		app:Button("Start"..index,(if cleared then "Defend again" else "Defend").." · $"..Theme.CompactMoney(if cleared then definition.replayCash else definition.firstCash).." reward",function()
+		app:Button("Start"..index,(if cleared then "Defend again" else "Defend").." · "..Theme.CompactCoins(if cleared then definition.replayCash else definition.firstCash).." reward",function()
 			app:Request("StartOperation",{operationId=id,expectedRevision=state.research.revision})
 		end,Theme.ActionColors.purchase)
 	end

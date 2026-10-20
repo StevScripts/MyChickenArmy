@@ -183,6 +183,30 @@ function Checks.Run()
 		assert(st.profile.rbx == 12)
 	end)
 
+	check("Playtime funnel sends 10-second then minute checkpoints and records where the session ended", function()
+		local labels, clock = {}, 100
+		local ledger = Ledger.new({store = fakeStore(), playerStore = fakeStore(), studio = true, shard = 0, version = "v1",
+			clock = function() return 1791547200 end})
+		local analytics = Analytics.new({ledger = ledger, studio = true, clock = function() return clock end,
+			wall = function() return 1791547200 end, sender = function(label) table.insert(labels, label) end,
+			random = function() return 1 end}) -- first ledger flush at 280 s, after this check
+		assert(#Schema.Playtime == 105 and Schema.Playtime[6].label == "1m" and Schema.Playtime[105].label == "100m")
+		assert(#Schema.Funnels.Playtime == 100 and Schema.Funnels.Playtime[100] == "95m")
+		local session = fakeSession(5)
+		analytics:Join({UserId = 5}, session)
+		clock += 25; analytics:Step(0.1)
+		clock += 130; analytics:Step(0.1) -- 155 s: 30s .. 2m
+		analytics:Leave(session)
+		local sent = {}
+		for _, label in labels do if string.sub(label, 1, 16) == "funnel:Playtime:" then table.insert(sent, string.sub(label, 17)) end end
+		assert(table.concat(sent, ",") == "10s,20s,30s,40s,50s,1m,2m", table.concat(sent, ","))
+		local bucket = ledger.pending["2026-10-09"]["v1"]
+		assert(bucket.c["play.start"] == 1 and bucket.c["play.s.007"] == 1 and bucket.c["play.s.008"] == nil)
+		assert(bucket.c["play.last.007"] == 1, "ended after the 2m checkpoint")
+		local summary = Report.Summarize({["2026-10-09"] = {v = {v1 = bucket}, shards = 1, source = "shards"}})
+		assert(summary.playtime.started == 1 and summary.playtime.steps[7].sessions == 1 and summary.playtime.biggestDrop.label == "2m")
+	end)
+
 	check("Preexisting saves are never tracked into the onboarding funnel or cohorts", function()
 		local labels = {}
 		local ledger = Ledger.new({store = fakeStore(), playerStore = fakeStore(), studio = true, shard = 0, version = "v1",

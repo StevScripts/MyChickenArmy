@@ -174,10 +174,10 @@ function Checks.Run()
   local k,_,kserver=setup();k.kingCleared=false
   done,message=Rebirth.Rebirth(k,0,kserver)
   assert(not done and message=="Defeat the Chicken King first",message)
-  -- Not enough cash.
+  -- Not enough coins.
   local c,_,cserver=setup();c.coins=(Rebirth.Cost(1) :: number)-500
   done,message=Rebirth.Rebirth(c,0,cserver)
-  assert(not done and message=="Need $500 more",message)
+  assert(not done and message=="Need 500 more Coins",message)
   -- Army away (marching to its own Cluck Camp).
   local a,_,aserver=setup()
   assert(aserver.battles:Attack(a,"camp:1",0))

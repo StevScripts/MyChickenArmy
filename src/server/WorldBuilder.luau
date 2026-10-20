@@ -8,6 +8,7 @@ local MapLayout = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Ma
 local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local UIColors = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UIColors)
 local Conquest = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ConquestPresentation)
+local Currency = require(game:GetService("ReplicatedStorage").PetRoll.Shared.CurrencyLimits)
 
 local palette = {
 	grass = Color3.fromRGB(106, 185, 79), grassLight = Color3.fromRGB(108, 187, 80),
@@ -354,7 +355,7 @@ function WorldBuilder.BuildIncomeOutpost(root,frame,definition)
  group:SetAttribute("CommandTarget",definition.TargetId)
  group:SetAttribute("IncomeTerritory",true)
  local title=WorldBuilder.Billboard(group,"IncomeStatus",(cf*CFrame.new(0,11.6,-Config.CampHalfSize+1.5)).Position,
-  "Unclaimed · +$"..definition.Rate.."/s",palette.gold,225,60)
+  "Unclaimed · +"..Currency.Rate(definition.Rate).."/s",palette.gold,225,60)
  title.Parent.Size=UDim2.fromScale(16,2)
  title.TextScaled,title.TextWrapped=true,false
  local size=Instance.new("UITextSizeConstraint")

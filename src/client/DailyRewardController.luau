@@ -23,7 +23,7 @@ local TILES = {
 	{minutes=30, rolls=0}, {minutes=0, rolls=2}, {minutes=60, rolls=3},
 }
 local CASH_TIER = {1,2,0,3,3,0,4}
--- October 14 grid (owner reference): cash days orange/blue, roll days purple, Day 7 rainbow.
+-- October 14 grid (owner reference): coin days orange/blue, roll days purple, Day 7 rainbow.
 local CARD_COLORS = {
 	Color3.fromRGB(255,166,38), Color3.fromRGB(52,186,255), Color3.fromRGB(176,82,255), Color3.fromRGB(255,166,38),
 	Color3.fromRGB(52,186,255), Color3.fromRGB(176,82,255), Color3.fromRGB(255,214,64),
@@ -43,11 +43,11 @@ local AFTER_RECEIPT_SECONDS = 0.6
 local LAYOUT_NAME = "DailyStreak"
 local DEFAULT_SIZE, DEFAULT_ASPECT = UDim2.fromScale(0.9,0.72), 1.5
 
--- Today's tile shows the cash the server granted. Other days estimate from the
+-- Today's tile shows the coins the server granted. Other days estimate from the
 -- HUD income (the server pays minutes of income at claim time).
 local function rewardText(reward,cash: number): string
 	local parts = {}
-	if reward.minutes>0 then table.insert(parts,"+$"..Theme.CompactMoney(cash)) end
+	if reward.minutes>0 then table.insert(parts,"+"..Theme.CompactCoins(cash)) end
 	if reward.rolls>0 then table.insert(parts,"+"..reward.rolls.." Free "..(if reward.rolls==1 then "Roll" else "Rolls")) end
 	return table.concat(parts,"\n")
 end

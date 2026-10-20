@@ -60,14 +60,15 @@ function Hud.new(app,shell)
 	self.cashReadout=cash
 	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.14)
 	Theme.Aspect(cash,3.2)
-	-- October 15 owner UI Lab tweak: larger cash number with a green gradient face.
-	self.money=Theme.Display(cash,"Money","$0",46,Color3.fromRGB(252,248,255))
+	-- October 15 owner UI Lab tweak: larger coin number with a gradient face; October 20
+	-- (gold Coins): the face is gold beside the gold coin, and the number has no "$".
+	self.money=Theme.Display(cash,"Money","0",46,Color3.fromRGB(252,248,255))
 	local moneyGradient=Instance.new("UIGradient")
 	moneyGradient.Rotation=90
-	moneyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(0,255,67)),
-		ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(105,255,91)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,223,6))})
+	moneyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,247,57)),
+		ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(255,214,48)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,153,0))})
 	moneyGradient.Parent=self.money.TextFace
-	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Cash,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0.0021,0.0532))
+	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Coin,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0.0021,0.0532))
 	Theme.Aspect(self.cashIcon,1)
 	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0772),UDim2.fromScale(0.76,0.5628)
 	self.income=Theme.Display(cash,"Income","",20)
@@ -351,7 +352,7 @@ function Hud:ApplyInputLayout()
 	self:PlaceRebirth()
 	self.settings.Size=UDim2.fromScale(0.04,0.072)
 	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
-	-- The Hill chip rides just above the cash readout wherever it sits.
+	-- The Hill chip rides just above the coin readout wherever it sits.
 	if self.hill then self.hill:Place() end
 end
 
@@ -374,8 +375,8 @@ function Hud:UpdateEggLine(eggs)
 	if eggs.requiresDeposit then
 		local count=eggs.carriedCount or 0
 		self.income.Text="Bag: "..Theme.Money(count)..(if count==1 then " egg" else " eggs")
-			.." · Worth $"..Theme.Money(eggs.carriedValue or 0)
-	else self.income.Text="Yard eggs: $"..Theme.Money(eggs.value or 0) end
+			.." · Worth "..Theme.Coins(eggs.carriedValue or 0)
+	else self.income.Text="Yard eggs: "..Theme.Coins(eggs.value or 0) end
 end
 
 function Hud:UpdateOpening(state)
@@ -401,7 +402,7 @@ function Hud:UpdateTerritory(state)
 	-- The Hill banner (HillHud) carries the holder's boost and clock instead.
 	if state.hill and state.hill.enabled then self.territory.Visible = false;return end
 	local rate = math.max(0, math.floor(site.effectiveRate or 0))
-	self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +$" .. Theme.Money(rate) .. "/s"
+	self.territory.Text = if site.contested then "Income paused · contested" else "Outpost +" .. Theme.Coins(rate) .. "/s"
 	self.territory.TextColor3 = if site.contested then A.red else A.gold
 	if not site.contested then
 		if site.npcApproaching then self.territory.Text ..= " · raid approaching"
@@ -434,7 +435,7 @@ function Hud:UpdateRebirth(state)
 		if pulse then Theme.Motion:Breathe(self.reenlist.Visual,1.08,0.8) else Theme.Motion:StopBreathe(self.reenlist.Visual) end
 	end
 	self.rank.Text=RebirthPanel.Title(rank)
-	-- The Hill countdown chip uses the same spot above the cash readout.
+	-- The Hill countdown chip uses the same spot above the coin readout.
 	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waitingShown)
 	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15) end
 	self.lastRank=rank
@@ -566,8 +567,8 @@ function Hud:PopCash()
 	Theme.Motion:PopScale(self.money,1.06)
 end
 
--- Called when the offline receipt closes: a few cash icons fly from the receipt
--- (origin: absolute screen point, or nil) into the cash readout, then the
+-- Called when the offline receipt closes: a few coin icons fly from the receipt
+-- (origin: absolute screen point, or nil) into the coin readout, then the
 -- balance counts up to the real total. Plain TweenService tweens.
 function Hud:ReleaseOfflineCash(receiptId,origin)
 	if receiptId==nil or self.releasedReceipt==receiptId or self.releasingReceipt==receiptId then return end
@@ -577,7 +578,7 @@ function Hud:ReleaseOfflineCash(receiptId,origin)
 	local function settle()
 		self.releasedReceipt,self.heldCash=receiptId,0
 		local coins=app.state and app.state.coins or 0
-		Theme.Motion:Count(self.money,coins,function(value) return "$"..Theme.CompactMoney(value) end,1)
+		Theme.Motion:Count(self.money,coins,function(value) return Theme.CompactMoney(value) end,1)
 		self.lastCoins=coins
 		self:PopCash()
 		app.audio:Play("CashTick",1,{voiceKey="OfflineCash",maxVoices=2})
@@ -591,7 +592,7 @@ function Hud:ReleaseOfflineCash(receiptId,origin)
 	local arrived=false
 	for index=1,7 do
 		local icon=Instance.new("ImageLabel")
-		icon.Name,icon.Image,icon.BackgroundTransparency="OfflineCashFly",Theme.Assets.Cash,1
+		icon.Name,icon.Image,icon.BackgroundTransparency="OfflineCashFly",Theme.Assets.Coin,1
 		icon.AnchorPoint,icon.Size,icon.ZIndex=Vector2.new(0.5,0.5),UDim2.fromOffset(size,size),40
 		-- Start in a loose cluster, then arc down-left into the readout.
 		local spread=Vector2.new(math.random(-60,60),math.random(-40,40))
@@ -616,14 +617,14 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateRebirth(state)
 	self:UpdateFreeGift(state)
 	self:UpdateChickenOffer(state)
-	-- October 16 owner request: the offline receipt's cash (already saved by the
+	-- October 16 owner request: the offline receipt's coins (already saved by the
 	-- server) stays out of the displayed balance until the receipt is closed, then
 	-- flies in (ReleaseOfflineCash). Display only; state.coins is untouched.
 	local receipt=state.offlineCash
 	self.heldCash=if type(receipt)=="table" and (tonumber(receipt.amount) or 0)>0 and receipt.id~=self.releasedReceipt
 		then receipt.amount else 0
 	local shown=math.max(0,state.coins-self.heldCash)
-	Theme.Motion:Count(self.money,shown,function(value) return "$"..Theme.CompactMoney(value) end)
+	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
 	-- Confirmed gains only (never the first packet or a purchase).
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
 	self.lastCoins=shown

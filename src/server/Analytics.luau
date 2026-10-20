@@ -120,7 +120,7 @@ function Analytics.new(deps: Deps?)
 		players = {} :: {[number]: any},
 		high = {} :: {any}, low = {} :: {any}, tokens = 0,
 		frameSum = 0, frameCount = 0, frameMax = 0,
-		nextPerf = 0, nextFlush = 0, nextProfiles = 0, nextEconomy = 0,
+		nextPerf = 0, nextFlush = 0, nextProfiles = 0, nextEconomy = 0, nextPlaytime = 0,
 		productKeys = {} :: {[number]: string}, connections = {} :: {RBXScriptConnection},
 		warned = false, destroyed = false, saving = 0,
 	}, Analytics)
@@ -239,9 +239,11 @@ function Analytics:Join(player: Player, session)
 		maxStep = 0, trail = {}, journeySteps = {}, rejects = {}, econ = {}, sessionEarned = 0,
 		rolls = 0, buys = 0, rollsSinceBuy = 0, rollFunnels = 0, shopFunnel = {}, errors = 0,
 		pingSum = 0, pingN = 0, fpsSum = 0, fpsN = 0, nextClientPerf = 0, lastReport = -math.huge,
-		observedAt = -math.huge, sessionIndex = 0}
+		observedAt = -math.huge, sessionIndex = 0, playNext = 1,
+		playId = tostring(session.userId) .. "-Playtime-" .. math.floor(self.wall())}
 	self.players[session.userId] = st
 	self.ledger:Count("players.joinAttempt")
+	self.ledger:Count("play.start")
 	self:_Part(self.funnels, "Join", st)
 	self:_Part(self.playerInfo, "Join", st, player, session)
 	self:_Reach(st, Schema.OnboardingIndex.Joined)
@@ -918,12 +920,33 @@ function Analytics:LoopEvent(event: any)
 	if type(f.seconds) == "number" then self.ledger:Hist("loop." .. name .. ".seconds", "seconds", f.seconds) end
 end
 
+-- Playtime funnel (Schema.Playtime) ------------------------------------------------
+
+function Analytics:_Playtime(st)
+	local checkpoints = Schema.Playtime
+	local elapsed = self.clock() - st.joinedAt
+	while st.playNext <= #checkpoints and elapsed >= checkpoints[st.playNext].seconds do
+		local index = st.playNext
+		st.playNext += 1
+		self.ledger:Count("play.s." .. Schema.PlaytimeCode(index))
+		local name = Schema.Funnels.Playtime[index]
+		if name then
+			local player, id = st.player, st.playId
+			self:_Queue(false, "funnel:Playtime:" .. name, function()
+				AnalyticsService:LogFunnelStepEvent(player, "Playtime", id, index, name)
+			end)
+		end
+	end
+end
+
 -- Leaving ------------------------------------------------------------------------
 
 function Analytics:Leave(session)
 	local st = self:_State(session)
 	if not st then return end
 	self.players[session.userId] = nil
+	self:_Playtime(st)
+	self.ledger:Count("play.last." .. Schema.PlaytimeCode(st.playNext - 1))
 	if not st.ready or st.loadFailed then
 		self.ledger:Count("players.leftBeforeReady")
 		return
@@ -1054,6 +1077,10 @@ function Analytics:Step(dt: number)
 	local now = self.clock()
 	self.frameSum += dt; self.frameCount += 1; self.frameMax = math.max(self.frameMax, dt)
 	self:_Pump(dt)
+	if now >= self.nextPlaytime then
+		self.nextPlaytime = now + 1
+		for _, st in self.players do self:_Playtime(st) end
+	end
 	if now >= self.nextPerf then
 		self.nextPerf = now + Schema.PerfSampleSeconds
 		local count = 0

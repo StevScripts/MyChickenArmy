@@ -54,9 +54,9 @@ local function hitArea(parent,name,callback)
 	return button
 end
 
--- Rewards of $1M or more read compactly ("$1.25M"); smaller amounts stay exact.
+-- Rewards of 1M or more read compactly ("1.25M Coins"); smaller amounts stay exact.
 local function money(value)
-	return "$"..Theme.CompactMoney(tonumber(value) or 0)
+	return Theme.CompactCoins(tonumber(value) or 0)
 end
 
 function Panel.new(app)

@@ -143,7 +143,7 @@ function Browser:Render()
   view.nextLabel.TextScaled=true
   view.nextLabel.TextSize=if offer.blocked then 20 else 23
   view.nextLabel.TextColor3=if view.hover then CYAN else MUTED
-  view.buy.Text=if waiting then "…" elseif offer.blocked then "Locked" elseif offer.price then "$"..Theme.Money(offer.price) else "MAX"
+  view.buy.Text=if waiting then "…" elseif offer.blocked then "Locked" elseif offer.price then Theme.Coins(offer.price) else "MAX"
   view.buy.Active,view.buy.Selectable=enabled,enabled
   view.buy:SetAttribute("Price",offer.price)
   view.buy.BackgroundColor3=if enabled then Theme.ActionColors.purchase else Theme.ActionColors.disabled

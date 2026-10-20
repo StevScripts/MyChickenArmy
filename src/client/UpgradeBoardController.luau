@@ -30,7 +30,7 @@ end
 local function money(value)
 	local whole = tostring(math.floor(value))
 	local formatted = whole:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-	return "$" .. formatted
+	return formatted .. " Coins"
 end
 
 local function plotIndex(screen, root)
@@ -166,7 +166,7 @@ function Board:Purchase(key)
 	if not self.alive or self.pending[key] or not offer or not offer.ready or not offer.price then return end
 	self.app.audio:Play("Click")
 	if not offer.unlocked then self:Reject(key); self.app:Notify(offer.requirement, false); return end
-	if state.coins < offer.price then self:Reject(key); self.app:Notify("Not enough cash for this upgrade.", false); return end
+	if state.coins < offer.price then self:Reject(key); self.app:Notify("Not enough coins for this upgrade.", false); return end
 	local id = self.app:Request("BoardUpgrade", {upgradeKey = key, expectedLevel = offer.level, expectedPrice = offer.price})
 	self.pending[key] = id
 	self:Render()

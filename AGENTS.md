@@ -89,11 +89,19 @@ Before editing or syncing, inspect Git and compare any unsynced Studio changes. 
 
 ## Player-facing words (October 14)
 Use one name per concept in every player-facing string: Army, Flock, chickens, Camp
-(home is "base"), Cash, Fuse, Upgrades (the tree screen), Missions (October 14, replaced Invasions), "Rebirth N", and
-Should win / Close fight / Very tough. Never pets, coins, merge, squad/troops,
+(home is "base"), Coins, Fuse, Upgrades (the tree screen), Missions (October 14, replaced Invasions), "Rebirth N", and
+Should win / Close fight / Very tough. Never pets, cash/"$", merge, squad/troops,
 Operations or device-specific "Press E"/"Tap". Internal ids stay. Menus open through
 `AppController:CloseOtherMenus` so only one shows at a time. See
 `docs/team/UX_AUDIT_FIXES_20261014.md`.
+
+October 20 owner decision (supersedes "Cash" above): the earned currency is gold
+**Coins**. Show the gold coin image beside a number where it fits (HUD, shop, research
+costs, podium tags, receipts, pop-ups) and "1,200 Coins" in words elsewhere; never "$".
+Use `CurrencyLimits.Text/Rate` on the server and `UITheme.Coins/CompactCoins/CoinAmount`
+on the client. Coin amounts are gold (`UIColors.Coins`). Saved `coins`, prices, product
+IDs, analytics names and internal `Cash*` ids are unchanged; "cash" in older rules and
+docs means Coins. Robux stays "R$". See `docs/team/GOLD_COINS.md`.
 
 ## Mission territories (October 15, owner decision)
 Mission sites last 15 minutes and are guarded only by their own enemy-only Loyalist
@@ -115,6 +123,15 @@ re-render the story, then set `Status=applied`. Add a story in
 October 15 owner rule: ONE UI layout for every device. Do not branch positions or
 sizes on PreferredInput/TouchEnabled (input-specific hint text such as "Tap"/"Press"
 is fine). An owner tweak made on any device applies to all of them.
+
+## Voxel eggs (October 20, owner request)
+Every ownable chicken lays its own voxel egg sprite: `EggArt.Image(drop.species)`
+(`src/shared/EggArt.luau`), falling back to the classic Chicken egg while loading or
+for a species without art. Rarity effects (shine, sparkles, glow) are baked into the
+256px images; do not add per-egg particles, tweens or extra instances. Size egg
+billboards with `EggArt.Scale`. Preload egg images through an ImageLabel, not a bare
+content string. New chickens need a recipe in `assets/voxel-eggs-20261020/`, an upload
+and an `EggArt` entry. See `docs/team/VOXEL_EGGS.md`.
 
 ## Reference vault (October 13)
 UI references, games studied, idea notes and the dev journal live in the Obsidian vault `~/Documents/ObsidianVaults/Roblox-Journal/` (read its `AGENTS.md`). Before UI work, check `UI References/` for the matching `screen:`. Vault notes are inspiration only; this repo's rules win.

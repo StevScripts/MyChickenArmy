@@ -712,7 +712,7 @@ function AppController:RenderSettings()
 	elseif input==Enum.PreferredInput.Touch then
 		self:Text("Controls", "Tap the on-screen buttons and prompts to interact.", 16, 36, C.muted)
 	end
-	self:Text("SaveInfo", self.state.saveMessage or "Chickens, Cash and upgrades are saved between visits.", 12, 32, C.muted)
+	self:Text("SaveInfo", self.state.saveMessage or "Chickens, Coins and upgrades are saved between visits.", 12, 32, C.muted)
 	if self.state.admin then self:Button("OpenAdmin", "Admin commands  ·  F2", function() self:OpenPage("Admin") end, Theme.ActionColors.navigation) end
 	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
 end
@@ -721,7 +721,7 @@ function AppController:RenderTest()
 	self.panelTitle.Text = "Studio Test Tools"
 	if not self.state.debugAllowed then self:Text("Denied", "Test tools are available only to approved testers.", 14, 60);return end
 	if self.confirm and self.confirm.kind == "Reset" then
-		self:Text("ResetWarning", "Reset your saved test flock, cash, upgrades, camp progress and tutorial? This cannot be undone.", 14, 58, C.red)
+		self:Text("ResetWarning", "Reset your saved test flock, coins, upgrades, camp progress and tutorial? This cannot be undone.", 14, 58, C.red)
 		self:Button("ConfirmReset", "Yes, reset my test progress", function()
 			self:Request("Debug", {command = "ResetProtected", argument = "RESET MY TEST SAVE"})
 			self.confirm, self.selected = nil, nil
@@ -733,7 +733,7 @@ function AppController:RenderTest()
 	local function launch(command,argument) self:Request("Debug",{command=command,argument=argument}) end
 	self:Text("LaunchHeading","LAUNCH FEATURES",14,30,C.green)
 	self:Button("TestEverything","TEST EVERYTHING · unlock all, showcase flock, all passes",function() launch("TestEverything") end,Theme.ActionColors.purchase)
-	self:Button("TestRebirthReady","Rebirth · King cleared + cash for the next rank",function() launch("RebirthReady") end)
+	self:Button("TestRebirthReady","Rebirth · King cleared + coins for the next rank",function() launch("RebirthReady") end)
 	self:Button("TestInvasion","Mission · spawn Scout Landing on the island now",function() launch("StartInvasion","1:1") end)
 	self:Button("TestInvasionBoss","Mission · spawn The King Returns (Royal boss)",function() launch("StartInvasion","3:3") end)
 	self:Button("TestDailyNextDay","Daily streak · jump to the next day",function() launch("DailyNextDay") end)
@@ -747,18 +747,18 @@ function AppController:RenderTest()
 	if shop and shop.testAllowed then
 		local presetNames={Account="My account's passes",NoPasses="No paid passes",EggSpawn="2x Egg Spawn only",AllPasses="All enabled passes"}
 		self:Text("PurchaseTestStatus", "PURCHASE TEST · "..(presetNames[shop.testPreset] or presetNames.Account), 14, 30, C.green)
-		self:Text("PurchaseTestHelp", "Session only. Fresh starts clear test cash, chickens, upgrades and consumables. Your real purchases and save stay intact.", 13, 62, C.muted)
+		self:Text("PurchaseTestHelp", "Session only. Fresh starts clear test coins, chickens, upgrades and consumables. Your real purchases and save stay intact.", 13, 62, C.muted)
 		self:Button("TestNoPasses", "Ignore all owned passes · keep test progress", function() self:Request("Debug",{command="TestPurchases",argument="NoPasses"}) end)
 		self:Button("TestAccountPasses", "Use my account's passes again", function() self:Request("Debug",{command="TestPurchases",argument="Account"}) end)
 		for _,preset in {{"Free","Fresh free player · no paid items"},{"LowRobux","Fresh low spend · 2x Egg Spawn only"},
-			{"CashPack","Fresh cash pack · +10,000 cash, no passes"},{"AllPasses","Fresh all enabled passes · no cash packs"},
-			{"AllItems","Fresh all items · passes + one of each cash pack"}} do
+			{"CashPack","Fresh coin pack · +10,000 Coins, no passes"},{"AllPasses","Fresh all enabled passes · no coin packs"},
+			{"AllItems","Fresh all items · passes + one of each coin pack"}} do
 			self:Button("FreshEconomy"..preset[1],preset[2],function() self:Request("Debug",{command="FreshEconomy",argument=preset[1]}) end)
 		end
 	else
 		self:Text("PurchaseTestUnavailable", "Purchase presets need Studio session-only mode (PetRollPlaytestSessionOnly).", 13, 46, C.muted)
 	end
-	local actions = {{"Coins", "+10,000 test cash"}, {"Unlock", "Clear 2 route camps + test capacity"},
+	local actions = {{"Coins", "+10,000 test Coins"}, {"Unlock", "Clear 2 route camps + test capacity"},
 		{"Pair", "Add two common chickens"}, {"FillCommon", "Replace flock with common chickens"},
 		{"FillMixed", "Replace flock with varied chickens"}, {"FillReserves", "Fill flock to 40"}, {"Opponent", "Create a defended test base"},
 		{"EmptyOpponent", "Create an empty test base"}, {"AwayOpponent", "Test opponent returns in 7s"},

@@ -26,6 +26,7 @@ local FlockLayout=require(Shared.FlockLayout)
 local InvasionLayout=require(Shared.InvasionLayout)
 local March=require(Shared.ArmyMarch)
 local Config=require(Shared.Config)
+local Currency=require(Shared.CurrencyLimits)
 local DailyService=require(script.Parent.DailyService)
 local Service={}
 Service.__index=Service
@@ -402,7 +403,7 @@ function Service:StartMission(session,siteId,now)
 	if site.holder==session.userId then return false,"Your army already holds "..definition.name.."." end
 	if site.busy then return false,"Another army is already fighting at "..definition.name..". Try again soon." end
 	if Service.Tier(session)<definition.tier then return false,Service.LockedMessage(definition.tier) end
-	if session.research.pendingOperationReward>0 then return false,"Spend some cash to receive your saved mission reward first." end
+	if session.research.pendingOperationReward>0 then return false,"Spend some coins to receive your saved mission reward first." end
 	local held,holdLimit=self.battles:HoldCount(session),self.battles:HoldLimit(session)
 	if held>=holdLimit then return false,"Holding "..held.."/"..holdLimit.." territories. Unclaim one first." end
 	-- A held site is fought against its holder's stationed army.
@@ -561,7 +562,7 @@ function Service:ResolveContest(battle,outcome,now,site)
 		battle.units,battle.defender,battle.missionContest=kept,nil,nil
 		self:Station(battle,attacker,site,now)
 		local reward=self:Conquered(attacker,site,battle)
-		attacker.lastResult=name.." captured from "..previousHolder.."! "..(if reward>0 then "+$"..reward else "No second reward here.")
+		attacker.lastResult=name.." captured from "..previousHolder.."! "..(if reward>0 then "+"..Currency.Text(reward) else "No second reward here.")
 		if defender then defender.lastResult=attacker.name.." took "..name..". Your army is recovering at your base.";defender:Touch() end
 		attacker:Touch()
 		return
@@ -615,7 +616,7 @@ function Service:Resolve(battle,outcome,now)
 			heldReward=session.research.pendingOperationReward,
 			bannerTier=Catalog.BannerTier(session.research.operationWins)}
 			if self.analytics then self.analytics:LaunchCount(session,"mission."..(if won then "won." elseif outcome=="Expired" then "timeout." else "lost.")..definition.tier) end
-			session.lastResult=if won then definition.name.." conquered! "..(if reward>0 then "+$"..reward elseif session.research.pendingOperationReward>0 then "$"..session.research.pendingOperationReward.." saved until your wallet has room" else "No second reward here.")..(if first then " · first clear" else "")
+			session.lastResult=if won then definition.name.." conquered! "..(if reward>0 then "+"..Currency.Text(reward) elseif session.research.pendingOperationReward>0 then Currency.Text(session.research.pendingOperationReward).." saved until your wallet has room" else "No second reward here.")..(if first then " · first clear" else "")
 				elseif outcome=="Expired" then "Time's up! The loyalists held out. Your army is marching home."
 				else definition.name.." ended. Your army is marching home; no completion reward."
 		session:Touch()

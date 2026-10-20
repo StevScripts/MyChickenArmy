@@ -12,6 +12,7 @@ local MapLayout = require(Shared.MapLayout)
 local CampCommand=require(Shared.CampCommand)
 local CampaignRoute=require(Shared.CampaignRoute)
 local UIColors = require(Shared.UIColors)
+local Currency = require(Shared.CurrencyLimits)
 local PetActor = require(script.Parent.PetActor)
 local IdlePatrol = require(script.Parent.IdlePatrol)
 local RollStation = require(script.Parent.RollStation)
@@ -691,9 +692,9 @@ function WorldService:SetIncomeStatus(summary)
  local text
  if summary.contested then text="Income paused · contested"
  elseif summary.npcWarningEndsAt then
-  text="Raid in "..math.max(0,math.ceil(summary.npcWarningEndsAt-workspace:GetServerTimeNow())).."s · +$"..summary.effectiveRate.."/s"
- elseif summary.ownerId then text="+$"..summary.effectiveRate.."/s · owned"
- else text="Capture · +$"..summary.configuredRate.."/s" end
+  text="Raid in "..math.max(0,math.ceil(summary.npcWarningEndsAt-workspace:GetServerTimeNow())).."s · +"..Currency.Rate(summary.effectiveRate).."/s"
+ elseif summary.ownerId then text="+"..Currency.Rate(summary.effectiveRate).."/s · owned"
+ else text="Capture · +"..Currency.Rate(summary.configuredRate).."/s" end
  if record.label.Text~=text then record.label.Text=text end
  attribute(record.folder,"TerritoryRate",summary.effectiveRate)
  attribute(record.folder,"Contested",summary.contested==true)

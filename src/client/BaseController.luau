@@ -74,7 +74,7 @@ function BaseController:CommandFor(part)
 			else ""
 		-- Shared bands (TutorialGuide.Difficulty): <1.3x Very tough, 1.3-2x Close fight, 2x+ Should win.
 		local strength = Guide.Difficulty(state.power, entry.power)
-		local bounty = "$" .. Theme.Money(entry.killRewardMin or 0) .. (if entry.killRewardMax~=entry.killRewardMin then "–"..Theme.Money(entry.killRewardMax or 0) else "") .. "/kill"
+		local bounty = Theme.Money(entry.killRewardMin or 0) .. (if entry.killRewardMax~=entry.killRewardMin then "–"..Theme.Money(entry.killRewardMax or 0) else "") .. " Coins/kill"
 		-- Held territories pay egg value while the flag stands (Mini War style).
 		local pays = if (entry.holdBonus or 0) > 0 then " · +" .. math.floor(entry.holdBonus * 100 + 0.5) .. "% eggs" else ""
 		local hint = if entry.via then "Fights " .. entry.via .. " first"
@@ -120,7 +120,7 @@ function BaseController:MissionCommand(model,missionId)
 		elseif mission.locked then "Unlock this Mission tier in Upgrades"
 		elseif not canMove then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
 	local enemies=if mission.holder then mission.count.." chickens of "..mission.holder else mission.count.." loyalists"
-	local payout=if mission.rewarded then "already rewarded" else "$"..Theme.CompactMoney(mission.reward)
+	local payout=if mission.rewarded then "already rewarded" else Theme.CompactCoins(mission.reward)
 	local hint=Guide.Difficulty(state.power,mission.power).." · "..enemies.." · "..payout
 	return {model=model,action=if allowed then "StartOperation" else nil,missionId=missionId,targetId="mission:"..missionId,
 		hint=if allowed then hint else nil,locked=not allowed,reason=reason,title=mission.name,
@@ -683,7 +683,7 @@ function BaseController:PollCommand()
 		self.commandAnchor.Position=Vector3.new(0,2.5,0)
 		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
 		self.commandPrompt.ActionText="Send Army"
-		-- Odds and bounty, e.g. "Close fight · 4 defenders · $100–520/kill".
+		-- Odds and bounty, e.g. "Close fight · 4 defenders · 100–520 Coins/kill".
 		self.commandPrompt.ObjectText=nearest.hint or ""
 		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)
 		self.unclaimPrompt.MaxActivationDistance=self.commandPrompt.MaxActivationDistance

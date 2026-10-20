@@ -1,5 +1,7 @@
 # My Chicken Army — current game guide
 
+**October 20, 2026:** the currency players see is gold **Coins** (it was "Cash" with a "$"); every amount below is unchanged and "cash" in this guide means Coins. See [Gold Coins](team/GOLD_COINS.md).
+
 **Snapshot:** October 6, 2026. **Canonical game:** Pet Roll Test, Roblox place `96683186622050`. This guide describes the editable Luau source in this repository, the current feature contracts, and a read-only inspection of the connected Studio place in Edit mode. It is a game and implementation reference, not a claim that every flow was played through today. Several source files were already modified locally when this guide was written; their working-tree contents are included.
 
 ## 1. What the player does

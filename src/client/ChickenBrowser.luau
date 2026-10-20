@@ -370,13 +370,13 @@ function Browser.new(app,parent)
 
 	self.capacityPage=scrollingPanel(self.body,"MoreArmySlots")
 	self.passTitle=label(self.capacityPage,"Title","Bigger Army",32,UDim2.new(),UDim2.new(),WHITE,true)
-	self.passBadge=label(self.capacityPage,"Type","Cash Army Size is maxed · Robux pass",17,UDim2.new(),UDim2.new(),GREEN)
+	self.passBadge=label(self.capacityPage,"Type","Army Size upgrades maxed · Robux pass",17,UDim2.new(),UDim2.new(),GREEN)
 	self.passArt=Theme.Image(self.capacityPage,"BiggerArmy",Theme.Assets.Army,UDim2.new(),UDim2.new())
 	self.passArt.ZIndex=self.capacityPage.ZIndex+1
 	self.passCopy=label(self.capacityPage,"Description","Bring more chickens into battle.",24,UDim2.new(),UDim2.new(),WHITE)
 	self.passCopy.TextWrapped,self.passCopy.TextTruncate=true,Enum.TextTruncate.None
 	self.passNote=label(self.capacityPage,"Availability",
-		"The Bigger Army pass adds five more Army slots on top of your Cash upgrades. See the price in Shop.",18,
+		"The Bigger Army pass adds five more Army slots on top of your Army Size upgrades. See the price in Shop.",18,
 		UDim2.new(),UDim2.new(),MUTED)
 	self.passNote.TextWrapped,self.passNote.TextTruncate=true,Enum.TextTruncate.None
 	self.passShop=button(self.capacityPage,"ViewInShop","View in Shop",function()
@@ -703,7 +703,7 @@ function Browser:UpdateAction()
 	enabled(self.upgrade,canEdit and pet~=nil and pet.canUpgrade==true and affordable)
 	self.upgrade.Text=if self.pending and self.pending.action=="UpgradeChicken" then "Upgrading…"
 		elseif pet and pet.level>=Config.MaxPetLevel then "Max Level"
-		elseif type(price)=="number" then 'Upgrade  <font color="#FFDE29">$'..Theme.Money(price)..'</font>' else "Upgrade"
+		elseif type(price)=="number" then 'Upgrade  <font color="#FFDE29">'..Theme.Coins(price)..'</font>' else "Upgrade"
 	enabled(self.assign,canEdit and pet~=nil)
 	self.assign.Text=if pet and pet.selected then "Remove from Army"
 		elseif pet and self:ColossalSlot(pet.id) then "Replace Colossal"
@@ -720,8 +720,8 @@ function Browser:UpdateAction()
 	enabled(self.saleCancel,self.pending==nil)
 	if self.saleQuote then
 		local quote=self.saleQuote
-		self.salePrompt.Text="Sell "..quote.name.." permanently?\nHome egg income -$"..Theme.Money(quote.income).."/s."
-		self.saleConfirm.Text=if self.pending then "Selling…" else "Sell for $"..Theme.Money(quote.refund)
+		self.salePrompt.Text="Sell "..quote.name.." permanently?\nHome egg income -"..Theme.Coins(quote.income).."/s."
+		self.saleConfirm.Text=if self.pending then "Selling…" else "Sell for "..Theme.Coins(quote.refund)
 	end
 	self.mergeHint.Text=""
 	if pet and not Config.Features.ChickenCashUpgrades then
@@ -731,7 +731,7 @@ function Browser:UpdateAction()
 			elseif pet.level>=Config.MaxPetLevel then "Max level reached"
 			elseif pet.canUpgrade==false then pet.upgradeReason or "Return this chicken home to upgrade."
 			elseif self:FuseReady(pet) then self:FuseHint(pet)
-			elseif not affordable then "Not enough cash"
+			elseif not affordable then "Not enough coins"
 			else "Boosts damage and eggs · bought levels reset on Rebirth"
 	end
 end

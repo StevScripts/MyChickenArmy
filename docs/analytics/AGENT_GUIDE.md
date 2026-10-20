@@ -251,6 +251,10 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
   per UTC day: `Research` (TreeOpened → Started → Completed), `Fuse` (Available →
   Opened → Fused), `Rebirth` (Eligible → Opened → Rebirthed), `Mission` (Spawned →
   Started → Won), `Daily` (Available → Opened → Claimed).
+- Version 6 `Playtime` funnel (10 of 10 dashboards; no slot left): how long one
+  session lasts since joining. Steps `10s 20s 30s 40s 50s 1m 2m … 95m`, one Roblox
+  funnel session per game session. Roblox caps a funnel at 100 steps, so 96m–100m
+  exist only in the ledger (section 12).
 - Custom events (35 of 100): TutorialService FTUE* and Conquest* events, plus
   `SessionEnded` (seconds; platform, stage, new/returning), `OnboardingExit`,
   `FeatureFirstUse`, `RobuxPurchase` (estimate; kind, key, stage), `ScriptError`
@@ -464,3 +468,21 @@ Open Cloud: `python3 tools/analytics/pull_ledger.py --days 1 --players
 (same row and totals shape). The key then also needs DataStore "list entry keys"
 access. Its lite summary also gains `featureFunnels`, `robuxActual`, `devices` and
 `uiPrompts`; the funnel step ids are copied in `FEATURE_FUNNELS` and must match the schema.
+
+## 12. Version 6 Playtime funnel (October 20, 2026)
+
+Where players drop off inside one session. `Schema.Playtime` lists 105 checkpoints
+counted from PlayerAdded (load time included): every 10 s for the first minute, then
+every minute up to 100 minutes. `Analytics:_Playtime` checks them once per second
+and on leave. Index NNN is three digits (`001` = 10s, `006` = 1m, `105` = 100m).
+- `play.start`: every join
+- `play.s.<NNN>`: sessions that reached checkpoint NNN
+- `play.last.<NNN>`: sessions whose last checkpoint was NNN (they left before the
+  next one); `play.last.000` = left within 10 seconds
+- Summary `playtime = {started, endedBeforeFirst, steps, biggestDrop}`; step rows
+  `{label, seconds, sessions, ofStarted, fromPrev, endedHere}`; `biggestDrop` is the
+  checkpoint with the most sessions ending right after it.
+- Narrow pull: `local s = Report.Summary({days = 7}); return HttpService:JSONEncode(s.playtime)`
+- Roblox dashboard `Playtime` gets checkpoints 1–100 (10s … 95m).
+- `tools/analytics/pull_ledger.py` does not summarize it yet; read the `play.*`
+  counters from the raw buckets there.

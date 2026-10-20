@@ -1,0 +1,91 @@
+{
+  "method": "Studio Flow, edit context, AssetService:CreateEditableImage + CreateAssetAsync (raw RGBA served from 127.0.0.1)",
+  "placeId": 96683186622050,
+  "creatorType": "Group",
+  "creatorId": 778575811,
+  "uploadedAt": "2026-10-20",
+  "preparation": "prepare_upload.py: alpha <=5 -> 0, >=245 -> 255, 2.5% transparent margin, premultiplied LANCZOS to <=1024 px",
+  "sourceFolder": "/Users/stevin/Documents/ChatGPT/My Chicken Army/assets/gold-coins-20261020",
+  "assets": [
+    {
+      "name": "GoldCoin",
+      "source": "gold-coin.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "116489091471628",
+      "use": "Theme.Assets.Coin: HUD wallet, coin icons, research costs, shop tab, 2x Coins card, deposit particle"
+    },
+    {
+      "name": "PocketCoins",
+      "source": "pocket-coins.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "107445346366690",
+      "use": "Shop tier 1 (Pocket Coins), daily reward tier 1, offline receipt"
+    },
+    {
+      "name": "CoopStash",
+      "source": "coin-stash.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "116335920476744",
+      "use": "Shop tier 2 (Coop Stash), daily reward tier 2"
+    },
+    {
+      "name": "CoinChest",
+      "source": "coin-chest.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "132347263460940",
+      "use": "Shop tier 3 (Coin Chest, product key ArmyChest), daily reward tier 3"
+    },
+    {
+      "name": "CommandersVault",
+      "source": "commander-vault.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "138392235740834",
+      "use": "Shop tier 4 square art, daily reward tier 4"
+    },
+    {
+      "name": "CommandersVaultBanner",
+      "source": "commander-vault-banner.png",
+      "size": [
+        1024,
+        387
+      ],
+      "assetId": "114439841862473",
+      "use": "Commander's Vault featured card (replaces cash overflow 138029740866650)"
+    },
+    {
+      "name": "EggValueCoins",
+      "source": "../generated/gold-coins-20261020/EggValueCoins-gpt-image-1.5-20261020-135051.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "131663330897554",
+      "use": "Upgrades tree Egg Value hex (ResearchAssets.cashEggValue; replaces egg + banknotes 109589411633165)"
+    },
+    {
+      "name": "EggPackingCoins",
+      "source": "../generated/gold-coins-20261020/EggPackingCoins-gpt-image-1.5-20261020-135049.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "assetId": "109799576309561",
+      "use": "Research E4-E6 egg value nodes and the Rebirth egg card (ResearchAssets.egg; replaces 74642843536793)"
+    }
+  ]
+}

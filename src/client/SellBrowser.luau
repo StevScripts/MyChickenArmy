@@ -3,6 +3,7 @@
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
 local Dialogue=require(script.Parent.MerchantDialogue)
+local Theme=require(script.Parent.UITheme)
 local Browser={}
 Browser.__index=Browser
 local function money(n) return (tostring(math.floor(n or 0)):reverse():gsub("(%d%d%d)","%1,"):reverse():gsub("^,","")) end
@@ -56,7 +57,7 @@ end
 
 function Browser:Value(pet)
  self.mode,self.quote="value",nil
- self.view:Result("I'd value it at <font color='#FFEF40'>$"..money(pet.refund).."</font>.")
+ self.view:Result("I'd value it at <font color='#FFEF40'>"..Theme.Coins(pet.refund).."</font>.")
 end
 
 function Browser:Groups()
@@ -105,9 +106,9 @@ function Browser:Review(pets)
  end
  self.mode,self.quote="review",quote
  self.view:Show("I'll buy "..#pets.." spare "..(if #pets==1 then "chicken" else "chickens")..".",{
-  {text="Sell "..#pets.." for $"..money(quote.refund),run=function() self:Confirm() end},
+  {text="Sell "..#pets.." for "..Theme.Coins(quote.refund),run=function() self:Confirm() end},
   {text="Nevermind",run=function() self:Root() end},
- },"Egg income −"..money(quote.income).."/s")
+ },"Egg income −"..Theme.Coins(quote.income).."/s")
 end
 
 function Browser:QuoteValid()
@@ -136,7 +137,7 @@ function Browser:Receive(result)
   if not self.view.active then return false end
   if result.ok and result.receipt then
    local receipt=result.receipt
-   self.view:Result("Here is <font color='#FFEF40'>$"..money(receipt.total).."</font>")
+   self.view:Result("Here is <font color='#FFEF40'>"..Theme.Coins(receipt.total).."</font>")
   else self:Root(result.message or "Your flock changed. Choose again.") end
   return true
  end

@@ -6,6 +6,7 @@ local Rules = require(Shared.Rules)
 local Catalog = require(Shared.PetCatalog)
 local Giant = require(Shared.GiantChicken)
 local MutationCatalog = require(Shared.MutationCatalog)
+local Currency = require(Shared.CurrencyLimits)
 local sizeRandom = Random.new()
 local ArmyService = {}
 ArmyService.SizeRandom = sizeRandom
@@ -125,7 +126,7 @@ function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
 	local level=pet.level or 1
 	local price=Rules.ChickenUpgradePrice(pet.species,level)
 	if expectedLevel~=level or expectedPrice~=price then return false,"The upgrade changed. Try again." end
-	if not price or session.coins<price then return false,"Not enough cash to upgrade this chicken." end
+	if not price or session.coins<price then return false,"Not enough coins to upgrade this chicken." end
 	local canSpend,spendReason=session:CanSpendCash(price)
 	if not canSpend then return false,spendReason end
 	local investment=(pet.investment or Rules.Investment(pet.species,level))+price
@@ -382,12 +383,12 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	if session:Count()-count<minimum then
 		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
-	if not session:CanCredit(total,"sale") then return false,"Spend some cash before selling these chickens." end
+	if not session:CanCredit(total,"sale") then return false,"Spend some coins before selling these chickens." end
 	-- Validate the whole batch before mutation; this transaction never yields.
 	for id in seen do session.pets[id]=nil end
 	session:RefreshArmy()
 	session:Credit(total,"sale")
-	return true,"Sold "..count.." reserve "..(if count==1 then "chicken" else "chickens").." for $"..(tostring(math.floor(total)):reverse():gsub("(%d%d%d)","%1,"):reverse():gsub("^,",""))..".",{count=count,total=total}
+	return true,"Sold "..count.." reserve "..(if count==1 then "chicken" else "chickens").." for "..Currency.Text(total)..".",{count=count,total=total}
 end
 
 function ArmyService.Expand(session)
@@ -419,12 +420,12 @@ function ArmyService.UpgradeIncome(session)
  local canSpend,reason=session:CanSpendCash(price)
  if not canSpend then return false,reason end
  session.coins-=price;session.incomeLevel+=1;session.tutorial.upgraded=true;session:Touch()
- return true,"Egg value upgraded. Chickens laying at home now earn more cash."
+ return true,"Egg value upgraded. Chickens laying at home now earn more coins."
 end
 
 -- Older clients may still request promotion; cash upgrades do not require conquest.
 function ArmyService.Promote(_session)
- return false,"Buy upgrades with cash in Upgrades."
+ return false,"Buy upgrades with coins in Upgrades."
 end
 
 return ArmyService

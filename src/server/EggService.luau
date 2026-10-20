@@ -82,7 +82,7 @@ function EggService:Upgrade(player,session,level,price)
  local cost=ProcessorConfig.Price(state.level)
  if not cost then return false,"Selling Speed is fully upgraded." end
  if level~=state.level or price~=cost then return false,"The upgrade changed. Try again." end
- if session.coins<cost then return false,"Not enough cash for this upgrade." end
+ if session.coins<cost then return false,"Not enough coins for this upgrade." end
  session.coins-=cost;state.level+=1;session:Touch()
  return true,"Eggs sell at "..Processor.Rate(state,session.entitlements.DoubleEggSpawn).." eggs/sec."
 end

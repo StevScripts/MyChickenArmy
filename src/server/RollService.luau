@@ -5,6 +5,7 @@ local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
 local MutationCatalog = require(Shared.MutationCatalog)
+local Currency = require(Shared.CurrencyLimits)
 local EventService = require(script.Parent.EventService)
 local RollService = {}
 RollService.__index = RollService
@@ -113,7 +114,7 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local level = math.clamp(offer.level or 1, 1, Config.MaxPetLevel)
 	local price = offer.price or Rules.RecruitPrice(species, level)
 	if session:Count() >= session:CollectionLimit() then return false, "Flock full — sell reserve chickens in the Army menu." end
-	if session.coins < price then return false, "Not enough cash. This offer will wait for you." end
+	if session.coins < price then return false, "Not enough coins. This offer will wait for you." end
 	local starter=offer.starter==true and session:StarterRecruitPending()
 		and species=="Duck" and level==1 and price==Config.Economy.StarterRecruitPrice
 	local canSpend,reason=session:CanSpendCash(price,if starter then "StarterRecruit" else nil)
@@ -135,7 +136,7 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local selected=table.find(after,pet.id)~=nil
 	local assignment=if not selected then "Reserve" elseif #after>#before then "Added" else "Replacement"
 	local pending=selected and context and context.phase~="Returning" and context.battleId or nil
-	local status=if not selected then "Reserve · eggs +$"..session:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation).."/s at your base."
+	local status=if not selected then "Reserve · eggs +"..Currency.Rate(session:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation)).."/s at your base."
 		elseif session.armyState=="Returning" then "Ready when your army gets home."
 		elseif session:IsArmyLocked() and pending then "Joining your army on foot."
 		elseif session:IsArmyLocked() then "Ready for your next deployment."

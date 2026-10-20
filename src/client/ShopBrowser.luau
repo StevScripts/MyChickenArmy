@@ -55,7 +55,7 @@ local FIGMA={
 }
 local PASSES={
  {key="AutoCollectEggs",name="Auto Collect Eggs",description="Collect eggs without walking over them.",color=Color3.fromRGB(255,188,32),top=Color3.fromRGB(233,103,10),rim=Color3.fromRGB(255,232,174),title=Color3.fromRGB(255,244,216),icon="EggMagnet",background="orange"},
- {key="DoubleCash",name="2x Cash",description="Earn twice as much cash.",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),rim=Color3.fromRGB(233,255,160),title=Color3.fromRGB(242,255,216),icon="Cash",background="cash",double=true},
+ {key="DoubleCash",name="2x Coins",description="Earn twice as many coins.",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),rim=Color3.fromRGB(233,255,160),title=Color3.fromRGB(242,255,216),icon="Cash",background="cash",double=true},
  {key="DoubleEggSpawn",name="2x Egg Spawn",description="Chickens lay eggs twice as often.",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),rim=Color3.fromRGB(188,239,255),title=Color3.fromRGB(227,250,255),icon="Eggs",background="eggs",double=true},
  {key="AutoMerge",name="Auto Fuse",description="Fuse matching chickens for you.",color=Color3.fromRGB(8,207,243),top=Color3.fromRGB(0,110,228),rim=Color3.fromRGB(179,240,255),title=Color3.fromRGB(222,248,255),icon="AutoMerge",background="cyan"},
  {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 15 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
@@ -69,18 +69,20 @@ local EXISTING_STYLES={
 -- October 15 shop redesign (owner reference: StarterGui.GUI.FRAMES.Shop): one short
 -- line per offer; the card itself is the button.
 local PASS_COPY={
- AutoCollectEggs="A vacuum collects your eggs!",DoubleCash="2x cash from eggs and fights!",
+ AutoCollectEggs="A vacuum collects your eggs!",DoubleCash="2x coins from eggs and fights!",
  DoubleEggSpawn="Chickens lay 2x the eggs!",AutoMerge="Fuses matches for you!",
  BiggerArmy="+5 army slots!",DoubleLuck="Stronger chickens more often!",
  EggMagnet="Grab eggs from 2x as far!",CommanderBanner="Gold frame + crown flags!",
- DoubleBounty="2x cash from NPC kills!",
+ DoubleBounty="2x coins from NPC kills!",
 }
 -- Placeholder quantities; RenderCashAmounts shows the live payout. Checkout prices always come from Roblox.
 local CASH_TIERS={
- {key="ArmyChest",name="Cash Sack",tier=3,amount="1M Cash",art={62.5,46,176}},
- {key="CoopStash",name="Coop Stash",tier=2,amount="100K Cash",art={62.5,46,176}},
- {key="PocketCoins",name="Pocket Cash",tier=1,amount="10K Cash",art={62.5,46,176}},
+ {key="ArmyChest",name="Coin Chest",tier=3,amount="1M Coins",art={62.5,46,176}},
+ {key="CoopStash",name="Coop Stash",tier=2,amount="100K Coins",art={62.5,46,176}},
+ {key="PocketCoins",name="Pocket Coins",tier=1,amount="10K Coins",art={62.5,46,176}},
 }
+-- October 20 gold coins: coin packs sit on blue cards so the gold art stands out.
+local COIN_CARD_TOP,COIN_CARD_BOTTOM=Color3.fromRGB(56,198,255),Color3.fromRGB(0,96,226)
 -- Recording-led spacing, expressed relative to section width on every screen.
 local OFFER_COLUMNS=3
 local OFFER_GAP=0.016
@@ -92,14 +94,14 @@ local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.018
 local SHOP_ASPECT=1.78
 local PASS_RATIO=1
 local CASH_RATIO=1.05
-local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Cash Packs"}
-local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Cash"}
+local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Coin Packs"}
+local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Coins"}
 local TITLE_GRADIENTS={
  Galaxy={Color3.fromRGB(205,140,255),Color3.fromRGB(110,235,255)},
  Passes={Color3.fromRGB(21,255,0),Color3.fromRGB(255,255,0)},
- Cash={Color3.fromRGB(21,255,0),Color3.fromRGB(255,255,0)},
+ Cash={Color3.fromRGB(255,166,0),Color3.fromRGB(255,244,120)},
 }
-local SECTION_ICONS={Galaxy=GalaxyPresentation.CrateImage,Passes=Theme.Assets.Army,Cash=Theme.Assets.Cash}
+local SECTION_ICONS={Galaxy=GalaxyPresentation.CrateImage,Passes=Theme.Assets.Army,Cash=Theme.Assets.Coin}
 
 local function frame(parent,name,size,position,color)
  local item=Theme.Frame(parent,name,size,color)
@@ -261,7 +263,7 @@ function Browser:SectionTab(parent,key,index)
  Theme.Aspect(icon,1)
  if key=="Galaxy" then icon.Image=GalaxyPresentation.CrateImage
  elseif key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
- else Art.CashPile(icon,3) end
+ else Art.CashPile(icon,1) end
  local caption=Theme.Display(visual,"Caption",TAB_TITLES[key],26,P.white)
  caption.Position,caption.Size,caption.ZIndex=UDim2.fromScale(-0.1,0.76),UDim2.fromScale(1.2,0.24),9
  caption.TextXAlignment,caption.TextScaled,caption.TextWrapped=Enum.TextXAlignment.Center,true,false
@@ -454,7 +456,7 @@ function Browser:RenderExisting()
  if luck.multiplier then luck.multiplier.Visible=normal==true end
  local saving=not shop or not shop.productReady
  self.previewStatus.Text=if shop and shop.testAllowed then "Studio test · Use Test roll above · No Robux charged"
-  elseif saving then "Cash purchases wait for a saved profile."
+  elseif saving then "Coin packs wait for a saved profile."
   elseif self.app.commerce.pending then "Complete or cancel the Roblox purchase prompt."
   else "Prices from Roblox · purchases deliver to this account"
  -- Regional pricing can change unit value. Compare only verified current prices.
@@ -479,7 +481,7 @@ function Browser:CreateCash()
  vaultButton.ZIndex,vaultButton.Selectable=2,false
  vaultButton:SetAttribute("OwnsPopupStyle",true)
  vaultButton.Parent=section
- local vault,vaultFace=offerFace(vaultButton,Color3.fromRGB(176,255,1),Color3.fromRGB(23,190,0))
+ local vault,vaultFace=offerFace(vaultButton,COIN_CARD_TOP,COIN_CARD_BOTTOM)
  vault.ClipsDescendants=true
  self.cashFeatured,self.cashFeaturedButton=vaultButton,vaultButton
  self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
@@ -493,7 +495,7 @@ function Browser:CreateCash()
  self.cashOverflow=Art.CashOverflow(art)
  self.cashOverflow.ScaleType,self.cashOverflow.ZIndex=Enum.ScaleType.Crop,3
  self.cashTitle=text(vault,"Title","Commander's Vault",30,UDim2.fromScale(0.03,0.07),UDim2.fromScale(0.5,0.2))
- self.cashNote=text(vault,"PreviewAmount","10M Cash",56,UDim2.fromScale(0.03,0.29),UDim2.fromScale(0.5,0.3),FIGMA.text,false)
+ self.cashNote=text(vault,"PreviewAmount","10M Coins",56,UDim2.fromScale(0.03,0.29),UDim2.fromScale(0.5,0.3),FIGMA.text,false)
  self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.03,0.56),UDim2.fromScale(0.4,0.12),Color3.fromRGB(255,240,90))
  vaultButton:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
  self.cashBuy=self:PurchaseButton(vault,"CommandersVault",P.gold)
@@ -513,7 +515,7 @@ function Browser:CreateCash()
   card.LayoutOrder,card.ZIndex,card.Selectable=i,2,false
   card:SetAttribute("OwnsPopupStyle",true)
   card.Parent=shelf
-  local visual,face=offerFace(card,Color3.fromRGB(176,255,1),Color3.fromRGB(23,190,0))
+  local visual,face=offerFace(card,COIN_CARD_TOP,COIN_CARD_BOTTOM)
   local title=text(visual,"Title",definition.name,26,UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.12),P.white,true)
   local rays=Art.ProductRays(visual,Color3.new(1,1,1))
   rays.ZIndex=4
@@ -621,13 +623,13 @@ function Browser:RenderDetails()
    and type(guarantee.interval)=="number" and guarantee.interval>0
    and type(guarantee.rollsRemaining)=="number" and PetCatalog[guarantee.nextSpecies]~=nil
   self.detailsTitle.Text="2x Luck · Guaranteed Offers"
-  self.detailsDescription.Text="For this account, 2x Luck gives a known Rare+ offer every 10 manual rolls; regular rolls keep their normal odds. Normal cash price applies; higher-level offers cost more. Offers last until reroll or leaving."
+  self.detailsDescription.Text="For this account, 2x Luck gives a known Rare+ offer every 10 manual rolls; regular rolls keep their normal odds. Normal coin price applies; higher-level offers cost more. Offers last until reroll or leaving."
   if available then
    table.insert(rows,{name="Fixed repeating order",value="Level 1 price"})
    for index,species in guarantee.sequence do
     local pet=PetCatalog[species]
     if not pet or type(pet.price)~="number" then available=false;break end
-    table.insert(rows,{name=index..". "..pet.name,value="$"..Theme.Money(pet.price)})
+    table.insert(rows,{name=index..". "..pet.name,value=Theme.Coins(pet.price)})
    end
    if available then
     local owned=shop.owned and shop.owned.DoubleLuck
@@ -638,7 +640,7 @@ function Browser:RenderDetails()
   end
  elseif shop and shop.policyReady==true and shop.paidRandomAllowed==true then
   self.detailsTitle.Text="2x Luck · roll chances"
-  self.detailsDescription.Text="Doubles Luck strength, shifting favored results toward stronger chickens. Each chicken's chance changes differently. Current Cash Luck and Upgrades are included; crates are unaffected."
+  self.detailsDescription.Text="Doubles Luck strength, shifting favored results toward stronger chickens. Each chicken's chance changes differently. Your Luck upgrades and research are included; crates are unaffected."
   local odds=shop and shop.luckOdds
   available=odds and type(odds.withoutPass)=="table" and type(odds.withPass)=="table"
   if available then
@@ -886,12 +888,12 @@ function Browser:Resize()
  self:UpdateSection()
 end
 
--- October 14: cash packs pay minutes of income (at least the catalog amount); show the server's live payout.
+-- October 14: coin packs pay minutes of income (at least the catalog amount); show the server's live payout.
 function Browser:RenderCashAmounts()
  local packs=self.app.state and self.app.state.shop and self.app.state.shop.cashPacks or {}
  local function amount(key)
   local product=Catalog.Products[key]
-  return Theme.Number(packs[key] or (product and product.coins) or 0).." Cash"
+  return Theme.Number(packs[key] or (product and product.coins) or 0).." Coins"
  end
  for _,view in self.cashViews do view.note.Text=amount(view.key) end
  if self.cashNote then self.cashNote.Text=amount("CommandersVault") end

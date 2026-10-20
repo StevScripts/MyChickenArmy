@@ -37,7 +37,7 @@ function Service.Start(session,nodeId,expectedRevision,expectedPrice,expectedDur
 	if status=="Completed" then return false,"Research already completed." end
 	if status=="Researching" then return false,"This research is already running." end
 	if status=="Locked" then return false,"Complete "..Catalog.Nodes[node.prerequisite].name.." first." end
-	if status=="Unaffordable" then return false,"Not enough cash for this research." end
+	if status=="Unaffordable" then return false,"Not enough coins for this research." end
 	local effects=session.researchEffects or Rules.Effects(research)
 	local duration=Rules.Duration(node,effects)
 	if expectedPrice~=node.price or expectedDuration~=duration then return false,"The research quote changed." end
@@ -57,10 +57,10 @@ function Service.Cancel(session,jobId,expectedRevision,now)
 	local research=session.research
 	if type(jobId)~="string" or #jobId>64 or research.revision~=expectedRevision then return false,"Research changed. Choose the job again." end
 	for index,job in research.jobs do if job.id==jobId then
-		if job.paid>Currency.MaxCoins-session.coins then return false,"Spend some cash before receiving this refund." end
+		if job.paid>Currency.MaxCoins-session.coins then return false,"Spend some coins before receiving this refund." end
 		-- Refund exactly the original debit, with no earned-cash multipliers.
 		session.coins+=job.paid;table.remove(research.jobs,index);research.revision+=1;session:Touch()
-		return true,"Research cancelled; cash refunded."
+		return true,"Research cancelled; coins refunded."
 	end end
 	return false,"This research job has already finished or been cancelled."
 end

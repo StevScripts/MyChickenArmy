@@ -268,7 +268,7 @@ function CommerceService:PreparePurchase(player,session,key,productReady,jobId)
   if not record.ready then return false,"Please wait while passes are checked." end
   if record.owned[key] then return false,"You already own this pass." end
  elseif not productReady then return false,"Purchases need a safely loaded, saved profile." end
- if definition.coins and session.coins>Currency.MaxCoins-definition.coins then return false,"Spend some cash before buying this pack." end
+ if definition.coins and session.coins>Currency.MaxCoins-definition.coins then return false,"Spend some coins before buying this pack." end
  if definition.chickenOffer then
   -- One step at a time; the chicken needs a free Flock spot.
   if (session.chickenOfferStep or 0)>=definition.chickenOffer then return false,"You already own this offer." end

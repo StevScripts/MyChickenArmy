@@ -216,7 +216,7 @@ end
 
 DebugService.Launch.RebirthReady=function(_self,_player,session)
 	readyForRebirth(session)
-	return true,"TEST: King cleared and cash for the next rank. Open Rebirth."
+	return true,"TEST: King cleared and coins for the next rank. Open Rebirth."
 end
 
 DebugService.Launch.StartInvasion=function(self,_player,session,argument,now)

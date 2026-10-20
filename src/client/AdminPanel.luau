@@ -12,7 +12,7 @@ Panel.__index=Panel
 local LOG_LIMIT=12
 -- One-tap shortcuts; each is a normal admin command.
 local QUICK={
-	{"Give me $1M","cash me 1m"},
+	{"Give me 1M Coins","cash me 1m"},
 	{"Finish all my research","research me all"},
 	{"Beat all camps and the King","king me"},
 	{"Next roll ready","roll me"},

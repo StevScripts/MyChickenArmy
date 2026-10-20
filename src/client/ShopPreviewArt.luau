@@ -7,7 +7,10 @@ local CRATE_IMAGE="rbxassetid://123737204833674"
 -- Approved Figma exports uploaded as group-owned images on 2026-09-16.
 -- Source/receipt metadata: assets/shop-current-figma-20260914/manifest.json.
 local FIGMA_CIRCULAR_RAYS="rbxassetid://85196345053937"
-local FIGMA_CASH_OVERFLOW="rbxassetid://138029740866650"
+-- October 20 gold coins (assets/gold-coins-20261020/upload-receipts.json): the wide
+-- Commander's Vault card art keeps its vault on the right, leaving room for labels.
+-- It replaced the mirrored banknote overflow rbxassetid://138029740866650.
+local VAULT_BANNER="rbxassetid://114439841862473"
 local PASS_BACKGROUNDS={
  orange="rbxassetid://109571654494595",cash="rbxassetid://76189535858143",eggs="rbxassetid://100581807296540",
  cyan="rbxassetid://108126212890055",army="rbxassetid://104740897094702",gold="rbxassetid://73918372038700",
@@ -19,11 +22,13 @@ local PASS_IMAGES={
  BiggerArmy="rbxassetid://81931003230758",
  DoubleLuck="rbxassetid://117200377623767",
 }
+-- Coin packs by tier: Pocket Coins, Coop Stash (sack), Coin Chest, Commander's Vault.
+-- The banknote art they replaced: 105035750065002, 139457712564032, 110055873622600, 103786010617501.
 local CASH_IMAGES={
- [1]="rbxassetid://105035750065002",
- [2]="rbxassetid://139457712564032",
- [3]="rbxassetid://110055873622600",
- [4]="rbxassetid://103786010617501",
+ [1]="rbxassetid://107445346366690",
+ [2]="rbxassetid://116335920476744",
+ [3]="rbxassetid://132347263460940",
+ [4]="rbxassetid://138392235740834",
 }
 
 local function illustration(parent,name,asset)
@@ -72,7 +77,7 @@ end
 
 function Art.PassIcon(parent,key,double)
  if key=="Eggs" then Art.Eggs(parent)
- elseif key=="Cash" then illustration(parent,"Icon",CASH_IMAGES[1])
+ elseif key=="Cash" then illustration(parent,"Icon",Theme.Assets.Coin)
  else illustration(parent,"Icon",PASS_IMAGES[key] or Theme.Assets[key]) end
  if double then
   local multiplier=Theme.Display(parent,"Multiplier","x2",40.8,Color3.new(1,1,1))
@@ -95,14 +100,13 @@ function Art.ProductRays(parent,color)
 end
 
 function Art.CashOverflow(parent)
- local pending=FIGMA_CASH_OVERFLOW==""
- local image=illustration(parent,"CashOverflowIllustration",if pending then CASH_IMAGES[4] else FIGMA_CASH_OVERFLOW)
- image:SetAttribute("FigmaAssetPending",pending)
- -- The exported image is already mirrored. Never include card backgrounds or text.
+ local image=illustration(parent,"CashOverflowIllustration",VAULT_BANNER)
+ image:SetAttribute("FigmaAssetPending",false)
+ -- Art only: the card's labels and price stay native text. Never include backgrounds or text.
  return image
 end
 
 function Art.CashPile(parent,tier)
- return illustration(parent,"CashTier"..tier,CASH_IMAGES[tier] or Theme.Assets.Cash)
+ return illustration(parent,"CashTier"..tier,CASH_IMAGES[tier] or Theme.Assets.Coin)
 end
 return Art

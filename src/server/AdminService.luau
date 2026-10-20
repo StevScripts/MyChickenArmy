@@ -305,17 +305,17 @@ handlers.cash=function(self,actor,args)
 		return true
 	end)
 	if changed==0 then return false,last end
-	return true,(if value>0 then "Gave $"..value else "Took $"..(-value)).." to "..plural(changed,"player").."."
+	return true,(if value>0 then "Gave "..Currency.Text(value) else "Took "..Currency.Text(-value)).." to "..plural(changed,"player").."."
 end
 
 handlers.setcash=function(self,actor,args)
 	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
 	local value=amount(args[2])
-	if not value or value<0 then return false,"Give a cash amount of 0 or more." end
+	if not value or value<0 then return false,"Give an amount of 0 or more." end
 	value=math.min(value,Currency.MaxCoins)
 	local changed,last=self:EachSession(players,function(session) session.coins=value;return true end)
 	if changed==0 then return false,last end
-	return true,"Set cash to $"..value.." for "..plural(changed,"player").."."
+	return true,"Set Coins to "..Currency.Grouped(value).." for "..plural(changed,"player").."."
 end
 
 handlers.chicken=function(self,actor,args)

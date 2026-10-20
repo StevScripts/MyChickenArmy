@@ -1,5 +1,6 @@
 --!strict
 -- Snapshot-only guidance. Never changes prices, eligibility or player actions.
+local Currency = require(script.Parent.CurrencyLimits)
 local Guide = {}
 Guide.Version = "cluck-5-forty-eggs"
 Guide.EggGoal = 40
@@ -59,8 +60,10 @@ local function earn(state, price)
 	if carried > 0 and carried >= needed then
 		return step("RecoverSell", "Step on the green sell pad", "EggDeposit")
 	end
+	local more = math.ceil(needed - carried)
 	return step("RecoverCollect",
-		if price then "Collect $" .. math.ceil(needed - carried) .. " more in eggs" else "Collect eggs in your yard", "Yard")
+		if price then "Collect eggs worth " .. Currency.Grouped(more) .. " more " .. (if more == 1 then "Coin" else "Coins")
+			else "Collect eggs in your yard", "Yard")
 end
 
 local function recruit(state, growing)
@@ -162,7 +165,7 @@ function Guide.NextGoal(state, ignoreSkip)
 		if rebirth.enabled ~= false and rebirth.nextRank and type(cost) == "number" and cost > 0
 			and (state.coins or 0) >= cost * 0.5 then
 			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready: open Rebirth (right side)", nil) end
-			return goal("Rebirth", "Rebirth: $" .. shortCash(state.coins) .. " / $" .. shortCash(cost), nil)
+			return goal("Rebirth", "Rebirth: " .. shortCash(state.coins) .. " / " .. shortCash(cost) .. " Coins", nil)
 		end
 	end
 	if state.kingCleared then

@@ -12,8 +12,8 @@ Commands.List = {
 	{name="players", usage="players", help="Everyone in this server with their user ID.", rank="Admin", group="Info"},
 	{name="logs", usage="logs", help="Recent admin actions in this server.", rank="Admin", group="Info"},
 
-	{name="cash", usage="cash <target> <amount>", help="Give cash (a negative amount takes it).", rank="Admin", group="Economy"},
-	{name="setcash", usage="setcash <target> <amount>", help="Set a player's cash exactly.", rank="Admin", group="Economy"},
+	{name="cash", usage="coins <target> <amount>", help="Give coins (a negative amount takes them).", rank="Admin", group="Economy"},
+	{name="setcash", usage="setcoins <target> <amount>", help="Set a player's coins exactly.", rank="Admin", group="Economy"},
 	{name="chicken", usage="chicken <target> <species> [level] [count]", help="Give chickens (flock limit applies).", rank="Admin", group="Economy"},
 	{name="research", usage="research <target> <all|node>", help="Finish all research, or one node by ID or name.", rank="Admin", group="Economy"},
 	{name="army", usage="army <target> <size>", help="Set army size (deployment slots).", rank="Admin", group="Economy"},
@@ -40,7 +40,7 @@ Commands.List = {
 Commands.ByName = {} :: {[string]: Command}
 for _, command in Commands.List do Commands.ByName[command.name] = command end
 -- Short forms typed in chat.
-Commands.Aliases = {money="cash", give="chicken", teleport="tp", to="tp", ws="speed", walkspeed="speed",
+Commands.Aliases = {money="cash", coins="cash", setcoins="setcash", give="chicken", teleport="tp", to="tp", ws="speed", walkspeed="speed",
 	msg="announce", m="announce", unlockall="research", h="help", cmds="help", commands="help"}
 
 function Commands.Resolve(name: string): Command?

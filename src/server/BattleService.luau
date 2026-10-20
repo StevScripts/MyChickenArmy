@@ -1042,11 +1042,11 @@ function BattleService:Finish(battle,outcome,now)
 			elseif outcome=="A" then "Victory at "..battle.name.."!"
 			elseif outcome=="B" then "Army defeated. Your chickens respawn at home; send them again whenever you're ready."
 			elseif outcome=="Draw" then "Draw — your chickens are returning home."
-			else outcome.." — returning home. You keep the cash you earned."
+			else outcome.." — returning home. You keep the coins you earned."
 		attacker:Touch()
 	end
 	if defender then
-		defender.banner=if outcome=="A" then "Base defeated. Your chickens and cash are safe."
+		defender.banner=if outcome=="A" then "Base defeated. Your chickens and coins are safe."
 			elseif outcome=="B" then "Base defended!" else "Raid ended: "..outcome
 		if defender.defending==battle.id then
 			defender.defending=nil

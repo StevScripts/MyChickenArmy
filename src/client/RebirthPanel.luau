@@ -24,11 +24,11 @@ local HOLD_SECONDS=2
 -- quote.cashLevels counts the cash-bought chicken levels this rebirth removes.
 local function resetLine(levels: number): string
 	local tail=if levels>0 then " · "..levels.." chicken level"..(if levels==1 then "" else "s") else ""
-	return "Cash · Egg upgrades · Luck · Camps"..tail
+	return "Coins · Egg upgrades · Luck · Camps"..tail
 end
 local KEEP_LINE="Chickens · Giants · Research · Plot · Army size"
 -- October 14 board (owner: "more information, coherent with the rest of the UI"):
--- the Daily Rewards card style. Card colours: egg cash, mutation (its own colour), camps.
+-- the Daily Rewards card style. Card colours: egg coins, mutation (its own colour), camps.
 local EGG_GREEN=Color3.fromRGB(70,190,60)
 local CAMP_RED=Color3.fromRGB(214,58,48)
 local NONE_GREY=Color3.fromRGB(96,104,110)
@@ -71,8 +71,9 @@ local function multiplier(value,decimals)
 	return "×"..string.format("%."..decimals.."f",tonumber(value) or 1)
 end
 
+-- The cost bar sits beside the gold coin, so it shows numbers only (October 20).
 local function money(value)
-	return "$"..Theme.Number(tonumber(value) or 0)
+	return Theme.Number(tonumber(value) or 0)
 end
 
 local function label(parent,name,text,x,y,w,h,color)
@@ -215,7 +216,7 @@ function Panel:Build()
 		caption.ZIndex=6
 		return {frame=frame,value=value,caption=caption,icon=art}
 	end
-	self.eggCard=card("EggCard",.035,Assets.egg,"EGG CASH")
+	self.eggCard=card("EggCard",.035,Assets.egg,"EGG COINS")
 	self.mutationCard=card("MutationCard",.355,Assets.egg,"NEW MUTATION")
 	self.campCard=card("CampCard",.675,Theme.Assets.EnemyStrength,"CAMPS")
 	-- What resets and what stays.
@@ -230,11 +231,11 @@ function Panel:Build()
 	self.resetList=strip("Resets",.035,RED,"RESETS")
 	self.keepList=strip("Keeps",.51,Color3.fromRGB(150,240,120),"YOU KEEP")
 	self.keepList.Text=KEEP_LINE
-	-- Cost bar (cash icon, progress toward the next rank) beside the button.
+	-- Cost bar (coin icon, progress toward the next rank) beside the button.
 	local track,fill=bar(main,"CostProgress",Color3.fromRGB(14,24,14),GOLD)
 	track.Position,track.Size=UDim2.fromScale(.1,.855),UDim2.fromScale(.52,.1)
 	Theme.Stroke(track,Color3.new(0,0,0),3)
-	local costIcon=Theme.Image(main,"CostIcon",Theme.Assets.Cash,UDim2.fromScale(.1,.17),UDim2.fromScale(.035,.82))
+	local costIcon=Theme.Image(main,"CostIcon",Theme.Assets.Coin,UDim2.fromScale(.1,.17),UDim2.fromScale(.035,.82))
 	Theme.Aspect(costIcon,1);costIcon.ZIndex=9
 	local costText=label(track,"Label","",.08,.05,.84,.9,WHITE)
 	costText.ZIndex=8
@@ -309,12 +310,12 @@ function Panel:RenderPanel()
 	self.campCard.caption.Text="Tougher enemies"
 	paint(self.campCard,CAMP_RED)
 	self.resetList.Text=resetLine(tonumber(quote.cashLevels) or 0)
-	-- Cost bar: King requirement first, then cash progress; server errors replace the label.
+	-- Cost bar: King requirement first, then coin progress; server errors replace the label.
 	-- Only the first Rebirth needs the King (quote.kingRequired; older quotes lack it).
 	local needKing=quote.kingCleared==false and quote.kingRequired~=false
 	local progress=if needKing then 0 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 1
 	Theme.Motion:Tween(self.costFill,"fill",{Size=UDim2.fromScale(progress,1)},.25)
-	self.costIcon.Image=if needKing then Theme.Assets.Padlock else Theme.Assets.Cash
+	self.costIcon.Image=if needKing then Theme.Assets.Padlock else Theme.Assets.Coin
 	if self.message then
 		self.costText.Text,self.costText.TextColor3=self.message,self.messageColor or RED
 	elseif needKing then
@@ -330,7 +331,7 @@ function Panel:RenderPanel()
 	-- Readable refusal from the quote fields (the server reason has raw digits).
 	local reason=quote.reason or "Not ready yet"
 	if needKing then reason="Locked"
-	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more"
+	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more Coins"
 	elseif quote.armyHome==false then reason="Bring your Army home first" end
 	hold.Text=if self.pending then "Rebirthing…" elseif can then "Hold to Rebirth" else reason
 	local tint=if can or self.pending then GREEN else Theme.ActionColors.disabled

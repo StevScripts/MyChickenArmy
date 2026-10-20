@@ -695,7 +695,7 @@ function GameServer:Start()
 	for _,player in Players:GetPlayers() do task.spawn(function() self:AddPlayer(player) end) end
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt) self:Step(dt) end))
 	game:BindToClose(function() self:Shutdown() end)
- print("[PetRoll] My Chicken Army! "..Config.Version.." ready. Yard chickens lay eggs; collect them for cash.")
+ print("[PetRoll] My Chicken Army! "..Config.Version.." ready. Yard chickens lay eggs; collect them for coins.")
 end
 
 -- The only BindToClose path: settle eggs, release every profile within the

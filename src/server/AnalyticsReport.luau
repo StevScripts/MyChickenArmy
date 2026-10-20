@@ -188,6 +188,27 @@ local function featureFunnels(c: {[string]: number}, h: {[string]: any}, x: {[st
 	return list
 end
 
+-- Playtime funnel (version 6): sessions still in the game at each checkpoint, share
+-- of all joins, step-to-step retention and sessions whose last checkpoint was this
+-- one. biggestDrop = checkpoint with the most sessions ending right after it.
+local function playtimeSection(c: {[string]: number})
+	local started = c["play.start"] or 0
+	local steps, previous, biggest = {}, started, nil :: any
+	for index, checkpoint in Schema.Playtime do
+		local nn = Schema.PlaytimeCode(index)
+		local sessions = c["play.s." .. nn] or 0
+		local endedHere = c["play.last." .. nn] or 0
+		table.insert(steps, {label = checkpoint.label, seconds = checkpoint.seconds, sessions = sessions,
+			ofStarted = pct(sessions, started), fromPrev = pct(sessions, previous), endedHere = endedHere})
+		if endedHere > 0 and (biggest == nil or endedHere > biggest.endedHere) then
+			biggest = {label = checkpoint.label, endedHere = endedHere}
+		end
+		previous = sessions
+	end
+	return {started = started, endedBeforeFirst = c["play.last." .. Schema.PlaytimeCode(0)] or 0,
+		steps = steps, biggestDrop = biggest}
+end
+
 local function uiSection(c: {[string]: number}, h: {[string]: any}, t: {[string]: any})
 	local menus, seen = {}, {}
 	for name in prefixed(c, "ui.menu.open.") do seen[name] = true end
@@ -513,7 +534,7 @@ function Report.Summarize(pulled: any, options: Options?)
 		-- Version 5 sections.
 		featureFunnels = featureFunnels(c, h, total.x), ui = uiSection(c, h, total.t),
 		segments = segmentsSection(c, h, total.t), stateSnapshots = stateSection(h),
-		serverEvents = serverEventsSection(c, h),
+		serverEvents = serverEventsSection(c, h), playtime = playtimeSection(c),
 		exits = {menu = sortedTop(total.t["exit.menu"], 30), action = sortedTop(total.t["exit.action"], 30)},
 		devices = devices, robuxActual = robuxActualSection(c, h, devices.newPayers),
 	}

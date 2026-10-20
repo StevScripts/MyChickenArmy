@@ -385,8 +385,8 @@ function Browser:UpdateAction()
   elseif remaining>0 then remaining.." more chicken"..(if remaining==1 then "" else "s")
   elseif not self:NearStand() then "Move closer"
   elseif type(price)~="number" then "Updating price…"
-  elseif not affordable then "Need $"..Theme.Money(price-(self.app.state.coins or 0)).." more"
-  else "Fuse · $"..Theme.Money(price)
+  elseif not affordable then "Need "..Theme.Money(price-(self.app.state.coins or 0)).." more Coins"
+  else "Fuse · "..Theme.Coins(price)
  self.action.Active,self.action.Selectable=ready==true,ready==true
  -- Becoming ready (third chicken, cash or walking up) answers once with a pop and shine.
  -- Deferred past the button's own Active-changed settle, which would cancel the pop.
@@ -485,7 +485,7 @@ function Browser:Render(force)
  if self.pending then self.mode="Processing" end
  local recipe=self.selection:Recipe(self.app.state.mergeOptions)
  self.costNotice=if recipe and recipe.price and self.selection:Count()==3 and (self.app.state.coins or 0)<recipe.price
-  then "Fusion cost: $"..Theme.Money(recipe.price) else nil
+  then "Fusion cost: "..Theme.Coins(recipe.price) else nil
  self:Resize()
  self.message.RichText=true
  self.main.Visible,self.action.Visible=self.mode=="Main",self.mode=="Main"

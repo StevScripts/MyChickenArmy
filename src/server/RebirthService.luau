@@ -11,6 +11,7 @@ local OfflineCash = require(script.Parent.OfflineCash)
 local KingEncounter = require(script.Parent.KingEncounter)
 local MutationCatalog = require(Shared.MutationCatalog)
 local Rules = require(Shared.Rules)
+local Currency = require(Shared.CurrencyLimits)
 local RebirthService = {}
 
 local ARMY_AWAY = "Bring your army back to your base first"
@@ -106,7 +107,9 @@ function RebirthService.Quote(session)
 	if not rules.Enabled then reason = "Coming soon"
 	elseif not nextRank or not cost then reason = "Max Rebirth reached"
 	elseif kingRequired and not kingCleared then reason = "Defeat the Chicken King first"
-	elseif coins < cost then reason = "Need $" .. string.format("%d", math.ceil(cost - coins)) .. " more"
+	elseif coins < cost then
+		local short = math.ceil(cost - coins)
+		reason = "Need " .. Currency.Grouped(short) .. " more " .. (if short == 1 then "Coin" else "Coins")
 	elseif not home then reason = ARMY_AWAY
 	end
 	return {

@@ -7,6 +7,7 @@ local Rules = require(Shared.Rules)
 local Progression = require(Shared.Progression)
 local PetView = require(Shared.PetView)
 local UIColors = require(Shared.UIColors)
+local Currency = require(Shared.CurrencyLimits)
 local Builder = require(script.Parent.WorldBuilder)
 local RollStation = {}
 RollStation.__index = RollStation
@@ -42,8 +43,22 @@ local function offerLabel(parent, frame)
 		return label
 	end
 	-- Fixed sizes keep short and long names consistent; rarity and price are the accents.
-	local price = line("Price", 64, 30, 24)
-	price.TextColor3 = UIColors.Money
+	-- October 20: the price is a gold coin beside the amount, centered as one row.
+	local priceRow = Instance.new("Frame")
+	priceRow.Name, priceRow.BackgroundTransparency = "PriceRow", 1
+	priceRow.Position, priceRow.Size, priceRow.Parent = UDim2.fromOffset(0, 64), UDim2.new(1, 0, 0, 30), gui
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection, layout.SortOrder = Enum.FillDirection.Horizontal, Enum.SortOrder.LayoutOrder
+	layout.HorizontalAlignment, layout.VerticalAlignment = Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center
+	layout.Padding, layout.Parent = UDim.new(0, 4), priceRow
+	local coin = Instance.new("ImageLabel")
+	coin.Name, coin.BackgroundTransparency, coin.Image, coin.ScaleType = "CoinIcon", 1, Currency.Icon, Enum.ScaleType.Fit
+	coin.Size, coin.LayoutOrder, coin.Visible, coin.Parent = UDim2.fromOffset(28, 28), 1, false, priceRow
+	local price = line("Price", 0, 30, 24)
+	price.Parent, price.LayoutOrder = priceRow, 2
+	price.Position, price.Size, price.AutomaticSize = UDim2.new(), UDim2.fromScale(0, 1), Enum.AutomaticSize.X
+	price.TextColor3 = UIColors.Coins
+	price:GetPropertyChangedSignal("Text"):Connect(function() coin.Visible = price.Text ~= "" end)
 	return gui, line("Text", 0, 34, 28), line("Rarity", 36, 28, 21), price
 end
 
@@ -282,8 +297,8 @@ function RollStation:Step(now, force)
 		local oneIn = Catalog.OneInText(self.offer.species)
 		self.rarityLabel.Text = if oneIn then def.rarity .. " · " .. oneIn else def.rarity
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
-		self.priceLabel.Text = "$" .. commas(price)
-		local promptText = if self.flockFull then "Flock full · sell in Army" else "Buy " .. def.name .. " · $" .. commas(price)
+		self.priceLabel.Text = commas(price)
+		local promptText = if self.flockFull then "Flock full · sell in Army" else "Buy " .. def.name .. " · " .. Currency.Text(price)
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
 		self.top.Color = tint
 

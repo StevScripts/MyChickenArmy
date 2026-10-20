@@ -61,7 +61,7 @@ function UpgradeService:Offers(session, now: number?)
 	end
 	local income = session:GlobalUpgrade("Income")
 	add("EggValue", session.incomeLevel,
-		"$" .. decimal(Rules.EggUnitValue(session.incomeLevel)),
+		decimal(Rules.EggUnitValue(session.incomeLevel)) .. " Coins",
 		income and income.price)
 	local army = session:NextSlot()
 	add("ArmySize", session.capacity, tostring(session:Capacity()), army and army.price)
@@ -95,14 +95,14 @@ function UpgradeService:Offers(session, now: number?)
 		preview("EggSpeed", decimal(nextProduction) .. "x")
 	end
 	preview("PlotSize", tostring(Definitions.PlotCapacity(session.plotSizeLevel + 1)))
-	preview("EggValue", "$" .. decimal(Rules.EggUnitValue(session.incomeLevel + 1)))
+	preview("EggValue", decimal(Rules.EggUnitValue(session.incomeLevel + 1)) .. " Coins")
 	if army then preview("ArmySize", tostring(army.displayCapacity or army.capacity)) end
 	preview("RollSlots", tostring(math.min(slots + 1, physicalLimit)))
 	return offers
 end
 
 function UpgradeService:Buy(_player, session, key, expectedLevel, expectedPrice, now: number?)
-	if type(key) ~= "string" or not table.find(Definitions.Order, key) then return false, "Choose a cash upgrade." end
+	if type(key) ~= "string" or not table.find(Definitions.Order, key) then return false, "Choose an upgrade." end
 	local clock = now or os.time()
 	local offer = self:Offers(session, clock)[key]
 	if not offer.ready then return false, "Wait for your flock to load." end

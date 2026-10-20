@@ -210,7 +210,7 @@ function PlayerSession:StarterCashReserve(): number
 end
 
 function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean, string)
-	if amount<0 or amount~=amount or self.coins<amount then return false,"Not enough cash." end
+	if amount<0 or amount~=amount or self.coins<amount then return false,"Not enough coins." end
 	local reserve=self:StarterCashReserve()
 	-- Only validated server transactions supply a purpose. Each required purchase
 	-- may use its own earmark, never the money reserved for the other purchase.
@@ -220,8 +220,8 @@ function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean,
 		reserve-=self:StarterArmyReserve()
 	end
 	if self.coins-amount<reserve then
-		local reason=if self.tutorial.starterArmy then "Keep $"..reserve.." for your tutorial recruit and Army Size."
-			else "Keep $"..Config.Economy.StarterRecruitPrice.." for your first chicken. Roll FREE at the lever!"
+		local reason=if self.tutorial.starterArmy then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size."
+			else "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Roll FREE at the lever!"
 		return false,reason
 	end
 	return true,""
@@ -484,7 +484,7 @@ function PlayerSession:OfferAdvice(species: string, level: number?, mutation: st
 		return "Makes your army stronger",true
 	end
 	local income=self:DisplayedPetIncome(species,1,level,mutation)
-	return "Lays eggs worth $"..income.."/s at home",false
+	return "Lays eggs worth "..Currency.Rate(income).."/s at home",false
 end
 
 function PlayerSession:Snapshot(now: number)
@@ -992,7 +992,7 @@ function PlayerSession:LoadData(data)
 	while self.firstWins[self.campUnlocked] and self.campUnlocked<#Progression.Camps(1) do self.campUnlocked+=1 end
 	self.offer,self.offers=nil,{}
 	self:UnlockProgress();self:RefreshArmy();self:Touch()
-	return true,if legacy then "Loaded and converted stored egg value to cash." else "Loaded."
+	return true,if legacy then "Loaded and converted stored egg value to coins." else "Loaded."
 end
 
 function PlayerSession:Destroy()

@@ -67,11 +67,12 @@ local ShopCatalog = {
 		FinishEggs = {enabled=ProcessorConfig.Enabled, productId=3714566216, name="Finish Processing Now", finishEggs=true, boardOnly=true},
 		-- October 14: each pack pays its minutes of current egg income, never less than
 		-- `coins` (CashPackAmount). Minutes keep roughly the Robux price ratio, with a
-		-- small bonus on larger packs.
-		PocketCoins = {productId=3712929487, name="Pocket Cash", coins=10000, incomeMinutes=10, description="10 minutes of income (at least $10K)", proposedPrice=49},
-		CoopStash = {productId=3712929549, name="Coop Stash", coins=100000, incomeMinutes=45, description="45 minutes of income (at least $100K)", proposedPrice=199},
-		ArmyChest = {productId=3712929607, name="Cash Sack", coins=1000000, incomeMinutes=180, description="3 hours of income (at least $1M)", proposedPrice=799},
-		CommandersVault = {productId=3712929634, name="Commander's Vault", coins=10000000, incomeMinutes=600, description="10 hours of income (at least $10M)", proposedPrice=2499},
+		-- small bonus on larger packs. October 20: coin pack names (product IDs unchanged;
+		-- Roblox's own listing names/icons are edited separately in the Creator Dashboard).
+		PocketCoins = {productId=3712929487, name="Pocket Coins", coins=10000, incomeMinutes=10, description="10 minutes of income (at least 10K Coins)", proposedPrice=49},
+		CoopStash = {productId=3712929549, name="Coop Stash", coins=100000, incomeMinutes=45, description="45 minutes of income (at least 100K Coins)", proposedPrice=199},
+		ArmyChest = {productId=3712929607, name="Coin Chest", coins=1000000, incomeMinutes=180, description="3 hours of income (at least 1M Coins)", proposedPrice=799},
+		CommandersVault = {productId=3712929634, name="Commander's Vault", coins=10000000, incomeMinutes=600, description="10 hours of income (at least 10M Coins)", proposedPrice=2499},
 		OuterSpaceCrate1 = {productId=3712929703, name="Galaxy Crate", crates=1, proposedPrice=500, paidRandom=true},
 		OuterSpaceCrate3 = {productId=3712929865, name="3 Galaxy Crates", crates=3, proposedPrice=1250, paidRandom=true},
 		OuterSpaceCrate10 = {productId=3712929926, name="10 Galaxy Crates", crates=10, proposedPrice=4000, paidRandom=true},
@@ -99,8 +100,8 @@ local ShopCatalog = {
 	BountyMultiplier = 2,
 	Definitions = {
 		AutoCollectEggs = {passId=1978713718, name="Auto Collect Eggs", proposedPrice=199, automatic=true, description="A vacuum collects eggs around your yard.", scope="Sweeps the yard and delivers eggs to your sell stand."},
-		DoubleCash = {passId=1980764263, name="2x Cash", proposedPrice=399, description="2x cash from eggs and combat.", scope="Earned cash only; excludes cash packs and chicken sales."},
-		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Chickens at your base lay twice as many eggs.", scope=if ProcessorConfig.Enabled then "2x egg production and selling speed; stacks with 2x Cash." else "2x egg production; stacks with 2x Cash."},
+		DoubleCash = {passId=1980764263, name="2x Coins", proposedPrice=399, description="2x coins from eggs and combat.", scope="Earned coins only; excludes coin packs and chicken sales."},
+		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Chickens at your base lay twice as many eggs.", scope=if ProcessorConfig.Enabled then "2x egg production and selling speed; stacks with 2x Coins." else "2x egg production; stacks with 2x Coins."},
 		AutoMerge = {enabled=Config.Features.Merging and Config.Features.AutoMerging, passId=1975401932, name="Auto Fuse", proposedPrice=249, automatic=true, description="Fuse matching chickens at your base automatically.", scope="Protects favorites, deployed and manually selected chickens."},
 		BiggerArmy = {passId=1980638268, name="Bigger Army", proposedPrice=499, description="Add 5 army slots.", scope="Stacks with Army Size to field up to 15 chickens."},
 		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double Luck strength to favor stronger chickens.", scope="Actual chances are shown in Details. Crates unaffected."},
@@ -116,13 +117,13 @@ local ShopCatalog = {
 		},
 		DoubleBounty = {
 			name = "Double NPC Bounty", category = "Rewards", proposedPrice = 249, passId = 1981040250,
-			description = "2× cash from regular NPC kills.",
+			description = "2× coins from regular NPC kills.",
 			scope = "Excludes the King and other players' armies",
 		},
 	},
 }
 
--- Cash a pack pays now: `incomeMinutes` of egg income per second (as
+-- Coins a pack pays now: `incomeMinutes` of egg income per second (as
 -- PlayerSession:PackIncome reports it), never below the pack's fixed `coins`.
 function ShopCatalog.CashPackAmount(product, incomePerSecond: number?): number
 	local floor = product.coins or 0

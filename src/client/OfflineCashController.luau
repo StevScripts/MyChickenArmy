@@ -1,7 +1,7 @@
 --!strict
 -- Displays an already-saved server receipt; dismissal never grants currency.
 -- October 16: the HUD holds this amount back until the receipt closes, then the
--- cash flies into the balance (HudController:ReleaseOfflineCash; display only).
+-- coins fly into the balance (HudController:ReleaseOfflineCash; display only).
 local GuiService = game:GetService("GuiService")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
@@ -90,13 +90,14 @@ function Controller:Receive(state)
 	local icon=ShopArt.CashPile(rewardView,1)
 	icon.Name,icon.ZIndex="Icon",3
 	icon.AnchorPoint,icon.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
-	local amount=label(rewardView,"Amount","+$"..Theme.Money(reward.amount),54,Color3.new(1,1,1))
+	-- The coin pile above is the unit, so the amount is just "+12,345" (October 20).
+	local amount=label(rewardView,"Amount","+"..Theme.Money(reward.amount),54,Color3.new(1,1,1))
 	amount.AnchorPoint,amount.Position,amount.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.95),UDim2.fromScale(1,0.18918919563293457)
 	amount.ZIndex=4
 	self.amountLabel=amount
 	local gradient=Instance.new("UIGradient")
-	gradient.Color,gradient.Rotation,gradient.Parent=Theme.ReferenceGradients.Army,90,amount
-	local saved=label(main,"Saved","Collect it to add it to your Cash!",24,GREEN)
+	gradient.Color,gradient.Rotation,gradient.Parent=Theme.ReferenceGradients.Base,90,amount
+	local saved=label(main,"Saved","Collect it to add it to your Coins!",24,GREEN)
 	saved.Position,saved.Size=UDim2.fromScale(0.1,0.745),UDim2.fromScale(0.8,0.055)
 	local function close()
 		if not self.gui or self.closing then return end
@@ -125,7 +126,7 @@ function Controller:Receive(state)
 		Theme.Motion:Burst(rewardView,UDim2.fromScale(0.5,0.45),GREEN)
 	end)
 	-- Display only: the receipt is already saved; the number rolls up to it.
-	local function money(value) return "+$"..Theme.Money(math.floor(value)) end
+	local function money(value) return "+"..Theme.Money(math.floor(value)) end
 	Theme.Motion:Count(amount,0,money)
 	Theme.Motion:Count(amount,reward.amount,money,0.7)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},0.28)

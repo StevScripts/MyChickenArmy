@@ -1,11 +1,40 @@
 --!strict
--- A shared image and one invisible anchor replace the multipart egg geometry.
+-- One image and one invisible anchor replace the multipart egg geometry.
+local ContentProvider=game:GetService("ContentProvider")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
+local EggArt=require(Shared.EggArt)
 local Theme=require(script.Parent.UITheme)
 local Feedback=require(script.Parent.EggFeedback)
 local EggView={}
 EggView.__index=EggView
+
+-- Each species' egg image downloads once, the first time one is laid nearby;
+-- until then the egg shows the already-loaded Chicken egg.
+local ready,waiting={[EggArt.Fallback]=true},{}
+local function whenReady(image,callback)
+ if ready[image]~=nil then callback(ready[image]);return end
+ local list=waiting[image]
+ if list then table.insert(list,callback);return end
+ waiting[image]={callback}
+ task.spawn(function()
+  -- Preload through an ImageLabel: a bare content string reports Failure for image assets.
+  local probe=Instance.new("ImageLabel");probe.Image=image
+  local ok=false
+  pcall(function()
+   ContentProvider:PreloadAsync({probe},function(_,status) ok=status==Enum.AssetFetchStatus.Success end)
+  end)
+  probe:Destroy()
+  ready[image]=ok -- A failed image stays on the Chicken egg without retrying.
+  local callbacks=waiting[image];waiting[image]=nil
+  for _,fn in callbacks do fn(ok) end
+ end)
+end
+task.spawn(function()
+ local probe=Instance.new("ImageLabel");probe.Image=EggArt.Fallback
+ pcall(function() ContentProvider:PreloadAsync({probe}) end)
+ probe:Destroy()
+end)
 
 function EggView.new(parent,data)
  local anchor=Instance.new("Part")
@@ -16,7 +45,7 @@ function EggView.new(parent,data)
  anchor:SetAttribute("EggCount",data.stack or 1)
  local gui=Instance.new("BillboardGui")
  gui.Name,gui.Adornee="EggSprite",anchor
- gui.Size=UDim2.fromScale(Config.EggSpriteSize,Config.EggSpriteSize)
+ gui.Size=UDim2.fromScale(Config.EggSpriteSize*EggArt.Scale,Config.EggSpriteSize*EggArt.Scale)
  gui.MaxDistance,gui.AlwaysOnTop,gui.LightInfluence=Config.EggSpriteMaxDistance,false,0
  gui.Brightness=2 -- Self-lit collectible; preserve world occlusion without dull shading.
  gui.Active,gui.ClipsDescendants,gui.Parent=false,false,anchor
@@ -24,9 +53,11 @@ function EggView.new(parent,data)
  sprite.Name,sprite.BackgroundTransparency="Egg",1
  sprite.AnchorPoint,sprite.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
  sprite.Size,sprite.ScaleType=UDim2.fromScale(1,1),Enum.ScaleType.Fit
- sprite.Image,sprite.Parent=Config.EggSpriteImage,gui
- -- Same approved egg art for every species; rarity changes the count.
+ sprite.Image,sprite.Parent=EggArt.Fallback,gui
+ -- Each chicken lays its own voxel egg; rarity effects are baked into the art.
  sprite.ImageColor3=Color3.new(1,1,1)
+ local image=EggArt.Image(data.species)
+ whenReady(image,function(ok) if ok and sprite.Parent then sprite.Image=image end end)
  local caption=Instance.new("BillboardGui")
  caption.Name,caption.Adornee="EggQuantity",anchor
  caption.Size,caption.StudsOffset=UDim2.fromOffset(156,26),Vector3.new(0,1.45,0)
@@ -61,7 +92,7 @@ end
 function EggView:Set(position,scale,tilt,_yaw)
  self.anchor.Position=position
  if math.abs(scale-self.scale)>0.01 then
-  self.gui.Size=UDim2.fromScale(Config.EggSpriteSize*scale,Config.EggSpriteSize*scale)
+  self.gui.Size=UDim2.fromScale(Config.EggSpriteSize*EggArt.Scale*scale,Config.EggSpriteSize*EggArt.Scale*scale)
   self.scale=scale
  end
  local rotation=math.deg(tilt or 0)

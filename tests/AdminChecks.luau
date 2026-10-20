@@ -127,9 +127,9 @@ function Checks.Run()
 	test("Help, logs and errors",function()
 		local admin=setup()
 		local me=actor(OWNER,"Owner")
-		local ok,text=admin:Run(me,"help");assert(ok and text:find("cash <target> <amount>",1,true) and text:find("ban",1,true))
+		local ok,text=admin:Run(me,"help");assert(ok and text:find("coins <target> <amount>",1,true) and text:find("ban",1,true))
 		admin.lastCommand={}
-		ok,text=admin:Run(me,"help cash");assert(ok and text:find("Give cash",1,true))
+		ok,text=admin:Run(me,"help cash");assert(ok and text:find("Give coins",1,true))
 		admin.lastCommand={}
 		assert(not admin:Run(me,"flyaway"))
 		admin.lastCommand={}

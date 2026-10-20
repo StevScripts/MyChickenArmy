@@ -103,7 +103,7 @@ function DataService:Load(session)
    return nil
   end)
   session.loaded=false;session.offlineCashReceipt=nil
-  session.saveStatus="error";session.saveMessage="Your offline cash is still being saved. Rejoin shortly."
+  session.saveStatus="error";session.saveMessage="Your offline coins are still being saved. Rejoin shortly."
   self.loading[session.userId]=nil
   return false,saveError
  end

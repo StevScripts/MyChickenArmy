@@ -15,7 +15,7 @@ Theme.Arcade = {
 	army=Palette.Army, sell=Palette.Sell,
 }
 Theme.Colors = {
-	ink=Palette.Text, muted=Palette.Muted, money=Palette.Money,
+	ink=Palette.Text, muted=Palette.Muted, money=Palette.Coins, coins=Palette.Coins,
 	paper=Palette.Body, white=Palette.Text,
 	panel=Palette.Body, line=Palette.Line,
 	card=Palette.Card, cardInk=Palette.CardText, cardMuted=Palette.CardMuted, cardMoney=Palette.CardMoney,
@@ -51,7 +51,9 @@ Theme.UnaffordableGradient = ColorSequence.new(Color3.fromRGB(166,166,166),Color
 Theme.Assets = {
 	Commander="rbxassetid://122076338993517",
 	Merge = "rbxassetid://122096168414414",
-	Cash="rbxassetid://101788696120931", Studs="rbxassetid://85697657610499",
+	-- October 20: gold chicken-crest coin (assets/gold-coins-20261020). The old green
+	-- cash bundle was rbxassetid://101788696120931; `Cash` remains an alias below.
+	Coin=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CurrencyLimits).Icon, Studs="rbxassetid://85697657610499",
 	Rays="rbxassetid://120904904160174", Multiplier="rbxassetid://124712149166140",
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",
 	ArmyHud="rbxassetid://107457338807219", CallArmy="rbxassetid://125964672530167", MyBase="rbxassetid://76117843071069",
@@ -65,6 +67,7 @@ Theme.Assets = {
 	TierVeteran="rbxassetid://109811392018031", TierElite="rbxassetid://98084499968311", TierRoyal="rbxassetid://102050567074631",
 	RecruitBadge="rbxassetid://126710710110391", Padlock="rbxassetid://119808966455913",
 }
+Theme.Assets.Cash = Theme.Assets.Coin
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a
 -- dark outline and a hard drop, led by a matching self-drawing mark.
@@ -870,11 +873,39 @@ function Theme.Money(value)
 	return (if whole<0 then "-" else "")..grouped
 end
 
--- HUD wallet: exact whole cash below a million, then compact ($8.05B) so it fits.
+-- HUD wallet: exact whole coins below a million, then compact (8.05B) so it fits.
 function Theme.CompactMoney(value)
 	local whole=math.floor(value or 0)
 	if math.abs(whole)<1000000 then return Theme.Money(whole) end
 	return Theme.Number(whole)
+end
+
+-- October 20: the currency is gold Coins. Amounts beside a coin image show only the
+-- number (Theme.Money); text-only places use these: "1,200 Coins", "8.05B Coins".
+local function coinUnit(text) return text..(if text=="1" then " Coin" else " Coins") end
+function Theme.Coins(value) return coinUnit(Theme.Money(value)) end
+function Theme.CompactCoins(value) return coinUnit(Theme.CompactMoney(value)) end
+
+-- The gold coin image placed beside an amount; it never carries the number itself.
+function Theme.CoinIcon(parent,name,size,position)
+	local icon=Theme.Image(parent,name or "CoinIcon",Theme.Assets.Coin,size or UDim2.fromScale(1,1),position)
+	icon.ZIndex=(parent:IsA("GuiObject") and parent.ZIndex or 3)+1
+	return icon
+end
+
+-- World pop-ups: the coin and "+1,200" centered together as one row filling the
+-- parent. Animate the returned row; fade the label's faces and the icon.
+function Theme.CoinAmount(parent,name,text,size,color)
+	local row=Theme.Container(parent,name)
+	local layout=Instance.new("UIListLayout")
+	layout.FillDirection,layout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
+	layout.HorizontalAlignment,layout.VerticalAlignment=Enum.HorizontalAlignment.Center,Enum.VerticalAlignment.Center
+	layout.Padding,layout.Parent=UDim.new(0,math.ceil(size*0.12)),row
+	local icon=Theme.CoinIcon(row,"CoinIcon",UDim2.fromOffset(size,size))
+	icon.LayoutOrder=1
+	local label=Theme.Display(row,"Amount",text,size,color)
+	label.LayoutOrder,label.Size,label.AutomaticSize,label.TextWrapped=2,UDim2.fromScale(0,1),Enum.AutomaticSize.X,false
+	return row,label,icon
 end
 
 function Theme.SegmentedBar(parent,name,size,segments)

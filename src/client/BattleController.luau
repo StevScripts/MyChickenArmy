@@ -269,12 +269,12 @@ function BattleController:KillFeedback(battle)
   anchor.Anchored,anchor.CanCollide,anchor.CanTouch,anchor.CanQuery,anchor.Transparency=true,false,false,false,1
   anchor.Parent=self.folder
   local gui=Instance.new("BillboardGui")
-  gui.Name,gui.Size,gui.Adornee,gui.AlwaysOnTop="KillReward",UDim2.fromOffset(125,36),anchor,true
+  gui.Name,gui.Size,gui.Adornee,gui.AlwaysOnTop="KillReward",UDim2.fromOffset(180,36),anchor,true
   gui.Parent=anchor
-  local text=Theme.Display(gui,"Amount","+$"..Theme.Money(drop.amount),25,C.gold)
-  text.Size,text.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
-  Theme.Motion:Center(text)
-  Theme.Motion:PopScale(text,0.6)
+  -- October 20: a gold coin beside the amount instead of "$".
+  local row,text,coin=Theme.CoinAmount(gui,"CoinAmount","+"..Theme.Money(drop.amount),25,C.gold)
+  Theme.Motion:Center(row)
+  Theme.Motion:PopScale(row,0.6)
   if not self.app.reducedMotion then
    TweenService:Create(anchor,TweenInfo.new(0.85,Enum.EasingStyle.Quad),{Position=position+Vector3.new(0,3,0)}):Play()
    -- The root label is a transparent Display holder; its visible text is on these children.
@@ -286,6 +286,7 @@ function BattleController:KillFeedback(battle)
     local outline=child:FindFirstChild("TextOutline")
     if outline then TweenService:Create(outline,fade,{Transparency=1}):Play() end
    end
+   TweenService:Create(coin,fade,{ImageTransparency=1}):Play()
   end
   Debris:AddItem(anchor,0.9)
   task.delay(0.9,function() self.coinEffects=math.max(0,self.coinEffects-1) end)

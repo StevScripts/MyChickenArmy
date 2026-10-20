@@ -47,6 +47,8 @@ function Browser.EventOdds(now:number):(string?,Color3?)
 	return text,Theme.Rarities[definition.rarity] or Color3.fromRGB(255,255,255)
 end
 local GREEN=Color3.fromRGB(76,250,32)
+-- October 20: affordable coin prices are gold, like every Coin amount.
+local COIN=Theme.Colors.coins
 local CYAN=Color3.fromRGB(0,226,250)
 local WHITE=Color3.fromRGB(255,255,255)
 local MUTED=Color3.fromRGB(64,67,65)
@@ -97,8 +99,9 @@ local function timeText(seconds)
 	if seconds>=60 then return string.format("%dm %02ds",math.floor(seconds/60),seconds%60) end
 	return seconds.."s"
 end
+-- Prices sit beside the gold coin image, so they show the number only (October 20).
 local function priceText(amount)
-	return "$"..Theme.Number(amount or 0)
+	return Theme.Number(amount or 0)
 end
 -- Badge-length durations: 45s, 2m, 1m 30s, 1h, 2h 15m.
 local function shortTime(seconds)
@@ -231,7 +234,7 @@ function Browser.new(app,parent)
 		local title=label(visual,"Title",node.name,.025,.665,.95,.12);title.ZIndex=5
 		local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.22,.795),UDim2.fromScale(.56,.115),5
 		local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
-		local price=label(cost,"Price","",.28,0,.72,1,GREEN);price.TextXAlignment=Enum.TextXAlignment.Left;price.ZIndex=5
+		local price=label(cost,"Price","",.28,0,.72,1,COIN);price.TextXAlignment=Enum.TextXAlignment.Left;price.ZIndex=5
 		-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
 		local hidden=label(visual,"Hidden","?",.25,.3,.5,.32);hidden.ZIndex=5
 		hidden.TextTransparency,hidden.TextOutline.Transparency=.5,.5
@@ -339,7 +342,7 @@ function Browser.new(app,parent)
 	self.researchers=label(money,"Researchers","Researchers: 0/1",.085,0,.915,.34,CYAN);self.researchers.TextXAlignment=Enum.TextXAlignment.Left
 	Theme.Motion:Center(self.researchers)
 	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.13,.53),UDim2.fromScale(0,.44))
-	self.cash=label(money,"Cash","$0",.15,.37,.85,.63,Theme.Colors.money);self.cash.TextXAlignment=Enum.TextXAlignment.Left
+	self.cash=label(money,"Cash","0",.15,.37,.85,.63,Theme.Colors.coins);self.cash.TextXAlignment=Enum.TextXAlignment.Left
 	-- The shared square close X (Theme.HeaderClose's button and accent), in the
 	-- top-right corner like every other menu; large enough for a thumb on phones.
 	self.exit=Theme.ActionButton(root,"Exit","X",function() self.app.audio:Play("Click");self:Close() end,Theme.ActionColors.danger)
@@ -379,7 +382,7 @@ function Browser:BuildTooltip()
 	self.tipEffect=label(tip,"Effect","",.06,.31,.88,.39,Color3.fromRGB(172,172,172));self.tipEffect.ZIndex=9;self.tipEffect.TextOutline.Enabled=false
 	self.tipCost=Theme.Container(tip,"Cost");self.tipCost.ZIndex=9
 	self.tipCash=Theme.Image(self.tipCost,"CashIcon",Assets.cash,UDim2.fromScale(.25,1));self.tipCash.ZIndex=10
-	self.tipPrice=label(self.tipCost,"Price","",.27,0,.73,1,GREEN);self.tipPrice.TextXAlignment=Enum.TextXAlignment.Left;self.tipPrice.ZIndex=10
+	self.tipPrice=label(self.tipCost,"Price","",.27,0,.73,1,COIN);self.tipPrice.TextXAlignment=Enum.TextXAlignment.Left;self.tipPrice.ZIndex=10
 	self.tipBar=Theme.Frame(tip,"Progress",UDim2.fromScale(.87,.15),Color3.fromRGB(3,48,56));self.tipBar.ZIndex=9;round(self.tipBar,.14)
 	self.tipProgress=Theme.Frame(self.tipBar,"Fill",UDim2.fromScale(0,1),Color3.fromRGB(0,166,206));self.tipProgress.ZIndex=10;round(self.tipProgress,.14)
 	self.tipTimer=label(self.tipBar,"Time","",.03,.07,.94,.86);self.tipTimer.ZIndex=11
@@ -686,7 +689,7 @@ function Browser:Render()
 		view.badgeText.TextColor3=WHITE
 		view.cost.Visible=not hidden and not owned and not active and not preview
 		view.price.Text=priceText(offer.price)
-		view.price.TextColor3=if state=="Unaffordable" then RED else GREEN
+		view.price.TextColor3=if state=="Unaffordable" then RED else COIN
 		view.bar.Visible=active
 		if not active then self:StopProgress(view) end
 		view.icon.Position=UDim2.fromScale(.20,if active then .115 else .14)
@@ -707,7 +710,7 @@ function Browser:Render()
 		link.line.BackgroundColor3=if completed then GREEN else Color3.fromRGB(51,58,54)
 		link.line.BackgroundTransparency=if completed then .72 else .35
 	end
-	Theme.Motion:Count(self.cash,self.coins or 0,function(v) return "$"..Theme.Money(v) end)
+	Theme.Motion:Count(self.cash,self.coins or 0,function(v) return Theme.Money(v) end)
 	self.researchers.Text="Researchers: "..#data.jobs.."/"..data.effects.slots
 	self:Step()
 end
@@ -789,7 +792,7 @@ function Browser:RenderCash(reveals)
 		view.price.Size=UDim2.fromScale(if view.cashIcon.Visible then .72 else 1,1)
 		view.price.TextXAlignment=if view.cashIcon.Visible then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center
 		view.price.Text=if waiting then "…" elseif state=="Loading" then "Loading" elseif unavailable then "No space" else priceText(if offer and offer.price then offer.price else tier.price)
-		view.price.TextColor3=if state=="Unaffordable" or unavailable then RED elseif waiting then CYAN else GREEN
+		view.price.TextColor3=if state=="Unaffordable" or unavailable then RED elseif waiting then CYAN else COIN
 		if visible and (not view.button.Visible or view.lastHidden and not hidden) then table.insert(reveals,{id=id,new=not view.button.Visible}) end
 		view.button.Visible,view.button.Selectable=visible,visible and not hidden
 		view.lastState,view.lastHidden,view.kind=state,hidden,state
@@ -886,7 +889,7 @@ function Browser:RenderTooltip()
 			local progress=tostring(completed).."/"..limit
 			if owned then
 				local odds=luckOdds(offer,false)
-				effect="Cash Luck "..progress.." · MAX."
+				effect="Luck level "..progress.." · MAX."
 				if odds then effect..=" Epic+ per chicken: "..odds..". Bonuses included." end
 				local topOdds=luckOdds(offer,false,true)
 				if topOdds then effect..=" Strongest chickens: "..topOdds.."." end
@@ -896,7 +899,7 @@ function Browser:RenderTooltip()
 			else
 				local topBand=useTopLuckOdds(offer)
 				local odds=luckOdds(offer,true,topBand)
-				effect="Cash Luck "..progress..". "..(if odds then (if topBand then "Strongest chickens: " else "Epic+ per chicken: ")..odds..". Bonuses included." else baseBenefit)
+				effect="Luck level "..progress..". "..(if odds then (if topBand then "Strongest chickens: " else "Epic+ per chicken: ")..odds..". Bonuses included." else baseBenefit)
 				if offer.windowText then effect..=" Favored now: "..offer.windowText.."." end
 				if offer.nextWindowText then effect..=" Next: "..offer.nextWindowText.."." end
 				effect..=" All normal chickens remain possible."
@@ -935,7 +938,7 @@ function Browser:RenderTooltip()
 	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.085,(15+titleHeight)/height),UDim2.fromScale(.83,1/height)
 	self.tipEffect.Text=description;self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.06,(24+titleHeight)/height),UDim2.fromScale(.88,rows*27/height)
 	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(bottom-44)/height),UDim2.fromScale(.62,34/height)
-	self.tipPrice.Text=if offer and offer.price then priceText(offer.price) else "";self.tipPrice.TextColor3=if state=="Unaffordable" or state=="Unavailable" then RED else GREEN
+	self.tipPrice.Text=if offer and offer.price then priceText(offer.price) else "";self.tipPrice.TextColor3=if state=="Unaffordable" or state=="Unavailable" then RED else COIN
 	self.tipCost.Visible,self.tipBar.Visible=footer and not job,job~=nil
 	self.tipBar.Position,self.tipBar.Size=UDim2.fromScale(.065,(bottom-40)/height),UDim2.fromScale(.87,29/height)
 	if job then
@@ -985,7 +988,7 @@ function Browser:TooltipActions(id,cashNode,offer,state,job,completed)
 				pinStyle="buy"
 			end
 		end
-		return (if self.confirmCancel==job.id then "Confirm · refund "..priceText(job.paid) else "Cancel research"),"cancel",pin,pinStyle
+		return (if self.confirmCancel==job.id then "Confirm · refund "..Theme.CompactCoins(job.paid) else "Cancel research"),"cancel",pin,pinStyle
 	end
 	return nil,nil,pin,pinStyle
 end
@@ -1047,7 +1050,7 @@ function Browser:Activate()
 		if node.effect=="formations" then self.app:OpenPage("Formations")
 		elseif node.effect=="operations" then self.app:OpenPage("Operations") end
 	elseif offer.status=="Locked" then self:Feedback("Research "..Catalog.Nodes[node.prerequisite].name.." first",RED,id)
-	elseif offer.status=="Unaffordable" then self:Feedback(offer.spendReason or "Not enough cash",RED,id)
+	elseif offer.status=="Unaffordable" then self:Feedback(offer.spendReason or "Not enough coins",RED,id)
 	elseif offer.status=="Available" then
 		if #data.jobs>=data.effects.slots then self:Feedback("All researchers are busy",RED,id);return end
 		if self.pending and self.pending.revision==data.revision and os.clock()-self.pending.at<1 then return end
@@ -1066,7 +1069,7 @@ function Browser:PurchaseCash(id)
 	if CashNodes.Completed(key,offer)>=node.maxTier then return end
 	local state=cashStatus(offer,self.coins or 0)
 	if state~="Available" then
-		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Building" then offer.requirement elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough cash"
+		local text=if state=="Loading" then "Wait for your flock to load." elseif state=="Building" then offer.requirement elseif state=="Unavailable" then (if offer.requirement~="" then offer.requirement else "No additional upgrade space on this plot.") else offer.spendReason or "Not enough coins"
 		self:Feedback(text,RED,id);return
 	end
 	local requestId=self.app:Request("CashUpgrade",{upgradeKey=key,expectedLevel=offer.level,expectedPrice=offer.price})

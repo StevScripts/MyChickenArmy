@@ -13,7 +13,8 @@ local Schema = {}
 -- 5 (October 16): full tracking plan (docs/analytics/TRACKING_PLAN.md): feature
 -- funnels for every system, client UI events (menus, buttons, prompts, idle),
 -- server events, real Robux from receipts, device/segment profile, state snapshots.
-Schema.Version = 5
+-- 6 (October 20): Playtime funnel (session length checkpoints, Schema.Playtime).
+Schema.Version = 6
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -94,8 +95,22 @@ Schema.Funnels = {
 	Rebirth = {"Eligible", "Opened", "Rebirthed"},
 	Mission = {"Spawned", "Started", "Won"},
 	Daily = {"Available", "Opened", "Claimed"},
+	Playtime = {} :: {string}, -- version 6: checkpoint labels, filled from Schema.Playtime below
 }
 Schema.RollFunnelSessionCap = 30 -- Roblox roll-funnel sessions per player session (rate budget)
+
+-- Version 6 Playtime funnel: how long one session lasts since PlayerAdded. Checkpoints
+-- every 10 seconds for the first minute, then every minute up to 100 minutes (105).
+-- Ledger: play.start (every join), play.s.<NNN> (sessions that reached checkpoint
+-- NNN), play.last.<NNN> (sessions whose last checkpoint was NNN; 000 = left before
+-- 10 s). Roblox allows 100 steps per funnel, so its "Playtime" dashboard (the 10th
+-- and last funnel slot) gets the first 100 checkpoints (10s .. 95m); the ledger has
+-- all 105. One Roblox funnel session per game session.
+Schema.Playtime = {} :: {{seconds: number, label: string}}
+for seconds = 10, 50, 10 do table.insert(Schema.Playtime, {seconds = seconds, label = seconds .. "s"}) end
+for minute = 1, 100 do table.insert(Schema.Playtime, {seconds = minute * 60, label = minute .. "m"}) end
+for index = 1, math.min(#Schema.Playtime, 100) do Schema.Funnels.Playtime[index] = Schema.Playtime[index].label end
+function Schema.PlaytimeCode(index: number): string return string.format("%03d", index) end
 
 -- Roblox progression path for the main route.
 Schema.MainRoute = {path = "MainRoute", levels = {"Cluck Camp", "Fort Roost", "Ironbeak HQ", "Chicken King"}}

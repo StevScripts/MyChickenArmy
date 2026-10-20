@@ -13,8 +13,9 @@ function EggFeedback.Fit(value,prefix,suffix,width,size,currency,fractional)
  local rounded=if fractional then math.floor(value*10+0.5)/10 else math.floor(value)
  local exact=Theme.Money(rounded)
  if fractional and rounded%1~=0 then exact..="."..math.floor((rounded%1)*10+0.5) end
- local unit=if currency then "$" else ""
- local text=prefix..unit..exact..suffix
+ -- October 20: coin amounts read "+1,200 Coins"; the old "$" prefix is retired.
+ local unit=if currency then " Coins" else ""
+ local text=prefix..exact..unit..suffix
  if EggFeedback.Width(text,size)<=width then return text end
  local compact
  for _,entry in UNITS do
@@ -24,9 +25,9 @@ function EggFeedback.Fit(value,prefix,suffix,width,size,currency,fractional)
   end
  end
  if not compact then return text end -- Short values need layout space, not smaller text.
- text=prefix.."≈"..unit..compact..suffix
+ text=prefix.."≈"..compact..unit..suffix
  if EggFeedback.Width(text,size)>width then
-  text=prefix.."≈"..unit..string.format("%.1e",value)..suffix
+  text=prefix.."≈"..string.format("%.1e",value)..unit..suffix
  end
  return text
 end

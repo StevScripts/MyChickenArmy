@@ -97,7 +97,7 @@ function Board:Render()
 	for _,view in self.views do
 		view.gui.Enabled=view.originalEnabled and offer~=nil and offer.enabled and view.index==state.plotIndex
 		if not offer then continue end
-		if view.cash then Theme.Motion:Count(view.cash,offer.readyCash,function(value) return "$"..Theme.Money(math.floor(value)) end) end
+		if view.cash then Theme.Motion:Count(view.cash,offer.readyCash,function(value) return Theme.Coins(math.floor(value)) end) end
 		if view.content then
 			local c=view.content
 			c.QueuedCount.Text=Theme.Money(offer.queuedCount)
@@ -119,7 +119,7 @@ function Board:Render()
 			c.Rate.Text=tostring(offer.rate).." eggs/sec"
 			local upgradeCost=c:FindFirstChild("UpgradeCost")
 			if view.inlinePrice or not upgradeCost then
-				c.Upgrade.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Upgrade • $"..Theme.Money(offer.upgradePrice) else "Currency limit"
+				c.Upgrade.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Upgrade • "..Theme.Coins(offer.upgradePrice) else "Currency limit"
 				-- Authored GUI clones do not retain UITheme's caption-sync connections.
 				local caption=c.Upgrade.Visual.Caption
 				caption.Text=c.Upgrade.Text
@@ -127,7 +127,7 @@ function Board:Render()
 					if label:IsA("TextLabel") then label.Text=c.Upgrade.Text end
 				end
 			else
-				upgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: $"..Theme.Money(offer.upgradePrice) else "Currency limit"
+				upgradeCost.Text=if self.pending then "Upgrading..." elseif offer.upgradePrice then "Cost: "..Theme.Coins(offer.upgradePrice) else "Currency limit"
 			end
 			local status=self.app.commerce:State("FinishEggs")
 			if view.upgradeGradient then
@@ -193,7 +193,7 @@ function Board:Activate(name)
 			self.app:Notify("Finish Now is currently unavailable.",false)
 		else self.app.commerce:Buy("FinishEggs") end
 	elseif not self.pending and offer.upgradePrice then
-		if state.coins<offer.upgradePrice then self.app:Notify("Not enough cash for this upgrade.",false);return end
+		if state.coins<offer.upgradePrice then self.app:Notify("Not enough coins for this upgrade.",false);return end
 		local id=self.app:Request("EggSellerUpgrade",{expectedLevel=offer.level,expectedPrice=offer.upgradePrice})
 		self.pending=id
 		task.delay(8,function() if self.alive and self.pending==id then self.pending=nil;self:Render() end end)

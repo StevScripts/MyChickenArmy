@@ -77,14 +77,16 @@ end
 function Feedback:Amount(position, value)
 	local anchor = self:Anchor("DepositValue", position)
 	local gui = Instance.new("BillboardGui")
-	gui.Name, gui.Adornee, gui.Size = "CashReceived", anchor, UDim2.fromOffset(200, 50)
+	gui.Name, gui.Adornee, gui.Size = "CashReceived", anchor, UDim2.fromOffset(260, 50)
 	gui.MaxDistance, gui.AlwaysOnTop, gui.Parent = 80, true, anchor
-	local label = Theme.Display(gui, "Amount", "+$" .. Theme.Money(value), 32, GOLD)
-	label.Size, label.TextXAlignment = UDim2.fromScale(1, 1), Enum.TextXAlignment.Center
+	-- October 20: the gold coin stands in for the old "$".
+	local _, label, icon = Theme.CoinAmount(gui, "CoinAmount", "+" .. Theme.Money(value), 32, GOLD)
 	if not self.app.reducedMotion then
 		TweenService:Create(anchor, TweenInfo.new(1), {Position = position + Vector3.new(0, 2, 0)}):Play()
 		TweenService:Create(label, TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0.75),
 			{TextTransparency = 1, TextStrokeTransparency = 1}):Play()
+		TweenService:Create(icon, TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0.75),
+			{ImageTransparency = 1}):Play()
 		for _, child in label:GetDescendants() do
 			local goals = if child:IsA("UIStroke") then {Transparency = 1}
 				elseif child:IsA("TextLabel") then {TextTransparency = 1, TextStrokeTransparency = 1} else nil
@@ -104,7 +106,7 @@ function Feedback:Cash(_position, confirm)
 	local assets = Shared.Parent:FindFirstChild("Assets")
 	local template = assets and assets:FindFirstChild("Money")
 	if not template or not template:IsA("Attachment") then
-		warn("Cash effect needs ReplicatedStorage.PetRoll.Assets.Money")
+		warn("Coin effect needs ReplicatedStorage.PetRoll.Assets.Money")
 		return
 	end
 	if #self.cashEffects >= 3 then table.remove(self.cashEffects, 1):Destroy() end
@@ -199,7 +201,7 @@ function Feedback:ShowDeposit(receipt)
 	if not self.alive or receipt.collector=="rover" then return end
 	local root = self:Root()
 	if not root or not root:IsA("BasePart") then
-		self.app:Notify(if receipt.queued then "Deposited "..Theme.Money(receipt.count).." eggs" else "+$"..Theme.Money(receipt.value),true)
+		self.app:Notify(if receipt.queued then "Deposited "..Theme.Money(receipt.count).." eggs" else "+"..Theme.Coins(receipt.value),true)
 		return
 	end
 	self:DepositBurst(root)

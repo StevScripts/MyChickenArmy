@@ -233,7 +233,7 @@ function Vacuum:Deposit(receipt, now)
 	-- or serial change started this clip, so cash feedback must not restart it.
 	if self.data then self:StartUnload(self.data.unloadSerial, now) end
 	if self.popup then
-		self.label.Text = if receipt.queued then Theme.Money(receipt.count).." eggs deposited" else "+$" .. Theme.Money(receipt.value)
+		self.label.Text = if receipt.queued then Theme.Money(receipt.count).." eggs deposited" else "+" .. Theme.Coins(receipt.value)
 		self.popup.Enabled, self.popupUntil, self.depositUntil = true, now + 1.1, now + 1.1
 	end
 	-- Automatic deliveries stay local to the rover; no player cash burst or sound.
