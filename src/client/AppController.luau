@@ -383,7 +383,7 @@ function AppController:OpenPage(page)
 	end,false,2500,Enum.KeyCode.ButtonB)
 end
 
--- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift" | "friendBoost".
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift".
 -- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
 -- closed menu releases only its own blur owner, so the shared blur stays on.
 -- Safe with nothing open. The offline receipt is always dismissed (already paid).
@@ -400,7 +400,6 @@ function AppController:CloseOtherMenus(keep: string?)
 	end
 	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
-	if keep~="friendBoost" and self.friendBoost then self.friendBoost:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 

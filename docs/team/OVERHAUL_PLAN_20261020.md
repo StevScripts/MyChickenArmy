@@ -136,7 +136,10 @@ Draft node list (S7 finalizes it in P0):
 - **Egg Vacuum:**
   - A hotbar tool given free when the Commander guide ends.
   - While equipped, it pulls in nearby eggs automatically until its capacity is full.
-  - Capacity is counted in eggs, and partial stacks split.
+  - Capacity is shown in eggs ("carried / capacity") but sized in seconds of the
+    Flock's current laying: 30 s to start, Tools tiers 45/60/90/120 s, Gem Vacuum
+    Capacity +15 s per level. Partial stacks split. (Stevin, later Oct 20, after
+    S7's P0 showed fixed egg counts stop mattering from about Rebirth 2.)
   - Unload it on the pad.
   - Capacity comes from Upgrades > Tools tiers (reset on Rebirth) plus the Gem
     Vacuum Capacity (kept).
@@ -194,7 +197,9 @@ Draft node list (S7 finalizes it in P0):
   - Gold sky, warm light, and gold sparkles and coins drifting in the air. Visual
     only; nothing to pick up.
   - Doubles all Coins (eggs, battles, Missions) and stacks with the 2x Coins pass.
-  - Never frozen into offline earnings.
+  - Boosts count when Coins are paid (pad sale, end of a fight or Mission).
+  - Never frozen into offline earnings, never applied to daily rewards or Robux
+    Coin packs.
 - **Friend Boost:**
   - "Friend Boost: +N%" under Coins, with a green + that opens an explanation and
     Invite Friends.

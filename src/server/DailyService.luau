@@ -23,9 +23,10 @@ DailyService.MinIncome = 10 -- $/second, so brand-new flocks still get something
 DailyService.DaySeconds = 86400
 
 -- Cash per second the HUD shows for eggs (2x Cash and the re-enlist multiplier
--- included), floored at MinIncome.
+-- included), floored at MinIncome. October 20 (owner): steady, so a live Gold Rush
+-- or Friend Boost never changes a daily reward.
 function DailyService.Income(session): number
-	local income = session:EarnedAmount(session:Income() * session:EggProductionMultiplier(), "eggs")
+	local income = session:EarnedAmount(session:Income() * session:EggProductionMultiplier(), "eggs", true)
 	if type(income) ~= "number" or income ~= income or income < DailyService.MinIncome then
 		return DailyService.MinIncome
 	end
