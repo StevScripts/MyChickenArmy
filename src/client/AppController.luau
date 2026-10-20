@@ -33,7 +33,7 @@ local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
 local ChickenBrowser = require(script.Parent.ChickenBrowser)
-local MergeBrowser = if Config.Features.Merging then require(script.Parent.MergeBrowser) else nil
+local SellMenu = require(script.Parent.SellMenu)
 local ShopBrowser = require(script.Parent.ShopBrowser)
 local IndexBrowser = require(script.Parent.IndexBrowser)
 local ResearchBrowser = require(script.Parent.ResearchBrowser)
@@ -78,7 +78,6 @@ function AppController.new()
 end
 
 function AppController:Request(action, payload)
-	if not Config.Features.Merging and (action=="OpenMerge" or action=="Merge" or action=="MergeAll") then return nil end
 	self.requestId += 1
 	local request = payload or {}
 	request.action, request.id = action, self.requestId
@@ -350,22 +349,14 @@ function AppController:OpenPage(page)
 	if page=="Operations" then self:Notify("Missions appear on the island by themselves. Follow the marker!","info");return end
 	if page=="Upgrades" or page=="Research" then self.research:Open();return end
 	if page=="Recruits" then page="Odds" end -- Older UI callbacks cannot reopen the removed selector.
-	if page=="Sell" then page="Army" end -- Legacy navigation uses the Army inspector.
-	if page=="Merge" and not self.mergeBrowser then return end
-	if page=="Merge" and (not self.state or self.state.mergeUnlocked~=true) then
-		self:Notify("Unlock the Fuse Machine in Upgrades first.",false)
-		self.research:OpenNode("FuseMachine")
-		return
-	end
+	if page=="Merge" then return end -- October 20: Fuse is removed.
 	-- Take the blur first so closing the other menu cannot clear it.
 	self:SetMenuBlur("main",true)
 	self:CloseOtherMenus("main")
-	if self.mergeBrowser and self.page=="Merge" and page~="Merge" then self.mergeBrowser:Close() end
 	local switching=self.panel.Visible and not self.panelClosing
 	self.panelClosing=false
 	if not self.panel.Visible then self.previousSelection=GuiService.SelectedObject end
 	self.page = page
-	if page=="Merge" and self.mergeBrowser then self.mergeBrowser:Reset() end
 	if page=="Shop" then self.commerce:Open() end
 	if page=="Army" then self.chickenBrowser:OpenInventory() end
 	local tint=Theme.HeaderColors[page] or Theme.ActionColors.navigation
@@ -373,19 +364,26 @@ function AppController:OpenPage(page)
 	Theme.Surface(self.panelBody,Theme.PageSurfaces[page] or C.panel)
 	self.content.ScrollBarImageColor3=tint
 	local icon=self.panelHeader.PageIcon
-	icon.Visible=page=="Army" or page=="Upgrades" or page=="Odds" or page=="Merge" or page=="Shop" or page=="Index"
+	icon.Visible=page=="Army" or page=="Upgrades" or page=="Odds" or page=="Shop" or page=="Index"
 	icon.Image=if page=="Shop" then Theme.Assets.Shop elseif page=="Index" then Theme.Assets.Index
-		elseif page=="Army" or page=="Merge" then Theme.Assets.Army else Theme.Assets.Luck
+		elseif page=="Army" then Theme.Assets.Army else Theme.Assets.Luck
 	self.panel.Visible, self.backdrop.Visible = true, true
 	self:FitPanel()
 	self:RenderPanel(true)
 	Theme.Motion:OpenPanel(self.panel,self.backdrop,switching)
 	self:PlaceNotice()
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject=if page=="Upgrades" then self.progression.closeButton elseif page=="Merge" and self.mergeBrowser then self.mergeBrowser.closeButton else self.closeButton end
+	if UserInputService.GamepadEnabled then GuiService.SelectedObject=if page=="Upgrades" then self.progression.closeButton elseif page=="Sell" then self.sellMenu.sell else self.closeButton end
 	ContextActionService:BindActionAtPriority("PetRollClosePanel",function(_,state)
 		if state==Enum.UserInputState.Begin then self:ClosePanel() end
 		return Enum.ContextActionResult.Sink
 	end,false,2500,Enum.KeyCode.ButtonB)
+end
+
+-- October 20 Sell screen: My Army's Sell buttons open it; a sellable petId starts selected.
+function AppController:OpenSell(petId: string?)
+	if self.commerce.cratePresenting then return end
+	self.sellMenu:Begin(petId)
+	self:OpenPage("Sell")
 end
 
 -- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift".
@@ -417,7 +415,7 @@ function AppController:CloseMainPanel()
 	if not self.panel.Visible or self.panelClosing then return end
 	self.panelClosing=true
 	self:SetMenuBlur("main",false)
-	if self.page=="Merge" and self.mergeBrowser then self.mergeBrowser:Close() end
+	if self.page=="Sell" then self.sellMenu:Close() end
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(self.panel) then
 		GuiService.SelectedObject=if self.previousSelection and self.previousSelection.Parent then self.previousSelection else nil
@@ -514,7 +512,7 @@ function AppController:BuildUI()
 	list.Padding,list.SortOrder,list.Parent=UDim.new(0.025,0),Enum.SortOrder.LayoutOrder,content
 	self.contentLayout=list
 	self.chickenBrowser=ChickenBrowser.new(self,panel)
-	self.mergeBrowser=if MergeBrowser then MergeBrowser.new(self,panel) else nil
+	self.sellMenu=SellMenu.new(self,panel)
 	self.shopBrowser=ShopBrowser.new(self,panel)
 	self.indexBrowser=IndexBrowser.new(self,body)
 	self.progression:Mount(panel)
@@ -745,8 +743,7 @@ function AppController:RenderTest()
 	self:Button("TestInvasion","Mission · spawn Scout Landing on the island now",function() launch("StartInvasion","1:1") end)
 	self:Button("TestInvasionBoss","Mission · spawn The King Returns (Royal boss)",function() launch("StartInvasion","3:3") end)
 	self:Button("TestDailyNextDay","Daily streak · jump to the next day",function() launch("DailyNextDay") end)
-	self:Button("TestGiantGuarantee","Giants · 3 Knights + next fusion guaranteed Giant",function() launch("GiantGuarantee") end)
-	self:Button("TestColossalTry","Giants · 3 Giants for a Colossal try",function() launch("ColossalTry") end)
+	self:Button("TestOldGiants","Old Giants · add a saved Giant and Colossal (now ordinary)",function() launch("OldGiants") end)
 	self:Button("TestMutations","Mutations · one chicken with each mutation",function() launch("Mutations") end)
 	self:Button("TestHalloween","Halloween event · toggle on/off (this Studio server)",function() launch("Halloween") end)
 	local shop=self.state.shop
@@ -784,16 +781,16 @@ end
 
 function AppController:RenderPanel(force)
 	if not self.state or not self.panel.Visible then return end
-	if self.page=="Merge" and self.state.mergeUnlocked~=true then self:ClosePanel();return end
 	local browsing=self.page=="Army"
-	local merging=self.page=="Merge" and self.mergeBrowser~=nil
+	local selling=self.page=="Sell"
 	local shopping,indexing=self.page=="Shop",self.page=="Index"
 	local upgrading=self.page=="Upgrades"
 	self.progression.root.Visible=upgrading
-	self.content.Visible,self.chickenBrowser.root.Visible=not browsing and not merging and not shopping and not indexing and not upgrading,browsing
-	if self.mergeBrowser then self.mergeBrowser.root.Visible=merging end
-	self.panelHeader.Visible,self.panelBody.Visible=not shopping and not browsing and not upgrading and not merging,not shopping and not browsing and not upgrading and not merging
-	self.standardPage.Visible=not shopping and not browsing and not upgrading and not merging
+	self.content.Visible,self.chickenBrowser.root.Visible=not browsing and not selling and not shopping and not indexing and not upgrading,browsing
+	self.sellMenu.root.Visible=selling
+	local standard=not shopping and not browsing and not selling and not upgrading
+	self.panelHeader.Visible,self.panelBody.Visible=standard,standard
+	self.standardPage.Visible=standard
 	self.shopBrowser.root.Visible,self.indexBrowser.root.Visible=shopping,indexing
 	if upgrading then
 		self.progression:Render();return
@@ -804,14 +801,14 @@ function AppController:RenderPanel(force)
 	if indexing then
 		self.panelTitle.Text="Chicken Index";self.indexBrowser:Render(force);return
 	end
-	if merging then
-		self.panelTitle.Text="Fuse Chickens"
-		self.mergeBrowser:Render(force)
-		return
-	end
 	if browsing then
 		self.panelTitle.Text="My Army"
 		self.chickenBrowser:Render(force)
+		return
+	end
+	if selling then
+		self.panelTitle.Text="Sell Chickens"
+		self.sellMenu:Render(force)
 		return
 	end
 	local state = self.state
@@ -896,32 +893,20 @@ function AppController:Receive(packet)
 	self.missionTracker:Render(state)
 	-- Admin replies go to the Admin page's output when it is open.
 	if self.adminPanel and self.adminPanel:Receive(result) then result=nil end
-	if result and not self.mergeBrowser and (result.action=="OpenMerge" or result.action=="Merge" or result.action=="MergeAll") then result=nil end
 	local shownRecruit, newRecruit = false, false
 	local shownProduction,newProduction=false,false
 	if result then shownProduction,newProduction=self:TrackProductionUpgrade(result,researchFeedback) end
 	self.chickenBrowser:Receive(result)
-	if self.mergeBrowser then self.mergeBrowser:Receive(result) end
+	self.sellMenu:Receive(result)
 	local shownCrate=self.commerce:Receive(result)
 	self.progression:Receive(result)
 	self.eggBoard:Receive(result)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" and result.action~="AcknowledgeResearch" then
-		local shownInMerge=result.action=="OpenMerge" or ((result.action=="Merge" or result.action=="MergeAll") and self.page=="Merge" and self.panel.Visible)
-		local lockedOpenMerge=not result.ok and result.action=="OpenMerge" and state.mergeUnlocked==false
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
-		if lockedOpenMerge or (not researchFeedback and not shownProduction and not shownCrate
-			and not (result.ok and (result.action=="Roll" or shownInMerge or shownRecruit or QUIET_SUCCESS[result.action]))) then self:Notify(result.message,result.ok) end
+		if not researchFeedback and not shownProduction and not shownCrate
+			and not (result.ok and (result.action=="Roll" or shownRecruit or QUIET_SUCCESS[result.action])) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
-		if result.ok and result.action == "OpenMerge" then self:OpenPage("Merge") end
-		if lockedOpenMerge
-			and not self.panel.Visible and not self.research.root.Visible and not self.dialogueActive and not self.commerce.cratePresenting then
-			-- Keep the existing Error notice; do not replace a menu opened while the reply was in flight.
-			self.research:OpenNode("FuseMachine")
-		end
-		if result.ok and (result.action == "Merge" or result.action == "MergeAll") then
-			self.base:PetPulse(result.petId,C.gold)
-		end
 		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand")
 			and (not shownProduction or newProduction) then self.feedback:Action(result.action) end
 		if result.ok and result.action == "Attack" then self:ClosePanel() end
@@ -1034,8 +1019,7 @@ function AppController:Destroy()
 	if self.animator then self.animator:Destroy() end
 	if self.galaxyCrateVisuals then self.galaxyCrateVisuals:Destroy() end
 	if self.prompts then self.prompts:Destroy() end
-	self.commerce:Destroy();self.shopBrowser:Destroy();self.indexBrowser:Destroy()
-	if self.mergeBrowser then self.mergeBrowser:Destroy() end
+	self.commerce:Destroy();self.shopBrowser:Destroy();self.indexBrowser:Destroy();self.sellMenu:Destroy()
 	self.progression:Destroy()
 	self.research:Destroy()
 	self.researchExtras:Destroy()

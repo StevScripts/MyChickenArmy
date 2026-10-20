@@ -291,11 +291,6 @@ function PlayerSession:ProtectStarterFlock(): boolean
 	return self:StarterFlockMinimum()>0
 end
 
-function PlayerSession:MergeAccess(): (boolean, string)
-	if self.fusionUnlocked==true or self.research.completed.FuseMachine==true then return true,"" end
-	return false,"Unlock the Fuse Machine in Upgrades first."
-end
-
 function PlayerSession:FindSlot(id: string): number?
 	for slot, petId in self.slots do if petId == id then return slot end end
 	return nil
@@ -728,7 +723,6 @@ end
 
 function PlayerSession:Snapshot(now: number)
 	local rank=Progression.Get(self.promotion)
-	local mergeUnlocked,mergeRequirement=self:MergeAccess()
 	local best=self:BestPetIds()
 	local deployedIds={}
 	if self:IsArmyLocked() then
@@ -771,7 +765,9 @@ function PlayerSession:Snapshot(now: number)
 		-- Rally timing (server epoch seconds) outside the retired research snapshot (S9).
 		rally={readyAt=self.research.rallyReadyAt or 0,activeUntil=self.rallyActiveUntil or 0},
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
-		mergeUnlocked=mergeUnlocked,mergeRequirement=mergeRequirement,
+		-- October 20: Fuse is removed; always false until the last readers (the old
+		-- My Army hint and the guide's Fuse goal) are gone. fusionUnlocked still saves.
+		mergeUnlocked=false,
 		campsWon=campsWon,allCampsWon=self:Completed(),territoryBonus=self.territoryBonus or 0,
 		userId=self.userId,name=self.name,plotIndex=self.plotIndex,revision=self.revision,
 		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
@@ -802,7 +798,7 @@ function PlayerSession:ToData()
  end
 	local pets={}
 	for _,pet in self.pets do table.insert(pets,{id=pet.id,species=pet.species,level=pet.level,favorite=pet.favorite,collected=pet.collected or 0,
-		giantSize=pet.giantSize,mutation=pet.mutation,cashLevels=pet.cashLevels,
+		giantSize=pet.retiredGiantSize,mutation=pet.mutation,cashLevels=pet.cashLevels,
 		investment=pet.investment or Rules.Investment(pet.species,pet.level)}) end
 	for _,raw in self.unrecognizedPets or {} do table.insert(pets,table.clone(raw)) end
 	table.sort(pets,function(a,b) return a.id<b.id end)
@@ -1091,12 +1087,14 @@ function PlayerSession:LoadData(data)
 		end
 		local level=if revision<3 then 1 else pet.level
 		if not numberIn(level,1,Config.MaxPetLevel,true) then return false,"Invalid saved chicken level." end
-		if pet.giantSize~=nil and not Giant.IsValidSize(pet.giantSize) then return false,"Invalid saved Giant size." end
+		-- October 20: Giants are retired. A saved size is kept for the next save but never
+		-- loaded as giantSize, so old Giants are ordinary chickens. Bad values are dropped.
+		local retiredGiantSize=if Giant.IsValidSize(pet.giantSize) then pet.giantSize else nil
 		local investment=if revision<5 then Rules.Investment(pet.species,level,true) else pet.investment
 		investment=clampHigh(investment,0,1e12)
 		if not investment then return false,"Invalid saved chicken investment." end
 		-- Additive launch field: an unknown or malformed mutation is dropped, never the chicken.
-		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,giantSize=pet.giantSize,favorite=pet.favorite,collected=math.ceil(collected),investment=math.ceil(investment),
+		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,retiredGiantSize=retiredGiantSize,favorite=pet.favorite,collected=math.ceil(collected),investment=math.ceil(investment),
 			mutation=if MutationCatalog.IsValid(pet.mutation) then pet.mutation else nil,
 			-- Additive October 14 field: levels bought with cash, removed on Rebirth.
 			-- Missing or malformed reads as none, never a load failure.

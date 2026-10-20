@@ -16,7 +16,6 @@ local Currency = require(Shared.CurrencyLimits)
 local PetActor = require(script.Parent.PetActor)
 local IdlePatrol = require(script.Parent.IdlePatrol)
 local RollStation = require(script.Parent.RollStation)
-local MergeStand = require(script.Parent.MergeStand)
 local Builder = require(script.Parent.WorldBuilder)
 local KingArena = require(script.Parent.KingArena)
 local AuthoredMap = require(script.Parent.AuthoredMap)
@@ -170,7 +169,6 @@ function WorldService:TakeActor(index: number, petId: string)
 	local plot = self.plots[index]
 	if not plot then return nil end
 	local actor = plot.actors[petId]
-	if plot.mergeStand and plot.mergeStand:IsRevealing(petId) then plot.mergeStand:ResetAnimation() end
 	plot.actors[petId], plot.roaming[petId] = nil, nil
 	if actor then actor:Stop(); attribute(actor.model, "AtHome", false) end
 	return actor
@@ -179,12 +177,6 @@ end
 function WorldService:RestoreActor(session, petId: string, actor)
 	local plot, pet = self.plots[session.plotIndex], session.pets[petId]
 	if not plot or not pet then actor:Destroy(); return end
-	-- Explicit home/teleport commands can reclaim a rig during the reveal.
-	-- Release the temporary scale/anchor while retaining the commanded position.
-	if plot.mergeStand and plot.mergeStand:IsRevealing(petId) and plot.mergeStand.reveal.actor==actor then
-		local at=actor:Position()
-		plot.mergeStand:ResetAnimation();actor:Teleport(at)
-	end
 	local previous = plot.actors[petId]
 	if not previous then
 		local count = 0
@@ -344,16 +336,10 @@ function WorldService:Build()
 	self.kingArena = KingArena.new(root)
 	self.kingArena:SnapshotIntroSet()
 	local starterCamps=Progression.Camps(1)
-	-- The standalone machine was authored against Plot 1. Keep it intact in
-	-- ServerStorage during Play and clone that same placement into each home.
-	local mergeTemplate=workspace:FindFirstChild("Fuse_Machine")
-	local firstPlot=root:FindFirstChild("Plot1")
-	if not mergeTemplate and firstPlot then mergeTemplate=firstPlot:FindFirstChild("Fuse_Machine",true) end
-	if mergeTemplate and not mergeTemplate:IsA("Model") then mergeTemplate=nil end
-	local mergeOrigin=self:PlotFrame(1)
-	if Config.Features.Merging and mergeTemplate and mergeTemplate.Parent==workspace then
-		mergeTemplate.Parent=game:GetService("ServerStorage")
-	end
+	-- October 20: Fuse is removed. The lead deletes the authored machines in Studio;
+	-- until then Play hides any left over (runtime only; the saved map is untouched).
+	local standaloneFuse=workspace:FindFirstChild("Fuse_Machine")
+	if standaloneFuse then standaloneFuse:Destroy() end
 	Builder.BuildIslandChickenRamps(root)
 	for index = 1, #Config.PlotPositions do
 		-- Authored homes are opt-in: removing a plot for editing must not regenerate it.
@@ -377,19 +363,14 @@ function WorldService:Build()
 			local plot={folder=folder,pets=pets,title=title,station=station,stations=stations,actors={},roaming={},
 				homeOrdinals={},index=index,connections={},conquestTitle=conquestTitle}
 			plot.upgrades=PlotUpgradeService.new(folder,index,cf)
-			if Config.Features.Merging then
-				plot.mergeStand=MergeStand.new(folder,cf,index,function(player,action,plotIndex)
-					if self.onAction then self.onAction(player,action,plotIndex) end
-				end,mergeTemplate,mergeOrigin)
-			else
-				-- Runtime clones only; original buildings are archived in ServerStorage.
-				-- Also suppress the stand when loading an older authored recovery template.
-				local shops=folder:FindFirstChild("Shops")
-				local building=shops and shops:FindFirstChild("Merge")
-				if building then building:Destroy() end
-				local anchor=folder:FindFirstChild("MergePrompt",true)
-				if anchor then anchor:Destroy() end
-			end
+			-- Runtime clones only; Fuse is removed (also older authored recovery templates).
+			local shops=folder:FindFirstChild("Shops")
+			local building=shops and shops:FindFirstChild("Merge")
+			if building then building:Destroy() end
+			local anchor=folder:FindFirstChild("MergePrompt",true)
+			if anchor then anchor:Destroy() end
+			local machine=folder:FindFirstChild("Fuse_Machine",true)
+			if machine then machine:Destroy() end
 			self.plots[index]=plot
 		end
 		local lane = root:FindFirstChild("Lane" .. index) or Instance.new("Folder")
@@ -429,34 +410,6 @@ function WorldService:Build()
   self:PopulateCamp(self.incomeOutpost)
  end
  self.lastRoamAt = os.clock()
-end
-
-function WorldService:CanUseMergeStand(player,session,index)
- local plot=self.plots[session.plotIndex]
- return Config.Features.Merging and plot~=nil and plot.mergeStand~=nil and index==session.plotIndex and plot.mergeStand:CanUse(player)
-end
-
-function WorldService:CelebrateMerge(session,petId)
- local plot=self.plots[session.plotIndex]
- local pet=session.pets[petId]
- if not plot or not plot.mergeStand or not pet or not session:IsPetHome(petId) then return end
- local actor=plot.actors[petId]
- if not actor then
-  actor=PetActor.new(plot.pets,petId,pet.species,pet.stars,self:ReturnPosition(session,petId),self:PlotFrame(session.plotIndex).LookVector)
-  if not self:RestoreActor(session,petId,actor) then return end
- end
- plot.mergeStand:Celebrate(pet,actor,function(released)
-  if self.plots[session.plotIndex]~=plot or plot.actors[petId]~=released
-   or not session.pets[petId] or not session:IsPetHome(petId) or session.closing then return end
-  local home=plot.roaming[petId]
-  if not home then return end
-  home.position=released:Position()
-  home.target,home.recoveryFoot=self:ReturnPosition(session,petId),released:Position()
-  home.moving,home.recruiting,home.startedAt=true,true,os.clock()
-  home.travelTimeout=math.max(14,(home.target-home.position).Magnitude/math.max(5,Config.RoamSpeed)+4)
-  released.model:SetAttribute("Recruiting",true)
-  released:MoveTo(home.target,math.max(5,Config.RoamSpeed))
- end)
 end
 
 function WorldService:PopulateCamp(record)
@@ -525,7 +478,6 @@ function WorldService:UpdateSession(session)
 	session.rollSlotLimit=math.min(#plot.stations,Config.RollSlotsUnlocked)
 	session.rollSlotCount=math.min(session.rollSlotLimit,session.rollSlotsUnlocked)
 	for _,station in plot.stations do station:Sync(session) end
-	if plot.mergeStand then plot.mergeStand:Sync(session) end
 	for name, value in {CommandTarget = "base:" .. session.userId, OwnerUserId = session.userId,
 		ArmyState = session.armyState} do attribute(plot.folder, name, value) end
 	local bannerTier=OperationRewards.Apply(session,plot,self:PlotFrame(session.plotIndex))
@@ -576,7 +528,6 @@ function WorldService:UpdateSession(session)
 		if ordinal > MAX_VISIBLE then break end
 		visibleCount += 1
 		local actor = plot.actors[pet.id]
-		if actor and plot.mergeStand and plot.mergeStand:IsRevealing(pet.id) then continue end
 		if actor and actor.model:GetAttribute("Species") ~= pet.species then actor:Destroy(); plot.actors[pet.id] = nil; actor = nil end
 		if not actor then
 			local position = self:ReturnPosition(session, pet.id, ordinal)
@@ -626,7 +577,6 @@ function WorldService:Step(now)
 		for id, home in plot.roaming do
 			local actor = plot.actors[id]
 			if not actor then plot.roaming[id] = nil; continue end
-			if plot.mergeStand and plot.mergeStand:IsRevealing(id) then continue end
 			local state = actor:Step(now)
 			home.position = actor:Position()
 			if home.moving then
@@ -743,7 +693,6 @@ function WorldService:Release(session)
 		plot.upgrades:SetLevel(0)
 		plot.upgrades:SetBuild(nil,0)
 		for _,station in plot.stations do station:Clear() end
-		if plot.mergeStand then plot.mergeStand:Clear() end
 		if plot.trophy then plot.trophy:Destroy(); plot.trophy = nil end
 		attribute(plot.folder, "ConquestCompleted", nil)
 		plot.title.Text = "HOME " .. session.plotIndex .. " · OPEN"
@@ -772,7 +721,6 @@ function WorldService:Destroy()
 		disposeActors(plot.actors)
 		plot.upgrades:Destroy()
 		for _,station in plot.stations do station:Destroy() end
-		if plot.mergeStand then plot.mergeStand:Destroy() end
 		for _, connection in plot.connections do connection:Disconnect() end
 	end
 	for _, lane in self.lanes do for _, record in lane do disposeActors(record.actors) end end

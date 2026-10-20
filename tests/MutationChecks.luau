@@ -9,7 +9,6 @@ local Session=require(Server.PlayerSession)
 local Offline=require(Server.OfflineCash)
 local Rolls=require(Server.RollService)
 local Crates=require(Server.CrateService)
-local Army=require(Server.ArmyService)
 local Mutations=require(Shared.MutationCatalog)
 local Rules=require(Shared.Rules)
 local Checks={}
@@ -181,24 +180,6 @@ function Checks.Run()
    assert(ok,message)
    assert(s.pets[petId].mutation=="Golden","Bought chicken lost its mutation")
   end)
- end)
-
- test("Fusion of Golden + plain + Rainbow makes a Rainbow Giant",function()
-  local s=session(-963);s.fusionUnlocked=true;s.coins=1e9
-  local a=s:AddPet("Bucket",1,"Golden")
-  local b=s:AddPet("Bucket",1)
-  local c=s:AddPet("Bucket",1,"Rainbow")
-  local ok,message,petId=Army.Merge(s,a.id,b.id,c.id,1,Rules.MergePrice("Bucket",1))
-  assert(ok,message)
-  local giant=s.pets[petId]
-  assert(giant and giant.level==2,"No fusion result") -- October 14: a Giant is now a chance, not guaranteed
-  assert(giant.mutation=="Rainbow","Giant mutation "..tostring(giant.mutation))
-  -- Plain inputs stay plain.
-  local ids={}
-  for i=1,3 do ids[i]=s:AddPet("Bucket",1).id end
-  local ok2,message2,plainId=Army.Merge(s,ids[1],ids[2],ids[3],1,Rules.MergePrice("Bucket",1))
-  assert(ok2,message2)
-  assert(s.pets[plainId].mutation==nil)
  end)
 
  test("A save round trip keeps a mutation; Nope loads as none",function()

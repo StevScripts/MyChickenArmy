@@ -62,9 +62,6 @@ function Editor.Open()
 		elseif page=="Upgrades" then
 			browser=require(code.ProgressionBrowser).new(app);browser:Mount(canvas)
 			render=function() browser:Render() end
-		elseif page=="Merge" then
-			browser=require(code.MergeBrowser).new(app,canvas)
-			render=function() browser:Render(true) end
 		elseif page=="Rebirth" then
 			-- The starter sample has no Rebirth quote; preview the late-game one.
 			local HttpService=game:GetService("HttpService")
