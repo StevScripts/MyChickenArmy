@@ -85,9 +85,17 @@ local Config = {
  -- Oct 20 (Stevin): a roll lasts about as long as Drop a Fruit's (~3.9 s; was 2.4).
  -- Roll Speed divides it (RollService).
  RollRevealSeconds=4,RollInteractDistance=14,
- -- Auto Roll (research AutoRoll) stops on any mutated offer or at this setting:
- -- "Upgrade" = an offer that fills or strengthens the army, else a rarity floor.
+ -- Pre-October 20 Auto Roll stop names, kept only so AutoRollRules.Read converts old saves.
  AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic","Secret"},
+ -- October 20 Auto Roll (S12, Stevin approved; AutoRollRules.luau): stop at "1 in X or
+ -- rarer" (zero-Luck odds, as on the podium). Presets are the menu's -/+ steps; players
+ -- may also type any whole number from MinOneIn to MaxOneIn.
+ AutoRoll={DefaultStop=1000,MinOneIn=2,MaxOneIn=10000000,
+  Presets={100,500,1000,5000,20000,100000,200000,1000000}},
+ -- October 20 Gold rolls (S12, Stevin approved; GoldRolls.luau). With the Gold Machine,
+ -- every Every[goldRate+1]th lever pull is special and every podium rolls with
+ -- Luck[goldMachine]x Luck. Kinds name it for goldMachine 1/2/3 (Gold, Diamond, Prism).
+ GoldRolls={Every={10,8,6},Luck={2,5,10},Kinds={"Gold","Diamond","Prism"}},
  SlotLevels={3,4,5,6,7,8,9,10},
  SlotUnlocks={
   [3]={capacity=4,price=1200},

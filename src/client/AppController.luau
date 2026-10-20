@@ -32,6 +32,7 @@ local FriendBoost = require(script.Parent.FriendBoost)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
+local AutoRollMenu = require(script.Parent.AutoRollMenu)
 local ChickenBrowser = require(script.Parent.ChickenBrowser)
 local MergeBrowser = if Config.Features.Merging then require(script.Parent.MergeBrowser) else nil
 local ShopBrowser = require(script.Parent.ShopBrowser)
@@ -68,6 +69,8 @@ function AppController.new()
 	self.dailyReward=DailyRewardController.new(self)
 	self.freeGift=FreeGiftController.new(self)
 	self.operationsPanel=OperationsPanel.new(self)
+	-- October 20 Auto Roll settings popup and hit alert (S12).
+	self.autoRollMenu=AutoRollMenu.new(self)
 	self.base, self.battle = BaseController.new(self), BattleController.new(self)
 	return self
 end
@@ -383,7 +386,7 @@ function AppController:OpenPage(page)
 	end,false,2500,Enum.KeyCode.ButtonB)
 end
 
--- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift".
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift" | "autoRoll".
 -- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
 -- closed menu releases only its own blur owner, so the shared blur stays on.
 -- Safe with nothing open. The offline receipt is always dismissed (already paid).
@@ -400,6 +403,7 @@ function AppController:CloseOtherMenus(keep: string?)
 	end
 	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
+	if keep~="autoRoll" and self.autoRollMenu then self.autoRollMenu:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
@@ -671,15 +675,10 @@ function AppController:RenderSettings()
 	toggle("ToggleMusic", "Music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	toggle("ToggleEffects", "Sound effects", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
 	toggle("ReducedMotion", "Reduced motion", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
-	-- October 15 Auto Roll (research): on/off and what it stops for (mutations always).
+	-- October 20 Auto Roll (Gem Upgrade): its settings live in their own popup (S12).
 	local auto=self.state.autoRoll
 	if auto and auto.unlocked then
-		toggle("ToggleAutoRoll", "Auto Roll", auto.enabled, function() self:Request("SetAutoRoll",{enabled=not auto.enabled}) end)
-		local names={Upgrade="Army upgrade",Rare="Rare+",Epic="Epic+",Legendary="Legendary+",Mythic="Mythic+",Secret="Secret"}
-		local index=table.find(Config.AutoRollStops,auto.stopAt) or 1
-		self:Button("AutoRollStop", "Auto Roll stops at  ·  "..(names[auto.stopAt] or "Army upgrade"), function()
-			self:Request("SetAutoRoll",{stopAt=Config.AutoRollStops[index%#Config.AutoRollStops+1]})
-		end, Theme.ActionColors.navigation)
+		self:Button("AutoRollSettings", "Auto Roll settings", function() self.autoRollMenu:Open() end, Theme.ActionColors.navigation)
 	end
 	-- After the guide, a quiet next-goal line points to the next camp until the King.
 	if tutorial.guideCompleted or tutorial.wonCamp then
@@ -924,6 +923,7 @@ function AppController:Receive(packet)
 	self.dailyReward:Render(state,result)
 	self.freeGift:Render(state,result)
 	self.operationsPanel:Render(state,result)
+	self.autoRollMenu:Render(state,result)
 	if self.commander then self.commander:Update() end
 	-- After menus and popups render, so the first-time Hill film sees them open.
 	if self.hillIntro then self.hillIntro:Observe(state) end
@@ -1023,7 +1023,7 @@ function AppController:Destroy()
 	self.missionTracker:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
-	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy()
+	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy();self.autoRollMenu:Destroy()
 	if self.goldRush then self.goldRush:Destroy() end
 	if self.friendBoost then self.friendBoost:Destroy() end
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end

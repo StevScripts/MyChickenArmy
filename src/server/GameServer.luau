@@ -101,6 +101,9 @@ function GameServer:Send(player,result)
 	-- stays for the old cash hexes until S9 ships.
 	state.upgradeTree=self.upgrades:Snapshot(session)
 	state.gemUpgrades=GemUpgradeService.Snapshot(session)
+	-- October 20 Auto Roll and Gold rolls (S12, contract §8).
+	state.autoRoll=RollService.AutoSnapshot(session)
+	state.goldRolls=RollService.GoldSnapshot(session)
 	state.rebirth.missionRunning=RebirthService.OperationRunning(session,self)
 	state.boardUpgrades=self.upgrades:Offers(session)
  local routeCamps,routeOutposts=self.battles:RouteProgress(session)
@@ -261,34 +264,26 @@ function GameServer:Handle(player,request)
 	elseif action=="SetCommerceToggle" then
 		ok,message=self.commerce:SetAutomatic(session,request.key,request.enabled)
 	elseif action=="SetAutoRoll" then
-		-- October 15 Auto Roll: on/off and the stop setting (RollService.StepAuto).
-		if (session.researchEffects.autoRoll or 0)<1 then message="Research Auto Roll in Upgrades first."
-		elseif request.enabled~=nil and type(request.enabled)~="boolean" then message="Invalid Auto Roll setting."
-		elseif request.stopAt~=nil and not table.find(Config.AutoRollStops,request.stopAt) then message="Invalid Auto Roll setting."
-		else
-			if request.enabled~=nil then session.autoRoll.enabled=request.enabled end
-			if request.stopAt~=nil then session.autoRoll.stopAt=request.stopAt end
-			session.autoRoll.heldOffer=nil;session:Touch()
-			ok,message=true,if session.autoRoll.enabled then "Auto Roll on." else "Auto Roll off."
-		end
+		-- October 20 Auto Roll (S12): the Gem Upgrade unlocks it; "1 in X" stop/recruit values.
+		ok,message=self.rolls:SetAutoRoll(session,request)
+		if ok and request.skip==true then self.analytics:LaunchCount(session,"autoRoll.skip") end
+	elseif action=="RecruitHeld" then
+		-- October 20 (S12): recruit from the Auto Roll alert, from anywhere. Reported as a Buy.
+		local battle=self.battles.battles[session.outgoing]
+		ok,message,petId,recruit=self.rolls:RecruitHeld(session,request.offerId,now,battle and {
+			battleId=battle.id,phase=battle.phase})
+		if ok then self:CountRecruit(session,recruit);self.analytics:LaunchCount(session,"autoRoll.recruitHeld") end
 	elseif action=="Roll" or action=="Buy" then
 		if not self.world:CanUseStation(player,session,request.stationIndex,action,request.offerId) then
 			message="Walk up to your own roll machine."
 		elseif action=="Roll" then
 			ok,message=self.rolls:Roll(session,now)
-			if ok then for _,offer in session.offers or {} do
-				if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
-				if offer.event then self.analytics:LaunchCount(session,"event.offer."..offer.species) end
-			end end
+			if ok then self:CountOffers(session) end
 		else
-			local eventSpecies
-			for _,offer in session.offers or {} do if offer.id==request.offerId and offer.event then eventSpecies=offer.species end end
 			local battle=self.battles.battles[session.outgoing]
 			ok,message,petId,recruit=self.rolls:Buy(session,request.offerId,now,battle and {
 				battleId=battle.id,phase=battle.phase})
-			local bought=ok and petId and session.pets[petId]
-			if bought and bought.mutation then self.analytics:LaunchCount(session,"mutation.buy."..bought.mutation) end
-			if bought and eventSpecies then self.analytics:LaunchCount(session,"event.buy."..eventSpecies) end
+			if ok then self:CountRecruit(session,recruit) end
 		end
 	elseif action=="SetArmy" then ok,message=ArmyService.SetSelection(session,request.petIds,request.expectedIds)
 	elseif action=="SelectBest" then ok,message=ArmyService.SelectBest(session)
@@ -373,6 +368,8 @@ function GameServer:Handle(player,request)
 		ok,message=self:StartNewPlayerTest(player,session,now)
 		if self.sessions[player.UserId]~=session or session.closing then return end
 	end
+	-- An Auto Roll alert recruit is a Buy from here on: analytics, walk home, client notice.
+	if action=="RecruitHeld" then action="Buy" end
 	-- Research finished inside Start/Cancel/Skip (Step reports timer completions).
 	if action=="StartResearch" or action=="CancelResearch" or action=="SkipResearch" then
 		local recap=session.researchRecap or {}
@@ -408,6 +405,44 @@ function GameServer:Handle(player,request)
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
 	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift})
+end
+
+-- Observation only: what a pull put on the podiums, manual or Auto Roll (October 20, S12).
+function GameServer:CountOffers(session)
+	local special=nil
+	for _,offer in session.offers or {} do
+		if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
+		if offer.event then self.analytics:LaunchCount(session,"event.offer."..offer.species) end
+		if offer.rebirthChicken then self.analytics:LaunchCount(session,"rebirthChicken.offered") end
+		special=special or offer.special
+	end
+	if special then self.analytics:LaunchCount(session,"goldRoll.pull."..special) end
+end
+
+-- Observation only: the kind of offer a recruit came from (RollService:Buy's receipt).
+function GameServer:CountRecruit(session,recruit)
+	local offer=type(recruit)=="table" and recruit.offer
+	if type(offer)~="table" then return end
+	if offer.mutation then self.analytics:LaunchCount(session,"mutation.buy."..offer.mutation) end
+	if offer.event then self.analytics:LaunchCount(session,"event.buy."..offer.species) end
+	if offer.rebirthChicken then self.analytics:LaunchCount(session,"rebirthChicken.bought") end
+end
+
+-- October 20 Auto Roll recruits: the same analytics, walk home and recruit notice as a
+-- Buy at the podium. Each receipt's spend is reported on its own.
+function GameServer:AutoRecruited(session,receipts)
+	local player=Players:GetPlayerByUserId(session.userId)
+	for _,item in receipts do
+		local spent=math.max(0,(item.before or session.coins)-(item.after or session.coins))
+		self:CountRecruit(session,item.recruit)
+		self.analytics:LaunchCount(session,"autoRoll.recruit")
+		self.analytics:Action(session,"Buy",true,item.message,session.coins+spent,{action="Buy",auto=true},{petId=item.petId})
+		self.world:Recruit(session,item.petId)
+		if player then
+			self:Send(player,{id=0,ok=true,action="Buy",message=item.message,petId=item.petId,recruit=item.recruit})
+		end
+	end
+	self.armyCommands:Sync(session)
 end
 
 -- Observation only: a request dropped by the action rate limit, at most once per 10 s per player.
@@ -647,12 +682,12 @@ function GameServer:Step(dt)
 	if now>=(self.autoRollAt or 0) then
 		self.autoRollAt=now+0.25
 		for _,session in self.sessions do
-			if session.loaded and not session.closing and not session.saveLost and session.userId>0 and self.rolls:StepAuto(session,now) then
-				for _,offer in session.offers or {} do
-					if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
-					if offer.event then self.analytics:LaunchCount(session,"event.offer."..offer.species) end
-				end
-				self.world:UpdateSession(session)
+			if session.loaded and not session.closing and not session.saveLost and session.userId>0 then
+				local battle=self.battles.battles[session.outgoing]
+				local result,receipts=self.rolls:StepAuto(session,now,battle and {battleId=battle.id,phase=battle.phase})
+				if result=="rolled" then self:CountOffers(session) end
+				if result=="recruited" then self:AutoRecruited(session,receipts or {}) end
+				if result then self.world:UpdateSession(session) end
 			end
 		end
 	end

@@ -16,6 +16,8 @@ Stories.List={
 	{id="Daily",name="Daily reward"},
 	{id="Offline",name="Offline earnings"},
 	{id="Settings",name="Settings"},
+	{id="AutoRoll",name="Auto Roll settings"},
+	{id="AutoRollAlert",name="Auto Roll hit alert"},
 }
 
 local function noop() end
@@ -163,6 +165,42 @@ Render.Settings=function(ctx)
 	app:RenderSettings()
 	app:FitContentCanvas()
 	ctx.Theme.ApplyPopupStyle(app.panel)
+end
+
+-- October 20 Auto Roll (S12): unlocked, holding the rarest Mythic, Gold Machine owned.
+local function autoRollFixture(state)
+	local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
+	local held
+	for _,id in Catalog.Order do
+		local definition=Catalog[id]
+		if definition.rarity=="Mythic" and definition.oneIn and (not held or definition.oneIn>Catalog[held].oneIn) then held=id end
+	end
+	held=held or "Duck"
+	state.autoRoll={enabled=true,unlocked=true,stopAt=20000,recruitAt=1000,mutationStop=true,upgradeStop=true,holding=true,
+		held={offerId="ui-lab",slot=2,species=held,level=1,price=250000,mutation="Golden",oneIn=Catalog[held].oneIn,
+			reason="rarity",canAfford=true,storageFull=false}}
+	state.goldRolls={machine=1,kind="Gold",every=10,count=7,left=3,luck=2,ready=false}
+	state.coins=math.max(state.coins or 0,500000)
+end
+
+Render.AutoRoll=function(ctx)
+	local app=makeApp(ctx)
+	autoRollFixture(ctx.state)
+	local menu=require(ctx.code.AutoRollMenu).new(app)
+	app.autoRollMenu=menu
+	menu:Render(ctx.state)
+	menu:Open()
+end
+
+Render.AutoRollAlert=function(ctx)
+	local app=makeApp(ctx)
+	-- The alert waits while a menu is open; the story has none.
+	local closed=ctx.Theme.Container(ctx.root,"ClosedPanel");closed.Visible=false
+	app.panel=closed
+	autoRollFixture(ctx.state)
+	local menu=require(ctx.code.AutoRollMenu).new(app)
+	app.autoRollMenu=menu
+	menu:Render(ctx.state)
 end
 
 function Stories.Render(id,ctx)
