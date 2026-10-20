@@ -41,15 +41,16 @@ local COIN=Theme.Colors.coins
 local GREEN=Color3.fromRGB(163,255,0)
 local ALERT=Color3.fromRGB(235,45,45)
 local LINK=Color3.fromRGB(70,76,72)
--- Each hex look: the art, its tint or vertical gradient, and the dark rim around it.
--- Unbought hexes are dark like the reference; "?" hexes are a lighter grey.
+-- Each hex look: the art, its tint or vertical gradient, and the rim around it.
+-- Unbought hexes are dark like the reference, with a grey rim so they read on the
+-- black backdrop; "?" hexes are a lighter grey.
 local LOOKS={
 	owned={art="hexMask",gradient=ColorSequence.new(GREEN,Color3.fromRGB(0,211,0)),rim=Color3.fromRGB(14,84,0)},
 	start={art="hexMask",gradient=Theme.ReferenceGradients.Upgrades,rim=Color3.fromRGB(0,72,112)},
 	open={art="hexMask",gradient=Theme.ReferenceGradients.Base,rim=Color3.fromRGB(122,64,0)},
 	back={art="hexMask",gradient=ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)),rim=Color3.fromRGB(112,10,22)},
-	available={art="hexFill",rim=Color3.fromRGB(12,12,14)},
-	unknown={art="hexMask",tint=Color3.fromRGB(86,88,92),rim=Color3.fromRGB(34,35,38)},
+	available={art="hexFill",rim=Color3.fromRGB(78,80,86)},
+	unknown={art="hexMask",tint=Color3.fromRGB(86,88,92),rim=Color3.fromRGB(46,47,51)},
 }
 -- The free Egg Vacuum always counts as owned; price color alone marks unaffordable.
 LOOKS.tool,LOOKS.unaffordable=LOOKS.owned,LOOKS.available
@@ -252,6 +253,11 @@ function Browser:BuildNode(id,layer)
 		title.Position,title.Size=UDim2.fromScale(.02,.5),UDim2.fromScale(.96,.16)
 		local category=if kind=="back" then View.OpenNode(node.category) else nil
 		caption.Text=if kind=="open" then "Open" elseif category then category.name else ""
+		-- Until S6's arrow is uploaded, Back's words fill the hex instead.
+		if icon.Image=="" then
+			title.Position,title.Size=UDim2.fromScale(.1,.24),UDim2.fromScale(.8,.22)
+			caption.Position,caption.Size=UDim2.fromScale(.1,.5),UDim2.fromScale(.8,.2)
+		end
 	end
 	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,numeral=numeral,
 		title=title,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
