@@ -1,10 +1,11 @@
 --!strict
--- Research-unlocked actions use the existing menu shell; the tree itself stays full screen.
+-- Rally and the older Formations/Missions pages use the existing menu shell; the
+-- Upgrades tree itself stays full screen.
 local UserInputService=game:GetService("UserInputService")
 local ContextActionService=game:GetService("ContextActionService")
 local RunService=game:GetService("RunService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
-local Research=require(Shared.ResearchCatalog)
+local Config=require(Shared.Config)
 local Operations=require(Shared.OperationCatalog)
 local Theme=require(script.Parent.UITheme)
 local Extras={}
@@ -58,10 +59,15 @@ function Extras.new(app)
 end
 
 function Extras:UpdateRally()
-	local state=self.app.state;local data=state and state.research
+	local state=self.app.state
+	-- October 20 overhaul: Rally is a Gem Upgrade. Its length is in the shared effect
+	-- table (state.effects) and its timing in state.rally; older servers sent both in
+	-- state.research.
+	local effects=state and (state.effects or (state.research and state.research.effects))
+	local timing=state and (state.rally or state.research)
 	-- October 14 Missions replace the Invasions menu; MissionTracker owns this slot.
 	self.operations.Visible=false
-	local shown=data~=nil and data.effects.rallySeconds>0 and state.armyState=="Fighting" and not self.app.panel.Visible
+	local shown=effects~=nil and timing~=nil and (effects.rallySeconds or 0)>0 and state.armyState=="Fighting" and not self.app.panel.Visible
 	if shown~=self.rallyShown then
 		self.rallyShown=shown
 		local rally=self.rally
@@ -73,9 +79,9 @@ function Extras:UpdateRally()
 			end)
 	end
 	if not shown then return end
-	local now=self.app.research:Now()
-	local active=math.max(0,math.ceil((data.rallyActiveUntil or 0)-now))
-	local cooldown=math.max(0,math.ceil(data.rallyReadyAt-now))
+	local now=workspace:GetServerTimeNow()
+	local active=math.max(0,math.ceil((timing.activeUntil or timing.rallyActiveUntil or 0)-now))
+	local cooldown=math.max(0,math.ceil((timing.readyAt or timing.rallyReadyAt or 0)-now))
 	local input=UserInputService.PreferredInput
 	local hint=if input==Enum.PreferredInput.Gamepad then " (LT)" elseif input==Enum.PreferredInput.KeyboardAndMouse then " (G)" else ""
 	self.rally.Text=if active>0 then "Active "..active.."s" elseif cooldown>0 then "Rally "..cooldown.."s" else "Rally"..hint
@@ -86,7 +92,6 @@ function Extras:UpdateRally()
 end
 
 function Extras:Receive(state,result)
-	local data=state.research;if not data then return end
 	self:UpdateRally()
 	if result and result.ok and result.action=="StartOperation" then self.app:ClosePanel() end
 	local encounter=state.operations
@@ -113,9 +118,10 @@ function Extras:RenderFormations()
 	local app=self.app;local state=app.state;local data=state.research
 	app.panelTitle.Text="Army Formations"
 	local count=data and data.effects.formations or 0
+	-- October 20 overhaul: the Formation Book research left the Upgrades tree.
 	if count==0 then
-		app:Text("Unlock","Unlock Formation Book in Upgrades to save your Army.",22,55)
-		app:Button("ResearchFormations","View in Upgrades",function() app:OpenPage("Research");app.research:Center("S12");app.research:Select("S12",true) end)
+		app:Text("Unlock","Saved formations are not available right now.",22,55)
+		app:Button("Army","Choose chickens",function() app:OpenPage("Army") end)
 		return
 	end
 	app:Text("Help","Save your current Army, then switch back to it here. Missing chickens are skipped; capacity and the one-Colossal limit still apply.",18,65)
@@ -168,12 +174,12 @@ function Extras:RenderOperations()
 		button.Position,button.Size=UDim2.fromScale((index-1)*.335,0),UDim2.fromScale(.32,1)
 		Theme.ScaleText(button)
 	end
-	-- data.tier is the server's combined tier: research, or a King clear for Veteran.
+	-- data.tier is the server's combined tier. October 20 overhaul: tiers open by a King
+	-- clear or Rebirth rank, no longer by research in Upgrades.
 	if (data.tier or 0)<self.tier then
-		local researchId=({"S15","S16","S17"})[self.tier]
-		app:Text("Locked",if self.tier==1 then "Defeat the Chicken King or unlock "..Research.Nodes[researchId].name.." in Upgrades"
-			else "Unlock "..Research.Nodes[researchId].name.." in Upgrades to open these Invasions.",22,55)
-		app:Button("UnlockOperations","View in Upgrades",function() app:OpenPage("Research");app.research:Center(researchId);app.research:Select(researchId,true) end)
+		local rebirth=type(Config.Rebirth)=="table" and Config.Rebirth.MissionTierRanks
+		local rank=type(rebirth)=="table" and rebirth[self.tier] or ({5,10,15})[self.tier]
+		app:Text("Locked",(if self.tier==1 then "Defeat the Chicken King or reach Rebirth "..rank else "Reach Rebirth "..rank).." to open these Missions.",22,55)
 		return
 	end
 	for index=1,3 do
@@ -181,7 +187,7 @@ function Extras:RenderOperations()
 		app:Text("Title"..index,(if cleared then "✓ " else "")..definition.name,25,40,Operations.Colors[self.tier])
 		app:Text("Details"..index,definition.description.."\nEnemy power "..Theme.Money(Operations.Power(id)),18,50)
 		app:Button("Start"..index,(if cleared then "Defend again" else "Defend").." · "..Theme.CompactCoins(if cleared then definition.replayCash else definition.firstCash).." reward",function()
-			app:Request("StartOperation",{operationId=id,expectedRevision=state.research.revision})
+			app:Request("StartOperation",{operationId=id,expectedRevision=state.research and state.research.revision})
 		end,Theme.ActionColors.purchase)
 	end
 	app:Text("Banner","Clear all three to earn the "..Operations.Tiers[self.tier].." banner"..(if self.tier==3 then " and Royal Commander title." else "."),19,50)
