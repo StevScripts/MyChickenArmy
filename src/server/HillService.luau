@@ -22,9 +22,19 @@ end
 function HillService.new(battles,world,sessions,now)
  local self=setmetatable({battles=battles,world=world,sessions=sessions,random=Random.new(),
   phase="Break",endsAt=(now or os.clock())+Config.Hill.FirstBreakSeconds,round=0,
-  seconds={},holderId=nil,heldSince=0,deliverAt=0,lastWinner=nil,entered={},analytics=nil::any},HillService)
+  seconds={},holderId=nil,heldSince=0,deliverAt=0,lastWinner=nil,entered={},intro={},analytics=nil::any},HillService)
  battles.hill=self
  return self
+end
+
+-- First-time film (client HillIntro): once per player ever, on the first round
+-- that opens after the Hill HUD's rule (all camps won or the King cleared).
+-- Players who already won a Hill round know it. TutorialService saves hillIntroSeen.
+function HillService.IntroDue(session)
+ local tutorial=session.tutorial
+ return Config.Hill.Enabled and tutorial~=nil and not tutorial.hillIntroSeen
+  and (session.kingCleared==true or session:Completed())
+  and (session.hillWins or 0)==0 and not session.hillChampion
 end
 
 -- Coins/sec of the whole flock as if every chicken laid at home (before Double
@@ -90,8 +100,11 @@ function HillService:Open(now)
  if not self.battles:OpenHill(now) then return false end
  self.phase,self.endsAt,self.round=("Open"),now+Config.Hill.RoundSeconds,self.round+1
  table.clear(self.seconds);self.holderId,self.heldSince=nil,now
+ table.clear(self.intro)
  for _,session in self.sessions do
-  if ready(session) and session.kingCleared then session.banner="The Hill is open! Hold the King's arena to win a Hill Roll.";session:Touch() end
+  -- The first-time film announces the round itself, so its players skip the toast.
+  if ready(session) and HillService.IntroDue(session) then self.intro[session.userId]=true;session:Touch()
+  elseif ready(session) and session.kingCleared then session.banner="The Hill is open! Hold the King's arena to win a Hill Roll.";session:Touch() end
  end
  return true
 end
@@ -101,6 +114,7 @@ function HillService:Close(now)
  if seconds<Config.Hill.MinWinSeconds then winnerId=nil end
  self.battles:CloseHill(now)
  self.phase,self.endsAt=("Break"),now+Config.Hill.BreakSeconds
+ table.clear(self.intro) -- An unseen film waits for the next round.
  if self.holderId then self:Report(self.holderId,"hill.hold",now-self.heldSince) end
  self.holderId,self.lastWinner=nil,nil
  local winner=winnerId and self.sessions[winnerId]
@@ -208,11 +222,12 @@ function HillService:Snapshot(session,now)
  status.roundSeconds=Config.Hill.RoundSeconds
  status.champion=session.hillChampion==true
  status.enabled=Config.Hill.Enabled
+ status.intro=self.phase=="Open" and self.intro[session.userId]==true and not session.tutorial.hillIntroSeen
  return status
 end
 
 function HillService:Release(userId)
- self.seconds[userId],self.entered[userId]=nil,nil
+ self.seconds[userId],self.entered[userId],self.intro[userId]=nil,nil,nil
  if self.holderId==userId then self.holderId=nil end
 end
 
