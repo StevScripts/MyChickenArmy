@@ -1,7 +1,10 @@
 --!strict
--- One image and one invisible anchor replace the multipart egg geometry.
+-- Each egg is its layer's voxel mesh (docs/team/VOXEL_EGGS.md): a clone of the
+-- Studio-owned template ReplicatedStorage.PetRoll.Assets.EggMeshes[species].
+-- Without that folder (a scripts-only build) eggs fall back to the image sprite.
 local ContentProvider=game:GetService("ContentProvider")
-local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
+local PetRoll=game:GetService("ReplicatedStorage").PetRoll
+local Shared=PetRoll.Shared
 local Config=require(Shared.Config)
 local EggArt=require(Shared.EggArt)
 local Theme=require(script.Parent.UITheme)
@@ -9,8 +12,8 @@ local Feedback=require(script.Parent.EggFeedback)
 local EggView={}
 EggView.__index=EggView
 
--- Each species' egg image downloads once, the first time one is laid nearby;
--- until then the egg shows the already-loaded Chicken egg.
+-- Sprite fallback only: each species' egg image downloads once, the first time
+-- one is laid nearby; until then the egg shows the Chicken egg image.
 local ready,waiting={[EggArt.Fallback]=true},{}
 local function whenReady(image,callback)
  if ready[image]~=nil then callback(ready[image]);return end
@@ -30,13 +33,67 @@ local function whenReady(image,callback)
   for _,fn in callbacks do fn(ok) end
  end)
 end
-task.spawn(function()
- local probe=Instance.new("ImageLabel");probe.Image=EggArt.Fallback
- pcall(function() ContentProvider:PreloadAsync({probe}) end)
- probe:Destroy()
-end)
+
+-- A template's mesh origin is the egg's bottom centre, and the mesh scales about
+-- it. Eggs turn their decorated front (the voxel +X/+Z corner) toward the
+-- camera with a small per-egg twist, so a yard of eggs reads at a glance.
+local FRONT=CFrame.Angles(0,3*math.pi/4,0)
+local meshes:Instance?=nil
+local function template(species:string?):BasePart?
+ if not meshes then
+  local assets=PetRoll:FindFirstChild("Assets")
+  meshes=assets and assets:FindFirstChild("EggMeshes")
+  if not meshes then return nil end
+ end
+ local found=(species and meshes:FindFirstChild(species)) or meshes:FindFirstChild("Duck")
+ return if found and found:IsA("BasePart") then found else nil
+end
+
+local function caption(adornee,count)
+ local gui=Instance.new("BillboardGui")
+ gui.Name,gui.Adornee="EggQuantity",adornee
+ gui.Size,gui.StudsOffset=UDim2.fromOffset(156,26),Vector3.new(0,1.45,0)
+ gui.MaxDistance,gui.AlwaysOnTop,gui.LightInfluence=36,false,0
+ gui.Enabled,gui.Active,gui.Parent=false,false,adornee
+ local label=Theme.Label(gui,"Quantity",Feedback.Fit(count,"",if count==1 then " egg" else " eggs",156,18,false),18)
+ label.Size,label.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
+ label.TextWrapped=false
+ return gui,label
+end
+
+local function trail(parent,center)
+ local a,b=Instance.new("Attachment"),Instance.new("Attachment")
+ a.Position,b.Position=center+Vector3.new(-0.12,0,0),center+Vector3.new(0.12,0,0);a.Parent=parent;b.Parent=parent
+ local t=Instance.new("Trail")
+ t.Attachment0,t.Attachment1,t.Lifetime=a,b,0.14
+ t.Color=ColorSequence.new(Color3.new(1,1,1))
+ t.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.25),NumberSequenceKeypoint.new(1,1)})
+ t.WidthScale=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})
+ t.LightEmission,t.Enabled,t.Parent=0.6,false,parent
+ return t
+end
+
+local function meshEgg(parent,data,source:BasePart)
+ local body=source:Clone()
+ body.Name="Egg_"..data.id
+ body:SetAttribute("CoinValue",data.value)
+ body:SetAttribute("EggCount",data.stack or 1)
+ local half=(tonumber(body:GetAttribute("EggHeight")) or 1.75)/2
+ local center=Instance.new("Attachment");center.Name="Center";center.Position=Vector3.new(0,half,0);center.Parent=body
+ local count=data.stack or 1
+ local gui,label=caption(center,count)
+ local glow=body:FindFirstChild("Glow")
+ local seed=tonumber(data.id) or 1
+ body.Parent=parent
+ return setmetatable({anchor=body,shell=body,body=body,glow=if glow and glow:IsA("BasePart") then glow else nil,
+  base=body.Size,glowBase=if glow and glow:IsA("BasePart") then glow.Size else nil,half=half,
+  twist=math.rad(((seed*37)%51)-25),trail=trail(body,center.Position),caption=gui,valueLabel=label,
+  seed=seed,scale=1,rotation=0,displayedValue=data.value,displayedCount=count},EggView)
+end
 
 function EggView.new(parent,data)
+ local source=template(data.species)
+ if source then return meshEgg(parent,data,source) end
  local anchor=Instance.new("Part")
  anchor.Name,anchor.Size="Egg_"..data.id,Vector3.new(0.1,0.1,0.1)
  anchor.Anchored,anchor.CanCollide,anchor.CanTouch,anchor.CanQuery=true,false,false,false
@@ -58,25 +115,10 @@ function EggView.new(parent,data)
  sprite.ImageColor3=Color3.new(1,1,1)
  local image=EggArt.Image(data.species)
  whenReady(image,function(ok) if ok and sprite.Parent then sprite.Image=image end end)
- local caption=Instance.new("BillboardGui")
- caption.Name,caption.Adornee="EggQuantity",anchor
- caption.Size,caption.StudsOffset=UDim2.fromOffset(156,26),Vector3.new(0,1.45,0)
- caption.MaxDistance,caption.AlwaysOnTop,caption.LightInfluence=36,false,0
- caption.Enabled,caption.Active,caption.Parent=false,false,anchor
  local count=data.stack or 1
- local valueLabel=Theme.Label(caption,"Quantity",Feedback.Fit(count,"",if count==1 then " egg" else " eggs",156,18,false),18)
- valueLabel.Size,valueLabel.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
- valueLabel.TextWrapped=false
- local a,b=Instance.new("Attachment"),Instance.new("Attachment")
- a.Position,b.Position=Vector3.new(-0.12,0,0),Vector3.new(0.12,0,0);a.Parent=anchor;b.Parent=anchor
- local trail=Instance.new("Trail")
- trail.Attachment0,trail.Attachment1,trail.Lifetime=a,b,0.14
- trail.Color=ColorSequence.new(Color3.new(1,1,1))
- trail.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.25),NumberSequenceKeypoint.new(1,1)})
- trail.WidthScale=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})
- trail.LightEmission,trail.Enabled,trail.Parent=0.6,false,anchor
+ local captionGui,valueLabel=caption(anchor,count)
  anchor.Parent=parent
- return setmetatable({anchor=anchor,shell=anchor,gui=gui,image=sprite,trail=trail,caption=caption,valueLabel=valueLabel,
+ return setmetatable({anchor=anchor,shell=anchor,gui=gui,image=sprite,trail=trail(anchor,Vector3.zero),caption=captionGui,valueLabel=valueLabel,
   seed=tonumber(data.id) or 1,scale=1,rotation=0,displayedValue=data.value,displayedCount=count},EggView)
 end
 
@@ -90,6 +132,24 @@ function EggView:SetValue(value,count)
 end
 
 function EggView:Set(position,scale,tilt,_yaw)
+ local body=self.body
+ if body then
+  scale=math.max(scale,0.001)
+  if math.abs(scale-self.scale)>0.005 then
+   body.Size=self.base*scale
+   if self.glow then self.glow.Size=self.glowBase*scale end
+   self.scale=scale
+  end
+  local camera=workspace.CurrentCamera
+  local look=if camera then (camera.CFrame.Position-position)*Vector3.new(1,0,1) else Vector3.zero
+  if look.Magnitude<0.01 then look=Vector3.new(0,0,-1) end
+  local cf=CFrame.lookAt(position,position+look)*CFrame.Angles(0,0,tilt or 0)*FRONT
+   *CFrame.Angles(0,self.twist,0)*CFrame.new(0,-self.half,0) -- bottom stays put as it scales
+  body.CFrame=cf
+  if self.glow then self.glow.CFrame=cf end
+  self.position=position
+  return
+ end
  self.anchor.Position=position
  if math.abs(scale-self.scale)>0.01 then
   self.gui.Size=UDim2.fromScale(Config.EggSpriteSize*EggArt.Scale*scale,Config.EggSpriteSize*EggArt.Scale*scale)

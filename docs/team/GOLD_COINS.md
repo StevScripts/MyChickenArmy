@@ -63,7 +63,9 @@ cards; the pass is **2x Coins** (green card, gold coin + native "x2"). The secti
 ## Roblox listings (Creator Dashboard)
 
 The native purchase prompt shows the Marketplace name and icon, which source edits
-cannot change. Store icons for the coin products: `assets/generated/gold-coins-20261020/`
+cannot change. October 20: names and descriptions were updated for the four coin packs,
+2x Coins, 2x Egg Spawn and Double NPC Bounty (`assets/generated/gold-coins-20261020/STORE_LISTINGS.md`).
+The listing icons still show the old cash art until the new files are uploaded. Store icons for the coin products: `assets/generated/gold-coins-20261020/`
 (`DoubleCoins-20261020-final.png`, `PocketCoins-…`, `CoopStash-…`, `CoinChest-…`,
 `CommandersVault-…`). Product IDs: Pocket Coins 3712929487, Coop Stash 3712929549,
 Coin Chest 3712929607, Commander's Vault 3712929634; 2x Coins pass 1980764263.

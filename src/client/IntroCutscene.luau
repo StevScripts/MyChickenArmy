@@ -15,7 +15,6 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared.Config)
-local EggArt = require(Shared.EggArt)
 local MapLayout = require(Shared.MapLayout)
 local March = require(Shared.ArmyMarch)
 local CampCommand = require(Shared.CampCommand)
@@ -1314,8 +1313,8 @@ function Intro:Run()
 		return if crown and crown:IsA("BasePart") then crown.Position else K + UP * 14
 	end
 	local egg = EggView.new(self.folder, {id = "Intro", value = 4, stack = 1, species = "Duck"})
-	egg.anchor.Position = hero:GetPivot().Position
-	egg.gui.Size = UDim2.fromScale(0, 0)
+	local eggFrom = hero:GetPivot().Position
+	egg:Set(eggFrom, 0, 0)
 
 	-- Out the gate on the real march route; a cut skips the long middle of the road.
 	local route = March.Path(heroSpot, scene.campAt)
@@ -1355,8 +1354,13 @@ function Intro:Run()
 	self:Dolly(heroSpot + right * 5.5 + inward * 2.4 + UP * 2.1, heroSpot + UP * 1, 2.5, SINE)
 	self:Wait(7.8)
 	self:Hop(hero, 0.7, 0.3)
-	self:Tween(egg.anchor, 0.35, {Position = eggSpot + UP * 0.45}, QUAD, OUT)
-	self:Tween(egg.gui, 0.35, {Size = UDim2.fromScale(Config.EggSpriteSize * EggArt.Scale * 0.7, Config.EggSpriteSize * EggArt.Scale * 0.7)}, Enum.EasingStyle.Back, OUT)
+	-- EggView:Set places a mesh or sprite egg alike; tween its inputs.
+	local eggMove, eggGrow = Instance.new("NumberValue"), Instance.new("NumberValue")
+	local function placeEgg() egg:Set(eggFrom:Lerp(eggSpot + UP * 0.45, eggMove.Value), eggGrow.Value * 0.7, 0) end
+	eggMove.Changed:Connect(placeEgg)
+	eggGrow.Changed:Connect(placeEgg)
+	self:Tween(eggMove, 0.35, {Value = 1}, QUAD, OUT)
+	self:Tween(eggGrow, 0.35, {Value = 1}, Enum.EasingStyle.Back, OUT)
 	self:Sparkle(eggSpot + UP * 0.6, Color3.new(1, 1, 1), 10, 0.5)
 	self:Sound("EggLaid")
 	self:Mood(hero, "happy")

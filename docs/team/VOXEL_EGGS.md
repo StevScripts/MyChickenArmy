@@ -1,50 +1,54 @@
 # Voxel eggs (October 20, 2026)
 
-Owner request: replace the single shared egg sprite with a unique voxel egg for
-every ownable chicken (126), so the yard shows who laid what.
+Owner request: every ownable chicken (126) lays its own egg, and the eggs are
+real 3D voxel models, not images (the first image pass was rejected the same
+day: "I want the actual 3d models of the eggs into the game").
 
 ## Contract
 
-- Each egg on the ground shows its layer's egg: `EggArt.Image(drop.species)`.
-  The server already sends `species` on every drop; nothing server-side changed.
-- `src/shared/EggArt.luau` maps species id → uploaded `rbxassetid`. A species
-  without an entry, or an image that is still loading or failed, shows the
-  classic Chicken voxel egg (`EggArt.Fallback`).
-- `EggArt.Scale = 1.3` keeps the egg body the same on-screen size as the old
-  sprite (the voxel art leaves headroom for hats, wings and glow). Apply it
-  wherever an egg BillboardGui is sized (`EggView`, the intro cutscene).
-- Rarity ladder is baked into the art, never added at runtime:
-  Common/Uncommon matte; Rare+ glossy highlight; Epic+ sparkles (1→4);
-  Legendary+ coloured glow (stronger toward Secret).
-- Loyalist guards are enemy-only and lay no eggs, so they have no egg art.
-- `Config.EggSpriteImage` is no longer read by eggs; keep it until the old
-  asset is confirmed unused elsewhere.
+- Each egg on the ground is a clone of
+  `ReplicatedStorage.PetRoll.Assets.EggMeshes[drop.species]` (Studio-owned
+  MeshPart templates; Rojo ignores that folder). Missing species use `Duck`.
+- The server already sends `species` on every drop; nothing server-side changed.
+- A template's mesh origin is the egg's bottom centre and the mesh scales about
+  it. `EggHeight` (1.75 studs, the old sprite's egg) is an attribute. The child
+  `Glow` MeshPart (Neon, emissive voxels) shares the body's CFrame and scales
+  with it. Legendary+ templates carry a `Sparkle` ParticleEmitter (1.5/3/5 per
+  second for Legendary/Mythic/Secret).
+- `EggView` turns each egg's decorated front toward the camera with a small
+  per-egg twist; bottom stays on the ground while lay/stack/pickup scales play.
+- Fallback: if `EggMeshes` is absent (scripts-only build), eggs use the baked
+  256px images in `src/shared/EggArt.luau` (also kept for future UI icons).
+  Preload those through an ImageLabel; a bare content string reports Failure.
+- Loyalist guards are enemy-only and lay no eggs, so they have no egg models.
 
 ## Efficiency (all devices)
 
-- Same instances per egg as before: one anchor Part, one BillboardGui, one
-  ImageLabel. No particles, beams, tweens or per-frame work were added; glow
-  and sparkles are pixels in the image.
-- 256×256 PNGs, about 25–85 KB each (5.5 MB for all 126). A client downloads
-  only the species actually laid near it, once per session (`EggView`
-  `whenReady` cache), so a typical yard of 10–30 species is 0.5–2 MB.
-- No atlas on purpose: an atlas would force every player to download every
-  egg even though a yard holds only a few species.
-- Preload goes through an ImageLabel: `ContentProvider:PreloadAsync` on a bare
-  `rbxassetid://` string reports Failure for image assets (verified Oct 20).
+- One MeshPart per egg (two for the 60 species with glowing voxels); no welds,
+  lights, Highlights or per-egg tweens. Anchored, CanCollide/CanTouch/CanQuery
+  off, CastShadow off, box collision, `RenderFidelity` Automatic (engine LOD)
+  for bodies. Glow parts are Precise so small faces never drop out.
+- Greedy-meshed voxels: 1,000–2,800 triangles per egg, about 1,450 on average.
+  The yard caps at `Config.EggMaxDrops` (80), so the worst case is ~120k
+  triangles near the player, falling with distance through LOD. Eggs farther
+  than `Config.EggSpriteMaxDistance` stop animating (existing EggController rule).
+- Meshes download once per species per session, only for species that lay
+  near the player.
 - One layout for every device; nothing branches on input type.
 
-## Regenerating art
+## Regenerating
 
 ```
 cd assets/voxel-eggs-20261020
-python3 build_eggs.py            # all 126 → png/ (512 review) + png256/ (game)
-python3 build_eggs.py Cowboy     # one egg
+python3 build_eggs.py [Id ...]      # images: png/ (review) + png256/ (fallback)
+python3 export_meshes.py [Id ...]   # mesh/<Id>.json greedy quads
+python3 -m http.server 8765 --bind 127.0.0.1   # then, in Studio Edit (MCP):
+#   require(<EggMeshBuilder.luau as a temp ModuleScript>).Build({{id=..., rarity=...}}, "http://127.0.0.1:8765/mesh/")
 ```
 
-Recipes: `render_eggs.py` (renderer + first eight test eggs),
-`egg_parts.py` (patterns, marks, accessories), `egg_recipes.py` (the rest).
-`chickens.csv` supplies rarity and main colour. After a re-render, upload the
-changed `png256/<Id>.png`, update `asset_ids.json` and `EggArt.Images`.
-A new chicken needs a recipe, an upload and an `EggArt` entry; until then it
-lays the Chicken egg. Review canvas: claude.ai artifact "Voxel Chicken Eggs".
+`EggMeshBuilder.luau` publishes each egg with `AssetService:CreateAssetAsync`
+and replaces its template. Save the place afterwards; templates live only in
+the place file. Recipes: `render_eggs.py`, `egg_parts.py`, `egg_recipes.py`;
+`chickens.csv` supplies rarity and main colour. A new chicken needs a recipe, a
+mesh build and (optionally) a fallback image; until then it lays the Chicken egg.
+Review canvas: claude.ai artifact "Voxel Chicken Eggs".

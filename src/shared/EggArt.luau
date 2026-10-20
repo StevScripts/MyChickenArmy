@@ -1,9 +1,9 @@
 --!strict
--- October 20 voxel eggs (docs/team/VOXEL_EGGS.md): each chicken lays its own
--- baked 256px egg sprite, rendered by assets/voxel-eggs-20261020/build_eggs.py.
--- Rarity effects (shine, glow, sparkles) are baked into the image, so a voxel
--- egg costs the same instances as the old shared sprite. Species without an
--- entry, and eggs whose image is still loading, show the classic Chicken egg.
+-- October 20 voxel eggs (docs/team/VOXEL_EGGS.md): baked 256px image of each
+-- chicken's voxel egg, rendered by assets/voxel-eggs-20261020/build_eggs.py.
+-- In game, eggs are 3D meshes (Assets.EggMeshes); these images are the
+-- scripts-only fallback and are available for UI icons. Species without an
+-- entry, and images still loading, show the classic Chicken egg.
 local EggArt = {}
 
 -- The voxel art leaves headroom for hats and wings; this keeps the egg body

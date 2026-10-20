@@ -125,13 +125,14 @@ sizes on PreferredInput/TouchEnabled (input-specific hint text such as "Tap"/"Pr
 is fine). An owner tweak made on any device applies to all of them.
 
 ## Voxel eggs (October 20, owner request)
-Every ownable chicken lays its own voxel egg sprite: `EggArt.Image(drop.species)`
-(`src/shared/EggArt.luau`), falling back to the classic Chicken egg while loading or
-for a species without art. Rarity effects (shine, sparkles, glow) are baked into the
-256px images; do not add per-egg particles, tweens or extra instances. Size egg
-billboards with `EggArt.Scale`. Preload egg images through an ImageLabel, not a bare
-content string. New chickens need a recipe in `assets/voxel-eggs-20261020/`, an upload
-and an `EggArt` entry. See `docs/team/VOXEL_EGGS.md`.
+Every ownable chicken lays its own real 3D voxel egg (owner rejected the image pass):
+`EggView` clones the Studio-owned MeshPart template
+`ReplicatedStorage.PetRoll.Assets.EggMeshes[species]` (Duck fallback; a child `Glow`
+Neon part and Legendary+ `Sparkle` emitter ride along). Mesh origin = egg bottom
+centre. Keep one or two parts per egg: no welds, lights, Highlights or per-egg tweens.
+The baked images in `src/shared/EggArt.luau` are only the scripts-only fallback.
+New chickens need a recipe in `assets/voxel-eggs-20261020/` and a mesh build; save the
+place after rebuilding templates. See `docs/team/VOXEL_EGGS.md`.
 
 ## Reference vault (October 13)
 UI references, games studied, idea notes and the dev journal live in the Obsidian vault `~/Documents/ObsidianVaults/Roblox-Journal/` (read its `AGENTS.md`). Before UI work, check `UI References/` for the matching `screen:`. Vault notes are inspiration only; this repo's rules win.
