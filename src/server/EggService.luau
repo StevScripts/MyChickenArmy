@@ -266,14 +266,18 @@ function EggService:Produce(session,dt,now)
 end
 
 -- Eggs per second the yard lays right now, counting the same chickens, rates and
--- boosts as Produce. The vacuum's capacity is seconds of this laying.
--- S10: when only Flock layers lay, this counts the same layers as Produce.
+-- boosts as Produce. The vacuum's capacity is seconds of this laying. S10's
+-- LayingIds is the Flock at home plus fill-ins for layers away with the Army, so a
+-- march never shrinks the vacuum; before S10 every chicken at home lays.
 function EggService:LayingRate(session)
  local rate=0
- for id,pet in session.pets do
-  if session:IsPetHome(id) then
-   rate+=Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation)
-  end
+ local function add(pet)
+  if pet then rate+=Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation) end
+ end
+ if session.LayingIds then
+  for _,id in session:LayingIds() do add(session.pets[id]) end
+ else
+  for id,pet in session.pets do if session:IsPetHome(id) then add(pet) end end
  end
  return rate*session:EggProductionMultiplier()
 end
