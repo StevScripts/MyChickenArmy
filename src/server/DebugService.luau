@@ -8,9 +8,8 @@ local ShopCatalog=require(Shared.ShopCatalog)
 local PlayerSession=require(script.Parent.PlayerSession)
 local Giant=require(Shared.GiantChicken)
 local Mutations=require(Shared.MutationCatalog)
-local Research=require(Shared.ResearchCatalog)
-local ResearchRules=require(Shared.ResearchRules)
 local UpgradeCatalog=require(Shared.UpgradeCatalog)
+local GemUpgradeCatalog=require(Shared.GemUpgradeCatalog)
 local RebirthService=require(script.Parent.RebirthService)
 local DailyService=require(script.Parent.DailyService)
 local DebugService={}
@@ -184,13 +183,11 @@ DebugService.Launch.TestEverything=function(self,player,session,_argument,now)
 	session.promotion,session.recruitTier=Progression.Count(),Progression.Count()
 	for i=1,#Progression.Outposts() do session.frontierWins[i]=true end
 	readyForRebirth(session)
-	session.capacity=Config.MaxSlots
-	session.plotSizeLevel=#UpgradeCatalog.PlotPrices;session.plotBuild=nil
-	session.rollSlotsUnlocked=Config.RollSlotsUnlocked
-	-- Every research node done, so every menu and Invasion tier is open.
-	for _,id in Research.Order do session.research.completed[id]=true end
-	session.research.jobs={};session.research.revision+=1
-	session.researchEffects=ResearchRules.Effects(session.research)
+	-- October 20: every Upgrades tree node and Gem Upgrade, and every Mission tier.
+	for _,family in UpgradeCatalog.FamilyOrder do session.upgradeTree[family]=#UpgradeCatalog.Families[family].tiers end
+	for _,id in GemUpgradeCatalog.Order do session.gemUpgrades[id]=GemUpgradeCatalog.Upgrades[id].maxLevel end
+	session.missionTierLegacy=3
+	session:RefreshEffects()
 	session.fusionUnlocked=true
 	-- Showcase flock: a strong army, a fusion that is guaranteed to make a Giant,
 	-- three Giants for a Colossal try, a Colossal, mutations and the event chicken.
@@ -226,9 +223,8 @@ DebugService.Launch.StartInvasion=function(self,_player,session,argument,now)
 	if session.research.pendingOperationReward>0 then require(script.Parent.OperationService).ClaimReward(session) end
 	local id=if type(argument)=="string" and #argument<=8 then argument else "1:1"
 	local tier=tonumber(string.match(id,"^(%d)")) or 1
-	for t=2,tier do session.research.completed[({"S15","S16","S17"})[t]]=true end
-	if tier>=2 then session.research.completed.S15=true end
-	session.researchEffects=ResearchRules.Effects(session.research)
+	-- October 20: Mission tiers open by King clear or rank; the test opens the tier directly.
+	session.missionTierLegacy=math.max(session.missionTierLegacy or 0,math.clamp(tier,1,3))
 	-- October 14 Missions: spawn that encounter as a waiting site on the island.
 	return operations:SpawnNow(session,now,id)
 end

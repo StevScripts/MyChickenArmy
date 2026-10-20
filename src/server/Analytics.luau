@@ -135,6 +135,11 @@ function Analytics.new(deps: Deps?)
 		local product = ShopCatalog.Products[key]
 		if product and product.productId then self.productKeys[product.productId] = key end
 	end
+	-- Version 7: Rebirth Skip products, once their live ids exist.
+	for _, key in ShopCatalog.RebirthSkipOrder or {} do
+		local product = ShopCatalog.Products[key]
+		if product and type(product.productId) == "number" and product.productId > 0 then self.productKeys[product.productId] = key end
+	end
 	for _, entry in {{"funnels", Funnels}, {"playerInfo", PlayerInfo}} do
 		local module = entry[2]
 		if module then
@@ -478,6 +483,8 @@ function Analytics:_Sink(st, session, action: string, spent: number, request: an
 		sku ..= ":" .. tostring(extra.rarity or "?")
 	elseif action == "CashUpgrade" or action == "BoardUpgrade" then
 		sku ..= ":" .. string.sub(tostring(request.upgradeKey or "?"), 1, 24)
+	elseif action == "BuyUpgrade" then
+		sku ..= ":" .. string.sub(tostring(request.nodeId or "?"), 1, 24)
 	end
 	self.ledger:Count("econ.sink." .. sku, spent)
 	self.ledger:Count("econ.sink." .. sku .. ".n")
@@ -646,6 +653,23 @@ function Analytics:Income(session, source: string, amount: number, balance: numb
 	st.econ[name] = (st.econ[name] or 0) + amount
 	st.sessionEarned += amount
 	self:_Part(self.playerInfo, "Income", st, name, amount)
+end
+
+-- October 20 (schema 7): Gems, the second currency. flow is "Source" or "Sink";
+-- counted in the ledger as gems.source.<sku> / gems.sink.<sku> and sent to Roblox as
+-- a "Gems" economy event. Observation only.
+function Analytics:Gems(session, flow: string, amount: number, sku: string)
+	local st = self:_State(session)
+	if not st or type(amount) ~= "number" or amount ~= amount or amount <= 0 then return end
+	local label = string.sub(string.gsub(tostring(sku), "[^%w_:]", ""), 1, 48)
+	local sink = flow == "Sink"
+	self.ledger:Count("gems." .. (if sink then "sink." else "source.") .. label, amount)
+	local player, balance = st.player, session.gems or 0
+	self:_Queue(false, "economy:Gems:" .. label, function()
+		AnalyticsService:LogEconomyEvent(player,
+			if sink then Enum.AnalyticsEconomyFlowType.Sink else Enum.AnalyticsEconomyFlowType.Source,
+			"Gems", amount, balance, if sink then "Shop" else "Gameplay", label, fields(self:_Stage(st)))
+	end)
 end
 
 function Analytics:_FlushEconomy(st)

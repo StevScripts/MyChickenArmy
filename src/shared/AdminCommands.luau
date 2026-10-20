@@ -15,8 +15,12 @@ Commands.List = {
 	{name="cash", usage="coins <target> <amount>", help="Give coins (a negative amount takes them).", rank="Admin", group="Economy"},
 	{name="setcash", usage="setcoins <target> <amount>", help="Set a player's coins exactly.", rank="Admin", group="Economy"},
 	{name="chicken", usage="chicken <target> <species> [level] [count]", help="Give chickens (flock limit applies).", rank="Admin", group="Economy"},
-	{name="research", usage="research <target> <all|node>", help="Finish all research, or one node by ID or name.", rank="Admin", group="Economy"},
+	{name="upgrade", usage="upgrade <target> <all|node>", help="Give every Upgrades tree node, or one by ID or name (this run).", rank="Admin", group="Economy"},
 	{name="army", usage="army <target> <size>", help="Set army size (deployment slots).", rank="Admin", group="Economy"},
+	{name="gems", usage="gems <target> <amount>", help="Give Gems (a negative amount takes them).", rank="Admin", group="Economy"},
+	{name="setrebirth", usage="setrebirth <target> <rank>", help="Set a player's Rebirth rank (no rewards).", rank="Admin", group="Economy"},
+	{name="gemupgrade", usage="gemupgrade <target> <all|upgrade> [level]", help="Set Gem Upgrade levels (max if no level).", rank="Admin", group="Economy"},
+	{name="skip", usage="skip <target> [count]", help="Give Rebirth Skip credits.", rank="Admin", group="Economy"},
 	{name="roll", usage="roll <target> [species]", help="Make the next roll ready now, optionally forcing a species.", rank="Admin", group="Economy"},
 
 	{name="camps", usage="camps <target>", help="Mark all home camps beaten.", rank="Admin", group="War"},
@@ -41,7 +45,8 @@ Commands.ByName = {} :: {[string]: Command}
 for _, command in Commands.List do Commands.ByName[command.name] = command end
 -- Short forms typed in chat.
 Commands.Aliases = {money="cash", coins="cash", setcoins="setcash", give="chicken", teleport="tp", to="tp", ws="speed", walkspeed="speed",
-	msg="announce", m="announce", unlockall="research", h="help", cmds="help", commands="help"}
+	msg="announce", m="announce", unlockall="upgrade", research="upgrade", upgrades="upgrade", rebirth="setrebirth",
+	gemupgrades="gemupgrade", h="help", cmds="help", commands="help"}
 
 function Commands.Resolve(name: string): Command?
 	name = string.lower(name)

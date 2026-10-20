@@ -13,11 +13,12 @@ MutationCatalog.Order = {"Golden", "Rainbow", "Shadow", "Cosmic"} :: {string}
 -- `color` is presentation only (badges and VFX); the other fields are the economy.
 -- October 14 owner retune: Golden is "pretty rare, but not the rarest" (was 1/40);
 -- the rarer mutations move down with it so the ladder keeps its order.
+-- October 20 overhaul (plan v2): Rainbow unlocks at Rebirth 1, Shadow at 5, Cosmic at 10.
 MutationCatalog.Defs = {
 	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/250,   unlockRank = 0, color = Color3.fromRGB(255, 206, 54)},
 	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/800,   unlockRank = 1, color = Color3.fromRGB(255, 118, 214)},
-	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/3000,  unlockRank = 3, color = Color3.fromRGB(178, 104, 255)},
-	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/12000, unlockRank = 5, color = Color3.fromRGB(96, 196, 255)},
+	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/3000,  unlockRank = 5, color = Color3.fromRGB(178, 104, 255)},
+	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/12000, unlockRank = 10, color = Color3.fromRGB(96, 196, 255)},
 } :: {[string]: Def}
 
 function MutationCatalog.IsValid(id: any): boolean
@@ -41,13 +42,17 @@ end
 
 -- One offer's mutation. Rarest unlocked first, one rng:NextNumber() per unlocked
 -- check, so a fixed seed always gives the same result. Locked ones draw nothing.
-function MutationCatalog.Roll(rng, rebirths: number): string?
+-- chanceMultiplier (optional, October 20): 1 + the Mutation Luck Gem Upgrade
+-- (researchEffects.mutationLuck). It scales every chance; the draws stay the same.
+function MutationCatalog.Roll(rng, rebirths: number, chanceMultiplier: number?): string?
 	local rank = if type(rebirths) == "number" and rebirths == rebirths then rebirths else 0
+	local scale = if type(chanceMultiplier) == "number" and chanceMultiplier == chanceMultiplier
+		then math.clamp(chanceMultiplier, 1, 10) else 1
 	local order = MutationCatalog.Order
 	for index = #order, 1, -1 do
 		local id = order[index]
 		local def = MutationCatalog.Defs[id]
-		if rank >= def.unlockRank and rng:NextNumber() < def.chance then return id end
+		if rank >= def.unlockRank and rng:NextNumber() < def.chance * scale then return id end
 	end
 	return nil
 end

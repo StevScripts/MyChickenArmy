@@ -1,123 +1,52 @@
 --!strict
--- Non-yielding cash/job transactions. PlayerSession owns the saved research value.
-local HttpService=game:GetService("HttpService")
-local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
-local Catalog=require(Shared.ResearchCatalog)
-local Rules=require(Shared.ResearchRules)
-local Currency=require(Shared.CurrencyLimits)
-local Service={}
+-- October 20 overhaul: research is retired. Its nodes merged into the instant
+-- Upgrades tree (UpgradeService); EconomyMigration converted saved research once.
+-- PlayerSession still saves `research` for the parts other systems use
+-- (operationWins, rallyReadyAt, formations, pendingOperationReward). These entry
+-- points stay so older callers and clients get a clear answer instead of an error.
+local Catalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ResearchCatalog)
+local Rules = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ResearchRules)
+local Service = {}
 
-function Service.Complete(session,now)
-	local research=session.research;local completed={}
-	for i=#research.jobs,1,-1 do
-		local job=research.jobs[i]
-		if job.finishAt<=now then
-			if not research.completed[job.nodeId] then
-				research.completed[job.nodeId]=true;table.insert(completed,job.nodeId)
-			end
-			table.remove(research.jobs,i);research.revision+=1
-		end
+local RETIRED = "Research is now instant in Upgrades."
+
+-- Nothing runs on a timer any more; converted saves have no jobs.
+function Service.Complete(_session, _now)
+	return {}
+end
+
+function Service.Start(_session, _nodeId, _expectedRevision, _expectedPrice, _expectedDuration, _now)
+	return false, RETIRED
+end
+
+function Service.Cancel(_session, _jobId, _expectedRevision, _now)
+	return false, RETIRED
+end
+
+function Service.Skip(_session, _jobId, _expectedRevision, _now)
+	return false, RETIRED
+end
+
+function Service.Pin(_session, _nodeId)
+	return false, RETIRED
+end
+
+-- Legacy shape for the old research screen until S9 replaces it: every node reads
+-- as completed (if the old save had it) or locked, so nothing looks buyable there.
+function Service.Snapshot(session, now)
+	local data = Rules.Copy(session.research)
+	data.jobs = {}
+	data.rallyActiveUntil = session.rallyActiveUntil or 0
+	data.serverTime = now
+	data.effects = table.clone(session.researchEffects)
+	data.offers = {}
+	for _, id in Catalog.Order do
+		local node = Catalog.Nodes[id]
+		data.offers[id] = {status = if data.completed[id] then "Completed" else "Locked", price = node.price,
+			duration = node.duration, spendReason = RETIRED}
 	end
-	if #completed>0 then
-		session.researchEffects=Rules.Effects(research)
-		session.researchRecap=session.researchRecap or {}
-		for _,id in completed do table.insert(session.researchRecap,id) end
-		session:Touch()
-	end
-	return completed
-end
-
-function Service.Start(session,nodeId,expectedRevision,expectedPrice,expectedDuration,now)
-	Service.Complete(session,now)
-	local research=session.research
-	if expectedRevision~=research.revision then return false,"Research changed. Choose the node again." end
-	local node=if type(nodeId)=="string" then Catalog.Nodes[nodeId] else nil
-	if not node or nodeId=="Start" then return false,"Choose a research node." end
-	local status=Rules.Status(research,nodeId,session.coins)
-	if status=="Completed" then return false,"Research already completed." end
-	if status=="Researching" then return false,"This research is already running." end
-	if status=="Locked" then return false,"Complete "..Catalog.Nodes[node.prerequisite].name.." first." end
-	if status=="Unaffordable" then return false,"Not enough coins for this research." end
-	local effects=session.researchEffects or Rules.Effects(research)
-	local duration=Rules.Duration(node,effects)
-	if expectedPrice~=node.price or expectedDuration~=duration then return false,"The research quote changed." end
-	if #research.jobs>=effects.slots then return false,"All researchers are busy." end
-	local canSpend,reason=session:CanSpendCash(node.price)
-	if not canSpend then return false,reason end
-	-- Saved paid skip time (a skip bought while nothing was running) shortens this job.
-	local credit=math.min(research.skipCredit or 0,duration)
-	local job={id=HttpService:GenerateGUID(false),nodeId=nodeId,startedAt=now,finishAt=now+math.max(1,duration-credit),paid=node.price}
-	research.skipCredit=(research.skipCredit or 0)-credit
-	session.coins-=node.price;table.insert(research.jobs,job);research.revision+=1;session:Touch()
-	return true,node.name.." research started."..(if credit>0 then " Saved skip time used." else ""),job.id
-end
-
-function Service.Cancel(session,jobId,expectedRevision,now)
-	Service.Complete(session,now)
-	local research=session.research
-	if type(jobId)~="string" or #jobId>64 or research.revision~=expectedRevision then return false,"Research changed. Choose the job again." end
-	for index,job in research.jobs do if job.id==jobId then
-		if job.paid>Currency.MaxCoins-session.coins then return false,"Spend some coins before receiving this refund." end
-		-- Refund exactly the original debit, with no earned-cash multipliers.
-		session.coins+=job.paid;table.remove(research.jobs,index);research.revision+=1;session:Touch()
-		return true,"Research cancelled; coins refunded."
-	end end
-	return false,"This research job has already finished or been cancelled."
-end
-
--- Studio/admin only (GameServer checks access): finishes a running job now. The
--- original payment stays spent, exactly as if the timer had run out.
-function Service.Skip(session,jobId,expectedRevision,now)
-	Service.Complete(session,now)
-	local research=session.research
-	if type(jobId)~="string" or #jobId>64 or research.revision~=expectedRevision then return false,"Research changed. Choose the job again." end
-	for _,job in research.jobs do if job.id==jobId then
-		job.finishAt=now
-		local node=Catalog.Nodes[job.nodeId]
-		Service.Complete(session,now)
-		return true,(if node then node.name else "Research").." finished."
-	end end
-	return false,"This research job has already finished or been cancelled."
-end
-
--- Paid skip receipt (non-yielding): takes `seconds` off the job chosen at checkout,
--- else the running job with the most time left. With nothing running the seconds
--- are saved as skipCredit for the next research, so a paid skip is never lost.
-function Service.PaidSkip(session,seconds,targetJobId,now)
-	Service.Complete(session,now)
-	local research=session.research
-	local target
-	for _,job in research.jobs do
-		if job.id==targetJobId then target=job;break end
-		if not target or job.finishAt>target.finishAt then target=job end
-	end
-	if not target then
-		research.skipCredit=math.min(1e8,(research.skipCredit or 0)+seconds);session:Touch()
-		return true,"Skip time saved for your next research."
-	end
-	target.finishAt=math.max(now,target.startedAt+1,target.finishAt-seconds);research.revision+=1;session:Touch()
-	local node=Catalog.Nodes[target.nodeId]
-	Service.Complete(session,now)
-	return true,(if node then node.name else "Research").." sped up."
-end
-
-function Service.Pin(session,nodeId)
-	if nodeId~=nil and (type(nodeId)~="string" or not Catalog.Nodes[nodeId]) then return false,"Choose a research goal." end
-	session.research.pinned=nodeId;session:Touch();return true,if nodeId then "Research goal pinned." else "Research goal cleared."
-end
-
-function Service.Snapshot(session,now)
-	local data=Rules.Copy(session.research)
-	data.rallyActiveUntil=session.rallyActiveUntil or 0
-	data.serverTime=now;data.effects=table.clone(session.researchEffects or Rules.Effects(data))
-	data.offers={}
-	for _,id in Catalog.Order do local node=Catalog.Nodes[id]
-		local status=Rules.Status(data,id,session.coins)
-		local canSpend,reason=session:CanSpendCash(node.price)
-		if status=="Available" and not canSpend then status="Unaffordable" end
-		data.offers[id]={status=status,price=node.price,duration=Rules.Duration(node,data.effects),spendReason=reason}
-	end
-	data.recap=table.clone(session.researchRecap or {})
+	data.recap = {}
+	data.retired = true
 	return data
 end
 

@@ -1,5 +1,11 @@
 # Rebirth ladder: 50 ranks, no walls (October 15, 2026)
 
+> **Superseded October 20, 2026 by Rebirth v2** (the overhaul). Rebirths cost Coins only,
+> come every 8–30 minutes early on, reset the whole Upgrades tree and pay Gems for Gem
+> Upgrades. 30 ranks from 50K Coins; old ranks are kept and get double Gems. See
+> [OVERHAUL_CONTRACT_20261020.md](OVERHAUL_CONTRACT_20261020.md) §7 and §9. Everything
+> below is history.
+
 > **Superseded later on October 15, 2026 (owner decision after player feedback).** Players
 > found this ladder far too easy ("$5B … I got that in like 1 minute") and preferred the
 > earlier wall ("$12T was pretty good"): Rebirths should be a long objective with fewer ranks.

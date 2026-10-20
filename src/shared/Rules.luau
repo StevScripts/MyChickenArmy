@@ -3,6 +3,7 @@ local Config = require(script.Parent.Config)
 local Catalog = require(script.Parent.PetCatalog)
 local ChickenLuck = require(script.Parent.ChickenLuck)
 local Giant = require(script.Parent.GiantChicken)
+local UpgradeCatalog = require(script.Parent.UpgradeCatalog)
 local Rules = {}
 
 -- Frozen paid-level-era values. A new catalog price must not revalue old refunds.
@@ -19,8 +20,9 @@ function Rules.EggRate(species: string, stars: number, level: number?): number
 	return base / Config.EggBaseValue * 2 ^ (stars - 1) * 2 ^ (rank - 1)
 end
 
+-- October 20: incomeLevel is the Upgrades tree's Egg Value tier (0-4).
 function Rules.EggUnitValue(incomeLevel: number?): number
-	return math.floor(Config.EggBaseValue * (1 + (incomeLevel or 0) * Config.IncomeMultiplierPerLevel) + 0.5)
+	return math.floor(Config.EggBaseValue * UpgradeCatalog.EggValueMultiplier(incomeLevel) + 0.5)
 end
 
 function Rules.Income(species: string, stars: number, level: number?, incomeLevel: number?): number
@@ -53,10 +55,12 @@ end
 
 -- Develop a species by merging; later offers supply copies one level behind it.
 -- Never sell the rank's top merge level directly. Selling a species can lower future offers.
+-- October 20: Chicken Feed levels (pet.cashLevels) reset on Rebirth, so they never
+-- raise offers; otherwise one fed chicken would buy permanent high-level rolls.
 function Rules.RecruitLevel(pets, species: string, _promotion: number): number
 	local highest = 1
 	for _, pet in pets do
-		if pet.species == species then highest = math.max(highest, pet.level or 1) end
+		if pet.species == species then highest = math.max(highest, (pet.level or 1) - (pet.cashLevels or 0)) end
 	end
 	-- October 15: no rank cap (Fuse reaches Lv 10 from the start).
 	return math.clamp(highest - 1, 1, Config.MaxPetLevel - 1)

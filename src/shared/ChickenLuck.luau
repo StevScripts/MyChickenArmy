@@ -1,7 +1,7 @@
 --!strict
 -- Normal recruitment only. Strength bands own probability; appearances share it.
-local Config = require(script.Parent.Config)
 local Catalog = require(script.Parent.PetCatalog)
+local UpgradeCatalog = require(script.Parent.UpgradeCatalog)
 local ChickenLuck = {}
 
 -- Fixed budgets define the zero-Luck distribution. Adding an equivalent
@@ -45,11 +45,9 @@ local function nonnegative(value: number?): number
 	return math.max(0, value)
 end
 
+-- October 20: luckLevel is the Upgrades tree's Luck tier (Luck I-IV).
 function ChickenLuck.Multiplier(luckLevel: number): number
-	local level = math.min(nonnegative(luckLevel), #Config.LuckPrices)
-	local opening = math.min(level, Config.LuckOpeningLevels)
-	local later = math.max(0, level - Config.LuckOpeningLevels)
-	return 1 + opening * Config.LuckWeightPerLevel + later * Config.LuckContinuationWeightPerLevel
+	return UpgradeCatalog.LuckMultiplier(nonnegative(luckLevel))
 end
 
 function ChickenLuck.Window(luckLevel: number, paidMultiplier: number?, researchLuckBonus: number?)

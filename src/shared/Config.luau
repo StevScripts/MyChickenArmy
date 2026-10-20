@@ -53,33 +53,31 @@ local Config = {
  Hill={Enabled=true,RoundSeconds=300,BreakSeconds=300,FirstBreakSeconds=120,KingLockSeconds=0,
   BoostPerMinute=0.10,BoostMax=0.50,MinWinSeconds=15,RollLuckBonus=2,
   ChampionWins=10,ChampionSpecies="HillChampion"},
- -- Launch sprint (docs/team/LAUNCH_CHANGE_PLAN.md §6, §8). Tuning is config-only.
- -- Re-enlist: cost Costs[rank] (then +CostStep per rank); eggs +EggBonusPerRank per rank;
- -- camps and the King +EnemyHealthPerRank/EnemyDamagePerRank per rank.
- -- October 13 owner retune (kept chicken levels made the 1e9×8 ladder too fast):
- -- $5B, $20B, $80B, $320B, $1.28T… MaxRank 10 keeps every cost below the coin cap.
- -- One enemy scale applies to health and damage (EnemyDamagePerRank is unused).
- -- October 14 owner decision: the King is required only for Rebirth 1, and each rank
- -- adds +100% egg cash (x2, x3, x4…; was +25%). Rebirth also removes cash-bought chicken
- -- levels. Costs (explicit, all below the 2^53 coin cap) were tuned with
- -- tests/ProgressionSimulation: Rebirth 1 ≈ 1.8 h, Rebirth 2 ≈ 4.3 h, Rebirth 3 in the
- -- 10–20 h band.
- Rebirth={Enabled=true,MaxRank=20,
-  -- Later October 15 owner decision (player feedback: "$12T was pretty good, $5B is way too
-  -- easy"; Rebirths should be a long objective with fewer ranks): restores the earlier
-  -- 20-rank table. Fitted then with tests/ProgressionSimulation (fast / casual player):
-  -- R1 66/77 min, R2 2.8/4 h, R5 8.3/10.3 h, R10 17/20 h, R15 24.5/27.8 h, R20 31.3/35.4 h.
-  -- Rebirth 1 still needs the King. Saved ranks above MaxRank keep the highest rank.
-  -- The brief $50M…$45T ladder (MaxRank 50) is in docs/team/REBIRTH_LADDER.md.
-  Costs={5e7,1e12,5e12,1.2e13,1.8e13,2.8e13,3.8e13,4.5e13,5e13,5.5e13,
-   6.2e13,8e13,9.5e13,1.15e14,1.25e14,1.35e14,1.5e14,1.65e14,1.75e14,1.85e14},
-  CostStep=7.5e12, -- Only used for ranks past the list (none while MaxRank is 20).
-  EggBonusPerRank=1.0,EnemyHealthPerRank=1.0,EnemyDamagePerRank=1.0},
+ -- October 20 overhaul, Rebirth v2 (docs/team/OVERHAUL_CONTRACT_20261020.md §7; plan v2
+ -- with Stevin's changes). Coins on hand are the only requirement (no camps, no King);
+ -- Coins reset to StartingCoins, then Time Skip pays. Each rank adds +100% egg Coins
+ -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
+ -- then +EnemyScalePerRank per rank of the attacker. Mission tiers open at King clear
+ -- or MissionTierRanks (Veteran, Elite, Royal). Costs are drafts for the P0 fit in
+ -- tests/ProgressionSimulation (targets: Rebirth 1 ≈ 10 min fast play, then one every
+ -- 8–30 min for the first 3 hours). Saved ranks above MaxRank keep the highest rank.
+ -- The Oct 15 $50M…$185T 20-rank ladder is history (docs/team/REBIRTH_LADDER.md).
+ Rebirth={Enabled=true,Version=2,MaxRank=30,
+  Costs={5e4,2e5,6e5,1.5e6,4e6,1e7,2.5e7,6e7,1.5e8,3.5e8,
+   8e8,1.6e9,3.2e9,6.5e9,1.4e10,2.7e10,5e10,9e10,1.6e11,2.8e11,
+   4.5e11,7.2e11,1.15e12,1.85e12,2.95e12,4.7e12,7.5e12,1.2e13,1.92e13,3.1e13},
+  CostStep=0, -- Unused: every rank up to MaxRank is listed.
+  EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,
+  GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
+  MissionTierRanks={5,10,15}},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
  Event={Enabled=false,Id="Halloween2026",StartsAt=1791936000,EndsAt=1793491200,Species="Pumpkin",OfferChance=0.02},
  StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
- DataRevision=11,StarterFlock={"Duck","Duck","Duck"},
+ -- October 20: chicken storage is unlimited; StorageLimit is the hidden safety cap per save.
+ -- Revision 12 is the tree/Gems economy: EconomyMigration converts revision ≤ 11 saves once.
+ StorageLimit=1000,
+ DataRevision=12,StarterFlock={"Duck","Duck","Duck"},
  CommandDistance=14,
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.
@@ -98,6 +96,9 @@ local Config = {
   [8]={capacity=9,price=pacedPrice(3,180)},
   [9]={capacity=10,price=pacedPrice(4,180)},
  },
+ -- SlotUnlocks, LuckPrices and IncomePrices below are the pre-October 20 cash tracks:
+ -- kept for reading old saves and for the old cash hexes until S9 ships. The tree in
+ -- UpgradeCatalog sells Army Size, Luck and Egg Value now.
  MaxPetLevel=10,PetCombatPerLevel=0.25,PetUpgradeGrowth=1.75,
  PetUpgradePriceFraction=0.75,
  PassiveIncomeMultiplier=1,
