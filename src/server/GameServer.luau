@@ -34,6 +34,7 @@ local GoldRushService=require(script.Parent.GoldRushService)
 local FriendBoostService=require(script.Parent.FriendBoostService)
 local GemUpgradeService=require(script.Parent.GemUpgradeService)
 local RebirthChickens=require(script.Parent.RebirthChickens)
+local ToolService=require(script.Parent.ToolService)
 local GameServer={}
 -- October 20 economy: Auto Rebirth, waiting Skip credits and Rebirth chicken credits.
 local REBIRTH_STEP_SECONDS=1
@@ -43,6 +44,9 @@ local IDLE_SNAPSHOT_SECONDS=1 -- Unchanged idle sessions refresh timers at this 
 -- Catches the UTC day boundary for players who stay online, and the first
 -- claim soon after the main tutorial completes. Check exits early when idle.
 local DAILY_CHECK_SECONDS=10
+-- October 20 click/tap egg pickups get a gate of their own (burst, per second), so
+-- clicking never spends the gameplay action tokens.
+local COLLECT_BURST,COLLECT_RATE=8,6
 
 function GameServer.new()
 	local self=setmetatable({sessions={},connections={},playerConnections={},limits={},stepAccumulator=0,
@@ -50,6 +54,7 @@ function GameServer.new()
 		eventGates={},throttleNotes={},depositSeen={}},GameServer)
 	self.world=WorldService.new()
 	self.eggs=EggService.new(self.world)
+	self.tools=ToolService.new(self.world)
 	self.leaderboards=LeaderboardService.new(self.world,self.sessions)
 	self.commerce=CommerceService.new()
 	self.rolls=RollService.new()
@@ -111,6 +116,8 @@ function GameServer:Send(player,result)
  for i=1,#Progression.Camps(1) do if routeCamps[i] then state.routeCampsWon+=1 end end
  state.holdCount,state.holdLimit=self.battles:HoldCount(session),self.battles:HoldLimit(session)
 	state.eggs=self.eggs:Snapshot(session,now)
+	-- October 20 hand tools (contract §8); its presence retires the inspector's level-up.
+	state.tools=self.tools:Snapshot(session,state.eggs)
 	state.shop=self.commerce:Snapshot(session)
 	state.shop.productReady=self.products:CanPurchase(session)
 	state.targets=self.battles:Targets(session,now)
@@ -170,6 +177,15 @@ function GameServer:Handle(player,request)
 		local session,gate=self.sessions[player.UserId],self.eventGates[player.UserId] or {tokens=3,at=now}
 		gate.tokens=math.min(3,gate.tokens+(now-gate.at)/5);gate.at=now;self.eventGates[player.UserId]=gate
 		if session and gate.tokens>=1 then gate.tokens-=1;self.analytics:ClientEvents(session,request.events) end
+		return
+	end
+	-- October 20: clicked, tapped or R2 eggs. Quiet: the next snapshot shows the claims.
+	if request.action=="CollectEggs" then
+		local session=self.sessions[player.UserId]
+		if not session then return end
+		local gate=session.collectGate or {tokens=COLLECT_BURST,at=now}
+		gate.tokens=math.min(COLLECT_BURST,gate.tokens+(now-gate.at)*COLLECT_RATE);gate.at=now;session.collectGate=gate
+		if gate.tokens>=1 then gate.tokens-=1;self.eggs:CollectClicked(session,request.ids,now) end
 		return
 	end
 	local rate=self.limits[player.UserId] or {tokens=16,at=now}
@@ -304,8 +320,11 @@ function GameServer:Handle(player,request)
 	elseif action=="FlockBest" then ok,message=ArmyService.FlockBest(session)
 	elseif action=="Place" or action=="Equip" or action=="Unplace" then message="Choose chickens in the Army menu."
 	elseif action=="Favorite" then ok,message=ArmyService.Favorite(session,request.petId)
+	elseif action=="FeedChicken" then
+		-- October 20 Chicken Feed: the only way to buy a chicken level (ToolService).
+		ok,message,petId=self.tools:Feed(player,session,request.petId,request.expectedLevel,request.expectedPrice)
 	elseif action=="UpgradeChicken" then
-		ok,message,petId=ArmyService.UpgradeChicken(session,request.petId,request.expectedLevel,request.expectedPrice)
+		message="Equip Chicken Feed and walk up to your chicken to level it up."
 	elseif action=="Sell" then
 		-- Army-menu sales have no world-position requirement. Ownership, protection
 		-- and the exact refund are still validated atomically by ArmyService.
@@ -364,8 +383,10 @@ function GameServer:Handle(player,request)
 		local recap=session.researchRecap or {}
 		for i=recapBefore+1,#recap do self.analytics:ServerEvent(session,"research.complete",recap[i]) end
 	end
-	self.tutorial:Action(session,action,ok,balanceBefore,request,selectionBefore)
-	self.analytics:Action(session,action,ok,message,balanceBefore,request,{petId=petId,crate=crate,purchase=purchase})
+	-- A Chicken Feed level is the same purchase the inspector's UpgradeChicken was.
+	local reported=if action=="FeedChicken" then "UpgradeChicken" else action
+	self.tutorial:Action(session,reported,ok,balanceBefore,request,selectionBefore)
+	self.analytics:Action(session,reported,ok,message,balanceBefore,request,{petId=petId,crate=crate,purchase=purchase})
 	if ok then session.lastResult=message;session:Touch() end
 	if ok and (action=="Buy" or action=="Expand") then
 		self.telemetry:Record("ArmyGrowth",{userId=session.userId,action=action,
@@ -687,6 +708,7 @@ function GameServer:Step(dt)
 	end
 	self.armyCommands:Step(now)
 	self.world:Step(now)
+	self.tools:Step(self.sessions,now)
  self.hill:Step(dt,now)
  self.leaderboards:Step(now)
  self.data:Step()

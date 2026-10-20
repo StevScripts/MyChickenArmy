@@ -1,12 +1,18 @@
 --!strict
--- Local pickup presentation. Proximity, egg value and payment remain on the server.
+-- Local pickup presentation and input. Range, egg value and payment remain on the server.
+-- October 20 (docs/team/COLLECTION_TOOLS.md): click or tap an egg (gamepad: R2 grabs
+-- the nearest, holding it keeps grabbing) and it flies to you at once while the server
+-- confirms the claim (CollectEggs); a refused egg drops back. Eggs the held vacuum
+-- pulls fly into its nozzle. Walking over eggs no longer collects them.
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local TweenService=game:GetService("TweenService")
+local UserInputService=game:GetService("UserInputService")
+local ContextActionService=game:GetService("ContextActionService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Feel=require(Shared.CollectionFeel)
-local ShopCatalog=require(Shared.ShopCatalog)
+local Tools=require(Shared.VacuumConfig)
 local Motion=require(Shared.EggMotion)
 local EggView=require(script.Parent.EggView)
 local Feedback=require(script.Parent.EggFeedback)
@@ -18,10 +24,18 @@ Eggs.__index=Eggs
 local CAPTION_DISTANCE,CAPTION_LIMIT,CAPTION_REFRESH=22,3,0.15
 local POPUP_HOLD,POPUP_FADE,POPUP_LIFT=0.7,0.4,0.5
 local POPUP_OFFSET=Vector3.new(0,3.7,0)
+-- Picking: a direct hit on an egg wins; otherwise the egg drawn nearest the pointer
+-- within this share of the screen height (taps get more room than the mouse).
+local PICK_SHARE,PICK_MIN,TOUCH_PICK_SHARE,TOUCH_PICK_MIN=0.05,36,0.08,48
+local TAP_SECONDS,TAP_PIXELS=0.35,14 -- Longer or farther touches are camera drags.
+local CONFIRM_SECONDS=1.2 -- An unconfirmed click drops its egg back after this.
+local GAMEPAD_REPEAT=0.2 -- Holding R2 grabs the next nearest egg this often.
+local TOO_FAR_SECONDS=0.9
+local VACUUM_RING=Color3.fromRGB(150,214,255)
 
 function Eggs.new(app)
  return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,
-  totalCount=0,totalValue=0,popupTweens={}},Eggs)
+  totalCount=0,totalValue=0,popupTweens={},optimistic={},queue={},touches={},lastFlush=0,connections={}},Eggs)
 end
 
 function Eggs:Root()
@@ -31,7 +45,7 @@ end
 
 function Eggs:Start()
  self.folder=Instance.new("Folder");self.folder.Name="PetRollEggVisuals";self.folder.Parent=workspace
- self.vacuum=VacuumController.new(self.app,self.folder)
+ self.vacuum=VacuumController.new(self.app)
  self:CreateCollectionRange()
  self.popup=Instance.new("BillboardGui")
  self.popup.Name="EggPickup";self.popup.Size=UDim2.fromOffset(300,64)
@@ -43,7 +57,43 @@ function Eggs:Start()
  self.worth=Theme.Label(self.popup,"Worth","",21)
  self.worth.Position,self.worth.Size=UDim2.fromOffset(0,34),UDim2.new(1,0,0,26)
  self.worth.TextXAlignment,self.worth.TextWrapped=Enum.TextXAlignment.Center,false
+ -- One shared "Get closer" tag for an egg clicked outside Click Range.
+ self.tooFar=Instance.new("BillboardGui")
+ self.tooFar.Name="EggTooFar";self.tooFar.Size=UDim2.fromOffset(170,30);self.tooFar.StudsOffset=Vector3.new(0,1.7,0)
+ self.tooFar.AlwaysOnTop=true;self.tooFar.LightInfluence=0;self.tooFar.MaxDistance=90
+ self.tooFar.Active,self.tooFar.Enabled,self.tooFar.Parent=false,false,self.app.gui
+ local tooFar=Theme.Label(self.tooFar,"Text","Get closer",22)
+ tooFar.Size,tooFar.TextXAlignment,tooFar.TextWrapped=UDim2.fromScale(1,1),Enum.TextXAlignment.Center,false
  self.connection=RunService.RenderStepped:Connect(function() self:Step(os.clock()) end)
+ self:BindInput()
+end
+
+function Eggs:BindInput()
+ table.insert(self.connections,UserInputService.InputBegan:Connect(function(input,processed)
+  if processed then return end
+  if input.UserInputType==Enum.UserInputType.MouseButton1 then
+   self:Click(Vector2.new(input.Position.X,input.Position.Y),false)
+  elseif input.UserInputType==Enum.UserInputType.Touch then
+   self.touches[input]={at=os.clock(),x=input.Position.X,y=input.Position.Y}
+  end
+ end))
+ table.insert(self.connections,UserInputService.InputEnded:Connect(function(input,processed)
+  local touch=self.touches[input]
+  if not touch then return end
+  self.touches[input]=nil
+  local point=Vector2.new(input.Position.X,input.Position.Y)
+  if not processed and os.clock()-touch.at<=TAP_SECONDS and (point-Vector2.new(touch.x,touch.y)).Magnitude<=TAP_PIXELS then
+   self:Click(point,true)
+  end
+ end))
+ ContextActionService:BindAction("PetRollCollectEggs",function(_,state)
+  if state==Enum.UserInputState.Begin then
+   self.gamepadHeld=true;self:GrabNearest(os.clock())
+  elseif state==Enum.UserInputState.End or state==Enum.UserInputState.Cancel then
+   self.gamepadHeld=false
+  end
+  return Enum.ContextActionResult.Pass
+ end,false,Enum.KeyCode.ButtonR2)
 end
 
 function Eggs:CreateCollectionRange()
@@ -54,7 +104,7 @@ function Eggs:CreateCollectionRange()
  -- A hollow, unlit adornment stays faint against grass without filling the center.
  local ring=Instance.new("CylinderHandleAdornment")
  ring.Name="EggCollectionCircle";ring.Adornee=anchor
- ring.Radius=Config.EggMagnetRadius;ring.InnerRadius=Config.EggMagnetRadius-0.35;ring.Height=0.025
+ ring.Radius=Tools.ClickRange;ring.InnerRadius=Tools.ClickRange-0.35;ring.Height=0.025
  ring.CFrame=CFrame.Angles(math.pi/2,0,0);ring.Color3=Color3.new(1,1,1)
  ring.Transparency=1;ring.AlwaysOnTop=false;ring.Visible=false
  ring.Parent=Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -62,6 +112,13 @@ function Eggs:CreateCollectionRange()
  self.rangeAlpha,self.rangeAt=0,os.clock()
 end
 
+-- How far a click reaches (server value, with the Click Range tiers).
+function Eggs:ClickRange()
+ local snapshot=self.snapshot
+ return if snapshot and type(snapshot.clickRange)=="number" then snapshot.clickRange else Tools.ClickRange
+end
+
+-- The ring shows Click Range, or the vacuum's reach while it is in hand.
 function Eggs:StepCollectionRange(root,now)
  if not self.rangeAnchor then return end
  local state=self.app.state
@@ -74,10 +131,11 @@ function Eggs:StepCollectionRange(root,now)
   local at=deck.CFrame:PointToObjectSpace(root.Position)
   visible=math.abs(at.X)<=deck.Size.X/2 and math.abs(at.Z)<=deck.Size.Z/2 and math.abs(at.Y)<12
   if visible then
-   local owned=state.shop and state.shop.owned
-   local radius=Config.EggMagnetRadius*(if owned and owned.EggMagnet==true then ShopCatalog.RadiusMultiplier else 1)
+   local vacuum=if self.vacuum:Equipped() and self.snapshot then self.snapshot.vacuum else nil
+   local radius=if vacuum and type(vacuum.range)=="number" then vacuum.range else self:ClickRange()
    self.rangeAnchor.Size=Vector3.new(radius*2,0.02,radius*2)
    self.rangeRing.Radius=radius;self.rangeRing.InnerRadius=radius-0.35
+   self.rangeRing.Color3=if vacuum then VACUUM_RING else Color3.new(1,1,1)
    self.rangeAnchor.CFrame=CFrame.new(root.Position.X,deck.Position.Y+deck.Size.Y/2+(if plot:GetAttribute("AuthoredPlot") then 0.26 else 0.10),root.Position.Z)
    self.rangeAnchor:SetAttribute("CollectionRadius",radius)
   end
@@ -86,7 +144,7 @@ function Eggs:StepCollectionRange(root,now)
  local dt=math.clamp(now-(self.rangeAt or now),0,0.1);self.rangeAt=now
  local target=if visible then 1 else 0
  self.rangeAlpha=if self.app.reducedMotion then target else self.rangeAlpha+(target-self.rangeAlpha)*math.min(1,dt*12)
- self.rangeRing.Transparency=1-self.rangeAlpha*0.28
+ self.rangeRing.Transparency=math.clamp(1-self.rangeAlpha*0.28,0,1)
  self.rangeRing.Visible=self.rangeAlpha>0.01
 end
 
@@ -112,10 +170,8 @@ function Eggs:Feedback(id,value,count,receipt)
  if self.feedback[id] then return end
  local now=os.clock();self.feedback[id]=now
  if not self.finishedFlights[id] then self:PickupCue(receipt and receipt.collector,now) end
- if receipt and receipt.collector=="rover" then
-  self.vacuum:Pickup(receipt,now)
-  return
- end
+ -- Vacuum pickups fill its meter (ToolDock) instead of the popup over the player.
+ if receipt and receipt.collector=="vacuum" then return end
  local root=self:Root()
  if not root then return end
  if now-self.lastPickup>Feel.Egg.ComboReset or self.popupDeposit~=self.requiresDeposit then
@@ -171,7 +227,7 @@ function Eggs:AnimatePopup(now)
 end
 
 function Eggs:PickupCue(collector,now)
- if collector=="rover" then self.vacuum:PickupCue(now);return end
+ if collector=="vacuum" then self.vacuum:PickupCue(now);return end
  if now-(self.lastCue or -10)<Feel.Egg.SoundGap then return end
  if now-(self.lastCue or -10)>Feel.Egg.ComboReset then self.combo=0 end
  self.lastCue=now;self.combo=self.combo%#Feel.Egg.Pitches+1
@@ -193,33 +249,152 @@ function Eggs:StartFlight(view,now)
  view.caption.Enabled=false
 end
 
+-- Menus, dialogue, a focused text box or a cutscene camera keep clicks for themselves.
+function Eggs:Blocked(): boolean
+ local app=self.app
+ if not app.state or app.panel.Visible or app.dialogueActive==true then return true end
+ if app.research and app.research.root and app.research.root.Visible then return true end
+ if app.commerce and app.commerce.cratePresenting then return true end
+ if UserInputService:GetFocusedTextBox() then return true end
+ local camera=workspace.CurrentCamera
+ return camera==nil or camera.CameraType==Enum.CameraType.Scriptable
+end
+
+function Eggs:Ready(view,now): boolean
+ return not view.flightAt and now-view.bornAt>=Config.EggSettleSeconds
+end
+
+-- The egg under the pointer: the one the ray hits, else the one drawn nearest within
+-- the pick radius. A hit on a chicken keeps its Army shortcut (BaseController).
+function Eggs:PickAt(point: Vector2,touch: boolean,now: number)
+ local camera=workspace.CurrentCamera
+ if not camera then return nil end
+ local ray=camera:ScreenPointToRay(point.X,point.Y)
+ local params=RaycastParams.new()
+ params.FilterType=Enum.RaycastFilterType.Exclude
+ local character=Players.LocalPlayer.Character
+ params.FilterDescendantsInstances=if character then {character} else {}
+ local hit=workspace:Raycast(ray.Origin,ray.Direction*400,params)
+ if hit then
+  local part=hit.Instance
+  if part:IsDescendantOf(self.folder) then
+   local id=string.match(part.Name,"^Egg_(.+)$")
+   local view=id and self.views[id]
+   if view and self:Ready(view,now) then return view end
+  else
+   local model=part:FindFirstAncestorOfClass("Model")
+   if model and model:GetAttribute("PetId") then return nil end
+  end
+ end
+ local limit=math.max(if touch then TOUCH_PICK_MIN else PICK_MIN,camera.ViewportSize.Y*(if touch then TOUCH_PICK_SHARE else PICK_SHARE))
+ local best,bestDistance=nil,limit
+ for _,view in self.views do
+  if self:Ready(view,now) then
+   local screen,visible=camera:WorldToScreenPoint(view.ground)
+   if visible then
+    local distance=(Vector2.new(screen.X,screen.Y)-point).Magnitude
+    if distance<bestDistance then best,bestDistance=view,distance end
+   end
+  end
+ end
+ return best
+end
+
+function Eggs:Click(point: Vector2,touch: boolean)
+ local now=os.clock()
+ if self:Blocked() then return end
+ local view=self:PickAt(point,touch,now)
+ if view then self:Grab(view,now) end
+end
+
+-- Gamepad: the nearest ready egg in Click Range.
+function Eggs:GrabNearest(now: number)
+ self.lastGamepadGrab=now
+ if self:Blocked() then return end
+ local root=self:Root()
+ if not root then return end
+ local best,bestDistance=nil,self:ClickRange()
+ for _,view in self.views do
+  if self:Ready(view,now) then
+   local distance=Vector2.new(view.ground.X-root.Position.X,view.ground.Z-root.Position.Z).Magnitude
+   if distance<=bestDistance then best,bestDistance=view,distance end
+  end
+ end
+ if best then self:Grab(best,now) end
+end
+
+-- Flies the egg to the player now and asks the server for it with the next batch.
+function Eggs:Grab(view,now: number): boolean
+ local root=self:Root()
+ if not root then return false end
+ local at=view.ground
+ if Vector2.new(at.X-root.Position.X,at.Z-root.Position.Z).Magnitude>self:ClickRange()
+  or math.abs(at.Y-root.Position.Y)>Tools.MaxHeight then
+  self:TooFar(view,now)
+  return false
+ end
+ local id=view.data.id
+ self.optimistic[id]=now
+ table.insert(self.queue,id)
+ view.picked=true
+ view.data.collector="player"
+ self:StartFlight(view,now)
+ return true
+end
+
+function Eggs:TooFar(view,now: number)
+ if not self.app.reducedMotion then self.rangeAlpha=math.max(self.rangeAlpha,2.4) end
+ self.tooFar.Adornee=view.anchor
+ self.tooFar.Enabled=true
+ self.tooFarUntil=now+TOO_FAR_SECONDS
+end
+
+function Eggs:Flush(now: number)
+ if #self.queue==0 or now-self.lastFlush<Tools.ClickRequestSeconds then return end
+ self.lastFlush=now
+ local ids={}
+ while #self.queue>0 and #ids<Tools.ClickBatch do table.insert(ids,table.remove(self.queue,1)) end
+ self.app:Request("CollectEggs",{ids=ids})
+end
+
 function Eggs:Receive(snapshot)
  if not snapshot or not self.folder then return end
  local now=os.clock()
  self.batchFlights=0
+ self.snapshot=snapshot
  self.requiresDeposit=snapshot.requiresDeposit==true
  if self.generation~=snapshot.generation then
   for _,view in self.views do view:Destroy() end
   table.clear(self.views);table.clear(self.feedback);table.clear(self.finishedFlights)
+  table.clear(self.optimistic);table.clear(self.queue)
   self.generation=snapshot.generation;self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
   self.nextCaptionAt=nil;self.popupDeposit=nil
   self.seenDeposits={};self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
   self.app.feedback:ResetCollections()
-  self.vacuum:Clear()
  end
- self.vacuum:Receive(snapshot.rover,now)
  local seenDeposits={}
  for _,deposit in snapshot.deposits or (if snapshot.deposit then {snapshot.deposit} else {}) do
-  if not (self.seenDeposits and self.seenDeposits[deposit.id]) then
-   if deposit.collector=="rover" then self.vacuum:Deposit(deposit,now) end
-   self.app.feedback:Deposit(deposit)
-  end
+  if not (self.seenDeposits and self.seenDeposits[deposit.id]) then self.app.feedback:Deposit(deposit) end
   seenDeposits[deposit.id]=true
  end
  self.seenDeposits=seenDeposits
  if snapshot.cashClaim and snapshot.cashClaim.id~=self.lastCashClaim then
   self.lastCashClaim=snapshot.cashClaim.id
   self.app.feedback:CashReward(snapshot.cashClaim)
+ end
+ -- Clicked eggs: a claim or payment confirms them; one the server never claimed
+ -- (out of reach, already taken) drops back onto the ground.
+ local present={}
+ for _,data in snapshot.drops or {} do present[data.id]=data end
+ for id,at in self.optimistic do
+  local data=present[id]
+  if not data or data.flightAge~=nil then
+   self.optimistic[id]=nil
+  elseif now-at>CONFIRM_SECONDS then
+   self.optimistic[id]=nil;self.finishedFlights[id]=nil;self.feedback[id]=nil
+   local view=self.views[id]
+   if view then view:Destroy();self.views[id]=nil end
+  end
  end
  local seen={}
  for _,data in snapshot.drops or {} do
@@ -292,8 +467,12 @@ end
 
 function Eggs:Step(now)
  local root=self:Root()
- self.vacuum:Step(now)
  self:StepCollectionRange(root,now)
+ if self.gamepadHeld and now-(self.lastGamepadGrab or 0)>=GAMEPAD_REPEAT then self:GrabNearest(now) end
+ self:Flush(now)
+ if self.tooFar.Enabled and (now>=(self.tooFarUntil or 0) or not self.tooFar.Adornee or not self.tooFar.Adornee.Parent) then
+  self.tooFar.Enabled=false;self.tooFar.Adornee=nil
+ end
  local camera=workspace.CurrentCamera
  self:StepCaptions(root,camera,now)
  for id,view in self.views do
@@ -303,13 +482,15 @@ function Eggs:Step(now)
   local size=1+math.min(0.3,math.log(math.max(1,view.data.stack),2)*0.07)
   if view.flightAt then
    local t=math.clamp((now-view.flightAt)/Feel.Egg.FlightSeconds,0,1)
-   local rover=view.data.collector=="rover"
-   -- Auto Collect targets the physical nozzle, even while the owner is away.
-   -- Fallback coordinates preserve an in-flight pickup if the rover is disabled.
-   local goal=if rover then self.vacuum:NozzlePosition(view.data) or view.ground
+   local vacuum=view.data.collector=="vacuum"
+   -- Vacuum pickups fly into the held nozzle; if it was put away, to the server's
+   -- landing point. Clicked eggs follow the player.
+   local goal=if vacuum then (self.vacuum:NozzlePosition()
+     or (if view.data.targetX then Vector3.new(view.data.targetX,view.data.targetY,view.data.targetZ) else nil)
+     or (if root then root.Position else view.ground))
     elseif root then root.Position+Vector3.new(0,-0.25,0) else view.ground
    local dt=math.clamp(now-(view.lastStep or now),0,0.1);view.lastStep=now
-   local interrupted=not rover and not root or view.goal and (goal-view.goal).Magnitude>Feel.Egg.TeleportDistance
+   local interrupted=not vacuum and not root or view.goal and (goal-view.goal).Magnitude>Feel.Egg.TeleportDistance
    view.goal=if not view.goal then goal else view.goal:Lerp(goal,1-math.exp(-Feel.Egg.TargetResponse*dt))
    if interrupted then t=1 end
    local position=Motion.Flight(view.flightStart,view.goal,t,view.seed,self.app.reducedMotion)
@@ -320,7 +501,11 @@ function Eggs:Step(now)
    if t>=1 then
     self.finishedFlights[id]=now
     if not interrupted then self:PickupCue(view.data.collector,now) end
-    if view.receipt then self:Feedback(id,view.receipt.value,view.receipt.count,view.receipt) end
+    if view.receipt then self:Feedback(id,view.receipt.value,view.receipt.count,view.receipt)
+    elseif view.picked then
+     -- A clicked egg counts in as it lands; the server's receipt later is the same egg.
+     self:Feedback(id,view.data.value,view.data.stack,{collector="player"})
+    end
     view:Destroy();self.views[id]=nil
    end
   elseif age<Config.EggSettleSeconds and not self.app.reducedMotion then
@@ -343,13 +528,16 @@ end
 
 function Eggs:Destroy()
  if self.connection then self.connection:Disconnect() end
+ for _,connection in self.connections do connection:Disconnect() end
+ table.clear(self.connections)
+ ContextActionService:UnbindAction("PetRollCollectEggs")
  self:CancelPopupTweens()
- if self.vacuum then self.vacuum:Destroy() end
  for _,view in self.views do view:Destroy() end
  table.clear(self.views)
  if self.rangeRing then self.rangeRing:Destroy() end
  if self.folder then self.folder:Destroy() end
  if self.popup then self.popup:Destroy() end
+ if self.tooFar then self.tooFar:Destroy() end
  if self.sparkAttachment then self.sparkAttachment:Destroy() end
 end
 return Eggs

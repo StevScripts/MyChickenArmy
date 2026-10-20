@@ -76,6 +76,9 @@ end
 local function meshEgg(parent,data,source:BasePart)
  local body=source:Clone()
  body.Name="Egg_"..data.id
+ -- October 20: eggs are clicked and tapped (EggController). Queryable for that ray only;
+ -- they still never collide or touch, and the Glow child stays out of the ray.
+ body.CanQuery,body.CanCollide,body.CanTouch=true,false,false
  body:SetAttribute("CoinValue",data.value)
  body:SetAttribute("EggCount",data.stack or 1)
  local half=(tonumber(body:GetAttribute("EggHeight")) or 1.75)/2
@@ -83,6 +86,7 @@ local function meshEgg(parent,data,source:BasePart)
  local count=data.stack or 1
  local gui,label=caption(center,count)
  local glow=body:FindFirstChild("Glow")
+ if glow and glow:IsA("BasePart") then glow.CanQuery=false end
  local seed=tonumber(data.id) or 1
  body.Parent=parent
  return setmetatable({anchor=body,shell=body,body=body,glow=if glow and glow:IsA("BasePart") then glow else nil,

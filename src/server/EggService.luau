@@ -1,14 +1,15 @@
 --!strict
 -- Server-owned pickup ledger. Authored plots carry eggs until their sell pad is reached.
+-- October 20 (docs/team/COLLECTION_TOOLS.md): players click, tap or press R2 on eggs
+-- (GameServer "CollectEggs") and they fly into the unlimited bag; the held Egg Vacuum
+-- pulls nearby eggs into its own cargo until it is full. The green pad sells both.
+-- Walk-over pickup and the robot vacuum (Auto Collect pass) are retired.
 local Players=game:GetService("Players")
-local RunService=game:GetService("RunService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Rules=require(Shared.Rules)
-local VacuumConfig=require(Shared.VacuumConfig)
+local Tools=require(Shared.VacuumConfig)
 local Layout=require(Shared.HomePlotLayout)
-local ShopCatalog=require(Shared.ShopCatalog)
-local EggRover=require(script.Parent.EggRover)
 local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
 local Currency=require(Shared.CurrencyLimits)
@@ -22,6 +23,9 @@ local CASH_MIN_HORIZONTAL_SPEED=0.5 -- Ignore standing jitter and vertical pad t
 -- Eggs still landing in the bag right after a sale wait for the next pass instead of
 -- firing a second payout (pop and sound) a split second later.
 local DEPOSIT_DEBOUNCE_SECONDS=0.5
+-- Vacuum capacity follows the Flock's laying; recount it at most this often.
+local CAPACITY_REFRESH_SECONDS=1
+local VACUUM_TOOL="EggVacuum"
 
 local function onCashPad(pad,position)
  if not position or not pad or not pad:IsA("BasePart") then return false end
@@ -30,19 +34,45 @@ local function onCashPad(pad,position)
   and at.Y>=-1 and at.Y<=pad.Size.Y/2+5
 end
 
+-- Flat distance from the player to a drop, plus the vertical reach every pickup shares.
+local function reach(position,drop)
+ if math.abs(drop.y-position.Y)>Tools.MaxHeight then return math.huge end
+ return math.sqrt((drop.x-position.X)^2+(drop.z-position.Z)^2)
+end
+
+-- The player's live root while alive, and their character.
+local function playerRoot(session)
+ local player=Players:GetPlayerByUserId(session.userId)
+ local character=player and player.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+ if root and root:IsA("BasePart") and humanoid and humanoid.Health>0 then return root.Position,character,humanoid,root end
+ return nil,character,humanoid,nil
+end
+
+-- Server-granted tools only: a client-made Tool never replicates to the server.
+local function holding(character,name)
+ local tool=character and character:FindFirstChild(name)
+ return tool~=nil and tool:IsA("Tool") and tool:GetAttribute("PetRollTool")==name
+end
+
 function EggService.new(world)
  return setmetatable({world=world,yards={},serial=0,generation=0},EggService)
 end
 
--- Saved eggCarry must stay loadable. Room counts the bag, rover cargo (it falls back
--- to the bag) and every claimed in-flight drop. Unclaimed eggs simply wait on the
--- ground until the player sells; nothing earned is discarded.
-local function carryRoom(session,yard)
+-- The saved hand-vacuum cargo (S7 persists it as `vacuumCargo`).
+local function vacuumCargo(session)
+ local cargo=session.vacuumCargo
+ if type(cargo)~="table" then cargo={count=0,value=0};session.vacuumCargo=cargo end
+ return cargo
+end
+
+-- Saved eggCarry must stay loadable. Room counts the bag and every egg already flying
+-- into it. The bag has no designed limit; this only keeps the save inside CarryLimit.
+local function bagRoom(session,yard)
  local count,value=session.eggCarry.count,session.eggCarry.value
- local rover=yard.rover
- if rover then count+=rover.cargoCount;value+=rover.cargoValue end
  for _,drop in yard.drops do
-  if drop.claimAt and not drop.paid then count+=drop.stack or 1;value+=drop.value end
+  if drop.claimAt and not drop.paid and drop.collector~="vacuum" then count+=drop.stack or 1;value+=drop.value end
  end
  return CARRY_LIMIT-count,CARRY_LIMIT-value
 end
@@ -156,7 +186,8 @@ function EggService:Yard(session)
  -- Debug reset replaces the pet table; old eggs must not pay into a fresh test.
  if not yard or yard.pets~=session.pets then
   self.generation+=1
-  yard={pets=session.pets,layers={},drops={},receipts={},revision=0,ordinal=0,generation=self.generation}
+  yard={pets=session.pets,layers={},drops={},receipts={},revision=0,ordinal=0,generation=self.generation,
+   vacuumPending=0,vacuumPendingValue=0}
   self.yards[session.userId]=yard
  end
  return yard
@@ -247,25 +278,57 @@ function EggService:Produce(session,dt,now)
  end
 end
 
+-- Eggs per second the yard lays right now, counting the same chickens, rates and
+-- boosts as Produce. The vacuum's capacity is seconds of this laying. S10's
+-- LayingIds is the Flock at home plus fill-ins for layers away with the Army, so a
+-- march never shrinks the vacuum; before S10 every chicken at home lays.
+function EggService:LayingRate(session)
+ local rate=0
+ local function add(pet)
+  if pet then rate+=Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation) end
+ end
+ if session.LayingIds then
+  for _,id in session:LayingIds() do add(session.pets[id]) end
+ else
+  for id,pet in session.pets do if session:IsPetHome(id) then add(pet) end end
+ end
+ return rate*session:EggProductionMultiplier()
+end
+
+-- Eggs the vacuum holds: Seconds plus the Tools tiers and Gem levels (also seconds)
+-- of the Flock's current laying, never below MinCapacity.
+function EggService:VacuumCapacity(session,yard,now)
+ if yard.capacity and now<(yard.capacityAt or 0) then return yard.capacity end
+ local seconds=Tools.Seconds+(session.researchEffects.vacuumCapacity or 0)
+ yard.capacity=math.max(Tools.MinCapacity,math.floor(seconds*self:LayingRate(session)+0.5))
+ yard.capacityAt=now+CAPACITY_REFRESH_SECONDS
+ return yard.capacity
+end
+
+function EggService:VacuumRange(session)
+ return Tools.Range+(session.researchEffects.vacuumRange or 0)
+end
+
+function EggService:ClickRange(session)
+ return Tools.ClickRange+(session.researchEffects.pickupStuds or 0)
+end
+
 function EggService:Pay(session,yard,drop,now)
  if drop.paid then return end
  drop.paid=true
  local count=drop.stack or 1
  local credited=session:EarnedAmount(drop.value,"eggs")
- if drop.collector=="rover" then
-  local rover=yard.rover
-  if rover and rover.enabled then
-   rover.pendingCount=math.max(0,rover.pendingCount-count)
-   rover.cargoCount+=count
-   rover.cargoValue+=drop.value
-  else
-   -- A claim already belongs to this player, even if the robot was toggled off.
-   addCarry(session,count,drop.value)
-  end
+ if drop.collector=="vacuum" then
+  -- Claims always belong to the vacuum that made them, even if it was put away.
+  yard.vacuumPending=math.max(0,(yard.vacuumPending or 0)-count)
+  yard.vacuumPendingValue=math.max(0,(yard.vacuumPendingValue or 0)-drop.value)
+  local cargo=vacuumCargo(session)
+  cargo.count=math.min(CARRY_LIMIT,cargo.count+count)
+  cargo.value=math.min(CARRY_LIMIT,cargo.value+drop.value)
  else
   addCarry(session,count,drop.value)
  end
- -- Count committed egg units once, including stacked and rover pickups. The
+ -- Count committed egg units once, including stacked and vacuum pickups. The
  -- saved lesson counter survives deposits and is bounded after completion.
  session.tutorial.collectedEggCount=math.min(TutorialGuide.EggGoal,TutorialGuide.CollectedEggCount(session.tutorial)+count)
  session.tutorial.collectedEggs=session.tutorial.collectedEggCount>=TutorialGuide.EggGoal
@@ -279,12 +342,14 @@ function EggService:RecordDeposit(yard,count,credited,now,collector,position,que
  yard.depositSerial=(yard.depositSerial or 0)+1
  yard.deposit={id=yard.generation..":"..yard.depositSerial,count=count,value=credited,at=now,
   collector=collector,queued=queued,targetX=position and position.X,targetY=position and position.Y,targetZ=position and position.Z}
- -- Keep both player and vacuum payouts when they occur between snapshots.
+ -- Keep every payout when several occur between snapshots.
  yard.deposits=yard.deposits or {}
  table.insert(yard.deposits,yard.deposit)
  yard.revision+=1
 end
 
+-- The pad sells the bag and the vacuum together as one sale. A sale that carried
+-- vacuum eggs is "vacuum"; both kinds get the coin burst (only "rover" never did).
 function EggService:Deposit(session,position,now)
  if not session.loaded or session.closing or session.saveLost or not position then return false end
  local pad,ownerId=self.world:EggDeposit(session.plotIndex)
@@ -292,109 +357,30 @@ function EggService:Deposit(session,position,now)
  local at=pad.CFrame:PointToObjectSpace(position)
  if math.abs(at.X)>pad.Size.X/2+0.7 or math.abs(at.Z)>pad.Size.Z/2+0.7
   or at.Y< -1 or at.Y>pad.Size.Y/2+5 then return false end
- local carry=session.eggCarry
- if carry.value<=0 then return false end
+ local carry,cargo=session.eggCarry,vacuumCargo(session)
+ if carry.value<=0 and cargo.value<=0 then return false end
  local yard=self:Yard(session)
  if now-(yard.lastPlayerDepositAt or -math.huge)<DEPOSIT_DEBOUNCE_SECONDS then return false end
- local count,value=carry.count,carry.value
- -- No yield between ledger transfer and clearing the bag.
+ local count,value=carry.count+cargo.count,carry.value+cargo.value
+ -- No yield between ledger transfer and clearing the bag and the vacuum.
  local accepted,credited,queued=self:AcceptDeposit(session,count,value)
  if not accepted then return false end
+ local vacuumed=cargo.count>0
  session.eggCarry={count=0,value=0}
+ session.vacuumCargo={count=0,value=0}
  session:Touch()
  if not queued then session.tutorial.soldEggs=true end
  yard.lastPlayerDepositAt=now
- self:RecordDeposit(yard,count,credited,now,"player",pad.Position,queued)
+ self:RecordDeposit(yard,count,credited,now,if vacuumed then "vacuum" else "player",pad.Position,queued)
  return true,credited
 end
 
-function EggService:SettleClaims(session,yard,now,roverOnly,forceAll)
+function EggService:SettleClaims(session,yard,now,forceAll)
  for i=#yard.drops,1,-1 do
   local drop=yard.drops[i]
-  if drop.claimAt and (forceAll or (if roverOnly then drop.collector=="rover" else now>=drop.claimAt+Config.EggFlightSeconds)) then
+  if drop.claimAt and (forceAll or now>=drop.claimAt+Config.EggFlightSeconds) then
    self:Pay(session,yard,drop,now);table.remove(yard.drops,i)
   end
- end
-end
-
-function EggService:PreserveCargo(session,yard,now)
- local rover=yard.rover
- if not rover then return end
- -- Finish earned claims while this rover still owns them, then transfer once.
- self:SettleClaims(session,yard,now,true)
- if rover.cargoCount>0 or rover.cargoValue>0 then
-  addCarry(session,rover.cargoCount,rover.cargoValue)
-  rover.cargoCount,rover.cargoValue=0,0
-  session:Touch()
- end
- rover.enabled=false
- yard.revision+=1
-end
-
--- The vacuum parks while the opening guide teaches collecting and selling, so the
--- player learns both by hand. It resumes once those lessons pass, the guide
--- completes or the player skips it. Counting rules are unchanged.
-local function incomeLessonActive(session)
- local t=session.tutorial
- if type(t)~="table" or t.guideSkipped or t.guideCompleted then return false end
- if t.soldEggs==true and TutorialGuide.CollectedEggCount(t)>=TutorialGuide.EggGoal then return false end
- -- Facts only reads the flock size, so placeholders stand in for the chickens.
- return TutorialGuide.IncomeLessonActive({tutorial=t,pets=table.create(session:Count(),true),
-  firstWins=session.firstWins,kingCleared=session.kingCleared})
-end
-EggService.IncomeLessonActive=incomeLessonActive
-
-function EggService:UpdateRover(session,yard,dt,now)
- local pad,ownerId=self.world:EggDeposit(session.plotIndex)
- local enabled=session:AutomaticEnabled("AutoCollectEggs")
-  or (RunService:IsStudio() and session.commerceTestPreset==nil
-   and workspace:GetAttribute(VacuumConfig.StudioTestAttribute)==true)
- enabled=enabled and pad~=nil and pad:IsA("BasePart") and ownerId==session.userId
-  and not incomeLessonActive(session)
- if not enabled then
-  if yard.rover and yard.rover.enabled then self:PreserveCargo(session,yard,now) end
-  return
- end
- -- Resize the next empty sweep, not a rover carrying earned eggs or in-flight claims.
- if yard.rover and yard.rover.enabled and yard.roverPlotSize~=session.plotSizeLevel
-  and yard.rover.state=="Idle" and yard.rover.cargoCount==0 and yard.rover.pendingCount==0 then
-  yard.rover=nil
- end
- if not yard.rover or not yard.rover.enabled then
-  yard.roverSerial=(yard.roverSerial or 0)+1
-  yard.roverPlotSize=session.plotSizeLevel
-  yard.rover=EggRover.new(session.userId..":"..yard.generation..":"..yard.roverSerial,
-   self.world:PlotFrame(session.plotIndex),session.plotIndex,pad,now)
- end
- local rover=yard.rover
- local hasEggs=false
- for _,drop in yard.drops do
-  if not drop.claimAt and now>=drop.readyAt then hasEggs=true;break end
- end
- rover:Step(dt,now,hasEggs)
- -- Send the latest nozzle as a fallback for late packets or a removed model.
- local nozzle=rover:Nozzle()
- for _,drop in yard.drops do
-  if drop.collector=="rover" and drop.claimAt then
-   drop.targetX,drop.targetY,drop.targetZ=nozzle.X,nozzle.Y,nozzle.Z
-  end
- end
- if rover:ReadyToUnload(now) then
-  -- Recheck the owner's physical input pad at the payment boundary. The rover
-  -- cannot sell remotely simply because its state says it reached a dock.
-  local localAt=pad.CFrame:PointToObjectSpace(rover.position)
-  local atPad=math.abs(localAt.X)<=pad.Size.X/2+0.7 and math.abs(localAt.Z)<=pad.Size.Z/2+0.7
-   and math.abs(localAt.Y)<=pad.Size.Y/2+5
-  if not atPad then return end
-  local count,value=rover.cargoCount,rover.cargoValue
-  if value>0 then
-   local accepted,credited,queued=self:AcceptDeposit(session,count,value)
-   if not accepted then return end
-   if not queued then session.tutorial.soldEggs=true end
-   self:RecordDeposit(yard,count,credited,now,"rover",rover.position,queued)
-  end
-  rover.cargoCount,rover.cargoValue=0,0
-  rover:FinishUnload(now)
  end
 end
 
@@ -403,60 +389,85 @@ function EggService:Claim(yard,drop,now,collector,target)
  drop.claimAt=now;drop.collector=collector
  drop.targetX,drop.targetY,drop.targetZ=target.X,target.Y,target.Z
  yard.revision+=1
- if collector=="rover" then
-  yard.rover.pendingCount+=drop.stack or 1
-  yard.rover.suctionSerial+=1
- end
  return true
 end
 
-function EggService:Collect(session,position,now)
+-- Takes `take` eggs off an unclaimed stack as a new drop on the same spot. Coins stay
+-- whole: the new part gets its share rounded down and the eggs left behind keep the
+-- rest, so a split never creates or loses value.
+function EggService:Split(yard,drop,take)
+ local stack=drop.stack or 1
+ local value=math.floor(drop.value*take/stack)
+ self.serial+=1
+ local part=table.clone(drop)
+ part.id=tostring(self.serial)
+ part.stack,part.value=take,value
+ drop.stack,drop.value=stack-take,drop.value-value
+ table.insert(yard.drops,part)
+ yard.revision+=1
+ return part
+end
+
+-- October 20 click, tap and gamepad pickup. Each id names one ready stack within
+-- Click Range of the player (plus latency slack); it flies into the bag.
+function EggService:CollectClicked(session,ids,now)
+ if type(ids)~="table" or not session.loaded or session.closing or session.saveLost then return 0 end
+ local position=playerRoot(session)
+ if not position then return 0 end
+ local wanted,count={},0
+ for _,id in ids do
+  count+=1
+  if count>Tools.ClickBatch then break end
+  if type(id)=="string" and #id<=24 then wanted[id]=true end
+ end
  local yard=self:Yard(session)
- if position then
-  local near={}
-  local radius=Config.EggMagnetRadius*(if session.entitlements and session.entitlements.EggMagnet==true then ShopCatalog.RadiusMultiplier else 1)+session.researchEffects.pickupStuds
-  for _,drop in yard.drops do
-   if not drop.claimAt and now>=drop.readyAt then
-    local distance=(position-Vector3.new(drop.x,drop.y+0.8,drop.z)).Magnitude
-    if distance<=radius then table.insert(near,{drop=drop,distance=distance}) end
+ local range=self:ClickRange(session)+Tools.ClickSlack
+ local roomCount,roomValue=bagRoom(session,yard)
+ local claimed=0
+ for _,drop in yard.drops do
+  if wanted[drop.id] and not drop.claimAt and now>=drop.readyAt and reach(position,drop)<=range then
+   local stack=drop.stack or 1
+   if stack<=roomCount and drop.value<=roomValue then
+    roomCount-=stack;roomValue-=drop.value
+    self:Claim(yard,drop,now+claimed*0.03,"player",position+Vector3.new(0,-0.25,0))
+    claimed+=1
    end
   end
-  table.sort(near,function(a,b)return a.distance<b.distance end)
-  local roomCount,roomValue=carryRoom(session,yard)
-  local claimed=0
-  for _,entry in near do
-   if claimed>=Config.EggPickupBatch then break end
-   local drop=entry.drop
-   if (drop.stack or 1)>roomCount or drop.value>roomValue then continue end
-   roomCount-=drop.stack or 1;roomValue-=drop.value
-   self:Claim(yard,drop,now+claimed*0.06,"player",position+Vector3.new(0,-0.25,0))
-   claimed+=1
+ end
+ return claimed
+end
+
+-- The equipped Egg Vacuum pulls the nearest ready eggs in range until it is full;
+-- a stack bigger than the room left is split and the rest stays on the ground.
+function EggService:Vacuum(session,yard,root,now)
+ local cargo=vacuumCargo(session)
+ local room=self:VacuumCapacity(session,yard,now)-cargo.count-(yard.vacuumPending or 0)
+ if room<1 then return end
+ local position=root.Position
+ local range=self:VacuumRange(session)
+ local near={}
+ for _,drop in yard.drops do
+  if not drop.claimAt and now>=drop.readyAt then
+   local distance=reach(position,drop)
+   if distance<=range then table.insert(near,{drop=drop,distance=distance}) end
   end
  end
- local rover=yard.rover
- if rover and rover.enabled and rover:CanCollect(now) then
-  local nozzle=rover:Nozzle()
-  local near={}
-  for _,drop in yard.drops do
-   if not drop.claimAt and now>=drop.readyAt then
-    local distance=(nozzle-Vector3.new(drop.x,drop.y+0.8,drop.z)).Magnitude
-    if distance<=rover.suctionRadius then table.insert(near,{drop=drop,distance=distance}) end
-   end
-  end
-  table.sort(near,function(a,b)return a.distance<b.distance end)
-  local roomCount,roomValue=carryRoom(session,yard)
-  local claimed=0
-  for _,entry in near do
-   if claimed>=VacuumConfig.PickupBatch then break end
-   local drop=entry.drop
-   if (drop.stack or 1)>roomCount or drop.value>roomValue then continue end
-   roomCount-=drop.stack or 1;roomValue-=drop.value
-   self:Claim(yard,drop,now+claimed*VacuumConfig.PickupStagger,"rover",nozzle)
-   claimed+=1
-  end
+ if #near==0 then return end
+ table.sort(near,function(a,b) return a.distance<b.distance end)
+ -- Clients aim each egg at the held nozzle; this is the fallback landing point.
+ local target=position+root.CFrame.LookVector*1.6+Vector3.new(0,0.4,0)
+ local claimed=0
+ for _,entry in near do
+  if claimed>=Tools.PickupBatch or room<1 then break end
+  local drop=entry.drop
+  if (drop.stack or 1)>room then drop=self:Split(yard,drop,room) end
+  local stack=drop.stack or 1
+  room-=stack
+  yard.vacuumPending=(yard.vacuumPending or 0)+stack
+  yard.vacuumPendingValue=(yard.vacuumPendingValue or 0)+drop.value
+  self:Claim(yard,drop,now+claimed*Tools.PickupStagger,"vacuum",target)
+  claimed+=1
  end
- for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end
- for i=#(yard.deposits or {}),1,-1 do if now-yard.deposits[i].at>3 then table.remove(yard.deposits,i) end end
 end
 
 function EggService:Step(sessions,dt,now)
@@ -465,13 +476,10 @@ function EggService:Step(sessions,dt,now)
   self:Produce(session,dt,now)
   local yard=self:Yard(session)
   self:SettleClaims(session,yard,now,false)
-  self:UpdateRover(session,yard,dt,now)
-  local player=Players:GetPlayerByUserId(session.userId)
-  local character=player and player.Character
-  local root=character and character:FindFirstChild("HumanoidRootPart")
-  local humanoid=character and character:FindFirstChildOfClass("Humanoid")
-  local position=if root and humanoid and humanoid.Health>0 then root.Position else nil
-  self:Collect(session,position,now)
+  local position,character,humanoid,root=playerRoot(session)
+  if root and session.eggVacuum==true and holding(character,VACUUM_TOOL) then self:Vacuum(session,yard,root,now) end
+  for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end
+  for i=#(yard.deposits or {}),1,-1 do if now-yard.deposits[i].at>3 then table.remove(yard.deposits,i) end end
   self:Deposit(session,position,now)
   local grounded=humanoid~=nil and humanoid.Health>0 and not humanoid.Jump and not humanoid.Sit
    and not humanoid.PlatformStand and humanoid.FloorMaterial~=Enum.Material.Air
@@ -488,7 +496,7 @@ function EggService:Snapshot(session,now)
   copy.value=session:EarnedAmount(drop.value,"eggs")
   copy.age=math.max(0,now-drop.born)
   copy.flightAge=if drop.claimAt then now-drop.claimAt else nil
-  copy.born,copy.readyAt,copy.claimAt=nil,nil,nil
+  copy.born,copy.readyAt,copy.claimAt,copy.paid=nil,nil,nil,nil
   table.insert(drops,copy);value+=copy.value;count+=copy.stack
  end
  for _,receipt in yard.receipts do
@@ -504,26 +512,29 @@ function EggService:Snapshot(session,now)
  local queued=Processor.Totals(processor)
  local cashClaim=if yard.cashClaim and now-yard.cashClaim.at<3 then table.clone(yard.cashClaim) else nil
  if cashClaim then cashClaim.at=nil end
+ local cargo=vacuumCargo(session)
+ local pending=yard.vacuumPending or 0
  return {revision=yard.revision,generation=yard.generation,drops=drops,receipts=receipts,value=value,count=count,
   processor={enabled=ProcessorConfig.Enabled,queuedCount=queued,
    rate=Processor.Rate(processor,session.entitlements.DoubleEggSpawn),level=processor.level,
    nextRate=ProcessorConfig.Rate(processor.level+1)*(if session.entitlements.DoubleEggSpawn then 2 else 1),
    upgradePrice=if ProcessorConfig.Enabled then ProcessorConfig.Price(processor.level) else nil,readyCash=session:EarnedAmount(processor.readyValue,"eggs"),
    finishCredits=processor.finishCredits},cashClaim=cashClaim,
-  requiresDeposit=true,carriedCount=session.eggCarry.count,
-  carriedValue=session:EarnedAmount(session.eggCarry.value,"eggs"),deposit=deposit,deposits=deposits,
-  rover=if yard.rover then yard.rover:Snapshot(session) else {enabled=false}}
+  -- Everything the pad will sell: the bag plus the vacuum's cargo.
+  requiresDeposit=true,carriedCount=session.eggCarry.count+cargo.count,
+  carriedValue=session:EarnedAmount(session.eggCarry.value+cargo.value,"eggs"),deposit=deposit,deposits=deposits,
+  bagCount=session.eggCarry.count,clickRange=self:ClickRange(session),
+  -- count includes eggs still flying into the nozzle, so the meter fills as they land.
+  vacuum={count=cargo.count+pending,stored=cargo.count,
+   value=session:EarnedAmount(cargo.value+(yard.vacuumPendingValue or 0),"eggs"),
+   capacity=self:VacuumCapacity(session,yard,now),range=self:VacuumRange(session)}}
 end
 
 function EggService:Release(session)
  local yard=self.yards[session.userId]
  if not yard then return end
- -- A proximity-claimed pickup is already earned even if the player leaves mid-flight.
- if not session.saveLost then
-  local now=os.clock()
-  self:SettleClaims(session,yard,now,false,true)
-  self:PreserveCargo(session,yard,now)
- end
+ -- A claimed pickup is already earned even if the player leaves mid-flight.
+ if not session.saveLost then self:SettleClaims(session,yard,os.clock(),true) end
  self.yards[session.userId]=nil
 end
 
