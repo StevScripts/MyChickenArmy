@@ -1,5 +1,5 @@
 --!strict
--- Local podium presentation and subtle roll zoom. RollStation owns the offer.
+-- Local podium presentation; RollCamera moves the view. RollStation owns the offer.
 local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -13,6 +13,7 @@ local UIColors = require(Shared.UIColors)
 local Theme = require(script.Parent.UITheme)
 local Mutations = require(Shared.MutationCatalog)
 local MutationVFX = require(script.Parent.SpecialChickenVFX)
+local RollCamera = require(script.Parent.RollCamera)
 local RollPresentationController = {}
 RollPresentationController.__index = RollPresentationController
 
@@ -22,108 +23,54 @@ local BEATS = {0.065, 0.10, 0.14, 0.185, 0.235, 0.295, 0.365, 0.455, 0.56, 0.69,
 local GOLD = UIColors.Rewards
 local BLUE = Color3.fromRGB(67, 181, 222)
 local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Secret=7}
--- Camera feel: edit these, then restart Play. Duration follows each server-accepted roll.
-local ROLL_ZOOM_DEGREES = 2 -- Larger means a stronger zoom.
-local ROLL_ZOOM_EASING = Enum.EasingStyle.Linear
-local ROLL_ZOOM_DIRECTION = Enum.EasingDirection.In
-local ROLL_ZOOM_OUT_SECONDS = 0.35
-local ROLL_ZOOM_OUT_EASING = Enum.EasingStyle.Back
-local ROLL_ZOOM_OUT_DIRECTION = Enum.EasingDirection.Out
+-- Camera feel (push-in, punch, shake, orbit) is tuned at the top of RollCamera.
 -- Mutation tag: pops in this long after the species lands; Rainbow and rarer also flash.
 local MUTATION_BADGE_DELAY = 0.3
 
 function RollPresentationController.new(app)
- return setmetatable({app=app, records={}, connections={}, scanAt=0}, RollPresentationController)
+ return setmetatable({app=app, records={}, connections={}, scanAt=0, rollCamera=RollCamera.new()}, RollPresentationController)
 end
 
-function RollPresentationController:ClearCameraZoom()
- local zoom=self.cameraZoom
- if not zoom then return end
- self.cameraZoom=nil
- if zoom.completed then zoom.completed:Disconnect() end
- zoom.tween:Cancel()
- zoom.tween:Destroy()
- -- Interruptions and teardown restore immediately, with no surviving tween.
- zoom.camera.FieldOfView=zoom.base
-end
-
-function RollPresentationController:ReturnCameraZoom()
- local zoom=self.cameraZoom
- if not zoom or zoom.returning then return end
- zoom.returning=true
- zoom.tween:Cancel()
- zoom.tween:Destroy()
- zoom.tween=TweenService:Create(zoom.camera,
-  TweenInfo.new(ROLL_ZOOM_OUT_SECONDS,ROLL_ZOOM_OUT_EASING,ROLL_ZOOM_OUT_DIRECTION),
-  {FieldOfView=zoom.base})
- zoom.completed=zoom.tween.Completed:Connect(function(state)
-  if state==Enum.PlaybackState.Completed and self.cameraZoom==zoom then
-   self:ClearCameraZoom()
-  end
- end)
- zoom.tween:Play()
-end
-
-function RollPresentationController:StartCameraZoom(camera, station, rollId, startedAt, duration, now)
- self:ClearCameraZoom()
- local elapsed=math.clamp(now-startedAt,0,duration)
- local remaining=duration-elapsed
- if remaining<=0 then return end
- local base=camera.FieldOfView
- local degrees=math.clamp(ROLL_ZOOM_DEGREES,0,base-1)
- -- If the roll was already underway, catch up once and tween for its remaining time.
- local progress=TweenService:GetValue(elapsed/duration,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION)
- camera.FieldOfView=base-degrees*progress
- local tween=TweenService:Create(camera,
-  TweenInfo.new(remaining,ROLL_ZOOM_EASING,ROLL_ZOOM_DIRECTION),
-  {FieldOfView=base-degrees})
- self.cameraZoom={camera=camera,base=base,tween=tween,station=station,rollId=rollId,startedAt=startedAt,duration=duration}
- tween:Play()
-end
-
-function RollPresentationController:StepCameraZoom(now)
+-- The roll camera follows the local player's own lever podium (slot 1) within
+-- 24 studs, with motion on, the normal camera, and no menu, Upgrades screen,
+-- dialogue or crate opening up. Reveals follow the rarest chicken that landed on
+-- any of their podiums this frame (StepRecord notes it).
+function RollPresentationController:StepCamera(now)
+ local app=self.app
  local camera=workspace.CurrentCamera
- if self.cameraZoom and (self.cameraZoom.camera~=camera or self.app.reducedMotion
-  or not camera or camera.CameraType~=Enum.CameraType.Custom) then self:ClearCameraZoom() end
- if not camera or self.app.reducedMotion or camera.CameraType~=Enum.CameraType.Custom then return end
  local player=Players.LocalPlayer
  local character=player.Character
  local root=character and character:FindFirstChild("HumanoidRootPart")
  local humanoid=character and character:FindFirstChildOfClass("Humanoid")
- local activeStation,activeRollId,activeStartedAt,activeDuration
- -- Auto Roll repeats every few seconds; the camera zoom is for lever pulls only.
- local auto=self.app.state and self.app.state.autoRoll
- local autoOn=auto~=nil and auto.enabled==true
- if root and humanoid and humanoid.Health>0 and not self.app.panel.Visible and not self.app.dialogueActive and not autoOn then
+ local ok=camera~=nil and camera.CameraType==Enum.CameraType.Custom and not app.reducedMotion
+  and root~=nil and humanoid~=nil and humanoid.Health>0 and not app.panel.Visible and not app.dialogueActive
+  and not (app.research and app.research.root.Visible) and not (app.commerce and app.commerce.cratePresenting)
+ local near,roll=false,nil
+ if ok then
   for station,record in self.records do
-   local startedAt=station:GetAttribute("RollStartedAt")
-   local duration=station:GetAttribute("RollDuration") or Config.RollRevealSeconds
-   local rollId=station:GetAttribute("RollId")
-   if record.active and (station:GetAttribute("RollSlot") or 1)==1 and station:GetAttribute("OwnerId")==player.UserId
-    and rollId and startedAt and now>=startedAt
-    and now-startedAt<duration and (root.Position-record.foot).Magnitude<=24 then
-    activeStation,activeRollId,activeStartedAt,activeDuration=station,rollId,startedAt,duration;break
+   if record.active and (station:GetAttribute("RollSlot") or 1)==1 and station:GetAttribute("OwnerId")==player.UserId then
+    near=(root.Position-record.foot).Magnitude<=24
+    local startedAt=station:GetAttribute("RollStartedAt")
+    local duration=station:GetAttribute("RollDuration") or Config.RollRevealSeconds
+    local rollId=station:GetAttribute("RollId")
+    if near and rollId and startedAt and now>=startedAt and now-startedAt<duration then
+     roll={key=rollId,startedAt=startedAt,duration=duration}
+    end
+    break
    end
   end
  end
- if not activeStation then
-  local zoom=self.cameraZoom
-  local record=zoom and self.records[zoom.station]
-  -- Only a normal reveal gets the Back/Out return; leaving or closing cancels it.
-  local revealed=zoom and record and record.active and root and humanoid and humanoid.Health>0
-   and not self.app.panel.Visible and not self.app.dialogueActive
-   and zoom.station:GetAttribute("OwnerId")==player.UserId
-   and zoom.station:GetAttribute("RollId")==zoom.rollId
-   and zoom.station:GetAttribute("RollStartedAt")==zoom.startedAt
-   and now>=zoom.startedAt+zoom.duration and (root.Position-record.foot).Magnitude<=24
-  if revealed then self:ReturnCameraZoom() else self:ClearCameraZoom() end
-  return
- end
- local zoom=self.cameraZoom
- -- The render callback only watches eligibility/end time; TweenService moves the FOV.
- if not zoom or zoom.station~=activeStation or zoom.rollId~=activeRollId or zoom.startedAt~=activeStartedAt or zoom.duration~=activeDuration then
-  self:StartCameraZoom(camera,activeStation,activeRollId,activeStartedAt,activeDuration,now)
- end
+ -- Auto Roll repeats every few seconds, so it gets the lighter version.
+ local auto=app.state and app.state.autoRoll
+ local landing=self.landing
+ self.landing=nil
+ -- Buying (or rolling over) the chicken being orbited ends the orbit early.
+ local target=landing or self.cameraTarget
+ local gone=target~=nil and target.record.result~=target.result
+ self.cameraTarget=if gone then nil else target
+ self.rollCamera:Step(camera,now,{ok=ok,near=near,roll=roll,landing=landing,gone=gone,
+  auto=auto~=nil and auto.enabled==true and auto.unlocked~=false,
+  moving=humanoid~=nil and humanoid.MoveDirection.Magnitude>0.1})
 end
 
 function RollPresentationController:Track(station)
@@ -459,6 +406,11 @@ function RollPresentationController:StepRecord(record, now)
     record.burst.Color=ColorSequence.new(tint,GOLD)
     record.burst:Emit(if rank>=4 then 26 else 12)
    end
+   -- The landing thump: the roll camera reacts to the rarest one on your podiums.
+   if station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId and (not self.landing or rank>self.landing.rank) then
+    self.landing={rank=rank,foot=record.foot,front=record.frame.LookVector,record=record,result=result,
+     height=record.preview and record.preview:GetAttribute("VisualHeight") or 3,ignore={self.folder}}
+   end
   end
   local hop=0
   if not reduced then
@@ -513,13 +465,13 @@ function RollPresentationController:Start(world)
     record.glow:Destroy();self.records[station]=nil
    else self:StepRecord(record,now) end
   end
-  self:StepCameraZoom(now)
+  self:StepCamera(now)
  end))
 end
 
 function RollPresentationController:Destroy()
  for _,connection in self.connections do connection:Disconnect() end
- self:ClearCameraZoom()
+ self.rollCamera:Destroy()
  for _,record in self.records do
   self:Reset(record)
   for _,model in record.cache do model:Destroy() end
