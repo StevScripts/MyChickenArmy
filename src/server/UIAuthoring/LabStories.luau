@@ -12,6 +12,7 @@ Stories.List={
 	{id="Upgrades",name="Upgrades tree"},
 	{id="Fuse",name="Fuse Machine"},
 	{id="Rebirth",name="Rebirth"},
+	{id="RebirthFirst",name="Rebirth (first, not ready)"},
 	{id="Invasions",name="Invasions / Missions"},
 	{id="Daily",name="Daily reward"},
 	{id="Offline",name="Offline earnings"},
@@ -116,12 +117,37 @@ Render.Fuse=function(ctx)
 	browser:Render(true)
 end
 
+-- October 20 overhaul (S8): the reference Rebirth screen at its saved geometry.
+-- The late-game preset is a Rebirth 10 player who can afford Rebirth 11.
 Render.Rebirth=function(ctx)
 	local app=makeApp(ctx)
+	app.other=menuFrame(ctx,"Rebirth","Rebirth")
 	local panel=require(ctx.code.RebirthPanel).new(app)
 	app.rebirthPanel=panel
 	panel:Render(ctx.state)
 	panel:Open()
+end
+
+-- The first Rebirth before it is affordable (the reference's 3,019 / 50,000 screen):
+-- a silhouette reward, no Gems, and the Rebirth 2+ rows locked.
+local FIRST_PRICES={RollSpeed=5,ExtraLuck=5,VacuumCapacity=10,AutoRoll=15,CoinBoost=10,AutoRebirth=25,
+	TimeSkip=20,MoreGems=25,KeepUpgrades=40,Rally=30,MutationLuck=40,OfflineCoins=30,ArmyPower=50,RebirthChickenOdds=30}
+Render.RebirthFirst=function(ctx)
+	local state=ctx.state
+	state.gems,state.gemsEarned=0,0
+	local quote=state.rebirth or {}
+	state.rebirth=quote
+	quote.rank,quote.nextRank,quote.cost,quote.coins,quote.eligible=0,1,50000,3019,false
+	quote.multiplierNow,quote.multiplierNext,quote.gemsNext,quote.timeSkipMinutes=1,2,50,5
+	quote.nextChicken={species="Veteran1",name="Private Peck",rarity="Uncommon"}
+	quote.skip={credits=0,productKey="RebirthSkip1",onSale=true,restricted=false}
+	local upgrades=state.gemUpgrades or {}
+	upgrades.autoRebirth={owned=false,enabled=true}
+	for id,item in upgrades.items or {} do
+		item.level,item.price=(if id=="TimeSkip" then 1 else 0),FIRST_PRICES[id]
+		item.status=if (item.unlockRank or 0)>0 then "Locked" else "Unaffordable"
+	end
+	Render.Rebirth(ctx)
 end
 
 Render.Invasions=function(ctx)

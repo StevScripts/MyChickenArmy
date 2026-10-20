@@ -47,7 +47,9 @@ AppController.__index = AppController
 local C = Theme.Colors
 local MenuLayout = require(script.Parent.MenuLayout)
 -- Routine army commands confirm themselves on the HUD (status line, Army count); only failures notify.
-local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true}
+local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true,
+	-- October 20 (S8): the Rebirth screen shows these itself (card pulse, toggle, Rebirth toast).
+	Rebirth = true, BuyGemUpgrade = true, SetAutoRebirth = true}
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,

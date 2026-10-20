@@ -68,6 +68,29 @@ Theme.Assets = {
 	RecruitBadge="rbxassetid://126710710110391", Padlock="rbxassetid://119808966455913",
 }
 Theme.Assets.Cash = Theme.Assets.Coin
+-- October 20 overhaul (S8): Gems, the Rebirth currency, in the premium purple
+-- (docs/team/OVERHAUL_CONTRACT_20261020.md §6-8). S6 drew the art
+-- (assets/upgrade-icons-20261020; file names = keys); paste each uploaded id here.
+-- Until then GemIcon draws a placeholder gem and Gem Upgrade cards borrow the
+-- nearest existing icon (GEM_ART_FALLBACK).
+Theme.GemColors = {
+	Number=Color3.fromRGB(214,173,255), Top=Color3.fromRGB(168,94,242), Bottom=Color3.fromRGB(116,49,196),
+	SkipTop=Color3.fromRGB(201,117,245), SkipBottom=Color3.fromRGB(139,53,209),
+	LockedText=Color3.fromRGB(217,168,255), Effect=Color3.fromRGB(166,255,110), Level=Color3.fromRGB(188,199,190),
+}
+Theme.GemArt = {
+	Gems="", TimeSkip="", RollSpeed="", ExtraLuck="", VacuumCapacity="", AutoRoll="", CoinBoost="",
+	AutoRebirth="", MoreGems="", KeepUpgrades="", Rally="", MutationLuck="", OfflineCoins="",
+	ArmyPower="", RebirthChickenOdds="",
+}
+local GEM_ART_FALLBACK = {
+	TimeSkip="rbxassetid://71023601644268", RollSpeed="rbxassetid://91702817085017", -- egg speed, roll slots
+	ExtraLuck=Theme.Assets.Luck, VacuumCapacity=Theme.Assets.EggMagnet, AutoRoll="rbxassetid://91702817085017",
+	CoinBoost="rbxassetid://131663330897554", AutoRebirth=Theme.Assets.Reenlist, -- egg with coins
+	KeepUpgrades="rbxassetid://85565793294890", Rally=Theme.Assets.Rally, -- Upgrades lab
+	MutationLuck="rbxassetid://109799576309561", OfflineCoins=Theme.Assets.Coin, -- egg
+	ArmyPower=Theme.Assets.ArmyHud, RebirthChickenOdds=Theme.Assets.RecruitBadge,
+}
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a
 -- dark outline and a hard drop, led by a matching self-drawing mark.
@@ -906,6 +929,36 @@ function Theme.CoinAmount(parent,name,text,size,color)
 	local label=Theme.Display(row,"Amount",text,size,color)
 	label.LayoutOrder,label.Size,label.AutomaticSize,label.TextWrapped=2,UDim2.fromScale(0,1),Enum.AutomaticSize.X,false
 	return row,label,icon
+end
+
+-- "60 Gems", "1 Gem" where no gem image sits beside the number.
+function Theme.Gems(value) local text=Theme.Money(value);return text..(if text=="1" then " Gem" else " Gems") end
+
+-- Uploaded Gem art for a key ("Gems", "RollSpeed" or a catalog icon key such as
+-- "gemRollSpeed"); nil when neither S6's art nor a stand-in exists.
+function Theme.GemArtId(key: string?): string?
+	if type(key)~="string" then return nil end
+	local name=if key:sub(1,3)=="gem" and #key>3 then key:sub(4) else key
+	local id=Theme.GemArt[name]
+	if type(id)=="string" and id~="" then return id end
+	return GEM_ART_FALLBACK[name]
+end
+
+-- A Gem icon. Without uploaded art it is a placeholder: a purple stone with a
+-- black outline, drawn from one rotated square.
+function Theme.GemIcon(parent,name,key,size,position)
+	local id=Theme.GemArtId(key or "Gems")
+	if id then return Theme.Image(parent,name,id,size,position) end
+	local holder=Theme.Container(parent,name)
+	holder.Size,holder.Position,holder.ZIndex=size,position or UDim2.new(),3
+	local stone=Theme.Frame(holder,"Stone",UDim2.fromScale(0.64,0.64),Color3.new(1,1,1))
+	stone.AnchorPoint,stone.Position,stone.Rotation=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),45
+	Theme.Aspect(stone,1)
+	Theme.Gradient(stone,Theme.GemColors.Top:Lerp(Color3.new(1,1,1),0.3),Theme.GemColors.Bottom)
+	Theme.Stroke(stone,Color3.new(0,0,0),2)
+	local shine=Theme.Frame(stone,"Shine",UDim2.fromScale(0.32,0.32),Color3.new(1,1,1))
+	shine.Position,shine.BackgroundTransparency=UDim2.fromScale(0.16,0.16),0.35
+	return holder
 end
 
 function Theme.SegmentedBar(parent,name,size,segments)

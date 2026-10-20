@@ -78,6 +78,7 @@ function Hud.new(app,shell)
 	self.rank=Theme.Display(cash,"RebirthRank","",24,Theme.ReferenceColors.Army)
 	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.26)
 	self.rank.Visible=false
+	self:BuildGems(cash)
 	local totals=Theme.Container(shell,"ArmyTotals")
 	self.totals=totals
 	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.3,0.09)
@@ -351,6 +352,42 @@ function Hud:ApplyInputLayout()
 	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
 	-- The Hill chip rides just above the coin readout wherever it sits.
 	if self.hill then self.hill:Place() end
+	self:PlaceGems()
+end
+
+-- October 20 overhaul (S8, plan v2): a Gems counter just above the Coins, built
+-- like the Coins readout. Hidden until the first Gems are earned; "Rebirth N" and
+-- the Hill chip ride above it while it shows.
+local GEMS_ROW=0.42 -- share of the Coins readout's height
+function Hud:BuildGems(cash)
+	local row=Theme.Container(cash,"GemsReadout")
+	row.AnchorPoint,row.Position,row.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.06),UDim2.fromScale(0.6,GEMS_ROW)
+	row.Visible=false
+	Theme.Aspect(Theme.GemIcon(row,"GemIcon","Gems",UDim2.fromScale(0.22,1)),1)
+	local amount=Theme.Display(row,"Gems","0",34,Theme.GemColors.Number)
+	amount.Position,amount.Size,amount.TextScaled=UDim2.fromScale(0.25,0.04),UDim2.fromScale(0.75,0.92),true
+	self.gemsRow,self.gemsAmount=row,amount
+end
+
+function Hud:PlaceGems()
+	local lift=if self.gemsShown then GEMS_ROW else 0
+	self.rank.Position=UDim2.fromScale(0,-lift)
+	if self.hill and self.hill.waiting and lift>0 then
+		self.hill.waiting.Position-=UDim2.fromScale(0,lift*self.cashReadout.Size.Y.Scale)
+	end
+end
+
+function Hud:UpdateGems(state)
+	local gems=math.max(0,math.floor(tonumber(state.gems) or 0))
+	local shown=gems>0 or (tonumber(state.gemsEarned) or 0)>0
+	Theme.Motion:Count(self.gemsAmount,gems,function(value) return Theme.Money(value) end,0.5)
+	if shown and self.lastGems and gems>self.lastGems then Theme.Motion:PopScale(self.gemsRow,1.12) end
+	self.lastGems=gems
+	if shown==(self.gemsShown==true) then return end
+	self.gemsShown=shown
+	self.gemsRow.Visible=shown
+	if self.hill then self.hill:Place() end
+	self:PlaceGems()
 end
 
 -- Middle of the right edge; the totals keep the bottom-right corner (all devices).
@@ -408,8 +445,10 @@ function Hud:UpdateRebirth(state)
 	local quote=state and state.rebirth
 	if type(quote)~="table" then self.rank.Visible=false;self.reenlist.Visible=false;return end
 	local rank=tonumber(quote.rank) or 0
-	-- The Re-enlist icon appears once it matters: the King is beaten or a rank is earned.
-	local showIcon=quote.enabled~=false and (rank>=1 or quote.kingCleared==true)
+	-- Plan v2 (October 20): the icon appears once the Coins reach a quarter of the
+	-- next Rebirth or a rank is earned; the King no longer matters.
+	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
+	local showIcon=quote.enabled~=false and (rank>=1 or (cost~=nil and cost>0 and coins>=cost/4))
 	if self.reenlist.Visible~=showIcon then
 		self.reenlist.Visible=showIcon;self:PlaceRebirth()
 		-- Grow in only when it newly unlocks this session, not on the first packet.
@@ -426,7 +465,8 @@ function Hud:UpdateRebirth(state)
 	self.rank.Text=RebirthPanel.Title(rank)
 	-- The Hill countdown chip uses the same spot above the coin readout.
 	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waitingShown)
-	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15) end
+	-- Rebirths come often now, so each new rank re-arms the "Rebirth ready" toast.
+	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15);self.rebirthToastShown=false end
 	self.lastRank=rank
 	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
 		self.rebirthToastShown=true
@@ -604,6 +644,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self:UpdateAutoRoll(state)
 	self:UpdateTerritory(state)
 	self:UpdateRebirth(state)
+	self:UpdateGems(state)
 	self:UpdateFreeGift(state)
 	self:UpdateChickenOffer(state)
 	-- October 16 owner request: the offline receipt's coins (already saved by the

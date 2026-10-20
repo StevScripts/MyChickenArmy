@@ -5,9 +5,29 @@ local MenuLayout=require(script.Parent.MenuLayout)
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
 local Config=require(Shared.Config)
+local Portraits=require(script.Parent.ChickenPortraits)
 local C=Theme.Colors
 local Browser={}
 Browser.__index=Browser
+
+-- October 20 overhaul (S8): the Rebirth chickens (PetCatalog.RebirthOrder, one per
+-- rank) close the Index as "Rebirth N" silhouettes until owned. Catalog.Order may
+-- already list them, so only missing ones are added.
+local ORDER=table.clone(Catalog.Order)
+do
+	local listed={}
+	for _,species in ORDER do listed[species]=true end
+	for _,species in (Catalog::any).RebirthOrder or {} do
+		if not listed[species] and Catalog[species] then table.insert(ORDER,species);listed[species]=true end
+	end
+end
+
+-- Rebirth chickens wear their base look until the art pass adds their portraits.
+local function portraitSpecies(species)
+	local definition=Catalog[species]
+	if (Portraits::any)[species] or not definition.rebirthRank or not definition.baseSpecies then return species end
+	return definition.baseSpecies
+end
 
 local REST=UDim2.fromScale(0.5,0.5)
 local CARD_SIZE=UDim2.fromScale(0.976,0.976)
@@ -38,7 +58,7 @@ function Browser.new(app,parent)
 	grid.ClipsDescendants,grid.Parent=true,root
 	-- The canvas follows one width-constrained content frame. Grid row height
 	-- therefore never depends on the growing scroll canvas.
-	local rows=math.ceil(#Catalog.Order/4)
+	local rows=math.ceil(#ORDER/4)
 	local contentHeight=rows*0.21+math.max(0,rows-1)*0.04
 	local content=Theme.Frame(grid,"Cards",UDim2.fromScale(0.96,math.max(1,rows)))
 	content.Position,content.BackgroundTransparency=UDim2.fromScale(0.02,0.03),1
@@ -60,7 +80,7 @@ end
 
 function Browser:BuildCards()
 	if next(self.cards) then return end
-	for i,species in Catalog.Order do
+	for i,species in ORDER do
 		local slot=Theme.Frame(self.cardHolder,"Entry_"..i,UDim2.fromScale(1,1))
 		slot.LayoutOrder,slot.BackgroundTransparency=i,1
 		Theme.Aspect(slot,1)
@@ -72,7 +92,7 @@ function Browser:BuildCards()
 		inset.Position,inset.BackgroundTransparency,inset.ZIndex=UDim2.fromScale(0.016,0.016),1,4
 		local rim=Theme.Stroke(inset,C.white,1)
 		rim.Transparency=0.42
-		local preview=self.app:Preview(visual,{species=species,stars=1,level=1},
+		local preview=self.app:Preview(visual,{species=portraitSpecies(species),stars=1,level=1},
 			UDim2.fromScale(0.927,0.742),previewPosition(true))
 		preview.ImageColor3,preview.ImageTransparency=BLACK,0
 		preview.AnchorPoint=Vector2.new(0.5,0.5)
@@ -88,10 +108,12 @@ function Browser:BuildCards()
 		name.TextXAlignment,name.TextYAlignment=Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
 		name.TextScaled=true
 		caption.Visible=false
-		-- October 15: every rollable chicken shows its zero-Luck odds in the corner.
-		local oneIn=Catalog.OneInText(species)
+		-- October 15: every rollable chicken shows its zero-Luck odds in the corner;
+		-- a Rebirth chicken shows its rank there instead (plan v2).
+		local rebirthRank=Catalog[species].rebirthRank
+		local oneIn=if rebirthRank then "Rebirth "..rebirthRank else Catalog.OneInText(species)
 		if oneIn then
-			local odds=Theme.Label(visual,"OneIn",oneIn,20,Theme.Rarities[Catalog[species].rarity] or C.white)
+			local odds=Theme.Label(visual,"OneIn",oneIn,20,if rebirthRank then Theme.ReferenceColors.Army else Theme.Rarities[Catalog[species].rarity] or C.white)
 			odds.AnchorPoint,odds.Position,odds.Size=Vector2.new(1,0),UDim2.fromScale(0.96,0.035),UDim2.fromScale(0.8,0.13)
 			odds.TextXAlignment,odds.TextScaled,odds.ZIndex=Enum.TextXAlignment.Right,true,5
 		end
@@ -151,7 +173,7 @@ function Browser:Reveal()
 	if Theme.Motion.reduced then return end
 	local top,bottom=self.grid.AbsolutePosition.Y,self.grid.AbsolutePosition.Y+self.grid.AbsoluteSize.Y
 	local order=0
-	for _,species in Catalog.Order do
+	for _,species in ORDER do
 		local view=self.cards[species]
 		local y=view.root.AbsolutePosition.Y
 		if y+view.root.AbsoluteSize.Y>=top and y<bottom then
@@ -190,7 +212,7 @@ function Browser:Render(_force)
 		if self.cards[pet.species] then discovered[pet.species]=true end
 	end
 	if type(state.discovered)=="table" then
-		for _,species in Catalog.Order do
+		for _,species in ORDER do
 			if state.discovered[species]==true then discovered[species]=true end
 		end
 	end
@@ -198,14 +220,14 @@ function Browser:Render(_force)
 	-- or once owned/discovered; otherwise they are hidden and not counted.
 	local eventOn=Config.Event and Config.Event.Enabled==true
 	local found,total=0,0
-	for _,species in Catalog.Order do
+	for _,species in ORDER do
 		local shown=discovered[species]==true or not Catalog[species].limited or eventOn
 		self.cards[species].root.Visible=shown
 		if shown then total+=1 end
 		if discovered[species] then found+=1 end
 	end
 	self.app.panelTitle.Text="Chicken Index · "..found.."/"..total
-	for _,species in Catalog.Order do
+	for _,species in ORDER do
 		local view=self.cards[species]
 		local portraitScale=MenuLayout.Number(self.app.gui,"Index","PortraitScale",1.15,0.8,1.35)
 		view.preview.Size=UDim2.fromScale(portraitScale,portraitScale)
@@ -222,7 +244,7 @@ function Browser:Render(_force)
 			view.name.RichText=not collected
 			view.name.Text=if collected then definition.name
 				else string.format('<font color="#%s">%s</font> · %s',(Theme.Rarities[definition.rarity] or WHITE):ToHex(),definition.rarity,
-					if definition.hillExclusive then "Win the Hill "..Config.Hill.ChampionWins.." times" elseif definition.limitedLabel then definition.limitedLabel elseif crateOnly then "Galaxy Crate only" else "Roll")
+					if definition.hillExclusive then "Win the Hill "..Config.Hill.ChampionWins.." times" elseif definition.rebirthRank then "Reach Rebirth "..definition.rebirthRank elseif definition.limitedLabel then definition.limitedLabel elseif crateOnly then "Galaxy Crate only" else "Roll")
 			view.preview.ImageColor3=if collected then WHITE else BLACK
 			view.preview.Position=previewPosition(collected)
 			if collected then
