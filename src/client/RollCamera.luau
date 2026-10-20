@@ -1,61 +1,66 @@
 --!strict
--- Roll camera for the local player's own podiums (Oct 20 overhaul, S2): a push-in
--- during the shuffle, a zoom punch and shake when an Epic or rarer chicken lands,
--- and a slow orbit around Legendary, Mythic and Secret reveals. Auto Roll gets a
--- lighter push-in and punch with no shake or orbit. RollPresentationController
--- decides when a roll counts (own lever podium, nearby, no menu, normal camera,
--- motion on); this module only moves the view.
+-- Roll camera for the local player's own podiums (Oct 20 overhaul, S2), matched to
+-- Drop a Fruit's roll (Stevin's Oct 20 recording, measured frame by frame): the view
+-- zooms in through the shuffle; on the reveal it snaps far out, the world flashes,
+-- speed lines burst from the centre (in place of the reference's ring) and it eases
+-- back. Epic and up add a short shake; Legendary and up a bigger snap, a longer
+-- ease back and a brighter flash. The camera always stays with the player (Stevin
+-- removed the Legendary orbit). Auto Roll gets a lighter push-in, snap and flash.
+-- RollPresentationController decides when a roll counts (own lever podium, nearby,
+-- no menu, normal camera, motion on); this module only presents it.
 --
--- TweenService drives every move. Zooms tween Camera.FieldOfView directly. The
--- player camera rewrites Camera.CFrame every frame, so a tween on it would be
--- overwritten: the shake and orbit tween small values instead, and a render step
--- adds them right after the camera scripts and takes them off again before their
--- next update, so the player's own view never inherits the orbit. CameraType,
--- Focus and controls never change, so cutscenes can take the camera at any time.
-local Players = game:GetService("Players")
+-- TweenService drives every move. Zooms tween Camera.FieldOfView, and the flash
+-- tweens a local ColorCorrectionEffect on the camera (the world only, not the HUD).
+-- The player camera rewrites Camera.CFrame every frame, so the shake tweens a value
+-- that a render step adds right after the camera scripts and takes off again before
+-- their next update. CameraType, Focus and controls never change.
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Theme = require(script.Parent.UITheme)
 local RollCamera = {}
 RollCamera.__index = RollCamera
 
--- Camera feel: edit these, then restart Play. Ranks: 4 Epic, 5 Legendary, 6 Mythic, 7 Secret.
--- Push-in: degrees of zoom over the shuffle (2 before Oct 20). It holds until the chicken lands.
-local PUSH_DEGREES = 7
+-- Camera feel: edit these, then restart Play. Ranks: 1 Common … 4 Epic, 5 Legendary, 6 Mythic, 7 Secret.
+-- Shuffle push-in: degrees of zoom (11.5 ≈ the reference's 1.25x) over the whole shuffle.
+-- It holds until the chicken appears.
+local PUSH_DEGREES = 11.5
 local PUSH_EASING = Enum.EasingStyle.Sine
-local PUSH_DIRECTION = Enum.EasingDirection.In
-local LAND_WAIT_SECONDS = 1 -- a reveal later than this past the shuffle just eases back
--- Common to Rare: ease back out.
-local RETURN_SECONDS = 0.35
-local RETURN_EASING = Enum.EasingStyle.Back
-local RETURN_DIRECTION = Enum.EasingDirection.Out
--- Epic and up: extra zoom degrees on the landing thump, then the same Back ease out.
-local PUNCH_DEGREES = {[4] = 3, [5] = 4.5, [6] = 5.5, [7] = 6.5}
-local PUNCH_IN_SECONDS = 0.07
-local PUNCH_OUT_SECONDS = 0.5
--- Epic and up: shake size in studs, played as quick jolts that die down.
-local SHAKE_STUDS = {[4] = 0.18, [5] = 0.26, [6] = 0.34, [7] = 0.42}
+local PUSH_DIRECTION = Enum.EasingDirection.Out
+local REVEAL_WAIT_SECONDS = 1 -- no reveal this long past the shuffle: just ease back
+local RELEASE_SECONDS = 0.35 -- that ease back (Back Out)
+-- Reveal by rank: snap = degrees wider than normal (reached in SNAP_SECONDS), back =
+-- seconds to ease back (Quart In, so it lingers wide first), flash = world brightness,
+-- lines = speed lines, shake = studs (0 = none).
+local REVEAL = {
+	{snap = 28, back = 0.42, flash = 0.35, lines = 18, shake = 0}, -- Common (the reference)
+	{snap = 28, back = 0.42, flash = 0.35, lines = 18, shake = 0}, -- Uncommon
+	{snap = 28, back = 0.42, flash = 0.35, lines = 18, shake = 0}, -- Rare
+	{snap = 30, back = 0.48, flash = 0.4, lines = 22, shake = 0.18}, -- Epic
+	{snap = 34, back = 0.6, flash = 0.5, lines = 28, shake = 0.26}, -- Legendary
+	{snap = 36, back = 0.68, flash = 0.55, lines = 30, shake = 0.34}, -- Mythic
+	{snap = 38, back = 0.75, flash = 0.6, lines = 34, shake = 0.42}, -- Secret
+}
+local SNAP_SECONDS = 0.05
+local FLASH_TINT = Color3.fromRGB(205, 240, 255) -- the reference's cyan-white wash
+local FLASH_RARITY_MIX = 0.35 -- Epic and up lean the wash toward their rarity color
+local FLASH_HOLD_SECONDS = 0.08
+local LINES_SECONDS = 0.32
 local SHAKE_STEP_SECONDS = 0.04
 local SHAKE_PATTERN = {
 	Vector3.new(1, 0.6, 0), Vector3.new(-0.85, -0.4, 0), Vector3.new(0.6, -0.55, 0),
 	Vector3.new(-0.35, 0.3, 0), Vector3.new(0.15, -0.12, 0), Vector3.zero,
 }
--- Legendary and up: degrees swept in front of the chicken, and the orbit's length.
-local ORBIT_DEGREES = 55
-local ORBIT_SECONDS = {[5] = 3, [6] = 3.4, [7] = 3.8}
-local ORBIT_DELAY = 0.1 -- after the landing thump
-local ORBIT_IN_SECONDS = 0.55
-local ORBIT_OUT_SECONDS = 0.6
-local ORBIT_EXIT_SECONDS = 0.35 -- walking, buying it or pulling the lever again hands back early
--- Auto Roll: strength of the push-in and punch.
+-- Auto Roll: strength of the push-in, snap and flash; no speed lines or shake.
 local AUTO_STRENGTH = 0.5
 
-local MOST_ZOOM = PUSH_DEGREES
-for _, degrees in PUNCH_DEGREES do MOST_ZOOM = math.max(MOST_ZOOM, PUSH_DEGREES + degrees) end
+local MOST_SNAP = 0
+for _, feel in REVEAL do MOST_SNAP = math.max(MOST_SNAP, feel.snap) end
 local steps = 0
 
-function RollCamera.new()
+function RollCamera.new(app)
 	steps += 1
-	return setmetatable({zoom = nil, layer = nil, staleFov = nil, stepName = "PetRollRollCamera" .. steps}, RollCamera)
+	return setmetatable({app = app, zoom = nil, layer = nil, staleFov = nil, flash = nil, flashTween = nil,
+		lines = nil, stepName = "PetRollRollCamera" .. steps}, RollCamera)
 end
 
 local function same(a: CFrame, b: CFrame): boolean
@@ -63,48 +68,26 @@ local function same(a: CFrame, b: CFrame): boolean
 		and a.UpVector:Dot(b.UpVector) > 0.99999
 end
 
--- The first visible part between two points, skipping see-through ones (as IntroCutscene:Obstacle).
-local function obstacle(from: Vector3, to: Vector3, ignored: {Instance}): RaycastResult?
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	for _ = 1, 8 do
-		params.FilterDescendantsInstances = ignored
-		local hit = workspace:Raycast(from, to - from, params)
-		if not hit then return nil end
-		if hit.Instance.Transparency < 0.5 and hit.Instance.LocalTransparencyModifier < 1 then return hit end
-		table.insert(ignored, hit.Instance)
-	end
-	return nil
-end
-
--- progress 0..1 along the orbit's arc, looking at the chicken.
-local function shot(plan, progress: number): CFrame
-	local around = CFrame.Angles(0, plan.from + (plan.to - plan.from) * progress, 0):VectorToWorldSpace(plan.front)
-	return CFrame.lookAt(plan.center + around * plan.radius + Vector3.new(0, plan.lift, 0), plan.center)
-end
-
 -- Called every frame by RollPresentationController with:
 -- ok (motion on, alive, normal camera, no menu), near (lever podium in range),
--- roll ({key, startedAt, duration} while the lever podium shuffles), moving, auto,
--- gone (the orbited chicken left its podium, e.g. bought), and
--- landing ({rank, foot, front, height, ignore}: this frame's rarest fresh landing).
+-- roll ({key, startedAt, duration} while the lever podium shuffles), auto, and
+-- reveal ({rank, color}: the rarest chicken appearing on the player's podiums this frame).
 function RollCamera:Step(camera: Camera?, now: number, context)
 	if camera then self:FixStaleFov(camera) end
 	local usable = camera ~= nil and context.ok and context.near
+	if not usable then self:ClearEffects() end
 	if self.layer and (not usable or self.layer.camera ~= camera) then self:StopLayer() end
 	if self.zoom and (not usable or self.zoom.camera ~= camera) then self:ClearZoom() end
 	if not usable or not camera then return end
 	local roll, zoom = context.roll, self.zoom
 	if roll and (not zoom or zoom.key ~= roll.key or zoom.startedAt ~= roll.startedAt or zoom.duration ~= roll.duration) then
-		self:EndOrbit()
 		self:StartPush(camera, roll, now, if context.auto then AUTO_STRENGTH else 1)
 		zoom = self.zoom
 	end
-	if context.moving or context.gone then self:EndOrbit() end
 	if zoom and not zoom.landed then
-		if context.landing then
-			self:Land(zoom, context.landing, context.auto)
-		elseif now >= zoom.startedAt + zoom.duration + LAND_WAIT_SECONDS then
+		if context.reveal then
+			self:Reveal(zoom, context.reveal, context.auto)
+		elseif now >= zoom.startedAt + zoom.duration + REVEAL_WAIT_SECONDS then
 			self:Release()
 		end
 	end
@@ -141,27 +124,27 @@ function RollCamera:StartPush(camera: Camera, roll, now: number, strength: numbe
 	self:TweenFov(zoom, base - degrees, remaining, PUSH_EASING, PUSH_DIRECTION)
 end
 
-function RollCamera:Land(zoom, landing, auto: boolean)
-	local rank = math.min(landing.rank, 7)
-	local punch = PUNCH_DEGREES[rank]
-	if not punch then self:Release();return end
+-- The chicken appears: snap far out, then ease back while the flash fades.
+function RollCamera:Reveal(zoom, reveal, auto: boolean)
 	zoom.landed = true
-	local camera = zoom.camera
-	self:TweenFov(zoom, math.max(1, zoom.base - zoom.degrees - punch * zoom.strength), PUNCH_IN_SECONDS,
+	local rank = math.clamp(math.floor(reveal.rank or 1), 1, #REVEAL)
+	local feel = REVEAL[rank]
+	local back = if auto then feel.back * 0.75 else feel.back
+	self:TweenFov(zoom, math.min(119, zoom.base + feel.snap * zoom.strength), SNAP_SECONDS,
 		Enum.EasingStyle.Quad, Enum.EasingDirection.Out, function()
-			self:TweenFov(zoom, zoom.base, PUNCH_OUT_SECONDS, RETURN_EASING, RETURN_DIRECTION, function() self:DropZoom(zoom) end)
+			self:TweenFov(zoom, zoom.base, back, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function() self:DropZoom(zoom) end)
 		end)
+	self:Flash(zoom.camera, feel.flash * zoom.strength, if rank >= 4 then reveal.color else nil, SNAP_SECONDS + back)
 	if auto then return end
-	self:Shake(camera, SHAKE_STUDS[rank])
-	local seconds = ORBIT_SECONDS[rank]
-	if seconds then self:Orbit(camera, landing, seconds) end
+	self:SpeedLines(feel.lines)
+	self:Shake(zoom.camera, feel.shake)
 end
 
 function RollCamera:Release()
 	local zoom = self.zoom
 	if not zoom then return end
 	zoom.landed = true
-	self:TweenFov(zoom, zoom.base, RETURN_SECONDS, RETURN_EASING, RETURN_DIRECTION, function() self:DropZoom(zoom) end)
+	self:TweenFov(zoom, zoom.base, RELEASE_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out, function() self:DropZoom(zoom) end)
 end
 
 function RollCamera:DropZoom(zoom)
@@ -191,19 +174,93 @@ function RollCamera:FixStaleFov(camera: Camera)
 	if not stale or camera.CameraType ~= Enum.CameraType.Custom then return end
 	self.staleFov = nil
 	local fov = camera.FieldOfView
-	if stale.camera == camera and math.abs(fov - stale.base) > 0.01 and fov > stale.base - MOST_ZOOM - 1
-		and fov < stale.base + 3 then
+	if stale.camera == camera and math.abs(fov - stale.base) > 0.01 and fov > stale.base - PUSH_DEGREES - 1
+		and fov < stale.base + MOST_SNAP + 1 then
 		camera.FieldOfView = stale.base
 	end
 end
 
--- Shake and orbit layer ----------------------------------------------------
+-- Flash and speed lines ----------------------------------------------------
+
+-- A cyan-white wash of the world (Epic and up tinted by rarity) that holds a moment
+-- and fades as the zoom eases back.
+function RollCamera:Flash(camera: Camera, brightness: number, color: Color3?, seconds: number)
+	if brightness <= 0 then return end
+	local effect = self.flash
+	if not effect or effect.Parent ~= camera then
+		if effect then effect:Destroy() end
+		effect = Instance.new("ColorCorrectionEffect")
+		effect.Name = "PetRollRollFlash"
+		effect.Parent = camera
+		self.flash = effect
+	end
+	if self.flashTween then self.flashTween:Cancel();self.flashTween:Destroy() end
+	local amount = brightness / 0.35
+	effect.Brightness, effect.Contrast, effect.Saturation = brightness, -0.15 * amount, -0.3 * amount
+	effect.TintColor = if color then FLASH_TINT:Lerp(color, FLASH_RARITY_MIX) else FLASH_TINT
+	effect.Enabled = true
+	local tween = TweenService:Create(effect, TweenInfo.new(math.max(0.05, seconds - FLASH_HOLD_SECONDS),
+		Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, FLASH_HOLD_SECONDS),
+		{Brightness = 0, Contrast = 0, Saturation = 0, TintColor = Color3.new(1, 1, 1)})
+	self.flashTween = tween
+	tween.Completed:Once(function(state)
+		if state == Enum.PlaybackState.Completed and self.flashTween == tween then
+			self.flashTween = nil
+			effect.Enabled = false
+		end
+	end)
+	tween:Play()
+end
+
+-- White rush lines bursting out from the screen centre, under the HUD.
+function RollCamera:SpeedLines(count: number)
+	local gui = self.app and self.app.gui
+	if not gui or count <= 0 then return end
+	local holder = self.lines
+	if not holder or holder.Parent ~= gui then
+		holder = Theme.Container(gui, "RollRevealLines")
+		holder.ZIndex = 0
+		self.lines = holder
+	end
+	local size = holder.AbsoluteSize
+	local center, reach = size / 2, math.max(size.X, size.Y) * 0.5
+	local random = Random.new()
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2 + random:NextNumber(-0.12, 0.12)
+		local direction = Vector2.new(math.cos(angle), math.sin(angle))
+		local near, far = center + direction * reach * random:NextNumber(0.3, 0.5), center + direction * reach * 1.15
+		local line = Instance.new("Frame")
+		line.Name, line.AnchorPoint, line.BorderSizePixel = "Line", Vector2.new(0.5, 0.5), 0
+		line.BackgroundColor3, line.BackgroundTransparency = Color3.new(1, 1, 1), 0.15
+		line.Size = UDim2.fromOffset(reach * random:NextNumber(0.25, 0.4), math.max(2, size.Y * 0.005))
+		line.Rotation, line.Position, line.Parent = math.deg(angle), UDim2.fromOffset(near.X, near.Y), holder
+		local tween = TweenService:Create(line, TweenInfo.new(LINES_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out,
+			0, false, random:NextNumber(0, 0.05)), {Position = UDim2.fromOffset(far.X, far.Y), BackgroundTransparency = 1})
+		tween.Completed:Once(function() line:Destroy() end)
+		tween:Play()
+	end
+end
+
+function RollCamera:ClearEffects()
+	if self.flashTween then
+		self.flashTween:Cancel();self.flashTween:Destroy();self.flashTween = nil
+		local effect = self.flash
+		if effect then
+			effect.Enabled = false
+			effect.Brightness, effect.Contrast, effect.Saturation, effect.TintColor = 0, 0, 0, Color3.new(1, 1, 1)
+		end
+	end
+	local holder = self.lines
+	if holder and #holder:GetChildren() > 0 then holder:ClearAllChildren() end
+end
+
+-- Shake layer ---------------------------------------------------------------
 
 function RollCamera:Layer(camera: Camera)
 	local layer = self.layer
 	if layer then return layer end
 	layer = {camera = camera, shake = Instance.new("Vector3Value"), shakeSerial = 0, shaking = false,
-		shakeTween = nil, orbit = nil, base = nil, applied = nil}
+		shakeTween = nil, base = nil, applied = nil}
 	self.layer = layer
 	RunService:BindToRenderStep(self.stepName .. "Restore", Enum.RenderPriority.Camera.Value - 1, function() self:Restore() end)
 	RunService:BindToRenderStep(self.stepName .. "Apply", Enum.RenderPriority.Camera.Value + 1, function() self:Apply() end)
@@ -222,24 +279,15 @@ function RollCamera:Restore()
 	end
 end
 
--- After the camera scripts: shake in view space, then blend toward the orbit shot.
+-- After the camera scripts: the shake, in view space.
 function RollCamera:Apply()
 	local layer = self.layer
 	local camera = workspace.CurrentCamera
 	if not layer or camera ~= layer.camera or camera.CameraType ~= Enum.CameraType.Custom then return end
 	local base = camera.CFrame
-	local shake = CFrame.new(layer.shake.Value)
-	local goal = base * shake
-	local orbit = layer.orbit
-	if orbit and orbit.blend.Value > 0 then
-		goal = goal:Lerp(shot(orbit.plan, orbit.angle.Value) * shake, orbit.blend.Value)
-	end
+	local goal = base * CFrame.new(layer.shake.Value)
 	layer.base, layer.applied = base, goal
 	camera.CFrame = goal
-end
-
-function RollCamera:StopIfIdle(layer)
-	if self.layer == layer and not layer.orbit and not layer.shaking then self:StopLayer() end
 end
 
 function RollCamera:StopLayer()
@@ -252,12 +300,6 @@ function RollCamera:StopLayer()
 	RunService:UnbindFromRenderStep(self.stepName .. "Apply")
 	layer.shakeSerial += 1
 	if layer.shakeTween then layer.shakeTween:Cancel();layer.shakeTween:Destroy() end
-	local orbit = layer.orbit
-	layer.orbit = nil
-	if orbit then
-		for _, tween in orbit.tweens do tween:Cancel();tween:Destroy() end
-		orbit.angle:Destroy();orbit.blend:Destroy()
-	end
 	layer.shake:Destroy()
 end
 
@@ -272,7 +314,7 @@ function RollCamera:Shake(camera: Camera, studs: number?)
 		local target = SHAKE_PATTERN[index]
 		if not target then
 			layer.shaking = false
-			self:StopIfIdle(layer)
+			self:StopLayer()
 			return
 		end
 		if layer.shakeTween then layer.shakeTween:Destroy() end
@@ -287,85 +329,12 @@ function RollCamera:Shake(camera: Camera, studs: number?)
 	jolt(1)
 end
 
--- An arc in front of the chicken that starts on the camera's side, so the swing
--- never crosses it, pulled in front of anything solid along the way. Nil when
--- there is no room.
-function RollCamera:PlanOrbit(camera: Camera, landing)
-	local front = Vector3.new(landing.front.X, 0, landing.front.Z)
-	if front.Magnitude < 0.01 then return nil end
-	front = front.Unit
-	local height = math.clamp(landing.height or 3, 1.5, 30)
-	local center = landing.foot + Vector3.new(0, height * 0.55, 0)
-	local side = if (camera.CFrame.Position - center):Dot(front:Cross(Vector3.yAxis)) >= 0 then 1 else -1
-	local half = math.rad(ORBIT_DEGREES) / 2
-	local radius = math.clamp(height * 1.8 + 7, 10, 26)
-	local plan = {center = center, front = front, from = -side * half, to = side * half, radius = radius, lift = radius * 0.3 + 1}
-	local ignored: {Instance} = table.clone(landing.ignore or {})
-	local character = Players.LocalPlayer.Character
-	if character then table.insert(ignored, character) end
-	for step = 0, 4 do
-		local probe = shot(plan, step / 4).Position
-		local hit = obstacle(center, probe, ignored)
-		if hit then radius = math.min(radius, plan.radius * (hit.Distance - 1.2) / (probe - center).Magnitude) end
-	end
-	if radius < math.max(6, height * 1.2 + 3) then return nil end
-	plan.radius, plan.lift = radius, radius * 0.3 + 1
-	return plan
-end
-
-function RollCamera:Orbit(camera: Camera, landing, seconds: number)
-	local plan = self:PlanOrbit(camera, landing)
-	if not plan then return end
-	local layer = self:Layer(camera)
-	local orbit = {plan = plan, angle = Instance.new("NumberValue"), blend = Instance.new("NumberValue"), tweens = {}, ending = false}
-	layer.orbit = orbit
-	local function play(value: NumberValue, goal: number, time: number, style: Enum.EasingStyle,
-		direction: Enum.EasingDirection, delay: number, done: (() -> ())?)
-		local tween = TweenService:Create(value, TweenInfo.new(time, style, direction, 0, false, delay), {Value = goal})
-		table.insert(orbit.tweens, tween)
-		if done then
-			tween.Completed:Once(function(state)
-				if state == Enum.PlaybackState.Completed and layer.orbit == orbit then done() end
-			end)
-		end
-		tween:Play()
-	end
-	local hold = math.max(0, seconds - ORBIT_DELAY - ORBIT_IN_SECONDS - ORBIT_OUT_SECONDS)
-	play(orbit.angle, 1, seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0)
-	play(orbit.blend, 1, ORBIT_IN_SECONDS, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, ORBIT_DELAY, function()
-		play(orbit.blend, 0, ORBIT_OUT_SECONDS, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, hold, function()
-			self:DropOrbit(layer, orbit)
-		end)
-	end)
-end
-
--- Freeze the swing where it is and ease back to the player's own view.
-function RollCamera:EndOrbit()
-	local layer = self.layer
-	local orbit = layer and layer.orbit
-	if not layer or not orbit or orbit.ending then return end
-	orbit.ending = true
-	for _, tween in orbit.tweens do tween:Cancel() end
-	local tween = TweenService:Create(orbit.blend,
-		TweenInfo.new(ORBIT_EXIT_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Value = 0})
-	table.insert(orbit.tweens, tween)
-	tween.Completed:Once(function(state)
-		if state == Enum.PlaybackState.Completed then self:DropOrbit(layer, orbit) end
-	end)
-	tween:Play()
-end
-
-function RollCamera:DropOrbit(layer, orbit)
-	if layer.orbit ~= orbit then return end
-	layer.orbit = nil
-	for _, tween in orbit.tweens do tween:Cancel();tween:Destroy() end
-	orbit.angle:Destroy();orbit.blend:Destroy()
-	self:StopIfIdle(layer)
-end
-
 function RollCamera:Destroy()
+	self:ClearEffects()
 	self:StopLayer()
 	self:ClearZoom()
+	if self.flash then self.flash:Destroy();self.flash = nil end
+	if self.lines then self.lines:Destroy();self.lines = nil end
 end
 
 return RollCamera
