@@ -365,7 +365,8 @@ function BattleService:Targets(session,now)
    local id=CampaignRoute.CampId(i,owner.plotIndex,session.plotIndex)
    lanePromotion[id]=promotion
    table.insert(targets,{id=id,name=self:TargetName(session,id),kind="Camp",holdBonus=self:HoldBonus(campKey(owner.plotIndex,i)),
-    power=scaledPower(Progression.Roster(promotion,i),enemyScale(owner)),count=#camp.roster,
+    -- October 20 (Rebirth v2): shown at the attacker's rank, the same scale the fight uses.
+    power=scaledPower(Progression.Roster(promotion,i),enemyScale(session)),count=#camp.roster,
     lanePlot=owner.plotIndex,laneOwnerId=owner.userId,laneOwnerName=if owner==session then nil else owner.name,
     available=false,reason="Ready"})
   end

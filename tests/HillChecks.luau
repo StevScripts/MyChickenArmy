@@ -61,7 +61,7 @@ function Checks.Run()
   assert(hill.phase=="Open","Did not open after the arena cleared")
   return "Opening waits for an empty arena"
  end)
- test("Boost ramps 10% a minute to 50% and pays away chickens plus the farm boost",function()
+ test("Boost ramps 10% a minute to 50% and pays the Flock's shortfall plus the laying boost",function()
   local hill,battles,a,b=setup()
   hill:Step(.1,H.FirstBreakSeconds+.1)
   local t=H.FirstBreakSeconds+1
@@ -69,12 +69,15 @@ function Checks.Run()
   assert(hill:Boost(a.userId,t)==0)
   assert(math.abs(hill:Boost(a.userId,t+60)-0.10)<1e-6,"1 minute boost")
   assert(hill:Boost(a.userId,t+600)==H.BoostMax,"Boost cap")
-  local farm=0;for _,pet in a.pets do farm+=Hill.PetRate(a,pet) end
-  local id=next(a.pets);a.awayPets={[id]=true}
-  local expected=Hill.PetRate(a,a.pets[id])+farm*0.10
+  -- October 20 Flock: only Flock layers earn; a Flock chicken out on the Hill is
+  -- covered by a fill-in, and any shortfall is paid to the holder.
+  local function sum(ids) local total=0;for _,id in ids do total+=Hill.PetRate(a,a.pets[id]) end;return total end
+  local id=a:FlockIds()[1];a.awayPets={[id]=true}
+  local laying=sum(a:LayingIds())
+  local expected=math.max(0,sum(a:FlockIds())-laying)+laying*0.10
   assert(math.abs(hill:Rate(a,t+60)-expected)<1e-6,"Rate mismatch")
   assert(hill:Rate(a,t+60)>0 and hill:Rate(b,t+60)==0,"Only the holder is paid")
-  return string.format("Rate at +10%% = %.2f/s on a %.2f/s farm",expected,farm)
+  return string.format("Rate at +10%% = %.2f/s on %.2f/s laying",expected,laying)
  end)
  test("Longest hold wins a Hill Roll; the round closes and the King returns",function()
   local hill,battles,a,b=setup()

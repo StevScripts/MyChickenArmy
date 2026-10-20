@@ -66,17 +66,21 @@ function HillService:Boost(userId,now)
  return math.min(hill.BoostMax,hill.BoostPerMinute*math.max(0,now-self.heldSince)/60)
 end
 
--- Holder pay: chickens out on the Hill keep "laying" (no egg loss for holding)
--- plus the hold boost on the whole farm.
+-- Holder pay: the Flock keeps its full rate while the army holds the Hill (fill-ins
+-- cover chickens out on the Hill; any shortfall is paid here), plus the hold boost on
+-- what is actually laying. October 20: only Flock layers earn (FlockIds/LayingIds).
 function HillService:Rate(session,now)
  if not ready(session) or session.userId~=self.holderId or self.phase~="Open" then return 0 end
- local farm,away=0,0
- for id,pet in session.pets do
-  local rate=HillService.PetRate(session,pet)
-  farm+=rate
-  if session.awayPets and session.awayPets[id] then away+=rate end
+ local function sum(ids)
+  local total=0
+  for _,id in ids do
+   local pet=session.pets[id]
+   if pet then total+=HillService.PetRate(session,pet) end
+  end
+  return total
  end
- return away+farm*self:Boost(session.userId,now)
+ local laying=sum(session:LayingIds())
+ return math.max(0,sum(session:FlockIds())-laying)+laying*self:Boost(session.userId,now)
 end
 
 function HillService:KingLock(now)
