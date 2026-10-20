@@ -50,8 +50,10 @@ AppController.__index = AppController
 local C = Theme.Colors
 local MenuLayout = require(script.Parent.MenuLayout)
 -- Routine army commands confirm themselves on the HUD (status line, Army count); only failures notify.
-local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true,
-	FlockEquip = true, FlockUnequip = true, FlockBest = true}
+local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true}
+
+-- October 20 Flock edits confirm themselves in My Army (the strip, counts and card pops).
+for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
