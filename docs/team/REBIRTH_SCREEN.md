@@ -82,10 +82,8 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
 
 `Theme.GemArt` in `UITheme` holds one rbxassetid per key; the keys match S6's file
 names. The ids come from `assets/upgrade-icons-20261020/upload-receipts.json`
-(uploaded October 20). Extra Luck reuses the Luck tree icon and Rally the war horn.
-Auto Roll waits for Stevin's look at its icon and borrows the Roll Slot icon
-(`GEM_ART_FALLBACK`) until then. A key with no art draws a placeholder gem
-(`Theme.GemIcon`).
+(uploaded October 20; all approved). Extra Luck reuses the Luck tree icon and Rally
+the war horn. A key with no art draws a placeholder gem (`Theme.GemIcon`).
 
 ## Preview
 

@@ -71,7 +71,7 @@ Theme.Assets.Cash = Theme.Assets.Coin
 -- October 20 overhaul (S8): Gems, the Rebirth currency, in the premium purple
 -- (docs/team/OVERHAUL_CONTRACT_20261020.md §6-8). S6's art, keyed by its file names
 -- (assets/upgrade-icons-20261020/upload-receipts.json); Extra Luck and Rally reuse
--- in-game icons. An empty id borrows GEM_ART_FALLBACK, else GemIcon draws a gem.
+-- in-game icons. A key without art draws a placeholder gem (GemIcon).
 Theme.GemColors = {
 	Number=Color3.fromRGB(214,173,255), Top=Color3.fromRGB(168,94,242), Bottom=Color3.fromRGB(116,49,196),
 	SkipTop=Color3.fromRGB(201,117,245), SkipBottom=Color3.fromRGB(139,53,209),
@@ -80,15 +80,12 @@ Theme.GemColors = {
 Theme.GemArt = {
 	Gems="rbxassetid://73702372942908", TimeSkip="rbxassetid://74175802298844",
 	RollSpeed="rbxassetid://70386312720480", ExtraLuck="rbxassetid://136683191941433", -- Luck tree icon
-	VacuumCapacity="rbxassetid://72175945483273", AutoRoll="", -- waits for Stevin's look
+	VacuumCapacity="rbxassetid://72175945483273", AutoRoll="rbxassetid://83070773137079",
 	CoinBoost="rbxassetid://135324018337151", AutoRebirth="rbxassetid://114580276298082",
 	MoreGems="rbxassetid://100810362507044", KeepUpgrades="rbxassetid://112863599177649",
 	Rally=Theme.Assets.Rally, MutationLuck="rbxassetid://131360952198245",
 	OfflineCoins="rbxassetid://139396997085549", ArmyPower="rbxassetid://103869254129016",
 	RebirthChickenOdds="rbxassetid://114829354407655",
-}
-local GEM_ART_FALLBACK = {
-	AutoRoll="rbxassetid://91702817085017", -- Roll Slot icon until S6's Auto Roll art is approved
 }
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a
@@ -934,13 +931,12 @@ end
 function Theme.Gems(value) local text=Theme.Money(value);return text..(if text=="1" then " Gem" else " Gems") end
 
 -- Uploaded Gem art for a key ("Gems", "RollSpeed" or a catalog icon key such as
--- "gemRollSpeed"); nil when neither S6's art nor a stand-in exists.
+-- "gemRollSpeed"); nil when the key has no art.
 function Theme.GemArtId(key: string?): string?
 	if type(key)~="string" then return nil end
 	local name=if key:sub(1,3)=="gem" and #key>3 then key:sub(4) else key
 	local id=Theme.GemArt[name]
-	if type(id)=="string" and id~="" then return id end
-	return GEM_ART_FALLBACK[name]
+	return if type(id)=="string" and id~="" then id else nil
 end
 
 -- A Gem icon. Without uploaded art it is a placeholder: a purple stone with a
