@@ -348,7 +348,8 @@ Schema.FeatureFunnels = {
 		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize|BuyUpgrade Flock*"},
 		{id = "BuildStarted", trigger = "server:plot.buildStart"},
 		{id = "BuildDone", trigger = "server:plot.buildDone"},
-		{id = "Max", trigger = "state:collectionLimit>=100"},
+		{id = "Max", trigger = "retired October 20 (storage cap 1,000; see FlockMax)"},
+		{id = "FlockMax", trigger = "state:effects.flockSize at the top Flock Size tier (version 7)"},
 	}},
 	{id = "Hill", steps = {
 		{id = "Entered", trigger = "server:hill.enter"},

@@ -124,7 +124,7 @@ function HillService:Close(now)
   self.lastWinner=winner.name
   local granted=self:Deliver(winner)
   winner.banner=if granted[1] then "You won the Hill! Hill Roll: "..Catalog[granted[1]].name.." joined your flock."
-   else "You won the Hill! Make room in your flock to receive your Hill Roll."
+   else "You won the Hill! You have the most chickens you can keep ("..Config.StorageLimit.."): sell some to receive your Hill Roll."
   winner:Touch()
   self:Report(winner.userId,"hill.win")
   if self.battles.telemetry then

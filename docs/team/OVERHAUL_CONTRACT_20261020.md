@@ -250,11 +250,13 @@ Hooks other owners add (one call each):
   so `WorldService`/`PlotUpgradeService` keep growing the yard. `UpgradeCatalog`
   keeps `PlotPrices`/`PlotScales`/`PlotCapacity`/`EggSpeedPrices`/`RollSlotPrices` as
   compatibility views for those readers and the old cash hexes; S9/S10 may drop them.
-- Time Skip pays `timeSkipMinutes` × the post-Rebirth egg income of the best
-  `Flock.base` (3) chickens. That income uses the kept tiers, the new rank's
-  multiplier, Coin Boost, 2x Coins and 2x Egg Spawn, with a floor of
-  `DailyService.MinIncome`. It is credited through `Credit(..., "rebirth")`
-  (analytics source `TimeSkip`). `state.rebirth.timeSkipCoins` previews that exact amount.
+- Time Skip pays `timeSkipMinutes` × the egg income the player has right before the
+  Rebirth: the best Flock-size chickens at today's tiers, Chicken Feed levels and rank,
+  with Coin Boost, 2x Coins and 2x Egg Spawn. It is steady (no Gold Rush or Friend
+  Boost) and floored at `DailyService.MinIncome`. It is credited after the reset
+  through `Credit(..., "rebirth")` (analytics source `TimeSkip`), and
+  `state.rebirth.timeSkipCoins` previews that exact amount. P0 chose this over the
+  post-reset income, which paid a few millionths of a rank's cost.
 - `BuyUpgrade` counts like `CashUpgrade` in `TutorialService:Action`, `AnalyticsFunnels`
   (Upgrades FirstBuy; a `Flock*` node counts as Plot Expanded) and `AnalyticsPlayer`.
 - Admin (lead-approved): `upgrade <target> <all|node>` (replaces `research`), `army`
@@ -304,8 +306,8 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 - **Rewards:**
   - Egg Coins x(1 + rank).
   - Gems = (40 + 10 × rank) × (1 + `gemBonus`), floored.
-  - Time Skip: `timeSkipMinutes` of post-reset egg income (exact rule in
-    "Rule changes" under §5).
+  - Time Skip: `timeSkipMinutes` of the egg income just before the reset (exact rule
+    in "Rule changes" under §5).
   - That rank's Rebirth chicken, Lv 1, free. Above `StorageLimit` it waits in
     `rebirthChickenCredits`.
   - Mutation unlocks: Rainbow at Rebirth 1, Shadow at 5, Cosmic at 10.

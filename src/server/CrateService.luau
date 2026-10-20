@@ -27,7 +27,7 @@ function CrateService:Open(session)
   return false,"Checking crate availability. Try again in a moment."
  end
  if session.crateCredits<1 then return false,"You have no crates to open." end
- if session:Count()>=session:CollectionLimit() then return false,"Make room in your flock first. Your crate is safe." end
+ if session:Count()>=session:CollectionLimit() then return false,"You have the most chickens you can keep ("..Config.StorageLimit.."). Sell some first. Your crate is safe." end
  local total=0
  for _,entry in definition.rewards do
   if not Catalog[entry.species] or type(entry.chance)~="number" or entry.chance~=entry.chance

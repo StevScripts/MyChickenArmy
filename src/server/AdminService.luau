@@ -343,7 +343,7 @@ handlers.chicken=function(self,actor,args)
 			pet.level=level;pet.investment=Rules.Investment(species,level)
 			added+=1
 		end
-		if added==0 then return false,"Their flock is full." end
+		if added==0 then return false,"They have the most chickens they can keep." end
 		given+=added;assisted(session);session:RefreshArmy()
 		return true
 	end)

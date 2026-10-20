@@ -113,17 +113,16 @@ local function keptTree(session): {[string]: number}
 	return tree
 end
 
--- Egg Coins per second for Time Skip: the best `layers` chickens at the given tiers
--- and rank, with 2x Egg Spawn, 2x Coins and Coin Boost. `simulateReset` drops Chicken
--- Feed levels and uses the kept tiers and base Flock, so the panel's preview equals
--- the reward. The daily reward's income floor applies.
-local function eggIncome(session, rank: number, simulateReset: boolean): number
-	local tree = if simulateReset then keptTree(session) else session.upgradeTree
-	local layers = if simulateReset then UpgradeCatalog.Families.Flock.base else UpgradeCatalog.Value(tree, "Flock")
+-- Egg Coins per second for Time Skip: what the player earns right now, before the
+-- reset. That is the best Flock-size chickens at today's tiers, Chicken Feed levels and
+-- rank, with 2x Egg Spawn, 2x Coins and Coin Boost, but no live Gold Rush or Friend
+-- Boost (a steady rate, like offline and daily rewards). The daily income floor applies.
+local function eggIncome(session): number
+	local tree = session.upgradeTree
+	local layers = UpgradeCatalog.Value(tree, "Flock")
 	local rates = {}
 	for _, pet in session.pets or {} do
-		local level = math.max(1, (pet.level or 1) - (if simulateReset then pet.cashLevels or 0 else 0))
-		table.insert(rates, Rules.EggRate(pet.species, pet.stars or 1, level) * MutationCatalog.Multiplier(pet.mutation))
+		table.insert(rates, Rules.EggRate(pet.species, pet.stars or 1, pet.level) * MutationCatalog.Multiplier(pet.mutation))
 	end
 	table.sort(rates, function(a, b) return a > b end)
 	local eggs = 0
@@ -133,16 +132,19 @@ local function eggIncome(session, rank: number, simulateReset: boolean): number
 	local speed = UpgradeCatalog.EggSpeedRates[UpgradeCatalog.Tier(tree, "EggSpeed") + 1] or 1
 	local rate = eggs * speed * (if entitlements.DoubleEggSpawn then 2 else 1)
 		* Rules.EggUnitValue(UpgradeCatalog.Tier(tree, "EggValue"))
-		* (if entitlements.DoubleCash then 2 else 1) * RebirthService.Multiplier(rank) * (1 + (effects.coinBoost or 0))
+		* (if entitlements.DoubleCash then 2 else 1) * RebirthService.Multiplier(session.rebirths or 0)
+		* (1 + (effects.coinBoost or 0))
 	if rate ~= rate or rate == math.huge then return DailyService.MinIncome end
 	return math.max(DailyService.MinIncome, rate)
 end
 
--- Coins Time Skip pays for the Rebirth to `rank` (timeSkipMinutes of egg income).
-function RebirthService.TimeSkipCoins(session, rank: number, simulateReset: boolean): number
+-- Coins Time Skip pays on the next Rebirth: timeSkipMinutes of today's egg income,
+-- measured just before the reset (the panel's preview is the same number). P0 chose
+-- this over the post-reset income, which paid a few millionths of a rank's cost.
+function RebirthService.TimeSkipCoins(session): number
 	local minutes = session.researchEffects and session.researchEffects.timeSkipMinutes or 0
 	if minutes <= 0 then return 0 end
-	local coins = math.floor(eggIncome(session, rank, simulateReset) * minutes * 60)
+	local coins = math.floor(eggIncome(session) * minutes * 60)
 	return math.max(0, math.min(coins, Currency.MaxCoins))
 end
 
@@ -211,7 +213,7 @@ function RebirthService.Quote(session)
 		enemyScaleNext = if nextRank then RebirthService.EnemyScale(nextRank) else nil,
 		gemsNext = if nextRank then RebirthService.Gems(session, nextRank) else nil,
 		timeSkipMinutes = effects.timeSkipMinutes or 0,
-		timeSkipCoins = if nextRank then RebirthService.TimeSkipCoins(session, nextRank, true) else 0,
+		timeSkipCoins = if nextRank then RebirthService.TimeSkipCoins(session) else 0,
 		nextChicken = chickenInfo(nextRank),
 		keepTiers = effects.keepTiers or 0,
 		resets = resets,
@@ -334,6 +336,8 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	if session.defending ~= nil or battleInvolves(session, server) then return false, ARMY_AWAY end
 	local nextRank = quote.nextRank :: number
 	local coinsBefore = session.coins
+	-- Time Skip is measured on today's run, before anything resets.
+	local timeSkip = RebirthService.TimeSkipCoins(session)
 	-- 5. Release every held camp, outpost and the King. Camp and King progress stay.
 	releaseTerritories(session, server)
 	-- Yard eggs: EggService:Release settles in-flight claims and rover cargo into the
@@ -356,11 +360,10 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	session.rebirths = nextRank
 	-- Derived run state (Army Size, podiums, Flock, Luck tiers) follows the tree.
 	session:RefreshEffects()
-	-- 7. Rewards: Gems, Time Skip Coins (at the new rank and reset tiers) and the chicken.
+	-- 7. Rewards: Gems, Time Skip Coins (measured above) and the chicken.
 	local gems = RebirthService.Gems(session, nextRank)
 	session.gems = math.min(1e12, (session.gems or 0) + gems)
 	session.gemsEarned = math.min(1e12, (session.gemsEarned or 0) + gems)
-	local timeSkip = RebirthService.TimeSkipCoins(session, nextRank, false)
 	timeSkip = math.max(0, math.floor(math.min(timeSkip, Currency.MaxCoins - session.coins)))
 	-- "rebirth" is not an earned source, so Credit pays it exactly (analytics: TimeSkip).
 	if timeSkip > 0 then timeSkip = session:Credit(timeSkip, "rebirth") end

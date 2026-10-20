@@ -324,7 +324,7 @@ function CommerceService:PreparePurchase(player,session,key,productReady,_jobId)
   -- One step at a time; the chicken needs a free Flock spot.
   if (session.chickenOfferStep or 0)>=definition.chickenOffer then return false,"You already own this offer." end
   if (session.chickenOfferStep or 0)+1~=definition.chickenOffer then return false,"Unlock the earlier offers first." end
-  if session:Count()>=session:CollectionLimit() then return false,"Make room in your Flock first." end
+  if session:Count()>=session:CollectionLimit() then return false,"You have the most chickens you can keep ("..Config.StorageLimit.."). Sell some first." end
  end
  if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
  if definition.crates and session.crateCredits>1e9-definition.crates then return false,"Open some crates before buying more." end

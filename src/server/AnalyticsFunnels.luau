@@ -14,6 +14,12 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog = require(Shared.PetCatalog) :: any
 local ShopCatalog = require(Shared.ShopCatalog) :: any
 local Schema = require(script.Parent.AnalyticsSchema)
+local UpgradeCatalog = require(Shared.UpgradeCatalog)
+-- Flock Size at its top tier (the Plot funnel's FlockMax step).
+local FlockMax = (function()
+	local tiers = UpgradeCatalog.Families.Flock.tiers
+	return tiers[#tiers].value
+end)()
 local RobloxSteps = Schema.RobloxSteps :: any
 local RobloxNames = Schema.Funnels :: any
 
@@ -444,7 +450,10 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 		if rank >= 10 then named(self, st, "Rebirth", "Rebirth10") end
 	end
 
-	if (tonumber(state.collectionLimit) or 0) >= 100 then named(self, st, "Plot", "Max") end
+	-- October 20: Plot Max retired (CollectionLimit is the 1,000 storage cap); FlockMax
+	-- marks the top Flock Size tier instead.
+	local effects = state.effects
+	if type(effects) == "table" and (tonumber(effects.flockSize) or 0) >= FlockMax then named(self, st, "Plot", "FlockMax") end
 	if dailyAvailable(self, session, state) then named(self, st, "Daily", "Available") end
 end
 
