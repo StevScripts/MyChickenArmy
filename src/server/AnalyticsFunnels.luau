@@ -14,6 +14,12 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog = require(Shared.PetCatalog) :: any
 local ShopCatalog = require(Shared.ShopCatalog) :: any
 local Schema = require(script.Parent.AnalyticsSchema)
+local UpgradeCatalog = require(Shared.UpgradeCatalog)
+-- Flock Size at its top tier (the Plot funnel's FlockMax step).
+local FlockMax = (function()
+	local tiers = UpgradeCatalog.Families.Flock.tiers
+	return tiers[#tiers].value
+end)()
 local RobloxSteps = Schema.RobloxSteps :: any
 local RobloxNames = Schema.Funnels :: any
 
@@ -57,6 +63,7 @@ local ActionSteps = {
 	Buy = {{"Roll", "Recruited"}},
 	CashUpgrade = {{"Upgrades", "FirstBuy"}},
 	BoardUpgrade = {{"Upgrades", "FirstBuy"}},
+	BuyUpgrade = {{"Upgrades", "FirstBuy"}}, -- October 20 tree (schema 7)
 	Luck = {{"Upgrades", "FirstBuy"}},
 	Income = {{"Upgrades", "FirstBuy"}},
 	Expand = {{"Upgrades", "FirstBuy"}},
@@ -81,7 +88,7 @@ local ActionSteps = {
 	Rebirth = {{"Rebirth", "Rebirthed"}},
 	StartOperation = {{"Mission", "Started"}},
 } :: {[string]: {{string}}}
-local UpgradeActions = {CashUpgrade = true, BoardUpgrade = true, Luck = true, Income = true, Expand = true}
+local UpgradeActions = {CashUpgrade = true, BoardUpgrade = true, BuyUpgrade = true, Luck = true, Income = true, Expand = true}
 
 -- client menu.open detail (Schema.Menus key) -> steps
 local MenuSteps = {
@@ -353,7 +360,8 @@ local function actionImpl(self: any, st: any, session: any, action: any, ok: any
 		if rank >= RarityRank.Legendary then named(self, st, "Roll", "LegendaryOrBetter") end
 	elseif UpgradeActions[action] then
 		addCounter(self, st, "upgrades", 1)
-		if (action == "BoardUpgrade" or action == "CashUpgrade") and req.upgradeKey == "PlotSize" then
+		if ((action == "BoardUpgrade" or action == "CashUpgrade") and req.upgradeKey == "PlotSize")
+			or (action == "BuyUpgrade" and type(req.nodeId) == "string" and string.sub(req.nodeId, 1, 5) == "Flock") then
 			named(self, st, "Plot", "Expanded")
 		end
 	elseif action == "Merge" then
@@ -406,10 +414,12 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 	if slots >= 4 then named(self, st, "RollSlots", "Unlocked4") end
 	if slots >= 8 then named(self, st, "RollSlots", "Unlocked8") end
 
+	-- October 20: Auto Roll is a Gem Upgrade (effects.autoRoll), no longer research.
+	local effects = state.effects
+	if type(effects) == "table" and (tonumber(effects.autoRoll) or 0) >= 1 then named(self, st, "AutoRoll", "Available") end
 	local research = state.research
 	local completed = if type(research) == "table" then research.completed else nil
 	if type(completed) == "table" then
-		if completed.AutoRoll then named(self, st, "AutoRoll", "Available") end
 		local count = countCompleted(completed)
 		if cache.research ~= nil and count > cache.research then named(self, st, "Research", "Completed") end
 		if cache.research == nil or count > cache.research then cache.research = count end
@@ -440,7 +450,10 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 		if rank >= 10 then named(self, st, "Rebirth", "Rebirth10") end
 	end
 
-	if (tonumber(state.collectionLimit) or 0) >= 100 then named(self, st, "Plot", "Max") end
+	-- October 20: Plot Max retired (CollectionLimit is the 1,000 storage cap); FlockMax
+	-- marks the top Flock Size tier instead.
+	local effects = state.effects
+	if type(effects) == "table" and (tonumber(effects.flockSize) or 0) >= FlockMax then named(self, st, "Plot", "FlockMax") end
 	if dailyAvailable(self, session, state) then named(self, st, "Daily", "Available") end
 end
 

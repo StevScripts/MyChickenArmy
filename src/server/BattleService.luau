@@ -324,10 +324,10 @@ function BattleService:Unclaim(session,targetId,now)
  if active and battle.attacker==session.userId and (battle.phase=="Holding" or battle.friendlyTerritory) then
   -- Unclaim does not recall/heal/replace the player's squad. A fresh garrison
   -- fights those same units, which can win the territory back themselves.
-  local laneOwner=if location.plot==session.plotIndex then session else self:LaneOwner(location.plot)
+  -- October 20 (Rebirth v2): camps scale by the attacker's rank, like the King.
   local roster=if location.king then KingEncounter.Definition(battle.promotion,enemyScale(session)).roster
    elseif location.outpost then Progression.OutpostRoster(location.outpost)
-   else scaledRoster(Progression.Roster(battle.lanePromotion or battle.promotion,location.index),enemyScale(laneOwner))
+   else scaledRoster(Progression.Roster(battle.lanePromotion or battle.promotion,location.index),enemyScale(session))
   battle:CancelAttacks()
   battle.paid,battle.friendlyTerritory,battle.outcome=false,false,nil
   battle.phase=if battle.phase=="Travel" then "Travel" else "Fight"
@@ -777,7 +777,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		name=self:TargetName(session,targetId)
 		if self:TerritoryBlocked(campKey(lanePlot,campTarget),previous) then return false,name.." is occupied." end
 		campIndex=campTarget
-		defenderScale=enemyScale(laneOwner)
+		defenderScale=enemyScale(session) -- October 20 (Rebirth v2): the attacker's rank.
 		defenders=scaledRoster(Progression.Roster(lanePromotion,campTarget),defenderScale)
 		destination=self:CampPosition(campTarget,lanePlot)
 	else return false,"Target does not exist." end

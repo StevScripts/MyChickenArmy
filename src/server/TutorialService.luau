@@ -7,7 +7,7 @@ local Guide = require(game.ReplicatedStorage.PetRoll.Shared.TutorialGuide)
 local Tutorial = {}
 Tutorial.__index = Tutorial
 local checkpoints = {30, 60, 180, 300, 600}
-local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, Expand=true,
+local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, BuyUpgrade=true, Expand=true,
 	UpgradeChicken=true, SetArmy=true, SelectBest=true, Attack=true, CallArmy=true}
 local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
 	IntroStarted=true, IntroFinished=true, IntroSkipped=true, HillIntroStarted=true, HideGoals=true, ShowGoals=true,
@@ -232,7 +232,7 @@ end
 function Tutorial:Action(session, action, ok, before, request, selectionBefore)
 	local r = self.records[session.userId]
 	if not r or not r.eligible or not meaningful[action] then return end
-	if action=="CashUpgrade" or action=="BoardUpgrade" then
+	if action=="CashUpgrade" or action=="BoardUpgrade" or action=="BuyUpgrade" then
 		local key="Attempt:"..action..":"..(r.step or "None")
 		if not r.uiSeen[key] then r.uiSeen[key]=true;self:Emit(r,"FTUEInteraction",1,r.step,"Attempt"..action) end
 	end

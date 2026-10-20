@@ -45,12 +45,22 @@ for index = #guaranteed, 1, -1 do
 	end
 end
 local ShopCatalog = {
-	Order = {"AutoCollectEggs", "DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck", "EggMagnet", "CommanderBanner", "DoubleBounty"},
+	-- October 20 overhaul: passes on sale. Auto Collect Eggs, Egg Magnet, Commander
+	-- Banner and Double NPC Bounty went off sale (RetiredOrder below).
+	Order = {"DoubleCash", "DoubleEggSpawn", "AutoMerge", "BiggerArmy", "DoubleLuck"},
+	-- Off-sale passes. CommerceService still verifies ownership for a one-time Gems
+	-- gift (retiredGems, about half the Robux price). Their benefits end, except the
+	-- Commander Banner cosmetic (keepsBenefit).
+	RetiredOrder = {"AutoCollectEggs", "EggMagnet", "CommanderBanner", "DoubleBounty"},
 	ProductOrder = {"ChickenOffer1", "ChickenOffer2", "ChickenOffer3", "ChickenOffer4", "ChickenOffer5", "ChickenOffer6", "PocketCoins", "CoopStash", "ArmyChest", "CommandersVault", "OuterSpaceCrate1", "OuterSpaceCrate3", "OuterSpaceCrate10", "FinishEggs",
 		"ResearchSkip1m", "ResearchSkip5m", "ResearchSkip15m", "ResearchSkip30m", "ResearchSkip1h", "ResearchSkip2h", "ResearchSkip4h", "ResearchSkip8h", "ResearchSkip12h", "ResearchSkip24h"},
-	-- October 15: Robux research skips, shortest first. The Upgrades card offers the
-	-- smallest tier that covers the job's remaining time; never listed in the Shop.
+	-- October 15 Robux research skips. October 20: research is gone, so they can't be
+	-- bought; a late receipt pays Gems (retiredGems: 1 per 5 minutes, rounded up).
 	ResearchSkipOrder = {"ResearchSkip1m", "ResearchSkip5m", "ResearchSkip15m", "ResearchSkip30m", "ResearchSkip1h", "ResearchSkip2h", "ResearchSkip4h", "ResearchSkip8h", "ResearchSkip12h", "ResearchSkip24h"},
+	-- October 20 Rebirth Skip ("Skip! Keep upgrades"): one product per next-rank band.
+	-- productId 0 = not created yet (tools/monetization.py create-product, after
+	-- Stevin approves the live write); ProductService registers only real ids.
+	RebirthSkipOrder = {"RebirthSkip1", "RebirthSkip2", "RebirthSkip3"},
 	ArmyBonus = 5,
 	Crate = {enabled=true,name="Galaxy Crate",rewards={
 		{species="Astronaut",chance=0.40},
@@ -76,16 +86,24 @@ local ShopCatalog = {
 		OuterSpaceCrate1 = {productId=3712929703, name="Galaxy Crate", crates=1, proposedPrice=500, paidRandom=true},
 		OuterSpaceCrate3 = {productId=3712929865, name="3 Galaxy Crates", crates=3, proposedPrice=1250, paidRandom=true},
 		OuterSpaceCrate10 = {productId=3712929926, name="10 Galaxy Crates", crates=10, proposedPrice=4000, paidRandom=true},
-		ResearchSkip1m = {productId=3718778626, name="Skip Research (1 min)", researchSkipSeconds=60, proposedPrice=5},
-		ResearchSkip5m = {productId=3718778636, name="Skip Research (5 min)", researchSkipSeconds=300, proposedPrice=15},
-		ResearchSkip15m = {productId=3718778649, name="Skip Research (15 min)", researchSkipSeconds=900, proposedPrice=29},
-		ResearchSkip30m = {productId=3718778658, name="Skip Research (30 min)", researchSkipSeconds=1800, proposedPrice=49},
-		ResearchSkip1h = {productId=3718778661, name="Skip Research (1 hr)", researchSkipSeconds=3600, proposedPrice=79},
-		ResearchSkip2h = {productId=3718778673, name="Skip Research (2 hr)", researchSkipSeconds=7200, proposedPrice=129},
-		ResearchSkip4h = {productId=3718778682, name="Skip Research (4 hr)", researchSkipSeconds=14400, proposedPrice=199},
-		ResearchSkip8h = {productId=3718778696, name="Skip Research (8 hr)", researchSkipSeconds=28800, proposedPrice=299},
-		ResearchSkip12h = {productId=3718778705, name="Skip Research (12 hr)", researchSkipSeconds=43200, proposedPrice=399},
-		ResearchSkip24h = {productId=3718778720, name="Skip Research (24 hr)", researchSkipSeconds=86400, proposedPrice=549},
+		ResearchSkip1m = {productId=3718778626, name="Skip Research (1 min)", researchSkipSeconds=60, proposedPrice=5, retired=true},
+		ResearchSkip5m = {productId=3718778636, name="Skip Research (5 min)", researchSkipSeconds=300, proposedPrice=15, retired=true},
+		ResearchSkip15m = {productId=3718778649, name="Skip Research (15 min)", researchSkipSeconds=900, proposedPrice=29, retired=true},
+		ResearchSkip30m = {productId=3718778658, name="Skip Research (30 min)", researchSkipSeconds=1800, proposedPrice=49, retired=true},
+		ResearchSkip1h = {productId=3718778661, name="Skip Research (1 hr)", researchSkipSeconds=3600, proposedPrice=79, retired=true},
+		ResearchSkip2h = {productId=3718778673, name="Skip Research (2 hr)", researchSkipSeconds=7200, proposedPrice=129, retired=true},
+		ResearchSkip4h = {productId=3718778682, name="Skip Research (4 hr)", researchSkipSeconds=14400, proposedPrice=199, retired=true},
+		ResearchSkip8h = {productId=3718778696, name="Skip Research (8 hr)", researchSkipSeconds=28800, proposedPrice=299, retired=true},
+		ResearchSkip12h = {productId=3718778705, name="Skip Research (12 hr)", researchSkipSeconds=43200, proposedPrice=399, retired=true},
+		ResearchSkip24h = {productId=3718778720, name="Skip Research (24 hr)", researchSkipSeconds=86400, proposedPrice=549, retired=true},
+		-- October 20 Rebirth Skip: a saved credit (DataService:CommitPurchase via
+		-- ProductService); the Rebirth spends it. Paid-random because Gems buy luck.
+		RebirthSkip1 = {productId=0, name="Skip Rebirth 1-5", rebirthSkip=true, ranks={1, 5}, proposedPrice=49, paidRandom=true,
+			description="Rebirth now and keep your upgrades (Rebirth 1-5)."},
+		RebirthSkip2 = {productId=0, name="Skip Rebirth 6-15", rebirthSkip=true, ranks={6, 15}, proposedPrice=99, paidRandom=true,
+			description="Rebirth now and keep your upgrades (Rebirth 6-15)."},
+		RebirthSkip3 = {productId=0, name="Skip Rebirth 16-30", rebirthSkip=true, ranks={16, 30}, proposedPrice=199, paidRandom=true,
+			description="Rebirth now and keep your upgrades (Rebirth 16-30)."},
 		-- October 16 chicken offers (docs/team/CHICKEN_OFFERS.md): a Robux ladder in the free
 		-- gift's HUD slot, one step at a time. `image` is the offer art (portrait + light VFX).
 		ChickenOffer1 = {productId=3719084263, name="Chicken Jockey", proposedPrice=9, chickenOffer=1, species="Jockey", image="rbxassetid://94324670825392"},
@@ -99,7 +117,7 @@ local ShopCatalog = {
 	RadiusMultiplier = 2,
 	BountyMultiplier = 2,
 	Definitions = {
-		AutoCollectEggs = {passId=1978713718, name="Auto Collect Eggs", proposedPrice=199, automatic=true, description="A vacuum collects eggs around your yard.", scope="Sweeps the yard and delivers eggs to your sell stand."},
+		AutoCollectEggs = {passId=1978713718, name="Auto Collect Eggs", proposedPrice=199, automatic=true, offSale=true, retiredGems=100, description="A vacuum collects eggs around your yard.", scope="Sweeps the yard and delivers eggs to your sell stand."},
 		DoubleCash = {passId=1980764263, name="2x Coins", proposedPrice=399, description="2x coins from eggs and combat.", scope="Earned coins only; excludes coin packs and chicken sales."},
 		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Chickens at your base lay twice as many eggs.", scope=if ProcessorConfig.Enabled then "2x egg production and selling speed; stacks with 2x Coins." else "2x egg production; stacks with 2x Coins."},
 		AutoMerge = {enabled=Config.Features.Merging and Config.Features.AutoMerging, passId=1975401932, name="Auto Fuse", proposedPrice=249, automatic=true, description="Fuse matching chickens at your base automatically.", scope="Protects favorites, deployed and manually selected chickens."},
@@ -107,16 +125,19 @@ local ShopCatalog = {
 		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double Luck strength to favor stronger chickens.", scope="Actual chances are shown in Details. Crates unaffected."},
 		EggMagnet = {
 			name = "Egg Magnet", category = "Convenience", proposedPrice = 49, passId = 1980009442,
+			offSale = true, retiredGems = 25,
 			description = "Collect eggs from twice as far.",
 			scope = "Your eggs · same value and laying rate",
 		},
 		CommanderBanner = {
 			name = "Commander Banner", category = "Style", proposedPrice = 99, passId = 1975521947,
+			offSale = true, retiredGems = 50, keepsBenefit = true,
 			description = "Gold portrait frame and crown on conquered flags.",
 			scope = "Cosmetic · no combat bonus",
 		},
 		DoubleBounty = {
 			name = "Double NPC Bounty", category = "Rewards", proposedPrice = 249, passId = 1981040250,
+			offSale = true, retiredGems = 125,
 			description = "2× coins from regular NPC kills.",
 			scope = "Excludes the King and other players' armies",
 		},
@@ -141,6 +162,28 @@ function ShopCatalog.ResearchSkipFor(remaining: number): string?
 	return nil
 end
 
+-- Gems a late receipt for a retired research skip pays: 1 per 5 minutes, rounded up.
+function ShopCatalog.ResearchSkipGems(seconds: number): number
+	return math.max(1, math.ceil(seconds / 300))
+end
+
+-- The Rebirth Skip product for the Rebirth to `rank` (its band), or nil past the bands.
+function ShopCatalog.RebirthSkipFor(rank: number): string?
+	for _, key in ShopCatalog.RebirthSkipOrder do
+		local band = ShopCatalog.Products[key].ranks
+		if rank >= band[1] and rank <= band[2] then return key end
+	end
+	return nil
+end
+
+-- A developer product that exists and can be prompted (not retired, id created).
+function ShopCatalog.ProductOnSale(key: string): boolean
+	local product = ShopCatalog.Products[key]
+	local id = product and product.productId
+	return product ~= nil and product.retired ~= true and product.enabled ~= false
+		and type(id) == "number" and id > 0 and id % 1 == 0
+end
+
 for index = #ShopCatalog.Order, 1, -1 do
 	if ShopCatalog.Definitions[ShopCatalog.Order[index]].enabled == false then table.remove(ShopCatalog.Order, index) end
 end
@@ -151,6 +194,9 @@ table.freeze(ShopCatalog.GuaranteedLuck)
 table.freeze(ShopCatalog.Products)
 table.freeze(ShopCatalog.ProductOrder)
 table.freeze(ShopCatalog.ResearchSkipOrder)
+table.freeze(ShopCatalog.RebirthSkipOrder)
+for _, key in ShopCatalog.RebirthSkipOrder do table.freeze(ShopCatalog.Products[key].ranks) end
 table.freeze(ShopCatalog.Definitions)
+table.freeze(ShopCatalog.RetiredOrder)
 table.freeze(ShopCatalog.Order)
 return table.freeze(ShopCatalog)

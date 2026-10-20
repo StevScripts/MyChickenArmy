@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local Rules = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Rules)
 local ShopCatalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
 local Currency = require(game:GetService("ReplicatedStorage").PetRoll.Shared.CurrencyLimits)
+local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local CommerceService = {}
 CommerceService.__index = CommerceService
 local RefreshSeconds = 8
@@ -21,6 +22,14 @@ end
 
 local function configured(id)
 	return type(id) == "number" and id > 0 and id < math.huge and id % 1 == 0
+end
+
+-- Every pass whose ownership is verified: on sale (benefits) and retired (October
+-- 20: a one-time Gems gift; only keepsBenefit passes still apply).
+local function passKeys(catalog): {string}
+	local keys = table.clone(catalog.Order)
+	for _, key in catalog.RetiredOrder or {} do table.insert(keys, key) end
+	return keys
 end
 
 -- Dependencies are injectable for isolated checks; production uses Roblox APIs.
@@ -116,7 +125,7 @@ function CommerceService:Load(player, session)
 	end
 	if existing then self:Release(existing.player) end
 	local owned = {}
-	for _, key in self.catalog.Order do owned[key] = false end
+	for _, key in passKeys(self.catalog) do owned[key] = false end
 	local record = {player = player, session = session, owned = owned,
 		ready = false, busy = false, nextAt = -math.huge, pending = false, scheduled = false,
 		retryPending = false, retriesLeft = 0, purchased = {}}
@@ -147,6 +156,11 @@ function CommerceService:_ApplyBenefits(record)
 		for _, key in self.catalog.Order do
 			owned[key] = preset == "AllPasses" or (preset == "EggSpawn" and key == "DoubleEggSpawn")
 		end
+	end
+	-- October 20: a retired pass's benefit ends (its owner got Gems instead), except
+	-- the Commander Banner cosmetic.
+	for _, key in self.catalog.RetiredOrder or {} do
+		if not self.catalog.Definitions[key].keepsBenefit then owned[key] = false end
 	end
 	session.entitlements = owned
 	record.player:SetAttribute("PetRollCommanderBanner", owned.CommanderBanner == true)
@@ -190,7 +204,7 @@ function CommerceService:_Refresh(player, session, freshCycle)
 	session.paidRandomAllowed=record.paidRandomAllowed
 	session.paidRandomRestricted=record.policyReady and policyInfo.ArePaidRandomItemsRestricted==true
 	local allChecked = true
-	for _, key in self.catalog.Order do
+	for _, key in passKeys(self.catalog) do
 		local passId = self.catalog.Definitions[key].passId
 		if not configured(passId) then
 			record.owned[key] = false
@@ -212,6 +226,7 @@ function CommerceService:_Refresh(player, session, freshCycle)
 	if not self:_Active(record) then record.busy = false; return false, "Shop unavailable." end
 	record.busy, record.ready = false, allChecked
 	self:_ApplyBenefits(record)
+	self:_GiftRetiredPasses(record)
 	local fullyChecked=allChecked and record.policyReady==true
 	if fullyChecked then
 		record.retriesLeft, record.retryPending = 0, false
@@ -221,6 +236,26 @@ function CommerceService:_Refresh(player, session, freshCycle)
 	end
 	self:_ScheduleRefresh(record)
 	return fullyChecked, if fullyChecked then "Passes checked." else "Couldn't check every shop benefit. Retrying shortly."
+end
+
+-- October 20: owners of a retired pass get its Gems once (session.passGemGifts is
+-- saved). Only verified ownership counts: never a Studio test preset.
+function CommerceService:_GiftRetiredPasses(record)
+	local session = record.session
+	if not session.loaded or session.closing or session.saveLost or type(session.passGemGifts) ~= "table" then return end
+	for _, key in self.catalog.RetiredOrder or {} do
+		local definition = self.catalog.Definitions[key]
+		local gems = definition.retiredGems
+		if record.owned[key] == true and type(gems) == "number" and gems > 0 and not session.passGemGifts[key] then
+			session.passGemGifts[key] = true
+			session.gems = math.min(1e12, (session.gems or 0) + gems)
+			session.gemsEarned = math.min(1e12, (session.gemsEarned or 0) + gems)
+			session.banner = definition.name .. " left the Shop. Thanks for owning it: +" .. gems .. " Gems!"
+			session:Touch()
+			-- Observation hook (Analytics); never affects the gift.
+			if self.onPassGems then pcall(self.onPassGems, session, key, gems) end
+		end
+	end
 end
 
 function CommerceService:Snapshot(session)
@@ -258,12 +293,28 @@ function CommerceService:SetAutomatic(session,key,enabled)
  return true,definition.name..(if enabled then " on." else " off.")
 end
 
-function CommerceService:PreparePurchase(player,session,key,productReady,jobId)
+function CommerceService:PreparePurchase(player,session,key,productReady,_jobId)
  if self:TestAllowed(session) then return false,"Purchases are disabled in a test session." end
  if type(key)~="string" or #key>48 then return false,"Unknown shop item." end
+ -- October 20 Rebirth Skip: the client asks for "RebirthSkip"; the next rank picks the band.
+ if key=="RebirthSkip" then
+  local rank=(session.rebirths or 0)+1
+  if rank>Config.Rebirth.MaxRank then return false,"Max Rebirth reached" end
+  key=self.catalog.RebirthSkipFor(rank) or ""
+  if not self.catalog.ProductOnSale(key) then return false,"Skip isn't on sale yet." end
+ end
  local definition=self.catalog.Definitions[key] or self.catalog.Products[key]
  local record=self.records[player.UserId]
  if not definition or definition.enabled==false or not record or record.session~=session or not self:_Active(record) then return false,"Shop unavailable." end
+ if definition.offSale then return false,"This pass is no longer for sale." end
+ if definition.retired then return false,"Research is now instant in Upgrades." end
+ if definition.rebirthSkip then
+  local rank=(session.rebirths or 0)+1
+  if not self.catalog.ProductOnSale(key) or rank<definition.ranks[1] or rank>definition.ranks[2] then
+   return false,"Your Rebirth changed. Try again."
+  end
+  if (session.rebirthSkips or 0)>=1 then return false,"Your Skip is ready: bring your army home." end
+ end
  if definition.passId then
   if not record.ready then return false,"Please wait while passes are checked." end
   if record.owned[key] then return false,"You already own this pass." end
@@ -273,17 +324,9 @@ function CommerceService:PreparePurchase(player,session,key,productReady,jobId)
   -- One step at a time; the chicken needs a free Flock spot.
   if (session.chickenOfferStep or 0)>=definition.chickenOffer then return false,"You already own this offer." end
   if (session.chickenOfferStep or 0)+1~=definition.chickenOffer then return false,"Unlock the earlier offers first." end
-  if session:Count()>=session:CollectionLimit() then return false,"Make room in your Flock first." end
+  if session:Count()>=session:CollectionLimit() then return false,"You have the most chickens you can keep ("..Config.StorageLimit.."). Sell some first." end
  end
  if definition.finishEggs and #session.eggProcessor.batches==0 then return false,"There are no eggs waiting to sell." end
- if definition.researchSkipSeconds then
-  -- Remaining time only shrinks, so a tier that covers it now still covers it at delivery.
-  local now,target=os.time(),nil
-  for _,job in session.research.jobs do if job.id==jobId and job.finishAt>now then target=job end end
-  if not target then return false,"That research has already finished." end
-  if target.finishAt-now>definition.researchSkipSeconds then return false,"Research time changed. Try again." end
-  session.researchSkipTarget=target.id
- end
  if definition.crates and session.crateCredits>1e9-definition.crates then return false,"Open some crates before buying more." end
  if definition.crates and not self.catalog.Crate.enabled then return false,"Crate rewards are being prepared." end
  if definition.paidRandom then

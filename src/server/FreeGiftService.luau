@@ -34,7 +34,7 @@ function FreeGift.Claim(session,inGroup:boolean?)
 	if inGroup==nil then return false,"Couldn't check the group right now. Try again in a moment." end
 	if not inGroup then return false,"Join the group first, then press Verify!" end
 	-- A full flock keeps the claim available for later.
-	if session:Count()>=session:CollectionLimit() then return false,"Make room in your Flock first. Your free chicken is saved." end
+	if session:Count()>=session:CollectionLimit() then return false,"You have the most chickens you can keep ("..Config.StorageLimit.."). Sell some first. Your free chicken is saved." end
 	local pet=session:AddPet(gift.Species,1)
 	pet.investment=0 -- A free reward never sells back for cash it never cost.
 	session.freeGiftClaimed=true

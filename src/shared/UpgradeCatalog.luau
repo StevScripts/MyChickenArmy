@@ -1,32 +1,338 @@
 --!strict
--- Board-only tracks. Existing army, income and luck prices remain in Config.
--- No rank/camp gates. Benchmark income bands below set prices only.
+-- October 20 overhaul Upgrades tree (docs/team/OVERHAUL_CONTRACT_20261020.md §4).
+-- A few named tiers per family, in a main tree and three "Open" subtrees. Every
+-- node is an instant Coins purchase, resets on Rebirth and has no camp, rank or King
+-- gate (September 25 rule). Prices here are the base quotes: the server snapshot is
+-- the only price a client may show (it can scale with Rebirth rank).
+-- Tier values and prices are drafts for the P0 fit in tests/ProgressionSimulation.
 local Config = require(script.Parent.Config)
-local UpgradeCatalog = {
-	Order = {"EggSpeed", "PlotSize", "EggValue", "ArmySize", "Luck", "RollSlots"},
-	BoardDistance = 24,
-	EggSpeedRates = {1, 1.15, 1.30, 1.45, 1.60},
-	EggSpeedPrices = table.clone(Config.IncomePrices),
-	-- Prepend smaller yards; revision-10 levels shift +3 with identical old sizes.
-	PlotScales = {0.80, 0.87, 0.94, 1, 1.05, 1.10, 1.15, 1.20},
-	-- Physical expansion is independent of the longer stat tracks.
-	PlotPrices = {480, 1200, 2400, 2880, 63000, 725760, 3628800},
-	-- The two final expansions open enough space for 75, then 100 chickens.
-	PlotCapacities = {25, 30, 35, 40, 45, 50, 75, 100},
-	-- October 16 (Option A): from Flock 40 up, builders take real time and the
-	-- capacity applies when they finish. See docs/team/TIMED_PLOT_BUILDS.md.
-	PlotBuildSeconds = {0, 0, 120, 300, 600, 1500, 3600},
-	-- September 29: ~8.5 active hours in the reference F2P pacing model.
-	-- Fixed prices; no time/rank gate. See docs/team/EIGHT_ROLL_PODIUMS.md.
-	RollSlotPrices = {
-		1200, 4800, 120000, 6000000, 150000000, 300000000, 500000000,
-	},
+local Gems = require(script.Parent.GemUpgradeCatalog)
+local Catalog = {}
+
+export type Tier = {value: number, price: number, yardStage: number?}
+export type Family = {
+	id: string, name: string, category: string, icon: string, description: string,
+	effect: string?, field: string?, base: number, format: string, unit: string?,
+	tiers: {Tier}, positions: {{number}}, prerequisite: string?,
 }
-for level = #UpgradeCatalog.EggSpeedRates, #UpgradeCatalog.EggSpeedPrices do
-	UpgradeCatalog.EggSpeedRates[level + 1] = 1 + 0.15 * level
+export type Node = {
+	id: string, kind: string, category: string, q: number, r: number, name: string, icon: string,
+	family: string?, tier: number?, prerequisite: string?, opens: string?,
+}
+
+Catalog.Categories = {"Main", "Tools", "Player", "Army"}
+-- Each category's center hex. "start", "back", "open" and "tool" nodes always count as owned.
+Catalog.Roots = {Main = "Start", Tools = "ToolsBack", Player = "PlayerBack", Army = "ArmyBack"}
+
+-- `effect`: key in the effect table (UpgradeCatalog.Effects); `field`: a derived
+-- PlayerSession field kept for existing readers. Values are cumulative per tier.
+local function tiers(list: {{number}}): {Tier}
+	local result = {}
+	for index, entry in list do result[index] = {value = entry[1], price = entry[2], yardStage = entry[3]} end
+	return result
 end
-function UpgradeCatalog.PlotCapacity(level: number): number
-	local index = math.clamp(math.floor(level) + 1, 1, #UpgradeCatalog.PlotCapacities)
-	return math.min(Config.LegacyCollectionLimit, UpgradeCatalog.PlotCapacities[index])
+
+local families: {Family} = {
+	-- Main tree ------------------------------------------------------------------
+	{id = "EggSpeed", name = "Egg Speed", category = "Main", icon = "eggSpeed", field = "eggSpeedLevel", base = 1,
+		format = "multiplier", description = "Chickens in your Flock lay eggs faster.",
+		tiers = tiers({{1.25, 400}, {1.5, 2000}, {2, 8000}, {3, 30000}}),
+		positions = {{1, 0}, {2, 0}, {3, 0}, {4, 0}}},
+	{id = "EggValue", name = "Egg Value", category = "Main", icon = "eggValue", field = "incomeLevel", base = 1,
+		format = "multiplier", description = "Every new egg is worth more Coins.",
+		tiers = tiers({{1.5, 600}, {2, 3000}, {3, 12000}, {5, 45000}}),
+		positions = {{0, 1}, {0, 2}, {0, 3}, {0, 4}}},
+	{id = "Luck", name = "Luck", category = "Main", icon = "luck", field = "luck", base = 1,
+		format = "multiplier", description = "Favor stronger chickens in normal rolls.",
+		tiers = tiers({{1.25, 800}, {1.5, 4000}, {2, 16000}, {3, 60000}}),
+		positions = {{0, -1}, {0, -2}, {0, -3}, {0, -4}}},
+	-- Flock Size = chickens out in the yard laying. yardStage is the authored yard
+	-- expansion (PlayerSession.plotSizeLevel, 0-7) that tier opens.
+	{id = "Flock", name = "Flock Size", category = "Main", icon = "flockSize", effect = "flockSize", base = 3,
+		format = "count", unit = "chickens laying", description = "More of your chickens lay eggs in the yard.",
+		tiers = tiers({{4, 300, 0}, {5, 900, 1}, {6, 2000, 2}, {7, 4500, 3}, {8, 9000, 4}, {10, 18000, 5},
+			{12, 35000, 6}, {15, 70000, 7}}),
+		positions = {{-1, 1}, {-2, 2}, {-3, 3}, {-4, 4}, {-5, 5}, {-6, 6}, {-7, 7}, {-8, 8}}},
+	-- Tier 1 is the Commander guide's protected 1,200-Coin Army Size 4 (COMMANDER_TUTORIAL.md).
+	{id = "ArmySize", name = "Army Size", category = "Main", icon = "armySize", field = "capacity", base = Config.StartingSlots,
+		format = "count", unit = "Army slots", description = "Send more chickens into battle.",
+		tiers = tiers({{4, 1200}, {6, 6000}, {8, 25000}, {10, 90000}}),
+		positions = {{-1, 0}, {-2, 0}, {-3, 0}, {-4, 0}}},
+	{id = "RollSlot", name = "Roll Slot", category = "Main", icon = "rollSlots", field = "rollSlotsUnlocked", base = 1,
+		format = "count", unit = "podiums", description = "Roll on more of your podiums at once.",
+		tiers = tiers({{2, 1000}, {3, 4000}, {4, 12000}, {5, 30000}, {6, 75000}, {7, 180000}, {8, 400000}}),
+		positions = {{1, -1}, {2, -2}, {3, -3}, {4, -4}, {5, -5}, {6, -6}, {7, -7}}},
+	{id = "RollSpeed", name = "Roll Speed", category = "Main", icon = "rollSpeed", effect = "rollingSpeed", base = 0,
+		format = "percent", description = "Your podiums roll faster.",
+		tiers = tiers({{0.2, 1500}, {0.4, 7500}, {0.6, 30000}}),
+		positions = {{-1, -1}, {-2, -1}, {-3, -1}}},
+	-- Gold rolls (S12 owns what a special pull gives; Stevin supplies the reference).
+	{id = "GoldMachine", name = "Gold Machine", category = "Main", icon = "goldMachine", effect = "goldMachine", base = 0,
+		format = "unlock", description = "Your roll machine counts down to a Gold roll.",
+		tiers = tiers({{1, 25000}}), positions = {{1, -2}}, prerequisite = "RollSlot1"},
+	{id = "GoldRate", name = "Gold Rate", category = "Main", icon = "goldRate", effect = "goldRate", base = 0,
+		format = "level", description = "Gold rolls come around sooner.",
+		tiers = tiers({{1, 60000}, {2, 150000}}), positions = {{1, -3}, {1, -4}}, prerequisite = "GoldMachine"},
+	{id = "DiamondMachine", name = "Diamond Machine", category = "Main", icon = "diamondMachine", effect = "goldMachine", base = 0,
+		format = "unlock", description = "Special rolls become Diamond rolls.",
+		tiers = tiers({{2, 300000}}), positions = {{1, -5}}, prerequisite = "GoldRate2"},
+	{id = "PrismMachine", name = "Prism Machine", category = "Main", icon = "prismMachine", effect = "goldMachine", base = 0,
+		format = "unlock", description = "Special rolls reach the highest tier.",
+		tiers = tiers({{3, 1000000}}), positions = {{1, -6}}, prerequisite = "DiamondMachine"},
+	-- Tools ----------------------------------------------------------------------
+	-- October 20 (Stevin): capacity is sized in seconds of the Flock's current laying
+	-- and shown in eggs (seconds x Flock eggs/s). Values are bonus seconds on top of
+	-- the Egg Vacuum's 30 s base (S11's VacuumConfig): 45, 60, 90, 120 s in total.
+	{id = "VacuumCapacity", name = "Vacuum Capacity", category = "Tools", icon = "vacuumCapacity", effect = "vacuumCapacity", base = 0,
+		format = "seconds", unit = "of eggs", description = "Your Egg Vacuum holds more eggs (seconds of your Flock's laying).",
+		tiers = tiers({{15, 500}, {30, 3000}, {60, 12000}, {90, 40000}}),
+		positions = {{-2, 0}, {-3, 0}, {-4, 0}, {-5, 0}}, prerequisite = "EggVacuum"},
+	{id = "VacuumRange", name = "Vacuum Range", category = "Tools", icon = "vacuumRange", effect = "vacuumRange", base = 0,
+		format = "studs", description = "Your Egg Vacuum reaches eggs from farther away.",
+		tiers = tiers({{4, 2000}, {8, 15000}}), positions = {{-2, 1}, {-3, 2}}, prerequisite = "EggVacuum"},
+	{id = "ChickenFeed", name = "Chicken Feed", category = "Tools", icon = "chickenFeed", effect = "chickenFeed", base = 0,
+		format = "unlock", description = "Equip Chicken Feed and walk to one of your chickens to level it up.",
+		tiers = tiers({{1, 1000}}), positions = {{1, 0}}},
+	-- Player ---------------------------------------------------------------------
+	{id = "WalkSpeed", name = "Walk Speed", category = "Player", icon = "walkSpeed", effect = "walk", base = 0,
+		format = "percent", description = "You move faster.",
+		tiers = tiers({{0.05, 2000}, {0.10, 10000}, {0.15, 40000}}), positions = {{1, 0}, {2, 0}, {3, 0}}},
+	{id = "ClickRange", name = "Click Range", category = "Player", icon = "clickRange", effect = "pickupStuds", base = 0,
+		format = "studs", description = "Collect eggs from farther away.",
+		tiers = tiers({{1.5, 1000}, {3, 6000}, {4.5, 25000}}), positions = {{0, 1}, {0, 2}, {0, 3}}},
+	{id = "OfflineTime", name = "Offline Time", category = "Player", icon = "offlineTime", effect = "offlineHours", base = 8,
+		format = "hours", description = "Your Flock earns Coins for longer while you're away.",
+		tiers = tiers({{9, 10000}, {10, 50000}, {12, 200000}}), positions = {{-1, 0}, {-2, 0}, {-3, 0}}},
+	-- Army -----------------------------------------------------------------------
+	{id = "Damage", name = "Damage", category = "Army", icon = "damage", effect = "damage", base = 0,
+		format = "percent", description = "Your army deals more damage.",
+		tiers = tiers({{0.05, 1000}, {0.10, 8000}, {0.25, 50000}}), positions = {{1, 0}, {2, 0}, {3, 0}}},
+	{id = "BossDamage", name = "Boss Damage", category = "Army", icon = "bossDamage", effect = "bossDamage", base = 0,
+		format = "percent", description = "Your army deals more damage to bosses.",
+		tiers = tiers({{0.15, 250000}}), positions = {{4, 0}}, prerequisite = "Damage3"},
+	{id = "Health", name = "Health", category = "Army", icon = "health", effect = "health", base = 0,
+		format = "percent", description = "Your chickens have more health.",
+		tiers = tiers({{0.05, 1500}, {0.10, 12000}, {0.25, 60000}}), positions = {{1, -1}, {2, -2}, {3, -3}}},
+	{id = "MarchSpeed", name = "March Speed", category = "Army", icon = "marchSpeed", effect = "march", base = 0,
+		format = "percent", description = "Your army marches faster.",
+		tiers = tiers({{0.05, 3000}, {0.10, 20000}, {0.20, 100000}}), positions = {{0, -1}, {0, -2}, {0, -3}}},
+	{id = "CaptureSpeed", name = "Capture Speed", category = "Army", icon = "captureSpeed", effect = "capture", base = 0,
+		format = "percent", description = "Your army captures camps faster.",
+		tiers = tiers({{0.10, 4000}, {0.20, 30000}, {0.30, 150000}}), positions = {{-1, -1}, {-2, -1}, {-3, -1}}},
+	{id = "Armor", name = "Armor", category = "Army", icon = "armor", effect = "armor", base = 0,
+		format = "reduction", description = "Your chickens take less damage.",
+		tiers = tiers({{0.05, 25000}, {0.10, 150000}}), positions = {{-1, 0}, {-2, 0}}},
+	{id = "Recovery", name = "Recovery", category = "Army", icon = "recovery", effect = "recovery", base = 0,
+		format = "percent", description = "Knocked-out chickens recover faster.",
+		tiers = tiers({{0.10, 5000}, {0.20, 40000}}), positions = {{-1, 1}, {-2, 2}}},
+	{id = "Bounty", name = "Bounty", category = "Army", icon = "bounty", effect = "bounty", base = 0,
+		format = "percent", description = "Earn more Coins from defeated enemies.",
+		tiers = tiers({{0.05, 5000}, {0.10, 40000}, {0.20, 200000}}), positions = {{0, 1}, {0, 2}, {0, 3}}},
+}
+
+Catalog.FamilyOrder = {} :: {string}
+Catalog.Families = {} :: {[string]: Family}
+for _, family in families do
+	assert(#family.positions == #family.tiers, "One hex per tier: " .. family.id)
+	table.insert(Catalog.FamilyOrder, family.id)
+	Catalog.Families[family.id] = family
 end
-return UpgradeCatalog
+
+local ROMAN = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"}
+
+function Catalog.NodeId(familyId: string, tier: number): string
+	local family = Catalog.Families[familyId]
+	return if family and #family.tiers == 1 then familyId else familyId .. tier
+end
+
+-- Every hex. Special nodes first, then each family's tiers.
+Catalog.Nodes = {} :: {[string]: Node}
+Catalog.Order = {Main = {}, Tools = {}, Player = {}, Army = {}} :: {[string]: {string}}
+local function add(node: Node)
+	assert(not Catalog.Nodes[node.id], "Duplicate Upgrades node " .. node.id)
+	Catalog.Nodes[node.id] = node
+	table.insert(Catalog.Order[node.category], node.id)
+end
+add({id = "Start", kind = "start", category = "Main", q = 0, r = 0, name = "Start", icon = "start"})
+add({id = "OpenTools", kind = "open", category = "Main", q = 1, r = 1, name = "Tools", icon = "openTools", opens = "Tools"})
+add({id = "OpenPlayer", kind = "open", category = "Main", q = 2, r = -1, name = "Player", icon = "openPlayer", opens = "Player"})
+add({id = "OpenArmy", kind = "open", category = "Main", q = -2, r = 1, name = "Army", icon = "openArmy", opens = "Army"})
+for _, category in {"Tools", "Player", "Army"} do
+	add({id = Catalog.Roots[category], kind = "back", category = category, q = 0, r = 0, name = "Back", icon = "back", opens = "Main"})
+end
+-- The free hand vacuum (granted when the Commander guide ends), shown for context.
+add({id = "EggVacuum", kind = "tool", category = "Tools", q = -1, r = 0, name = "Egg Vacuum", icon = "eggVacuum"})
+for _, family in families do
+	for tier in family.tiers do
+		local position = family.positions[tier]
+		add({id = Catalog.NodeId(family.id, tier), kind = "upgrade", category = family.category,
+			q = position[1], r = position[2], family = family.id, tier = tier, icon = family.icon,
+			name = if #family.tiers == 1 then family.name else family.name .. " " .. ROMAN[tier],
+			prerequisite = if tier > 1 then Catalog.NodeId(family.id, tier - 1)
+				else family.prerequisite or Catalog.Roots[family.category]})
+	end
+end
+for id, node in Catalog.Nodes do
+	assert(node.prerequisite == nil or Catalog.Nodes[node.prerequisite], "Unknown prerequisite for " .. id)
+end
+do
+	-- Two hexes may never share a cell inside one category map.
+	local cells = {}
+	for id, node in Catalog.Nodes do
+		local key = node.category .. ":" .. node.q .. ":" .. node.r
+		assert(not cells[key], "Hex " .. key .. " is used by " .. tostring(cells[key]) .. " and " .. id)
+		cells[key] = id
+	end
+end
+
+-- Saved tier for a family (missing or junk reads as 0), clamped to its ladder.
+function Catalog.Tier(tree: any, familyId: string): number
+	local family = Catalog.Families[familyId]
+	local saved = if type(tree) == "table" then tree[familyId] else nil
+	if not family or type(saved) ~= "number" or saved ~= saved then return 0 end
+	return math.clamp(math.floor(saved), 0, #family.tiers)
+end
+
+-- The family's value at its saved tier (its base with no tier bought).
+function Catalog.Value(tree: any, familyId: string): number
+	local family = Catalog.Families[familyId]
+	local tier = Catalog.Tier(tree, familyId)
+	return if tier > 0 then family.tiers[tier].value else family.base
+end
+
+-- The authored yard expansion for the saved Flock tier.
+function Catalog.YardStage(tree: any): number
+	local tier = Catalog.Tier(tree, "Flock")
+	return if tier > 0 then Catalog.Families.Flock.tiers[tier].yardStage or 0 else 0
+end
+
+-- P0 knob: tree prices may grow with Rebirth rank. 1 keeps the base quotes.
+Catalog.RankPriceGrowth = 0
+function Catalog.PriceScale(rank: number?): number
+	local r = if type(rank) == "number" and rank == rank then math.max(0, math.floor(rank)) else 0
+	return 1 + Catalog.RankPriceGrowth * r
+end
+
+-- Coins for `tier` of a family at Rebirth `rank` (whole Coins), or nil past the ladder.
+function Catalog.Price(familyId: string, tier: number, rank: number?): number?
+	local family = Catalog.Families[familyId]
+	local entry = family and family.tiers[tier]
+	if not entry then return nil end
+	return math.ceil(entry.price * Catalog.PriceScale(rank))
+end
+
+local function decimal(value: number): string
+	return (string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", ""))
+end
+
+-- Default tooltip value for a family at `tier` (0 = nothing bought).
+function Catalog.ValueText(familyId: string, tier: number): string
+	local family = Catalog.Families[familyId]
+	if not family then return "" end
+	local value = if tier > 0 and family.tiers[tier] then family.tiers[tier].value else family.base
+	local format = family.format
+	if format == "multiplier" then return "x" .. decimal(value)
+	elseif format == "percent" then return "+" .. decimal(value * 100) .. "%"
+	elseif format == "reduction" then return decimal(value * 100) .. "% less damage taken"
+	elseif format == "count" then return tostring(value) .. " " .. (family.unit or "")
+	elseif format == "bonusCount" then return "+" .. tostring(value) .. " " .. (family.unit or "")
+	elseif format == "studs" then return "+" .. decimal(value) .. " studs"
+	elseif format == "seconds" then return "+" .. decimal(value) .. " s " .. (family.unit or "")
+	elseif format == "hours" then return tostring(value) .. " h"
+	elseif format == "level" then return if value > 0 then family.name .. " " .. (ROMAN[value] or tostring(value)) else "None"
+	end
+	return if tier > 0 then "Unlocked" else "Locked"
+end
+
+-- Neutral values for every effect key (contract §5). Legacy research keys stay so
+-- older readers never index nil; Call Army is free for everyone.
+Catalog.DefaultEffects = table.freeze({
+	damage = 0, health = 0, march = 0, armor = 0, recovery = 0, bossDamage = 0, rallySeconds = 0,
+	callArmy = 1, fusion = 0, autoRoll = 0, production = 0, eggValue = 0, pickupStuds = 0, bounty = 0,
+	offlineHours = 8, rollingLuck = 0, rollingSpeed = 0, speed = 0, slots = 1, capture = 0, walk = 0,
+	formations = 0, operations = 0, holdCap = 0,
+	flockSize = 3, vacuumCapacity = 0, vacuumRange = 0, chickenFeed = 0, goldMachine = 0, goldRate = 0,
+	coinBoost = 0, gemBonus = 0, timeSkipMinutes = 0, keepTiers = 0, mutationLuck = 0,
+	offlineEfficiency = 0, rebirthChickenChance = 0.01, autoRebirth = 0,
+})
+
+-- Pure effect table for a saved tree and Gem Upgrade levels. The highest owned
+-- tier of a family sets its effect; Gem Upgrades add on top.
+function Catalog.Effects(tree: any, gemLevels: any): {[string]: number}
+	local effects = table.clone(Catalog.DefaultEffects) :: {[string]: number}
+	for _, id in Catalog.FamilyOrder do
+		local family = Catalog.Families[id]
+		local effect = family.effect
+		local tier = Catalog.Tier(tree, id)
+		if effect and tier > 0 then
+			local value = family.tiers[tier].value
+			effects[effect] = if effect == "goldMachine" then math.max(effects[effect], value) else value
+		end
+	end
+	Gems.Apply(effects, gemLevels)
+	return effects
+end
+
+-- Lenient save reader: known families only, tiers clamped; never fails a load.
+function Catalog.ReadTree(value: any): {[string]: number}
+	local result = {}
+	if type(value) ~= "table" then return result end
+	for id in Catalog.Families do
+		local tier = Catalog.Tier(value, id)
+		if tier > 0 then result[id] = tier end
+	end
+	return result
+end
+
+-- Compatibility views for readers that predate the tree (the old cash hexes,
+-- PlotUpgradeService's yard stages). Remove once S9/S10 replace them.
+Catalog.EggSpeedRates = {Catalog.Families.EggSpeed.base} :: {number}
+Catalog.EggSpeedPrices = {} :: {number}
+for index, entry in Catalog.Families.EggSpeed.tiers do
+	Catalog.EggSpeedRates[index + 1] = entry.value
+	Catalog.EggSpeedPrices[index] = entry.price
+end
+Catalog.RollSlotPrices = {} :: {number}
+for index, entry in Catalog.Families.RollSlot.tiers do Catalog.RollSlotPrices[index] = entry.price end
+-- The authored yard has eight stages (0-7). PlotPrices' length is the stage count
+-- PlotUpgradeService reads; the prices themselves are no longer sold.
+Catalog.PlotScales = {0.80, 0.87, 0.94, 1, 1.05, 1.10, 1.15, 1.20}
+Catalog.PlotPrices = {480, 1200, 2400, 2880, 63000, 725760, 3628800}
+Catalog.PlotCapacities = {25, 30, 35, 40, 45, 50, 75, 100}
+function Catalog.PlotCapacity(level: number): number
+	local index = math.clamp(math.floor(level) + 1, 1, #Catalog.PlotCapacities)
+	return Catalog.PlotCapacities[index]
+end
+-- The six board keys of the pre-tree client, mapped to their family.
+Catalog.LegacyKeys = {EggSpeed = "EggSpeed", PlotSize = "Flock", EggValue = "EggValue",
+	ArmySize = "ArmySize", Luck = "Luck", RollSlots = "RollSlot"}
+
+-- Egg Value and Luck multipliers by tier (Rules.EggUnitValue, ChickenLuck.Multiplier).
+function Catalog.EggValueMultiplier(tier: number?): number
+	local entries = Catalog.Families.EggValue.tiers
+	local t = math.clamp(math.floor(tier or 0), 0, #entries)
+	return if t > 0 then entries[t].value else Catalog.Families.EggValue.base
+end
+function Catalog.LuckMultiplier(tier: number?): number
+	local entries = Catalog.Families.Luck.tiers
+	local t = math.clamp(math.floor(tier or 0), 0, #entries)
+	return if t > 0 then entries[t].value else Catalog.Families.Luck.base
+end
+
+for _, family in Catalog.Families do
+	for _, entry in family.tiers do table.freeze(entry) end
+	table.freeze(family.tiers)
+	for _, position in family.positions do table.freeze(position) end
+	table.freeze(family.positions)
+	table.freeze(family)
+end
+for _, node in Catalog.Nodes do table.freeze(node) end
+for _, list in Catalog.Order do table.freeze(list) end
+table.freeze(Catalog.Order)
+table.freeze(Catalog.Nodes)
+table.freeze(Catalog.Families)
+table.freeze(Catalog.FamilyOrder)
+table.freeze(Catalog.Categories)
+table.freeze(Catalog.Roots)
+table.freeze(Catalog.LegacyKeys)
+return Catalog

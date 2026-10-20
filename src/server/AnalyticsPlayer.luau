@@ -39,7 +39,7 @@ local warned = false
 -- Successful request -> lifetime counter.
 local ACTION_LIFE = {
 	Roll = "rolls", Buy = "buys", Merge = "fuses", MergeAll = "fuses", UpgradeChicken = "chickenLevels",
-	CashUpgrade = "upgrades", BoardUpgrade = "upgrades", Luck = "upgrades", Income = "upgrades", Expand = "upgrades",
+	CashUpgrade = "upgrades", BoardUpgrade = "upgrades", BuyUpgrade = "upgrades", Luck = "upgrades", Income = "upgrades", Expand = "upgrades",
 	StartResearch = "research", Rebirth = "rebirths", Sell = "sold", OpenCrate = "crates",
 } :: {[string]: string}
 local IGNORED_ACTIONS = {Sync = true, TutorialSignal = true, ClientReport = true, ClientEvents = true} :: {[string]: boolean}

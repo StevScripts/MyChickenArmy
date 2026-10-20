@@ -15,12 +15,21 @@ local ResearchRules = require(Shared.ResearchRules)
 local ResearchService = require(script.Parent.ResearchService)
 local TutorialGuide = require(Shared.TutorialGuide)
 local MutationCatalog = require(Shared.MutationCatalog)
+local GemUpgradeCatalog = require(Shared.GemUpgradeCatalog)
 local RebirthService = require(script.Parent.RebirthService)
 local GoldRushService = require(script.Parent.GoldRushService)
+local RebirthChickens = require(script.Parent.RebirthChickens)
+local EconomyMigration = require(script.Parent.EconomyMigration)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 -- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
 PlayerSession.CarryLimit = 1e12
+-- Saved tutorial flags. To persist a new one, add it here (one word) and list it in
+-- your hand-off (docs/team/OVERHAUL_CONTRACT_20261020.md §2).
+local TUTORIAL_KEYS = {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp",
+	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen"}
+-- Auto Roll's optional "recruit at" floor (S12) must name a rarity.
+local RARITIES = {"Common","Uncommon","Rare","Epic","Legendary","Mythic","Secret"}
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)
@@ -41,15 +50,30 @@ function PlayerSession:Reset()
 	self.guaranteedLuckRolls=self.guaranteedLuckRolls or 0
 	self.commerceAutomatic=self.commerceAutomatic or {AutoCollectEggs=true,AutoMerge=true}
 	-- Auto Roll settings (RollService.StepAuto); heldOffer is session-only.
-	self.autoRoll=self.autoRoll or {enabled=false,stopAt="Upgrade"}
-	self.coins, self.capacity, self.luck = Config.StartingCoins, Config.StartingSlots, 0
-	self.eggSpeedLevel, self.plotSizeLevel, self.rollSlotsUnlocked = 0, 0, 1
+	self.autoRoll=self.autoRoll or {enabled=false,stopAt="Upgrade",mutationStop=true}
+	self.coins = Config.StartingCoins
+	-- October 20 economy (docs/team/OVERHAUL_CONTRACT_20261020.md §2). capacity, luck,
+	-- eggSpeedLevel, incomeLevel, rollSlotsUnlocked and plotSizeLevel are derived from
+	-- upgradeTree by RefreshEffects. Purchased Skip credits and pass gifts survive a
+	-- debug reset like receipts.
+	self.upgradeTree = {}
+	self.gems, self.gemsEarned, self.gemUpgrades = 0, 0, {}
+	self.autoRebirth = true
+	self.rebirthSkips = self.rebirthSkips or 0
+	self.passGemGifts = self.passGemGifts or {}
+	self.rebirthChickenCredits = {}
+	self.missionTierLegacy = 0
+	-- Saved for S10 (Flock layers), S11 (hand vacuum) and S12 (Gold rolls).
+	self.flockSelection = nil :: {string}?
+	self.eggVacuum = false
+	self.vacuumCargo = {count=0,value=0}
+	self.goldRolls = {count=0}
 	self.plotBuild = nil
 	self.eggCarry={count=0,value=0}
 	self.offlineCash = {at=0,rate=0}
 	self.offlineCashReceipt = nil
 	self.research=ResearchRules.New()
-	self.researchEffects=ResearchRules.Effects(self.research)
+	self:RefreshEffects()
 	self.researchRecap={}
 	self.operationResult=nil
 	self.rallyActiveUntil=0
@@ -58,7 +82,6 @@ function PlayerSession:Reset()
 	self.eggProcessor.finishCredits = finishCredits
 	self.enemyKills=0
 	self.robuxSpent=0 -- Lifetime Robux spent in game (leaderboard only; never a benefit)
- self.incomeLevel=0
  self.promotion,self.recruitTier=1,1
  self.frontierWins,self.kingCleared={},false
  self.kingBountyPaid=false -- Full King boss bounty is paid once per player (BattleService).
@@ -116,6 +139,33 @@ function PlayerSession:Touch()
 	self.revision += 1
 end
 
+-- October 20: the one effect table for the Upgrades tree and Gem Upgrades
+-- (researchEffects keeps its name for existing readers), plus the derived fields
+-- older code reads. Call after any change to upgradeTree or gemUpgrades.
+function PlayerSession:RefreshEffects()
+	local tree=self.upgradeTree
+	self.researchEffects=UpgradeCatalog.Effects(tree,self.gemUpgrades)
+	self.eggSpeedLevel=UpgradeCatalog.Tier(tree,"EggSpeed")
+	self.incomeLevel=UpgradeCatalog.Tier(tree,"EggValue")
+	self.luck=UpgradeCatalog.Tier(tree,"Luck")
+	self.capacity=UpgradeCatalog.Value(tree,"ArmySize")
+	self.rollSlotsUnlocked=UpgradeCatalog.Value(tree,"RollSlot")
+	self.plotSizeLevel=UpgradeCatalog.YardStage(tree)
+end
+
+-- Chickens out in the yard laying (Flock Size; S10 owns who they are).
+function PlayerSession:FlockSize(): number
+	return self.researchEffects.flockSize
+end
+
+function PlayerSession:TreeTier(family: string): number
+	return UpgradeCatalog.Tier(self.upgradeTree,family)
+end
+
+function PlayerSession:GemLevel(id: string): number
+	return GemUpgradeCatalog.Level(self.gemUpgrades,id)
+end
+
 -- A brand-new profile lays no eggs until its first-visit film ends or is skipped.
 -- Transient (never saved); the deadline is a fallback so a client that never
 -- reports back cannot leave the yard silent.
@@ -138,19 +188,15 @@ function PlayerSession:Capacity(): number
  return self.capacity + (if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0)
 end
 
+-- October 20: storage is unlimited up to the hidden safety cap.
 function PlayerSession:CollectionLimit(): number
- return UpgradeCatalog.PlotCapacity(self.plotSizeLevel)
+ return Config.StorageLimit
 end
 
--- October 16 timed yard builds: the paid level applies once its build time ends.
-function PlayerSession:CompletePlotBuild(now: number): boolean
- local build=self.plotBuild
- if not build or now<build.endsAt then return false end
+-- October 20: every yard build is instant (the October 16 timed builds are retired).
+function PlayerSession:CompletePlotBuild(_now: number): boolean
  self.plotBuild=nil
- self.plotSizeLevel=math.max(self.plotSizeLevel,build.level)
- self.banner="Yard expansion finished! Flock capacity: "..self:CollectionLimit().."."
- self:Touch()
- return true
+ return false
 end
 
 function PlayerSession:EggProductionMultiplier(): number
@@ -186,10 +232,12 @@ function PlayerSession:EarnedAmount(amount: number, source: string, steady: bool
  local earned=source=="eggs" or source=="battle" or source=="territory"
  -- Re-enlist pays a permanent egg multiplier (1 at rank 0); offline cash routes here too.
  local rebirth=if source=="eggs" then RebirthService.Multiplier(self.rebirths or 0) else 1
+ -- October 20 Gem Upgrade Coin Boost: egg Coins only, offline included (S7).
+ local coinBoost=if source=="eggs" then 1+(self.researchEffects.coinBoost or 0) else 1
  -- October 20 live boosts on earned Coins, counted when Coins are paid: Gold Rush
  -- (server-wide) and Friend Boost. `steady` leaves both out (offline earnings).
  local live=if earned and not steady then GoldRushService.Multiplier()*(1+(self.friendBoost or 0)) else 1
- return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth * live
+ return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth * coinBoost * live
 end
 
 function PlayerSession:Count(): number
@@ -351,6 +399,8 @@ function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
 	if not pet then return false,"Choose a chicken from your own flock." end
 	if (pet.level or 1)>=Config.MaxPetLevel then return false,"Max level reached." end
 	if not Config.Features.ChickenCashUpgrades then return false,"Fuse 3 matching chickens to level up." end
+	-- October 20: levels are bought with Chicken Feed (Upgrades > Tools), reset on Rebirth.
+	if (self.researchEffects.chickenFeed or 0)<1 then return false,"Buy Chicken Feed in Upgrades > Tools first." end
 	if not self:IsPetHome(id) or (self.incoming and self:FindSlot(id)) then
 		return false,"This chicken must return to your base before upgrading."
 	end
@@ -463,18 +513,20 @@ function PlayerSession:Completed(): boolean
 	return true
 end
 
+-- The next Army Size tier (the tutorial reserve's Army Size 4 is tier 1).
+-- Deployment upgrades depend on Coins and the tree, never conquest.
 function PlayerSession:NextSlot()
- local rule=Config.SlotUnlocks[self.capacity]
- if not rule then return nil end
- -- Deployment upgrades depend on cash and the configured track, never conquest.
- return {capacity=rule.capacity,displayCapacity=rule.capacity+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),price=rule.price,unlocked=true,
-  requirement="Buy one more Army slot"}
+ local tier=UpgradeCatalog.Tier(self.upgradeTree,"ArmySize")+1
+ local entry=UpgradeCatalog.Families.ArmySize.tiers[tier]
+ if not entry then return nil end
+ return {capacity=entry.value,displayCapacity=entry.value+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
+  price=UpgradeCatalog.Price("ArmySize",tier,self.rebirths),unlocked=true,requirement="Buy one more Army slot",tier=tier}
 end
 
+-- Next Egg Value ("Income") or Luck tier, for older snapshot readers.
 function PlayerSession:GlobalUpgrade(kind: string)
-	local current=if kind=="Income" then self.incomeLevel else self.luck
-	local prices=if kind=="Income" then Config.IncomePrices else Config.LuckPrices
-	local price=prices[current+1]
+	local family=if kind=="Income" then "EggValue" else "Luck"
+	local price=UpgradeCatalog.Price(family,UpgradeCatalog.Tier(self.upgradeTree,family)+1,self.rebirths)
 	if not price then return nil end
 	return {price=price,unlocked=true,requirement=""}
 end
@@ -549,7 +601,12 @@ function PlayerSession:Snapshot(now: number)
         firstWins=table.clone(self.firstWins),homeCount=#self:HomePets(),reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,
 		offlineCash=if self.offlineCashReceipt then table.clone(self.offlineCashReceipt) else nil,
 		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt,
+			recruitAt=self.autoRoll.recruitAt,mutationStop=self.autoRoll.mutationStop~=false,
 			unlocked=(self.researchEffects.autoRoll or 0)>=1,holding=self.autoRoll.heldOffer~=nil},
+		-- October 20 economy (contract §8); GameServer adds upgradeTree and gemUpgrades.
+		gems=self.gems,gemsEarned=self.gemsEarned,effects=table.clone(self.researchEffects),
+		-- Rally timing (server epoch seconds) outside the retired research snapshot (S9).
+		rally={readyAt=self.research.rallyReadyAt or 0,activeUntil=self.rallyActiveUntil or 0},
 		tutorial=table.clone(self.tutorial),saveStatus=self.saveStatus,saveMessage=self.saveMessage,
 		mergeUnlocked=mergeUnlocked,mergeRequirement=mergeRequirement,
 		campsWon=campsWon,allCampsWon=self:Completed(),territoryBonus=self.territoryBonus or 0,
@@ -595,8 +652,17 @@ function PlayerSession:ToData()
  table.sort(frontier)
 	return {research=ResearchRules.Copy(self.research),dataRevision=Config.DataRevision,legacyCapacityGrant=self.legacyCapacityGrant or 0,
 		purchaseReceipts=table.clone(self.purchaseReceipts),crateCredits=self.crateCredits,commerceAutomatic=table.clone(self.commerceAutomatic),
-		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt},
+		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt,recruitAt=self.autoRoll.recruitAt,
+			mutationStop=self.autoRoll.mutationStop~=false},
 		guaranteedLuckRolls=self.guaranteedLuckRolls,
+		-- October 20 economy (docs/team/OVERHAUL_CONTRACT_20261020.md §2). The derived
+		-- capacity/luck/... fields below are written for reference only.
+		upgradeTree=table.clone(self.upgradeTree),gems=self.gems,gemsEarned=self.gemsEarned,
+		gemUpgrades=table.clone(self.gemUpgrades),autoRebirth=self.autoRebirth==true,rebirthSkips=self.rebirthSkips,
+		rebirthChickenCredits=table.clone(self.rebirthChickenCredits),passGemGifts=table.clone(self.passGemGifts),
+		missionTierLegacy=self.missionTierLegacy,
+		flockSelection=if self.flockSelection then table.clone(self.flockSelection) else nil,
+		eggVacuum=self.eggVacuum==true,vacuumCargo=table.clone(self.vacuumCargo),goldRolls=table.clone(self.goldRolls),
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,robuxSpent=self.robuxSpent,
 		eggProcessor=EggProcessor.Copy(self.eggProcessor),
 		offlineCash=table.clone(self.offlineCash),
@@ -604,7 +670,6 @@ function PlayerSession:ToData()
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
-		plotBuild=if self.plotBuild then table.clone(self.plotBuild) else nil,
 		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,freeGiftClaimed=self.freeGiftClaimed==true,chickenOfferStep=self.chickenOfferStep or 0,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
@@ -655,6 +720,12 @@ local function readLaneCamps(masks, counts)
 		result[entry.key]=entry.mask
 	end
 	return result
+end
+
+-- A saved whole-number count; anything malformed reads as 0, too large clamps.
+local function readCount(value,maximum): number
+ if type(value)~="number" or value~=value or value<0 then return 0 end
+ return math.min(math.floor(value),maximum)
 end
 
 -- Additive launch fields (docs/team/LAUNCH_CHANGE_PLAN.md §3). Never reject a profile.
@@ -746,33 +817,33 @@ function PlayerSession:LoadData(data)
   end
  end
  -- October 15 Auto Roll settings; an odd saved value falls back to the defaults.
- local autoRoll={enabled=false,stopAt="Upgrade"}
+ -- October 20 (S12): recruitAt names a rarity floor; mutationStop defaults to on.
+ local autoRoll={enabled=false,stopAt="Upgrade",mutationStop=true}
  if type(data.autoRoll)=="table" then
   autoRoll.enabled=data.autoRoll.enabled==true
   if table.find(Config.AutoRollStops,data.autoRoll.stopAt) then autoRoll.stopAt=data.autoRoll.stopAt end
+  if table.find(RARITIES,data.autoRoll.recruitAt) then autoRoll.recruitAt=data.autoRoll.recruitAt end
+  autoRoll.mutationStop=data.autoRoll.mutationStop~=false
  end
  local revision=data.dataRevision or 1
 	if not numberIn(revision,1,Config.DataRevision,true) then return false,"Unsupported saved profile revision." end
-	-- Additive fields: never reduce the six slots an existing profile already had.
-	local eggSpeedLevel = if data.eggSpeedLevel == nil then 0 else data.eggSpeedLevel
-	local plotSizeLevel = if data.plotSizeLevel == nil then 0 else data.plotSizeLevel
-	local rollSlotsUnlocked = if data.rollSlotsUnlocked == nil then 6 else data.rollSlotsUnlocked
-	-- Revision 11 prepends three plot purchases. Validate the old domain before
-	-- converting, and commit/stamp only after the complete profile validates.
-	local oldPlotProgress = revision < 11
-	if not numberIn(eggSpeedLevel,0,#UpgradeCatalog.EggSpeedPrices,true)
-		or not numberIn(plotSizeLevel,0,if oldPlotProgress then 4 else #UpgradeCatalog.PlotPrices,true)
-		or not numberIn(rollSlotsUnlocked,1,Config.RollSlotsUnlocked,true) then
-		return false,"Invalid saved board upgrades."
-	end
-	if oldPlotProgress then plotSizeLevel += 3 end
-	-- Additive, lenient (October 16): an unreadable yard build is ignored, never rejected.
-	local plotBuild=nil
-	local savedBuild=data.plotBuild
-	if type(savedBuild)=="table" and savedBuild.level==plotSizeLevel+1 and plotSizeLevel<#UpgradeCatalog.PlotPrices
-		and numberIn(savedBuild.endsAt,0,1e10,false) then
-		plotBuild={level=savedBuild.level,endsAt=savedBuild.endsAt,
-			startedAt=if numberIn(savedBuild.startedAt,0,savedBuild.endsAt,false) then savedBuild.startedAt else savedBuild.endsAt}
+	-- October 20: revision ≤ 11 saves hold the old cash tracks and research.
+	-- EconomyMigration converts them once, after the whole profile validates.
+	local legacyEconomy=revision<12
+	local Legacy=EconomyMigration.Legacy
+	local eggSpeedLevel,rollSlotsUnlocked=0,1
+	if legacyEconomy then
+		-- Additive fields: never reduce the six slots an existing profile already had.
+		eggSpeedLevel = if data.eggSpeedLevel == nil then 0 else data.eggSpeedLevel
+		local plotSizeLevel = if data.plotSizeLevel == nil then 0 else data.plotSizeLevel
+		rollSlotsUnlocked = if data.rollSlotsUnlocked == nil then 6 else data.rollSlotsUnlocked
+		-- Revision 11 prepended three plot purchases; the yard level itself no longer
+		-- converts (Flock Size follows the owned chickens) but must still be valid.
+		if not numberIn(eggSpeedLevel,0,Legacy.EggSpeedLevels,true)
+			or not numberIn(plotSizeLevel,0,if revision<11 then 4 else Legacy.PlotLevels,true)
+			or not numberIn(rollSlotsUnlocked,1,Legacy.RollSlots,true) then
+			return false,"Invalid saved board upgrades."
+		end
 	end
 	local legacy=revision==1
 	-- New carried eggs are distinct from the already-converted revision-1 egg bag.
@@ -800,23 +871,34 @@ function PlayerSession:LoadData(data)
 	if not numberIn(promotion,1,Progression.Count(),true) or not numberIn(recruitTier,1,promotion,true) then
 		return false,"Invalid saved promotion."
 	end
+	-- Revision 12: the tree is the source of every run upgrade (lenient read).
+	local tree=if legacyEconomy then {} else UpgradeCatalog.ReadTree(data.upgradeTree)
 	local capacity,grant=data.capacity,data.legacyCapacityGrant or 0
-	if legacy then
-		local mapped={[4]=6,[5]=6,[6]=6,[8]=12,[10]=12,[12]=12}
-		capacity=if type(data.capacity)=="number" then mapped[data.capacity] else nil
-		if not capacity then return false,"Invalid legacy deployment capacity." end
-		grant=capacity
-	elseif revision==2 then
-		if not table.find({6,12,24},capacity) then return false,"Invalid previous deployment capacity." end
-		if not numberIn(grant,0,12,true) or (grant~=0 and grant~=6 and grant~=12) then return false,"Invalid grandfathered capacity grant." end
+	if legacyEconomy then
+		if legacy then
+			local mapped={[4]=6,[5]=6,[6]=6,[8]=12,[10]=12,[12]=12}
+			capacity=if type(data.capacity)=="number" then mapped[data.capacity] else nil
+			if not capacity then return false,"Invalid legacy deployment capacity." end
+			grant=capacity
+		elseif revision==2 then
+			if not table.find({6,12,24},capacity) then return false,"Invalid previous deployment capacity." end
+			if not numberIn(grant,0,12,true) or (grant~=0 and grant~=6 and grant~=12) then return false,"Invalid grandfathered capacity grant." end
+		end
+		-- Preserve the collection and balance; only deployed capacity is capped at ten.
+		if revision<3 then capacity=math.min(capacity,Config.MaxSlots);grant=capacity end
+		if not numberIn(grant,0,Config.MaxSlots,true) then return false,"Invalid capacity grant." end
+		if not numberIn(capacity,Config.StartingSlots,Config.MaxSlots,true) or not table.find(Legacy.SlotLevels,capacity)
+			or grant>capacity or not numberIn(data.luck,0,Legacy.LuckLevels,true)
+			or not numberIn(data.incomeLevel,0,Legacy.IncomeLevels,true) then return false,"Invalid saved profile." end
+	else
+		-- Derived from the tree; the historical grant is kept for reference only.
+		capacity=UpgradeCatalog.Value(tree,"ArmySize")
+		grant=if numberIn(grant,0,Config.MaxSlots,true) then grant else 0
 	end
-	-- Preserve the collection and balance; only deployed capacity is capped at ten.
-	if revision<3 then capacity=math.min(capacity,Config.MaxSlots);grant=capacity end
-	if not numberIn(grant,0,Config.MaxSlots,true) then return false,"Invalid capacity grant." end
 	local coins=clampHigh(data.coins,0,Currency.MaxCoins)
-	if not coins or not numberIn(capacity,Config.StartingSlots,Config.MaxSlots,true)
-		or not table.find(Config.SlotLevels,capacity) or grant>capacity or not numberIn(data.luck,0,#Config.LuckPrices,true)
-		or not numberIn(data.incomeLevel,0,#Config.IncomePrices,true) or type(data.pets)~="table" or #data.pets>Config.LegacyCollectionLimit
+	-- Storage is unlimited up to Config.StorageLimit; loading never cuts a collection
+	-- (a paid offer may go over), so only an absurd list is refused.
+	if not coins or type(data.pets)~="table" or #data.pets>Config.StorageLimit*5
 		or type(data.tutorial)~="table" then return false,"Invalid saved profile." end
 	local converted=0
 	if legacy then
@@ -859,16 +941,18 @@ function PlayerSession:LoadData(data)
 	end
 	if count~=#data.pets then return false,"Invalid saved collection." end
 	-- Optional additive field; existing profiles continue selecting their best chickens.
+	-- Revision 12 trims a selection longer than today's Army Size instead of refusing it.
+	local selectionLimit=if legacyEconomy then capacity+ShopCatalog.ArmyBonus else Config.MaxSlots+ShopCatalog.ArmyBonus
 	local armySelection
 	if data.armySelection~=nil then
-		if type(data.armySelection)~="table" or #data.armySelection>capacity+ShopCatalog.ArmyBonus then
+		if type(data.armySelection)~="table" or #data.armySelection>selectionLimit then
 			return false,"Invalid saved army selection."
 		end
 		local seen,entries={},0
 		armySelection={}
 		for index,id in data.armySelection do
 			entries+=1
-			if entries>capacity+ShopCatalog.ArmyBonus or not numberIn(index,1,#data.armySelection,true)
+			if entries>selectionLimit or not numberIn(index,1,#data.armySelection,true)
 				or type(id)~="string" or not (pets[id] or unknownIds[id]) or seen[id] then
 				return false,"Invalid saved army selection."
 			end
@@ -929,7 +1013,7 @@ function PlayerSession:LoadData(data)
   if previousEarned>promotion then promotion,recruitTier=previousEarned,previousEarned end
  end
 	local tutorial={}
-	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen"} do tutorial[key]=data.tutorial[key]==true end
+	for _,key in TUTORIAL_KEYS do tutorial[key]=data.tutorial[key]==true end
 	local collectedEggCount=data.tutorial.collectedEggCount
 	if collectedEggCount==nil then
 		-- Existing saves already passed the one-egg lesson when they collected,
@@ -948,34 +1032,98 @@ function PlayerSession:LoadData(data)
 	-- Display retained access as completed research without charging or granting
 	-- unrelated research. Earned access keeps FuseMachine even without its R1 chain.
 	if fusionUnlocked then research.completed.FuseMachine=true end
+	local rebirths=readRebirths(data.rebirths)
+	-- October 20 economy (docs/team/OVERHAUL_CONTRACT_20261020.md §2, §9). Revision ≤ 11
+	-- converts the old tracks and research once; the research record then shows its
+	-- running jobs as finished and its paid skip time as spent (both converted).
+	-- Revision 12 reads the saved fields leniently. Nothing here refuses a profile.
+	local gemUpgrades,gems,gemsEarned,missionTierLegacy,eggVacuum,conversion
+	if legacyEconomy then
+		local feedLevels,petCount=false,0
+		for _,pet in pets do
+			petCount+=1
+			if pet.cashLevels then feedLevels=true end
+		end
+		conversion=EconomyMigration.Convert({eggSpeedLevel=eggSpeedLevel,incomeLevel=data.incomeLevel,luck=data.luck,
+			capacity=capacity,rollSlotsUnlocked=rollSlotsUnlocked,petCount=petCount,rebirths=rebirths,
+			research=research,tutorial=tutorial,cashLevels=feedLevels})
+		tree,gemUpgrades=conversion.tree,conversion.gemUpgrades
+		gems,gemsEarned=conversion.gems,conversion.gems
+		missionTierLegacy,eggVacuum=conversion.missionTierLegacy,conversion.eggVacuum
+		for _,job in research.jobs do research.completed[job.nodeId]=true end
+		research.jobs,research.skipCredit={},0
+	else
+		gemUpgrades=GemUpgradeCatalog.Read(data.gemUpgrades)
+		gems=readCount(data.gems,1e12)
+		gemsEarned=math.max(gems,readCount(data.gemsEarned,1e12))
+		missionTierLegacy=readCount(data.missionTierLegacy,3)
+		eggVacuum=data.eggVacuum==true
+	end
+	local passGemGifts={}
+	if type(data.passGemGifts)=="table" then
+		for key,given in data.passGemGifts do
+			if type(key)=="string" and given==true and ShopCatalog.Definitions[key] then passGemGifts[key]=true end
+		end
+	end
+	local chickenCredits={}
+	if type(data.rebirthChickenCredits)=="table" then
+		for _,species in data.rebirthChickenCredits do
+			if #chickenCredits<Config.Rebirth.MaxRank and type(species)=="string" and Catalog[species] and Catalog[species].rebirthRank then
+				table.insert(chickenCredits,species)
+			end
+		end
+	end
+	-- S10's manual Flock layers: owned chickens only, in order, no repeats.
+	local flockSelection
+	if type(data.flockSelection)=="table" then
+		flockSelection={}
+		local seen={}
+		for _,id in data.flockSelection do
+			if #flockSelection<50 and type(id)=="string" and pets[id] and not seen[id] then
+				seen[id]=true;table.insert(flockSelection,id)
+			end
+		end
+	end
+	-- S11's hand-vacuum cargo; an unreadable pair is emptied, never refused.
+	local cargo=data.vacuumCargo
+	local cargoCount=if type(cargo)=="table" then clampHigh(cargo.count,0,PlayerSession.CarryLimit,true) else nil
+	local cargoValue=if type(cargo)=="table" then clampHigh(cargo.value,0,PlayerSession.CarryLimit,true) else nil
+	if not cargoCount or not cargoValue or (cargoCount==0)~=(cargoValue==0) then cargoCount,cargoValue=0,0 end
 	-- Commit only after every field validates. Old egg values were already valued;
 	-- never multiply them again, and omit them from the current save payload.
 	self.purchaseReceipts,self.crateCredits,self.commerceAutomatic=receipts,data.crateCredits or 0,automatic
 	self.autoRoll=autoRoll
 	self.guaranteedLuckRolls=guaranteedLuckRolls%(ShopCatalog.GuaranteedLuck.interval*#ShopCatalog.GuaranteedLuck.sequence)
 	self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,grant
-	self.eggSpeedLevel,self.plotSizeLevel,self.rollSlotsUnlocked=eggSpeedLevel,plotSizeLevel,rollSlotsUnlocked
-	self.plotBuild=plotBuild
+	self.upgradeTree,self.gemUpgrades=tree,gemUpgrades
+	self.gems,self.gemsEarned=gems,gemsEarned
+	self.autoRebirth=data.autoRebirth~=false
+	self.rebirthSkips=readCount(data.rebirthSkips,1000)
+	self.passGemGifts,self.rebirthChickenCredits=passGemGifts,chickenCredits
+	self.missionTierLegacy=missionTierLegacy
+	self.flockSelection,self.eggVacuum=flockSelection,eggVacuum
+	self.vacuumCargo={count=cargoCount,value=cargoValue}
+	self.goldRolls={count=if type(data.goldRolls)=="table" then readCount(data.goldRolls.count,1e6) else 0}
+	self.plotBuild=nil
 	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills;self.robuxSpent=robuxSpent
 	self.eggProcessor=processor
 	self.offlineCash,self.offlineCashReceipt=offlineCash,nil
-	self.research=research;self.researchEffects=ResearchRules.Effects(research)
+	self.research=research
+	self:RefreshEffects()
 	self.researchRecap={};self.rallyActiveUntil=0
-	ResearchService.Complete(self,os.time())
-	self:CompletePlotBuild(os.time())
 	-- Preserve saved ranks and validation; always use the best earned odds now.
 	self.promotion,self.recruitTier=promotion,promotion
  self.frontierWins,self.kingCleared=frontier,king
  self.kingBountyPaid=data.kingBountyPaid==true
  self.hillWins,self.hillRollCredits,self.hillChampion=hillWins,hillRollCredits,data.hillChampion==true
  -- Additive launch fields: missing or malformed values read as their defaults.
- self.rebirths=readRebirths(data.rebirths)
+ self.rebirths=rebirths
  self.daily=readDaily(data.daily)
  self.dailyGranted=nil
  -- Additive October 14 field: anything but a whole number below the guarantee reads as 0.
  self.giantPity=if numberIn(data.giantPity,0,Giant.PityLimit-1,true) then data.giantPity else 0
 	-- Preserve old saves: round any historical cents up once, never reset progress.
-	self.coins,self.capacity,self.luck,self.incomeLevel=math.min(Currency.MaxCoins,math.ceil(coins+converted)),capacity,data.luck,data.incomeLevel
+	self.coins=math.min(Currency.MaxCoins,math.ceil(coins+converted))
 	self.pets,self.slots,self.firstWins,self.tutorial=pets,{},wins,tutorial
 	self.laneCamps=readLaneCamps(data.laneCamps,data.laneWins)
 	-- Additive field; anything but true reads as false.
@@ -985,11 +1133,16 @@ function PlayerSession:LoadData(data)
 	local offerStep=data.chickenOfferStep
 	self.chickenOfferStep=if type(offerStep)=="number" and offerStep==offerStep then math.clamp(math.floor(offerStep),0,#ShopCatalog.ChickenOfferOrder) else 0
 	self.fusionUnlocked=fusionUnlocked
-	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,capacity+ShopCatalog.ArmyBonus) else nil
+	self.armySelection=if armySelection then self:FilterArmyIds(armySelection,self.capacity+ShopCatalog.ArmyBonus) else nil
 	self.discovered = discovered
 	self.unrecognizedPets,self.unrecognizedDiscovered=unrecognizedPets,unrecognizedDiscovered
 	if #unrecognizedPets>0 or next(unrecognizedDiscovered) then
 		warn("[PetRoll] Profile "..tostring(self.userId).." keeps "..#unrecognizedPets.." unrecognized saved chickens for a later build.")
+	end
+	-- Rebirth veterans get the Rebirth chicken of every rank they already hold (once).
+	if conversion then
+		for rank=1,conversion.rebirthChickenRanks do RebirthChickens.Grant(self,rank) end
+		self.economyConversion=conversion.summary -- Transient: GameServer reports it once.
 	end
 	self.passiveEarned,self.battleEarned=math.ceil(passiveEarned),math.ceil(battleEarned)
 	self.armyState,self.outgoing,self.incoming,self.defending="Home",nil,nil,nil
@@ -998,7 +1151,8 @@ function PlayerSession:LoadData(data)
 	while self.firstWins[self.campUnlocked] and self.campUnlocked<#Progression.Camps(1) do self.campUnlocked+=1 end
 	self.offer,self.offers=nil,{}
 	self:UnlockProgress();self:RefreshArmy();self:Touch()
-	return true,if legacy then "Loaded and converted stored egg value to coins." else "Loaded."
+	return true,if legacy then "Loaded and converted stored egg value to coins."
+		elseif conversion then "Loaded and converted to the new Upgrades." else "Loaded."
 end
 
 function PlayerSession:Destroy()

@@ -39,15 +39,20 @@ function Service.new(battles,world,sessions)
 	return self
 end
 
--- October 14 launch: a King clear opens Veteran Operations without research.
--- Research S15 still opens them on its own; S16/S17 remain the Elite/Royal gates.
+-- October 20 overhaul (plan v2): Mission tiers open by King clear or Rebirth rank,
+-- no research. Veteran: King clear or Config.Rebirth.MissionTierRanks[1]; Elite and
+-- Royal: the next two ranks. missionTierLegacy keeps access earned before the change.
 function Service.Tier(session): number
-	-- Rebirth resets kingCleared; a rebirthed player keeps Veteran Invasions.
-	return math.max(session.researchEffects.operations or 0,
-		if session.kingCleared or (session.rebirths or 0)>=1 then 1 else 0)
+	local ranks=Config.Rebirth.MissionTierRanks
+	local rank=session.rebirths or 0
+	local tier=if rank>=ranks[3] then 3 elseif rank>=ranks[2] then 2
+		elseif rank>=ranks[1] or session.kingCleared then 1 else 0
+	return math.max(tier,session.missionTierLegacy or 0)
 end
 function Service.LockedMessage(tier): string
-	return if tier==1 then "Defeat the Chicken King or research Coastal Watch first." else "Research this Mission tier first."
+	local ranks=Config.Rebirth.MissionTierRanks
+	return if tier==1 then "Defeat the Chicken King or reach Rebirth "..ranks[1].." first."
+		else "Reach Rebirth "..(ranks[tier] or ranks[#ranks]).." first."
 end
 
 -- Each mission site is a loyalist camp on a random open patch of the island
