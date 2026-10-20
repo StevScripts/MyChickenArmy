@@ -1,105 +1,141 @@
 --!strict
--- Rebirth presentation: the hold-to-confirm panel, opened from the HUD Rebirth
--- button (October 14: no longer a hex on the Upgrades screen). The server quote (state.rebirth) is authoritative; this module never
--- changes saved state. AppController calls Render(state, result) on every packet.
--- Contract: docs/team/launch/12_R1_REBIRTH_CLIENT.md.
+-- Rebirth screen (October 20 overhaul, S8): a 1:1 copy of the owner's reference
+-- (Drop a Fruit's Rebirth screen) in the game's style, built to plan v2's element
+-- spec. Left: the warning, Rebirth to Earn (Time Skip, Gems, Multiplier), the Coins
+-- bar toward the next Rebirth with its Rebirth chicken (a silhouette until it is
+-- affordable), Rebirth and Skip! KEEP UPGRADES. Right: Gem Upgrades
+-- (GemUpgradeGrid). As in the reference, Rebirth is one tap and the screen stays
+-- open afterwards, with confetti. The server quote (state.rebirth,
+-- docs/team/OVERHAUL_CONTRACT_20261020.md §7) is authoritative; this module never
+-- changes saved state. Opened from the HUD Rebirth button; AppController calls
+-- Render(state, result) on every packet. Contract: docs/team/REBIRTH_SCREEN.md.
 local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
 local UserInputService=game:GetService("UserInputService")
 local TweenService=game:GetService("TweenService")
+local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Theme=require(script.Parent.UITheme)
-local MutationCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.MutationCatalog)
 local MenuLayout=require(script.Parent.MenuLayout)
 local Assets=require(script.Parent.ResearchAssets)
+local Portraits=require(script.Parent.ChickenPortraits)
+local GemUpgradeGrid=require(script.Parent.GemUpgradeGrid)
+local PetCatalog=require(Shared.PetCatalog)
+local MutationCatalog=require(Shared.MutationCatalog)
+local ShopCatalog=require(Shared.ShopCatalog)
 local Panel={}
 Panel.__index=Panel
 
 local GREEN=Theme.ReferenceColors.Army
-local GOLD=Theme.ReferenceColors.Base
-local WHITE=Color3.new(1,1,1)
-local RED=Color3.fromRGB(255,107,83)
-local HOLD_SECONDS=2
--- The warning matches RebirthService:Rebirth step 6 (coins, eggSpeedLevel,
--- incomeLevel, luck, camp wins, the King and bought chicken levels); the rest is kept.
--- quote.cashLevels counts the cash-bought chicken levels this rebirth removes.
-local function resetLine(levels: number): string
-	local tail=if levels>0 then " · "..levels.." chicken level"..(if levels==1 then "" else "s") else ""
-	return "Coins · Egg upgrades · Luck · Camps"..tail
-end
-local KEEP_LINE="Chickens · Giants · Research · Plot · Army size"
--- October 14 board (owner: "more information, coherent with the rest of the UI"):
--- the Daily Rewards card style. Card colours: egg coins, mutation (its own colour), camps.
-local EGG_GREEN=Color3.fromRGB(70,190,60)
-local CAMP_RED=Color3.fromRGB(214,58,48)
-local NONE_GREY=Color3.fromRGB(96,104,110)
-local ORANGE=Color3.fromRGB(255,150,40)
-local PILL=Color3.fromRGB(24,30,26)
+local WHITE,BLACK=Color3.new(1,1,1),Color3.new(0,0,0)
+local WARNING=Color3.fromRGB(255,120,132)
+local QUIET=Color3.fromRGB(84,102,91)
+local TRACK=Color3.fromRGB(11,14,10)
+local GOLD_TOP,GOLD_BOTTOM=Color3.fromRGB(255,214,0),Color3.fromRGB(255,149,0)
+local ROBUX_GREEN=Color3.fromRGB(76,250,32)
+local KEEP_GOLD=Color3.fromRGB(255,226,92)
+local TAG=Color3.fromRGB(16,23,18)
+local ROBUX=utf8.char(0xE002)
+local TILES={
+	TimeSkip={Color3.fromRGB(63,186,255),Color3.fromRGB(22,119,223)},
+	Gems={Theme.GemColors.Top,Theme.GemColors.Bottom},
+	Multiplier={Color3.fromRGB(95,207,71),Color3.fromRGB(44,154,39)},
+}
+local CONFETTI={Color3.fromRGB(255,214,48),Color3.fromRGB(99,239,0),Color3.fromRGB(63,186,255),
+	Color3.fromRGB(255,94,139),Color3.fromRGB(168,94,242)}
+-- Mock pixels of the 1710 x 883 reference window (plan v2 element spec, 1.94:1).
+local W,H=1710,883
+local HEADER=W/Theme.HeaderAspect
+local BODY={0,HEADER,W,H-HEADER}
+local EARN={18,235,695,203}
+local RANK={18,453,695,282}
+local CHICKEN={268,589,195,143}
+local GEM_PANEL={743,158,945,685}
+local PENDING_SECONDS=10
 
--- Player-facing rank names are "Rebirth 1", "Rebirth 2", … (October 14 glossary;
--- "Veteran/Elite/Royal" are Invasion tier names only). The server quote's
--- title/nextTitle strings are ignored for display; only the rank numbers count.
+-- Places `item` at a mock-pixel rectangle, relative to `frame` (another rectangle
+-- in the same pixels; by default the body under the header).
+local function rect(item,x,y,w,h,frame)
+	local box=frame or BODY
+	item.Position=UDim2.fromScale((x-box[1])/box[3],(y-box[2])/box[4])
+	item.Size=UDim2.fromScale(w/box[3],h/box[4])
+	return item
+end
+
+local function label(parent,name,text,size,color)
+	local item=Theme.Label(parent,name,text,size,color or WHITE)
+	item.TextScaled,item.TextXAlignment,item.ZIndex=true,Enum.TextXAlignment.Center,6
+	return item
+end
+
+-- The reference's dark see-through boxes (DESIGN.md inset); they own their colours.
+local function inset(parent,name,box)
+	local frame=rect(Theme.Frame(parent,name,UDim2.new(),BLACK),box[1],box[2],box[3],box[4])
+	frame.BackgroundTransparency=0.66
+	frame:SetAttribute("OwnsPopupStyle",true)
+	Theme.Stroke(frame,QUIET,3).Transparency=0.3
+	return frame
+end
+
+-- Player-facing rank names are "Rebirth 1", "Rebirth 2", … (October 14 glossary).
+-- The server quote's title/nextTitle strings are ignored; only the numbers count.
 function Panel.Title(rank: number): string
 	rank=math.max(0,math.floor(rank or 0))
 	if rank==0 then return "No rebirths yet" end
 	return "Rebirth "..rank
 end
 
--- The foundation stub carries only {rank, eligible, reason}; the full quote adds
--- kingCleared (present even at max rank, where cost/nextRank are nil).
+-- The foundation stub carries only {rank, eligible, reason}; the full quote has
+-- version = 2 (a launch-era quote has kingCleared instead).
 local function full(quote): boolean
-	return type(quote)=="table" and quote.kingCleared~=nil
+	return type(quote)=="table" and (quote.version==2 or quote.kingCleared~=nil)
 end
 
 local function enabled(quote): boolean
-	if type(quote)~="table" then return false end
-	if quote.enabled==nil then return true end
-	return quote.enabled==true
+	return type(quote)=="table" and quote.enabled~=false
 end
 
--- The next rank's name, or nil at the maximum (the server omits nextTitle/nextRank).
-local function nextName(quote): string?
-	if type(quote)~="table" then return nil end
-	local rank=tonumber(quote.rank) or 0
-	if full(quote) then
-		if quote.nextTitle==nil and quote.nextRank==nil then return nil end
-		return Panel.Title(tonumber(quote.nextRank) or rank+1)
-	end
-	return Panel.Title(rank+1)
+-- The rank the Coins bar buys, or nil at the maximum (the server omits nextRank).
+local function nextRank(quote): number?
+	return if quote.nextRank~=nil then tonumber(quote.nextRank) else nil
 end
 
-local function multiplier(value,decimals)
-	return "×"..string.format("%."..decimals.."f",tonumber(value) or 1)
+local function multiplierText(value): string
+	local text=string.format("%.2f",tonumber(value) or 1)
+	text=text:gsub("0+$","")
+	text=text:gsub("%.$","")
+	return "×"..text
 end
 
--- The cost bar sits beside the gold coin, so it shows numbers only (October 20).
-local function money(value)
-	return Theme.Number(tonumber(value) or 0)
+-- Readable reason for a refused tap (the server reason has raw digits).
+local function refusal(quote): string
+	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
+	if cost and coins<cost then return "Need "..Theme.Money(cost-coins).." more Coins" end
+	if quote.armyHome==false or quote.missionRunning==true then return "Bring your Army home first" end
+	return if type(quote.reason)=="string" and quote.reason~="" then quote.reason else "Not ready yet"
 end
 
-local function label(parent,name,text,x,y,w,h,color)
-	local item=Theme.Label(parent,name,text,20,color or WHITE)
-	item.Position,item.Size=UDim2.fromScale(x,y),UDim2.fromScale(w,h)
-	item.TextScaled,item.TextXAlignment=true,Enum.TextXAlignment.Center
-	return item
+-- Rebirth chickens use their base look until the art pass adds their portraits.
+local function portraitSpecies(species: string): string
+	local images=Portraits::any
+	if images[species] then return species end
+	local definition=PetCatalog[species]
+	local base=definition and definition.baseSpecies
+	return if base and images[base] then base else species
 end
 
-local function bar(parent,name,track,fillColor)
-	local frame=Theme.Frame(parent,name,UDim2.fromScale(1,1),track)
-	frame:SetAttribute("OwnsPopupStyle",true)
-	local fill=Theme.Frame(frame,"Fill",UDim2.fromScale(0,1),fillColor)
-	fill.ZIndex=frame.ZIndex+1
-	return frame,fill
+local function mutationName(id): string
+	local definition=MutationCatalog.Defs and MutationCatalog.Defs[id]
+	return if definition and definition.name then definition.name else tostring(id)
 end
 
 function Panel.new(app)
-	return setmetatable({app=app,connections={},quote=nil,lastRank=nil,
-		pending=nil,holding=false,holdToken=0},Panel)
+	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil},Panel)
 end
 
 -- Panel --------------------------------------------------------------------
 function Panel:Open()
 	local quote=self.quote
-	if type(quote)~="table" or not enabled(quote) or self.app.commerce.cratePresenting then return end
+	if not enabled(quote) or self.app.commerce.cratePresenting then return end
 	if not full(quote) then self.app:Notify(quote.reason or "Coming soon","info");return end
 	if self.gui and not self.closing then self:RenderPanel();return end
 	self:Dismiss(true)
@@ -107,17 +143,9 @@ function Panel:Open()
 	self.fromResearch=research~=nil and research.root.Visible
 	-- Acquire the blur before closing the other menu so its exit cannot clear it.
 	self.app:SetMenuBlur("rebirth",true)
-	-- One modal at a time (also closes Invasions and the Upgrades tree; Close
-	-- reopens the tree when Rebirth came from it).
-	if self.app.CloseOtherMenus then self.app:CloseOtherMenus("rebirth")
-	else
-		self.app:ClosePanel()
-		self.app.offlineCash:Dismiss(true)
-		if self.app.dailyReward then self.app.dailyReward:Dismiss(true) end
-		if self.app.operationsPanel then self.app.operationsPanel:Dismiss(true) end
-	end
+	-- One modal at a time (Close reopens the Upgrades tree when Rebirth came from it).
+	self.app:CloseOtherMenus("rebirth")
 	self.previousSelection=GuiService.SelectedObject
-	self.message,self.messageColor=nil,nil
 	self:Build()
 	self:RenderPanel()
 	if self.app.editPreview then return end
@@ -125,22 +153,9 @@ function Panel:Open()
 		if inputState==Enum.UserInputState.Begin then self:Close() end
 		return Enum.ContextActionResult.Sink
 	end,false,3000,Enum.KeyCode.ButtonB)
-	ContextActionService:BindActionAtPriority("PetRollReenlistHold",function(_,inputState)
-		if GuiService.SelectedObject~=self.hold then return Enum.ContextActionResult.Pass end
-		if inputState==Enum.UserInputState.Begin then self:BeginHold("gamepad")
-		elseif inputState==Enum.UserInputState.End or inputState==Enum.UserInputState.Cancel then self:EndHold() end
-		return Enum.ContextActionResult.Sink
-	end,false,3000,Enum.KeyCode.ButtonA)
 	local function connect(signal,callback) table.insert(self.connections,signal:Connect(callback)) end
 	connect(UserInputService.InputBegan,function(input)
 		if input.KeyCode==Enum.KeyCode.Escape then self:Close() end
-	end)
-	connect(UserInputService.InputEnded,function(input)
-		local holdInput=self.holdInput
-		if holdInput and holdInput~="gamepad" and (input==holdInput
-			or (input.UserInputType==Enum.UserInputType.MouseButton1 and holdInput.UserInputType==Enum.UserInputType.MouseButton1)) then
-			self:EndHold()
-		end
 	end)
 	-- Another menu opening replaces this one.
 	if self.app.panel then
@@ -149,7 +164,7 @@ function Panel:Open()
 	if research then
 		connect(research.root:GetPropertyChangedSignal("Visible"),function() if research.root.Visible then self.fromResearch=false;self:Dismiss(true) end end)
 	end
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.hold end
+	if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.rebirthButton end
 end
 
 function Panel:Build()
@@ -159,108 +174,43 @@ function Panel:Build()
 	gui.ZIndex=30
 	self.gui,self.closing=gui,false
 	local frames=Theme.Container(gui,"FRAMES")
-	-- The tap blocker covers the full device screen, past phone notches.
+	-- The blocker covers the full device screen, past phone notches; a tap on it closes.
 	local backdropParent=if app.editPreview then frames else Theme.InsetContainer(frames,"BackdropLayer",Enum.ScreenInsets.None)
 	local backdrop=Theme.Frame(backdropParent,"Backdrop",UDim2.fromScale(1,1))
 	backdrop.BackgroundTransparency,backdrop.Active=1,true
+	table.insert(self.connections,backdrop.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then self:Close() end
+	end))
 	local panel=Instance.new("CanvasGroup")
 	panel.Name="Reenlist"
 	panel.BackgroundTransparency,panel.BorderSizePixel,panel.GroupTransparency=1,0,1
 	panel.Active,panel.ZIndex=true,2
-	panel.AnchorPoint,panel.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
 	panel.Parent,self.panel=frames,panel
-	-- Studio may author PetRollGui.MenuLayouts.Rebirth; otherwise one native
-	-- composition fills most of a phone and stays a centered dialog on desktop.
-	if MenuLayout.Control(app.gui,"Rebirth") then MenuLayout.Apply(app.gui,"Rebirth",panel)
-	else
-		panel.Size=UDim2.fromScale(.9,.74)
-		Theme.Aspect(panel,1.45)
+	-- Studio may author PetRollGui.MenuLayouts.Rebirth; the default is the reference
+	-- window, 0.86 of the screen wide at 1.94:1.
+	MenuLayout.Apply(app.gui,"Rebirth",panel)
+	-- Edit previews (UI Lab, menu editor) pass a frame that already has the saved geometry.
+	if app.editPreview then
+		panel.Size,panel.Position,panel.AnchorPoint=UDim2.fromScale(1,1),UDim2.fromScale(0.5,0.5),Vector2.new(0.5,0.5)
 	end
 	self.panelSize,self.panelPosition=panel.Size,panel.Position
-	local header,title=Theme.Header(panel,"Header","Rebirth",GREEN)
-	self.title=title
-	-- The shared header's icon slot carries the Re-enlist badge (title shifts right).
+	local header=Theme.Header(panel,"Header","Rebirth",GREEN)
+	-- The shared header's icon slot carries the Rebirth badge (title shifts right).
 	header.PageIcon.Image,header.PageIcon.Visible=Theme.Assets.Reenlist,true
 	Theme.LayoutHeader(header)
 	local main=Theme.Container(panel,"Main")
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Theme.PageSurfaces.Army)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	-- Rank row: current badge and name → next badge and name.
-	local function rankPill(name,x,color)
-		local frame=Theme.Frame(main,name,UDim2.fromScale(.36,.1),PILL)
-		frame.Position=UDim2.fromScale(x,.03)
-		frame:SetAttribute("OwnsPopupStyle",true)
-		Theme.Stroke(frame,Color3.new(0,0,0),3)
-		local badge=Theme.Image(frame,"Badge",Theme.Assets.RecruitBadge,UDim2.fromScale(.2,1.3),UDim2.fromScale(-.05,-.15))
-		Theme.Aspect(badge,1);badge.ZIndex=7
-		return label(frame,"Value","",.18,.08,.78,.84,color),badge
-	end
-	self.rankNow,self.rankNowBadge=rankPill("RankNow",.08,WHITE)
-	self.rankNext,self.rankNextBadge=rankPill("RankNext",.56,GOLD)
-	label(main,"RankArrow","→",.445,.03,.11,.1,ORANGE)
-	-- Three studded cards (same build as the Daily Rewards cards).
-	local function card(name,x,icon,top)
-		local frame=Theme.Frame(main,name,UDim2.fromScale(.29,.46),WHITE)
-		frame.Position=UDim2.fromScale(x,.17)
-		frame:SetAttribute("OwnsPopupStyle",true)
-		Theme.Studs(frame,0.07,28,0):SetAttribute("StudScaleWidth",1.6)
-		Theme.Stroke(frame,Color3.new(0,0,0),3)
-		local title=label(frame,"Top",top,.05,.04,.9,.13,WHITE)
-		title.ZIndex=6
-		local art=Theme.Image(frame,"Icon",icon,UDim2.fromScale(.5,.34),UDim2.fromScale(.25,.19))
-		Theme.Aspect(art,1);art.ZIndex=6
-		local value=label(frame,"Value","",.05,.56,.9,.22,WHITE)
-		value.ZIndex=6
-		local caption=label(frame,"Caption","",.05,.8,.9,.14,WHITE)
-		caption.ZIndex=6
-		return {frame=frame,value=value,caption=caption,icon=art}
-	end
-	self.eggCard=card("EggCard",.035,Assets.egg,"EGG COINS")
-	self.mutationCard=card("MutationCard",.355,Assets.egg,"NEW MUTATION")
-	self.campCard=card("CampCard",.675,Theme.Assets.EnemyStrength,"CAMPS")
-	-- What resets and what stays.
-	local function strip(name,x,tint,title)
-		local frame=Theme.Frame(main,name,UDim2.fromScale(.455,.15),tint:Lerp(PILL,.7))
-		frame.Position=UDim2.fromScale(x,.66)
-		frame:SetAttribute("OwnsPopupStyle",true)
-		Theme.Stroke(frame,tint,3)
-		label(frame,"Title",title,.04,.06,.92,.36,tint)
-		return label(frame,"List","",.04,.46,.92,.46,WHITE)
-	end
-	self.resetList=strip("Resets",.035,RED,"RESETS")
-	self.keepList=strip("Keeps",.51,Color3.fromRGB(150,240,120),"YOU KEEP")
-	self.keepList.Text=KEEP_LINE
-	-- Cost bar (coin icon, progress toward the next rank) beside the button.
-	local track,fill=bar(main,"CostProgress",Color3.fromRGB(14,24,14),GOLD)
-	track.Position,track.Size=UDim2.fromScale(.1,.855),UDim2.fromScale(.52,.1)
-	Theme.Stroke(track,Color3.new(0,0,0),3)
-	local costIcon=Theme.Image(main,"CostIcon",Theme.Assets.Coin,UDim2.fromScale(.1,.17),UDim2.fromScale(.035,.82))
-	Theme.Aspect(costIcon,1);costIcon.ZIndex=9
-	local costText=label(track,"Label","",.08,.05,.84,.9,WHITE)
-	costText.ZIndex=8
-	self.costFill,self.costText,self.costIcon=fill,costText,costIcon
-	local actions=Theme.Container(main,"Actions")
-	actions.Position,actions.Size=UDim2.fromScale(.65,.835),UDim2.fromScale(.31,.14)
-	-- Hold control stays at least 44 points tall on the smallest phones.
-	local minimum=Instance.new("UISizeConstraint")
-	minimum.MinSize,minimum.Parent=Vector2.new(0,44),actions
-	local hold=Theme.ActionButton(actions,"Confirm","Hold to Rebirth",function() end,GREEN)
-	hold.Position,hold.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,1)
-	Theme.Studs(hold.Visual.Face,.07,28,0)
-	hold.Visual.Caption.Position,hold.Visual.Caption.Size=UDim2.fromScale(.04,.1),UDim2.fromScale(.92,.8)
-	hold.Visual.Caption.TextScaled=true
-	hold.Visual.Caption.TextShadow.Visible=false
-	-- Fill sits between the studded face and the caption; it drains when released early.
-	local holdFill=Theme.Frame(hold.Visual.Face,"HoldFill",UDim2.fromScale(0,1),WHITE)
-	holdFill.BackgroundTransparency,holdFill.ZIndex=.55,4
-	self.hold,self.holdFill=hold,holdFill
-	table.insert(self.connections,hold.InputBegan:Connect(function(input)
-		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
-			self:BeginHold(input)
-		end
-	end))
-	Theme.HeaderClose(header,function() self.app.audio:Play("Click");self:Close() end)
+	self:BuildRewards(main)
+	self:BuildButtons(main)
+	local gemPanel=inset(main,"GemUpgradesPanel",GEM_PANEL)
+	local aspect=panel:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+	local ratio=if aspect then aspect.AspectRatio else W/H
+	-- The inset's own width:height on screen sizes the grid's scroll canvas.
+	local frameAspect=(GEM_PANEL[3]/W)/((GEM_PANEL[4]/BODY[4])*(1/ratio-1/Theme.HeaderAspect))
+	self.grid=GemUpgradeGrid.new(app,gemPanel,frameAspect)
+	Theme.HeaderClose(header,function() self:Close() end)
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
 	local restingSize,restingPosition=self.panelSize,self.panelPosition
@@ -273,9 +223,103 @@ function Panel:Build()
 	Theme.Motion:Tween(panel,"reenlist-fade",{GroupTransparency=0},.22)
 end
 
-function Panel:CanConfirm(): boolean
-	local quote=self.quote
-	return self.gui~=nil and not self.closing and self.pending==nil and full(quote) and enabled(quote) and quote.eligible==true
+-- Warning, Rebirth to Earn and the Coins bar with the next Rebirth's chicken.
+function Panel:BuildRewards(main)
+	local warning=rect(label(main,"Warning","You will lose all Coins and Upgrades\nwhen you rebirth!",27,WARNING),18,156,695,70)
+	warning.TextWrapped=true
+	local earn=inset(main,"RebirthToEarn",EARN)
+	rect(label(earn,"Title","Rebirth to Earn:",38),18,243,695,46,EARN)
+	self.timeSkip=self:Tile(earn,"TimeSkip","TIME SKIP",{48,290,205,140},"TimeSkip")
+	self.gemsReward=self:Tile(earn,"Gems","GEMS",{263,290,205,140},"Gems")
+	self.multiplier=self:Tile(earn,"Multiplier","MULTIPLIER",{478,290,210,140},nil)
+	local rankBox=inset(main,"NextRebirth",RANK)
+	self.rankTitle=rect(label(rankBox,"Title","",48),18,466,695,52,RANK)
+	local track=rect(Theme.Frame(rankBox,"CostProgress",UDim2.new(),TRACK),78,525,595,56,RANK)
+	track.ZIndex=2
+	Theme.Stroke(track,BLACK,3)
+	local fill=Theme.Frame(track,"Fill",UDim2.fromScale(0,1),WHITE)
+	Theme.Gradient(fill,GOLD_TOP,GOLD_BOTTOM)
+	self.costFill=fill
+	self.costText=label(track,"Label","",33)
+	self.costText.Position,self.costText.Size=UDim2.fromScale(0.08,0.05),UDim2.fromScale(0.84,0.9)
+	-- The coin overlaps the bar's left end, as in the reference.
+	local coin=rect(Theme.Image(rankBox,"CostIcon",Theme.Assets.Coin,UDim2.new()),40,508,86,86,RANK)
+	coin.ZIndex=4
+	Theme.Aspect(coin,1)
+	self:BuildChicken(rankBox)
+end
+
+-- A Rebirth to Earn tile: uppercase label, icon and big value on a studded card.
+function Panel:Tile(parent,name: string,caption: string,box,gemKey: string?)
+	local frame=rect(Theme.Frame(parent,name,UDim2.new(),WHITE),box[1],box[2],box[3],box[4],EARN)
+	local colors=TILES[name]
+	Theme.Gradient(frame,colors[1],colors[2])
+	Theme.Studs(frame,0.07,28,0):SetAttribute("StudScaleWidth",1.6)
+	Theme.Stroke(frame,BLACK,3)
+	local own={0,0,box[3],box[4]}
+	rect(label(frame,"Label",caption,20),4,6,box[3]-8,24,own)
+	local icon=if gemKey then Theme.GemIcon(frame,"Icon",gemKey,UDim2.new()) else Theme.Image(frame,"Icon",Assets.cashEggValue,UDim2.new())
+	rect(icon,(box[3]-62)/2,32,62,62,own)
+	icon.ZIndex=5
+	Theme.Aspect(icon,1)
+	return rect(label(frame,"Value","",32),4,96,box[3]-8,38,own)
+end
+
+-- The next Rebirth's chicken on a glow of its rarity colour: name, picture, rarity.
+function Panel:BuildChicken(rankBox)
+	local own={0,0,CHICKEN[3],CHICKEN[4]}
+	local tile=rect(Theme.Frame(rankBox,"NextChicken",UDim2.new(),BLACK),CHICKEN[1],CHICKEN[2],CHICKEN[3],CHICKEN[4],RANK)
+	tile.BackgroundTransparency,tile.ClipsDescendants=0.55,true
+	Theme.Stroke(tile,QUIET,3).Transparency=0.2
+	self.glow={}
+	for index,size in {150,118,88,60} do
+		local disk=rect(Theme.Frame(tile,"Glow"..index,UDim2.new(),WHITE),(CHICKEN[3]-size)/2,73-size/2,size,size,own)
+		Theme.Round(disk).CornerRadius=UDim.new(0.5,0)
+		Theme.Aspect(disk,1)
+		disk.BackgroundTransparency,disk.ZIndex=0.84,2
+		table.insert(self.glow,disk)
+	end
+	self.chickenName=rect(label(tile,"Name","",23),4,4,CHICKEN[3]-8,26,own)
+	local art=rect(Theme.Container(tile,"Art"),54,30,86,86,own)
+	art.ZIndex=4
+	Theme.Aspect(art,1)
+	self.chickenRarity=rect(label(tile,"Rarity","",21),4,115,CHICKEN[3]-8,24,own)
+	self.chickenTile,self.chickenArt=tile,art
+end
+
+-- Rebirth (one tap, as in the reference) and Skip! KEEP UPGRADES with its Robux tag.
+function Panel:BuildButtons(main)
+	local rebirth=rect(Theme.ActionButton(main,"Rebirth","Rebirth",function() self:PressRebirth() end,GREEN),23,758,335,90)
+	local caption=rebirth.Visual.Caption
+	caption.Position,caption.Size,caption.TextScaled=UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8),true
+	caption.TextShadow.Visible=false
+	self.rebirthButton=rebirth
+	local skip=rect(Theme.ActionButton(main,"Skip","Skip!",function() self:PressSkip() end,Theme.Arcade.purple),378,758,335,90)
+	Theme.ApplyReferenceAccent(skip,ColorSequence.new(Theme.GemColors.SkipTop,Theme.GemColors.SkipBottom))
+	local skipCaption=skip.Visual.Caption
+	skipCaption.Position,skipCaption.Size,skipCaption.TextScaled=UDim2.fromScale(0.04,0.02),UDim2.fromScale(0.92,0.62),true
+	skipCaption.TextShadow.Visible=false
+	local keep=label(skip.Visual,"KeepUpgrades","KEEP UPGRADES",21,KEEP_GOLD)
+	keep.Position,keep.Size=UDim2.fromScale(0.04,0.64),UDim2.fromScale(0.92,0.3)
+	self.skipButton=skip
+	local tag=rect(Theme.Frame(main,"RobuxTag",UDim2.new(),TAG),612,733,116,48)
+	tag.ZIndex=8
+	tag:SetAttribute("OwnsPopupStyle",true)
+	Theme.Stroke(tag,WHITE,3).Transparency=0.45
+	self.robuxText=label(tag,"Price","",30,ROBUX_GREEN)
+	self.robuxText.Position,self.robuxText.Size=UDim2.fromScale(0.06,0.06),UDim2.fromScale(0.88,0.88)
+	self.robuxTag=tag
+end
+
+function Panel:SetPortrait(species: string)
+	local look=portraitSpecies(species)
+	if self.portraitLook==look then return end
+	if self.portrait then self.portrait:Destroy();self.portrait=nil end
+	self.portraitLook=look
+	-- A chicken this client's catalog doesn't know yet shows no picture.
+	if not (Portraits::any)[look] and not PetCatalog[look] then return end
+	self.portrait=self.app:Preview(self.chickenArt,{species=look,stars=1,level=1},UDim2.fromScale(1,1),UDim2.new())
+	self.portrait.ZIndex=4
 end
 
 function Panel:RenderPanel()
@@ -283,126 +327,159 @@ function Panel:RenderPanel()
 	local quote=self.quote
 	if type(quote)~="table" then return end
 	local rank=tonumber(quote.rank) or 0
-	local nextTitle=nextName(quote)
-	self.title.Text=nextTitle or "Rebirth"
-	local max=nextTitle==nil
+	local target=nextRank(quote)
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	-- Rank row.
-	self.rankNow.Text=Panel.Title(rank)
-	self.rankNowBadge.Image=if rank>=1 then Theme.Assets.Reenlist else Theme.Assets.RecruitBadge
-	self.rankNext.Text=nextTitle or "Max rank"
-	self.rankNextBadge.Image=Theme.Assets.Reenlist
-	-- Cards: their colour is the card gradient (white base; a UIGradient multiplies).
-	local function paint(entry,color)
-		Theme.Gradient(entry.frame,color:Lerp(WHITE,.15),color:Lerp(Color3.new(0,0,0),.15))
-	end
-	local now=tonumber(quote.multiplierNow) or 1
-	self.eggCard.value.Text=if quote.multiplierNext then multiplier(now,0).." → "..multiplier(quote.multiplierNext,0) else multiplier(now,0)
-	self.eggCard.caption.Text=if max then "Highest bonus" else "Forever"
-	paint(self.eggCard,EGG_GREEN)
-	local unlock=quote.unlockNext
-	local def=if type(unlock)=="table" and unlock.name then MutationCatalog.Defs[unlock.name] else nil
-	self.mutationCard.value.Text=if def and not max then def.name else "None"
-	self.mutationCard.caption.Text=if def and not max then "×"..tostring(def.multiplier).." eggs" else "Not this rank"
-	paint(self.mutationCard,if def and not max then def.color else NONE_GREY)
-	local scaleNext=tonumber(quote.enemyScaleNext)
-	self.campCard.value.Text=if scaleNext then multiplier(scaleNext,0) else "—"
-	self.campCard.caption.Text="Tougher enemies"
-	paint(self.campCard,CAMP_RED)
-	self.resetList.Text=resetLine(tonumber(quote.cashLevels) or 0)
-	-- Cost bar: King requirement first, then coin progress; server errors replace the label.
-	-- Only the first Rebirth needs the King (quote.kingRequired; older quotes lack it).
-	local needKing=quote.kingCleared==false and quote.kingRequired~=false
-	local progress=if needKing then 0 elseif cost and cost>0 then math.clamp(coins/cost,0,1) else 1
+	local minutes=tonumber(quote.timeSkipMinutes)
+	self.timeSkip.Text=if minutes then math.floor(minutes).." min" else "—"
+	local gems=tonumber(quote.gemsNext)
+	self.gemsReward.Text=if gems then "+"..Theme.Money(gems) else "—"
+	self.multiplier.Text=multiplierText(quote.multiplierNext or quote.multiplierNow)
+	self.rankTitle.Text=Panel.Title(target or rank)
+	local progress=if cost and cost>0 then math.clamp(coins/cost,0,1) else 1
 	Theme.Motion:Tween(self.costFill,"fill",{Size=UDim2.fromScale(progress,1)},.25)
-	self.costIcon.Image=if needKing then Theme.Assets.Padlock else Theme.Assets.Coin
-	if self.message then
-		self.costText.Text,self.costText.TextColor3=self.message,self.messageColor or RED
-	elseif needKing then
-		self.costText.Text,self.costText.TextColor3="Defeat the Chicken King first",WHITE
-	elseif cost then
-		self.costText.Text,self.costText.TextColor3=money(math.min(coins,cost)).." / "..money(cost),WHITE
-	else
-		self.costText.Text,self.costText.TextColor3="Highest rank reached",GOLD
+	-- As in the reference, the bar shows the real balance, even past the cost.
+	self.costText.Text=if target and cost then Theme.Money(coins).." / "..Theme.Money(cost) else "Highest rank reached"
+	self:RenderChicken(quote,target~=nil,target~=nil and cost~=nil and coins>=cost)
+	-- Rebirth stays green and answers every tap; a refused tap says why.
+	local rebirth=self.rebirthButton
+	rebirth.Text=if self.pending then "Rebirthing…" elseif target then "Rebirth" else "Max rank"
+	rebirth.Active=target~=nil
+	local tint=if target then GREEN else Theme.ActionColors.disabled
+	if rebirth.BackgroundColor3~=tint then
+		rebirth.BackgroundColor3=tint
+		if tint==GREEN then Theme.ApplyReferenceAccent(rebirth,Theme.ReferenceGradients.Army) end
 	end
-	local can=self:CanConfirm()
-	local hold=self.hold
-	hold.Active=can or self.pending~=nil
-	-- Readable refusal from the quote fields (the server reason has raw digits).
-	local reason=quote.reason or "Not ready yet"
-	if needKing then reason="Locked"
-	elseif cost and coins<cost then reason="Need "..money(cost-coins).." more Coins"
-	elseif quote.armyHome==false then reason="Bring your Army home first" end
-	hold.Text=if self.pending then "Rebirthing…" elseif can then "Hold to Rebirth" else reason
-	local tint=if can or self.pending then GREEN else Theme.ActionColors.disabled
-	if hold.BackgroundColor3~=tint then
-		hold.BackgroundColor3=tint
-		if tint==GREEN then Theme.ApplyReferenceAccent(hold,Theme.ReferenceGradients.Army) end
-	end
-	if not can and self.holding then self:EndHold() end
+	self:RenderSkip(quote,target~=nil)
+	if self.grid then self.grid:Render(self.state) end
 end
 
-function Panel:BeginHold(input)
-	if self.holding then return end
-	if not self:CanConfirm() then
-		-- Inactive mouse/touch presses already shake through BindButton.
-		if self.hold and (input=="gamepad" or self.hold.Active) then Theme.Motion:Shake(self.hold.Visual,4) end
-		return
-	end
-	self.holding,self.holdInput=true,input
-	self.holdToken+=1
-	local token=self.holdToken
-	local fill=self.holdFill
-	if self.drain then self.drain:Cancel();self.drain=nil end
-	local progress=fill.Size.X.Scale
-	local remaining=HOLD_SECONDS*(1-progress)
-	-- The fill is the hold timer itself, so it stays linear even with reduced motion.
-	self.fillTween=TweenService:Create(fill,TweenInfo.new(remaining,Enum.EasingStyle.Linear),{Size=UDim2.fromScale(1,1)})
-	self.fillTween:Play()
-	task.delay(remaining,function()
-		if self.holdToken==token and self.holding then self:Confirm() end
-	end)
+-- The reference shows the reward as a black silhouette, then in colour once the
+-- Rebirth is affordable.
+function Panel:RenderChicken(quote,hasNext: boolean,affordable: boolean)
+	local reward=quote.nextChicken
+	local shown=hasNext and type(reward)=="table" and type(reward.species)=="string"
+	self.chickenTile.Visible=shown
+	if not shown then return end
+	local definition=PetCatalog[reward.species]
+	local rarity=reward.rarity or (definition and definition.rarity) or "Common"
+	local color=Theme.Rarities[rarity] or WHITE
+	self.chickenName.Text=reward.name or (definition and definition.name) or ""
+	self.chickenRarity.Text,self.chickenRarity.TextColor3=rarity,color
+	for _,disk in self.glow do disk.BackgroundColor3=color end
+	self:SetPortrait(reward.species)
+	if self.portrait then self.portrait.ImageColor3=if affordable then WHITE else BLACK end
 end
 
-function Panel:EndHold()
-	if not self.holding then return end
-	self.holding,self.holdInput=false,nil
-	self.holdToken+=1
-	if self.fillTween then self.fillTween:Cancel();self.fillTween=nil end
-	self:DrainFill()
+-- Skip! hides where paid random items are restricted (its Gems buy luck) and while
+-- its products are off sale. A bought Skip waits as a credit and reads "Ready!".
+function Panel:RenderSkip(quote,hasNext: boolean)
+	local skip=if type(quote.skip)=="table" then quote.skip else nil
+	local credits=tonumber(skip and skip.credits) or 0
+	local shown=skip~=nil and hasNext and skip.restricted~=true and (credits>0 or skip.onSale==true)
+	self.skipButton.Visible,self.robuxTag.Visible=shown,shown
+	if not shown then return end
+	if credits>0 then self.robuxText.Text="Ready!";return end
+	local key=skip.productKey
+	local commerce=self.app.commerce
+	if type(key)~="string" then self.robuxText.Text=ROBUX.." …";return end
+	if commerce then commerce:Load(key) end
+	local entry=commerce and commerce.products[key]
+	local definition=ShopCatalog.Products and ShopCatalog.Products[key]
+	local price=if entry and type(entry.price)=="number" then entry.price elseif definition then definition.proposedPrice else nil
+	self.robuxText.Text=ROBUX.." "..(if type(price)=="number" then Theme.Money(price) else "…")
 end
 
--- Eases the hold fill back to empty (released early or refused by the server).
-function Panel:DrainFill()
-	local fill=self.holdFill
-	if not fill then return end
-	if self.drain then self.drain:Cancel();self.drain=nil end
-	local progress=fill.Size.X.Scale
-	if self.app.reducedMotion or progress<=0 then fill.Size=UDim2.fromScale(0,1);return end
-	self.drain=TweenService:Create(fill,TweenInfo.new(.35*progress,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.fromScale(0,1)})
-	self.drain:Play()
-end
-
-function Panel:Confirm()
-	self.holding,self.holdInput=false,nil
-	if self.fillTween then self.fillTween:Cancel();self.fillTween=nil end
-	if not self:CanConfirm() then self:EndHold();return end
-	local rank=tonumber(self.quote.rank) or 0
-	local id=self.app:Request("Rebirth",{expectedRank=rank})
-	if not id then return end
+function Panel:SetPending(id,rank: number)
 	self.pending={id=id,rank=rank}
-	self.message=nil
-	self.app.audio:Play("Click")
-	if self.hold then Theme.Motion:Pop(self.hold.Visual,1.06);Theme.Motion:Shine(self.hold.Visual.Face) end
 	self:RenderPanel()
 	-- Unlock after a lost reply; the server's expectedRank check rejects repeats.
-	task.delay(10,function()
-		if self.pending and self.pending.id==id then
-			self.pending=nil
-			if self.holdFill then self.holdFill.Size=UDim2.fromScale(0,1) end
-			self:RenderPanel()
-		end
+	task.delay(PENDING_SECONDS,function()
+		if self.pending and self.pending.id==id then self.pending=nil;self:RenderPanel() end
 	end)
+end
+
+function Panel:PressRebirth()
+	local quote=self.quote
+	if not self.gui or self.closing or self.pending or type(quote)~="table" then return end
+	if quote.eligible~=true then
+		self.app:Notify(refusal(quote),false)
+		Theme.Motion:Shake(self.rebirthButton.Visual,4)
+		return
+	end
+	local rank=tonumber(quote.rank) or 0
+	local id=self.app:Request("Rebirth",{expectedRank=rank})
+	if not id then return end
+	self:SetPending(id,rank)
+	Theme.Motion:Pop(self.rebirthButton.Visual,1.06)
+	Theme.Motion:Shine(self.rebirthButton.Visual.Face)
+end
+
+function Panel:PressSkip()
+	local quote=self.quote
+	local skip=if type(quote)=="table" and type(quote.skip)=="table" then quote.skip else nil
+	if not skip or self.pending then return end
+	local rank=tonumber(quote.rank) or 0
+	if (tonumber(skip.credits) or 0)>0 then
+		-- Spending a bought Skip rebirths now, resets nothing and pays every reward.
+		local id=self.app:Request("Rebirth",{expectedRank=rank,useSkip=true})
+		if id then self:SetPending(id,rank) end
+		return
+	end
+	-- Otherwise the Robux prompt; the receipt adds a credit the server then spends.
+	local commerce,key=self.app.commerce,skip.productKey
+	if not commerce or type(key)~="string" then return end
+	commerce:Load(key)
+	local status=commerce:State(key)
+	if status=="loading" then self.app:Notify("Getting Skip ready… try again in a moment.","info");return end
+	commerce:Buy(key)
+	if commerce.pending and commerce.pending.key==key then self.skipRequest=commerce.pending.requestId
+	elseif status~="ready" then self.app:Notify("Skip isn't available right now.",false) end
+end
+
+-- Falling confetti over the open screen (the reference's Rebirth moment).
+function Panel:Confetti()
+	if Theme.Motion.reduced or not self.gui then return end
+	local layer=self.gui:FindFirstChild("FRAMES")
+	if not layer then return end
+	local holder=Theme.Container(layer,"Confetti")
+	holder.ZIndex=10
+	for index=1,28 do
+		local piece=Instance.new("Frame")
+		piece.Name,piece.BorderSizePixel,piece.AnchorPoint="Piece",0,Vector2.new(0.5,0.5)
+		piece.BackgroundColor3=CONFETTI[(index-1)%#CONFETTI+1]
+		piece.Size=UDim2.fromScale(0.011,0.022)
+		local x=0.08+math.random()*0.84
+		piece.Position,piece.Rotation=UDim2.fromScale(x,-0.04),math.random(0,360)
+		piece.Parent=holder
+		TweenService:Create(piece,TweenInfo.new(1.1+math.random()*0.7,Enum.EasingStyle.Quad,Enum.EasingDirection.In,0,false,math.random()*0.3),
+			{Position=UDim2.fromScale(x+(math.random()-0.5)*0.2,1.05),Rotation=piece.Rotation+math.random(-360,360),BackgroundTransparency=0.35}):Play()
+	end
+	task.delay(2.6,function() holder:Destroy() end)
+end
+
+-- `receipt` is the Rebirth result's {rank, gems, species, skip, ...} when this packet
+-- carries it (player, Skip credit or Auto Rebirth); otherwise the last quote says
+-- what the rank paid.
+function Panel:Celebrate(before,quote,receipt)
+	local rank=tonumber(quote.rank) or 0
+	self.app.audio:Play("Victory",nil,{noFallback=true})
+	local parts={Panel.Title(rank).."!"}
+	if receipt and receipt.skip==true then table.insert(parts,"Upgrades kept") end
+	local reward=if type(before)=="table" then before.nextChicken else nil
+	local granted=receipt and type(receipt.species)=="string" and PetCatalog[receipt.species]
+	local name=if granted then granted.name elseif type(reward)=="table" then reward.name else nil
+	if type(name)=="string" then table.insert(parts,name.." joined your Flock") end
+	local gems=tonumber(receipt and receipt.gems) or tonumber(type(before)=="table" and before.gemsNext)
+	if gems and gems>0 then table.insert(parts,"+"..Theme.Gems(gems)) end
+	table.insert(parts,multiplierText(quote.multiplierNow).." egg Coins")
+	local unlock=if type(before)=="table" then before.unlockNext else nil
+	if type(unlock)=="table" and unlock.name then table.insert(parts,mutationName(unlock.name).." mutations unlocked") end
+	self.app:Notify(table.concat(parts," · "),true)
+	-- As in the reference, an open screen stays up and moves on to the next Rebirth.
+	if self.gui and not self.closing then self:Confetti()
+	elseif not self.app.reducedMotion and self.app.gui and self.app.gui:FindFirstChild("Shell") then
+		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(.5,.45),GREEN)
+	end
 end
 
 function Panel:Close()
@@ -422,12 +499,7 @@ function Panel:Dismiss(immediate)
 	local gui,panel=self.gui,self.panel
 	if not gui or (self.closing and not immediate) then return end
 	self.closing=true
-	self.holding,self.holdInput=false,nil
-	self.holdToken+=1
-	if self.fillTween then self.fillTween:Cancel();self.fillTween=nil end
-	if self.drain then self.drain:Cancel();self.drain=nil end
 	ContextActionService:UnbindAction("PetRollReenlistClose")
-	ContextActionService:UnbindAction("PetRollReenlistHold")
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
 	if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(gui) then
@@ -436,7 +508,9 @@ function Panel:Dismiss(immediate)
 	self.app:SetMenuBlur("rebirth",false)
 	local function finish()
 		if self.gui~=gui then return end
-		self.gui,self.panel,self.hold,self.holdFill,self.closing=nil,nil,nil,nil,false
+		if self.grid then self.grid:Destroy();self.grid=nil end
+		self.gui,self.panel,self.rebirthButton,self.skipButton,self.closing=nil,nil,nil,nil,false
+		self.portrait,self.portraitLook=nil,nil
 		gui:Destroy()
 	end
 	if immediate then finish();return end
@@ -445,41 +519,31 @@ function Panel:Dismiss(immediate)
 	Theme.Motion:Tween(panel,"reenlist-fade",{GroupTransparency=1},.16,nil,nil,finish)
 end
 
-function Panel:Celebrate(quote)
-	local title=Panel.Title(tonumber(quote.rank) or 0)
-	self.app.audio:Play("Victory",nil,{noFallback=true})
-	-- UIMotion skips the burst under reduced motion.
-	if not self.app.reducedMotion and self.app.gui and self.app.gui:FindFirstChild("Shell") then
-		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(.5,.45),GREEN)
-	end
-	local rank=tonumber(quote.rank) or 0
-	local unlocked
-	for _,id in MutationCatalog.Order do if MutationCatalog.Defs[id].unlockRank==rank and rank>0 then unlocked=MutationCatalog.Defs[id].name end end
-	local eggs=multiplier(tonumber(quote.multiplierNow) or 1,2)
-	self.app:Notify(title.." complete! Eggs "..eggs..(if unlocked then " · "..unlocked.." mutations unlocked" else ""),true)
-end
-
 function Panel:Render(state,result)
 	if type(state)~="table" then return end
 	local quote=state.rebirth
 	if type(quote)~="table" then return end -- Nothing until the first quote arrives.
-	self.quote=quote
+	local before=self.quote
+	self.state,self.quote=state,quote
 	local rank=tonumber(quote.rank) or 0
 	local promoted=self.lastRank~=nil and rank>self.lastRank
 	self.lastRank=rank
-	if result and result.action=="Rebirth" and self.pending and result.id==self.pending.id then
-		self.pending=nil
-		if not result.ok then
-			self.message,self.messageColor=result.message or "Couldn't rebirth. Try again.",RED
-			self:DrainFill()
-			if self.hold then Theme.Motion:Shake(self.hold.Visual) end
+	if type(result)=="table" then
+		if result.action=="Rebirth" and self.pending and result.id==self.pending.id then
+			self.pending=nil
+			-- AppController shows the server's refusal; the button answers with a shake.
+			if not result.ok and self.rebirthButton then Theme.Motion:Shake(self.rebirthButton.Visual) end
+		elseif result.action=="PreparePurchase" and self.skipRequest and result.id==self.skipRequest then
+			self.skipRequest=nil
+			if not result.ok and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false) end
 		end
+		if self.grid then self.grid:Receive(result) end
 	end
 	if promoted then
 		self.pending=nil
-		self.fromResearch=false
-		self:Dismiss()
-		self:Celebrate(quote)
+		local receipt=if type(result)=="table" and result.action=="Rebirth" and result.ok and type(result.receipt)=="table"
+			then result.receipt else nil
+		self:Celebrate(before,quote,receipt)
 	end
 	self:RenderPanel()
 end

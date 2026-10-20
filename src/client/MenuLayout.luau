@@ -1,7 +1,7 @@
 --!strict
 -- Studio owns each menu's Scale geometry and native aspect constraint.
 local Layout={}
-Layout.Names={Army="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settings="Settings",Odds="Odds",Merge="Fuse",Offline="OfflineEarnings"}
+Layout.Names={Army="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settings="Settings",Odds="Odds",Merge="Fuse",Offline="OfflineEarnings",Rebirth="Rebirth"}
 -- GUI.FRAMES proportions expressed against our full-screen parent (the original
 -- FRAMES is a small proxy). No viewport math, size limits, or device breakpoints.
 Layout.Defaults={
@@ -15,6 +15,9 @@ Layout.Defaults={
 	Odds={size=Vector2.new(0.411726,0.541205),aspect=1.543928},
 	Merge={size=Vector2.new(0.39,0.82),aspect=1},
 	Offline={size=Vector2.new(0.330251,0.421687),aspect=1.391571045},
+	-- October 20 overhaul (S8): the owner's reference Rebirth window, 0.86 wide at
+	-- 1.94:1 (plan v2 element spec). It needs landscape on phones.
+	Rebirth={size=Vector2.new(0.86,0.9),aspect=1.94},
 }
 
 function Layout.Control(gui,page)

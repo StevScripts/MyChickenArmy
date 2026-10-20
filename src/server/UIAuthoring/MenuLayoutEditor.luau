@@ -65,6 +65,13 @@ function Editor.Open()
 		elseif page=="Merge" then
 			browser=require(code.MergeBrowser).new(app,canvas)
 			render=function() browser:Render(true) end
+		elseif page=="Rebirth" then
+			-- The starter sample has no Rebirth quote; preview the late-game one.
+			local HttpService=game:GetService("HttpService")
+			app.state=HttpService:JSONDecode(HttpService:JSONEncode(require(tools.LateGameState)))
+			app.CloseOtherMenus=noop
+			browser=require(code.RebirthPanel).new(app)
+			render=function() browser:Render(app.state);browser:Open() end
 		elseif page=="Offline" then
 			browser=require(code.OfflineCashController).new(app)
 			browser:Receive({offlineCash={id="editor-preview",amount=12345,seconds=3600}})
