@@ -16,30 +16,22 @@ Site.UsesAirship = {LoyalistLanding = true}
 -- Themes that only spawn near the island's edge (beach side), when a spot is free.
 Site.Coastal = {PirateCove = true}
 
--- The authored map's stud texture, exactly as its camps apply it (read from the
--- place October 14): every face but the bottom, 8 studs per tile, black at 80%.
-local STUDS = "rbxassetid://6372755229"
-local FACES = {
-	{Enum.NormalId.Top, "X", "Z"}, {Enum.NormalId.Front, "X", "Y"}, {Enum.NormalId.Back, "X", "Y"},
-	{Enum.NormalId.Left, "Z", "Y"}, {Enum.NormalId.Right, "Z", "Y"},
-}
+-- October 20 (owner): sites wear the map's stud MaterialVariants (Plastic-based,
+-- in MaterialService's "Stud Material" folder) instead of the black 80% Texture
+-- overlay, which is stripped from blocks that came with it. A face at least 2x2
+-- studs gets studs; smaller trim gets the weld pattern, like the plots' Fuse
+-- machine frames. Bits under 0.8 studs, Neon, glass, balls and cylinders stay plain.
+local OVERLAY = "rbxassetid://6372755229"
+local STUDS, WELD = "Studs 2x2 Plastic", "Weld 2x2 Plastic"
 function Site.Studify(root: Instance)
 	for _, item in root:GetDescendants() do
-		if not item:IsA("BasePart") or item.Transparency >= 1 or item.Material == Enum.Material.Neon then continue end
+		if item:IsA("Texture") and item.Texture == OVERLAY then item:Destroy(); continue end
+		if not item:IsA("BasePart") or item.Transparency >= 1 or item.Material ~= Enum.Material.Plastic then continue end
 		if item:IsA("Part") and item.Shape ~= Enum.PartType.Block then continue end
-		local has = {}
-		for _, child in item:GetChildren() do
-			if child:IsA("Texture") then has[child.Face] = child end
-		end
-		for _, face in FACES do
-			local size = item.Size :: any
-			if size[face[2]] < 0.8 or size[face[3]] < 0.8 then continue end
-			local texture = has[face[1]] or Instance.new("Texture")
-			texture.Texture, texture.Face = STUDS, face[1]
-			texture.StudsPerTileU, texture.StudsPerTileV = 8, 8
-			texture.Color3, texture.Transparency = Color3.new(0, 0, 0), 0.8
-			texture.Parent = item
-		end
+		-- The middle dimension is the short side of the part's largest face.
+		local size = item.Size
+		local side = size.X + size.Y + size.Z - math.max(size.X, size.Y, size.Z) - math.min(size.X, size.Y, size.Z)
+		if side >= 2 then item.MaterialVariant = STUDS elseif side >= 0.8 then item.MaterialVariant = WELD end
 	end
 end
 

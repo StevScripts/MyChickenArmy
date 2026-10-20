@@ -580,10 +580,13 @@ function BaseController:UpdateObjective()
  end
  -- A mission in progress outranks every other goal: point at its site. With no
  -- other goal, point at the waiting mission that leaves soonest.
+ -- October 20 (owner): these mission arrows and the beam only teach the first
+ -- Mission win, and they obey Settings > Next goal hints.
  local ops=state.operations
+ local missionHints=not (state.tutorial or {}).goalsHidden and next((ops and ops.wins) or {})==nil
  local missionFolder=world:FindFirstChild("Missions")
  local zone=ops and ops.activeSite and missionFolder and missionFolder:FindFirstChild("Mission_"..ops.activeSite)
- local invasion=zone and zone.PrimaryPart and zone.PrimaryPart:FindFirstChild("Marker")
+ local invasion=if missionHints and zone and zone.PrimaryPart then zone.PrimaryPart:FindFirstChild("Marker") else nil
  if invasion then target=invasion end
  local waiting=nil
  -- GUIDE in the Missions panel picks a site and outranks other goals; without it,
@@ -594,7 +597,7 @@ function BaseController:UpdateObjective()
  for _,mission in (ops and ops.missions) or {} do
   if not mission.locked and not mission.yours and not mission.busy and (guided==nil or mission.id==guided) then nextMission=mission;break end
  end
- if not invasion and (guided~=nil or (not guidance and (target==nil or where=="Mission"))) and nextMission and missionFolder then
+ if not invasion and (guided~=nil or (missionHints and not guidance and (target==nil or where=="Mission"))) and nextMission and missionFolder then
   local site=missionFolder:FindFirstChild("Mission_"..nextMission.id)
   waiting=site and site.PrimaryPart and site.PrimaryPart:FindFirstChild("Marker")
   if waiting then target=waiting end

@@ -78,3 +78,39 @@ the game's own `Theme.Display` lettering and `Theme.SegmentedBar`:
   to 30% screen height.
 - Studio playtest verified: chip, idle, marching, capturing and holding states,
   status/toast clearance, and a full round with the winner's Hill Roll.
+
+## First-time film (October 20)
+
+Owner decision (`OVERHAUL_PLAN_20261020.md` › World): a 10-second "The Hill is
+open!" film, once per player ever. Presentation only.
+
+- **Who and when:** the first round that opens after the player has won all camps
+  or cleared the King (the HUD rule), unless they already have a Hill win or the
+  Champion. `HillService.IntroDue` marks them in `Open`, sends `hill.intro` in their
+  snapshot and skips their "The Hill is open!" toast. Joining mid-round waits for
+  the next round.
+- **Waiting:** `src/client/HillIntro.luau` starts at the round's first free moment
+  (no menu, popup, dialogue, crate, roll zoom or first-visit film) and never in the
+  last 15 seconds. If the round ends first, it tries again next round.
+- **Saving:** the client sends `TutorialSignal HillIntroStarted` as the film starts.
+  `TutorialService` sets `tutorial.hillIntroSeen` (whitelisted in the `PlayerSession`
+  load; missing = false), so a crash cannot loop it. The agent ledger counts it as
+  `ui.HillIntroStarted`.
+- **Shots** on the live arena, from the player's side: 0–3.6 s a high descent with
+  the gold title; 3.6–6.8 s a low pass by the Hill Guards, "Send your Army to the
+  Hill"; 6.8–9.6 s a push-in on the capture point, "Hold it longest to win a Hill
+  Roll"; a fade, then the HUD returns. The bars, SKIP, caption and the HUD, CoreGui,
+  prompt, control and music holds are copies of `IntroCutscene`'s. It plays
+  "Forward Advance" and the cues `Intro_KingAppears` and `Intro_CrownGlint`.
+- **Reduced motion:** each move becomes a held shot at its end framing; bars and
+  captions appear without motion.
+- **Hill VFX:** effects in `ReplicatedStorage.PetRoll.Assets.HillVFX` (Studio-owned;
+  the lead copies them from `ServerStorage.VFX["Weather VFX"]`). October 20 pick:
+  **Cyberpunk Sparks** (warm orange embers and streaks). Each child stands centred
+  on the arena floor unless it has `KeepPosition=true`, and plain Parts that only
+  hold emitters are never drawn. They show locally for the whole round to the Hill
+  HUD's audience and during the film (`ROUND_VFX` in `HillIntro` limits them to
+  the film). No folder means no VFX.
+- **Testing:** in a Studio Play (a fresh profile; `workspace.PetRollSkipIntro=true`
+  skips the first-visit film), run `/a king me`, then `/a hill open`.
+  `tests/HillChecks.luau` covers the due, saved, old-save and break cases.

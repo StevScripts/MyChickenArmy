@@ -33,11 +33,12 @@ function OfflineCash.Rate(session)
 	end
 	eggsPerSecond *= session:EggProductionMultiplier()
 	-- Use the existing income and pass owners. No extra multiplier at award time.
-	-- EarnedAmount already applies the Re-enlist egg multiplier.
+	-- EarnedAmount already applies the Re-enlist egg multiplier. October 20: the
+	-- steady amount, so a live Gold Rush or Friend Boost is never frozen in here.
 	local sellerRate = Processor.Rate(session.eggProcessor, session.entitlements.DoubleEggSpawn)
 	local sellingRate = if ProcessorConfig.Enabled then math.min(eggsPerSecond, sellerRate) else eggsPerSecond
 	local raw = sellingRate * Rules.EggUnitValue(session.incomeLevel) * (1+(session.researchEffects and session.researchEffects.eggValue or 0))
-	return session:EarnedAmount(raw, "eggs") * Tuning.Efficiency
+	return session:EarnedAmount(raw, "eggs", true) * Tuning.Efficiency
 end
 
 -- A checkpoint as saved: the frozen rate plus the efficiency it was recorded at.

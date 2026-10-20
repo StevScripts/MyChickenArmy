@@ -21,11 +21,14 @@ local HudController = require(script.Parent.HudController)
 local CommanderGuide = require(script.Parent.CommanderGuide)
 local LeaderboardBoards = require(script.Parent.LeaderboardBoards)
 local IntroCutscene = require(script.Parent.IntroCutscene)
+local HillIntro = require(script.Parent.HillIntro)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
 local EggProcessorController = require(script.Parent.EggProcessorController)
 local OfflineCashController = require(script.Parent.OfflineCashController)
 local FreeGiftController = require(script.Parent.FreeGiftController)
+local GoldRushController = require(script.Parent.GoldRushController)
+local FriendBoost = require(script.Parent.FriendBoost)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
@@ -380,7 +383,7 @@ function AppController:OpenPage(page)
 	end,false,2500,Enum.KeyCode.ButtonB)
 end
 
--- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift".
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift" | "friendBoost".
 -- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
 -- closed menu releases only its own blur owner, so the shared blur stays on.
 -- Safe with nothing open. The offline receipt is always dismissed (already paid).
@@ -397,6 +400,7 @@ function AppController:CloseOtherMenus(keep: string?)
 	end
 	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
+	if keep~="friendBoost" and self.friendBoost then self.friendBoost:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
@@ -922,6 +926,8 @@ function AppController:Receive(packet)
 	self.freeGift:Render(state,result)
 	self.operationsPanel:Render(state,result)
 	if self.commander then self.commander:Update() end
+	-- After menus and popups render, so the first-time Hill film sees them open.
+	if self.hillIntro then self.hillIntro:Observe(state) end
 	if result and not result.ok then
 		local source=self:CommandButton(result.action)
 		if source then Theme.Motion:Shake(source.Visual,6) end
@@ -950,9 +956,13 @@ end
 function AppController:Start()
 	self.remotes = ReplicatedStorage.PetRoll:WaitForChild("Remotes")
 	self:BuildUI()
+	-- October 20 live Coin boosts: the Gold Rush chip/sky/air and the Friend Boost line.
+	self.goldRush=GoldRushController.new(self)
+	self.friendBoost=FriendBoost.new(self)
 	self.commander=CommanderGuide.new(self)
 	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)
+	self.hillIntro=HillIntro.new(self)
 	self.eggBoard:Start()
 	self.audio:Start()
 	self.audio:BindUI(self.gui)
@@ -1002,6 +1012,7 @@ function AppController:Destroy()
 	if self.commander then self.commander:Destroy() end
 	if self.leaderboards then self.leaderboards:Destroy() end
 	if self.intro then self.intro:Destroy() end
+	if self.hillIntro then self.hillIntro:Destroy() end
 	if self.animator then self.animator:Destroy() end
 	if self.galaxyCrateVisuals then self.galaxyCrateVisuals:Destroy() end
 	if self.prompts then self.prompts:Destroy() end
@@ -1014,6 +1025,8 @@ function AppController:Destroy()
 	self.eggBoard:Destroy()
 	self.offlineCash:Destroy()
 	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy()
+	if self.goldRush then self.goldRush:Destroy() end
+	if self.friendBoost then self.friendBoost:Destroy() end
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
 	table.clear(self.menuBlurOwners)
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()

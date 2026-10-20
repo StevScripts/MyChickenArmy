@@ -173,10 +173,9 @@ function Commander:Present(visible, changed)
 		Theme.Motion:Cancel(self.portrait,"guide-salute");self.portrait.Rotation=0
 	end
 	self.card.Visible,self.wasVisible=visible,visible
-	-- Top-centre priority: a lesson card hides the army status line (HudController).
+	-- Top-centre priority: a lesson card hides the Hill banner (HillHud reads this).
 	self.lessonVisible=visible and not self.quiet
 	local app=self.app
-	if app.hud and app.hud.SyncStatus then app.hud:SyncStatus() end
 	-- Notices sit below the card, so move a showing one when the card appears, hides or resizes.
 	local layout=if visible then (if self.quiet then "quiet" else "lesson") else "hidden"
 	if layout~=self.noticeLayout then
@@ -288,8 +287,6 @@ function Commander:Update()
 	if not current then current=Guide.NextGoal(state) end
 	-- A live Hill round takes the top slot; quiet next-goal lines wait (lessons never do).
 	if current and current.goal and app.hud and app.hud.hill and app.hud.hill.bannerVisible then current=nil end
-	-- Lesson card > army status > next-goal line: a quiet goal waits while the army status shows.
-	if current and current.goal and app.hud and app.hud.statusWanted then current=nil end
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
 	if self.facts and current and not current.goal then

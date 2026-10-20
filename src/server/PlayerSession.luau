@@ -17,6 +17,7 @@ local TutorialGuide = require(Shared.TutorialGuide)
 local MutationCatalog = require(Shared.MutationCatalog)
 local GemUpgradeCatalog = require(Shared.GemUpgradeCatalog)
 local RebirthService = require(script.Parent.RebirthService)
+local GoldRushService = require(script.Parent.GoldRushService)
 local RebirthChickens = require(script.Parent.RebirthChickens)
 local EconomyMigration = require(script.Parent.EconomyMigration)
 local PlayerSession = {}
@@ -36,6 +37,8 @@ function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	self.revision = 0
 	-- Verified by CommerceService per visit; never serialized or reset with coins.
 	self.entitlements = {}
+	-- October 20 Friend Boost (FriendBoostService): live, never saved or reset with coins.
+	self.friendBoost = 0
 	self:Reset()
 	return self
 end
@@ -225,13 +228,16 @@ function PlayerSession:AdvanceGuaranteedLuck(): string?
  return if guarantee.rollsRemaining==1 then guarantee.nextSpecies else nil
 end
 
-function PlayerSession:EarnedAmount(amount: number, source: string): number
+function PlayerSession:EarnedAmount(amount: number, source: string, steady: boolean?): number
  local earned=source=="eggs" or source=="battle" or source=="territory"
  -- Re-enlist pays a permanent egg multiplier (1 at rank 0); offline cash routes here too.
  local rebirth=if source=="eggs" then RebirthService.Multiplier(self.rebirths or 0) else 1
- -- October 20 Gem Upgrade Coin Boost: egg Coins only (S7).
+ -- October 20 Gem Upgrade Coin Boost: egg Coins only, offline included (S7).
  local coinBoost=if source=="eggs" then 1+(self.researchEffects.coinBoost or 0) else 1
- return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth * coinBoost
+ -- October 20 live boosts on earned Coins, counted when Coins are paid: Gold Rush
+ -- (server-wide) and Friend Boost. `steady` leaves both out (offline earnings).
+ local live=if earned and not steady then GoldRushService.Multiplier()*(1+(self.friendBoost or 0)) else 1
+ return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth * coinBoost * live
 end
 
 function PlayerSession:Count(): number

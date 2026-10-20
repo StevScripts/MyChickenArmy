@@ -30,6 +30,8 @@ local HillService=require(script.Parent.HillService)
 local AdminService=require(script.Parent.AdminService)
 local RebirthService=require(script.Parent.RebirthService)
 local DailyService=require(script.Parent.DailyService)
+local GoldRushService=require(script.Parent.GoldRushService)
+local FriendBoostService=require(script.Parent.FriendBoostService)
 local GemUpgradeService=require(script.Parent.GemUpgradeService)
 local RebirthChickens=require(script.Parent.RebirthChickens)
 local GameServer={}
@@ -753,6 +755,9 @@ function GameServer:Start()
 	table.insert(self.connections,Players.PlayerAdded:Connect(function(player) self.admin:PlayerAdded(player);self:AddPlayer(player) end))
 	table.insert(self.connections,Players.PlayerRemoving:Connect(function(player) self.admin:PlayerRemoving(player);self:RemovePlayer(player) end))
 	for _,player in Players:GetPlayers() do task.spawn(function() self:AddPlayer(player) end) end
+	-- October 20 live Coin boosts; PlayerSession:EarnedAmount applies both.
+	GoldRushService.Start(self.sessions,self.connections)
+	FriendBoostService.Start(self.sessions,self.connections)
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt) self:Step(dt) end))
 	game:BindToClose(function() self:Shutdown() end)
  print("[PetRoll] My Chicken Army! "..Config.Version.." ready. Yard chickens lay eggs; collect them for coins.")

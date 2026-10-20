@@ -152,6 +152,16 @@ local Config = {
  -- October 16 free gift: one free chicken for joining the group. "Like the game" is
  -- honor-system (Roblox exposes no like check); only group membership is verified.
  FreeGift={Enabled=true,GroupId=778575811,Species="Bucket"},
+ -- October 20 Gold Rush (GoldRushService, docs/team/GOLD_RUSH_FRIEND_BOOST.md): every
+ -- earned Coin (eggs, battles, Missions, the Hill) is multiplied by CoinMultiplier
+ -- for Seconds out of every EverySeconds, stacking with 2x Coins. One wall clock for
+ -- every server (OffsetSeconds shifts it): rushes start at :00, :20 and :40.
+ -- Counted when Coins are paid; never part of offline earnings.
+ GoldRush={Enabled=true,EverySeconds=1200,Seconds=300,OffsetSeconds=0,CoinMultiplier=2},
+ -- October 20 Friend Boost (FriendBoostService): +PerFriend earned Coins for each
+ -- Roblox friend in the same server, up to Max. Never saved; never offline.
+ -- StudioTestPlayersAreFriends: Studio's local test players count as friends.
+ FriendBoost={Enabled=true,PerFriend=0.10,Max=0.50,StudioTestPlayersAreFriends=true},
  Camps={
   {name="Cluck Camp",position={0,-273},roster={"Duck","Duck","Duck"}},
   {name="Fort Roost",position={0,-190},roster={{species="Bucket",level=1},{species="Sailor",level=1},{species="Mallard",level=1},{species="Mallard",level=1}}},

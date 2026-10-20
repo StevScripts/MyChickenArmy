@@ -50,16 +50,16 @@ function Hud.new(app,shell)
 	self.armyCount=Theme.Display(self.army.Visual,"ArmyCount","",20,Theme.PageColors.Army)
 	self.armyCount.TextXAlignment=Enum.TextXAlignment.Center
 	self.armyCount.ZIndex=4
-	self.status=Theme.Display(shell,"ArmyStatus","",21)
-	self.status.AnchorPoint,self.status.Position,self.status.Size,self.status.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
-	self.status.Visible=false
+	-- October 20 (owner): no top army status line ("Marching to X", "Returning home"…).
 	self.objective=Theme.Display(shell,"OpeningObjective","",21,A.gold)
 	self.objective.AnchorPoint,self.objective.Position,self.objective.Size,self.objective.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.035),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self.objective.Visible=false
 	local cash=Theme.Container(shell,"CashReadout")
 	self.cashReadout=cash
-	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.14)
-	Theme.Aspect(cash,3.2)
+	-- October 20: one row taller (was 0.14, aspect 3.2) for the Friend Boost line under
+	-- the number. Rows below are rescaled so every item keeps its on-screen size.
+	cash.AnchorPoint,cash.Position,cash.Size=Vector2.new(0,1),UDim2.fromScale(0.012,0.98),UDim2.fromScale(0.3,0.176)
+	Theme.Aspect(cash,2.545)
 	-- October 15 owner UI Lab tweak: larger coin number with a gradient face; October 20
 	-- (gold Coins): the face is gold beside the gold coin, and the number has no "$".
 	self.money=Theme.Display(cash,"Money","0",46,Color3.fromRGB(252,248,255))
@@ -68,17 +68,20 @@ function Hud.new(app,shell)
 	moneyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,247,57)),
 		ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(255,214,48)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,153,0))})
 	moneyGradient.Parent=self.money.TextFace
-	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Coin,UDim2.fromScale(0.22,0.64),UDim2.fromScale(0.0021,0.0532))
+	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Coin,UDim2.fromScale(0.22,0.509),UDim2.fromScale(0.0021,0.0423))
 	Theme.Aspect(self.cashIcon,1)
-	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0772),UDim2.fromScale(0.76,0.5628)
+	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0614),UDim2.fromScale(0.76,0.4477)
+	-- Friend Boost row (FriendBoost.luau mounts into it); the yard Bag line stays last.
+	self.friendBoostSlot=Theme.Container(cash,"FriendBoostSlot")
+	self.friendBoostSlot.Position,self.friendBoostSlot.Size=UDim2.fromScale(0,0.515),UDim2.fromScale(1,0.2)
 	self.income=Theme.Display(cash,"Income","",20)
-	self.income.Position,self.income.Size=UDim2.fromScale(0,0.68),UDim2.fromScale(1,0.3)
+	self.income.Position,self.income.Size=UDim2.fromScale(0,0.735),UDim2.fromScale(1,0.239)
 	self.income.TextWrapped,self.income.Visible=false,false
 	self.territory=Theme.Display(cash,"TerritoryIncome","",18,A.gold)
-	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.2),false
+	self.territory.Position,self.territory.Size,self.territory.Visible=UDim2.fromScale(0,0),UDim2.fromScale(1,0.159),false
 	-- Rebirth rank ("Rebirth 2") sits just above the money; hidden at rank 0.
 	self.rank=Theme.Display(cash,"RebirthRank","",24,Theme.ReferenceColors.Army)
-	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.26)
+	self.rank.AnchorPoint,self.rank.Position,self.rank.Size=Vector2.new(0,1),UDim2.fromScale(0,0),UDim2.fromScale(0.7,0.207)
 	self.rank.Visible=false
 	local totals=Theme.Container(shell,"ArmyTotals")
 	self.totals=totals
@@ -168,7 +171,7 @@ function Hud.new(app,shell)
 	shine.Parent=self.freeGift.Visual.Label
 	Theme.Motion:Tween(shine,"shine",{Offset=Vector2.new(1,0)},1.8,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
 	self:BuildChickenOffer(shell)
-	-- Below the status line, clear of the Settings corner; errors also raise a toast.
+	-- Below the top-centre line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self:Layout()
@@ -327,10 +330,9 @@ function Hud:Layout()
 	self.reenlist.Visual.Label.Position=UDim2.fromScale(0,0.64)
 	self.freeGift.Visual.Label.TextScaled=true
 	self.freeGift.Visual.Label.Position=UDim2.fromScale(0,0.64)
-	for _,label in {self.status,self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
+	for _,label in {self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
-	Theme.Aspect(self.status,19)
 	Theme.Aspect(self.objective,19)
 	Theme.Aspect(self.save,19)
 	Theme.ScaleText(self.navigation)
@@ -339,7 +341,7 @@ function Hud:Layout()
 	Theme.ScaleText(self.freeGiftCorner)
 	Theme.ScaleText(self.settings)
 	-- Top status lines get the shared readable text floor (wide boxes, no overlap risk).
-	for _,label in {self.status,self.objective,self.save} do Theme.ScaleText(label) end
+	for _,label in {self.objective,self.save} do Theme.ScaleText(label) end
 	self:ApplyInputLayout()
 	self:UpdateArmyCommands(true)
 end
@@ -383,14 +385,6 @@ function Hud:UpdateOpening(state)
 	local guidance=self.app.base.OpeningGuidance(state)
 	self.objective.Text=if guidance then guidance.text else ""
 	self.objective.Visible=guidance~=nil and not self.app.panel.Visible and self.app.commander==nil
-end
-
--- Top-centre priority: lesson card > army status > next-goal line. The Hill
--- title also owns the top line while it shows; the army status returns after.
-function Hud:SyncStatus()
-	local commander=self.app.commander
-	local lesson=commander~=nil and commander.lessonVisible==true
-	self.status.Visible=self.statusWanted==true and not (self.hill and self.hill.bannerVisible) and not lesson
 end
 
 function Hud:UpdateTerritory(state)
@@ -567,6 +561,24 @@ function Hud:PopCash()
 	Theme.Motion:PopScale(self.money,1.06)
 end
 
+-- October 20 egg-sale coin burst: Coins still flying in from the sell pad stay out of
+-- the readout until each coin lands (ActionFeedback). Display only.
+function Hud:ShownCoins(state)
+	local feedback=self.app.feedback
+	local flying=if feedback then feedback:CoinsInFlight() else 0
+	return math.max(0,(state.coins or 0)-(self.heldCash or 0)-flying)
+end
+
+-- A coin landed: count the readout up to it and pop the icon.
+function Hud:RefreshCoins()
+	local state=self.app.state
+	if not state then return end
+	local shown=self:ShownCoins(state)
+	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
+	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
+	self.lastCoins=shown
+end
+
 -- Called when the offline receipt closes: a few coin icons fly from the receipt
 -- (origin: absolute screen point, or nil) into the coin readout, then the
 -- balance counts up to the real total. Plain TweenService tweens.
@@ -577,7 +589,7 @@ function Hud:ReleaseOfflineCash(receiptId,origin)
 	local app=self.app
 	local function settle()
 		self.releasedReceipt,self.heldCash=receiptId,0
-		local coins=app.state and app.state.coins or 0
+		local coins=if app.state then self:ShownCoins(app.state) else 0
 		Theme.Motion:Count(self.money,coins,function(value) return Theme.CompactMoney(value) end,1)
 		self.lastCoins=coins
 		self:PopCash()
@@ -623,7 +635,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local receipt=state.offlineCash
 	self.heldCash=if type(receipt)=="table" and (tonumber(receipt.amount) or 0)>0 and receipt.id~=self.releasedReceipt
 		then receipt.amount else 0
-	local shown=math.max(0,state.coins-self.heldCash)
+	local shown=self:ShownCoins(state)
 	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
 	-- Confirmed gains only (never the first packet or a purchase).
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
@@ -634,20 +646,9 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
 	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
-	self.status.Text=if atHome then ""
-		elseif state.armyState=="Following" then "Army following you"
-		elseif state.armyState=="Returning" then "Returning home"
-		elseif state.stationedAt then "Holding "..state.stationedAt
-		elseif state.marchingTo then "Marching to "..state.marchingTo
-		else "Army deployed"
 	local callUnlocked=callArmyUnlocked(state)
 	if callUnlocked~=self.callUnlocked then self.callUnlocked=callUnlocked;self:UpdateArmyCommands(false) end
 	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
-	if state.armyState~="Returning" and (state.recoveringCount or 0)+(state.reinforcingCount or 0)>0 then
-		self.status.Text=(state.recoveringCount or 0)+(state.reinforcingCount or 0).." reinforcing"
-	end
-	self.statusWanted=not atHome and self.status.Text~=""
-	self:SyncStatus()
 	local explored=0
  for _,won in state.frontierWins or {} do if won then explored+=1 end end
  local outpostCount=#Progression.Outposts()

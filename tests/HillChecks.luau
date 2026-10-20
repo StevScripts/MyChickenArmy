@@ -130,6 +130,28 @@ function Checks.Run()
   assert(not Session.new(2003,"Saver",1):LoadData(data),"Malformed accepted")
   return "Additive save fields"
  end)
+ test("First-time film: due once when a round opens, saved, never for Hill winners",function()
+  local hill,_,a,b=setup()
+  a.kingCleared=true
+  b.kingCleared,b.hillWins=true,1
+  local t0=H.FirstBreakSeconds+.1
+  hill:Step(.1,t0)
+  assert(hill.phase=="Open","Hill did not open")
+  assert(hill:Snapshot(a,t0).intro==true and a.banner=="","Eligible player not due, or also toasted")
+  assert(hill:Snapshot(b,t0).intro==false and b.banner~="","Hill winner due, or not toasted")
+  a.tutorial.hillIntroSeen=true
+  assert(hill:Snapshot(a,t0).intro==false,"Seen film still due")
+  local data=a:ToData()
+  local saved=Session.new(a.userId,a.name,1)
+  assert(saved:LoadData(data) and saved.tutorial.hillIntroSeen==true,"Flag not saved")
+  data.tutorial.hillIntroSeen=nil
+  local old=Session.new(a.userId,a.name,1)
+  assert(old:LoadData(data) and old.tutorial.hillIntroSeen==false,"Old save")
+  a.tutorial.hillIntroSeen=false
+  hill:Step(.1,t0+H.RoundSeconds+1)
+  assert(hill.phase=="Break" and hill:Snapshot(a,t0+H.RoundSeconds+1).intro==false,"Due during a break")
+  return "Due on open without the toast, saved, additive, cleared at the break"
+ end)
  test("Hill Champion is never rolled or sold in crates",function()
   local d=Catalog[H.ChampionSpecies]
   assert(d and d.weight==0 and d.hillExclusive and d.rarity=="Mythic" and table.find(Catalog.Order,H.ChampionSpecies))
