@@ -923,7 +923,7 @@ function PlayerSession:LoadData(data)
   if previousEarned>promotion then promotion,recruitTier=previousEarned,previousEarned end
  end
 	local tutorial={}
-	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden"} do tutorial[key]=data.tutorial[key]==true end
+	for _,key in {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp","returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen"} do tutorial[key]=data.tutorial[key]==true end
 	local collectedEggCount=data.tutorial.collectedEggCount
 	if collectedEggCount==nil then
 		-- Existing saves already passed the one-egg lesson when they collected,
