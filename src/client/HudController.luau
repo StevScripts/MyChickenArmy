@@ -706,7 +706,10 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
 	self.lastCoins=shown
 	self:UpdateEggLine(state.eggs or {})
-	self.flock.Text="Flock "..count.."/"..limit
+	-- October 20: the Flock is the chickens laying (Flock Size); storage has no visible cap.
+	local flock=state.flock
+	self.flock.Text=if type(flock)=="table" and type(flock.size)=="number"
+		then "Flock "..#(flock.ids or {}).."/"..flock.size else "Flock "..count.."/"..limit
 	local atHome=state.armyState=="Home"
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end

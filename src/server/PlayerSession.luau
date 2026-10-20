@@ -371,27 +371,137 @@ function PlayerSession:RefreshArmy(): boolean
 	return changed
 end
 
-local function selectedSet(session)
-	local result={}
-	for _,id in session:BestPetIds() do result[id]=true end
-	return result
+-- October 20 Flock (docs/team/FLOCK_STORAGE.md): only Flock chickens lay eggs,
+-- online and offline; every other chicken waits in storage. flockSelection nil is
+-- automatic (the best egg layers); a list is the player's own picks, kept exactly.
+-- A pick away with the Army leaves its slot to the next best layer at home.
+local function flockSize(session): number
+	-- Flock Size comes from the Upgrades tree (FlockSize, effect flockSize); 3 until set.
+	local size=if session.FlockSize then session:FlockSize() else session.researchEffects.flockSize
+	if type(size)~="number" or size~=size then return 3 end
+	return math.clamp(math.floor(size),0,Config.LegacyCollectionLimit)
 end
 
-local function saleEligibility(session,id,selected): (boolean,string)
+-- How many chickens lay at once (Flock Size).
+function PlayerSession:FlockSlots(): number
+	return flockSize(self)
+end
+
+local function layerRate(pet): number
+	return Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation)
+end
+
+-- The `count` best egg layers outside `skip`, at home unless `steady`: most eggs
+-- first, then the stronger chicken. One pass, since storage can hold many chickens.
+function PlayerSession:BestLayerIds(count: number, skip, steady: boolean?): {string}
+	local best={}
+	if count<=0 then return best end
+	for id,pet in self.pets do
+		if skip[id] or not (steady or self:IsPetHome(id)) then continue end
+		local rate=layerRate(pet)
+		local last=best[count]
+		if last and rate<last.rate then continue end
+		local entry={id=id,rate=rate,power=Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize)}
+		local index=#best+1
+		while index>1 do
+			local other=best[index-1]
+			if entry.rate<other.rate or (entry.rate==other.rate and (entry.power<other.power
+				or (entry.power==other.power and entry.id>other.id))) then break end
+			index-=1
+		end
+		if index<=count then table.insert(best,index,entry);best[count+1]=nil end
+	end
+	local ids={}
+	for index,entry in best do ids[index]=entry.id end
+	return ids
+end
+
+-- The Flock in slot order and, unless `steady`, who lays right now: picks at home
+-- plus fill-ins for picks away. `steady` counts every chicken as home (offline
+-- earnings and sale protection use the picks themselves).
+local function flockLayers(session,steady: boolean?): {string}
+	local size=flockSize(session)
+	local picks=session.flockSelection
+	if picks==nil then return session:BestLayerIds(size,{},steady) end
+	local valid,taken,away={},{},0
+	for _,id in picks do
+		if #valid>=size then break end
+		if session.pets[id] and not taken[id] then
+			taken[id]=true;table.insert(valid,id)
+			if not steady and not session:IsPetHome(id) then away+=1 end
+		end
+	end
+	if away==0 then return valid end
+	local fills,used,ids=session:BestLayerIds(away,taken,false),0,{}
+	for _,id in valid do
+		if session:IsPetHome(id) then table.insert(ids,id)
+		else used+=1;if fills[used] then table.insert(ids,fills[used]) end end
+	end
+	return ids
+end
+
+-- The Flock: the player's picks or the automatic best layers, in slot order.
+function PlayerSession:FlockIds(): {string}
+	return flockLayers(self,true)
+end
+
+-- Chickens laying eggs right now: Flock chickens at home plus their fill-ins.
+function PlayerSession:LayingIds(): {string}
+	return flockLayers(self,false)
+end
+
+-- Keeps the picks valid: chickens that left drop out, picks past a smaller Flock
+-- Size (after a Rebirth) drop, and slots a bigger Flock Size adds fill with the best
+-- layers. EggService runs it every step; valid picks are left untouched.
+function PlayerSession:RefreshFlock(): boolean
+	local size=flockSize(self)
+	local previous=self.flockSizeSeen
+	self.flockSizeSeen=size
+	local picks=self.flockSelection
+	if picks==nil then return false end
+	local kept,taken={},{}
+	for _,id in picks do
+		if #kept<size and self.pets[id] and not taken[id] then taken[id]=true;table.insert(kept,id) end
+	end
+	if previous and size>previous then
+		for _,id in self:BestLayerIds(math.min(size-#kept,size-previous),taken,true) do table.insert(kept,id) end
+	end
+	-- A Flock with no picks left would lay nothing; it goes back to automatic.
+	if #kept==0 then self.flockSelection=nil;self:Touch();return true end
+	if #kept==#picks then
+		local same=true
+		for index,id in kept do if picks[index]~=id then same=false;break end end
+		if same then return false end
+	end
+	self.flockSelection=kept;self:Touch()
+	return true
+end
+
+-- What a batch of sale checks shares: one Army sort and one Flock pass per batch.
+function PlayerSession:SaleContext()
+	local selected,flock={},{}
+	for _,id in self:BestPetIds() do selected[id]=true end
+	for _,id in self:FlockIds() do flock[id]=true end
+	return {selected=selected,flock=flock,count=self:Count(),minimum=self:StarterFlockMinimum()}
+end
+
+local function saleEligibility(session,id,context): (boolean,string)
 	local pet=if type(id)=="string" then session.pets[id] else nil
-	if not pet then return false,"That chicken is no longer in your flock." end
-	local minimum=session:StarterFlockMinimum()
-	if minimum>0 and session:Count()<=minimum then
+	if not pet then return false,"That chicken is no longer yours." end
+	local minimum=context.minimum
+	if minimum>0 and context.count<=minimum then
 		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
 	if pet.favorite then return false,"Favorite chickens can't be sold." end
 	if not session:IsPetHome(id) then return false,"Your Army is away with this chicken." end
-	if selected[id] then return false,"Remove it from your Army first." end
+	if context.selected[id] then return false,"Remove it from your Army first." end
+	if context.flock[id] then return false,"Remove it from your Flock first." end
 	return true,"Ready to sell."
 end
 
-function PlayerSession:SaleEligibility(id): (boolean,string)
-	return saleEligibility(self,id,selectedSet(self))
+-- Pass one SaleContext when checking many chickens at once.
+function PlayerSession:SaleEligibility(id,context): (boolean,string)
+	return saleEligibility(self,id,context or self:SaleContext())
 end
 
 function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
@@ -419,7 +529,7 @@ function PlayerSession:Lineup()
 	return result
 end
 
--- Physical home location determines egg production.
+-- Physical home location: only chickens at home can lay (LayingIds).
 -- Every reserve stays home; deployed and incoming birds use battle actors
 -- until its departure, defense or recovery transition has finished.
 function PlayerSession:IsPetHome(id: string): boolean
@@ -449,9 +559,10 @@ function PlayerSession:PetEggRate(species: string, stars: number, level: number?
  return Rules.EggRate(species,stars,level)*self:EggProductionMultiplier()*MutationCatalog.Multiplier(mutation)
 end
 
-function PlayerSession:Income(): number
+-- Only chickens laying count (Flock chickens at home and their fill-ins).
+function PlayerSession:Income(laying: {string}?): number
 	local income=0
-	for id in self.pets do if self:IsPetHome(id) then income+=self:PetIncome(id) end end
+	for _,id in laying or self:LayingIds() do income+=self:PetIncome(id) end
 	return income
 end
 
@@ -531,55 +642,106 @@ function PlayerSession:GlobalUpgrade(kind: string)
 	return {price=price,unlocked=true,requirement=""}
 end
 
--- Compare a reveal to the best owned squad, including pending replacements while away.
-function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?): (string, boolean)
-	local best=self:AutoBestPetIds()
-	if #best<self:Capacity() then
+-- Compare a reveal to the Army the player picked, the same rule as Auto Roll's
+-- Army-upgrade stop: an open slot counts only while the Army is automatic, where a
+-- recruit joins it. Pass BestPetIds when advising several offers.
+function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?, army: {string}?): (string, boolean)
+	local picked=army or self:BestPetIds()
+	if #picked==0 or (self.armySelection==nil and #picked<self:Capacity()) then
 		return "Fills an army slot",true
 	end
-	local weakest=self.pets[best[#best]]
-	if weakest and Rules.PetPower(species,1,level)>Rules.PetPower(weakest.species,weakest.stars,weakest.level,weakest.giantSize) then
+	local weakest=math.huge
+	for _,id in picked do
+		local pet=self.pets[id]
+		if pet then weakest=math.min(weakest,Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize)) end
+	end
+	if Rules.PetPower(species,1,level)>weakest then
 		return "Makes your army stronger",true
 	end
 	local income=self:DisplayedPetIncome(species,1,level,mutation)
-	return "Lays eggs worth "..Currency.Rate(income).."/s at home",false
+	return "Lays eggs worth "..Currency.Rate(income).."/s in your Flock",false
+end
+
+-- Snapshot entries for every chicken. An entry is rebuilt only when a value shown
+-- for it changes, and petsVersion moves only then: storage can hold up to
+-- Config.StorageLimit chickens, so GameServer resends the list only on a change.
+local PET_FIELDS={"species","stars","level","favorite","giantSize","mutation","slot","selected","deployed","home",
+	"flock","laying","canSell","saleReason","income","eggsPerSecond","upgradePrice","canUpgrade","upgradeReason",
+	"levelCap","investment","refund"}
+local petsSerial=0 -- Server-wide, so two lists never share a version.
+
+function PlayerSession:PetEntries(best: {string}, deployedIds: {string}, flock: {string}, laying: {string})
+	local context={selected={},flock={},count=self:Count(),minimum=self:StarterFlockMinimum()}
+	local deployed,layers={},{}
+	for _,id in best do context.selected[id]=true end
+	for _,id in flock do context.flock[id]=true end
+	for _,id in deployedIds do deployed[id]=true end
+	for _,id in laying do layers[id]=true end
+	-- Shared factors, once per snapshot instead of once per chicken.
+	local production=self:EggProductionMultiplier()
+	local value=self:EarnedAmount(production*(1+self.researchEffects.eggValue),"eggs")
+	local previous,entries,changed,shown=self.petEntries or {},{},false,{}
+	for id,pet in self.pets do
+		local level=pet.level or 1
+		local mutation=MutationCatalog.Multiplier(pet.mutation)
+		local canSell,saleReason=saleEligibility(self,id,context)
+		local canUpgrade,upgradeReason=self:ChickenUpgradeEligibility(id)
+		shown.species,shown.stars,shown.level,shown.favorite=pet.species,pet.stars,pet.level,pet.favorite
+		shown.giantSize,shown.mutation,shown.slot=pet.giantSize,pet.mutation,self:FindSlot(id)
+		shown.selected,shown.deployed,shown.home=context.selected[id]==true,deployed[id]==true,self:IsPetHome(id)
+		shown.flock,shown.laying,shown.canSell,shown.saleReason=context.flock[id]==true,layers[id]==true,canSell,saleReason
+		shown.income=Rules.Income(pet.species,pet.stars,level,self.incomeLevel)*mutation*value
+		shown.eggsPerSecond=Rules.EggRate(pet.species,pet.stars,level)*production*mutation
+		shown.upgradePrice,shown.canUpgrade,shown.upgradeReason=Rules.ChickenUpgradePrice(pet.species,level),canUpgrade,upgradeReason
+		shown.levelCap,shown.investment=Config.MaxPetLevel,pet.investment
+		shown.refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))
+		local entry=previous[id]
+		if entry then
+			for _,field in PET_FIELDS do if entry[field]~=shown[field] then entry=nil;break end end
+		end
+		if not entry then entry=table.clone(shown);entry.id=id;changed=true end
+		entries[id]=entry
+	end
+	if not changed then for id in previous do if not entries[id] then changed=true;break end end end
+	self.petEntries=entries
+	if changed or not self.petList then
+		local list={}
+		for _,entry in entries do table.insert(list,entry) end
+		table.sort(list,function(a,b)
+			if a.species~=b.species then return a.species<b.species end
+			if a.stars~=b.stars then return a.stars>b.stars end
+			return a.id<b.id
+		end)
+		petsSerial+=1
+		self.petList,self.petsVersion=list,petsSerial
+	end
+	return self.petList
+end
+
+-- My Army and the HUD: ids is the Flock in slot order, laying is who lays right now.
+function PlayerSession:FlockSnapshot(flock: {string}, laying: {string}, production: number)
+	local eggs=0
+	for _,id in laying do local pet=self.pets[id];if pet then eggs+=layerRate(pet) end end
+	return {size=flockSize(self),mode=if self.flockSelection==nil then "Auto" else "Manual",
+		ids=flock,laying=laying,eggsPerSecond=eggs*production}
 end
 
 function PlayerSession:Snapshot(now: number)
 	local rank=Progression.Get(self.promotion)
 	local mergeUnlocked,mergeRequirement=self:MergeAccess()
 	local best=self:BestPetIds()
-	local selected,deployed={},{}
 	local deployedIds={}
-	for _,id in best do selected[id]=true end
 	if self:IsArmyLocked() then
-		for _,pet in self:Lineup() do table.insert(deployedIds,pet.id);deployed[pet.id]=true end
+		for _,pet in self:Lineup() do table.insert(deployedIds,pet.id) end
 	end
-	local pets={}
-	for _,pet in self.pets do
-		local canSell,reason=saleEligibility(self,pet.id,selected)
-		local canUpgrade,upgradeReason=self:ChickenUpgradeEligibility(pet.id)
-		table.insert(pets,{id=pet.id,species=pet.species,stars=pet.stars,level=pet.level,favorite=pet.favorite,
-			giantSize=pet.giantSize,mutation=pet.mutation,
-			slot=self:FindSlot(pet.id),selected=selected[pet.id]==true,deployed=deployed[pet.id]==true,
-			canSell=canSell,saleReason=reason,income=self:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation),home=self:IsPetHome(pet.id),
-			eggsPerSecond=self:PetEggRate(pet.species,pet.stars,pet.level,pet.mutation),
-			nextIncome=if (pet.level or 1)<Config.MaxPetLevel then self:DisplayedPetIncome(pet.species,pet.stars,(pet.level or 1)+1,pet.mutation) else nil,
-			upgradePrice=Rules.ChickenUpgradePrice(pet.species,pet.level or 1),canUpgrade=canUpgrade,upgradeReason=upgradeReason,
-			levelCap=Config.MaxPetLevel,upgradeLocked=not canUpgrade,
-			investment=pet.investment,refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))})
-	end
-	table.sort(pets,function(a,b)
-		if a.species~=b.species then return a.species<b.species end
-		if a.stars~=b.stars then return a.stars>b.stars end
-		return a.id<b.id
-	end)
+	local flock,laying=self:FlockIds(),self:LayingIds()
+	local pets=self:PetEntries(best,deployedIds,flock,laying)
 	local offers={}
 	for slot=1,self.rollSlotCount or 1 do
 		local value=self.offers and self.offers[slot]
 		if value then
 			local offer=table.clone(value);offer.slot=slot
-			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation)
+			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation,best)
 			table.insert(offers,offer)
 		end
 	end
@@ -587,7 +749,8 @@ function PlayerSession:Snapshot(now: number)
 	local campsWon=0
 	for i=1,#Progression.Camps(1) do if self.firstWins[i] then campsWon+=1 end end
 	local eggProduction=self:EggProductionMultiplier()
-	local income=self:EarnedAmount(self:Income()*eggProduction,"eggs")*(1+(self.territoryBonus or 0))
+	local layingIncome=self:Income(laying)
+	local income=self:EarnedAmount(layingIncome*eggProduction,"eggs")*(1+(self.territoryBonus or 0))
 	return {research=ResearchService.Snapshot(self,os.time()),nextSlot=self:NextSlot(),
 		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=Config.MaxSlots+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
 			levelCap=Config.MaxPetLevel,ready=false,
@@ -598,7 +761,7 @@ function PlayerSession:Snapshot(now: number)
 			nextUnlock=Progression.NextGoal(self.firstWins,self.frontierWins,self.kingCleared)},
 		incomeUpgrade=self:GlobalUpgrade("Income"),luckUpgrade=self:GlobalUpgrade("Luck"),
 		frontierWins=table.clone(self.frontierWins),kingCleared=self.kingCleared,
-        firstWins=table.clone(self.firstWins),homeCount=#self:HomePets(),reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,
+        firstWins=table.clone(self.firstWins),homeCount=#laying,reserveCount=#pets-#best,homeIncome=income,incomeLevel=self.incomeLevel,
 		offlineCash=if self.offlineCashReceipt then table.clone(self.offlineCashReceipt) else nil,
 		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt,
 			recruitAt=self.autoRoll.recruitAt,mutationStop=self.autoRoll.mutationStop~=false,
@@ -614,8 +777,9 @@ function PlayerSession:Snapshot(now: number)
 		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
 		starterRecruitPrice=if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0,
 		income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue),
-		homeEggsPerSecond=self:Income()/(Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue))*eggProduction,
+		homeEggsPerSecond=layingIncome/(Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue))*eggProduction,
 		capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
+		petsVersion=self.petsVersion,flock=self:FlockSnapshot(flock,laying,eggProduction),
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
 		selectionMode=if self.armySelection==nil then "Auto" else "Manual",
 		selectedCount=#best,deployedCount=#deployedIds,overflowCount=math.max(0,#pets-self:CollectionLimit()),

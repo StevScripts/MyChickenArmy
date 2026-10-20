@@ -27,6 +27,7 @@ WorldService.__index = WorldService
 
 local YARD_MIN_X, YARD_MAX_X, YARD_MIN_Z, YARD_MAX_Z = HomePlot.YardMinX, HomePlot.YardMaxX, HomePlot.YardMinZ, HomePlot.YardMaxZ
 local MAX_WANDERING = 12
+-- Safety bound only: the yard holds the Flock plus the Army at home.
 local MAX_VISIBLE = Config.LegacyCollectionLimit
 local FOOT_Y = HomePlot.FootY
 
@@ -227,6 +228,8 @@ function WorldService:Recruit(session, petId: string)
 	local plot, pet = self.plots[session.plotIndex], session.pets[petId]
 	if not plot or not pet or not session:IsPetHome(petId) or plot.actors[petId] then return end
 	if #plot.pets:GetChildren() >= MAX_VISIBLE then return end
+	-- Only the Flock and the Army live in the yard; a new chicken for storage stays out.
+	if not table.find(session:LayingIds(), petId) and not table.find(session:BestPetIds(), petId) then return end
 	local at = (plot.station.frame * CFrame.new(0, FOOT_Y, -9)).Position
 	local actor = PetActor.new(plot.pets, petId, pet.species, pet.stars, at, self:PlotFrame(session.plotIndex).RightVector)
 	if not self:RestoreActor(session, petId, actor) then return end
@@ -545,9 +548,17 @@ function WorldService:UpdateSession(session)
 		end
 	end
 	local desired, visibleCount = {}, 0
-	local homePets = session:HomePets()
+	-- October 20 Flock: the yard holds the chickens laying plus the Army at home
+	-- (Call Army and deployments take their rigs from here). The rest wait in storage.
+	local homePets, inYard = {}, {}
 	local best = {}
 	for _, id in session:BestPetIds() do best[id] = true end
+	for _, id in session:LayingIds() do inYard[id] = true end
+	for id in best do inYard[id] = true end
+	for id in inYard do
+		local pet = session.pets[id]
+		if pet and session:IsPetHome(id) then table.insert(homePets, pet) end
+	end
 	-- Retain current home actors first; new snapshots never reshuffle their destinations.
 	table.sort(homePets, function(a, b)
 		if best[a.id] ~= best[b.id] then return best[a.id] == true end
@@ -583,7 +594,10 @@ function WorldService:UpdateSession(session)
 	for id, actor in plot.actors do
 		if not desired[id] then actor:Destroy(); plot.actors[id], plot.roaming[id] = nil, nil end
 	end
-	for id in plot.homeOrdinals do if not session.pets[id] then plot.homeOrdinals[id] = nil end end
+	-- A chicken back in storage frees its yard spot; one away keeps it for the walk home.
+	for id in plot.homeOrdinals do
+		if not session.pets[id] or (not desired[id] and session:IsPetHome(id)) then plot.homeOrdinals[id] = nil end
+	end
 	attribute(plot.folder, "HomeCount", visibleCount)
 	attribute(plot.folder, "HiddenHomeCount", math.max(0, #homePets - visibleCount))
 	self.revisions[session.userId] = session.revision

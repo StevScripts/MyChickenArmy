@@ -54,6 +54,9 @@ local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBas
 	-- October 20 (S8): the Rebirth screen shows these itself (card pulse, toggle, Rebirth toast).
 	Rebirth = true, BuyGemUpgrade = true, SetAutoRebirth = true}
 
+-- October 20 Flock edits confirm themselves in My Army (the strip, counts and card pops).
+for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end
+
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
 		confirm = nil, panelKey = "", reducedMotion = false, toastSerial = 0, alive = true,
@@ -850,6 +853,20 @@ end
 function AppController:Receive(packet)
 	if type(packet) ~= "table" or type(packet.state) ~= "table" then return end
 	local old = self.state
+	-- October 20 storage: the server leaves out an unchanged chicken list (same
+	-- petsVersion). Keep the last one; anything else asks for a full snapshot.
+	if packet.state.pets == nil then
+		local same = old ~= nil and old.pets ~= nil and old.petsVersion == packet.state.petsVersion
+		packet.state.pets = if old and old.pets then old.pets else {}
+		if not same then
+			-- The kept list stays labeled with its own version until a full one arrives.
+			packet.state.petsVersion = if old then old.petsVersion else nil
+			if os.clock() >= (self.petsSyncAt or 0) then
+				self.petsSyncAt = os.clock() + 2
+				self:Request("Sync")
+			end
+		end
+	end
 	self.state = packet.state
 	local state = self.state
 	-- Before any guide/objective refresh, so a first-visit intro can hold them.

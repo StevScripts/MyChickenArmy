@@ -1,5 +1,13 @@
 # Offline cash
 
+**October 20 (Flock overhaul):** only the Flock earns offline, like online:
+`OfflineCash.Rate` sums `PlayerSession:FlockIds()` (the Flock, every chicken
+counted as home), not every owned chicken. The Offline Coins Gem Upgrade
+(`researchEffects.offlineEfficiency`) is added to the base efficiency; the
+checkpoint saves it as `bonus`, and `Reward` pays today's base plus that bonus.
+Gold Rush and Friend Boost never count offline. See
+[FLOCK_STORAGE.md](team/FLOCK_STORAGE.md). "All owned birds count" below is history.
+
 **October 16 (owner: players thought they didn't get it):** the server still credits
 and saves the reward before the receipt shows (unchanged). The HUD now leaves the
 receipt amount out of the displayed balance while the receipt is open; closing it
