@@ -147,8 +147,9 @@ Other modes:
 
 Without API credits, use the Codex CLI. Its built-in `image_gen` runs on Stevin's ChatGPT plan
 and supports transparency. Pass the prompt on stdin, because `-i` swallows a trailing argument.
-codex-cli 0.144.1 needs `-m gpt-5.6-sol`, since the configured `gpt-6-astra` requires a newer CLI.
-From this folder:
+Both icons were made on codex-cli 0.144.1 with `-m gpt-5.6-sol`, because that version rejected
+the configured `gpt-6-astra`. The CLI is now 0.163.0, so the `-m` flag should no longer be needed.
+The command used, from this folder:
 
 ```bash
 codex exec -m gpt-5.6-sol -C "$PWD" --sandbox workspace-write -c model_reasoning_effort="medium" -i RollSpeed.png -i GoldRate.png -i ../research-20261002/icons/boots.png -i ../research-20261002/icons/medkit.png < codex/AutoRoll.prompt.txt
