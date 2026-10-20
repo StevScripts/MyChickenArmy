@@ -29,6 +29,7 @@ local OfflineCashController = require(script.Parent.OfflineCashController)
 local FreeGiftController = require(script.Parent.FreeGiftController)
 local GoldRushController = require(script.Parent.GoldRushController)
 local FriendBoost = require(script.Parent.FriendBoost)
+local ToolController = require(script.Parent.ToolController)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
@@ -856,6 +857,8 @@ function AppController:Receive(packet)
 	self.commerce:ReceiveState(state)
 	local researchFeedback=self.research:Receive(state,packet.result)
 	self.eggs:Receive(state.eggs)
+	-- October 20 hand tools: the dock, the Feed prompt and Feed results.
+	if self.tools then self.tools:Receive(state, packet.result) end
 	if not old or old.plotIndex ~= state.plotIndex then self.base:RefreshPromptOwnership() end
 	if self.selected and not self:Pet(self.selected) then
 		local previous
@@ -971,6 +974,7 @@ function AppController:Start()
 	self.feedback:Start()
 	self.commerce:Start()
 	self.eggs:Start()
+	self.tools=ToolController.new(self)
 	self.animator = DuckAnimator.new(self.audio)
 	self.animator:SetReducedMotion(self.reducedMotion)
 	self.galaxyCrateVisuals = GalaxyCrateVisuals.new()
@@ -1029,6 +1033,7 @@ function AppController:Destroy()
 	if self.friendBoost then self.friendBoost:Destroy() end
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
 	table.clear(self.menuBlurOwners)
+	if self.tools then self.tools:Destroy() end
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
 	self.productionRequests,self.productionReceipts={},{}

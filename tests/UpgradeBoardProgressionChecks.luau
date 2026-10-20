@@ -542,7 +542,6 @@ return function(sources, onlyNames)
 	check("Longer deck keeps the square and early stages fixed, fits the final T, and has 100 unique homes", function()
 		local Plot = loadModule(server.PlotUpgradeService)
 		local Layout = loadModule(shared.HomePlotLayout)
-		local Rover = loadModule(server.EggRover)
 		local model = Instance.new("Model")
 		local ok, err = pcall(function()
 			local frame = CFrame.new(346.48, -2.39, -195) * CFrame.Angles(0, math.rad(120), 0)
@@ -596,15 +595,8 @@ return function(sources, onlyNames)
 					local key = string.format("%.4f,%.4f", x, z)
 					assert(not occupied[key], "Home positions repeated before capacity"); occupied[key] = true
 				end
-				local rover = Rover.new("fixture", frame, 701, machine, 0)
-				local previous = frame:PointToObjectSpace(rover.approach)
-				for _, point in rover.rows do
-					local current = frame:PointToObjectSpace(point)
-					assert(Layout.CanWalkDirect(bounds, previous.X, previous.Z, current.X, current.Z), "Rover crosses T cutout")
-					previous = current
-				end
-				local corridor = frame:PointToObjectSpace(rover.corridor)
-				assert(math.abs(corridor.Z + 15) < 0.001, "Deck resizing shifted the rover approach")
+				-- October 20: the robot vacuum's route checks left with the robot
+				-- (archive/robot-vacuum-20261020).
 			end
 			plot:Destroy()
 		end)

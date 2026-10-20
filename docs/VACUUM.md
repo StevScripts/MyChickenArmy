@@ -1,5 +1,10 @@
 # Egg vacuum
 
+**Retired October 20, 2026.** The Auto Collect pass is off sale and this robot
+vacuum is gone; its code is in `archive/robot-vacuum-20261020/`. The held Egg Vacuum
+tool replaces it: [team/COLLECTION_TOOLS.md](team/COLLECTION_TOOLS.md). The notes
+below are history.
+
 Auto Collect uses the user's Tripo vacuum. Nine original parts remain separate; no chicken/map art is replaced. Wheels rotate from actual travel and turning. The server drives alternating rows, claims only nearby eggs, carries them separately from the player, returns to the existing sell pad and pays once. Manual nearby egg pickup remains available.
 
 October 3 feedback correction: automatic deliveries retain their payout, local
