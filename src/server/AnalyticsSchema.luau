@@ -14,7 +14,10 @@ local Schema = {}
 -- funnels for every system, client UI events (menus, buttons, prompts, idle),
 -- server events, real Robux from receipts, device/segment profile, state snapshots.
 -- 6 (October 20): Playtime funnel (session length checkpoints, Schema.Playtime).
-Schema.Version = 6
+-- 7 (October 20 overhaul, S7): Rebirth v2 (rebirth2.*), Gems as a second currency
+-- (Analytics:Gems, gems.*), Upgrades tree and Gem Upgrade buys, Rebirth chickens,
+-- retired-pass Gems gifts, the economy migration, the Time Skip coin source.
+Schema.Version = 7
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -126,6 +129,7 @@ Schema.Sources = {
 	offline   = {transaction = "TimedReward", sku = "OfflineEarnings"},
 	robux     = {transaction = "IAP",         sku = "CashPack"},
 	daily     = {transaction = "TimedReward", sku = "DailyStreak"},
+	rebirth   = {transaction = "Gameplay",    sku = "TimeSkip"},    -- version 7: Rebirth Time Skip Coins
 }
 Schema.IgnoredSources = {debug = true}
 Schema.Sinks = {
@@ -143,6 +147,8 @@ Schema.Sinks = {
 	StartOperation = {transaction = "Gameplay", sku = "Operation"},
 	-- The whole wallet removed by a re-enlist (the cost plus the cash reset).
 	Rebirth        = {transaction = "Gameplay", sku = "Rebirth"},
+	-- Version 7: an Upgrades tree node (sku gets ":<nodeId>").
+	BuyUpgrade     = {transaction = "Shop",     sku = "Upgrade"},
 }
 Schema.Rarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret"}
 
@@ -154,6 +160,8 @@ Schema.Features = {
 	OpenCrate = "Crate", Sell = "SellChicken", SetCommerceToggle = "PassToggle", Rally = "Rally",
 	CallArmy = "CallArmy", PreparePurchase = "ShopPrompt", Favorite = "Favorite", Attack = "Attack",
 	UnclaimTerritory = "Territory", Rebirth = "Rebirth",
+	-- Version 7 (October 20 overhaul).
+	BuyUpgrade = "Upgrades", BuyGemUpgrade = "GemUpgrades", SetAutoRebirth = "AutoRebirth",
 }
 
 -- Launch sprint ledger names (docs/team/launch). Workers record them through
@@ -178,12 +186,26 @@ Schema.LaunchCounters = {
 	["mission.won"] = true,
 	["mission.lost"] = true,
 	["mission.timeout"] = true,   -- the 3-minute fight limit ran out
+	-- Version 7 (October 20 overhaul, docs/team/OVERHAUL_CONTRACT_20261020.md §11).
+	["rebirth2.rank"] = true,     -- rebirth2.rank.<N>: first time a player reaches v2 rank N (LaunchFirst)
+	["rebirth2.skip"] = true,     -- a Rebirth paid with a Skip credit
+	["rebirth2.auto"] = true,     -- a Rebirth done by Auto Rebirth
+	["gems.earned"] = true,       -- n = Gems paid by a Rebirth
+	["gems.spent"] = true,        -- gems.spent.<upgradeId>, n = Gems spent
+	["gemUpgrade.buy"] = true,    -- gemUpgrade.buy.<upgradeId>
+	["upgrade.buy"] = true,       -- upgrade.buy.<nodeId>: an Upgrades tree node
+	["rebirthChicken.granted"] = true,
+	["rebirthChicken.offered"] = true, -- a podium offer replaced by a Rebirth chicken (S12)
+	["rebirthChicken.bought"] = true,  -- that offer recruited (S12)
+	["passGems"] = true,          -- passGems.<passKey>: a retired pass's one-time Gems gift
+	["migration"] = true,         -- migration.economy2: a save converted to the tree and Gems
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {
 	["rebirth.playSeconds"] = "longSeconds", -- rebirth.playSeconds.<N>: total play when rank N was reached
 	["rebirth.cashAtRebirth"] = "bigCash",
 	["daily.streak"] = "count",
+	["rebirth2.playSeconds"] = "longSeconds", -- version 7: total play when v2 rank N was reached
 }
 -- Analytics profile field: highest re-enlist rank seen (profile.rebirths).
 
@@ -224,7 +246,7 @@ Schema.FeatureFunnels = {
 	{id = "Upgrades", steps = {
 		{id = "MenuOpened", trigger = "client:menu.open=Upgrades"},
 		{id = "Inspected", trigger = "client:inspect=Upgrades/*"},
-		{id = "FirstBuy", trigger = "action:CashUpgrade|BoardUpgrade|Luck|Income|Expand"},
+		{id = "FirstBuy", trigger = "action:CashUpgrade|BoardUpgrade|BuyUpgrade|Luck|Income|Expand"},
 		{id = "Buys10", trigger = "10 cash upgrades ever"},
 		{id = "Buys50", trigger = "50 cash upgrades ever"},
 	}},
@@ -323,7 +345,7 @@ Schema.FeatureFunnels = {
 		{id = "Claimed", trigger = "server:offline.claimed"},
 	}},
 	{id = "Plot", steps = {
-		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize"},
+		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize|BuyUpgrade Flock*"},
 		{id = "BuildStarted", trigger = "server:plot.buildStart"},
 		{id = "BuildDone", trigger = "server:plot.buildDone"},
 		{id = "Max", trigger = "state:collectionLimit>=100"},

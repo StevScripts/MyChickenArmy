@@ -89,8 +89,8 @@ function Commands:StartFollowing(session,player)
 	session:Touch()
 end
 
+-- October 20 overhaul: Call Army is free for everyone (no research).
 function Commands:CallArmy(player,session,now)
-	if (session.researchEffects.callArmy or 0)<1 then return false,"Unlock Call Army in Upgrades first." end
 	if not characterRoot(player) then return false,"Your character will be ready in a moment." end
 	if #session:BestPetIds()==0 then return false,"Select chickens in My Army first." end
 	-- A quick repeat is not a failure: the first call already worked.

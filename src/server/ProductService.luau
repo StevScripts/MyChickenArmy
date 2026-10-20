@@ -5,7 +5,6 @@ local Players=game:GetService("Players")
 local ShopCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
 local PetCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local EggProcessor=require(script.Parent.EggProcessor)
-local ResearchService=require(script.Parent.ResearchService)
 local ProductService={}
 ProductService.__index=ProductService
 local Granted=Enum.ProductPurchaseDecision.PurchaseGranted
@@ -30,6 +29,14 @@ function ProductService.new(dataService,sessions,dependencies)
   assert(product and integer(product.productId,1,2^53-1),"Invalid developer product: "..key)
   assert(not self.products[product.productId],"Duplicate developer product ID")
   self.products[product.productId]=product
+ end
+ -- October 20 Rebirth Skip products: registered once their live ids exist.
+ for _,key in self.catalog.RebirthSkipOrder or {} do
+  local product=self.catalog.Products[key]
+  if product and integer(product.productId,1,2^53-1) then
+   assert(not self.products[product.productId],"Duplicate developer product ID")
+   self.products[product.productId]=product
+  end
  end
  return self
 end
@@ -80,10 +87,16 @@ function ProductService:_ProcessReceipt(receipt)
   end
   if product.finishEggs==true then
    if not EggProcessor.GrantFinish(session.eggProcessor) then return false end
+  elseif product.rebirthSkip==true then
+   -- October 20: a saved Skip credit; the Rebirth spends it (never inside this receipt,
+   -- which must not start its own save). RebirthService.Step uses it once the army is home.
+   if not integer(session.rebirthSkips or 0,0,999) then return false,"Use your saved Skip first." end
+   session.rebirthSkips=(session.rebirthSkips or 0)+1
   elseif product.researchSkipSeconds~=nil and integer(product.researchSkipSeconds,1,1e6) then
-   -- The job chosen at checkout (transient); otherwise the longest running job.
-   ResearchService.PaidSkip(session,product.researchSkipSeconds,session.researchSkipTarget,os.time())
-   session.researchSkipTarget=nil
+   -- October 20: research is gone; a late research-skip receipt pays Gems instead.
+   local gems=ShopCatalog.ResearchSkipGems(product.researchSkipSeconds)
+   session.gems=math.min(1e12,(session.gems or 0)+gems)
+   session.gemsEarned=math.min(1e12,(session.gemsEarned or 0)+gems)
   elseif product.chickenOffer~=nil and integer(product.chickenOffer,1,#ShopCatalog.ChickenOfferOrder)
    and PetCatalog[product.species]~=nil then
    -- October 16 chicken offer: always delivered once paid (a full Flock may go over

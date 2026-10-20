@@ -16,8 +16,8 @@ local Config=require(Shared.Config)
 local Catalog=require(Shared.PetCatalog)
 local Rules=require(Shared.Rules)
 local Progression=require(Shared.Progression)
-local ResearchCatalog=require(Shared.ResearchCatalog)
-local ResearchRules=require(Shared.ResearchRules)
+local UpgradeCatalog=require(Shared.UpgradeCatalog)
+local GemUpgradeCatalog=require(Shared.GemUpgradeCatalog)
 local Currency=require(Shared.CurrencyLimits)
 local Commands=require(Shared.AdminCommands)
 local AdminConfig=require(script.Parent.AdminConfig)
@@ -145,11 +145,19 @@ local function findSpecies(text): string?
 	return prefix
 end
 
-local function findResearch(text): string?
+-- An Upgrades tree node by id ("EggSpeed2") or name ("Egg Speed II").
+local function findUpgrade(text): string?
 	local wanted=squash(text)
-	for _,id in ResearchCatalog.Order do
-		local node=ResearchCatalog.Nodes[id]
-		if squash(id)==wanted or squash(node.name)==wanted then return id end
+	for id,node in UpgradeCatalog.Nodes do
+		if node.kind=="upgrade" and (squash(id)==wanted or squash(node.name)==wanted) then return id end
+	end
+	return nil
+end
+
+local function findGemUpgrade(text): string?
+	local wanted=squash(text)
+	for _,id in GemUpgradeCatalog.Order do
+		if squash(id)==wanted or squash(GemUpgradeCatalog.Upgrades[id].name)==wanted then return id end
 	end
 	return nil
 end
@@ -343,46 +351,105 @@ handlers.chicken=function(self,actor,args)
 	return true,"Gave "..plural(given,Catalog[species].name).." (level "..level..")."..(if given<count*#players then " Some flocks were full." else "")
 end
 
-handlers.research=function(self,actor,args)
+-- October 20: research merged into the Upgrades tree. Gives tree nodes for free
+-- (this run only: a Rebirth resets them like bought ones).
+handlers.upgrade=function(self,actor,args)
 	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
-	if type(args[2])~="string" then return false,"Say all or a research node." end
-	local ids
-	if string.lower(args[2])=="all" then ids=ResearchCatalog.Order
-	else
-		local id=findResearch(rest(args,2))
-		if not id then return false,"No research called \""..rest(args,2).."\"." end
-		ids={id}
-	end
+	if type(args[2])~="string" then return false,"Say all or an upgrade, like EggSpeed2 or \"Luck III\"." end
+	local all=string.lower(args[2])=="all"
+	local nodeId=if all then nil else findUpgrade(rest(args,2))
+	if not all and not nodeId then return false,"No upgrade called \""..rest(args,2).."\"." end
 	local changed,last=self:EachSession(players,function(session)
-		local research=session.research
-		local wanted={};for _,id in ids do wanted[id]=true;research.completed[id]=true end
-		for index=#research.jobs,1,-1 do if wanted[research.jobs[index].nodeId] then table.remove(research.jobs,index) end end
-		research.revision+=1
-		session.researchEffects=ResearchRules.Effects(research)
-		if research.completed.FuseMachine then session.fusionUnlocked=true end
-		assisted(session)
+		if all then
+			for _,family in UpgradeCatalog.FamilyOrder do session.upgradeTree[family]=#UpgradeCatalog.Families[family].tiers end
+		else
+			local node=UpgradeCatalog.Nodes[nodeId]
+			session.upgradeTree[node.family]=math.max(session:TreeTier(node.family),node.tier)
+		end
+		session:RefreshEffects();assisted(session);session:RefreshArmy()
 		return true
 	end)
 	if changed==0 then return false,last end
-	return true,"Finished "..(if #ids>1 then "all research" else ResearchCatalog.Nodes[ids[1]].name).." for "..plural(changed,"player").."."
+	return true,"Gave "..(if all then "every upgrade" else UpgradeCatalog.Nodes[nodeId].name).." to "..plural(changed,"player").."."
 end
 
 handlers.army=function(self,actor,args)
 	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
 	local size=tonumber(args[2])
-	if not size or not table.find(Config.SlotLevels,size) then
-		return false,"Army size must be one of "..table.concat(Config.SlotLevels,", ").."."
-	end
+	local family=UpgradeCatalog.Families.ArmySize
+	local sizes,tier={family.base},nil
+	for index,entry in family.tiers do table.insert(sizes,entry.value) end
+	for index,value in sizes do if value==size then tier=index-1 end end
+	if not tier then return false,"Army size must be one of "..table.concat(sizes,", ").."." end
 	local changed,last=self:EachSession(players,function(session)
 		if session:IsArmyLocked() then return false,"Bring the army home first." end
-		session.capacity=size
-		session.legacyCapacityGrant=math.min(session.legacyCapacityGrant or 0,size)
-		for slot in session.slots do if slot>size then session.slots[slot]=nil end end
+		session.upgradeTree.ArmySize=if tier>0 then tier else nil
+		session:RefreshEffects()
+		for slot in session.slots do if slot>session.capacity then session.slots[slot]=nil end end
 		assisted(session);session:RefreshArmy()
 		return true
 	end)
 	if changed==0 then return false,last end
 	return true,"Army size set to "..size.." for "..plural(changed,"player").."."
+end
+
+handlers.gems=function(self,actor,args)
+	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
+	local value=amount(args[2])
+	if not value or value==0 or math.abs(value)>1e6 then return false,"Give a Gems amount from -1m to 1m, like 500." end
+	local changed,last=self:EachSession(players,function(session)
+		session.gems=math.clamp(session.gems+value,0,1e12)
+		if value>0 then session.gemsEarned=math.min(1e12,session.gemsEarned+value) end
+		assisted(session)
+		return true
+	end)
+	if changed==0 then return false,last end
+	return true,(if value>0 then "Gave " else "Took ")..plural(math.abs(value),"Gem").." "..(if value>0 then "to " else "from ")..plural(changed,"player").."."
+end
+
+handlers.setrebirth=function(self,actor,args)
+	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
+	local rank=tonumber(args[2])
+	if not rank or rank<0 or rank>Config.Rebirth.MaxRank or rank%1~=0 then return false,"Rebirth must be 0 to "..Config.Rebirth.MaxRank.."." end
+	local changed,last=self:EachSession(players,function(session)
+		session.rebirths=rank
+		session:RefreshEffects();assisted(session)
+		return true
+	end)
+	if changed==0 then return false,last end
+	return true,"Set Rebirth "..rank.." for "..plural(changed,"player")..". Rebirth chickens are not granted."
+end
+
+handlers.gemupgrade=function(self,actor,args)
+	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
+	if type(args[2])~="string" then return false,"Say all or a Gem Upgrade, like AutoRoll." end
+	local all=string.lower(args[2])=="all"
+	local id=if all then nil else findGemUpgrade(args[2])
+	if not all and not id then return false,"No Gem Upgrade called \""..args[2].."\"." end
+	local level=if args[3] then tonumber(args[3]) else nil
+	local changed,last=self:EachSession(players,function(session)
+		for _,key in if all then GemUpgradeCatalog.Order else {id} do
+			local upgrade=GemUpgradeCatalog.Upgrades[key]
+			session.gemUpgrades[key]=math.clamp(math.floor(level or upgrade.maxLevel),upgrade.startLevel,upgrade.maxLevel)
+		end
+		session:RefreshEffects();assisted(session)
+		return true
+	end)
+	if changed==0 then return false,last end
+	return true,"Set "..(if all then "every Gem Upgrade" else GemUpgradeCatalog.Upgrades[id].name).." for "..plural(changed,"player").."."
+end
+
+handlers.skip=function(self,actor,args)
+	local players,why=self:Targets(actor,args[1]);if not players then return false,why end
+	local count=if args[2] then tonumber(args[2]) else 1
+	if not count or count<1 or count>10 or count%1~=0 then return false,"Count must be 1 to 10." end
+	local changed,last=self:EachSession(players,function(session)
+		session.rebirthSkips=math.min(1000,(session.rebirthSkips or 0)+count)
+		assisted(session)
+		return true
+	end)
+	if changed==0 then return false,last end
+	return true,"Gave "..plural(count,"Skip credit").." to "..plural(changed,"player")..". Each one rebirths as soon as the army is home."
 end
 
 handlers.roll=function(self,actor,args)

@@ -32,7 +32,11 @@ local RebirthService=require(script.Parent.RebirthService)
 local DailyService=require(script.Parent.DailyService)
 local GoldRushService=require(script.Parent.GoldRushService)
 local FriendBoostService=require(script.Parent.FriendBoostService)
+local GemUpgradeService=require(script.Parent.GemUpgradeService)
+local RebirthChickens=require(script.Parent.RebirthChickens)
 local GameServer={}
+-- October 20 economy: Auto Rebirth, waiting Skip credits and Rebirth chicken credits.
+local REBIRTH_STEP_SECONDS=1
 GameServer.__index=GameServer
 local SYNC_COOLDOWN=1 -- Extra Sync requests are answered by the next periodic snapshot.
 local IDLE_SNAPSHOT_SECONDS=1 -- Unchanged idle sessions refresh timers at this slower cadence.
@@ -80,6 +84,11 @@ function GameServer.new()
 		end
 	end
 	self.commerce.onPassPurchased=function(player,key,robux) self.analytics:PassPurchased(player,key,robux) end
+	-- October 20: a retired pass's one-time Gems gift (observation only).
+	self.commerce.onPassGems=function(session,key,gems)
+		self.analytics:LaunchCount(session,"passGems."..key)
+		self.analytics:Gems(session,"Source",gems,"PassGift:"..key)
+	end
 	return self
 end
 
@@ -88,6 +97,11 @@ function GameServer:Send(player,result)
 	if not session then return end
 	local now=os.clock()
 	local state=session:Snapshot(now)
+	-- October 20 economy (docs/team/OVERHAUL_CONTRACT_20261020.md §8). boardUpgrades
+	-- stays for the old cash hexes until S9 ships.
+	state.upgradeTree=self.upgrades:Snapshot(session)
+	state.gemUpgrades=GemUpgradeService.Snapshot(session)
+	state.rebirth.missionRunning=RebirthService.OperationRunning(session,self)
 	state.boardUpgrades=self.upgrades:Offers(session)
  local routeCamps,routeOutposts=self.battles:RouteProgress(session)
  state.routeCamps,state.routeOutposts=table.clone(routeCamps),table.clone(routeOutposts)
@@ -314,17 +328,33 @@ function GameServer:Handle(player,request)
     if outcome then self.analytics:LaunchCount(session,"giant.fuse."..outcome);self.analytics:ServerEvent(session,"giant.result",outcome) end
    end
   end
+	elseif action=="BuyUpgrade" then
+		-- October 20: one instant Upgrades tree node at the server's quote.
+		ok,message=self.upgrades:BuyNode(session,request.nodeId,request.expectedPrice,os.time())
+		if ok then self.analytics:LaunchCount(session,"upgrade.buy."..tostring(request.nodeId)) end
+	elseif action=="BuyGemUpgrade" then
+		local gemsBefore=session.gems
+		ok,message=GemUpgradeService.Buy(session,request.upgradeId,request.expectedLevel,request.expectedPrice)
+		if ok then
+			local spent=math.max(0,gemsBefore-session.gems)
+			self.analytics:LaunchCount(session,"gemUpgrade.buy."..request.upgradeId)
+			self.analytics:LaunchCount(session,"gems.spent."..request.upgradeId,spent)
+			self.analytics:Gems(session,"Sink",spent,"GemUpgrade:"..request.upgradeId)
+		end
+	elseif action=="SetAutoRebirth" then
+		ok,message=GemUpgradeService.SetAutoRebirth(session,request.enabled)
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
-		local building=session.plotBuild
+		-- Pre-tree board keys (old cash hexes) map to the family's next node.
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)
-		if ok and session.plotBuild and session.plotBuild~=building then self.analytics:ServerEvent(session,"plot.buildStart",session.plotBuild.level) end
 	elseif action=="EggSellerUpgrade" then
 		ok,message=self.eggs:Upgrade(player,session,request.expectedLevel,request.expectedPrice)
-	elseif action=="Expand" then ok,message=ArmyService.Expand(session)
+	elseif action=="Expand" then ok,message=self.upgrades:BuyFamily(session,"ArmySize")
 	elseif action=="Promote" then ok,message=ArmyService.Promote(session)
-	elseif action=="Rebirth" then ok,message=RebirthService.Rebirth(session,request.expectedRank,self)
-	elseif action=="Income" then ok,message=ArmyService.UpgradeIncome(session)
- elseif action=="Luck" then ok,message=self.rolls:UpgradeLuck(session)
+	elseif action=="Rebirth" then
+		ok,message,receipt=RebirthService.Rebirth(session,request.expectedRank,self,request.useSkip==true)
+		if ok and receipt and receipt.petId then petId=receipt.petId;self.world:Recruit(session,receipt.petId) end
+	elseif action=="Income" then ok,message=self.upgrades:BuyFamily(session,"EggValue")
+ elseif action=="Luck" then ok,message=self.upgrades:BuyFamily(session,"Luck")
  elseif action=="Attack" then
   if not self.world:CanCommand(player,session,request.targetId,self.sessions) then message="Walk to the camp and use Send Army."
   else ok,message=self.armyCommands:Attack(session,request.targetId,now) end
@@ -404,6 +434,14 @@ function GameServer:ReportLoad(session)
 		self.analytics:ServerEvent(session,"offline.claimed","auto",receipt.amount)
 	end
 	for _,nodeId in session.researchRecap or {} do self.analytics:ServerEvent(session,"research.complete",nodeId) end
+	-- October 20: a save converted to the Upgrades tree and Gems on this load (once).
+	local conversion=session.economyConversion
+	if conversion then
+		session.economyConversion=nil
+		self.analytics:LaunchCount(session,"migration.economy2")
+		local gems=(conversion.skipGems or 0)+(conversion.rankGems or 0)
+		if gems>0 then self.analytics:Gems(session,"Source",gems,"Migration") end
+	end
 end
 
 -- Observation only: sums EggService deposit receipts (player and vacuum) into at most
@@ -637,6 +675,28 @@ function GameServer:Step(dt)
 		self.nextDailyCheckAt=now+DAILY_CHECK_SECONDS
 		for _,session in self.sessions do
 			if session.dailyReady and session.loaded and not session.closing and not session.saveLost then DailyService.Check(session,wallTime,self) end
+		end
+	end
+	-- October 20: Rebirth chicken credits that now fit, a waiting Skip credit (as soon
+	-- as the army is home) and Auto Rebirth. The player sees the same Rebirth result.
+	if now>=(self.nextRebirthStepAt or 0) then
+		self.nextRebirthStepAt=now+REBIRTH_STEP_SECONDS
+		for _,session in self.sessions do
+			if session.loaded and not session.closing and not session.saveLost and session.userId>0 then
+				if #session.rebirthChickenCredits>0 then
+					for _,id in RebirthChickens.Deliver(session) do pcall(function() self.world:Recruit(session,id) end) end
+				end
+				local ok,message,receipt=RebirthService.Step(session,self)
+				if ok then
+					if receipt and receipt.petId then pcall(function() self.world:Recruit(session,receipt.petId) end) end
+					self.armyCommands:Sync(session)
+					self.world:UpdateSession(session)
+					local player=Players:GetPlayerByUserId(session.userId)
+					if player then
+						self:Send(player,{id=0,ok=true,action="Rebirth",message=message,receipt=receipt,petId=receipt and receipt.petId})
+					end
+				end
+			end
 		end
 	end
 	if Config.Features.Merging and now>=(self.nextAutomaticAt or 0) then
