@@ -15,6 +15,7 @@ local ResearchRules = require(Shared.ResearchRules)
 local ResearchService = require(script.Parent.ResearchService)
 local TutorialGuide = require(Shared.TutorialGuide)
 local MutationCatalog = require(Shared.MutationCatalog)
+local AutoRollRules = require(Shared.AutoRollRules)
 local GemUpgradeCatalog = require(Shared.GemUpgradeCatalog)
 local RebirthService = require(script.Parent.RebirthService)
 local GoldRushService = require(script.Parent.GoldRushService)
@@ -28,8 +29,6 @@ PlayerSession.CarryLimit = 1e12
 -- your hand-off (docs/team/OVERHAUL_CONTRACT_20261020.md §2).
 local TUTORIAL_KEYS = {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp",
 	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen"}
--- Auto Roll's optional "recruit at" floor (S12) must name a rarity.
-local RARITIES = {"Common","Uncommon","Rare","Epic","Legendary","Mythic","Secret"}
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)
@@ -49,8 +48,8 @@ function PlayerSession:Reset()
 	self.crateCredits=self.crateCredits or 0
 	self.guaranteedLuckRolls=self.guaranteedLuckRolls or 0
 	self.commerceAutomatic=self.commerceAutomatic or {AutoCollectEggs=true,AutoMerge=true}
-	-- Auto Roll settings (RollService.StepAuto); heldOffer is session-only.
-	self.autoRoll=self.autoRoll or {enabled=false,stopAt="Upgrade",mutationStop=true}
+	-- Auto Roll settings (RollService.StepAuto, AutoRollRules); held/skipped are session-only.
+	self.autoRoll=self.autoRoll or AutoRollRules.Default()
 	self.coins = Config.StartingCoins
 	-- October 20 economy (docs/team/OVERHAUL_CONTRACT_20261020.md §2). capacity, luck,
 	-- eggSpeedLevel, incomeLevel, rollSlotsUnlocked and plotSizeLevel are derived from
@@ -812,8 +811,7 @@ function PlayerSession:ToData()
  table.sort(frontier)
 	return {research=ResearchRules.Copy(self.research),dataRevision=Config.DataRevision,legacyCapacityGrant=self.legacyCapacityGrant or 0,
 		purchaseReceipts=table.clone(self.purchaseReceipts),crateCredits=self.crateCredits,commerceAutomatic=table.clone(self.commerceAutomatic),
-		autoRoll={enabled=self.autoRoll.enabled==true,stopAt=self.autoRoll.stopAt,recruitAt=self.autoRoll.recruitAt,
-			mutationStop=self.autoRoll.mutationStop~=false},
+		autoRoll=AutoRollRules.Save(self.autoRoll),
 		guaranteedLuckRolls=self.guaranteedLuckRolls,
 		-- October 20 economy (docs/team/OVERHAUL_CONTRACT_20261020.md §2). The derived
 		-- capacity/luck/... fields below are written for reference only.
@@ -976,15 +974,9 @@ function PlayerSession:LoadData(data)
    automatic[key]=value
   end
  end
- -- October 15 Auto Roll settings; an odd saved value falls back to the defaults.
- -- October 20 (S12): recruitAt names a rarity floor; mutationStop defaults to on.
- local autoRoll={enabled=false,stopAt="Upgrade",mutationStop=true}
- if type(data.autoRoll)=="table" then
-  autoRoll.enabled=data.autoRoll.enabled==true
-  if table.find(Config.AutoRollStops,data.autoRoll.stopAt) then autoRoll.stopAt=data.autoRoll.stopAt end
-  if table.find(RARITIES,data.autoRoll.recruitAt) then autoRoll.recruitAt=data.autoRoll.recruitAt end
-  autoRoll.mutationStop=data.autoRoll.mutationStop~=false
- end
+ -- Auto Roll settings (October 20, S12): "1 in X" stop and recruit values. AutoRollRules
+ -- reads them leniently and converts older rarity names; it never fails a load.
+ local autoRoll=AutoRollRules.Read(data.autoRoll)
  local revision=data.dataRevision or 1
 	if not numberIn(revision,1,Config.DataRevision,true) then return false,"Unsupported saved profile revision." end
 	-- October 20: revision ≤ 11 saves hold the old cash tracks and research.

@@ -14,6 +14,7 @@ local Theme = require(script.Parent.UITheme)
 local Mutations = require(Shared.MutationCatalog)
 local MutationVFX = require(script.Parent.SpecialChickenVFX)
 local RollCamera = require(script.Parent.RollCamera)
+local GoldRolls = require(Shared.GoldRolls)
 local RollPresentationController = {}
 RollPresentationController.__index = RollPresentationController
 
@@ -27,6 +28,14 @@ local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Sec
 -- Camera feel (push-in, punch, shake, orbit) is tuned at the top of RollCamera.
 -- Mutation tag: pops in this long after the species lands; Rainbow and rarer also flash.
 local MUTATION_BADGE_DELAY = 0.3
+-- October 20 Gold rolls: the special pull's tag stays this long after the reveal.
+local SPECIAL_TAG_HOLD = 1.2
+
+-- A special pull's glow; the Prism glow cycles through the rainbow.
+local function specialColor(kind: string?, now: number): Color3
+	if kind == "Prism" then return Color3.fromHSV((now * 0.45) % 1, 0.55, 1) end
+	return (kind and GoldRolls.Colors[kind]) or GOLD
+end
 
 function RollPresentationController.new(app)
  return setmetatable({app=app, records={}, connections={}, scanAt=0, rollCamera=RollCamera.new(app)}, RollPresentationController)
@@ -223,6 +232,83 @@ function RollPresentationController:ShowBadge(record, mutation, animate)
  end
 end
 
+-- October 20 Gold rolls: "Gold roll · 2x Luck" over each podium of a special pull,
+-- from the lever until just after the reveal. TweenService pops it in.
+function RollPresentationController:ShowSpecialTag(record, kind: string)
+ local tag=record.specialTag
+ if not tag then
+  local gui=Instance.new("BillboardGui")
+  gui.Name,gui.Size,gui.LightInfluence="GoldRollTag",UDim2.fromScale(5.6,1.3),0
+  gui.AlwaysOnTop,gui.MaxDistance,gui.Enabled=true,80,false
+  gui.StudsOffsetWorldSpace=Vector3.new(0,7.6,0)
+  gui.Adornee,gui.Parent=record.top,self.folder
+  local holder=Instance.new("Frame")
+  holder.Name,holder.BackgroundTransparency,holder.Size="Pop",1,UDim2.fromScale(1,1)
+  holder.AnchorPoint,holder.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+  holder.Parent=gui
+  local scale=Instance.new("UIScale");scale.Parent=holder
+  local icon=Instance.new("ImageLabel")
+  icon.Name,icon.BackgroundTransparency,icon.ScaleType="MachineIcon",1,Enum.ScaleType.Fit
+  icon.Size,icon.Parent=UDim2.fromScale(0.24,1),holder
+  local label=Instance.new("TextLabel")
+  label.Name,label.BackgroundTransparency,label.Font="Text",1,Enum.Font.SourceSansBold
+  label.Position,label.Size,label.TextScaled=UDim2.fromScale(0.25,0.08),UDim2.fromScale(0.75,0.84),true
+  label.TextXAlignment,label.Parent=Enum.TextXAlignment.Left,holder
+  local stroke=Instance.new("UIStroke")
+  stroke.Color,stroke.Thickness,stroke.Transparency,stroke.Parent=UIColors.Border,2,0.05,label
+  tag={gui=gui,scale=scale,icon=icon,label=label,tween=nil::Tween?}
+  record.specialTag=tag
+ end
+ tag.icon.Image=GoldRolls.Icons[kind] or ""
+ tag.label.Text=kind.." roll · "..GoldRolls.Luck(kind).."x Luck"
+ tag.label.TextColor3=GoldRolls.Colors[kind] or GOLD
+ tag.gui.Enabled=true
+ if tag.tween then tag.tween:Cancel() end
+ if self.app.reducedMotion then tag.scale.Scale=1;return end
+ tag.scale.Scale=0
+ tag.tween=TweenService:Create(tag.scale,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Scale=1})
+ tag.tween:Play()
+end
+
+function RollPresentationController:HideSpecialTag(record)
+ local tag=record.specialTag
+ if not tag or not tag.gui.Enabled then return end
+ if tag.tween then tag.tween:Cancel();tag.tween=nil end
+ tag.gui.Enabled=false
+end
+
+-- The machine's Gold counter breathes while the next pull is special (reduced motion
+-- keeps it still). The size change is local to this client.
+function RollPresentationController:PulseGold(record, ready: boolean)
+ if record.goldPulse==ready then return end
+ local anchor=record.station:FindFirstChild("GoldCounterAnchor")
+ local gui=anchor and anchor:FindFirstChild("GoldCounter")
+ if not gui then return end
+ record.goldPulse=ready
+ if ready then
+  Theme.Motion:Loop(gui,"goldReady",{Size=UDim2.fromScale(7.8,1.67)},{Size=UDim2.fromScale(7,1.5)},0.45)
+ else
+  Theme.Motion:StopLoop(gui,"goldReady")
+ end
+end
+
+-- A special pull on your own lever podium while you are too far away to see it
+-- (Auto Roll from anywhere): one notice per pull.
+function RollPresentationController:NoteSpecial(record, now)
+ local station=record.station
+ if (station:GetAttribute("RollSlot") or 1)~=1 or station:GetAttribute("OwnerId")~=Players.LocalPlayer.UserId then return end
+ local rollId=station:GetAttribute("RollId")
+ if rollId==record.specialNoted then return end
+ record.specialNoted=rollId
+ local special=station:GetAttribute("RollSpecial")
+ local startedAt=station:GetAttribute("RollStartedAt")
+ if type(special)~="string" or not rollId or type(startedAt)~="number" or now-startedAt>1 then return end
+ local character=Players.LocalPlayer.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ if root and (root.Position-record.foot).Magnitude<=36 then return end
+ self.app:Notify(special.." roll! Every podium has "..GoldRolls.Luck(special).."x Luck.","info")
+end
+
 -- RollStation (server) labels only slot 1's empty podium. The local player's
 -- other owned, unlocked empty podiums get the same hint locally so they never
 -- read as blank boxes. Same look as the server's OfferLabel text line.
@@ -267,6 +353,8 @@ end
 function RollPresentationController:Reset(record)
  if record.preview then record.preview.Parent=nil;record.preview=nil end
  self:HideBadge(record)
+ self:HideSpecialTag(record)
+ self:PulseGold(record,false)
  for part, value in record.hidden do if part.Parent then part.LocalTransparencyModifier=value end end
  table.clear(record.hidden)
  record.serverPet=nil
@@ -320,7 +408,12 @@ function RollPresentationController:StepRecord(record, now)
   end
   if rollId and elapsed<0.3 then self:Sound(record,"RollLever",0.9,0.55,0.3) end
   self:HideBadge(record)
+  local special=station:GetAttribute("RollSpecial")
+  record.special=if rollId and type(special)=="string" and GoldRolls.Colors[special] then special else nil
+  if record.special and elapsed<duration+SPECIAL_TAG_HOLD then self:ShowSpecialTag(record,record.special)
+  else self:HideSpecialTag(record) end
  end
+ if (station:GetAttribute("RollSlot") or 1)==1 then self:PulseGold(record,station:GetAttribute("GoldReady")==true) end
 
  -- Hide only the static server offer. Cosmetics never hide inventory or army pets.
  local serverPet=station:FindFirstChild("DisplayedPet")
@@ -369,8 +462,12 @@ function RollPresentationController:StepRecord(record, now)
   end
   local beatAge=if stage>0 then elapsed-BEATS[stage]*duration else 0
   local pulse=math.max(0,1-beatAge/0.18)
-  record.top.Color=GOLD:Lerp(BLUE,0.25*(1-pulse))
-  if record.light then record.light.Color=GOLD;record.light.Brightness=if reduced then 0.2 else 0.25+pulse*0.45 end
+  -- A special pull glows in its own color, brighter, on every podium.
+  local glow=if record.special then specialColor(record.special,now) else GOLD
+  local rest=if record.special then glow:Lerp(Color3.new(0,0,0),0.35) else BLUE
+  local strength=if record.special then 1.8 else 1
+  record.top.Color=glow:Lerp(rest,0.25*(1-pulse))
+  if record.light then record.light.Color=glow;record.light.Brightness=if reduced then 0.2*strength else (0.25+pulse*0.45)*strength end
   if record.preview then
    local hop=if reduced then 0 else math.sin(math.min(beatAge/0.18,1)*math.pi)*0.38
    local yaw=if reduced then 0 else (if stage%2==0 then 1 else -1)*pulse*0.16
@@ -400,6 +497,7 @@ function RollPresentationController:StepRecord(record, now)
    end
   end
   local age=now-record.landedAt
+  if record.special and age>=SPECIAL_TAG_HOLD then self:HideSpecialTag(record) end
   if not record.finishPlayed and age>=0.16 then
    record.finishPlayed=true
    self:Sound(record,"RollLand",1.4,0.22,0.22)
@@ -430,6 +528,7 @@ function RollPresentationController:StepRecord(record, now)
  else
   if record.preview then record.preview.Parent=nil;record.preview=nil end
   self:HideBadge(record)
+  self:HideSpecialTag(record)
   record.top.Color=BLUE
   if record.light then record.light.Brightness=0 end
  end
@@ -459,8 +558,12 @@ function RollPresentationController:Start(world)
     for _,model in record.cache do model:Destroy() end
     if record.badge then record.badge.gui:Destroy() end
     if record.idleHint then record.idleHint:Destroy() end
+    if record.specialTag then record.specialTag.gui:Destroy() end
     record.glow:Destroy();self.records[station]=nil
-   else self:StepRecord(record,now) end
+   else
+    self:NoteSpecial(record,now)
+    self:StepRecord(record,now)
+   end
   end
   self:StepCamera(now)
  end))

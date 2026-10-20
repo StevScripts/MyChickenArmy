@@ -8,6 +8,7 @@ local Progression = require(Shared.Progression)
 local PetView = require(Shared.PetView)
 local UIColors = require(Shared.UIColors)
 local Currency = require(Shared.CurrencyLimits)
+local GoldRolls = require(Shared.GoldRolls)
 local Builder = require(script.Parent.WorldBuilder)
 local RollStation = {}
 RollStation.__index = RollStation
@@ -60,6 +61,35 @@ local function offerLabel(parent, frame)
 	price.TextColor3 = UIColors.Coins
 	price:GetPropertyChangedSignal("Text"):Connect(function() coin.Visible = price.Text ~= "" end)
 	return gui, line("Text", 0, 34, 28), line("Rarity", 36, 28, 21), price
+end
+
+-- October 20 Gold rolls (S12): the machine's die-and-count bar from the Drop a Fruit
+-- reference ("9 Rolls Left"), floating over the lever machine for every viewer.
+local function goldCounter(parent, position)
+	local anchor = Builder.Part(parent, "GoldCounterAnchor", Vector3.one, CFrame.new(position), colors.white, false)
+	anchor.Transparency, anchor.CanQuery, anchor.CastShadow = 1, false, false
+	local gui = Instance.new("BillboardGui")
+	gui.Name, gui.Size = "GoldCounter", UDim2.fromScale(7, 1.5)
+	gui.AlwaysOnTop, gui.MaxDistance, gui.LightInfluence = true, 60, 0
+	gui.Enabled, gui.Parent = false, anchor
+	local bar = Instance.new("Frame")
+	bar.Name, bar.AnchorPoint, bar.Position = "Bar", Vector2.new(1, 0.5), UDim2.fromScale(1, 0.5)
+	bar.Size, bar.BackgroundColor3, bar.BackgroundTransparency = UDim2.fromScale(0.84, 0.8), Color3.new(0, 0, 0), 0.4
+	bar.BorderSizePixel, bar.Parent = 0, gui
+	local outline = Instance.new("UIStroke")
+	outline.Color, outline.Thickness, outline.Parent = UIColors.Border, 2, bar
+	local icon = Instance.new("ImageLabel")
+	icon.Name, icon.BackgroundTransparency, icon.ScaleType = "MachineIcon", 1, Enum.ScaleType.Fit
+	icon.AnchorPoint, icon.Position, icon.Size = Vector2.new(0, 0.5), UDim2.fromScale(0, 0.5), UDim2.fromScale(0.24, 1.15)
+	icon.ZIndex, icon.Parent = 2, gui
+	local label = Instance.new("TextLabel")
+	label.Name, label.BackgroundTransparency, label.Text = "Count", 1, ""
+	label.Position, label.Size = UDim2.fromScale(0.1, 0.06), UDim2.fromScale(0.86, 0.88)
+	label.Font, label.TextScaled, label.TextColor3 = Enum.Font.SourceSansBold, true, UIColors.Text
+	label.ZIndex, label.Parent = 2, bar
+	local stroke = Instance.new("UIStroke")
+	stroke.Color, stroke.Thickness, stroke.Transparency, stroke.Parent = UIColors.Border, 2, 0.05, label
+	return gui, icon, label
 end
 
 local function commas(value)
@@ -182,6 +212,16 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 	light.Name, light.Brightness, light.Range, light.Shadows = "RevealGlow", 0, 13, false
 	light.Parent, self.light = emitterAnchor, light
 	if slot==1 then
+		-- Over the authored machine's top (Spin), else above the lever.
+		local spin=parent:FindFirstChild("Spin",true)
+		local top=self.leverPivot.Position+Vector3.new(0,4,0)
+		if spin and spin:IsA("Model") then
+			local box,size=spin:GetBoundingBox()
+			top=box.Position+Vector3.new(0,size.Y/2+1.6,0)
+		elseif spin and spin:IsA("BasePart") then
+			top=spin.Position+Vector3.new(0,spin.Size.Y/2+1.6,0)
+		end
+		self.goldGui,self.goldIcon,self.goldLabel=goldCounter(model,top)
 		self.rollPrompt=prompt(self.leverBase,"RollPrompt",Enum.KeyCode.E,"Pull lever · FREE")
 		self.rollPrompt.MaxActivationDistance=8
 		table.insert(self.connections,self.rollPrompt.Triggered:Connect(function(player) onAction(player,"Roll",index) end))
@@ -232,11 +272,23 @@ function RollStation:Sync(session)
  self.cosmeticSpecies = Catalog.Order
  self.model:SetAttribute("RecruitTier",self.recruitTier)
 	self.incomeLevel = session.incomeLevel or 0
-	self.flockFull = session:Count() >= session:CollectionLimit()
+	-- October 20: only the hidden storage cap (Config.StorageLimit) stops a recruit.
+	self.storageFull = session:Count() >= session:CollectionLimit()
 	self.coins=session.coins
  self.offerAdvice,self.offerImprovesArmy="",false
  local offer=if self.loaded then session.offers and session.offers[self.slot] else nil
  if offer then self.offerAdvice,self.offerImprovesArmy=session:OfferAdvice(offer.species,offer.level) end
+	if self.goldGui then
+		local gold=GoldRolls.State(session.goldRolls and session.goldRolls.count,session.researchEffects)
+		self.goldGui.Enabled=self.loaded and gold.kind~=nil
+		if gold.kind then
+			self.goldIcon.Image=GoldRolls.Icons[gold.kind] or ""
+			self.goldLabel.Text=GoldRolls.Text(gold)
+			self.goldLabel.TextColor3=if gold.ready then GoldRolls.Colors[gold.kind] else UIColors.Text
+		end
+		-- RollPresentationController pulses the bar while the next pull is special.
+		self.model:SetAttribute("GoldReady",if gold.kind and gold.ready and self.loaded then true else nil)
+	end
 	local id = if offer then offer.id else "empty"
 	if self.offerId == id then return end
 	self.offerId, self.offer = id, offer
@@ -258,6 +310,8 @@ function RollStation:Sync(session)
 	-- October 15 owner request: name the result at roll start so clients can load
 	-- its mesh/texture hidden during the shuffle. The reveal still waits for landing.
 	self.model:SetAttribute("PendingSpecies", if self.offer then self.offer.species else nil)
+	-- October 20 Gold rolls: the special pull's kind, on every podium it rolled.
+	self.model:SetAttribute("RollSpecial", if self.offer then self.offer.special else nil)
 	if self.pet then self.pet:Destroy(); self.pet = nil end
 	self:Step(os.clock(), true)
 end
@@ -298,7 +352,7 @@ function RollStation:Step(now, force)
 		self.rarityLabel.Text = if oneIn then def.rarity .. " · " .. oneIn else def.rarity
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
 		self.priceLabel.Text = commas(price)
-		local promptText = if self.flockFull then "Flock full · sell in Army" else "Buy " .. def.name .. " · " .. Currency.Text(price)
+		local promptText = if self.storageFull then "Storage full · sell in My Army" else "Buy " .. def.name .. " · " .. Currency.Text(price)
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
 		self.top.Color = tint
 
@@ -316,10 +370,11 @@ function RollStation:Clear()
 	if self.rollPrompt then self.rollPrompt.Enabled=false end
 	self.buyPrompt.Enabled,self.light.Brightness=false,0
 	self.offerGui.Enabled = false
+	if self.goldGui then self.goldGui.Enabled = false end
 	self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
-	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck"} do self.model:SetAttribute(name, nil) end
+	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck", "RollSpecial", "GoldReady"} do self.model:SetAttribute(name, nil) end
 	self.model:SetAttribute("Rolling", false)
 end
 
