@@ -587,6 +587,8 @@ a U+202F before "PM".
 | ID | Session | Notes |
 | --- | --- | --- |
 | S9c | Upgrades tree v2 like the reference | Tools (Open) above Start and Player (Open) below; Roll Slots zig-zag; Roll Speed I–V; tool chains (Vacuum Capacity I–IV, Feed Max Level I–III) |
+| S19 | Hide the HUD Gems counter | "I only want it visible in the rebirth screen not with the coins" |
+| S20 | Calm the roll camera's snap-back | Soften RollCamera's snap-out and ease-back; numbers confirmed with Stevin |
 
 Decisions (Stevin, in the lead session):
 - Luck has three chains, Luck I–IV → Super Luck I–IV → Mega Luck I–IV. Each chain's tier I
