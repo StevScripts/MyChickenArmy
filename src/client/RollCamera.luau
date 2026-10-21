@@ -149,6 +149,13 @@ function RollCamera:Reveal(zoom, reveal, auto: boolean)
 	self:Shake(zoom.camera, feel.shake)
 end
 
+-- Oct 21 game feel: whether this camera is mid-roll and will present the coming reveal
+-- itself (RollPresentationController then leaves the screen flash and shake to it).
+function RollCamera:Holding(): boolean
+	local zoom = self.zoom
+	return zoom ~= nil and not zoom.landed
+end
+
 function RollCamera:Release()
 	local zoom = self.zoom
 	if not zoom then return end

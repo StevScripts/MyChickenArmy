@@ -4,6 +4,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
@@ -33,6 +34,23 @@ local MUTATION_BADGE_DELAY = 0.3
 local SPECIAL_TAG_HOLD = 1.2
 -- Oct 21 owner request: every podium roll sound (lever, shuffle ticks, land, reveal) plays this much louder.
 local ROLL_VOLUME = 2
+-- Oct 21 game feel (docs/team/GAME_FEEL_20261021.md): world VFX and tiered cues layered on
+-- the tuned beats above. The lever draws back this long before its pull.
+local LEVER_ANTICIPATION = 0.08
+-- World effects (poofs, rings, bursts, sparkles) only for podiums this close to the player.
+local FEEL_RANGE = 60
+-- Reveal stingers may play from any podium (the shared shuffle soundtrack is slot 1 only).
+local STINGERS = {RollRare=true, RollEpic=true, RollLegendary=true, RollMythic=true, RollSecret=true, MutationHit=true}
+-- One stinger per rarity from Epic up (each falls back to RollRare until authored).
+local TIER_CUES = {[4]="RollEpic", [5]="RollLegendary", [6]="RollMythic", [7]="RollSecret"}
+-- Sparkles ride the revealed chicken this long from Epic up.
+local SPARKLE_SECONDS = {[4]=1.5, [5]=2.5, [6]=3, [7]=4}
+local SILHOUETTE = Color3.fromRGB(15,20,18)
+local SILHOUETTE_BEAT = Color3.fromRGB(62,74,66)
+
+local function touchOnly()
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
 
 -- A special pull's glow; the Prism glow cycles through the rainbow.
 local function specialColor(kind: string?, now: number): Color3
@@ -77,8 +95,34 @@ function RollPresentationController:StepCamera(now)
  local auto=app.state and app.state.autoRoll
  local reveal=self.reveal
  self.reveal=nil
- self.rollCamera:Step(camera,now,{ok=ok,near=near,roll=roll,reveal=reveal,
-  auto=auto~=nil and auto.enabled==true and auto.unlocked~=false})
+ local autoOn=auto~=nil and auto.enabled==true and auto.unlocked~=false
+ -- The roll camera owns the flash, snap and shake while it holds the lever podium's
+ -- zoom; otherwise a rare chicken on any own podium still gets a screen celebration.
+ if reveal and ok then self:Celebrate(reveal,near and self.rollCamera:Holding(),autoOn) end
+ self.rollCamera:Step(camera,now,{ok=ok,near=near,roll=roll,reveal=reveal,auto=autoOn})
+end
+
+-- Oct 21 game feel: screen-level reward for the rarest chicken appearing on the
+-- player's own podiums this frame (no menu open, motion on). Legendary and up throw
+-- UI confetti (bigger from Mythic) on manual pulls; Auto Roll's hit banner already
+-- throws its own, so only one confetti ever runs. Epic and up add ScreenFeel:Celebrate
+-- when the roll camera is not already presenting the reveal and the podium is within
+-- 30 studs.
+function RollPresentationController:Celebrate(reveal, cameraHandles: boolean, autoOn: boolean)
+ local app=self.app
+ local rank=reveal.rank or 1
+ if rank>=5 and app.gui and not autoOn then
+  local count=if rank>=6 then (if touchOnly() then 24 else 44) else nil
+  Theme.Motion:Confetti(app.gui,{origin=UDim2.fromScale(0.5,0.12),spread=0.6,count=count,
+   colors={reveal.color,GOLD,Color3.new(1,1,1)}})
+ end
+ if rank>=4 and not cameraHandles and app.screenFeel and reveal.position then
+  local character=Players.LocalPlayer.Character
+  local root=character and character:FindFirstChild("HumanoidRootPart")
+  if root and (root.Position-reveal.position).Magnitude<=30 then
+   app.screenFeel:Celebrate(reveal.color,math.clamp(rank-3,1,3))
+  end
+ end
 end
 
 function RollPresentationController:Track(station)
@@ -98,7 +142,110 @@ function RollPresentationController:Track(station)
   knobRest=station:GetAttribute("LeverHandleRest") or CFrame.new(0,2.8,0),
   light=anchor:FindFirstChild("RevealGlow"), burst=anchor:FindFirstChild("RevealSparkles",true),
   cache={}, appearances={}, hidden={}, glow=glow, active=false, lastStage=0, landedAt=-100,
-  voiceKey="Roll"..tostring(station:GetAttribute("PlotIndex"))}
+  voiceKey="Roll"..tostring(station:GetAttribute("PlotIndex")),
+  -- Oct 21 game feel: resting sizes for the per-beat pad punch and the knob squash,
+  -- and the "N Rolls Left" counter connections.
+  padSize=top.Size, knobSize=if knob then knob.Size else nil, connections={},
+  countersBound=(station:GetAttribute("RollSlot") or 1)~=1}
+ self:BindCounters(self.records[station])
+end
+
+-- Oct 21 game feel: the first authored cue among `names` (audio:Has), so a new cue
+-- falls back to an existing one until the sound session adds it; nil stays silent.
+function RollPresentationController:Cue(...: string): string?
+ local audio=self.app.audio
+ if not audio or not audio.Has then return nil end
+ for _,name in {...} do if audio:Has(name) then return name end end
+ return nil
+end
+
+function RollPresentationController:Own(record): boolean
+ return record.station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId
+end
+
+-- Studs from the local player's character to a point (huge without a character).
+local function playerDistance(position: Vector3): number
+ local character=Players.LocalPlayer.Character
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ return if root and root:IsA("BasePart") then (root.Position-position).Magnitude else math.huge
+end
+
+-- The server's "6 Rolls Left" counter rows over the lever machine: each count
+-- change punches its bar (a local UIScale on the replicated Frame).
+function RollPresentationController:BindCounters(record)
+ if record.countersBound then return end
+ local anchor=record.station:FindFirstChild("GoldCounterAnchor")
+ local gui=anchor and anchor:FindFirstChild("GoldCounter")
+ if not gui then return end
+ record.countersBound=true
+ for _,row in gui:GetChildren() do
+  local bar=row:FindFirstChild("Bar")
+  local label=bar and bar:FindFirstChild("Count")
+  if row:IsA("Frame") and bar and bar:IsA("Frame") and label and label:IsA("TextLabel") then
+   table.insert(record.connections,label:GetPropertyChangedSignal("Text"):Connect(function()
+    if row.Visible and gui.Enabled then Theme.Motion:Punch(bar,1.2,0.3) end
+   end))
+  end
+ end
+end
+
+-- The lever's pull: the arm draws back for LEVER_ANTICIPATION, then at the pull the
+-- knob squashes (Size tween back to rest) and a ring spreads at the lever's foot.
+function RollPresentationController:LeverPull(record, rollId)
+ local knob=record.knob
+ if not knob then return end
+ task.delay(LEVER_ANTICIPATION,function()
+  if record.rollId~=rollId or not knob.Parent or not record.station.Parent then return end
+  local rest=record.knobSize
+  if rest and not self.app.reducedMotion then
+   knob.Size=Vector3.new(rest.X*1.18,rest.Y*0.78,rest.Z*1.18)
+   Theme.Motion:Tween(knob,"squash",{Size=rest},0.32,Enum.EasingStyle.Back)
+  end
+  local feel=self.app.worldFeel
+  if feel then
+   local pivot=record.leverPivot.Position
+   feel:Ring(Vector3.new(pivot.X,record.foot.Y+0.05,pivot.Z),{color=GOLD,radius=3,seconds=0.45,range=FEEL_RANGE})
+  end
+ end)
+end
+
+-- One shuffle beat: the pad punches (Back ease back to rest), the silhouette's fill
+-- flashes a shade lighter, and the last two beats puff dust under an own podium.
+function RollPresentationController:BeatPunch(record, stage: number)
+ local reduced=self.app.reducedMotion
+ if not reduced then record.top.Size=record.padSize*Vector3.new(1.08,1,1.08) end
+ Theme.Motion:Tween(record.top,"punch",{Size=record.padSize},0.22,Enum.EasingStyle.Back)
+ if not reduced then record.glow.FillColor=SILHOUETTE_BEAT end
+ Theme.Motion:Tween(record.glow,"beat",{FillColor=SILHOUETTE},0.2)
+ local feel=self.app.worldFeel
+ if feel and stage>=#BEATS-1 and self:Own(record) and playerDistance(record.foot)<=24 then
+  feel:Poof(record.foot,{count=6,size=1.1,range=FEEL_RANGE})
+ end
+end
+
+-- The chicken hits the pad: thump, dust, a ring in the rarity colour (white for
+-- Common, wider as the rarity rises), the server's name/rarity tag pops in, and Rare
+-- and up add a bigger burst while Epic and up sparkle for SPARKLE_SECONDS.
+function RollPresentationController:Land(record, rank: number, tint: Color3, rarityColor: Color3)
+ local thump=self:Cue("PodiumThump","Impact")
+ if thump then self:Sound(record,thump,1,0.45,0.6) end
+ local offerAnchor=record.station:FindFirstChild("OfferLabelAnchor")
+ local offerGui=offerAnchor and offerAnchor:FindFirstChild("OfferLabel")
+ if offerGui then Theme.Motion:PopScale(offerGui,1.3,0.34) end
+ local feel=self.app.worldFeel
+ if not feel then return end
+ local slotOne=(record.station:GetAttribute("RollSlot") or 1)==1
+ feel:Poof(record.foot,{count=if slotOne then 10 else 6,size=1.3,range=FEEL_RANGE})
+ feel:Ring(record.foot+Vector3.new(0,0.05,0),{color=if rank>=2 then rarityColor else Color3.new(1,1,1),
+  radius=2.5+rank*0.5,seconds=0.4+rank*0.04,range=FEEL_RANGE})
+ if rank>=3 then
+  feel:Burst(record.foot+Vector3.new(0,1.2,0),{color=ColorSequence.new(rarityColor,tint),count=10+rank*6,
+   size=0.4+rank*0.08,speed={5,10+rank},range=FEEL_RANGE})
+ end
+ local primary=record.preview and record.preview.PrimaryPart
+ if rank>=4 and primary then
+  feel:Sparkle(primary,SPARKLE_SECONDS[rank] or SPARKLE_SECONDS[7],{color=rarityColor,size=0.4,rate=14+rank*4,range=FEEL_RANGE})
+ end
 end
 
 -- October 15: build the roll's result (and its shuffle birds) the moment the roll
@@ -229,10 +376,15 @@ function RollPresentationController:ShowBadge(record, mutation, animate)
    record.burst.Color=ColorSequence.new(def.color,Color3.new(1,1,1))
    record.burst:Emit(18)
   end
-  self:Sound(record,"RollRare",1.25,0.4,nil)
- else
-  self:Sound(record,"Pop",1.3,0.3,0.3)
  end
+ -- Oct 21 game feel: a burst in the mutation's colour where the tag pops, with the
+ -- MutationHit stinger (RollRare a little higher until it is authored).
+ local feel=self.app.worldFeel
+ if feel then
+  feel:Burst(record.foot+Vector3.new(0,height+1,0),{color=def.color,count=16,size=0.45,speed={4,8},gravity=-4,range=FEEL_RANGE})
+ end
+ local hit=self:Cue("MutationHit")
+ if hit then self:Sound(record,hit,1,0.45,nil) else self:Sound(record,"RollRare",1.2,0.4,nil) end
 end
 
 -- October 20 Gold rolls: "Gold roll · 2x Luck" over each podium of a special pull,
@@ -271,6 +423,14 @@ function RollPresentationController:ShowSpecialTag(record, kind: string)
  tag.scale.Scale=0
  tag.tween=TweenService:Create(tag.scale,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Scale=1})
  tag.tween:Play()
+ -- Oct 21 game feel: a shimmer burst in the machine's colour as the tag pops.
+ local feel=self.app.worldFeel
+ if feel then
+  feel:Burst(record.top.Position+Vector3.new(0,7.6,0),{color=GoldRolls.Colors[kind] or GOLD,count=14,size=0.4,
+   speed={2,5},spread=180,gravity=-2,light=0.9,range=FEEL_RANGE})
+ end
+ local shimmer=self:Cue("Shimmer","RollReveal")
+ if shimmer then self:Sound(record,shimmer,1.1,0.35,0.8) end
 end
 
 function RollPresentationController:HideSpecialTag(record)
@@ -330,7 +490,7 @@ end
 
 function RollPresentationController:Sound(record, name, pitch, volume, duration)
  -- One shared shuffle soundtrack; secondary rare reveals share the capped voice key.
- if (record.station:GetAttribute("RollSlot") or 1)>1 and name~="RollRare" then return end
+ if (record.station:GetAttribute("RollSlot") or 1)>1 and not STINGERS[name] then return end
  local character=Players.LocalPlayer.Character
  local root=character and character:FindFirstChild("HumanoidRootPart")
  if not root or (root.Position-record.foot).Magnitude>36 then return end
@@ -350,6 +510,10 @@ function RollPresentationController:Reset(record)
   record.arm.CFrame=record.leverPivot*record.armRest
   record.knob.CFrame=record.leverPivot*record.knobRest
  end
+ -- Oct 21 game feel: settle the pad punch, knob squash and silhouette beat.
+ Theme.Motion:Cancel(record.top,"punch");record.top.Size=record.padSize
+ Theme.Motion:Cancel(record.glow,"beat");record.glow.FillColor=SILHOUETTE
+ if record.knob and record.knobSize then Theme.Motion:Cancel(record.knob,"squash");record.knob.Size=record.knobSize end
  if record.light then record.light.Brightness=0 end
  local species=record.station:GetAttribute("RevealedSpecies")
  record.top.Color=if species and Catalog[species] then Color3.fromRGB(table.unpack(Catalog[species].color)) else BLUE
@@ -393,7 +557,10 @@ function RollPresentationController:StepRecord(record, now)
    self:Warm(record,station:GetAttribute("PendingSpecies"))
    for _,shuffled in record.sequence do self:Warm(record,shuffled) end
   end
-  if rollId and elapsed<0.3 then self:Sound(record,"RollLever",0.9,0.55,0.3) end
+  if rollId and elapsed<0.3 then
+   self:Sound(record,"RollLever",0.9,0.55,0.3)
+   self:LeverPull(record,rollId)
+  end
   self:HideBadge(record)
   local special=station:GetAttribute("RollSpecial")
   record.special=if rollId and type(special)=="string" and GoldRolls.Colors[special] then special else nil
@@ -432,14 +599,18 @@ function RollPresentationController:StepRecord(record, now)
    -- Skip missed sounds when entering mid-roll or recovering from a slow frame.
    if elapsed-BEATS[stage]*duration<0.12 then
     self:Sound(record,"RollTick",1.65-stage*0.055,0.32+stage*0.008,0.14)
+    self:BeatPunch(record,stage)
    end
   end
   record.glow.Enabled=record.preview~=nil
   local angle=0
   if not reduced then
-   if elapsed<0.16 then angle=-0.95*math.sin(elapsed/0.16*math.pi/2)
-   elseif elapsed<0.24 then angle=-0.95
-   else angle=-0.95*math.max(0,1-(elapsed-0.24)/0.42)^2 end
+   -- Anticipation first: a small draw back, then the tuned pull, hold and release.
+   local pull=elapsed-LEVER_ANTICIPATION
+   if pull<0 then angle=0.22*math.sin(elapsed/LEVER_ANTICIPATION*math.pi/2)
+   elseif pull<0.16 then angle=0.22-1.17*math.sin(pull/0.16*math.pi/2)
+   elseif pull<0.24 then angle=-0.95
+   else angle=-0.95*math.max(0,1-(pull-0.24)/0.42)^2 end
   end
   local pivot=record.leverPivot*CFrame.Angles(angle,0,0)
   if record.arm and record.knob then
@@ -478,7 +649,7 @@ function RollPresentationController:StepRecord(record, now)
     self:Sound(record,"Pop",1.12,0.45,0.35)
     -- The roll camera reveals with the rarest chicken appearing on your podiums.
     if station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId and (not self.reveal or rank>self.reveal.rank) then
-     self.reveal={rank=rank,color=UIColors.Rarities[def.rarity]}
+     self.reveal={rank=rank,color=UIColors.Rarities[def.rarity],position=record.foot}
     end
    end
   end
@@ -487,11 +658,14 @@ function RollPresentationController:StepRecord(record, now)
   if not record.finishPlayed and age>=0.16 then
    record.finishPlayed=true
    self:Sound(record,"RollLand",1.4,0.22,0.22)
-   self:Sound(record,if rank>=4 then "RollRare" else "RollReveal",if rank>=5 then 1.12 else 1,if rank>=4 then 0.5 else 0.32,nil)
+   -- Epic and up play their tier's stinger (RollRare until it is authored).
+   local stinger=if rank>=4 then self:Cue(TIER_CUES[rank] or "RollSecret","RollRare") else "RollReveal"
+   if stinger then self:Sound(record,stinger,if rank>=5 then 1.12 else 1,if rank>=4 then 0.5 else 0.32,nil) end
    if record.burst and not reduced then
     record.burst.Color=ColorSequence.new(tint,GOLD)
     record.burst:Emit(if rank>=4 then 26 else 12)
    end
+   if record.revealFresh then self:Land(record,rank,tint,UIColors.Rarities[def.rarity] or tint) end
   end
   local hop=0
   if not reduced then
@@ -537,6 +711,8 @@ function RollPresentationController:Start(world)
      if station:GetAttribute("IsRollStation") or station.Name=="RollStation" then self:Track(station) end
     end
    end
+   -- The counter rows can replicate after their station: bind them on the scan tick.
+   for _,record in self.records do if not record.countersBound then self:BindCounters(record) end end
   end
   for station,record in self.records do
    if not station:IsDescendantOf(world) then
@@ -545,6 +721,7 @@ function RollPresentationController:Start(world)
     if record.badge then record.badge.gui:Destroy() end
     if record.idleHint then record.idleHint:Destroy() end
     if record.specialTag then record.specialTag.gui:Destroy() end
+    for _,connection in record.connections do connection:Disconnect() end
     record.glow:Destroy();self.records[station]=nil
    else
     self:NoteSpecial(record,now)
@@ -561,6 +738,7 @@ function RollPresentationController:Destroy()
  for _,record in self.records do
   self:Reset(record)
   for _,model in record.cache do model:Destroy() end
+  for _,connection in record.connections do connection:Disconnect() end
  end
  table.clear(self.records)
  if self.folder then self.folder:Destroy() end
