@@ -8,7 +8,11 @@ local Guide = {}
 -- tips (TIP 1/6: a FREE Egg Vacuum, Army Size I, Select Best, Cluck Camp). The guide
 -- still completes on the first camp win. docs/team/COMMANDER_TUTORIAL.md has the contract.
 Guide.Version = "cluck-7-quick-core"
-Guide.EggGoal = 5
+-- Later October 21 (Stevin: "one-to-one" with the recording, keep it short): 3 eggs,
+-- like its "Tap your fruits (0/3)". Each menu lesson also carries the words for the
+-- step before it (`outside`: the menu or tool isn't open yet; `wrongTab`: the
+-- Upgrades map shows another category), so the card reads one action at a time.
+Guide.EggGoal = 3
 -- Eggs the Egg Vacuum tip asks for (tutorial.vacuumEggCount, EggService).
 Guide.VacuumGoal = 3
 Guide.Core = {"Collect", "Sell", "Flock", "Roll", "Recruit"}
@@ -88,8 +92,8 @@ function Guide.Progress(facts): (string, number, number)
 	return label, math.min(done + 1, #list), #list
 end
 
-local function step(id: string, text: string, target: string?, node: string?)
-	return {id=id, text=text, target=target, node=node}
+local function step(id: string, text: string, target: string?, node: string?, outside: string?, wrongTab: string?)
+	return {id=id, text=text, target=target, node=node, outside=outside, wrongTab=wrongTab}
 end
 
 -- A quiet post-guide line (CommanderGuide shows it as "Next: ...").
@@ -164,7 +168,7 @@ local function earn(state, price: number?, reserve: number?)
 	-- Keep gathering until this trip can fund the purchase. Any nonempty bag
 	-- used to send players back to the pad, then straight back to the yard.
 	if carried > 0 and carried >= needed then
-		return step("RecoverSell", "Step on the green sell pad", "EggDeposit")
+		return step("RecoverSell", "Sell your eggs on the green pad!", "EggDeposit")
 	end
 	local more = math.ceil(needed - carried)
 	return step("RecoverCollect",
@@ -194,6 +198,7 @@ end
 
 -- One Upgrades purchase in the opening (Flock Size I, Army Size I): the hex, or a
 -- trip to the eggs first when the server says it can't be afforded yet.
+local OPEN_UPGRADES = {Flock = "Spend your Coins in Upgrades!", ArmySize = "Open Upgrades for more Army slots!"}
 local function purchase(state, id: string, familyId: string, reserve: number?)
 	local quote = treeNode(state, Guide.NextNode(state, familyId))
 	if quote and quote.status == "Unaffordable" and type(quote.price) == "number"
@@ -201,7 +206,8 @@ local function purchase(state, id: string, familyId: string, reserve: number?)
 		return earn(state, quote.price, reserve)
 	end
 	local node = Guide.NextNode(state, familyId) or Tree.NodeId(familyId, 1)
-	return step(id, "Buy " .. Tree.Nodes[node].name .. " in Upgrades", "Upgrades", node)
+	return step(id, "Buy " .. Tree.Nodes[node].name .. "!", "Upgrades", node,
+		OPEN_UPGRADES[familyId] or "Open Upgrades!", "Go back to the main Upgrades!")
 end
 
 -- Army power vs a garrison's power (Rules.PetPower sums). Defenders respawn every
@@ -339,7 +345,7 @@ function Guide.NextGoal(state, ignoreSkip)
 	end
 	if state.outgoing then return nil end
 	if #(state.pets or {}) == 0 then return goal("Recruit", "Roll a chicken at your podium", "RollStation") end
-	if (state.selectedCount or #(state.selectedIds or {})) == 0 then return goal("Select", "My Army → Select Best", "Army") end
+	if (state.selectedCount or #(state.selectedIds or {})) == 0 then return goal("Select", "My Army → Equip Best", "Army") end
 	-- Rebirth v2 needs only Coins (50K for Rebirth 1) and the Army home. It resets the
 	-- Upgrades tree, so it comes before the tool purchases (Stevin: only once ready).
 	local rebirth = state.rebirth or {}
@@ -374,7 +380,7 @@ function Guide.NextGoal(state, ignoreSkip)
 end
 
 -- The Collect lesson names the player's own input; the layout is the same everywhere.
-local COLLECT = {Touch = "Tap eggs to collect them", Gamepad = "Press R2 to collect eggs"}
+local COLLECT = {Touch = "Tap your eggs to collect them!", Gamepad = "Press R2 to collect your eggs!"}
 
 local function resolve(state, input: string?, t, f)
 	if t.guideSkipped then return nil end
@@ -400,12 +406,12 @@ local function resolve(state, input: string?, t, f)
 	-- their recruit-first route, and an empty flock always needs an egg producer.
 	if #(state.pets or {})==0 or (not t.starterArmy and not f.Recruit) then return recruit(state, false) end
 	if not f.Collect then
-		return step("Collect", (COLLECT[input or ""] or "Click eggs to collect them")
+		return step("Collect", (COLLECT[input or ""] or "Click your eggs to collect them!")
 			.." ("..Guide.CollectedEggCount(t).."/"..Guide.EggGoal..")", "Yard")
 	end
 	if not f.Sell then
 		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state) end
-		return step("Sell", "Step on the green sell pad", "EggDeposit")
+		return step("Sell", "Sell your eggs on the green pad!", "EggDeposit")
 	end
 	-- October 21: like the reference's Fruit Slot, Flock Size I opens a laying spot
 	-- before the FREE roll fills it. It may not spend the Coins held for Army Size I
@@ -419,11 +425,13 @@ local function resolve(state, input: string?, t, f)
 	if not f.Vacuum then
 		local node = treeNode(state, "EggVacuum")
 		if node == nil or node.status ~= "Locked" then
-			return step("Vacuum", "Claim your FREE Egg Vacuum in Upgrades → Tools", "Upgrades", "EggVacuum")
+			return step("Vacuum", "Claim your FREE Egg Vacuum!", "Upgrades", "EggVacuum",
+				"Open Upgrades for a FREE Egg Vacuum!", "Open the Tools category!")
 		end
 	elseif not f.VacuumUse then
-		return step("VacuumUse", "Equip your Egg Vacuum and walk near eggs ("
-			.. Guide.VacuumEggCount(state.tutorial or {}) .. "/" .. Guide.VacuumGoal .. ")", "VacuumTool")
+		return step("VacuumUse", "Walk near eggs to vacuum them up! ("
+			.. Guide.VacuumEggCount(state.tutorial or {}) .. "/" .. Guide.VacuumGoal .. ")", "VacuumTool", nil,
+			"Equip your Egg Vacuum!")
 	end
 	if not f.Expand then
 		local offer = state.nextSlot
@@ -431,9 +439,9 @@ local function resolve(state, input: string?, t, f)
 		return purchase(state, "Expand", "ArmySize")
 	end
 	if not f.Select then
-		return step("Select", "My Army → Select Best", "Army")
+		return step("Select", "Press Equip Best!", "Army", nil, "Open My Army!")
 	end
-	return step("Deploy", "Cluck Camp → Send Army", "Camp1")
+	return step("Deploy", "Send your Army to Cluck Camp!", "Camp1")
 end
 
 -- input: "Touch", "Gamepad" or anything else for mouse and keyboard (CommanderGuide).

@@ -72,6 +72,12 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Saves:** tier-meaning changes go through `TreeMigrations` (`upgradeTreeVersion`).
   Never bump `DataRevision`: older live servers reject newer revisions. Every publish
   uses "Migrate To Latest Update" (restart servers).
+- **Tutorial (Oct 21, Stevin: copy Drop a Fruit's tutorial one-to-one, keep it short):**
+  "TUTORIAL • n/5" core (3 eggs, sell, Flock Size I, FREE roll and chicken), then
+  "TIP • n/6" (FREE Egg Vacuum, Army Size I, Equip Best, Cluck Camp). Menu lessons
+  darken the screen around their control with a gold ring, and the egg lesson lights
+  one egg with a tapping hand. This overrides the Oct 6 no-dimming/no-highlight rule
+  for the guide; don't remove them. Contract: `docs/team/COMMANDER_TUTORIAL.md`.
 - **Stevin:** "dont ask me for permission no more just do it". Agents decide and build
   without a confirm step, but still never publish or push unless asked.
 
