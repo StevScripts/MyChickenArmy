@@ -33,10 +33,14 @@ Assets.upgrades={
 	armySize=Assets.cashArmySize,
 	rollSlots=Assets.cashRollSlots,
 	rollSpeed="rbxassetid://70386312720480",
-	goldMachine="rbxassetid://75354767460656",
-	goldRate="rbxassetid://117354946749376",
-	diamondMachine="rbxassetid://113120386630417",
-	prismMachine="rbxassetid://90010215769789", -- S6's RainbowMachine art for the Prism Machine
+	-- October 21 (Stevin): the Machine nodes show the same dice as the "Rolls Left"
+	-- counters (GoldRolls.Icons), not the machine art (old 75354767460656,
+	-- 113120386630417, 90010215769789); Gold Rate is the gold die with the Rate arrows
+	-- (old machine 117354946749376).
+	goldMachine="rbxassetid://134479804954469",
+	goldRate="rbxassetid://129046776206698",
+	diamondMachine="rbxassetid://96923790490502",
+	prismMachine="rbxassetid://75988321934625",
 	eggVacuum="rbxassetid://130089766443010",
 	vacuumCapacity="rbxassetid://72175945483273",
 	vacuumRange="rbxassetid://82362785406642",

@@ -174,8 +174,11 @@
     512,
     512
    ],
-   "assetId": 117354946749376,
-   "content": "rbxassetid://117354946749376"
+   "assetId": 129046776206698,
+   "content": "rbxassetid://129046776206698",
+   "replaces": "rbxassetid://117354946749376 (machine art, Oct 20)",
+   "uploadedAt": "2026-10-21",
+   "note": "Gold die + green Rate arrows (Codex edit of GoldDice, codex/GoldRate.prompt.txt); Stevin asked for dice, not the machine"
   },
   {
    "key": "GoldRush",

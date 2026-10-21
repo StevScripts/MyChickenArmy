@@ -85,9 +85,9 @@ Owner decisions, October 20 (Stevin):
 - **Machine counters** (`RollStation`):
   - One row per owned machine over the lever machine, Gold above Diamond above
     Prism, as in the recording: "6 Rolls Left", "98 Rolls Left", "1 Roll Left".
-  - Dice icons are still to come (the image API had no credits on October 20). The
-    rows show the S6 machine icons until then: Gold 75354767460656, Diamond
-    113120386630417, Prism (RainbowMachine art) 90010215769789.
+  - Each row shows its die (`GoldRolls.Icons`). Since October 21 the Upgrades tree's
+    Gold/Diamond/Prism Machine nodes use the same dice, and Gold Rate is the gold die
+    with the green Rate arrows (Stevin: dice, not the machine art).
 - **Special pull** (`RollPresentationController`):
   - Every podium glows in the kind's color (Prism cycles the rainbow).
   - A "Gold roll · 2x Luck" tag shows until just after the reveal.
