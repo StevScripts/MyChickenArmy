@@ -4,6 +4,8 @@
 -- outlined title with a wide round bar sits top-center (no panel behind it) only
 -- while your army fights there or you stand near the Hill. Otherwise (and between
 -- rounds) a small chip above the cash readout shows the clock. Presentation only.
+-- October 21 reference parity: the chip is the reference's event-timer line, one of the
+-- lines HudController stacks right above the Coins pill (its `slot`).
 local Lighting=game:GetService("Lighting")
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -35,8 +37,8 @@ local function scaled(label: TextLabel, align: Enum.TextXAlignment?)
 	return label
 end
 
-function HillHud.new(app,shell: Instance,cash: Instance)
-	local self=setmetatable({app=app,cash=cash,bannerVisible=false,kind=nil,tinted=false},HillHud)
+function HillHud.new(app,shell: Instance,slot: Instance)
+	local self=setmetatable({app=app,bannerVisible=false,kind=nil,tinted=false},HillHud)
 	-- Slim boss bar (user pick "A", October 10): title, a studded square meter
 	-- with the clock inside on the kit's slate track, one short line under it.
 	local top=Theme.Container(shell,"HillEvent")
@@ -64,16 +66,15 @@ function HillHud.new(app,shell: Instance,cash: Instance)
 	self.detail.Position,self.detail.Size=UDim2.fromScale(0.05,0.76),UDim2.fromScale(0.9,0.22)
 	Theme.Motion:Center(self.detail) -- a new leader punches it from its middle
 
-	-- Compact chip just above the cash readout (Place follows the touch layout).
-	local waiting=Theme.Container(shell,"HillCountdown")
-	waiting.AnchorPoint,waiting.Size=Vector2.new(0,1),UDim2.fromScale(0.2,0.058)
+	-- One line of the slot's list (HudController sets its height and order): a small
+	-- helmet, then the clock right after it.
+	local waiting=Theme.Container(slot,"HillCountdown")
 	waiting.Visible=false
 	local icon=Theme.Image(waiting,"Icon",Theme.Assets.Army,UDim2.fromScale(0.3,1),UDim2.fromScale(0,0))
 	Theme.Aspect(icon,1)
 	self.waitClock=scaled(Theme.Display(waiting,"Clock","",26,A.gold),Enum.TextXAlignment.Left)
-	self.waitClock.Position,self.waitClock.Size=UDim2.fromScale(0.2,0.1),UDim2.fromScale(0.8,0.8)
+	self.waitClock.Position,self.waitClock.Size=UDim2.fromScale(0.085,0.04),UDim2.fromScale(0.9,0.92)
 	self.waiting=waiting
-	self:Place()
 
 	local tint=Instance.new("ColorCorrectionEffect")
 	tint.Name,tint.TintColor,tint.Enabled,tint.Parent="PetRollHillTint",Color3.new(1,1,1),false,Lighting
@@ -82,13 +83,11 @@ function HillHud.new(app,shell: Instance,cash: Instance)
 	return self
 end
 
--- Right on top of the cash readout, left edge on the coin's (later October 21, Stevin:
--- "align the hill text at the top"). The readout lost its Carrying row that day, so its
--- top sits below the Shop / Upgrades / Index column. It shares the spot with the rank
--- line, which hides while this chip shows.
+-- The slot's list layout places the chip: right on top of the Coins pill, its left edge
+-- on the pill's like the coin (later October 21, Stevin: "align the hill text at the
+-- top"). It shares that line with the rank, which hides while this chip shows. Kept for
+-- HudController's layout pass.
 function HillHud:Place()
-	local cash=self.cash
-	self.waiting.Position=UDim2.fromScale(cash.Position.X.Scale,cash.Position.Y.Scale-cash.Size.Y.Scale-0.006)
 end
 
 local function nearHill(): boolean
