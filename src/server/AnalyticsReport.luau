@@ -416,6 +416,19 @@ function Report.Summarize(pulled: any, options: Options?)
 		previous = reached
 	end
 
+	-- Version 9 Tutorial funnel (Schema.Tutorial): actual reaches, out-of-order
+	-- reaches (gap) and where unfinished sessions stopped (exit = furthest step).
+	local tutorialFunnel = {}
+	local tutorialFirst, tutorialPrevious = c["tut.reach.01"], nil
+	for index, step in Schema.Tutorial do
+		local code = Schema.StepCode(index)
+		local reached = c["tut.reach." .. code] or 0
+		table.insert(tutorialFunnel, {step = code .. " " .. step.id, reached = reached, ofStarted = pct(reached, tutorialFirst),
+			ofPrevious = pct(reached, tutorialPrevious), timeToStep = stat(h["tut.t." .. code]),
+			outOfOrder = c["tut.gap." .. code] or 0, exitsHere = c["tut.exit." .. code] or 0, about = step.about})
+		tutorialPrevious = reached
+	end
+
 	-- Cohorts: x[firstDay] merged across every pulled day (steps/returns land later).
 	local cohorts = {}
 	for day, counters in total.x do
@@ -425,6 +438,11 @@ function Report.Summarize(pulled: any, options: Options?)
 		for index in Schema.Onboarding do
 			local code = Schema.StepCode(index)
 			row.steps[code] = counters["onb." .. code] or 0
+		end
+		row.tutorial = {}
+		for index in Schema.Tutorial do
+			local code = Schema.StepCode(index)
+			if counters["tut." .. code] then row.tutorial[code] = counters["tut." .. code] end
 		end
 		for _, d in Schema.RetentionDays do
 			local n = counters["ret.d" .. d]
@@ -527,7 +545,7 @@ function Report.Summarize(pulled: any, options: Options?)
 			session = stat(h["session.seconds"]), sessionNew = stat(h["session.seconds.new"]),
 			sessionReturning = stat(h["session.seconds.returning"]), playerMinutes = c["player.minutes"] or 0,
 			serverMinutes = c["server.minutes"] or 0},
-		daily = daily, onboardingFunnel = funnel, cohorts = cohorts, onboardingExits = exits, exitByMaxStep = exitMax,
+		daily = daily, onboardingFunnel = funnel, tutorialFunnel = tutorialFunnel, cohorts = cohorts, onboardingExits = exits, exitByMaxStep = exitMax,
 		guideDwell = dwell, intro = prefixed(c, "intro."), economy = economy, rolls = rolls, camps = camps,
 		features = features, robux = robux, platforms = platforms, screens = prefixed(c, "client.screen."),
 		perf = perf, health = health, loop = prefixed(c, "loop."),

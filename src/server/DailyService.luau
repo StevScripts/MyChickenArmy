@@ -43,9 +43,12 @@ end
 -- October 13 owner decision: the streak starts once the main tutorial is done
 -- (the guide completes on the first camp win; wonCamp covers pre-guide saves).
 -- Until then no day is claimed, so Day 1 is granted the day the guide finishes.
+-- October 21 (Stevin, like the reference): Day 1 pops right after the short core
+-- (tutorial.coreDone), before the tips.
 function DailyService.TutorialDone(session): boolean
 	local tutorial = session.tutorial
-	return type(tutorial) == "table" and (tutorial.guideCompleted == true or tutorial.wonCamp == true)
+	return type(tutorial) == "table"
+		and (tutorial.guideCompleted == true or tutorial.wonCamp == true or tutorial.coreDone == true)
 end
 
 -- Returns the grant table when a reward was granted, otherwise nil.

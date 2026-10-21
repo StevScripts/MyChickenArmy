@@ -34,7 +34,10 @@ SHARDS = 16  # must match Schema.Shards
 TOP_CAP = 150
 ONBOARDING = ["Joined", "ProfileLoaded", "IntroStarted", "IntroEnded", "ControlReady", "FirstEgg", "Collect",
               "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win", "GuideComplete",
-              "Camp2", "Camp3", "King", "Rebirth1"]  # must match Schema.Onboarding
+              "Camp2", "Camp3", "King", "Rebirth1"]
+# Schema.Tutorial (version 9, October 21): the short core + tips guide.
+TUTORIAL = ["Started", "Collect", "Sell", "Flock", "Roll", "Recruit", "CoreDone",
+            "Vacuum", "VacuumUse", "Expand", "Select", "Deploy", "Win"]  # must match Schema.Onboarding
 PLAYERS = "PetRollAnalyticsPlayers_v1"
 # Schema.FeatureFunnels step ids, in order (NN = index). Must match the schema; funnels
 # found in the data but missing here still appear with numbered steps.
@@ -326,6 +329,15 @@ def summarize(days):
         funnel.append({"step": f"{code} {step}", "reached": reached, "ofJoined": pct(reached, first),
                        "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"onb.t.{code}"), 0.5)})
         previous = reached
+    tutorial, previous = [], None
+    first = c.get("tut.reach.01")
+    for index, step in enumerate(TUTORIAL, start=1):
+        code = f"{index:02d}"
+        reached = c.get(f"tut.reach.{code}", 0)
+        tutorial.append({"step": f"{code} {step}", "reached": reached, "ofStarted": pct(reached, first),
+                         "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"tut.t.{code}"), 0.5),
+                         "outOfOrder": c.get(f"tut.gap.{code}", 0), "exitsHere": c.get(f"tut.exit.{code}", 0)})
+        previous = reached
     exits = sorted(({"guideStep": k[len("onb.exit."):], "n": v} for k, v in c.items() if k.startswith("onb.exit.")),
                    key=lambda e: -e["n"])
     cohorts = []
@@ -339,7 +351,7 @@ def summarize(days):
         "totals": {"unique": c.get("players.unique", 0), "new": c.get("players.new", 0), "sessions": sessions,
                    "avgSessionSec": round(c.get("session.seconds", 0) / sessions) if sessions else None,
                    "sessionP50": percentile(h.get("session.seconds"), 0.5)},
-        "onboardingFunnel": funnel, "onboardingExits": exits, "cohorts": cohorts,
+        "onboardingFunnel": funnel, "tutorialFunnel": tutorial, "onboardingExits": exits, "cohorts": cohorts,
         "economy": {"sourceTotal": c.get("econ.srcTotal", 0), "sinkTotal": c.get("econ.sinkTotal", 0)},
         "rolls": {"count": c.get("roll.count", 0), "anyAffordablePct": pct(c.get("roll.anyAffordable"), c.get("roll.count"))},
         "featureFunnels": feature_funnels(c, h),

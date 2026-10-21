@@ -34,6 +34,17 @@ local function purpose(familyId: string?): string?
 	return if familyId == "ArmySize" then "ArmySize" else nil
 end
 
+-- October 21 (Stevin, like the reference's free Vacuum tip): the Egg Vacuum is FREE
+-- while the Commander guide runs. Every quote and purchase reads prices here.
+function UpgradeService.Quote(session, familyId: string, tier: number): number?
+	local tutorial = session.tutorial or {}
+	if familyId == "EggVacuum" and tier == 1 and tutorial.starterArmy == true
+		and not tutorial.guideCompleted and not tutorial.guideSkipped then
+		return 0
+	end
+	return Tree.Price(familyId, tier, session.rebirths)
+end
+
 -- Normal individual roll outcomes for the Luck hex; same odds as ordinary rolls
 -- (Extra Luck and the verified 2x Luck pass included).
 local function luckChances(session, level, window)
@@ -73,7 +84,7 @@ function UpgradeService.NodeOffer(session, nodeId: string)
 	local node = Tree.Nodes[nodeId]
 	if node.kind ~= "upgrade" then return {status = KIND_STATUS[node.kind] or "Start"} end
 	if owned(session, nodeId) then return {status = "Owned"} end
-	local price = Tree.Price(node.family :: string, node.tier :: number, session.rebirths) :: number
+	local price = UpgradeService.Quote(session, node.family :: string, node.tier :: number) :: number
 	if node.prerequisite and not owned(session, node.prerequisite) then
 		return {status = "Locked", price = price, spendReason = "Buy " .. Tree.Nodes[node.prerequisite].name .. " first."}
 	end
@@ -140,7 +151,7 @@ function UpgradeService:BuyNode(session, nodeId: any, expectedPrice: any, _now: 
 	local familyId, tier = node.family :: string, node.tier :: number
 	-- Tiers within a family are bought in order (the prerequisite chain above).
 	if Tree.Tier(session.upgradeTree, familyId) + 1 ~= tier then return false, "Buy the earlier tiers first." end
-	local price = Tree.Price(familyId, tier, session.rebirths)
+	local price = UpgradeService.Quote(session, familyId, tier)
 	-- A replay or stale click never purchases at an unexpected price.
 	if not price or expectedPrice ~= price then return false, "This upgrade changed. Try again." end
 	local canSpend, reason = session:CanSpendCash(price, purpose(familyId))
@@ -160,7 +171,7 @@ function UpgradeService:BuyFamily(session, familyId: string): (boolean, string)
 	local tier = Tree.Tier(session.upgradeTree, familyId)
 	local family = Tree.Families[familyId]
 	if not family or tier >= #family.tiers then return false, (if family then family.name else "This upgrade") .. " is at its maximum." end
-	return self:BuyNode(session, Tree.NodeId(familyId, tier + 1), Tree.Price(familyId, tier + 1, session.rebirths))
+	return self:BuyNode(session, Tree.NodeId(familyId, tier + 1), UpgradeService.Quote(session, familyId, tier + 1))
 end
 
 -- Pre-tree board offers (state.boardUpgrades) for the old cash hexes, until S9 ships.

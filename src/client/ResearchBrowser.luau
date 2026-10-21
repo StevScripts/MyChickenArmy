@@ -529,11 +529,14 @@ function Browser:RenderNode(id)
 	-- Prices only on hexes you can still buy: gold when affordable, red when not.
 	local buyable=look=="available" or look=="unaffordable"
 	view.cost.Visible=buyable
-	view.cashIcon.Visible=not waiting
-	view.price.Position=UDim2.fromScale(if waiting then 0 else .29,0)
-	view.price.Size=UDim2.fromScale(if waiting then 1 else .71,1)
-	view.price.TextXAlignment=if waiting then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
-	view.price.Text=if waiting then "…" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
+	-- October 21: the guide's FREE Egg Vacuum (UpgradeService.Quote) reads "FREE".
+	local free=not waiting and info~=nil and info.price==0
+	local centered=waiting or free
+	view.cashIcon.Visible=not centered
+	view.price.Position=UDim2.fromScale(if centered then 0 else .29,0)
+	view.price.Size=UDim2.fromScale(if centered then 1 else .71,1)
+	view.price.TextXAlignment=if centered then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+	view.price.Text=if waiting then "…" elseif free then "FREE" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
 	view.price.TextColor3=if look=="unaffordable" then RED else COIN
 	-- Red badge (October 20 owner): "!" when you can buy this hex right now; on an
 	-- Open hex, how many upgrades inside you can buy.

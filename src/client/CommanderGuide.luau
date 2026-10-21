@@ -14,6 +14,10 @@ local CARD_POSITION = UDim2.fromScale(.5,.005)
 local ENTER_SECONDS = .18
 local TYPE_SECONDS_PER_GRAPHEME = .02
 local TYPE_MAX_SECONDS = .65
+-- October 21 (Stevin, like the Drop a Fruit tutorial): the core's payoff line holds
+-- this long, with confetti, before the tips start and Daily Rewards may open.
+local CORE_SECONDS = 4
+local CORE_TEXT = "Your Flock is laying! Keep collecting eggs!"
 local Commander = {}
 Commander.__index = Commander
 
@@ -32,8 +36,12 @@ function Commander.new(app)
 	self.body = body
 	Theme.Stroke(body,Theme.Arcade.border,Theme.Border.Control)
 	self.instruction=Theme.Display(card,"Objective","",27)
-	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.18,.19),UDim2.fromScale(.795,.66)
+	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.18,.33),UDim2.fromScale(.795,.53)
 	self.instruction.TextXAlignment=Enum.TextXAlignment.Center
+	-- "TUTORIAL • 2/5" / "TIP • 3/6" over the instruction (October 21).
+	self.tag=Theme.Label(card,"Step","",14,Theme.Arcade.gold)
+	self.tag.Position,self.tag.Size=UDim2.fromScale(.18,.15),UDim2.fromScale(.795,.19)
+	self.tag.TextXAlignment,self.tag.TextScaled,self.tag.ZIndex=Enum.TextXAlignment.Center,true,5
 	self.portrait=Theme.Image(card,"Commander",Theme.Assets.Commander,UDim2.fromScale(.165,1.15),UDim2.fromScale(0,-.015))
 	Theme.Aspect(self.portrait,1)
 	self.portrait.ZIndex=4
@@ -81,7 +89,7 @@ end
 -- October 9: post-guide goals use a quiet line: half width, no portrait,
 -- no typewriter or entrance motion. The full card belongs to the guide itself.
 local FULL = {card=UDim2.fromScale(.86,.115), aspect=7.4, bodyPosition=UDim2.fromScale(.1,.13), bodySize=UDim2.fromScale(.9,.78),
-	bodyTransparency=.28, textPosition=UDim2.fromScale(.18,.19), textSize=UDim2.fromScale(.795,.66)}
+	bodyTransparency=.28, textPosition=UDim2.fromScale(.18,.33), textSize=UDim2.fromScale(.795,.53)}
 -- The quiet card's height allowance (.3) only matters when FitQuiet lowers its aspect.
 local QUIET = {card=UDim2.fromScale(.46,.3), aspect=7.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
 	bodyTransparency=.45, textPosition=UDim2.fromScale(.04,.18), textSize=UDim2.fromScale(.92,.64)}
@@ -126,6 +134,7 @@ function Commander:SetQuiet(quiet)
 	self.body.Position, self.body.Size, self.body.BackgroundTransparency = layout.bodyPosition, layout.bodySize, layout.bodyTransparency
 	self.instruction.Position, self.instruction.Size = layout.textPosition, layout.textSize
 	self.portrait.Visible = not quiet
+	self.tag.Visible = not quiet
 	self:FitInstruction()
 end
 
@@ -245,6 +254,49 @@ function Commander:Celebrate()
 	end)
 end
 
+-- The core's payoff: CORE_TEXT on the card for CORE_SECONDS and confetti across the
+-- screen. Daily Rewards waits for it (DailyRewardController:Blocked). Presentation only.
+function Commander:Celebrating(): boolean
+	return self.coreAt~=nil and os.clock()-self.coreAt<CORE_SECONDS
+end
+
+function Commander:CelebrateCore()
+	self.coreAt=os.clock()
+	self.app.audio:Play("SkillTreeResearchCompleted",nil,{noFallback=true,cooldown=.3})
+	task.delay(CORE_SECONDS+.05,function() if self.alive then self:Update() end end)
+	if self.app.reducedMotion then return end
+	local holder=Theme.Container(self.root,"CoreConfetti")
+	holder.ZIndex=30
+	local colors={Theme.Arcade.gold,Theme.Arcade.green,Color3.fromRGB(80,200,255),Color3.fromRGB(255,90,170),Color3.new(1,1,1)}
+	for i=1,40 do
+		local piece=Theme.Frame(holder,"Confetti",UDim2.fromScale(.012,.024),colors[i%#colors+1])
+		local x=math.random()
+		piece.AnchorPoint,piece.Position,piece.Rotation,piece.ZIndex=Vector2.new(.5,.5),UDim2.fromScale(x,-.05),math.random(0,180),30
+		local seconds=1.6+math.random()*1.2
+		TweenService:Create(piece,TweenInfo.new(seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
+			{Position=UDim2.fromScale(x+(math.random()-.5)*.25,1.05),Rotation=piece.Rotation+math.random(180,540)}):Play()
+	end
+	task.delay(3,function() holder:Destroy() end)
+end
+
+-- October 21: My Army stays hidden until the core is done, like the reference's
+-- Fruits button. Only this guide hides it, so only this guide shows it again.
+function Commander:SetArmyHidden(hidden:boolean)
+	local hud=self.app.hud
+	local button=hud and hud.army
+	if not button then return end
+	if hidden and not self.armyHidden then
+		self.armyHidden=true;button.Visible=false
+	elseif not hidden and self.armyHidden then
+		self.armyHidden=false;button.Visible=true
+		if not self.app.reducedMotion then
+			local pop=button:FindFirstChild("GuidePop") or Instance.new("UIScale")
+			pop.Name,pop.Scale,pop.Parent="GuidePop",.6,button
+			TweenService:Create(pop,TweenInfo.new(.35,Enum.EasingStyle.Back),{Scale=1}):Play()
+		end
+	end
+end
+
 function Commander:InputKind()
 	return if UserInputService.PreferredInput==Enum.PreferredInput.Touch then "Touch"
 		elseif UserInputService.PreferredInput==Enum.PreferredInput.Gamepad then "Gamepad" else "Keyboard"
@@ -258,8 +310,8 @@ function Commander:ClearFocus()
 	self.pointerGuide:SetTarget(nil,self.app.reducedMotion)
 end
 
-function Commander:Focus(target,placement)
-	self.pointerGuide:SetTarget(target,self.app.reducedMotion,placement)
+function Commander:Focus(target,placement,dim)
+	self.pointerGuide:SetTarget(target,self.app.reducedMotion,placement,dim)
 end
 
 -- Arrow spots in the target's own size (GuideFocus.Placement). Hotbar slots sit side by
@@ -364,7 +416,9 @@ function Commander:Update()
 		self.observedProfile=true
 		self.completedBeforeVisit=(state.tutorial or {}).guideCompleted==true
 	end
+	-- October 21: Daily Rewards now opens mid-guide; its popup is never dimmed or covered.
 	local blocked=app.dialogueActive or (app.offlineCash and app.offlineCash.gui~=nil) or (app.intro~=nil and app.intro:Pending())
+		or (app.dailyReward~=nil and app.dailyReward.gui~=nil)
 	local character=Players.LocalPlayer.Character
 	if not self.ready and not blocked and character and character:FindFirstChild("HumanoidRootPart") then
 		self.ready=true;self:Signal("Ready")
@@ -385,6 +439,10 @@ function Commander:Update()
 	if current and current.goal and app.hud and app.hud.hill and app.hud.hill.bannerVisible then current=nil end
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
+	if self.facts and facts.Core and not self.facts.Core and not self.completedBeforeVisit then self:CelebrateCore() end
+	if self:Celebrating() then current={id="CoreDone",text=CORE_TEXT,tag="TUTORIAL COMPLETE!"} end
+	self:SetArmyHidden(current~=nil and not current.goal and not facts.Core
+		and (state.tutorial or {}).starterArmy==true and not self.completedBeforeVisit)
 	if self.facts and current and not current.goal then
 		for _,milestone in Guide.Milestones do
 			if facts[milestone] and not self.facts[milestone] then self.celebrate=true end
@@ -419,6 +477,8 @@ function Commander:Update()
 	local quiet=current.goal==true
 	self:SetQuiet(quiet)
 	self:SetInstruction(if quiet then "Next: "..current.text else current.text,visible and self.pendingType and not quiet)
+	self.tag.Text=if current.tag and current.index then current.tag.." • "..current.index.."/"..current.total
+		elseif current.tag then current.tag elseif id=="Complete" then "GUIDE COMPLETE!" else ""
 	if visible then self.pendingType=false end
 	self:Present(visible,changed)
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end
@@ -438,6 +498,8 @@ function Commander:Update()
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
 	local target,placement
 	local where=current.target
+	-- Menu lessons dim the screen around their control; Next goals never do.
+	local dim=not quiet and (where=="Upgrades" or id=="Select" or id=="Deploy")
 	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
 	if blocked then
 		target=nil
@@ -457,11 +519,12 @@ function Commander:Update()
 	elseif where=="Rebirth" then
 		target=if app.panel.Visible or inTree then nil else app.hud.reenlist
 	end
-	self:Focus(target,placement)
+	self:Focus(target,placement,dim)
 end
 
 function Commander:Destroy()
 	self:CancelTypewriter()
+	self:SetArmyHidden(false)
 	self.alive=false;self:ClearFocus();self:Present(false)
 	self.pointerGuide:Destroy()
 	for _,connection in self.connections do connection:Disconnect() end

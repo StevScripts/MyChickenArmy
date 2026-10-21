@@ -22,6 +22,8 @@ local function fakeStore(failFirst: number?)
 	return store
 end
 
+local Guide = require(game:GetService("ReplicatedStorage").PetRoll.Shared.TutorialGuide)
+
 local function fakeSession(userId)
 	local session = {userId = userId, tutorial = {starterArmy = true, collectedEggCount = 0}, firstWins = {},
 		kingCleared = false, coins = 2400, pets = {}, offers = {}}
@@ -155,6 +157,49 @@ function Checks.Run()
 		local b2 = ledger2.pending["2026-10-10"]["v1"]
 		assert(b2.x["2026-10-09"]["ret.d1"] == 1, "D1 return")
 		assert(b2.c["onb.reach.08"] == nil, "step re-counted in a later session")
+	end)
+
+	check("Version 9 Tutorial funnel: each guide step once, tips after the core, passed tips released on the win", function()
+		local labels, clock = {}, 100
+		local players = fakeStore()
+		local ledger = Ledger.new({store = fakeStore(), playerStore = players, studio = true, shard = 0, version = "v1",
+			clock = function() return 1791547200 end})
+		local analytics = Analytics.new({ledger = ledger, studio = true, clock = function() return clock end,
+			wall = function() return 1791547200 end, sender = function(label) table.insert(labels, label) end})
+		local session = fakeSession(77)
+		analytics:Join({UserId = 77}, session); analytics:Loaded(session); task.wait()
+		assert(analytics.players[77].tutTracked, "fresh save tracks the Tutorial funnel")
+		local t = session.tutorial
+		t.guideStarted, t.collectedEggCount, t.soldEggs = true, 5, true
+		local state = {tutorial = t, pets = {1, 2, 3}, capacity = 3, selectedCount = 3, firstWins = {}, flock = {size = 4},
+			tools = {eggVacuum = false}}
+		local function observe() clock += 1; analytics:Observe(session, state) end
+		local function sent()
+			local list = {}
+			for _, label in labels do
+				if string.sub(label, 1, 16) == "funnel:Tutorial:" then table.insert(list, string.sub(label, 17)) end
+			end
+			return table.concat(list, ",")
+		end
+		observe(); observe()
+		assert(sent() == "Started,Collect,Sell,Flock", sent())
+		state.capacity = 4 -- Army Size I bought early: not a tip until the core is done
+		t.rolled, t.bought, state.pets = true, true, {1, 2, 3, 4}
+		observe()
+		assert(sent() == "Started,Collect,Sell,Flock,Roll,Recruit,CoreDone", sent())
+		local bucket = ledger.pending["2026-10-09"]["v1"]
+		assert(bucket.c["tut.reach.07"] == 1 and bucket.c["tut.reach.10"] == 1 and bucket.c["tut.gap.10"] == 1, "Expand reached out of order")
+		t.wonCamp = true
+		observe()
+		assert(sent() == "Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win", sent())
+		assert(bucket.c["tut.reach.13"] == 1 and bucket.c["tut.reach.08"] == nil, "Win counted; the passed Vacuum tip is not")
+		observe()
+		assert(#string.split(sent(), ",") == 13, "re-sent")
+		analytics:Leave(session); task.wait()
+		local saved = players.data[Schema.PlayerKey(77)]
+		assert(saved and saved.tut and saved.tut["13"] and saved.tutRbx == 13, "profile keeps the funnel")
+		assert(#Schema.Tutorial == #Guide.FunnelSteps, "Schema.Tutorial matches TutorialGuide.FunnelSteps")
+		for index, step in Schema.Tutorial do assert(Guide.FunnelSteps[index] == step.id, step.id) end
 	end)
 
 	check("Roblox onboarding steps go out strictly in order; early steps wait, optional ones are passed over", function()

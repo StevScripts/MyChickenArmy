@@ -6,6 +6,10 @@ local GuideArrow = require(script.Parent.GuideArrow)
 local Focus = {}
 Focus.__index = Focus
 local POINTER_SIZE = UDim2.fromScale(.11,.145)
+-- October 21 (Stevin, like the Drop a Fruit tutorial): menu lessons dim the screen
+-- around the control and ring it in gold. Never intercepts input (Active=false).
+local SHADE_TRANSPARENCY, HOLE_PADDING = .45, 6
+local RING_COLOR = Color3.fromRGB(255,214,64)
 
 -- An optional fixed spot for the arrow, measured in the target's own size: `offset`
 -- from the target's centre to the arrow's centre, and `size` (a share of the target's
@@ -25,6 +29,21 @@ function Focus.new(parent)
 	self.pointer = Theme.Container(self.root, "Arrow")
 	self.pointer.AnchorPoint, self.pointer.Size, self.pointer.ZIndex = Vector2.new(.5,.5), POINTER_SIZE, 3
 	Theme.Aspect(self.pointer, 1)
+	self.shade = {}
+	for _, name in {"ShadeTop", "ShadeBottom", "ShadeLeft", "ShadeRight"} do
+		local part = Instance.new("Frame")
+		part.Name, part.BackgroundColor3, part.BackgroundTransparency, part.BorderSizePixel = name, Color3.new(0,0,0), 1, 0
+		part.Active, part.ZIndex, part.Visible = false, 1, false
+		part.Parent = self.root
+		table.insert(self.shade, part)
+	end
+	self.ring = Instance.new("Frame")
+	self.ring.Name, self.ring.BackgroundTransparency, self.ring.Active, self.ring.ZIndex, self.ring.Visible = "Ring", 1, false, 2, false
+	local stroke = Instance.new("UIStroke")
+	stroke.Color, stroke.Thickness, stroke.ApplyStrokeMode = RING_COLOR, 3, Enum.ApplyStrokeMode.Border
+	stroke.Parent = self.ring
+	local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0,8); corner.Parent = self.ring
+	self.ring.Parent = self.root
 	self.arrow = GuideArrow(self.pointer, "Pointer")
 	self.arrow.AnchorPoint, self.arrow.Position, self.arrow.Size = Vector2.new(.5,.5), UDim2.fromScale(.5,.5), UDim2.fromScale(1,1)
 	for _,property in {"AbsolutePosition", "AbsoluteSize"} do
@@ -50,6 +69,32 @@ end
 function Focus:HideGeometry()
 	self.root.Visible=false
 	self:StopLoops()
+	self:Shade(nil)
+end
+
+-- The dark screen around the hole (x1, y1, x2, y2 in root pixels), or nothing.
+function Focus:Shade(hole: {number}?)
+	local show = hole ~= nil and self.dim == true
+	self.ring.Visible = show
+	for _, part in self.shade do part.Visible = show end
+	if not hole or not show then self.shaded = false; return end
+	local size = self.root.AbsoluteSize
+	local x1, y1 = math.max(0, hole[1]-HOLE_PADDING), math.max(0, hole[2]-HOLE_PADDING)
+	local x2, y2 = math.min(size.X, hole[3]+HOLE_PADDING), math.min(size.Y, hole[4]+HOLE_PADDING)
+	local top, bottom, left, right = self.shade[1], self.shade[2], self.shade[3], self.shade[4]
+	top.Position, top.Size = UDim2.fromOffset(0,0), UDim2.new(1,0,0,y1)
+	bottom.Position, bottom.Size = UDim2.fromOffset(0,y2), UDim2.new(1,0,0,math.max(0,size.Y-y2))
+	left.Position, left.Size = UDim2.fromOffset(0,y1), UDim2.fromOffset(x1,y2-y1)
+	right.Position, right.Size = UDim2.fromOffset(x2,y1), UDim2.fromOffset(math.max(0,size.X-x2),y2-y1)
+	self.ring.Position, self.ring.Size = UDim2.fromOffset(x1,y1), UDim2.fromOffset(x2-x1,y2-y1)
+	if self.shaded then return end
+	self.shaded = true
+	for _, part in self.shade do part.BackgroundTransparency = if self.reduced then SHADE_TRANSPARENCY else 1 end
+	if not self.reduced then
+		for _, part in self.shade do
+			TweenService:Create(part, TweenInfo.new(.2), {BackgroundTransparency=SHADE_TRANSPARENCY}):Play()
+		end
+	end
 end
 
 function Focus:Layout()
@@ -70,6 +115,7 @@ function Focus:Layout()
 		ancestor = ancestor.Parent
 	end
 	if x2-x1<2 or y2-y1<2 then self:HideGeometry(); return end
+	self:Shade({x1,y1,x2,y2})
 	local placement = self.placement
 	if placement then
 		-- Sized from the target, so it follows a zoomed map; the arrow art points right.
@@ -101,7 +147,12 @@ function Focus:Layout()
 	if entering then self:Animate() end
 end
 
-function Focus:SetTarget(target, reduced, placement: Placement?)
+-- dim: shade the screen around the target (menu lessons only, never Next goals).
+function Focus:SetTarget(target, reduced, placement: Placement?, dim: boolean?)
+	if (dim == true) ~= (self.dim == true) then
+		self.dim = dim == true
+		if target and target==self.target then self.shaded = false; self:Layout() end
+	end
 	if target==self.target and reduced==self.reduced and samePlacement(placement,self.placement) then
 		if target then self:Layout() end
 		return
