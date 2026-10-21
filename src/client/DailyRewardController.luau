@@ -84,6 +84,8 @@ function Controller:Blocked(): boolean
 	local offline = app.offlineCash
 	if offline and offline.gui~=nil then self.receiptAt = os.clock();return true end
 	if self.receiptAt and os.clock()-self.receiptAt<AFTER_RECEIPT_SECONDS then return true end
+	-- October 21: Day 1 opens right after the guide's core payoff, not over it.
+	if app.commander and app.commander:Celebrating() then return true end
 	return app.intro~=nil and app.intro:Pending()
 end
 

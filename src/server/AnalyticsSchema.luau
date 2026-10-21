@@ -19,7 +19,9 @@ local Schema = {}
 -- retired-pass Gems gifts, the economy migration, the Time Skip coin source.
 -- 8 (October 20 overhaul, S16): Playtime Rewards (the playtime Coins source and
 -- playtimeReward.claim.<1..12>).
-Schema.Version = 8
+-- 9 (October 21): the Tutorial funnel for the short core + tips guide
+-- (TutorialGuide.FunnelSteps; ledger tut.*; Roblox funnel "Tutorial").
+Schema.Version = 9
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -96,11 +98,15 @@ Schema.Funnels = {
 	-- Version 5: five more Roblox dashboards (9 of 10 with onboarding). Sent by
 	-- AnalyticsFunnels from the matching FeatureFunnels steps (RobloxSteps below).
 	Research = {"TreeOpened", "Started", "Completed"},
-	Fuse = {"Available", "Opened", "Fused"},
+	-- Version 9: Fuse left the Roblox dashboards (Fuse was removed October 20) so the
+	-- Tutorial funnel fits Roblox's ten. The ledger's Fuse feature funnel stays.
 	Rebirth = {"Eligible", "Opened", "Rebirthed"},
 	Mission = {"Spawned", "Started", "Won"},
 	Daily = {"Available", "Opened", "Claimed"},
 	Playtime = {} :: {string}, -- version 6: checkpoint labels, filled from Schema.Playtime below
+	-- Version 9 (October 21): the guide, step by step (Schema.Tutorial below). It takes
+	-- the retired Fuse funnel's place in the Roblox Analytics UI.
+	Tutorial = {} :: {string},
 }
 Schema.RollFunnelSessionCap = 30 -- Roblox roll-funnel sessions per player session (rate budget)
 
@@ -116,6 +122,33 @@ for seconds = 10, 50, 10 do table.insert(Schema.Playtime, {seconds = seconds, la
 for minute = 1, 100 do table.insert(Schema.Playtime, {seconds = minute * 60, label = minute .. "m"}) end
 for index = 1, math.min(#Schema.Playtime, 100) do Schema.Funnels.Playtime[index] = Schema.Playtime[index].label end
 function Schema.PlaytimeCode(index: number): string return string.format("%03d", index) end
+
+-- Version 9 Tutorial funnel (October 21): one row per TutorialGuide.FunnelSteps entry,
+-- for players whose guide starts from a fresh save under this version:
+--   Started, the five core lessons, CoreDone, then the six tips ending on Win.
+-- Ledger: tut.reach.NN (reached), tut.t.NN (play seconds to reach), tut.gap.NN
+-- (counted because a later step in the same part happened first), tut.exit.NN (the
+-- furthest step when a session ended unfinished) and the cohort tut.NN.
+-- Roblox: LogFunnelStepEvent(player, "Tutorial", "tut-<userId>", NN, name).
+Schema.Tutorial = {
+	{id = "Started",   about = "Guide began for a fresh save (FTUEEntered)."},
+	{id = "Collect",   about = "TUTORIAL 1/5: collected TutorialGuide.EggGoal eggs."},
+	{id = "Sell",      about = "TUTORIAL 2/5: first sale on the green pad."},
+	{id = "Flock",     about = "TUTORIAL 3/5: bought Flock Size I."},
+	{id = "Roll",      about = "TUTORIAL 4/5: pulled the lever (FREE starter roll)."},
+	{id = "Recruit",   about = "TUTORIAL 5/5: took the FREE chicken."},
+	{id = "CoreDone",  about = "Core payoff shown; Daily Rewards unlocks (tutorial.coreDone)."},
+	{id = "Vacuum",    about = "TIP 1/6: claimed the FREE Egg Vacuum."},
+	{id = "VacuumUse", about = "TIP 2/6: vacuumed TutorialGuide.VacuumGoal eggs."},
+	{id = "Expand",    about = "TIP 3/6: bought Army Size I."},
+	{id = "Select",    about = "TIP 4/6: picked four chickens for the Army."},
+	{id = "Deploy",    about = "TIP 5/6: sent the Army to Cluck Camp."},
+	{id = "Win",       about = "TIP 6/6: captured Cluck Camp (guide complete)."},
+}
+for index, step in Schema.Tutorial do Schema.Funnels.Tutorial[index] = step.id end
+-- Which part each step belongs to; gaps only fill inside a part.
+Schema.TutorialPart = {Started = 0, Collect = 1, Sell = 1, Flock = 1, Roll = 1, Recruit = 1, CoreDone = 2,
+	Vacuum = 3, VacuumUse = 3, Expand = 3, Select = 3, Deploy = 3, Win = 3}
 
 -- Roblox progression path for the main route.
 Schema.MainRoute = {path = "MainRoute", levels = {"Cluck Camp", "Fort Roost", "Ironbeak HQ", "Chicken King"}}
@@ -384,7 +417,6 @@ end
 -- session per player per funnel per UTC day.
 Schema.RobloxSteps = {
 	Research = {TreeOpened = 1, Started = 2, Completed = 3},
-	Fuse = {Available = 1, Opened = 2, Fused = 3},
 	Rebirth = {Eligible = 1, Opened = 2, Rebirthed = 3},
 	Mission = {Spawned = 1, Started = 2, Won = 3},
 	Daily = {Available = 1, Opened = 2, Claimed = 3},

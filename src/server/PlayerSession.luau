@@ -31,7 +31,7 @@ PlayerSession.CarryLimit = 1e12
 -- your hand-off (docs/team/OVERHAUL_CONTRACT_20261020.md §2).
 local TUTORIAL_KEYS = {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp",
 	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen",
-	"vacuumUsed"}
+	"vacuumUsed","coreDone"}
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)
@@ -302,7 +302,7 @@ function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean,
 		-- (1,307 refusals named a recruit the player already had).
 		local reason=if not self.tutorial.starterArmy
 			then "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Roll FREE at the lever!"
-			elseif self:StarterRecruitPending() then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size I."
+			elseif self:StarterRecruitPending() and Config.Economy.StarterRecruitPrice>0 then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size I."
 			else "Keep "..Currency.Text(reserve).." for Army Size I in Upgrades."
 		return false,reason
 	end
@@ -1222,6 +1222,11 @@ function PlayerSession:LoadData(data)
 	end
 	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
 	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
+	-- October 21 Egg Vacuum tip counter (additive and lenient: junk reads as 0).
+	local vacuumEggCount=data.tutorial.vacuumEggCount
+	if type(vacuumEggCount)=="number" and vacuumEggCount==vacuumEggCount then
+		tutorial.vacuumEggCount=math.clamp(math.floor(vacuumEggCount),0,TutorialGuide.VacuumGoal)
+	end
 	local passiveEarned=clampHigh(data.passiveEarned or 0,0,Currency.MaxCoins)
 	local battleEarned=clampHigh(data.battleEarned or 0,0,Currency.MaxCoins)
 	if not passiveEarned or not battleEarned then return false,"Invalid saved earnings." end

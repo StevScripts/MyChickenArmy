@@ -2,7 +2,7 @@
 -- Fixed design-time flocks, never a player's wallet or live income.
 local Economy = {
 	RecruitPaybackSeconds = 600,
-	StarterRecruitPrice = 600,
+	StarterRecruitPrice = 0, -- October 21 (Stevin): the guide's first roll is FREE, like the reference.
 	FusionRecruitFraction = 0.25, -- Cash fee relative to one normal matching recruit.
 	ChickenUpgradeRecruitFraction = 0.75, -- One paid level; scales with the current recruit level.
 	IncomeUpgradeSeconds = 180,

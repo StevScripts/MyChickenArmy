@@ -329,6 +329,10 @@ function EggService:Pay(session,yard,drop,now)
  -- saved lesson counter survives deposits and is bounded after completion.
  session.tutorial.collectedEggCount=math.min(TutorialGuide.EggGoal,TutorialGuide.CollectedEggCount(session.tutorial)+count)
  session.tutorial.collectedEggs=session.tutorial.collectedEggCount>=TutorialGuide.EggGoal
+ -- October 21: the Egg Vacuum tip counts its first few vacuumed eggs.
+ if drop.collector=="vacuum" then
+  session.tutorial.vacuumEggCount=math.min(TutorialGuide.VacuumGoal,TutorialGuide.VacuumEggCount(session.tutorial)+count)
+ end
  session:Touch()
  table.insert(yard.receipts,{id=drop.id,value=credited,count=count,at=now,
   collector=drop.collector or "player",targetX=drop.targetX,targetY=drop.targetY,targetZ=drop.targetZ})

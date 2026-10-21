@@ -166,6 +166,10 @@ function Tutorial:Observe(session, state)
 			if id=="Sell" or id=="Win" then self:Emit(r, "FTUEFirstPayoffSeconds", now-r.at, id, "Confirmed") end
 		end
 	end
+	-- October 21: the short core is saved once; Daily Rewards and the tips follow it.
+	if facts.Core and not session.tutorial.coreDone then
+		session.tutorial.coreDone=true;session:Touch();state.tutorial.coreDone=true
+	end
 	if facts.Win and not session.tutorial.guideCompleted then
 		session.tutorial.guideCompleted=true; session:Touch();state.tutorial.guideCompleted=true
 		r.completedAt=now

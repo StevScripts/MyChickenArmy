@@ -365,8 +365,10 @@ function RollStation:Step(now, force)
 		local oneIn = Catalog.OneInText(self.offer.species)
 		self.rarityLabel.Text = if oneIn then def.rarity .. " · " .. oneIn else def.rarity
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
-		self.priceLabel.Text = commas(price)
-		local promptText = if self.storageFull then "Storage full · sell in My Army" else "Buy " .. def.name .. " · " .. Currency.Text(price)
+		-- October 21: the guide's starter roll costs nothing and says so.
+		self.priceLabel.Text = if price <= 0 then "FREE" else commas(price)
+		local promptText = if self.storageFull then "Storage full · sell in My Army"
+			else "Buy " .. def.name .. " · " .. (if price <= 0 then "FREE" else Currency.Text(price))
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
 		self.top.Color = tint
 
