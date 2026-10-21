@@ -21,6 +21,7 @@ Stories.List={
 	{id="AutoRoll",name="Auto Roll panel"},
 	{id="AutoRollAlert",name="Auto Roll banner"},
 	{id="Playtime",name="Playtime Rewards + boosts readout"},
+	{id="TimeSkip",name="Time Skip claim (after a Rebirth)"},
 }
 
 local function noop() end
@@ -72,6 +73,8 @@ Render.Hud=function(ctx)
 	if hud.Resize then hud:Resize() end
 	local count,limit,capacity,selected,deployed=app:Counts()
 	hud:Update(ctx.state,count,limit,capacity,selected,deployed)
+	-- October 21 (P6): the vacuum pill and prompt row above the hotbar, display only.
+	require(ctx.code.ToolController).Preview(ctx.root,14,25)
 end
 
 Render.MyArmy=function(ctx)
@@ -253,6 +256,14 @@ Render.Playtime=function(ctx)
 	local panel=require(ctx.code.PlaytimePanel).new(app)
 	panel:Render(ctx.state)
 	panel:Open()
+end
+
+-- October 21 reference parity (P4): the "Time Skip!" claim a Rebirth leaves, in the
+-- Welcome Back window (MenuLayouts.OfflineEarnings): 10 minutes of Coins from Rebirth 3.
+Render.TimeSkip=function(ctx)
+	local app=makeApp(ctx)
+	app.other=menuFrame(ctx,"Offline","TimeSkip")
+	require(ctx.code.TimeSkipController).new(app):Show({coins=48250,rank=3},10)
 end
 
 function Stories.Render(id,ctx)

@@ -77,6 +77,68 @@ flip, the tick sound, `HoldTimeout`, the `Flash` bubble and the `SpillPuff`.
 Missing cues are silent; reduced motion keeps the state changes (fill, text, glow
 ring) and drops loops, particles and the hop.
 
+## Reference parity: collecting and the vacuum pill (October 21, P6)
+
+Contract: [REFERENCE_PARITY_20261021.md](team/REFERENCE_PARITY_20261021.md) §2.6, from
+Stevin's third Drop a Fruit recording (frames t130–t154 and the 121–131 s vacuum burst).
+Presentation only; the server still owns every egg, value and Coin. Knobs live in
+`CollectionFeel.Feel` (and `CollectionFeel.CoinBurst` for the sale sounds).
+
+**Each egg that arrives** (a click, tap, R2, mouse hold or the vacuum) plays one short
+bright chime and floats its own "+N" with the coin over the player
+(`EggController:Arrive`). This replaces the old accumulating "+N eggs · Worth" popup and
+the root sparkle.
+
+- Chime: `ChimeCue` ("EggPickup"), else `ChimeFallback` ("Collect"), else silent, through
+  `app:Cue`. Pitch starts at `ChimePitch[1]` (0.9) and rises `ChimeStep` (0.04) per chime
+  up to `ChimePitch[2]` (1.3); chimes are never closer than `ChimeGap` (0.07 s, also the
+  voice cooldown under the `EggChime` voice key, `ChimeVoices` 4 at once), and the streak
+  starts over after `StreakReset` (0.6 s) without an egg. `ChimeVolume` 0.22 applies while
+  the cue has no `Leveled` attribute; `ChimeTail` 0.35 s trims it. Swap the two cue names
+  if Collect turns out to be the brighter tick in Studio.
+- Float: `WorldFeel:Text` with `coin=true`, budgeted by WorldFeel (28 desktop / 14 touch
+  live effects). N is the server's value for that egg (`drop.value`/the receipt), never
+  computed from rates. At most one float per `FloatGap` (0.12 s; `FloatGapTouch` 0.2 s on
+  touch-only devices); eggs that land in between join the next float, so the floats add
+  up to what was collected. `FloatSize` 26 px, `FloatSeconds` 0.8, `FloatRise` 1.8 studs,
+  placed `FloatUp` 2.4 studs above the root and `FloatSide` 0.3–1.5 studs to the camera's
+  right. Reduced motion keeps the float without the rise.
+- Mouse hold: holding the left mouse button grabs the egg under the pointer every
+  `MouseHoldRepeat` (0.12 s), like R2's hold, without the "Get closer" tag on repeats. It
+  makes the pill's "Collect (Hold)" hint true; a tap still grabs one egg.
+
+**The vacuum pill** (`ToolController.BuildPill`): the reference's dark translucent pill
+centred above Roblox's hotbar, "14 / 25" on a translucent gold fill, with the prompt row
+under it: hand glyph + "Collect (Hold)" ("Collect (Tap)" on touch, the R2 glyph on a
+gamepad) and coin glyph + "Sell on the pad". One Scale layout for every device: the box
+sits `ToolController.BottomReserve` px (hotbar + 10 px) above the bottom, takes
+`ToolController.PillHeight` (118/1014) of the screen height with a 602:118 aspect, and only
+the words and glyph change with `PreferredInput`. The fill tweens and flashes white on
+gains, red with a red flash as it fills; full, the pill's ring pulses red, "Full!" floats
+off it with `VacuumFull`, and the "Sell on the pad" hint glows gold until it empties. A
+full vacuum that gets a new egg in reach shakes the pill (`FullShakePixels` 7) with a
+soft `Locked`, at most every `FullShakeGap` (1.5 s) and not in the first 1.5 s after it
+filled. `ToolController.Preview(parent, count, capacity)` builds it for a UI Lab story.
+
+**The suction swirl** (`VacuumController`): while eggs are in reach (or flying in) two
+yellow ribbons sweep in from the player's sides into the nozzle: Beams from attachments
+on the HumanoidRootPart (`SwirlRadius` 4.5 studs out, `SwirlHeight` -1.2) to an
+attachment at the nozzle, `SwirlWidth` 2.6 at the outer end, body transparency
+`SwirlTransparency` 0.35, a soft texture scrolling toward the mouth (`SwirlSpeed` 1.4) and
+one looping tween swaying the curve between `SwirlCurve` 3 and 6 (`SwirlSway` 0.9 s each
+way). The nozzle sparkles are gold now. Built once per tool and character and switched
+on and off, so it costs nothing per egg; reduced motion turns it off with the hum.
+
+**Selling on the pad** keeps the coin burst. New: a `Whoosh` as the sale starts
+(`CoinBurst.WhooshPitch` 1.1, trimmed to `WhooshSeconds` 0.6) and one soft thud as the
+first coin meets the floor (`ThudCue` "PodiumThump" at `ThudPitch` 0.85, else "Impact" at
+`ThudFallbackPitch` 0.7, `ThudVolume` 0.3 while unleveled), timed `RiseSeconds +
+FallSeconds × ThudShare` (0.36, the Bounce ease's first contact) after the launch. The
+green "+N" beside the Coins readout stays HudController's float: a held sale is queued by
+the HUD when its balance rises with coins in flight and shown as the last coin lands; a
+sale that was never held (reduced motion) is queued once by `ActionFeedback:SaleDelta`
+with the receipt's value.
+
 ## Cash: authored Money particle burst
 
 Since October 20, egg sales use the coin burst above. The Money burst stays for

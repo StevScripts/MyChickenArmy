@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the header icon of the "Daily Rewards" window in the Roblox game My Chicken Army (a 7-day login calendar). Image 1 is an approved icon from the same set; match its style exactly (outline weight, glossy shading, saturation, framing).
+
+Subject: a chunky cartoon desk calendar page seen from the front: a bright red top band with two dark ring binders, a white page below with a 3 x 3 grid of small rounded dark squares (dates), and one of the squares replaced by a bright green check mark. Slightly tilted, about 8 degrees.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters or numbers, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/Calendar-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

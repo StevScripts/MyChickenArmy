@@ -7,6 +7,12 @@
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): a laid egg plops and grows
 -- in with a puff at the chicken, a picked egg sparkles where it was, and the held
 -- vacuum hums and shimmers while eggs are in reach. Budgets in CollectionFeel.Feel.
+-- October 21 reference parity (P6, docs/team/REFERENCE_PARITY_20261021.md 2.6): every
+-- egg that reaches you or the vacuum plays one short bright chime, rising in pitch
+-- across a streak, and floats its own "+N" coin value over you (the server's value for
+-- that egg; never computed here). This replaces the old "+N eggs · Worth" popup.
+-- Holding the left mouse button keeps grabbing the egg under the pointer (like R2), so
+-- the vacuum pill's "Collect (Hold)" line is true on every input.
 local Players=game:GetService("Players")
 local ContentProvider=game:GetService("ContentProvider")
 local RunService=game:GetService("RunService")
@@ -19,15 +25,12 @@ local Feel=require(Shared.CollectionFeel)
 local Tools=require(Shared.VacuumConfig)
 local Motion=require(Shared.EggMotion)
 local EggView=require(script.Parent.EggView)
-local Feedback=require(script.Parent.EggFeedback)
 local VacuumController=require(script.Parent.VacuumController)
 local Theme=require(script.Parent.UITheme)
 local Eggs={}
 Eggs.__index=Eggs
 -- Presentation-only budgets; collection distance and server timing stay in Config.
 local CAPTION_DISTANCE,CAPTION_LIMIT,CAPTION_REFRESH=22,3,0.15
-local POPUP_HOLD,POPUP_FADE,POPUP_LIFT=0.7,0.4,0.5
-local POPUP_OFFSET=Vector3.new(0,3.7,0)
 -- Picking: a direct hit on an egg wins; otherwise the egg drawn nearest the pointer
 -- within this share of the screen height (taps get more room than the mouse).
 local PICK_SHARE,PICK_MIN,TOUCH_PICK_SHARE,TOUCH_PICK_MIN=0.065,44,0.08,48
@@ -57,8 +60,8 @@ local function backOut(t:number):number
 end
 
 function Eggs.new(app)
- return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,
-  totalCount=0,totalValue=0,popupTweens={},optimistic={},queue={},touches={},lastFlush=0,connections={},
+ return setmetatable({app=app,views={},feedback={},finishedFlights={},streak=0,floatPending=0,
+  optimistic={},queue={},touches={},lastFlush=0,connections={},
   mousePoint=nil::Vector2?,hoverPop=Instance.new("NumberValue"),leavePop=Instance.new("NumberValue")},Eggs)
 end
 
@@ -71,16 +74,6 @@ function Eggs:Start()
  self.folder=Instance.new("Folder");self.folder.Name="PetRollEggVisuals";self.folder.Parent=workspace
  self.vacuum=VacuumController.new(self.app)
  self:CreateCollectionRange()
- self.popup=Instance.new("BillboardGui")
- self.popup.Name="EggPickup";self.popup.Size=UDim2.fromOffset(300,64)
- self.popup.StudsOffset=POPUP_OFFSET;self.popup.AlwaysOnTop=true
- self.popup.MaxDistance=65;self.popup.Enabled=false;self.popup.Parent=self.app.gui
- self.label=Theme.Label(self.popup,"Value","",30,Theme.Arcade.gold)
- self.label.Size=UDim2.new(1,0,0,34);self.label.TextXAlignment=Enum.TextXAlignment.Center
- self.label.TextWrapped=false
- self.worth=Theme.Label(self.popup,"Worth","",21)
- self.worth.Position,self.worth.Size=UDim2.fromOffset(0,34),UDim2.new(1,0,0,26)
- self.worth.TextXAlignment,self.worth.TextWrapped=Enum.TextXAlignment.Center,false
  -- One shared "Get closer" tag for an egg clicked outside Click Range.
  self.tooFar=Instance.new("BillboardGui")
  self.tooFar.Name="EggTooFar";self.tooFar.Size=UDim2.fromOffset(170,30);self.tooFar.StudsOffset=Vector3.new(0,1.7,0)
@@ -101,7 +94,11 @@ function Eggs:BindInput()
  table.insert(self.connections,UserInputService.InputBegan:Connect(function(input,processed)
   if processed then return end
   if input.UserInputType==Enum.UserInputType.MouseButton1 then
-   self:Click(Vector2.new(input.Position.X,input.Position.Y),false)
+   local point=Vector2.new(input.Position.X,input.Position.Y)
+   -- Holding keeps grabbing whatever egg the pointer sweeps over (Step).
+   self.mousePoint=point::Vector2?
+   self.mouseHeld,self.lastMouseGrab=true,os.clock()
+   self:Click(point,false)
   elseif input.UserInputType==Enum.UserInputType.Touch then
    self.touches[input]={at=os.clock(),x=input.Position.X,y=input.Position.Y}
    self.mousePoint=nil::Vector2? -- Touch has no hover.
@@ -112,7 +109,9 @@ function Eggs:BindInput()
    self.mousePoint=if processed then nil else Vector2.new(input.Position.X,input.Position.Y)
   end
  end))
+ table.insert(self.connections,UserInputService.WindowFocusReleased:Connect(function() self.mouseHeld=false end))
  table.insert(self.connections,UserInputService.InputEnded:Connect(function(input,processed)
+  if input.UserInputType==Enum.UserInputType.MouseButton1 then self.mouseHeld=false;return end
   local touch=self.touches[input]
   if not touch then return end
   self.touches[input]=nil
@@ -175,7 +174,6 @@ function Eggs:StepCollectionRange(root,now)
    self.rangeAnchor:SetAttribute("CollectionRadius",radius)
   end
  end
- if self.app.hud then self.app.hud.income.Visible=visible end
  local dt=math.clamp(now-(self.rangeAt or now),0,0.1);self.rangeAt=now
  local target=if visible then 1 else 0
  self.rangeAlpha=if self.app.reducedMotion then target else self.rangeAlpha+(target-self.rangeAlpha)*math.min(1,dt*12)
@@ -183,96 +181,61 @@ function Eggs:StepCollectionRange(root,now)
  self.rangeRing.Visible=self.rangeAlpha>0.01
 end
 
-function Eggs:Spark(root)
- if self.sparkAttachment and self.sparkAttachment.Parent~=root then
-  self.sparkAttachment:Destroy();self.sparkAttachment=nil
- end
- if not self.sparkAttachment then
-  local attachment=Instance.new("Attachment");attachment.Name="EggPickupSpark";attachment.Parent=root
-  local spark=Instance.new("ParticleEmitter")
-  spark.Texture="rbxasset://textures/particles/sparkles_main.dds"
-  spark.Color=ColorSequence.new(Color3.fromRGB(255,222,65),Color3.new(1,1,1))
-  spark.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.38),NumberSequenceKeypoint.new(1,0)})
-  spark.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})
-  spark.Lifetime=NumberRange.new(0.22,0.38);spark.Speed=NumberRange.new(3,6)
-  spark.SpreadAngle=Vector2.new(180,180);spark.Rate=0;spark.LightEmission=0.7;spark.Parent=attachment
-  self.sparkAttachment,self.spark=attachment,spark
- end
- self.spark:Emit(4)
-end
-
-function Eggs:Feedback(id,value,count,receipt)
+-- Server receipts confirm an egg once. The chime and float play when the egg lands
+-- (Step); a receipt for an egg whose flight was never drawn plays them here.
+function Eggs:Feedback(id,value,receipt)
  if self.feedback[id] then return end
  local now=os.clock();self.feedback[id]=now
- if not self.finishedFlights[id] then self:PickupCue(receipt and receipt.collector,now) end
- -- Vacuum pickups fill its meter (ToolController) instead of the popup over the player.
- if receipt and receipt.collector=="vacuum" then return end
- local root=self:Root()
- if not root then return end
- if now-self.lastPickup>Feel.Egg.ComboReset or self.popupDeposit~=self.requiresDeposit then
-  self.totalCount,self.totalValue=0,0
- end
- self.totalCount+=count or 1;self.totalValue+=value
- self.lastPickup,self.popupDeposit=now,self.requiresDeposit
- if not self.popup.Enabled or self.popup.Adornee~=root then self.popup.StudsOffset=POPUP_OFFSET end
- self.popup.Adornee,self.popup.Enabled=root,true
- self.label.Text=if self.requiresDeposit then Feedback.Fit(self.totalCount,"+",if self.totalCount==1 then " egg" else " eggs",300,30,false)
-  else Feedback.Fit(self.totalValue,"+","",300,30,true)
- self.worth.Text,self.worth.Visible=Feedback.Fit(self.totalValue,"Worth ","",300,21,true),self.requiresDeposit
- for _,label in {self.label,self.worth} do label.TextTransparency=0;label.TextOutline.Transparency=0 end
- self:AnimatePopup(now)
+ if not self.finishedFlights[id] then self:Arrive(value,now,receipt and receipt.collector) end
 end
 
-function Eggs:CancelPopupTweens()
- if self.popupDone then self.popupDone:Disconnect();self.popupDone=nil end
- for _,tween in self.popupTweens do tween:Cancel();tween:Destroy() end
- table.clear(self.popupTweens)
+-- One egg reached you or the vacuum: one bright chime and its own "+N" coin float.
+-- Clicked eggs also pulse the HUD's "Carrying" line; the vacuum's pill counts its own.
+function Eggs:Arrive(value,now,collector)
+ self:Chime(now)
+ if type(value)=="number" and value>0 then
+  local pending:number=self.floatPending
+  self.floatPending=pending+value
+ end
+ self:FlushFloat(now)
+ if collector~="vacuum" and self.app.hud and self.requiresDeposit then Theme.Motion:Pulse(self.app.hud.income,Feel.Egg.HudPulse) end
 end
 
-function Eggs:HidePopup()
- self:CancelPopupTweens()
- self.popup.Enabled=false
+-- The reference's cascade: a short bright tick per egg, pitch rising from ChimePitch[1]
+-- by ChimeStep a chime up to ChimePitch[2], never closer than ChimeGap, and a streak
+-- restarts after StreakReset without an egg. ChimeCue, else ChimeFallback, else silent.
+function Eggs:Chime(now)
+ local knobs=Feel.Feel
+ if now-(self.lastArrival or -10)>knobs.StreakReset then self.streak=0 end
+ self.lastArrival=now
+ if now-(self.lastChime or -10)<knobs.ChimeGap then return end
+ self.lastChime=now
+ local pitch=math.min(knobs.ChimePitch[2],knobs.ChimePitch[1]+self.streak*knobs.ChimeStep)
+ self.streak+=1
+ self.app:Cue(knobs.ChimeCue,knobs.ChimeFallback,pitch,{volume=knobs.ChimeVolume,maxDuration=knobs.ChimeTail,
+  voiceKey="EggChime",cooldown=knobs.ChimeGap,maxVoices=knobs.ChimeVoices})
 end
 
-function Eggs:AnimatePopup(now)
- self:CancelPopupTweens()
- local since=now-self.lastPickup
- local remaining=POPUP_HOLD+POPUP_FADE-since
- if remaining<=0 then self.popup.Enabled=false;return end
- self.popupReduced=self.app.reducedMotion
- local function tween(target,info,properties)
-  local animation=TweenService:Create(target,info,properties)
-  table.insert(self.popupTweens,animation)
-  return animation
- end
- if self.popupReduced then self.popup.StudsOffset=POPUP_OFFSET
- else tween(self.popup,TweenInfo.new(remaining,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-  {StudsOffset=POPUP_OFFSET+Vector3.new(0,POPUP_LIFT,0)}) end
- local fade=TweenInfo.new(math.min(POPUP_FADE,remaining),Enum.EasingStyle.Quad,Enum.EasingDirection.Out,
-  0,false,math.max(0,POPUP_HOLD-since))
- local finish
- for _,label in {self.label,self.worth} do
-  finish=tween(label,fade,{TextTransparency=1})
-  tween(label.TextOutline,fade,{Transparency=1})
- end
- self.popupDone=finish.Completed:Connect(function(state)
-  if state==Enum.PlaybackState.Completed then self:HidePopup() end
- end)
- for _,animation in self.popupTweens do animation:Play() end
-end
-
-function Eggs:PickupCue(collector,now)
- if collector=="vacuum" then self.vacuum:PickupCue(now);return end
- if now-(self.lastCue or -10)<Feel.Egg.SoundGap then return end
- if now-(self.lastCue or -10)>Feel.Egg.ComboReset then self.combo=0 end
- self.lastCue=now;self.combo=self.combo%#Feel.Egg.Pitches+1
- self.app.audio:Play("EggPickup",Feel.Egg.Pitches[self.combo],{volume=Feel.Egg.Volume,
-  maxDuration=Feel.Egg.SoundTail,voiceKey="EggPickup",maxVoices=Feel.Egg.MaxVoices,cooldown=Feel.Egg.SoundGap})
- local root=self:Root()
- if root and not self.app.reducedMotion and now-(self.lastSpark or -10)>=Feel.Egg.SparkGap then
-  self.lastSpark=now;self:Spark(root)
- end
- if self.app.hud then Theme.Motion:Pulse(if self.requiresDeposit then self.app.hud.income else self.app.hud.cashIcon,Feel.Egg.HudPulse) end
+-- "+N" with the coin over you, at most one per FloatGap (FloatGapTouch on phones):
+-- eggs that land in between join the next float, so every egg's value shows. Values
+-- are the server's per-egg Coins; this only adds them up. WorldFeel budgets the
+-- floats and keeps them (without the rise) under reduced motion.
+function Eggs:FlushFloat(now)
+ local pending:number=self.floatPending
+ if pending<=0 then return end
+ local knobs=Feel.Feel
+ local touch=UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+ if now-(self.lastFloat or -10)<(if touch then knobs.FloatGapTouch else knobs.FloatGap) then return end
+ local feel,found,camera=self.app.worldFeel,self:Root(),workspace.CurrentCamera
+ local root:BasePart?=if found and found:IsA("BasePart") then found else nil
+ self.floatPending=0
+ if not feel or not root then return end
+ self.lastFloat=now
+ local side=if camera then camera.CFrame.RightVector*Vector3.new(1,0,1) else Vector3.zero
+ if side.Magnitude>0.01 then side=side.Unit end
+ local at=root.Position+Vector3.new(0,knobs.FloatUp+math.random()*0.5,0)
+  +side*(knobs.FloatSide[1]+math.random()*(knobs.FloatSide[2]-knobs.FloatSide[1]))
+ feel:Text(at,"+"..Theme.Number(pending),{coin=true,size=knobs.FloatSize,seconds=knobs.FloatSeconds,rise=knobs.FloatRise,range=90})
 end
 
 -- A chicken just laid: a soft "EggLay" plop (else a quiet Pop) at the egg and a tiny
@@ -361,11 +324,11 @@ function Eggs:PickAt(point: Vector2,touch: boolean,now: number)
  return best
 end
 
-function Eggs:Click(point: Vector2,touch: boolean)
+function Eggs:Click(point: Vector2,touch: boolean,quiet: boolean?)
  local now=os.clock()
  if self:Blocked() then return end
  local view=self:PickAt(point,touch,now)
- if view then self:Grab(view,now) end
+ if view then self:Grab(view,now,quiet) end
 end
 
 -- The egg under the mouse gets the hand cursor and pops out; one shared tween each
@@ -481,13 +444,14 @@ function Eggs:StepGuideHint(root,now: number)
 end
 
 -- Flies the egg to the player now and asks the server for it with the next batch.
-function Eggs:Grab(view,now: number): boolean
+-- `quiet` (a mouse-hold repeat) skips the "Get closer" tag for an egg out of reach.
+function Eggs:Grab(view,now: number,quiet: boolean?): boolean
  local root=self:Root()
  if not root then return false end
  local at=view.ground
  if Vector2.new(at.X-root.Position.X,at.Z-root.Position.Z).Magnitude>self:ClickRange()
   or math.abs(at.Y-root.Position.Y)>Tools.MaxHeight then
-  self:TooFar(view,now)
+  if not quiet then self:TooFar(view,now) end
   return false
  end
  local id=view.data.id
@@ -526,9 +490,9 @@ function Eggs:Receive(snapshot)
   for _,view in self.views do view:Destroy() end
   table.clear(self.views);table.clear(self.feedback);table.clear(self.finishedFlights)
   table.clear(self.optimistic);table.clear(self.queue)
-  self.generation=snapshot.generation;self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
-  self.nextCaptionAt=nil;self.popupDeposit=nil
-  self.seenDeposits={};self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
+  self.generation=snapshot.generation;self.floatPending=0;self.streak=0
+  self.nextCaptionAt=nil
+  self.seenDeposits={};self.lastCashClaim=nil
   self.app.feedback:ResetCollections()
  end
  local seenDeposits={}
@@ -588,7 +552,7 @@ function Eggs:Receive(snapshot)
    view.data.targetZ=receipt.targetZ or view.data.targetZ
    view.receipt=receipt
    if not view.flightAt then self:StartFlight(view,now) end
-  else self:Feedback(receipt.id,receipt.value,receipt.count,receipt) end
+  else self:Feedback(receipt.id,receipt.value,receipt) end
  end
  for id,view in self.views do
   if not seen[id] and not view.flightAt then view:Destroy();self.views[id]=nil end
@@ -627,6 +591,12 @@ function Eggs:Step(now)
  local root=self:Root()
  self:StepCollectionRange(root,now)
  if self.gamepadHeld and now-(self.lastGamepadGrab or 0)>=GAMEPAD_REPEAT then self:GrabNearest(now) end
+ -- Mouse hold: the egg under the pointer, quietly (no "Get closer" on every repeat).
+ local pointer:Vector2?=self.mousePoint
+ if self.mouseHeld and pointer and now-(self.lastMouseGrab or 0)>=Feel.Feel.MouseHoldRepeat then
+  self.lastMouseGrab=now
+  self:Click(pointer,false,true)
+ end
  self:Flush(now)
  self:StepHover(now)
  self:StepGuideHint(root,now)
@@ -639,7 +609,9 @@ function Eggs:Step(now)
  -- a settled one sits inside its reach; VacuumController hums and shimmers meanwhile.
  local held=if self.vacuum:Equipped() and self.snapshot and type(self.snapshot.vacuum)=="table" then self.snapshot.vacuum else nil
  local vacuumReach=if held and type(held.range)=="number" and (held.count or 0)<(held.capacity or 0) then held.range else nil
+ local fullReach=if held and type(held.range)=="number" and (held.capacity or 0)>0 and (held.count or 0)>=held.capacity then held.range else nil
  local sucking=false
+ local blocked=0
  for id,view in self.views do
   local age=now-view.bornAt
   if vacuumReach and not sucking then
@@ -647,6 +619,9 @@ function Eggs:Step(now)
    elseif root and age>=Config.EggSettleSeconds then
     sucking=Vector2.new(view.ground.X-root.Position.X,view.ground.Z-root.Position.Z).Magnitude<=vacuumReach
    end
+  elseif fullReach and root and not view.flightAt and age>=Config.EggSettleSeconds
+   and Vector2.new(view.ground.X-root.Position.X,view.ground.Z-root.Position.Z).Magnitude<=fullReach then
+   blocked+=1
   end
   if not view.flightAt and age>=Config.EggSettleSeconds and camera
    and (camera.CFrame.Position-view.ground).Magnitude>Config.EggSpriteMaxDistance then continue end
@@ -671,11 +646,12 @@ function Eggs:Step(now)
    view:Set(position,size*shrink*lift,if self.app.reducedMotion then 0 else math.sin(t*math.pi)*0.24,view.seed)
    if t>=1 then
     self.finishedFlights[id]=now
-    if not interrupted then self:PickupCue(view.data.collector,now) end
-    if view.receipt then self:Feedback(id,view.receipt.value,view.receipt.count,view.receipt)
+    -- The egg reached you or the nozzle: its chime and "+N" (not when a teleport cut it short).
+    if not interrupted then self:Arrive(if view.receipt then view.receipt.value else view.data.value,now,view.data.collector) end
+    if view.receipt then self:Feedback(id,view.receipt.value,view.receipt)
     elseif view.picked then
      -- A clicked egg counts in as it lands; the server's receipt later is the same egg.
-     self:Feedback(id,view.data.value,view.data.stack,{collector="player"})
+     self:Feedback(id,view.data.value,{collector="player"})
     end
     view:Destroy();self.views[id]=nil
    end
@@ -692,11 +668,12 @@ function Eggs:Step(now)
   end
  end
  self.vacuum:SetActive(sucking)
- if self.popup.Enabled then
-  if not root or self.popup.Adornee~=root then
-   self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
-  elseif self.popupReduced~=self.app.reducedMotion then self:AnimatePopup(now) end
- end
+ -- A full vacuum refuses the eggs it can reach: a new one coming into reach shakes the
+ -- pill (ToolController throttles it and skips the moment it filled).
+ local tools=self.app.tools
+ if blocked>(self.blockedEggs or 0) and tools and tools.VacuumRefused then tools:VacuumRefused(now) end
+ self.blockedEggs=blocked
+ self:FlushFloat(now)
  for id,at in self.feedback do if now-at>10 then self.feedback[id]=nil end end
  for id,at in self.finishedFlights do if now-at>10 then self.finishedFlights[id]=nil end end
 end
@@ -708,7 +685,6 @@ function Eggs:Destroy()
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)
  ContextActionService:UnbindAction("PetRollCollectEggs")
- self:CancelPopupTweens()
  if self.hoverTween then self.hoverTween:Cancel() end
  if self.leaveTween then self.leaveTween:Cancel() end
  self.hoverPop:Destroy();self.leavePop:Destroy()
@@ -717,9 +693,7 @@ function Eggs:Destroy()
  table.clear(self.views)
  if self.rangeRing then self.rangeRing:Destroy() end
  if self.folder then self.folder:Destroy() end
- if self.popup then self.popup:Destroy() end
  if self.tooFar then self.tooFar:Destroy() end
- if self.sparkAttachment then self.sparkAttachment:Destroy() end
  if self.vacuum then self.vacuum:Destroy() end
 end
 return Eggs

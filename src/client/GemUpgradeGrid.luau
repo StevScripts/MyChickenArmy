@@ -17,7 +17,9 @@ Grid.__index=Grid
 
 local WHITE,BLACK=Color3.new(1,1,1),Color3.new(0,0,0)
 local GOLD=Color3.fromRGB(255,214,0)
-local SHORT=Color3.fromRGB(255,120,132)
+-- October 21 reference parity (REFERENCE_PARITY_20261021.md 2.1): the shared red for
+-- shortfalls; every label carries the shell's black stroke (Theme.Label).
+local SHORT=Theme.Tones.Short
 local LOCKED_TOP,LOCKED_BOTTOM=Color3.fromRGB(35,42,36),Color3.fromRGB(18,22,18)
 local ON_TOP,ON_BOTTOM=Color3.fromRGB(176,255,1),Color3.fromRGB(23,223,0)
 local OFF_TOP,OFF_BOTTOM=Color3.fromRGB(255,82,104),Color3.fromRGB(219,18,57)
@@ -91,15 +93,17 @@ function Grid:Build(order: {string},items)
 	local content=Theme.Container(self.scroll,"Content")
 	Theme.Aspect(content,PANEL_W/height)
 	self.content=content
-	rect(text(content,"Title","Gem Upgrades",52,WHITE,Enum.TextXAlignment.Center),0,10,PANEL_W,62,PANEL_W,height)
+	local title=rect(text(content,"Title","Gem Upgrades",52,WHITE,Enum.TextXAlignment.Center),0,10,PANEL_W,62,PANEL_W,height)
+	title.TextWrapped=false
 	local balance=rect(Theme.Container(content,"Balance"),707,8,220,66,PANEL_W,height)
 	self.balance=text(balance,"Amount","0",46,C.Number,Enum.TextXAlignment.Right)
 	self.balance.Size=UDim2.fromScale(0.68,1)
 	-- Same resting rect; a gain punches the number from its middle.
 	Theme.Motion:Center(self.balance)
 	Theme.Aspect(Theme.GemIcon(balance,"Gem","Gems",UDim2.fromScale(0.3,1),UDim2.fromScale(0.7,0)),1)
-	local divider=rect(Theme.Frame(content,"Divider",UDim2.new(),WHITE),27,78,886,4,PANEL_W,height)
-	divider.BackgroundTransparency=0.8
+	-- The shell's thin grey rule under a section title (as in the Index).
+	local divider=rect(Theme.Frame(content,"Divider",UDim2.new(),Theme.Tones.Secondary),27,78,886,4,PANEL_W,height)
+	divider.BackgroundTransparency=0.6
 	for _,id in order do
 		local place=places[id]
 		self.cards[id]=self:Card(content,id,CARD_X[place.column],CARDS_TOP+(place.row-1)*ROW_PITCH,height)

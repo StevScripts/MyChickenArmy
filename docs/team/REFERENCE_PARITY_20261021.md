@@ -154,6 +154,12 @@ existing `ActionFeedback` path, one call). Unloading on the pad keeps the coin b
 adds the whoosh. The suction swirl (WorldFeel) is yellow and reads from a distance.
 
 ### 2.7 Rewards popups (P7) and Shop (P8)
+**Shop decision reversed (Stevin, October 21, 13:00): "I don't want to copy their side
+scrolling shop though, keep my shop the same format as before." The P8 rail was merged and
+then reverted on main (a9b56d5); the tabbed Shop (Crates / Passes / Coins, crate buy pill on
+every offer, rounded cards, no odds screen on passes) stays. P8 is closed; the Shop only
+inherits P2's shell.**
+
 Offline = "Welcome Back!" 1:1 (no "Claim x2" unless a product exists; none does today, so
 one green Claim!). Daily = the 7-card grid with the tall Day 7 and the "Next reward in"
 chip. Playtime Rewards keep their 12 tiles but in the shell. Free Gift = "Free Reward!"
@@ -179,7 +185,7 @@ new products, server economy outside P4/P5, the tutorial, and the My Army grid.
 | P5 | Ladder + income re-fit | `shared/Config.luau` (Rebirth block), `shared/Rules.luau`, `shared/UpgradeCatalog.luau` (values/prices), `shared/GemUpgradeCatalog.luau` (Time Skip minutes if needed), `server/RebirthService.luau` **Multiplier only** (coordinate with P4: that function is P5's), `tests/RebirthV2Checks.luau`, `tests/ProgressionSimulation.luau`, `docs/team/REBIRTH_PACING_20261021.md` |
 | P6 | Yard collection feel | `client/VacuumController.luau`, `client/ToolController.luau`, `client/EggController.luau`, `client/EggFeedback.luau`, `client/ActionFeedback.luau`, `client/CoinBurst.luau`, `shared/CollectionFeel.luau`, `client/ChickenLabel.luau` (check only) |
 | P7 | Rewards popups | `client/OfflineCashController.luau`, `client/DailyRewardController.luau`, `client/FreeGiftController.luau` (popup only), `client/PlaytimePanel.luau` |
-| P8 | Shop rail | `client/ShopBrowser.luau`, `client/GalaxyCrateShop.luau`, `client/ShopPreviewArt.luau`, `src/server/UIAuthoring/LabStories.luau` (Shop story if its fixture needs fields) |
+| P8 | Shop rail (closed: Stevin keeps the old Shop format; branch unmerged) | – |
 
 Shared-file contracts:
 - `UITheme` is P2's. Workers who need a new shell helper before P2 lands write a small

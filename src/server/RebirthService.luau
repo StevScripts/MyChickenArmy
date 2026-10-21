@@ -5,6 +5,9 @@
 -- the collection, Gems, Gem Upgrades and camp/King progress (flags are released),
 -- and pays a permanent egg multiplier, Gems, Time Skip Coins and the rank's Rebirth
 -- chicken. A Skip credit (Robux) rebirths without the Coins and resets nothing.
+-- October 21 (reference parity, P4): Coins read 0 after a Rebirth. Its Time Skip Coins
+-- wait in session.timeSkipPending = {coins, rank} (saved) until ClaimTimeSkip; a
+-- later Rebirth adds to an unclaimed reward. A Skip Rebirth still pays them at once.
 -- Every number is Config.Rebirth. PlayerSession and BattleService require this
 -- module, so it must never require either of them.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
@@ -164,6 +167,21 @@ function RebirthService.TimeSkipCoins(session): number
 	return math.max(0, math.min(coins, Currency.MaxCoins))
 end
 
+-- The unclaimed Time Skip reward: {coins, rank} with coins > 0, or nil. PlayerSession
+-- saves it (additive, lenient); anything else reads as none.
+local function pendingTimeSkip(session: any): {coins: number, rank: number}?
+	local pending = session.timeSkipPending
+	if type(pending) ~= "table" then return nil end
+	local coins, rank = pending.coins, pending.rank
+	if type(coins) ~= "number" or coins ~= coins or coins < 1 or type(rank) ~= "number" or rank ~= rank then return nil end
+	return {coins = math.min(math.floor(coins), Currency.MaxCoins), rank = clampRank(rank)}
+end
+
+-- The one writer of session.timeSkipPending (nil clears it).
+local function storeTimeSkip(session: any, pending: {coins: number, rank: number}?)
+	session.timeSkipPending = pending
+end
+
 local function armyHome(session): boolean
 	return session.armyState == "Home" and session.outgoing == nil and session.incoming == nil
 end
@@ -237,6 +255,8 @@ function RebirthService.Quote(session)
 		gemsNext = if nextRank then RebirthService.Gems(session, nextRank) else nil,
 		timeSkipMinutes = effects.timeSkipMinutes or 0,
 		timeSkipCoins = if nextRank then RebirthService.TimeSkipCoins(session) else 0,
+		-- October 21 (P4): the Time Skip Coins waiting for a claim (the popup), or nil.
+		timeSkipPending = pendingTimeSkip(session),
 		nextChicken = chickenInfo(nextRank),
 		keepTiers = effects.keepTiers or 0,
 		resets = resets,
@@ -332,7 +352,9 @@ local function requestSave(server, session)
 end
 
 -- Returns ok, message and (on success) a receipt for the reveal:
--- {rank, gems, timeSkipCoins, petId?, species?, skip, automatic}.
+-- {rank, gems, timeSkipCoins, timeSkipPending, petId?, species?, skip, automatic}.
+-- timeSkipCoins is this Rebirth's Time Skip. timeSkipPending = true when it went to
+-- the saved claim (every Rebirth but a Skip, which pays it at once).
 function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?, automatic: boolean?): (boolean, string, any?)
 	-- 1. Loaded and writable, like every other transaction.
 	if not session or not session.loaded or session.closing or session.saveLost or session.dataReleasing then
@@ -374,7 +396,8 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 		session.rebirthSkips -= 1
 	else
 		session.upgradeTree = keptTree(session)
-		-- October 20 (Stevin): "When you rebirth your money resets to zero." Time Skip still pays below.
+		-- October 20 (Stevin): "When you rebirth your money resets to zero." October 21: it
+		-- stays 0; Time Skip waits below for the player's claim.
 		session.coins = 0
 		resetFeedLevels(session)
 		session.eggCarry = {count = 0, value = 0}
@@ -388,9 +411,20 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	local gems = RebirthService.Gems(session, nextRank)
 	session.gems = math.min(1e12, (session.gems or 0) + gems)
 	session.gemsEarned = math.min(1e12, (session.gemsEarned or 0) + gems)
-	timeSkip = math.max(0, math.floor(math.min(timeSkip, Currency.MaxCoins - session.coins)))
-	-- "rebirth" is not an earned source, so Credit pays it exactly (analytics: TimeSkip).
-	if timeSkip > 0 then timeSkip = session:Credit(timeSkip, "rebirth") end
+	timeSkip = math.max(0, math.floor(math.min(timeSkip, Currency.MaxCoins)))
+	local pendingClaim = not skip
+	if pendingClaim then
+		-- October 21 (reference parity): the balance stays 0 and Time Skip waits for the
+		-- player's claim (ClaimTimeSkip). An unclaimed one is added to, never lost.
+		local waiting = pendingTimeSkip(session)
+		local total = math.min(Currency.MaxCoins, (if waiting then waiting.coins else 0) + timeSkip)
+		storeTimeSkip(session, if total >= 1 then {coins = total, rank = nextRank} else nil)
+	else
+		-- A Skip keeps the run's Coins, so its Time Skip pays at once, as before.
+		timeSkip = math.min(timeSkip, Currency.MaxCoins - session.coins)
+		-- "rebirth" is not an earned source, so Credit pays it exactly (analytics: TimeSkip).
+		if timeSkip > 0 then timeSkip = session:Credit(timeSkip, "rebirth") end
+	end
 	local petId = RebirthChickens.Grant(session, nextRank)
 	-- The checkpoint at the new rate; DataService:Capture rewrites it on every save.
 	session.offlineCash = OfflineCash.Checkpoint(session, os.time())
@@ -403,8 +437,29 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	record(server, session, nextRank, coinsBefore, gems, skip, automatic == true)
 	if petId and server and server.analytics then server.analytics:LaunchCount(session, "rebirthChicken.granted") end
 	return true, "Rebirth complete: " .. RebirthService.Title(nextRank),
-		{rank = nextRank, gems = gems, timeSkipCoins = timeSkip, petId = petId,
-			species = RebirthChickens.Species(nextRank), skip = skip, automatic = automatic == true}
+		{rank = nextRank, gems = gems, timeSkipCoins = timeSkip, timeSkipPending = pendingClaim and timeSkip > 0,
+			petId = petId, species = RebirthChickens.Species(nextRank), skip = skip, automatic = automatic == true}
+end
+
+-- October 21 (P4): pays the waiting Time Skip Coins (the "Time Skip!" popup's Claim!).
+-- Credit("rebirth") keeps the analytics source TimeSkip; the payout stops at the Coins
+-- cap and the claim is used up either way. Returns ok, message and {coins, rank}; with
+-- nothing waiting (a second claim) it refuses with an empty message, so no notice shows.
+function RebirthService.ClaimTimeSkip(session, server): (boolean, string, any?)
+	if not session or not session.loaded or session.closing or session.saveLost or session.dataReleasing then
+		return false, "Your flock is not ready yet."
+	end
+	local pending = pendingTimeSkip(session)
+	if not pending then
+		storeTimeSkip(session, nil)
+		return false, ""
+	end
+	storeTimeSkip(session, nil)
+	local coins = math.max(0, math.floor(math.min(pending.coins, Currency.MaxCoins - session.coins)))
+	if coins > 0 then coins = session:Credit(coins, "rebirth") end
+	session:Touch()
+	requestSave(server, session)
+	return true, "Time Skip: +" .. Currency.Text(coins), {coins = coins, rank = pending.rank}
 end
 
 -- Server step (GameServer, about once a second): a waiting Skip credit rebirths as

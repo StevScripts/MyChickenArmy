@@ -8,13 +8,19 @@ each with a U+202F before "PM"). Decisions are in
 [OVERHAUL_PLAN_20261020.md](OVERHAUL_PLAN_20261020.md); data shapes are in
 [OVERHAUL_CONTRACT_20261020.md](OVERHAUL_CONTRACT_20261020.md) §4 and §8.
 
+October 21 reference parity (P3, [REFERENCE_PARITY_20261021.md](REFERENCE_PARITY_20261021.md)
+§2.3): the presentation now copies Stevin's third Drop a Fruit recording 1:1
+(`~/Documents/ChatGPT/My Chicken Army/output/2026-10-21-recording-3/frames/` t9, t11,
+t13, t15, t17, t23/t27). Positions, the catalog, prerequisites, prices and the server
+are unchanged. Where this file and an older note disagree, the sections below win.
+
 ## Files
 
 | File | Owns |
 |---|---|
 | `src/shared/UpgradeCatalog.luau` | The tree: families, tiers, hex cells (`walk` steps), per-tier names/icons/numbers (`labels`) |
 | `src/client/ResearchBrowser.luau` | The screen: maps, hexes, card, input, purchases; `Browser.Grid` |
-| `src/client/CashUpgradeNodes.luau` | Data helpers over `UpgradeCatalog`: next node of a family, tier number, value text, special card lines, legacy keys |
+| `src/client/CashUpgradeNodes.luau` | Data helpers over `UpgradeCatalog`: next node of a family, tier number, value text, special card lines, legacy keys; `PreviewTree()` (UI Lab fixture only) |
 | `src/client/ResearchAssets.luau` | `Assets.upgrades[iconKey]`: one image per catalog `icon` key |
 | `src/client/HudController.luau` | The red count on the HUD Upgrades button (`UpdateUpgradesBadge`) |
 | `src/client/ResearchExtras.luau` | Rally (now a Gem Upgrade) and the older Formations/Missions pages |
@@ -22,7 +28,42 @@ each with a U+202F before "PM"). Decisions are in
 The server owns every status, price and badge. The screen reads
 `state.upgradeTree = {families, nodes={[id]={status, price?, spendReason?}}, badges, luck}`
 and buys with `BuyUpgrade{nodeId, expectedPrice}`. Layout, names, icons and value
-text come from `UpgradeCatalog`; the client never computes a price.
+text come from `UpgradeCatalog`; the client never computes a price. The one
+exception is `CashUpgradeNodes.PreviewTree()`: when the app is the UI Lab's display stub
+(`app.editPreview`) and its fixture has no `upgradeTree`, the screen shows a made-up
+snapshot (about half of each family owned, every third family's next tier too
+expensive, base catalog prices) so the Edit-mode "Upgrades" story renders every hex
+state. A live client never reaches it.
+
+## Screen (October 21 reference parity)
+
+- **Backdrop:** the blurred world (`AppController:SetMenuBlur("research", true)` on
+  Open, released on Close) under a black tint at 35% transparency. This supersedes the
+  October 20 "solid black" decision; Stevin found black hard to read and asked for the
+  reference. No title and no dark top/bottom bands: the map runs edge to edge.
+- **Bottom centre:** a wide red **Close** button on Main, renamed **Back** in a subtree
+  (the reference's). Its rectangle is screen-height relative (0.23 x 0.064 of the
+  height); the hit area grows to about 48 px on a phone (844 x 390), mostly upward,
+  without moving the art. Back plays the map-change cue, Close the tree's close cue (no
+  extra Click). The top-right red **X** stays (it closes from any map) for the phone pads.
+- **Upper left (the `Wallet` column):** the Gold / Diamond / Prism "N Rolls Left" rows
+  with their dice (`state.goldRolls.counters`, `GoldRolls.Icons/Colors/Text`; only the
+  machines the player owns), then the Coins pill (coin + gold amount; counts up on
+  gains, drops at once on spends). A count that changes while the tree is open (Auto
+  Roll keeps rolling) punches its row. One column in screen-height units, the same on
+  every device.
+- **A buy:** a red "-2,850,000" pops beside the Coins pill, holds 1.1 s and fades
+  (reduced motion: shows, then hides). No line of text for an ordinary tier (the hex's
+  flash, ripple, confetti and link sparks are the payoff); unlocks (Egg Vacuum, Chicken
+  Feed, the machines) keep the server's how-to line in the tree, since it says what to
+  do next.
+- **A refused buy** (the reference's t23): the shared red top banner (`app:Notify(text,
+  false)`), the hex's rim flashes red and wiggles, and one soft Locked cue (it shares
+  the banner's voice key, so the banner's Error does not double it). The text is
+  "You need 3,096,960 more Coins!" from the server's price and balance; a starter
+  reserve hold shows the server's reason ("Keep 600 Coins for Army Size I in
+  Upgrades."); a locked hex says "Buy Egg Speed I first". A server refusal with its
+  plain "Not enough coins." is shown as the same shortfall line.
 
 ## Maps
 
@@ -70,38 +111,59 @@ text come from `UpgradeCatalog`; the client never computes a price.
 
 | State | Look |
 |---|---|
-| Owned / maxed | Bright Army green (#A3FF00 → #00D300) |
-| Buyable now | Dark hex, gold price, red "!" badge |
-| Not affordable (or held by the starter reserve) | Dark hex, red price |
-| Locked, next to a visible hex | Grey "?" |
+| Owned / maxed | Bright Army green (#A3FF00 → #00D300); no price (art decision: the reference's are blue) |
+| Buyable now | Dark hex, red "!" badge at its top right, GREEN coin price |
+| Not affordable (or held by the starter reserve) | Dark hex, RED coin price, no badge |
+| Locked, next to a visible hex | See-through grey ghost with a dark "?" |
 | Locked further out | Hidden |
-| Start / Open / Back | Cyan / orange / red |
+| Start / Open / Back | Cyan / orange with the red count badge / red |
 
-Each upgrade hex shows its icon and its name ("Egg Speed II"). October 21 owner
-decision: the tier shows only once, in the name; the big tier number over the icon
-(copied from the reference) is gone. Open hexes carry a red count of
-the upgrades inside that can be bought now (`badges[category]`). The HUD Upgrades
-button shows `badges.total`. Prices on hexes are compact (1.2K); the card shows the
-exact amount.
+Hex layout (reference t9, t11, t15; round 2 sized for the phone floor): rows from the
+bottom up, in shares of the hex's height (`HEX` in ResearchBrowser). The coin and
+compact price (1.2K) sit on the hex's bottom edge (row .215). The name ("Egg Speed II")
+sits just above it in white stroked text across the hex's inner width (.96), one or two
+.22 lines: `nameLines` measures the name with Roblox's own font metrics per unit of text
+size and breaks it once, at the split whose wider line is narrowest ("Vacuum /
+Capacity IV"), only when one line would not fit. The answer depends on the name, never
+the screen. The icon fills the space above the name (the name overlaps its lower part,
+like the reference). The tier numeral (`node.numeral`, the catalog's: Luck's
+Super/Mega chains restart at 1) sits on the icon's bottom-right corner right above the
+name; it is smaller (.17) over a two-line name. This reverses the October 21 morning "no
+number over the icon" note at Stevin's request for the reference 1:1. On a phone
+(844 x 390, hex 60 px tall at zoom 1) every name renders 13 px (28 one-line, 76
+two-line) and every price 12 px; the name and price also carry the shared 12 px floor
+(`Theme.ScaleText`), as do the hub and Back words. Desktops get the same proportions,
+larger. Every label carries a black outline so it reads over any hex and any world
+behind the tint. A hovered or focused hex grows
+to 1.12x and draws over its neighbours. Open hexes carry a red count of the upgrades
+inside that can be bought now (`badges[category]`); the HUD Upgrades button shows
+`badges.total`. A "!" that appears while the tree is open (a price turned green as
+Coins came in) or a hub count that rises punches the badge with one Badge chime (not
+on a purchase render, which has its own payoff).
 
 
 ## Input (October 20 owner decisions)
 
-- **Mouse:** hovering shows the card; a click buys at once.
+- **Mouse:** hovering shows the card beside the hex; a click buys at once.
 - **Touch:** a tap buys at once and **no card is shown**, not even when another menu
   opens a node (the hex pulses instead). Dragging the map never buys.
 - **Gamepad:** focus shows the card; A buys; the D-pad moves; X recenters; L1/R1 zoom.
-- The backdrop stays **solid black**.
+- Close (bottom button or X), Escape or gamepad B on Main returns to play; the
+  bottom button and gamepad B in a subtree go Back.
 
-Tapping a hex you can't buy gives a short red message instead (the server's
-reason, "Not enough Coins" or "Buy Egg Speed I first"). A purchase shows
-"Egg Speed II: x1.25 → x1.5" (unlocks: "Chicken Feed bought!"), pulses the hex and
-reveals the next hexes.
+Tapping a hex you can't buy shows the red banner (see Screen above). A purchase
+pulses the hex, flashes it in its lane colour, shows the red spend beside the Coins
+and reveals the next hexes.
 
 ## Card
 
-Name, the family description, current → next value in green, the price beside the
-gold coin, and "Resets on Rebirth". Luck shows the server's Epic+ (or strongest
+Reference t15/t17: a dark translucent slate (#1A2028 at 8%) with a 2 px dark stroke
+and square corners, beside the hex (right of it, or left when there is no room; its
+top near the hex's top; never under the bottom button). The name; one effect sentence
+in light grey with the changing value in green (the family description, then
+"x1.25 → x1.5", "Every 10 → 8 rolls", or what an owned tier gives), RichText; a
+divider; the gold coin and exact price on a faint gold strip (gold, red when too
+expensive or held); and "Resets on Rebirth". Every line is stroked. Luck shows the server's Epic+ (or strongest
 band) odds now → next from `upgradeTree.luck` (docs/team/LUCK_WINDOW.md), "All
 normal chickens remain possible." and any limited event's podium chance.
 

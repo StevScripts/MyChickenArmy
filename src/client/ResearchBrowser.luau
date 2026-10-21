@@ -5,6 +5,7 @@
 -- constraint; input changes only each map's pan/zoom, never the layout of individual
 -- nodes. The server owns every status, price and badge (state.upgradeTree).
 local UserInputService=game:GetService("UserInputService")
+local TextService=game:GetService("TextService")
 local ContextActionService=game:GetService("ContextActionService")
 local GuiService=game:GetService("GuiService")
 local TweenService=game:GetService("TweenService")
@@ -12,6 +13,7 @@ local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Theme=require(script.Parent.UITheme)
 local Assets=require(script.Parent.ResearchAssets)
 local View=require(script.Parent.CashUpgradeNodes)
+local GoldRolls=require(Shared.GoldRolls)
 local Browser={}
 Browser.__index=Browser
 
@@ -40,20 +42,46 @@ local COIN=Theme.Colors.coins
 -- October 20 overhaul: bought and maxed hexes use the bright Army green.
 local GREEN=Color3.fromRGB(163,255,0)
 local ALERT=Color3.fromRGB(235,45,45)
+local RED_FACE=ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59))
+-- Reference parity (October 21, docs/team/REFERENCE_PARITY_20261021.md §2.3): the card
+-- is a dark translucent slate with a 2 px dark stroke; its body is light grey with the
+-- changing value in green, like the reference's highlighted number.
+local TIP_FILL=Color3.fromRGB(26,32,40)
+local TIP_STROKE=Color3.fromRGB(6,8,10)
+local TIP_BODY=Color3.fromRGB(208,214,220)
+local TIP_LINE=Color3.fromRGB(74,84,96)
+local GREEN_TAG=string.format('<font color="#%02X%02X%02X">',math.round(GREEN.R*255),math.round(GREEN.G*255),math.round(GREEN.B*255))
+-- Outline weight (share of the glyph) for every label laid over the hexes and the
+-- world, so names, numerals and prices read on any background.
+local STROKE=.075
 -- Each hex look: the art, its tint or vertical gradient, and the rim around it.
--- Unbought hexes are dark like the reference, with a grey rim so they read on the
--- black backdrop; "?" hexes are a lighter grey.
+-- Unbought hexes are dark like the reference, with a grey rim; "?" ghosts are a
+-- see-through grey with a dark "?", so the blurred world shows faintly through them.
 local LOOKS={
 	owned={art="hexMask",gradient=ColorSequence.new(GREEN,Color3.fromRGB(0,211,0)),rim=Color3.fromRGB(14,84,0)},
 	start={art="hexMask",gradient=Theme.ReferenceGradients.Upgrades,rim=Color3.fromRGB(0,72,112)},
 	open={art="hexMask",gradient=Theme.ReferenceGradients.Base,rim=Color3.fromRGB(122,64,0)},
-	back={art="hexMask",gradient=ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)),rim=Color3.fromRGB(112,10,22)},
-	available={art="hexFill",rim=Color3.fromRGB(78,80,86)},
-	unknown={art="hexMask",tint=Color3.fromRGB(86,88,92),rim=Color3.fromRGB(46,47,51)},
+	back={art="hexMask",gradient=RED_FACE,rim=Color3.fromRGB(112,10,22)},
+	available={art="hexFill",rim=Color3.fromRGB(96,98,104)},
+	unknown={art="hexMask",tint=Color3.fromRGB(118,118,124),rim=Color3.fromRGB(34,34,38),transparency=.22},
 }
--- Price color alone marks unaffordable.
+-- Price color (and the "!" badge) alone mark unaffordable.
 LOOKS.unaffordable=LOOKS.available
+-- The Gold / Diamond / Prism "N Rolls Left" rows, in the machine's order.
+local COUNTER_KINDS={"Gold","Diamond","Prism"}
+-- UI Lab only: the reference's two counters when the fixture has none.
+local PREVIEW_COUNTERS={{kind="Gold",every=10,count=2,left=8,luck=2},{kind="Diamond",every=100,count=0,left=100,luck=5}}
 local TOOLTIP_WIDTH=.218
+-- Hex text rows in shares of the hex's height (round 2, phone 844 x 390): a hex is
+-- 60 px tall there at zoom 1, so a .22 line renders 13 px (the 12 px readable floor
+-- with room to spare) and a .215 price row 12 px; desktops get the same proportions,
+-- larger. One layout for every device: only the name's line count changes, and that
+-- comes from the name itself (NameLines), never from the screen.
+local HEX={Line=.22,NameWidth=.96,PriceRow=.215,PriceTop=.775,IconTop=.04}
+-- The price row's coin is a square of the row's height: its share of the row's width.
+local COST_WIDTH=.76
+local COST_ICON=HEX.PriceRow*144/(COST_WIDTH*164)
+local COST_TEXT=COST_ICON+.02
 -- October 20 tree v2 (S9c): flat-topped hexes like the reference, 164 wide x 144 tall.
 local NODE_SIZE=UDim2.fromScale(164/1440,144/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
@@ -61,10 +89,13 @@ local NODE_SIZE=UDim2.fromScale(164/1440,144/930)
 -- that runs from a bought hex to the hex it opens before that one pulses; GlowLimit
 -- caps the affordable glow at the hexes nearest the map's centre hex; LaneLimit and
 -- LaneWindow are the short reveal when Back returns to the main map.
+-- Reference parity: a hovered or focused hex grows clearly (HoverScale) and draws over
+-- its neighbours; DeltaHoldSeconds/DeltaFadeSeconds time the red "-price" beside Coins.
 local MOTION={
 	OpenScale=0,OpenSeconds=.24,OpenStaggerSeconds=.045,OpenWaveSeconds=.80,
 	FrontierEntryScale=.88,FrontierSeconds=.18,FrontierWaveSeconds=.08,FrontierScale=1.025,
-	HoverScale=1.025,PressScale=.96,PressSeconds=.055,SettleSeconds=.13,
+	HoverScale=1.12,PressScale=.96,PressSeconds=.055,SettleSeconds=.13,
+	DeltaHoldSeconds=1.1,DeltaFadeSeconds=.45,
 	ConfirmScale=1.045,ConfirmRiseSeconds=.10,ConfirmSettleSeconds=.18,FlashSeconds=.35,
 	LinkSeconds=.3,GlowLimit=8,GlowSeconds=.9,ReadyScale=1.06,LaneLimit=24,LaneWindow=.3,
 	TipSeconds=.16,TipLeaveSeconds=.1,TipScale=.92,TipSlide=.05,MaxFlashSeconds=.6,SparkSize=.022,
@@ -110,7 +141,9 @@ local function label(parent,name,text,x,y,w,h,color)
 	-- Setting TextWrapped=false turns TextScaled off in Roblox, leaving fixed 20px text
 	-- that overflows small phone hexes; keep the default wrapping.
 	item.TextScaled,item.TextXAlignment=true,Enum.TextXAlignment.Center
-	item.TextOutline.Thickness=.035
+	-- Every label carries the black outline (reference parity §2.1), so it reads over
+	-- any hex and any world behind the tint.
+	item.TextOutline.Thickness=STROKE
 	return item
 end
 local function inside(item,position)
@@ -126,6 +159,58 @@ local function wrap(text,limit)
 	end
 	if line~="" then table.insert(rows,line) end
 	return table.concat(rows,"\n"),math.max(1,#rows)
+end
+local function escape(text:string):string
+	return (text:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;"))
+end
+-- The card's effect sentence: the same word wrap, as RichText, with the words of the
+-- green segments (the changing value) wrapped in the green font tag.
+local function richWrap(segments:{{text:string,green:boolean?}},limit:number):(string,number)
+	local rows,row,length={},{},0
+	for _,segment in segments do
+		for word in segment.text:gmatch("%S+") do
+			local size=utf8.len(word) or #word
+			if #row>0 and length+1+size>limit then table.insert(rows,row);row,length={},0 end
+			length+=(if #row>0 then 1 else 0)+size
+			table.insert(row,{text=word,green=segment.green==true})
+		end
+	end
+	if #row>0 then table.insert(rows,row) end
+	local lines={}
+	for _,words in rows do
+		local parts,green={},false
+		for index,word in words do
+			if word.green~=green then
+				table.insert(parts,if word.green then GREEN_TAG else "</font>")
+				green=word.green
+			end
+			table.insert(parts,(if index>1 then " " else "")..escape(word.text))
+		end
+		if green then table.insert(parts,"</font>") end
+		table.insert(lines,table.concat(parts))
+	end
+	return table.concat(lines,"\n"),math.max(1,#rows)
+end
+-- A hex name's lines: one when it fits the hex's inner width at the line height, else
+-- the two-line split whose wider line is narrowest ("Vacuum\nCapacity IV"). Widths are
+-- Roblox's own font metrics per unit of text size, so the answer is the same on every
+-- device (the map scales as a whole). Without TextService it estimates from length.
+local function nameWidth(text:string):number
+	local ok,size=pcall(function() return TextService:GetTextSize(text,100,Theme.Font,Vector2.new(1e5,1e5)) end)
+	return if ok and size.Y>0 then size.X/size.Y else #text*.5
+end
+local function nameLines(text:string):(string,number)
+	-- The widest a line may be, in units of its own height (3% kept for the outline).
+	local limit=HEX.NameWidth*(164/144)/HEX.Line*.97
+	if nameWidth(text)<=limit then return text,1 end
+	local words=string.split(text," ")
+	local best,widest=text,math.huge
+	for index=1,#words-1 do
+		local first,second=table.concat(words," ",1,index),table.concat(words," ",index+1)
+		local width=math.max(nameWidth(first),nameWidth(second))
+		if width<widest then best,widest=first.."\n"..second,width end
+	end
+	return best,if widest<math.huge then 2 else 1
 end
 local function round(item,radius)
 	Theme.Round(item).CornerRadius=UDim.new(radius,0)
@@ -158,8 +243,9 @@ function Browser.new(app,parent)
 	local root=Instance.new("TextButton")
 	root.Name,root.Text,root.Size="Research","",UDim2.fromScale(1,1)
 	root:SetAttribute("HoverAudioCue","SkillTreeHover")
-	-- October 20 (owner): the tree keeps its solid black backdrop.
-	root.BackgroundColor3,root.BorderSizePixel=Color3.new(0,0,0),0
+	-- Reference parity (October 21, supersedes the October 20 solid black): the tree lies
+	-- over the blurred world (SetMenuBlur in Open) under a black tint at 35% transparency.
+	root.BackgroundColor3,root.BackgroundTransparency,root.BorderSizePixel=Color3.new(0,0,0),.35,0
 	root.Visible,root.Active,root.Modal,root.AutoButtonColor=false,true,true,false
 	root.Selectable,root.ClipsDescendants,root.ZIndex=false,true,15
 	root.Parent=parent;self.root=root
@@ -178,35 +264,31 @@ function Browser.new(app,parent)
 		self.layers[category]=layer
 		for _,id in View.Order[category] do self:BuildNode(id,layer) end
 	end
-	-- Soft dark bands so the title, balance and Exit never sit on top of nodes.
-	for _,spec in {{"TopFade",0,.15,90,0},{"BottomFade",.8,.2,-90,1}} do
-		local fade=Theme.Frame(root,spec[1],UDim2.fromScale(1,spec[3]),Color3.new(0,0,0))
-		fade.Position,fade.ZIndex,fade.Active=UDim2.fromScale(0,spec[2]),4,false
-		local gradient=Instance.new("UIGradient")
-		gradient.Rotation=spec[4]
-		gradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.55,.15),NumberSequenceKeypoint.new(1,1)})
-		gradient.Parent=fade
-	end
-	-- Screen title in the shared header lettering; a subtree adds its name.
-	local title=Theme.Display(root,"Title","Upgrades",50,WHITE)
-	title.Position,title.Size,title.ZIndex=UDim2.fromScale(.3,.01),UDim2.fromScale(.4,.06),5
-	title.TextScaled,title.TextXAlignment=true,Enum.TextXAlignment.Center
-	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,.055
-	title.TextShadow.TextTransparency,title.TextShadow.TextOutline.Enabled=.35,false
-	self.title=title
-	local money=Theme.Container(root,"ResearchBalance")
-	money.AnchorPoint,money.Position,money.Size=Vector2.new(0,1),UDim2.fromScale(.012,.975),UDim2.fromScale(.26,.07)
-	Theme.Aspect(money,5.4);money.ZIndex=5
-	Theme.Image(money,"CashIcon",Assets.cash,UDim2.fromScale(.19,1))
-	self.cash=label(money,"Cash","0",.21,0,.79,1,Theme.Colors.coins);self.cash.TextXAlignment=Enum.TextXAlignment.Left
+	-- Reference parity: no title or dark bands; the map runs edge to edge and the
+	-- controls (wallet column, Close/Back, X) sit over it, each stroked to read anywhere.
+	self:BuildWallet()
 	-- The shared square close X (Theme.HeaderClose's button and accent), in the
 	-- top-right corner like every other menu; large enough for a thumb on phones.
 	self.exit=Theme.ActionButton(root,"Exit","X",function() self.app.audio:Play("Click");self:Close() end,Theme.ActionColors.danger)
-	Theme.ApplyReferenceAccent(self.exit,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
+	Theme.ApplyReferenceAccent(self.exit,RED_FACE)
 	self.exit.AnchorPoint,self.exit.Position,self.exit.Size,self.exit.ZIndex=Vector2.new(1,0),UDim2.fromScale(.985,.012),UDim2.fromScale(.14,.105),6
 	Theme.Aspect(self.exit,120/115)
 	-- Phone hit area: 1.2x, growing left and down (the page clips its top-right corner).
 	Theme.PadHit(self.exit,1.2,1.2,1,0)
+	-- The reference's wide red button at the bottom centre: Close on the main tree,
+	-- Back in a subtree (SetCategory renames it). Its rectangle is height-relative
+	-- (one layout on every device); the hit area grows to 48 px on a phone, mostly
+	-- upward, without moving the art. Its action plays its own cue (no extra Click).
+	local bottom=Theme.ActionButton(root,"Close","Close",function()
+		if not self.root.Visible then return end
+		if self.category~="Main" then self:ShowCategory("Main") else self:Close() end
+	end,Theme.ActionColors.danger)
+	Theme.ApplyReferenceAccent(bottom,RED_FACE)
+	bottom:SetAttribute("ClickSound",false)
+	bottom.SizeConstraint=Enum.SizeConstraint.RelativeYY
+	bottom.AnchorPoint,bottom.Position,bottom.Size,bottom.ZIndex=Vector2.new(.5,1),UDim2.fromScale(.5,.975),UDim2.fromScale(.064*3.6,.064),6
+	Theme.PadHit(bottom,1.25,2,.5,.75)
+	self.closeButton=bottom
 	self.message=label(root,"Feedback","",.15,.17,.70,.055,GREEN)
 	self.message.ZIndex,self.message.Visible=12,false
 	-- Centre-anchored once so its pop grows from the middle; the rendered spot is the same.
@@ -223,6 +305,95 @@ function Browser.new(app,parent)
 	end)
 	self:BindInput()
 	return self
+end
+
+-- Upper left while the tree is open (the reference's t9/t15): the Gold / Diamond /
+-- Prism "N Rolls Left" rows with their dice (owned machines only), then the Coins
+-- pill, and the red "-price" that pops beside it on a buy. One column in screen-height
+-- units (SizeConstraint RelativeYY) so every device gets the same proportions; a list
+-- keeps the rows packed from the top when a machine is not owned yet.
+function Browser:BuildWallet()
+	-- Column units: 520 wide x 300 tall (three 66-unit rows, the 46-unit pill, gaps).
+	local column=Theme.Container(self.root,"Wallet")
+	column.SizeConstraint=Enum.SizeConstraint.RelativeYY
+	column.Position,column.Size,column.ZIndex=UDim2.fromScale(.012,.335),UDim2.fromScale(.52,.3),5
+	column.Active=false
+	local list=Instance.new("UIListLayout")
+	list.SortOrder,list.VerticalAlignment=Enum.SortOrder.LayoutOrder,Enum.VerticalAlignment.Top
+	list.Padding,list.Parent=UDim.new(8/300,0),column
+	self.counters={}
+	for order,kind in COUNTER_KINDS do
+		local row=Theme.Container(column,kind.."Rolls")
+		row.Size,row.LayoutOrder,row.Visible,row.ZIndex=UDim2.fromScale(340/520,66/300),order,false,5
+		-- A dark translucent strip under the text; the die overhangs its left end.
+		local strip=Theme.Frame(row,"Strip",UDim2.fromScale(310/340,46/66),Color3.new(0,0,0))
+		strip.Position,strip.BackgroundTransparency,strip.ZIndex=UDim2.fromScale(30/340,10/66),.45,5
+		Theme.Stroke(strip,Color3.new(0,0,0),2).Transparency=.35
+		local die=Theme.Image(row,"Die",GoldRolls.Icons[kind] or "",UDim2.fromScale(66/340,1))
+		die.ZIndex=7
+		local text=label(row,"Count","",82/340,10/66,250/340,46/66,GoldRolls.Colors[kind] or WHITE)
+		text.TextXAlignment,text.ZIndex=Enum.TextXAlignment.Left,7
+		self.counters[kind]={frame=row,label=text}
+	end
+	local coins=Theme.Container(column,"Coins")
+	coins.Size,coins.LayoutOrder,coins.ZIndex=UDim2.fromScale(1,46/300),10,5
+	-- The Coins pill: dark gold translucent with a 2 px dark stroke, coin + gold amount.
+	local pill=Theme.Frame(coins,"Pill",UDim2.fromScale(290/520,1),Color3.fromRGB(64,48,8))
+	pill.BackgroundTransparency,pill.ZIndex=.3,5
+	Theme.Stroke(pill,Color3.new(0,0,0),2).Transparency=.2
+	local icon=Theme.Image(pill,"CashIcon",Assets.cash,UDim2.fromScale(38/290,38/46),UDim2.fromScale(6/290,4/46))
+	icon.ZIndex=6
+	self.cash=label(pill,"Cash","0",50/290,4/46,232/290,38/46,COIN)
+	self.cash.TextXAlignment,self.cash.ZIndex=Enum.TextXAlignment.Left,6
+	-- The spend delta right of the pill, about two thirds of its text height; anchored at
+	-- its left middle so its pop grows out of the pill's side.
+	local delta=label(coins,"SpendDelta","",304/520,.5,210/520,.64,RED)
+	delta.AnchorPoint,delta.TextXAlignment,delta.ZIndex,delta.Visible=Vector2.new(0,.5),Enum.TextXAlignment.Left,6,false
+	self.wallet,self.delta=column,delta
+end
+
+-- The counters from state.goldRolls (the server's GoldRolls.Counters: owned machines
+-- only, Gold first). A count that changes while the tree is open (Auto Roll keeps
+-- rolling) punches its row; opening the tree only snaps the text.
+function Browser:RenderCounters(state,live)
+	local data=type(state)=="table" and state.goldRolls or nil
+	local counters=type(data)=="table" and type(data.counters)=="table" and data.counters or nil
+	if not counters and self.app.editPreview then counters=PREVIEW_COUNTERS end
+	local shown={}
+	for _,counter in counters or {} do
+		if type(counter)=="table" and type(counter.kind)=="string" and type(counter.left)=="number" then shown[counter.kind]=counter end
+	end
+	for kind,row in self.counters do
+		local counter=shown[kind]
+		if counter then
+			local text=GoldRolls.Text(counter)
+			if live and row.frame.Visible and row.label.Text~=text then Theme.Motion:Punch(row.frame,1.12,.28) end
+			row.label.Text=text
+		end
+		row.frame.Visible=counter~=nil
+	end
+end
+
+-- The red "-2,850,000" beside the Coins pill after a buy: it pops, holds, then fades
+-- (reduced motion: it shows, then hides). A second buy restarts it with its price.
+function Browser:SpendDelta(amount)
+	if type(amount)~="number" or amount<=0 then return end
+	local delta=self.delta
+	local outline=delta:FindFirstChild("TextOutline") :: UIStroke?
+	Theme.Motion:Cancel(delta,"fade")
+	if outline then Theme.Motion:Cancel(outline,"fade");outline.Transparency=0 end
+	delta.Text,delta.TextTransparency,delta.Visible="-"..Theme.Money(amount),0,true
+	self.deltaVersion=(self.deltaVersion or 0)+1
+	local version=self.deltaVersion
+	if not self.app.reducedMotion then Theme.Motion:PopScale(delta,1.3,.26) end
+	task.delay(MOTION.DeltaHoldSeconds,function()
+		if not self.alive or version~=self.deltaVersion then return end
+		if self.app.reducedMotion then delta.Visible=false;return end
+		if outline then Theme.Motion:Tween(outline,"fade",{Transparency=1},MOTION.DeltaFadeSeconds) end
+		Theme.Motion:Tween(delta,"fade",{TextTransparency=1},MOTION.DeltaFadeSeconds,nil,nil,function()
+			if version==self.deltaVersion then delta.Visible=false end
+		end)
+	end)
 end
 
 function Browser:BuildNode(id,layer)
@@ -253,20 +424,28 @@ function Browser:BuildNode(id,layer)
 	-- Rotation 0 on the turned art reads top to bottom on screen.
 	local gradient=Instance.new("UIGradient")
 	gradient.Rotation,gradient.Enabled,gradient.Parent=0,false,fill
-	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.56,.56),UDim2.fromScale(.22,.04));icon.ZIndex=4
-	-- October 21 owner decision: the tier shows once, in the name ("Egg Speed II"),
-	-- with no big number over the icon.
-	local title=label(visual,"Title",node.name,-.06,.585,1.12,.135)
+	-- Reference parity (t9, t11, t15): the icon fills the hex's upper middle; the name runs
+	-- across the hex over the icon in one stroked line (it may pass the hex's edges, and
+	-- TextScaled shrinks long names); the tier numeral sits in the icon's bottom-right
+	-- corner; the coin and compact price sit on the hex's bottom edge.
+	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.56,.64),UDim2.fromScale(.22,.1));icon.ZIndex=4
+	local title=label(visual,"Title",node.name,-.09,.4,1.18,.14)
 	title.ZIndex=6
+	local numeral=label(visual,"Numeral",if node.numeral then tostring(node.numeral) else "",.55,.54,.24,.27)
+	numeral.ZIndex,numeral.Visible=6,kind=="upgrade" and node.numeral~=nil
+	numeral.TextOutline.Thickness=STROKE*1.4
 	-- "Open" under an Open hex's name; the category's name under Back.
 	local caption=label(visual,"Caption","",.1,.68,.8,.17,if kind=="open" then Color3.fromRGB(255,240,90) else WHITE)
 	caption.ZIndex,caption.Visible=6,kind=="open" or kind=="back"
-	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.18,.735),UDim2.fromScale(.64,.14),5
-	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
-	local price=label(cost,"Price","",.29,0,.71,1,GREEN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
-	-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
-	local hidden=label(visual,"Hidden","?",.25,.15,.5,.7,Color3.fromRGB(150,152,156));hidden.ZIndex=5
-	-- Red circle at the top right of an Open hex: how many upgrades inside you can buy.
+	local cost=Theme.Container(visual,"Cost");cost.ZIndex=5
+	cost.Position,cost.Size=UDim2.fromScale((1-COST_WIDTH)/2,HEX.PriceTop),UDim2.fromScale(COST_WIDTH,HEX.PriceRow)
+	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(COST_ICON,1));cashIcon.ZIndex=5
+	local price=label(cost,"Price","",COST_TEXT,0,1-COST_TEXT,1,GREEN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
+	-- The "?" ghost: a dark question mark on the see-through grey hex (LOOKS.unknown).
+	local hidden=label(visual,"Hidden","?",.25,.15,.5,.7,Color3.fromRGB(58,58,64));hidden.ZIndex=5
+	hidden.TextOutline.Color=Color3.fromRGB(20,20,24)
+	-- Red circle at the top right: "!" on an upgrade you can buy now, or on an Open hex
+	-- how many upgrades inside you can buy.
 	local badge=Theme.Frame(visual,"Alert",UDim2.fromScale(.26,.26),ALERT)
 	badge.AnchorPoint,badge.Position,badge.ZIndex,badge.Visible=Vector2.new(.5,.5),UDim2.fromScale(.8,.12),7,false
 	Theme.Aspect(badge,1);round(badge,.5)
@@ -275,29 +454,51 @@ function Browser:BuildNode(id,layer)
 	local badgeText=label(badge,"Text","!",.1,.1,.8,.8);badgeText.ZIndex=8
 	if kind=="start" then
 		icon.Position,icon.Size=UDim2.fromScale(.2,.04),UDim2.fromScale(.6,.6)
-		title.Position,title.Size=UDim2.fromScale(.02,.64),UDim2.fromScale(.96,.18)
+		title.Position,title.Size=UDim2.fromScale(.02,.62),UDim2.fromScale(.96,HEX.Line)
 	elseif kind=="open" or kind=="back" then
 		icon.Position,icon.Size=UDim2.fromScale(.24,.03),UDim2.fromScale(.52,.5)
-		title.Position,title.Size=UDim2.fromScale(.02,.5),UDim2.fromScale(.96,.16)
+		title.Position,title.Size=UDim2.fromScale(.02,.46),UDim2.fromScale(.96,HEX.Line)
+		caption.Position,caption.Size=UDim2.fromScale(.1,.46+HEX.Line),UDim2.fromScale(.8,HEX.Line)
 		local category=if kind=="back" then View.OpenNode(node.category) else nil
 		caption.Text=if kind=="open" then "Open" elseif category then category.name else ""
 		-- Without its arrow icon, Back's words fill the hex instead.
 		if icon.Image=="" then
 			title.Position,title.Size=UDim2.fromScale(.1,.2),UDim2.fromScale(.8,.24)
-			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.22)
+			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.24)
 		end
 	else
+		-- Round 2 (phone floor): rows from the bottom up. The price row sits on the hex's
+		-- bottom edge; the name (one or two .22 lines across the hex's inner width) sits
+		-- just above it, over the lower part of the icon like the reference; the icon
+		-- fills the space above the name; the numeral sits on the icon's bottom-right
+		-- corner, right above the name (smaller when the name takes two lines).
+		local text,lines=nameLines(node.name)
+		local nameTop=HEX.PriceTop-lines*HEX.Line
+		title.Text=text
+		title.Position,title.Size=UDim2.fromScale((1-HEX.NameWidth)/2,nameTop),UDim2.fromScale(HEX.NameWidth,lines*HEX.Line)
+		local iconSize=nameTop+.06-HEX.IconTop
+		local iconWidth=iconSize*144/164
+		icon.Position,icon.Size=UDim2.fromScale((1-iconWidth)/2,HEX.IconTop),UDim2.fromScale(iconWidth,iconSize)
+		local numeralSize=if lines==1 then HEX.Line else .17
+		local numeralLeft=if lines==1 then .6 else .58
+		numeral.Position,numeral.Size=UDim2.fromScale(numeralLeft,nameTop-numeralSize),UDim2.fromScale(if lines==1 then .24 else .16,numeralSize)
+		-- The name and the price never render under the 12 px floor (their rows are sized
+		-- for it; this only guards a smaller screen). The numeral may shrink.
+		Theme.ScaleText(title);Theme.ScaleText(price)
 		-- Upgrade hexes never move these again, so their punches grow from the middle.
 		Theme.Motion:Center(title);Theme.Motion:Center(cost)
 	end
-	if kind=="start" or kind=="open" then
-		-- The Main hubs: their short words keep the readable floor, and the hit area is
-		-- 48 px on a phone (hex art untouched; the hubs' boxes already meet at the corners).
+	if kind=="start" or kind=="open" or kind=="back" then
+		-- The hubs and Back: their short words keep the readable floor.
 		Theme.ScaleText(title);Theme.ScaleText(caption)
+	end
+	if kind=="start" or kind=="open" then
+		-- The Main hubs' hit area is 48 px on a phone (hex art untouched; the hubs' boxes
+		-- already meet at the corners).
 		Theme.PadHit(button,1.1,1.27,0.5,0.5,true)
 	end
 	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,glow=glow,flashFill=flash,
-		title=title,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
+		title=title,numeral=numeral,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
 	-- A click or tap acts on the hex at once: buy, open a subtree or go back.
 	button.Activated:Connect(function()
 		if not self.root.Visible or os.clock()<(self.suppressUntil or 0) then return end
@@ -326,26 +527,36 @@ function Browser:BuildNode(id,layer)
 	end)
 end
 
+-- The card beside a hovered/focused hex (reference t15/t17): a dark translucent slate
+-- with a 2 px dark stroke and square corners; the name, the effect sentence with the
+-- changing value in green, a divider, the coin and price on a faint gold strip, and
+-- "Resets on Rebirth". Every line is stroked.
 function Browser:BuildTooltip()
-	local tip=Theme.Frame(self.root,"NodeTooltip",UDim2.fromScale(1,TOOLTIP_WIDTH),Color3.fromRGB(27,27,27))
+	local tip=Theme.Frame(self.root,"NodeTooltip",UDim2.fromScale(1,TOOLTIP_WIDTH),TIP_FILL)
+	tip.BackgroundTransparency=.08
 	Theme.Aspect(tip,1)
 	local aspect=tip.UIAspectRatioConstraint
 	-- A constant height-relative width keeps this card independent of map zoom.
 	aspect.AspectType,aspect.DominantAxis=Enum.AspectType.ScaleWithParentSize,Enum.DominantAxis.Height
-	round(tip,.045);Theme.Stroke(tip,Color3.fromRGB(206,206,206),1.5).LineJoinMode=Enum.LineJoinMode.Round
+	Theme.Stroke(tip,TIP_STROKE,2)
 	tip.Visible,tip.Active,tip.ZIndex=false,false,8
 	self.tip,self.tipAspect=tip,aspect
 	self.tipTitle=label(tip,"Name","",.055,.06,.89,.18);self.tipTitle.ZIndex=9
-	self.tipTitle.TextOutline.Enabled=false
-	self.tipDivider=Theme.Frame(tip,"Divider",UDim2.fromScale(.83,.005),Color3.fromRGB(77,77,77))
-	self.tipDivider.Position,self.tipDivider.ZIndex=UDim2.fromScale(.085,.27),9
-	self.tipEffect=label(tip,"Effect","",.06,.31,.88,.39,MUTED);self.tipEffect.ZIndex=9;self.tipEffect.TextOutline.Enabled=false
-	-- Current → next value in green, like the reference's highlighted number.
-	self.tipChange=label(tip,"Change","",.06,.5,.88,.1,GREEN);self.tipChange.ZIndex=9;self.tipChange.TextOutline.Enabled=false
+	self.tipTitle.TextXAlignment=Enum.TextXAlignment.Left
+	self.tipEffect=label(tip,"Effect","",.055,.31,.89,.39,TIP_BODY);self.tipEffect.ZIndex=9
+	self.tipEffect.TextXAlignment,self.tipEffect.RichText=Enum.TextXAlignment.Left,true
+	self.tipDivider=Theme.Frame(tip,"Divider",UDim2.fromScale(.89,.005),TIP_LINE)
+	self.tipDivider.Position,self.tipDivider.ZIndex=UDim2.fromScale(.055,.7),9
 	self.tipCost=Theme.Container(tip,"Cost");self.tipCost.ZIndex=9
-	self.tipCash=Theme.Image(self.tipCost,"CashIcon",Assets.cash,UDim2.fromScale(.25,1));self.tipCash.ZIndex=10
-	self.tipPrice=label(self.tipCost,"Price","",.27,0,.73,1,COIN);self.tipPrice.TextXAlignment=Enum.TextXAlignment.Left;self.tipPrice.ZIndex=10
-	self.tipFooter=label(tip,"Resets","Resets on Rebirth",.06,.9,.88,.08,MUTED);self.tipFooter.ZIndex=9;self.tipFooter.TextOutline.Enabled=false
+	local strip=Theme.Frame(self.tipCost,"Strip",UDim2.fromScale(1,1),Color3.fromRGB(96,74,14))
+	strip.ZIndex=9
+	local fade=Instance.new("UIGradient")
+	fade.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.35),NumberSequenceKeypoint.new(.55,.8),NumberSequenceKeypoint.new(1,1)})
+	fade.Parent=strip
+	self.tipCash=Theme.Image(self.tipCost,"CashIcon",Assets.cash,UDim2.fromScale(.13,.84),UDim2.fromScale(.02,.08));self.tipCash.ZIndex=10
+	self.tipPrice=label(self.tipCost,"Price","",.17,.08,.8,.84,COIN);self.tipPrice.TextXAlignment=Enum.TextXAlignment.Left;self.tipPrice.ZIndex=10
+	self.tipFooter=label(tip,"Resets","Resets on Rebirth",.055,.9,.89,.08,MUTED);self.tipFooter.ZIndex=9
+	self.tipFooter.TextXAlignment=Enum.TextXAlignment.Left
 end
 
 function Browser:RestScale(view)
@@ -369,6 +580,9 @@ function Browser:SizeNode(view,scale,seconds,delay,complete)
 end
 
 function Browser:RestNode(view,seconds)
+	-- The hovered, focused or pressed hex draws above its neighbours (sibling order),
+	-- so its grown art, long name and price are never cut by the next hex.
+	view.button.ZIndex=if view.hovered or view.focused or view.pressed then 2 else 1
 	if not self.root.Visible or not view.button.Visible then return end
 	if (view.pulsing or view.revealing) and not view.pressed then return end
 	view.pulsing=false
@@ -450,7 +664,7 @@ end
 function Browser:ResetNodeMotion(view)
 	cancelSize(view);cancelTween(view,"flash")
 	view.pulsing,view.hovered,view.focused,view.pressed=false,false,false,false
-	view.pressInput=nil;view.visual.Size=UDim2.fromScale(1,1)
+	view.pressInput=nil;view.visual.Size=UDim2.fromScale(1,1);view.button.ZIndex=1
 	if view.rimColor then view.outline.ImageColor3=view.rimColor end
 	self:StopGlow(view)
 	Theme.Motion:Cancel(view.flashFill,"flash");view.flashFill.Visible,view.flashFill.ImageTransparency=false,1
@@ -460,6 +674,8 @@ end
 -- Plays the first authored cue of a list (a missing cue is silent, never an error).
 function Browser:Cue(names,options)
 	local audio=self.app.audio
+	-- UI Lab stub apps carry an audio table without Has: stay silent there.
+	if type(audio)~="table" or type(audio.Has)~="function" then return end
 	for _,name in names do
 		if audio:Has(name) then audio:Play(name,nil,options);return end
 	end
@@ -589,27 +805,51 @@ function Browser:Now()
 	return workspace:GetServerTimeNow()
 end
 
+-- The hex's rim flashes a colour and settles back (red refusals also wiggle the hex).
+function Browser:FlashRim(view,color)
+	if not view then return end
+	cancelTween(view,"flash")
+	if not self.app.reducedMotion then
+		view.outline.ImageColor3=color
+		view.flash=TweenService:Create(view.outline,TweenInfo.new(MOTION.FlashSeconds,Enum.EasingStyle.Quad),{ImageColor3=view.rimColor or WHITE})
+		view.flash:Play()
+	end
+	-- Position-only wiggle; SizeNode owns the same Visual's Size.
+	if color==RED then Theme.Motion:Shake(view.visual) end
+end
+
+-- A short line in the tree (loading, "owned", an unlock's how-to); refusals use Refuse.
 function Browser:Feedback(text,color,id)
 	self.message.Text,self.message.TextColor3,self.message.Visible=text,color,true
 	self.message.TextTransparency=0
 	Theme.Motion:PopScale(self.message,.9,.2)
 	self.feedbackVersion=(self.feedbackVersion or 0)+1
 	local version=self.feedbackVersion
-	if color==RED then self.app.audio:Play("SkillTreeError",nil,{noFallback=true,voiceKey="ErrorNotification",cooldown=.25}) end
-	local view=id and self.nodes[id]
-	if view then
-		cancelTween(view,"flash")
-		if not self.app.reducedMotion then
-			view.outline.ImageColor3=color
-			view.flash=TweenService:Create(view.outline,TweenInfo.new(MOTION.FlashSeconds,Enum.EasingStyle.Quad),{ImageColor3=view.rimColor or WHITE})
-			view.flash:Play()
-		end
-		-- Position-only wiggle; SizeNode owns the same Visual's Size.
-		if color==RED then Theme.Motion:Shake(view.visual) end
-	end
+	self:FlashRim(id and self.nodes[id],color)
 	task.delay(2.2,function()
 		if self.alive and version==self.feedbackVersion then self.message.Visible=false end
 	end)
+end
+
+-- A refused buy, like the reference's t23: the red top banner (the shared notice),
+-- the hex's rim flashes red and wiggles, and one soft "nope" (Locked). Locked shares
+-- the banner's voice key, so the notice's own Error cue does not double it; without
+-- an authored Locked the banner's Error plays alone.
+function Browser:Refuse(text,id)
+	self:Cue({"Locked"},{noFallback=true,voiceKey="ErrorNotification",cooldown=.25})
+	self.app:Notify(text,false)
+	self:FlashRim(id and self.nodes[id],RED)
+end
+
+-- "You need 3,096,960 more Coins!" from the server's price and balance; a starter
+-- reserve hold (enough Coins, but kept for Army Size I) shows the server's reason.
+function Browser:Shortfall(info)
+	local price=type(info.price)=="number" and info.price or nil
+	if price and self.coins<price then
+		local short=math.ceil(price-self.coins)
+		return "You need "..Theme.Money(short).." more "..(if short==1 then "Coin" else "Coins").."!"
+	end
+	return if type(info.spendReason)=="string" and info.spendReason~="" then info.spendReason else "Not enough Coins"
 end
 
 -- The server's entry for a node ({status, price?, spendReason?}); nil while loading.
@@ -638,7 +878,10 @@ end
 function Browser:Receive(state,result)
 	if not state then return false end
 	self.coins=state.coins or 0
-	self.tree=if type(state.upgradeTree)=="table" then state.upgradeTree else nil
+	self.state=state
+	-- The UI Lab's Edit-mode fixture has no tree; it gets a display-only one there.
+	self.tree=if type(state.upgradeTree)=="table" then state.upgradeTree
+		elseif self.app.editPreview then View.PreviewTree() else nil
 	View.Remember(self.tree and self.tree.families)
 	local request=result and result.action=="BuyUpgrade" and self.requests[result.id] or nil
 	if request then
@@ -653,7 +896,13 @@ function Browser:Receive(state,result)
 	if result.ok then
 		self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true})
 		local node=View.Nodes[id]
-		self:Feedback(request.text,GREEN,id)
+		-- Reference parity (t15): a buy shows the red "-price" beside the Coins and the
+		-- hex's own payoff, no line of text; only unlocks (Egg Vacuum, Chicken Feed,
+		-- machines) keep the server's how-to line, since it says what to do next.
+		self:SpendDelta(request.price)
+		if View.Plain(node) then
+			self:Feedback(if type(result.message)=="string" and result.message~="" then result.message else request.text,GREEN,id)
+		else self:FlashRim(self.nodes[id],GREEN) end
 		local view=self.nodes[id]
 		self:PulseNode(view)
 		-- The last tier of a track: gold instead of the lane colour, a longer wash, the
@@ -676,23 +925,35 @@ function Browser:Receive(state,result)
 		if nextView and nextView.button.Visible and nextView.look~="unknown" and GuiService.SelectedObject==view.button then
 			GuiService.SelectedObject=nextView.button
 		end
-	else self:Feedback(result.message or "Upgrade changed. Try again.",RED,id) end
+	else
+		-- The server's plain "Not enough coins." reads as the reference's shortfall.
+		local message=if type(result.message)=="string" and result.message~="" then result.message else "Upgrade changed. Try again."
+		local info=self:Info(id)
+		if message:lower():find("^not enough coins") and info and type(info.price)=="number" then message=self:Shortfall(info) end
+		self:Refuse(message,id)
+	end
 	return true
 end
 
 function Browser:Render()
 	local reveals={}
+	self.badgeRose=false
 	for _,category in View.Categories do
 		for _,id in View.Order[category] do
 			local entry=self:RenderNode(id)
 			if entry and category==self.category then table.insert(reveals,entry) end
 		end
 	end
+	-- A badge that appears or rises while the tree is open (Coins came in: a price turned
+	-- green, a hub's count went up) chimes once. A purchase render has its own payoff,
+	-- and the HUD's Badge in the same frame is held back by the shared cooldown.
+	if self.badgeRose and not self.revealOrigin then self:Cue({"Badge"},{noFallback=true}) end
 	self:RevealNodes(reveals)
 	self:RefreshGlow()
 	-- The Coins readout counts up with ticks and a small punch on gains; a spend drops
 	-- at once. Opening snaps to the balance instead of counting from the last visit.
 	local snap=self.snapCoins;self.snapCoins=nil
+	self:RenderCounters(self.state,not snap)
 	Theme.Motion:CountTo(self.cash,self.coins or 0,Theme.Money,if snap then 0 else .45,if snap then {punch=false} else {
 		punch=1.08,punchTarget=self.cash.Parent,tickGap=.06,
 		tick=function() self.app.audio:Play("CountTick",nil,{noFallback=true,voiceKey="UpgradesCountTick",cooldown=.05,pitchVariance=.05}) end,
@@ -719,30 +980,39 @@ function Browser:RenderNode(id)
 		view.gradient.Enabled=style.gradient~=nil
 		if style.gradient then view.gradient.Color=style.gradient end
 		view.rimColor=style.rim
+		view.fill.ImageTransparency,view.outline.ImageTransparency=style.transparency or 0,style.transparency or 0
 		if not view.flash or view.flash.PlaybackState~=Enum.PlaybackState.Playing then view.outline.ImageColor3=style.rim end
 	end
 	local waiting=self.pending[id]~=nil
 	view.icon.Visible=not hidden and view.icon.Image~=""
 	view.title.Visible,view.hidden.Visible=not hidden,hidden
+	view.numeral.Visible=not hidden and kind=="upgrade" and node.numeral~=nil
 	-- Prices only on hexes you can still buy: green when affordable, red when not.
 	local buyable=look=="available" or look=="unaffordable"
 	-- Live state changes (not the first styling after Open): a red price turning green
-	-- pulses the hex once (the HUD's badge cue is F1's); a price that appears punches.
+	-- pulses the hex once; a price that appears punches.
 	local live=view.look~=nil and view.button.Visible and self.root.Visible and not self.opening
 	if live and view.look=="unaffordable" and look=="available" then self:PulseNode(view,MOTION.ReadyScale) end
 	if live and buyable and not view.cost.Visible then Theme.Motion:Punch(view.cost,1.15,.3) end
 	view.cost.Visible=buyable
 	view.cashIcon.Visible=not waiting
-	view.price.Position=UDim2.fromScale(if waiting then 0 else .29,0)
-	view.price.Size=UDim2.fromScale(if waiting then 1 else .71,1)
+	view.price.Position=UDim2.fromScale(if waiting then 0 else COST_TEXT,0)
+	view.price.Size=UDim2.fromScale(if waiting then 1 else 1-COST_TEXT,1)
 	view.price.TextXAlignment=if waiting then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
 	view.price.Text=if waiting then "…" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
 	view.price.TextColor3=if look=="unaffordable" then RED else GREEN
-	-- Red badge only on Open hexes: how many upgrades inside you can buy. October 21
-	-- (owner): no "!" on each affordable hex; the green price already says so.
+	-- Reference parity (supersedes the October 21 "no ! on hexes" note): a red "!" on
+	-- every upgrade you can buy now, and on an Open hex how many inside you can buy.
 	local count=if kind=="open" then self:Badge(node.opens) else 0
-	view.badge.Visible=count>0
-	view.badgeText.Text=if count>99 then "99+" else tostring(count)
+	local ready=kind=="upgrade" and look=="available" and not waiting
+	local shown=count>0 or ready
+	if live and shown and ((ready and view.look=="unaffordable") or (kind=="open" and count>(view.badgeCount or 0))) then
+		Theme.Motion:Punch(view.badge,1.35,.3)
+		self.badgeRose=true
+	end
+	view.badge.Visible=shown
+	view.badgeText.Text=if ready then "!" elseif count>99 then "99+" else tostring(count)
+	view.badgeCount=count
 	local entry
 	if visible and (not view.button.Visible or view.lastHidden and not hidden) then entry={id=id,new=not view.button.Visible} end
 	view.button.Visible,view.button.Selectable=visible,visible and not hidden
@@ -784,18 +1054,20 @@ function Browser:PlaceTooltip()
 	if not self.selected then return end
 	local rootSize,origin=self.root.AbsoluteSize,self.root.AbsolutePosition
 	if rootSize.X<=0 or rootSize.Y<=0 then return end
+	-- Reference parity (t15, t17): the card sits beside the hex, its top near the hex's
+	-- top, on the right unless it would leave the screen (then on the left). The gap
+	-- clears the hex's hover growth. It stays above the bottom Close/Back button.
 	local button=self.nodes[self.selected].button
-	local at
-	if not self.persistent then
-		at=UserInputService:GetMouseLocation()-GuiService:GetGuiInset()-origin
-	else at=button.AbsolutePosition-origin+button.AbsoluteSize*Vector2.new(.75,.55) end
+	local p,s=button.AbsolutePosition-origin,button.AbsoluteSize
 	local tipSize=self.tip.AbsoluteSize
 	local margin=rootSize.Y*.012
-	local x,y=at.X+margin,at.Y+margin
-	if x+tipSize.X>rootSize.X-margin then x=at.X-tipSize.X-margin end
-	if y+tipSize.Y>rootSize.Y*.88 then y=at.Y-tipSize.Y-margin end
+	local gap=s.X*(MOTION.HoverScale-1)/2+margin
+	local floor=rootSize.Y*.88
+	local x=p.X+s.X+gap
+	if x+tipSize.X>rootSize.X-margin then x=p.X-gap-tipSize.X end
+	local y=p.Y+s.Y*.05
 	x=math.clamp(x,margin,math.max(margin,rootSize.X-tipSize.X-margin))
-	y=math.clamp(y,margin,math.max(margin,rootSize.Y*.88-tipSize.Y))
+	y=math.clamp(y,margin,math.max(margin,floor-tipSize.Y))
 	self.tip.Position=UDim2.fromScale(x/rootSize.X,y/rootSize.Y)
 end
 
@@ -828,7 +1100,10 @@ function Browser:TooltipText(id)
 		local eventOdds=Browser.EventOdds(workspace:GetServerTimeNow())
 		if eventOdds then body..=" "..eventOdds.."." end
 	end
-	if look=="unaffordable" and type(info.spendReason)=="string" and info.spendReason~="" then body..=" "..info.spendReason end
+	-- A starter-reserve hold (enough Coins, but kept back) says why; a plain shortfall
+	-- needs no words, the red price already says it.
+	local held=look=="unaffordable" and type(info.price)=="number" and self.coins>=info.price
+	if held and type(info.spendReason)=="string" and info.spendReason~="" then body..=" "..info.spendReason end
 	local price=if look~="owned" and type(info.price)=="number" then info.price else nil
 	return node.name,body,change,price,"Resets on Rebirth"
 end
@@ -836,41 +1111,43 @@ end
 function Browser:RenderTooltip()
 	local id=self.selected;if not id or not self.nodes[id] then return end
 	local title,body,change,price,footer=self:TooltipText(id)
-	local titleText,titleRows=wrap(title,22)
-	local bodyText,bodyRows=wrap(body,26)
-	local changeText,changeRows=wrap(change or "",22)
-	if not change then changeRows=0 end
+	local titleText,titleRows=wrap(title,20)
+	-- One effect sentence: the description, then the changing value in green
+	-- (current → next, or what an owned tier gives).
+	local segments:{{text:string,green:boolean?}}={{text=body}}
+	if change then table.insert(segments,{text=change,green=true}) end
+	local bodyText,bodyRows=richWrap(segments,26)
 	-- Heights in card units; the card is 240 units wide (TipWidth).
-	local y=10+30*titleRows+5
-	local dividerY=y;y+=8
-	local bodyY=y;y+=bodyRows*24+4
-	local changeY=y;y+=changeRows*27+(if change then 4 else 0)
-	local costY=y;if price then y+=42 end
-	local footerY=y;if footer then y+=24 end
+	local y=10
+	local titleY=y;y+=28*titleRows+6
+	local bodyY=y;y+=bodyRows*23+6
+	local dividerY,costY=y,y
+	if price then costY=y+10;y=costY+30+6 end
+	local footerY=y;if footer then y+=20 end
 	local height=y+8
 	local tipWidth=self:TipWidth()
 	self.tip.Size=UDim2.fromScale(1,tipWidth*height/240)
 	self.tipAspect.AspectRatio=240/height
-	self.tip.UICorner.CornerRadius=UDim.new(10/height,0)
 	self.tipTitle.Text=titleText
-	self.tipTitle.Position,self.tipTitle.Size=UDim2.fromScale(.055,10/height),UDim2.fromScale(.89,30*titleRows/height)
-	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.085,dividerY/height),UDim2.fromScale(.83,1/height)
-	self.tipEffect.Text=bodyText;self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.06,bodyY/height),UDim2.fromScale(.88,bodyRows*24/height)
+	self.tipTitle.Position,self.tipTitle.Size=UDim2.fromScale(.055,titleY/height),UDim2.fromScale(.89,28*titleRows/height)
 	-- The same card re-rendered with a new value (a purchase under the pointer): the
-	-- changed line punches. Switching hexes only animates the card itself.
+	-- sentence punches. Switching hexes only animates the card itself.
 	local same=self.tipId==id
 	self.tipId=id
-	if same and self.tipChange.Visible and change~=nil and self.tipChange.Text~=changeText then Theme.Motion:Punch(self.tipChange,1.1,.3) end
-	self.tipChange.Visible=change~=nil
-	self.tipChange.Text=changeText;self.tipChange.Position,self.tipChange.Size=UDim2.fromScale(.06,changeY/height),UDim2.fromScale(.88,changeRows*27/height)
+	if same and self.tipEffect.Text~=bodyText then Theme.Motion:Punch(self.tipEffect,1.06,.3) end
+	self.tipEffect.Text=bodyText
+	self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.055,bodyY/height),UDim2.fromScale(.89,bodyRows*23/height)
+	self.tipDivider.Visible=price~=nil
+	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.055,(dividerY+2)/height),UDim2.fromScale(.89,2/height)
 	local priceText=if price then Theme.Money(price) else ""
 	if same and self.tipCost.Visible and price~=nil and self.tipPrice.Text~=priceText then Theme.Motion:Punch(self.tipCost,1.1,.3) end
 	self.tipCost.Visible=price~=nil
-	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(costY+4)/height),UDim2.fromScale(.62,34/height)
+	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.055,costY/height),UDim2.fromScale(.89,30/height)
 	self.tipPrice.Text=priceText
-	self.tipPrice.TextColor3=if self.nodes[id].look=="unaffordable" then RED else GREEN
+	-- Gold like every Coins amount; red when it is more than you have (or held back).
+	self.tipPrice.TextColor3=if self.nodes[id].look=="unaffordable" then RED else COIN
 	self.tipFooter.Visible=footer~=nil
-	self.tipFooter.Position,self.tipFooter.Size=UDim2.fromScale(.06,footerY/height),UDim2.fromScale(.88,20/height)
+	self.tipFooter.Position,self.tipFooter.Size=UDim2.fromScale(.055,footerY/height),UDim2.fromScale(.89,18/height)
 	self:PlaceTooltip()
 end
 
@@ -896,17 +1173,18 @@ function Browser:Activate(id)
 	-- Open and Back hexes answer with the map-change cues in ShowCategory, not a Click.
 	if node.kind=="open" then self:ShowCategory(node.opens);return end
 	if node.kind=="back" then self:ShowCategory("Main");return end
-	self.app.audio:Play("Click")
+	local info=if node.kind=="upgrade" then self:Info(id) else nil
+	local refused=info~=nil and not self.pending[id] and info.status~="Owned" and not (info.status=="Available" and type(info.price)=="number")
+	-- A press answers with a Click at once; a refusal answers with its own "nope" instead.
+	if not refused then self.app.audio:Play("Click") end
 	if node.kind~="upgrade" or self.pending[id] then return end
-	local info=self:Info(id)
 	if not info then self:Feedback("Upgrades are loading…",WHITE,id);return end
 	if info.status=="Owned" then self:Feedback(node.name..": owned",GREEN,id)
 	elseif info.status=="Available" and type(info.price)=="number" then self:Purchase(id,info.price)
-	elseif info.status=="Unaffordable" then
-		self:Feedback(if type(info.spendReason)=="string" and info.spendReason~="" then info.spendReason else "Not enough Coins",RED,id)
+	elseif info.status=="Unaffordable" then self:Refuse(self:Shortfall(info),id)
 	else
 		local prerequisite=node.prerequisite and View.Nodes[node.prerequisite]
-		self:Feedback(if prerequisite then "Buy "..prerequisite.name.." first" else "Not available yet",RED,id)
+		self:Refuse(if prerequisite then "Buy "..prerequisite.name.." first" else "Not available yet",id)
 	end
 end
 
@@ -919,7 +1197,7 @@ function Browser:Purchase(id,price)
 	local requestId=self.app:Request("BuyUpgrade",{nodeId=id,expectedPrice=price})
 	if not requestId then return end
 	self.pending[id]=requestId
-	self.requests[requestId]={nodeId=id,text=text}
+	self.requests[requestId]={nodeId=id,text=text,price=price}
 	self:Render()
 	-- Unlock the hex after a lost reply; its server quote still rejects repeats.
 	task.delay(8,function()
@@ -934,8 +1212,9 @@ end
 function Browser:SetCategory(category)
 	self.category=category
 	for name,layer in self.layers do layer.Visible=name==category end
-	local open=category~="Main" and View.OpenNode(category)
-	self.title.Text=if open then "Upgrades · "..open.name else "Upgrades"
+	-- The reference's bottom button: Close on the main tree, Back in a subtree (the
+	-- subtree's name is on its red Back hex, so there is no title).
+	self.closeButton.Text=if category=="Main" then "Close" else "Back"
 end
 
 -- Open a subtree (its hexes pop in from Back) or return to the main tree where
@@ -1052,7 +1331,7 @@ function Browser:BindInput()
 		local mouse=input.UserInputType==Enum.UserInputType.MouseButton1
 		if not mouse and input.UserInputType~=Enum.UserInputType.Touch then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y)
-		if not inside(self.root,p) or inside(self.exit,p) then return end
+		if not inside(self.root,p) or inside(self.exit,p) or inside(self.closeButton,p) then return end
 		if self.drag then self.drag=nil;self:MuteHover(false);self.suppressUntil=os.clock()+.4;return end
 		self.drag={input=input,at=p,pan=self.pan,moved=false,mouse=mouse}
 	end)
@@ -1119,6 +1398,9 @@ end
 function Browser:Open()
 	if self.root.Visible then self:Focus();return end
 	self.app.audio:Play("SkillTreeOpen",nil,{noFallback=true})
+	-- The world blurs behind the tinted tree. Taken before closing the other menu so
+	-- the shared blur never drops in between (AppController.CloseOtherMenus).
+	self.app:SetMenuBlur("research",true)
 	-- Never stack over Invasions, Rebirth, Daily or another panel.
 	if self.app.CloseOtherMenus then self.app:CloseOtherMenus("research")
 	else self.app:ClosePanel();self.app.offlineCash:Dismiss(true) end
@@ -1165,8 +1447,10 @@ function Browser:Close()
 	if not self.root.Visible then return end
 	self.app.audio:Play("SkillTreeClose",nil,{noFallback=true})
 	self.root.Visible=false;self.app.hudLayer.Visible=true;self.drag=nil
+	self.app:SetMenuBlur("research",false)
 	self:MuteHover(false)
 	self.message.Visible=false;self.feedbackVersion=(self.feedbackVersion or 0)+1
+	self.delta.Visible=false;self.deltaVersion=(self.deltaVersion or 0)+1
 	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil
 	self:ClearSparks()
 	local confetti=self.map:FindFirstChild("MotionConfetti")
