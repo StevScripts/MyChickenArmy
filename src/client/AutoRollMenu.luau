@@ -4,7 +4,8 @@
 -- Auto Roll ON/OFF pill; "Stop When Appear" lists one ON/OFF row per rarity; the bottom
 -- "< Rarity >" switcher pages Rarity, Mutation and New. Later October 20 owner request:
 -- the HUD button itself turns Auto Roll on/off, and the gear beside it pops this board
--- out next to it (no power pill, no blur; a press outside closes it). When Auto Roll stops, the banner
+-- out next to it (no power pill; a press outside closes it). October 21 reference parity
+-- (REFERENCE_PARITY_20261021.md 2.1): like every popup it takes the shared blur. When Auto Roll stops, the banner
 -- "Auto Roll found a Rare chicken!" crosses the top with confetti. RollService decides
 -- everything; this only presents state.autoRoll and sends SetAutoRoll.
 local GuiService=game:GetService("GuiService")
@@ -171,6 +172,7 @@ function Menu:Dismiss(immediate: boolean?)
 	end
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
+	self.app:SetMenuBlur("autoRoll",false)
 	local function finish()
 		if self.gui~=gui then return end
 		self.gui,self.panel,self.closing=nil,nil,false
@@ -199,10 +201,11 @@ function Menu:BuildRows()
 	list.CanvasPosition=Vector2.zero
 	self.listLayout.Padding=UDim.new(0.14/slots,0)
 	for index,row in rows do
+		-- The shell's see-through inner card, studded like the reference board's rows.
 		local frame=Theme.Frame(list,row.id,UDim2.fromScale(1,0.86/slots),ROW_FILL)
-		frame.LayoutOrder,frame.BackgroundTransparency=index,0.15
-		Theme.Stroke(frame,Theme.Arcade.border,2)
-		Theme.Studs(frame,0.14,28,0)
+		frame.LayoutOrder=index
+		Theme.ShellCard(frame)
+		Theme.Studs(frame,0.07,28,0)
 		local name=Theme.Display(frame,"Name",row.name,32,row.color)
 		name.TextXAlignment,name.TextScaled,name.TextWrapped=Enum.TextXAlignment.Left,true,false
 		place(name,0.05,0.14,0.58,0.72)
@@ -238,6 +241,8 @@ function Menu:Open()
 	if self.gui and not self.closing then return end
 	self:Dismiss(true)
 	local app=self.app
+	-- Take the blur before closing the other menus, so their exit cannot clear it.
+	app:SetMenuBlur("autoRoll",true)
 	app:CloseOtherMenus("autoRoll")
 	self.previousSelection=GuiService.SelectedObject
 	local gui=Theme.InsetContainer(app.other,"AutoRollMenu",Enum.ScreenInsets.CoreUISafeInsets)
@@ -306,8 +311,8 @@ function Menu:Open()
 	layout.SortOrder,layout.Parent=Enum.SortOrder.LayoutOrder,list
 	self.list,self.listLayout=list,layout
 	local switcher=Theme.Frame(main,"Switcher",UDim2.fromScale(0.9,0.15),ROW_FILL)
-	switcher.Position,switcher.BackgroundTransparency=UDim2.fromScale(0.05,0.815),0.15
-	Theme.Stroke(switcher,Theme.Arcade.border,2)
+	switcher.Position=UDim2.fromScale(0.05,0.815)
+	Theme.ShellCard(switcher)
 	switcher:SetAttribute("OwnsPopupStyle",true)
 	local previous=Theme.Button(switcher,"Previous","<",function() app.audio:Play(cue(app,"TabSwitch","Click"),nil,{noFallback=true});self:Turn(-1) end,BLUE)
 	place(previous,0.03,0.12,0.18,0.76);Theme.Aspect(previous,1)
