@@ -102,6 +102,17 @@ load as the chicken whose stats they copied (`PetCatalog.RetiredSpecies`). A
 chicken without its own template wears its `baseSpecies` voxel model
 (`BlenderPetView`). New chickens need a voxel model before they enter the game.
 
+## Game feel (October 21, owner request)
+Stevin: every interaction, UI and world, is animated with VFX and sound, and
+everything stays responsive on every device. Use the shared vocabulary, never a
+private one: `UIMotion` (reveals, count-ups, floats, flyers, confetti, glows, bobs),
+`ScreenFeel` (shake, flash, FOV punch; the camera stays with the player) and
+`WorldFeel` (bursts, rings, poofs, sparkles, highlights, floating text, positioned
+sounds), all budgeted and reduced-motion aware. Sound cues are named in the contract
+and authored in `SoundService.MyChickenArmyAudio`; a missing cue is silent. One
+emphasis per event; Scale geometry only; hover feedback always has a tap twin.
+Contract: `docs/team/GAME_FEEL_20261021.md`.
+
 ## Simple animations — use TweenService
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 
