@@ -51,6 +51,32 @@ Tune `CollectionFeel.CoinBurst`: coin counts and budgets, `Size`, landing `Radiu
 and `Spill`, pop `Height`, the `Rise/Fall/Rest/Fly` seconds and staggers, the
 flip, the tick sound, `HoldTimeout`, the `Flash` bubble and the `SpillPuff`.
 
+## Yard feel (October 21)
+
+`CollectionFeel.Feel` holds the October 21 game-feel knobs for the yard
+([GAME_FEEL_20261021.md](team/GAME_FEEL_20261021.md), F3). Presentation only.
+
+- A laid egg plays `EggLay` (else a quiet Pop) with pitch variance and a tiny poof at
+  the chicken, one per `LaySoundGap` within `LayRange`, and grows in from
+  `LayPopFrom` with a Back overshoot on the existing settle curve (no per-egg tweens).
+- A picked egg (click, tap, R2 or the vacuum) bursts `PickBurst` sparkles where it
+  was, one per `PickBurstGap`.
+- The held vacuum hums (`VacuumLoop`) and shimmers at the nozzle
+  (`VacuumParticleRate`, fewer on touch) while it has room and an egg is in reach or
+  flying in. Its bar fills with a flash and punches its count; full, it glows red,
+  floats "Full!" and plays `VacuumFull` (else Collect at `VacuumFullPitch`).
+- A confirmed Feed: `FeedChicken` crunch (else Collect) at the chicken, crumbs, a
+  flash in the rarity colour, a hop (`HopHeight`/`HopSeconds` on Motor6D rigs; V3 rigs
+  play their Victory clip) and `ChickenHappy` (else CombatKnockoutCluck at
+  `HappyPitch`) after `HappyDelay`. The label floats "Level N!".
+- Home chickens within `CluckRange` play `Cluck1/2/3`, one every `CluckGap`.
+- A world prompt appearing ticks `UIHover` (`PromptShowGap`); using one rings the
+  ground with a Click. My Base lands with a poof, ring, `Whoosh` and a white flash
+  when the character jumps `ArrivalJump` studs in one frame.
+
+Missing cues are silent; reduced motion keeps the state changes (fill, text, glow
+ring) and drops loops, particles and the hop.
+
 ## Cash: authored Money particle burst
 
 Since October 20, egg sales use the coin burst above. The Money burst stays for

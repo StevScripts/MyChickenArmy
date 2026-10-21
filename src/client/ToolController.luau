@@ -6,6 +6,10 @@
 -- Commander guide one invisible anchor over each tool's slot (hintAnchors), and puts
 -- the native Feed prompt on the nearest of your chickens at home. ToolService owns the
 -- tools, levels and Coins.
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): the egg bar fills with a
+-- flash and its count punches; a full bar glows red, floats "Full!" and plays
+-- "VacuumFull". A confirmed Feed crunches, puffs crumbs, flashes the chicken in its
+-- rarity colour, hops it (DuckAnimator) and clucks. Budgets in CollectionFeel.Feel.
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local StarterGui=game:GetService("StarterGui")
@@ -13,6 +17,7 @@ local GuiService=game:GetService("GuiService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
 local Config=require(Shared.Config)
+local Feel=require(Shared.CollectionFeel)
 local Tools=require(Shared.VacuumConfig)
 local Theme=require(script.Parent.UITheme)
 local Controller={}
@@ -34,6 +39,8 @@ local BAR_WIDTH=0.9
 Controller.BottomReserve=ICON+GAP+BAR_HEIGHT+3
 local GOLD=Theme.Arcade.gold
 local RED=Theme.Arcade.red
+-- Feed crumbs: yellow grain to green.
+local CRUMBS=ColorSequence.new(Color3.fromRGB(236,206,96),Color3.fromRGB(158,214,92))
 
 function Controller.new(app)
  local self=setmetatable({app=app,connections={},nextPollAt=0,slots={},hintAnchors={},anchorFrames={}},Controller)
@@ -154,7 +161,13 @@ function Controller:RenderMeter(held: Tool?,_right: number)
  local vacuum=tools and tools.vacuum
  local shown=held~=nil and held.Name=="EggVacuum" and type(vacuum)=="table" and not self.app.panel.Visible
  self.meter.Visible=shown
- if not shown then return end
+ if not shown then
+  if self.meterGlow then
+   Theme.Motion:StopGlow(self.meter)
+   self.meterGlow=false
+  end
+  return
+ end
  -- Midway between My Army's row and the hotbar's top, centred under that row.
  local origin:Vector2,size:Vector2=self.screen.AbsolutePosition,self.screen.AbsoluteSize
  local hotbarTop=size.Y-(GAP+ICON)
@@ -170,14 +183,33 @@ function Controller:RenderMeter(held: Tool?,_right: number)
  local count,capacity=math.floor(vacuum.count or 0),math.max(1,math.floor(vacuum.capacity or 0))
  local full=count>=capacity
  local text=if full then "Full! Sell on the pad" else Theme.Money(count).." / "..Theme.Money(capacity)
- if self.meterCount.Text~=text then self.meterCount.Text=text end
+ if self.meterCount.Text~=text then
+  self.meterCount.Text=text
+  Theme.Motion:Punch(self.meterCount,1.12,0.22) -- The count pops as eggs arrive.
+ end
  local ratio=math.clamp(count/capacity,0,1)
  if ratio~=self.meterRatio then
-  -- Reduced motion sets the fill at once (UIMotion).
+  -- The fill tweens and flashes on gains; reduced motion sets it at once (UIMotion).
   self.meterRatio=ratio
-  Theme.Motion:Tween(self.meterFill,"fill",{Size=UDim2.fromScale(ratio,1)},0.15)
+  Theme.Motion:Progress(self.meterFill,ratio,0.3)
  end
  self.meterFill.BackgroundColor3=if full then RED else GOLD
+ if full~=self.meterGlow then
+  self.meterGlow=full
+  if full then Theme.Motion:Glow(self.meter,RED,3) else Theme.Motion:StopGlow(self.meter) end
+ end
+ if full and not self.meterFull then self:MeterFull() end
+ self.meterFull=full
+end
+
+-- The bar just filled: "VacuumFull" (else "Collect" pitched up) and "Full!" floats up
+-- off the bar. The red glow above stays until the bar empties.
+function Controller:MeterFull()
+ local audio=self.app.audio
+ if audio:Has("VacuumFull") then audio:Play("VacuumFull",nil,{voiceKey="VacuumFull",cooldown=0.5})
+ else audio:Play("Collect",Feel.Feel.VacuumFullPitch,{voiceKey="VacuumFull",cooldown=0.5,maxDuration=0.6}) end
+ local centre=Theme.Motion:CenterOf(self.meter)-Vector2.new(0,self.meter.AbsoluteSize.Y*1.4)
+ Theme.Motion:Float(self.screen,"Full!",Theme.Motion:Point(self.screen,centre),{color=RED,size=22,rise=0.05})
 end
 
 -- One native prompt that rides on the nearest of your chickens at home.
@@ -254,11 +286,38 @@ function Controller:Step(now: number)
  if part and part.Parent then self.anchor.CFrame=CFrame.new(part.Position+PROMPT_LIFT) end
 end
 
--- A fed chicken flashes gold and the purchase burst plays at the player.
+-- A fed chicken: the crunch and a crumbs puff at the chicken, a flash in its rarity
+-- colour, a happy hop and, a beat later, a cluck. ChickenLabel and LevelUpBanner do
+-- the text. A chicken that isn't in view keeps the old purchase burst at the player.
 function Controller:Receive(_state,result)
  if not result or result.action~="FeedChicken" or not result.ok then return end
- self.app.feedback:Action("Income")
- if result.petId then self.app.base:PetPulse(result.petId,Theme.Arcade.gold) end
+ local petId=result.petId
+ local model=if type(petId)=="string" then self.app.base:HomePet(petId) else nil
+ local part=if model and model:IsA("Model") then model.PrimaryPart else nil
+ if not model or not part then
+  self.app.feedback:Action("Income")
+  return
+ end
+ local pet=self.app:Pet(petId)
+ local definition=pet and Catalog[pet.species]
+ local color=(definition and Theme.Rarities[definition.rarity]) or GOLD
+ local audio,feel=self.app.audio,self.app.worldFeel
+ local at=part.Position
+ if audio:Has("FeedChicken") then audio:PlayAt("FeedChicken",at,nil,{voiceKey="FeedChicken",cooldown=0.1,pitchVariance=0.05})
+ else audio:PlayAt("Collect",at,0.9,{voiceKey="FeedChicken",cooldown=0.1,maxDuration=0.5}) end
+ if feel then
+  feel:Poof(at-Vector3.new(0,0.5,0),{color=CRUMBS,count=8,size=0.5})
+  feel:Highlight(model,color,0.6)
+ end
+ if self.app.animator then self.app.animator:Celebrate(model) end
+ task.delay(Feel.Feel.HappyDelay,function()
+  if not self.folder.Parent then return end
+  local again=self.app.base:HomePet(petId)
+  local root=if again and again:IsA("Model") then again.PrimaryPart else nil
+  local where=if root then root.Position else at
+  if audio:Has("ChickenHappy") then audio:PlayAt("ChickenHappy",where,nil,{voiceKey="ChickenHappy",cooldown=0.2,pitchVariance=0.06})
+  else audio:PlayAt("CombatKnockoutCluck",where,Feel.Feel.HappyPitch,{voiceKey="ChickenHappy",cooldown=0.2,maxDuration=0.8}) end
+ end)
 end
 
 function Controller:Destroy()

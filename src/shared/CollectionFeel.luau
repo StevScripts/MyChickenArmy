@@ -49,5 +49,22 @@ return {
 		SpillPuff = {Sparkles = 16}, -- Gold puff at the pad as the coins burst out.
 		Flash = {Size = {5, 11}, Seconds = 0.38, Transparency = 0.15, GlowTransparency = 0.55, Sparkles = 14}, -- Bubble on stepping in and on the first coin.
 	},
+	-- October 21 game feel (docs/team/GAME_FEEL_20261021.md, F3): the yard's motion,
+	-- VFX and cue budgets. A 100-chicken yard must stay cheap, so every repeating
+	-- effect has a gap and a range.
+	Feel = {
+		LaySoundGap = 0.25, LayRange = 40, -- "EggLay" (else a quiet Pop) and a tiny poof, at most this often.
+		LayPopFrom = 0.4, -- A new egg grows in from this share of its size over EggSettleSeconds (Back ease).
+		LayPoof = {Count = 4, Size = 0.6}, -- The puff where the egg leaves the chicken.
+		PickBurstGap = 0.12, -- Sparkle burst where an egg was picked (click or vacuum), at most this often.
+		PickBurst = {Count = 5, Size = 0.28},
+		VacuumParticleRate = 12, VacuumParticleRateTouch = 6, -- Suction shimmer at the nozzle while eggs are in reach.
+		VacuumFullPitch = 1.3, -- "VacuumFull", else "Collect" at this pitch, when the bar fills.
+		HopHeight = 1.5, HopSeconds = 0.45, -- A fed chicken's happy hop (joint pose; V3 rigs play their Victory clip).
+		HappyDelay = 0.22, HappyPitch = 1.15, -- "ChickenHappy", else "CombatKnockoutCluck" at this pitch, after the crunch.
+		CluckGap = 2.5, CluckRange = 40, -- One ambient Cluck1/2/3 from a random home chicken in range, at most this often.
+		PromptShowGap = 0.5, -- A soft "UIHover" when a world prompt appears, at most this often.
+		ArrivalJump = 60, -- A character jump of this many studs in one frame is a teleport (My Base): poof, ring, whoosh, flash.
+	},
 	-- Sound IDs are editable Sound objects in SoundService.MyChickenArmyAudio.
 }

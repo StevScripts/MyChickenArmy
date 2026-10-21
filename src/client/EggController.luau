@@ -4,6 +4,9 @@
 -- the nearest, holding it keeps grabbing) and it flies to you at once while the server
 -- confirms the claim (CollectEggs); a refused egg drops back. Eggs the held vacuum
 -- pulls fly into its nozzle. Walking over eggs no longer collects them.
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): a laid egg plops and grows
+-- in with a puff at the chicken, a picked egg sparkles where it was, and the held
+-- vacuum hums and shimmers while eggs are in reach. Budgets in CollectionFeel.Feel.
 local Players=game:GetService("Players")
 local ContentProvider=game:GetService("ContentProvider")
 local RunService=game:GetService("RunService")
@@ -46,6 +49,12 @@ local VACUUM_RING=Color3.fromRGB(150,214,255)
 local HINT_GOLD=Color3.fromRGB(255,214,64)
 local HINT_TAP=TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,-1,true)
 local HINT_RIPPLE=TweenInfo.new(0.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,-1)
+-- Back-out ease for the lay pop, computed in Step (VOXEL_EGGS.md: no per-egg tweens).
+local function backOut(t:number):number
+ local c1,c3=1.70158,2.70158
+ local s=t-1
+ return 1+c3*s*s*s+c1*s*s
+end
 
 function Eggs.new(app)
  return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,
@@ -266,6 +275,32 @@ function Eggs:PickupCue(collector,now)
  if self.app.hud then Theme.Motion:Pulse(if self.requiresDeposit then self.app.hud.income else self.app.hud.cashIcon,Feel.Egg.HudPulse) end
 end
 
+-- A chicken just laid: a soft "EggLay" plop (else a quiet Pop) at the egg and a tiny
+-- puff where it left the chicken, at most one per LaySoundGap across the whole yard.
+-- The egg's own grow-in rides the settle curve in Step.
+function Eggs:LayCue(view,now)
+ if now-(self.lastLay or -10)<Feel.Feel.LaySoundGap then return end
+ self.lastLay=now
+ local audio=self.app.audio
+ if audio:Has("EggLay") then
+  audio:Play("EggLay",nil,{parent=view.shell,maxDuration=0.6,voiceKey="EggLay",cooldown=Feel.Feel.LaySoundGap,pitchVariance=0.08})
+ else
+  audio:Play("Pop",1.15,{volume=0.12,parent=view.shell,maxDuration=0.4,voiceKey="EggLay",cooldown=Feel.Feel.LaySoundGap,pitchVariance=0.08})
+ end
+ local feel=self.app.worldFeel
+ if feel then feel:Poof(view.origin+Vector3.new(0,0.4,0),{count=Feel.Feel.LayPoof.Count,size=Feel.Feel.LayPoof.Size,range=Feel.Feel.LayRange}) end
+end
+
+-- A small sparkle where an egg was just picked (click, tap, R2 or the vacuum),
+-- budgeted so a vacuum pulling eight stacks a step shows a few, not a storm.
+function Eggs:PickBurst(position,now)
+ local feel=self.app.worldFeel
+ if not feel or now-(self.lastPickBurst or -10)<Feel.Feel.PickBurstGap then return end
+ self.lastPickBurst=now
+ feel:Burst(position,{color=Theme.Arcade.gold,count=Feel.Feel.PickBurst.Count,size=Feel.Feel.PickBurst.Size,
+  speed={2,5},lifetime={0.25,0.5},light=0.7,range=60})
+end
+
 function Eggs:StartFlight(view,now)
  -- Packets may already be settled. Start from the currently rendered position.
  local stagger=math.min((self.batchFlights or 0)*Feel.Egg.Stagger,Feel.Egg.MaxStartWindow)
@@ -461,6 +496,7 @@ function Eggs:Grab(view,now: number): boolean
  view.picked=true
  view.data.collector="player"
  self:StartFlight(view,now)
+ self:PickBurst(at,now)
  self:StepHover(now) -- The grabbed egg is no longer under the hand.
  return true
 end
@@ -530,14 +566,13 @@ function Eggs:Receive(snapshot)
    view.origin=Vector3.new(data.originX,data.originY,data.originZ)
    view:Set(view.ground,1,0,view.seed)
    local root=self:Root()
-   if (data.age or 0)<0.3 and root and (root.Position-view.ground).Magnitude<35 then
-    self.app.audio:Play("Pop",1.15+(view.seed%3)*0.05,{volume=0.12,parent=view.shell,maxDuration=0.4,voiceKey="EggLay",cooldown=0.2})
-   end
+   if (data.age or 0)<0.3 and root and (root.Position-view.ground).Magnitude<Feel.Feel.LayRange then self:LayCue(view,now) end
   end
   if view then
    view.data=data;view:SetValue(data.value,data.stack)
    if data.flightAge~=nil and not view.flightAt then
     self:StartFlight(view,now)
+    self:PickBurst(view.ground,now) -- The vacuum (or the server) just took it.
    end
   end
  end
@@ -600,8 +635,19 @@ function Eggs:Step(now)
  end
  local camera=workspace.CurrentCamera
  self:StepCaptions(root,camera,now)
+ -- The held vacuum is "sucking" while it has room and an egg is flying into it or
+ -- a settled one sits inside its reach; VacuumController hums and shimmers meanwhile.
+ local held=if self.vacuum:Equipped() and self.snapshot and type(self.snapshot.vacuum)=="table" then self.snapshot.vacuum else nil
+ local vacuumReach=if held and type(held.range)=="number" and (held.count or 0)<(held.capacity or 0) then held.range else nil
+ local sucking=false
  for id,view in self.views do
   local age=now-view.bornAt
+  if vacuumReach and not sucking then
+   if view.flightAt then sucking=view.data.collector=="vacuum"
+   elseif root and age>=Config.EggSettleSeconds then
+    sucking=Vector2.new(view.ground.X-root.Position.X,view.ground.Z-root.Position.Z).Magnitude<=vacuumReach
+   end
+  end
   if not view.flightAt and age>=Config.EggSettleSeconds and camera
    and (camera.CFrame.Position-view.ground).Magnitude>Config.EggSpriteMaxDistance then continue end
   local size=1+math.min(0.3,math.log(math.max(1,view.data.stack),2)*0.07)
@@ -636,13 +682,16 @@ function Eggs:Step(now)
   elseif age<Config.EggSettleSeconds and not self.app.reducedMotion then
    local t=math.clamp(age/Config.EggSettleSeconds,0,1)
    local position=view.origin:Lerp(view.ground,t)+Vector3.new(0,math.sin(t*math.pi)*1.8,0)
-   view:Set(position,size*(1+math.sin(t*math.pi)*0.08),math.sin(t*math.pi)*0.35,view.seed)
+   -- The lay pop: the egg grows in from LayPopFrom with a Back overshoot as it lands.
+   local grow=Feel.Feel.LayPopFrom+(1-Feel.Feel.LayPopFrom)*backOut(t)
+   view:Set(position,size*grow,math.sin(t*math.pi)*0.35,view.seed)
   else
    local bob=if self.app.reducedMotion then 0 else math.sin(age*2.6+view.seed)*0.07
    local pop:number=self:HoverPop(view)
    view:Set(view.ground+Vector3.new(0,bob+pop*HOVER_LIFT,0),size*(1+pop*HOVER_SCALE),0,view.seed)
   end
  end
+ self.vacuum:SetActive(sucking)
  if self.popup.Enabled then
   if not root or self.popup.Adornee~=root then
    self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
@@ -671,5 +720,6 @@ function Eggs:Destroy()
  if self.popup then self.popup:Destroy() end
  if self.tooFar then self.tooFar:Destroy() end
  if self.sparkAttachment then self.sparkAttachment:Destroy() end
+ if self.vacuum then self.vacuum:Destroy() end
 end
 return Eggs

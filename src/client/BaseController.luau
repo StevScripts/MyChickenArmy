@@ -9,6 +9,7 @@ local Catalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetC
 local Progression = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Progression)
 local CampCommand=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CampCommand)
 local Guide=require(game:GetService("ReplicatedStorage").PetRoll.Shared.TutorialGuide)
+local Feel=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CollectionFeel)
 local Theme = require(script.Parent.UITheme)
 local GuideArrow = require(script.Parent.GuideArrow)
 local RollPresentationController = require(script.Parent.RollPresentationController)
@@ -164,6 +165,38 @@ function BaseController:PetPulse(id, color)
 		if not model then return end
 		self:PulseModel(model, color)
 	end)
+end
+
+-- October 21 game feel: My Base (any teleport) lands with a poof, a ring, a whoosh
+-- and a short white flash. A jump of ArrivalJump studs in one frame by the same
+-- character is a teleport; a new character (respawn) only resets the tracker.
+-- Cutscenes (scriptable camera) move the player quietly.
+function BaseController:StepArrival()
+	local character=Players.LocalPlayer.Character
+	local root=character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		self.lastRoot=nil
+		return
+	end
+	local position=root.Position
+	local last=self.lastRootPosition
+	if root==self.lastRoot and last and (position-last).Magnitude>=Feel.Feel.ArrivalJump then self:Arrived(position) end
+	self.lastRoot,self.lastRootPosition=root,position
+end
+
+function BaseController:Arrived(position: Vector3)
+	local camera=workspace.CurrentCamera
+	if camera and camera.CameraType==Enum.CameraType.Scriptable then return end
+	local app=self.app
+	local ground=position-Vector3.new(0,2.6,0)
+	if app.worldFeel then
+		app.worldFeel:Poof(ground+Vector3.new(0,0.6,0),{count=12,size=1.6})
+		app.worldFeel:Ring(ground,{color=C.gold,radius=5,seconds=0.5})
+	end
+	local audio=app.audio
+	if audio:Has("Whoosh") then audio:Play("Whoosh",nil,{voiceKey="Arrival",cooldown=0.5})
+	else audio:Play("Pop",0.8,{voiceKey="Arrival",cooldown=0.5,volume=0.5}) end
+	if app.screenFeel then app.screenFeel:Flash(Color3.new(1,1,1),0.12,0.3) end
 end
 
 
@@ -386,6 +419,7 @@ function BaseController:Start()
 		end
 	end))
 	table.insert(self.connections,RunService.Heartbeat:Connect(function(dt)
+		self:StepArrival()
 		self.poll+=dt
 		if self.poll<0.1 then return end
 		self.poll=0;self:RefreshPromptOwnership();self:PollCommand();self:UpdateObjective();self.app:StepRecruitFeedback()
