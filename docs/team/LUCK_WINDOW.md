@@ -1,4 +1,15 @@
-# Moving Luck window — October 6, 2026 (retuned October 7)
+# Moving Luck window — October 6, 2026 (retuned October 7 and October 21)
+
+**October 21 update (Stevin, after a tester: "rare chickens way too fast", "Luck should
+take a bit"):** the shift is now `s = min(9, ChickenLuck.ShiftPerDecade × log10(M))`
+with `ShiftPerDecade = 2.25`: 2.25 bands for every x10 of strength (x2 = 0.68, x3 =
+1.07, x10 = 2.25, the stacked x400 cap 5.85). The old `9 (M − 1) / (M + 2)` curve was
+fitted for a x3 cash cap; with the October 20 tree's x1.25 … x10 tiers it put
+Legendaries on 22% of podiums at Luck IV (60K Coins, twelve minutes in) and Mythics on
+49% at Mega Luck IV. Super and Mega Luck prices moved to 5M … 400B so the ladder spans
+Rebirth 2–17 instead of the first half hour. Current odds per tier, the simulation and
+the untouched levers: `docs/team/RARITY_PACING_20261021.md`. The October 7 tables below
+describe the old curve.
 
 **October 7 update (user decision):** the opening Luck curve was far too strong.
 One $1,920 purchase cut the basic Chicken from 16% to 2.5% and tripled
@@ -42,7 +53,8 @@ earlier +0.35 opening levels are retired). Multiply that strength by eligible pa
 Luck (1 or 2) and `1 + rollingLuck` (highest research tier, currently up to 1).
 Call the combined strength `M`. The continuous upward shift is:
 
-`s = 9 * (M - 1) / (M + 2)`
+`s = min(9, 2.25 * log10(M))` since October 21 (`ChickenLuck.ShiftPerDecade`); it was
+`s = 9 * (M - 1) / (M + 2)` from October 6 to October 21.
 
 Keep 10% of the original distribution stationary. Shift the remaining 90% up by
 `s` bands, splitting fractional destinations between their neighboring bands
@@ -60,9 +72,10 @@ shows that increasing `s` never produces a weaker band; therefore every chance
 of reaching a given strength threshold or higher is nondecreasing. An individual
 middle-band species can become less common as stronger results take its place.
 
-## Initial tuning
+## Initial tuning (October 7, the old curve)
 
-October 7 values, verified in an isolated Studio sandbox:
+October 7 values with the `9 (M − 1) / (M + 2)` curve, verified in an isolated Studio
+sandbox. The October 21 table in RARITY_PACING_20261021.md is current:
 
 | Cash Luck | Paid | Research | Basic Chicken | Common | Rare | Epic | Legendary | Mythic |
 |---|---|---|---|---|---|---|---|---|

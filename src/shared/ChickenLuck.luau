@@ -13,6 +13,13 @@ local baselineShare = 0.10
 -- October 14 owner retune: only this share of the top band's final probability
 -- stays; the rest drops to the band below (see PetCatalog.LuckTopBandKeep).
 ChickenLuck.TopBandKeep = Catalog.LuckTopBandKeep
+-- October 21 (Stevin: "rare chickens way too fast", "Luck should take a bit"): bands the
+-- favored range climbs for every x10 of Luck strength. x2 moves it 0.68 bands, x3 (Luck
+-- IV) 1.07, x10 (Mega Luck IV) 2.25; the stacked cap (x10 tree, 2x pass, +100% Playtime
+-- boost, x10 Prism roll = x400) 5.85, never past the top band. The old 9 (M-1)/(M+2)
+-- curve gave Luck IV a 3.6-band shift: Legendaries on 22% of podiums twelve minutes in
+-- (docs/team/RARITY_PACING_20261021.md).
+ChickenLuck.ShiftPerDecade = 2.25
 local initialWindowEnd = 5 -- These bands contain 95.99% of baseline probability.
 local bandBySignature, bandBySpecies, memberWeights = {}, {}, {}
 local totalBudget = 0
@@ -53,9 +60,9 @@ end
 function ChickenLuck.Window(luckLevel: number, paidMultiplier: number?, researchLuckBonus: number?)
 	local paid = if paidMultiplier == 2 then 2 else 1
 	local multiplier = ChickenLuck.Multiplier(luckLevel) * paid * (1 + nonnegative(researchLuckBonus))
-	-- A bounded continuous shift leaves room for research and the verified pass.
-	-- Cash cap: 4.5 bands; cash cap + maximum research + pass: 7.5 bands.
-	local shift = (#ChickenLuck.Bands - 1) * (1 - 3 / (multiplier + 2))
+	-- A bounded continuous shift: ShiftPerDecade bands per x10 of strength, capped at the
+	-- top band, so every stacked bonus still helps and nothing overflows.
+	local shift = math.min(#ChickenLuck.Bands - 1, ChickenLuck.ShiftPerDecade * math.log10(math.max(1, multiplier)))
 	local left, right = 1 + shift, math.min(#ChickenLuck.Bands, initialWindowEnd + shift)
 	local firstName = Catalog[ChickenLuck.Bands[math.floor(left)].species].name
 	local lastName = Catalog[ChickenLuck.Bands[math.ceil(right)].species].name

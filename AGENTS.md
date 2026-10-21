@@ -119,6 +119,18 @@ and authored in `SoundService.MyChickenArmyAudio`; a missing cue is silent. One
 emphasis per event; Scale geometry only; hover feedback always has a tap twin.
 Contract: `docs/team/GAME_FEEL_20261021.md`.
 
+## Rarity pacing (October 21, tester feedback through Stevin)
+"Rare chickens way too fast; Luck maxed from the start; check the Playtime money." Luck
+strength moves the favored range `ChickenLuck.ShiftPerDecade` (2.25) bands per x10 of
+Luck (x3 = 1.07 bands, Legendary 3.7% a podium; x10 = 2.25, Legendary 8.6%), never the
+old `9 (M − 1)/(M + 2)` curve that put Legendaries on 22% of podiums at Luck IV. Super
+Luck is priced for Rebirth 2–5 (5M–2B) and Mega Luck for Rebirth 7–17 (10B–400B).
+Playtime Coins tiles pay 0.4 minutes of income per reference unit (21.4 min an hour, was
+53.5) and are fixed when the tile unlocks. Base "1 in X" odds, chicken prices and the
+free 4-second lever were left alone (the levers if ownership must slow too). Re-run
+`tools/sim/rarity_probe.luau` and `odds_table.luau` before touching any of these:
+`docs/team/RARITY_PACING_20261021.md`.
+
 ## Simple animations — use TweenService
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 

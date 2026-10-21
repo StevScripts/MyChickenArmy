@@ -21,7 +21,7 @@ local DailyService = require(script.Parent.DailyService)
 local PlaytimeService = {}
 local random = Random.new()
 
-type Visit = {startedAt: number?, claimed: {[number]: boolean}}
+type Visit = {startedAt: number?, claimed: {[number]: boolean}, locked: {[number]: number}?}
 type Boost = {bonus: number, endsAt: number}
 
 local function serverNow(): number
@@ -51,6 +51,24 @@ function PlaytimeService.Played(session, now: number?): number
 	local startedAt = record(session).startedAt
 	if type(startedAt) ~= "number" then return 0 end
 	return math.max(0, (now or serverNow()) - startedAt)
+end
+
+-- October 21 (Stevin: "check if the playtime rewards money is unbalanced"): a Coins
+-- tile's amount is fixed the moment it unlocks, from the steady income at that moment,
+-- so waiting to claim it until income has grown pays no more. Snapshot and Claim both
+-- read it here, so the number the panel shows is the number paid (before the wallet cap).
+local function lockedCoins(session, playtime: Visit, slot: number, tile, income: number?): number
+	local locked = playtime.locked
+	if type(locked) ~= "table" then
+		locked = {}
+		playtime.locked = locked
+	end
+	local amount = locked[slot]
+	if type(amount) ~= "number" then
+		amount = math.floor((income or DailyService.Income(session)) * (tile.coinMinutes or 0) * 60)
+		locked[slot] = amount
+	end
+	return amount
 end
 
 -- The running bonus of a boost kind (+1 = +100%), 0 when none runs.
@@ -113,7 +131,9 @@ function PlaytimeService.Claim(session, index: any): (boolean, string, any)
 	local receipt: {[string]: any} = {index = index, kind = tile.kind}
 	local message
 	if tile.kind == "Coins" then
-		local coins = DailyService.CashFor(session, tile.coinMinutes or 0)
+		local slot = table.find(PlaytimeRewards.Tiles, tile) or index
+		local headroom = math.max(0, Currency.MaxCoins - session.coins)
+		local coins = math.floor(math.min(lockedCoins(session, playtime, slot, tile), headroom))
 		if coins > 0 then coins = session:Credit(coins, "playtime") end
 		-- Nothing paid (the wallet is full): the tile stays ready.
 		if coins <= 0 then return false, "You can't hold any more Coins right now.", nil end
@@ -146,21 +166,29 @@ function PlaytimeService.Claim(session, index: any): (boolean, string, any)
 	return true, message, receipt
 end
 
--- state.playtime: every tile with its server-time unlock and, for Coins, what it pays
--- right now (the steady income moves, so the number does too). The same sum as
--- DailyService.CashFor, with the income read once instead of once per tile.
+-- state.playtime: every tile with its server-time unlock and, for Coins, what it pays:
+-- a locked tile projects today's steady income (the number moves with it), an unlocked
+-- tile shows its fixed amount. The same sum as DailyService.CashFor, with the income
+-- read once instead of once per tile.
 function PlaytimeService.Snapshot(session)
 	local playtime = PlaytimeService.Begin(session)
 	local startedAt = playtime.startedAt
+	local now = serverNow()
 	local income = DailyService.Income(session)
 	local headroom = math.max(0, Currency.MaxCoins - session.coins)
 	local tiles = {}
 	for index, tile in PlaytimeRewards.Tiles do
+		local coins = nil
+		if tile.kind == "Coins" then
+			local unlocked = startedAt ~= nil and now >= startedAt + tile.at * 60
+			local amount = if unlocked then lockedCoins(session, playtime, index, tile, income) else income * (tile.coinMinutes or 0) * 60
+			coins = math.floor(math.min(amount, headroom))
+		end
 		tiles[index] = {
 			index = index, kind = tile.kind, at = tile.at,
 			unlockAt = if startedAt then startedAt + tile.at * 60 else nil,
 			claimed = playtime.claimed[index] == true,
-			coins = if tile.kind == "Coins" then math.floor(math.min(income * (tile.coinMinutes or 0) * 60, headroom)) else nil,
+			coins = coins,
 		}
 	end
 	return {enabled = PlaytimeRewards.Enabled, startedAt = startedAt, tiles = tiles}

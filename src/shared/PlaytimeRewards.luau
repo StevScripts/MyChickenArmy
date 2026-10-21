@@ -5,6 +5,10 @@
 -- 1 : 1.5 : 2.5 : 5 : 6 : 7.5 : 12.5 : 17.5 ratios (minutes of steady egg income), two
 -- Luck boosts, one Coins boost and Free Rolls on the last tile. Stevin, October 20:
 -- the clock and the claims reset every join; nothing is saved.
+-- October 21 (Stevin: "check if the playtime rewards money is unbalanced"): one unit is
+-- 0.4 minutes of income, 21.4 minutes over the hour (was 1 minute each, 53.5 minutes:
+-- 20–27% of every Coin earned, 31% for two 30-minute visits a day). A tile's amount is
+-- fixed when it unlocks (PlaytimeService), so waiting to claim pays no more.
 -- Server: PlaytimeService pays the tiles and owns the timed boosts. Client:
 -- PlaytimePanel draws them from state.playtime; BoostReadout shows state.boosts.
 local PlaytimeRewards = {}
@@ -28,17 +32,17 @@ local function tile(entry: Tile): Tile
 end
 
 PlaytimeRewards.Tiles = table.freeze({
-	tile({at = 1, kind = "Coins", coinMinutes = 1, color = "Blue"}),
-	tile({at = 3, kind = "Coins", coinMinutes = 1.5, color = "Blue"}),
-	tile({at = 5, kind = "Coins", coinMinutes = 2.5, color = "Blue"}),
+	tile({at = 1, kind = "Coins", coinMinutes = 0.4, color = "Blue"}),
+	tile({at = 3, kind = "Coins", coinMinutes = 0.6, color = "Blue"}),
+	tile({at = 5, kind = "Coins", coinMinutes = 1, color = "Blue"}),
 	tile({at = 8, kind = "Boost", boost = "Luck", bonus = 1, minutes = 5, color = "Pink"}),
-	tile({at = 12, kind = "Coins", coinMinutes = 5, color = "Blue"}),
-	tile({at = 15, kind = "Coins", coinMinutes = 6, color = "Green"}),
-	tile({at = 20, kind = "Coins", coinMinutes = 7.5, color = "Blue"}),
+	tile({at = 12, kind = "Coins", coinMinutes = 2, color = "Blue"}),
+	tile({at = 15, kind = "Coins", coinMinutes = 2.4, color = "Green"}),
+	tile({at = 20, kind = "Coins", coinMinutes = 3, color = "Blue"}),
 	tile({at = 25, kind = "Boost", boost = "Coins", bonus = 0.5, minutes = 10, color = "Gold"}),
-	tile({at = 30, kind = "Coins", coinMinutes = 12.5, color = "Blue"}),
+	tile({at = 30, kind = "Coins", coinMinutes = 5, color = "Blue"}),
 	tile({at = 40, kind = "Boost", boost = "Luck", bonus = 1, minutes = 10, color = "Pink"}),
-	tile({at = 50, kind = "Coins", coinMinutes = 17.5, color = "Green"}),
+	tile({at = 50, kind = "Coins", coinMinutes = 7, color = "Green"}),
 	tile({at = 60, kind = "Rolls", rolls = 3, color = "Gold"}),
 }) :: {Tile}
 

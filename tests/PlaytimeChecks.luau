@@ -48,7 +48,7 @@ function Checks.Run()
 		assert(table.concat(at,",")=="1,3,5,8,12,15,20,25,30,40,50,60",table.concat(at,","))
 		local coins={}
 		for _,tile in tiles do if tile.kind=="Coins" then table.insert(coins,tile.coinMinutes) end end
-		assert(table.concat(coins,",")=="1,1.5,2.5,5,6,7.5,12.5,17.5",table.concat(coins,","))
+		assert(table.concat(coins,",")=="0.4,0.6,1,2,2.4,3,5,7",table.concat(coins,","))
 		assert(tiles[4].boost=="Luck" and tiles[4].bonus==1 and tiles[4].minutes==5,"Tile 4")
 		assert(tiles[8].boost=="Coins" and tiles[8].bonus==0.5 and tiles[8].minutes==10,"Tile 8")
 		assert(tiles[10].boost=="Luck" and tiles[10].minutes==10,"Tile 10")
@@ -85,7 +85,7 @@ function Checks.Run()
 		assert(not ok and string.find(message,"^Keep playing!")~=nil,"Locked: "..tostring(message))
 		played(s,1.02)
 		local before=s.coins
-		local expected=math.floor(math.min(DailyService.Income(s)*60,Currency.MaxCoins-s.coins))
+		local expected=math.floor(math.min(math.floor(DailyService.Income(s)*Rewards.Tiles[1].coinMinutes*60),Currency.MaxCoins-s.coins))
 		local receipt
 		ok,message,receipt=Playtime.Claim(s,1)
 		assert(ok,message)
@@ -199,6 +199,19 @@ function Checks.Run()
 		t.CollectionLimit=function() return t:Count()+3 end
 		assert(Playtime.Claim(t,12),"Claim after making room")
 		return message.." (seed "..seed..")"
+	end)
+
+	test("A Coins tile's amount is fixed when it unlocks, so claiming later pays no more",function()
+		local s=fixture(-9611)
+		played(s,1.02)
+		local shown=Playtime.Snapshot(s).tiles[1].coins
+		assert(shown and shown>0,"Shown "..tostring(shown))
+		s.rebirths=(s.rebirths or 0)+1 -- steady income doubles; the unlocked tile does not
+		assert(DailyService.CashFor(s,Rewards.Tiles[1].coinMinutes)>shown,"Income grew")
+		local ok,message,receipt=Playtime.Claim(s,1)
+		assert(ok,message)
+		assert(receipt.coins==shown,"Paid "..tostring(receipt.coins).." for a tile shown as "..shown)
+		return "Shown "..shown..", paid "..receipt.coins
 	end)
 
 	test("The snapshot lists every tile with its server-time unlock and current Coins",function()
