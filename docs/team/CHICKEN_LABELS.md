@@ -45,8 +45,10 @@ When the server's `FeedChicken` reply is ok:
 - A gold "Level up!" pops over the chicken, rises and fades in about 1.2 s.
 - The banner shows (`src/client/LevelUpBanner.luau`): `Duck leveled up! LVL 3 → 4` in
   gold lettering with no panel.
-  - It sits in the notice's slot at the top centre, below the Commander card or the
-    Hill title. A notice showing at the same time pushes it just below that notice.
+  - It sits at the top centre, 22% down the screen like the reference (S12b's Auto
+    Roll banner uses the same height). It moves lower when the notice's slot moves
+    down for the Commander card or the Hill title. A notice showing at the same time
+    pushes it just below that notice.
   - It pops in, holds 4.3 s, then shrinks up and fades (the reference shows it for
     about 4.6 s). A second level while it shows only bumps it.
   - The numbers come from ToolService's reply ("Lv 3 → 4"), else from the snapshot.
@@ -84,5 +86,8 @@ When the server's `FeedChicken` reply is ok:
   "Level up!", the banner and its timing, and that the green notice is gone. Feed
   twice quickly. Try one at the max level.
 - With a notice already showing (for example an error), the banner sits below it.
+  With the Commander card or the Hill title up, it sits below them.
+- An Auto Roll stop banner and a Feed level at the same moment share that height.
+  This is rare; check that it reads acceptably.
 - Phone (landscape) and PC, and reduced motion on and off. The intro and Hill
   cutscenes and roll reveals show no label.

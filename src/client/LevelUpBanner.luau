@@ -12,8 +12,9 @@ Banner.__index=Banner
 
 -- The reference shows it for about 4.6 s in all.
 local HOLD_SECONDS=4.3
--- Screen shares: one line of lettering, the reference's size.
+-- Screen shares: one line of lettering, the reference's size and height on screen.
 local WIDTH,HEIGHT=0.62,0.055
+local REFERENCE_Y=0.22
 
 function Banner.new(app)
 	local self=setmetatable({app=app,connections={},serial=0,leaving=false,alive=true},Banner)
@@ -33,8 +34,9 @@ function Banner.new(app)
 	return self
 end
 
--- The notice's slot (it already makes room for the Commander card and the Hill title),
--- or just under a notice that is showing, so the two never overlap.
+-- The reference's height, lower when the notice's slot moves down for the Commander
+-- card or the Hill title, and just under a notice that is showing, so the two never
+-- overlap.
 function Banner:Place(animate: boolean)
 	local app=self.app
 	local slot=app:NoticePosition().Y.Scale
@@ -42,7 +44,7 @@ function Banner:Place(animate: boolean)
 	local parent=self.group.Parent
 	local tall=if parent and parent:IsA("GuiObject") and parent.AbsoluteSize.Y>0
 		then toast.AbsoluteSize.Y/parent.AbsoluteSize.Y else 0.115
-	local y=if toast.Visible and not app.noticeLeaving then slot+HEIGHT/2+0.012 else slot-tall/2
+	local y=if toast.Visible and not app.noticeLeaving then slot+HEIGHT/2+0.012 else math.max(REFERENCE_Y,slot-tall/2)
 	local goal=UDim2.fromScale(0.5,y)
 	if animate then
 		Theme.Motion:Tween(self.group,"banner-place",{Position=goal},0.15)
