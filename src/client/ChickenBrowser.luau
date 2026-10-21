@@ -882,7 +882,7 @@ end
 function Browser:FitCells()
 	local look=if self.compact then LAYOUTS.Compact else LAYOUTS.Normal
 	local gap=self.grid.AbsoluteSize.X*look.gap/GRID.w
-	self.gridLayout.CellSize=UDim2.new(look.cell/GRID.w,0,0,0)
+	self.gridLayout.CellSize=UDim2.new(look.cell/GRID.w,0,0,100000) -- the aspect fits it by width
 	self.gridLayout.CellPadding=UDim2.new(look.gap/GRID.w,0,0,math.floor(gap+1.5))
 	self.fitGrid()
 end
