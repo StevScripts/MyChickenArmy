@@ -460,7 +460,9 @@ function Menu:Card(parent,pet,order)
 	local name=label(card,"Name",(definition.name:gsub(" Chicken$","")),WHITE)
 	name.Position,name.Size,name.TextXAlignment=UDim2.fromScale(5/210,161/220),UDim2.fromScale(200/210,26/220),Enum.TextXAlignment.Center
 	local stats=Rules.Stats(pet.species,pet.stars or 1,pet.level)
-	local effects=self.app.state and self.app.state.research and self.app.state.research.effects
+	-- Upgrades effects (state.effects since October 20; research.effects before).
+	local state=self.app.state
+	local effects=state and (state.effects or (state.research and state.research.effects))
 	local damage=stats.damage*(1+(effects and effects.damage or 0))
 	local strength=label(card,"Damage",Theme.Number(damage/stats.interval).." DPS",Color3.fromRGB(255,221,96),true)
 	strength.Position,strength.Size,strength.TextXAlignment=UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),Enum.TextXAlignment.Center

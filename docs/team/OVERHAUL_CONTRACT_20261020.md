@@ -58,7 +58,7 @@ dropped, and nothing here can fail a load.
 | `passGemGifts` | `{[passKey]: true}`, `{}` | S7 | No |
 | `missionTierLegacy` | 0–3, `0` | S7 (migration) | No |
 | `flockSelection` | `nil` = automatic, or `{petId}` manual layers | **S10** | No (filtered to Flock Size) |
-| `eggVacuum` | boolean, `false` | **S11/S14** set it when the guide ends; S7 sets it for existing players who finished or skipped the guide | No |
+| `eggVacuum` | boolean, `false` | Legacy grant only (S14, Oct 20): a `true` from the conversion or an earlier revision-12 save becomes that run's `EggVacuum` tree node on load, then saves `false`. The vacuum itself is bought (§4) | – |
 | `vacuumCargo` | `{count, value}`, `{count=0,value=0}` | **S11** | Yes |
 | `autoRoll` | `{enabled, stopAt, recruitAt?, mutationStop}` | **S12** (`recruitAt`, `mutationStop` are new; S12 may change `Config.AutoRollStops`) | No |
 | `goldRolls` | `{count}` lever pulls toward the next special pull, `{count=0}` | **S12** | Yes |
@@ -76,7 +76,8 @@ returns it; loads accept up to it. Timed yard builds are retired (`plotBuild` is
 always nil; a saved build in progress completes during conversion).
 
 Tutorial flags: to save a new `tutorial.<flag>`, add it to the `TUTORIAL_KEYS` list
-in `PlayerSession` (one line) and list it in your hand-off.
+in `PlayerSession` (one line) and list it in your hand-off. S14 added `vacuumUsed`
+(the vacuum's first egg; ends the "Equip your Egg Vacuum" Next goal).
 
 ## 3. Requests (`RequestAction`)
 
@@ -137,8 +138,8 @@ UpgradeCatalog.NodeId(family, tier) -> string
 
 Node ids: `<Family><tier>` (`EggSpeed1`…`EggSpeed4`); a one-tier family uses its bare
 family id (`ChickenFeed`). Special nodes: `Start`, `OpenTools`, `OpenPlayer`,
-`OpenArmy`, `ToolsBack`, `PlayerBack`, `ArmyBack`, `EggVacuum` (a "tool" node: the
-free vacuum, shown for context, never bought).
+`OpenArmy`, `ToolsBack`, `PlayerBack`, `ArmyBack`. `EggVacuum` is an ordinary one-tier
+upgrade since S14 (Stevin, Oct 20: bought in Tools, resets on Rebirth).
 
 | Category | Family id (name) | Tiers | Value per tier (draft) | Effect or derived field |
 |---|---|---|---|---|
@@ -153,6 +154,7 @@ free vacuum, shown for context, never bought).
 | Main | `GoldRate` (Gold Rate) | 2 | 1, 2 | `goldRate` |
 | Main | `DiamondMachine` | 1 | unlock | `goldMachine` = 2 |
 | Main | `PrismMachine` (placeholder name; S12/Stevin may rename) | 1 | unlock | `goldMachine` = 3 |
+| Tools | `EggVacuum` (Egg Vacuum) | 1 | unlock, 500 Coins (S14) | `eggVacuum` = 1; `ToolService.Owns` reads it |
 | Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | +15, +30, +60, +90 s of laying (45/60/90/120 s with the 30 s base) | `vacuumCapacity` |
 | Tools | `VacuumRange` (Vacuum Range) | 2 | bonus studs | `vacuumRange` |
 | Tools | `ChickenFeed` (Chicken Feed) | 1 | unlock | `chickenFeed` = 1 |
@@ -172,8 +174,7 @@ Prerequisites: tier n needs tier n−1; tier 1 needs its category root (`Start` 
 subtree's Back), except `GoldMachine` (needs `RollSlot1`), `GoldRate1` (needs
 `GoldMachine`), `DiamondMachine` (needs `GoldRate2`), `PrismMachine` (needs
 `DiamondMachine`), `BossDamage` (needs `Damage3`), and `VacuumCapacity1` /
-`VacuumRange1` (need `EggVacuum`, which always counts as owned: a player can buy
-capacity before the guide grants the vacuum). Hex positions ship in the catalog;
+`VacuumRange1` (need the bought `EggVacuum`; S14). Hex positions ship in the catalog;
 S9 may ask S7 to move them. Ids never change.
 
 Prices may scale with Rebirth rank (P0 decides). That is why prices only come
@@ -200,6 +201,7 @@ Upgrade levels. Where a key has both, they add.
 | `rallySeconds` | 0 | – | Rally: 8 s, then 12 s | ArmyAbilities (unchanged) |
 | `callArmy` | 1 | – | – | Always 1 (free) |
 | `flockSize` | 3 | Flock | – | S10 (`session:FlockSize()`) |
+| `eggVacuum` | 0 | Egg Vacuum = 1 (S14) | – | ToolService (the held tool), EggService (pulls eggs) |
 | `vacuumCapacity` | 0 | Vacuum Capacity (bonus seconds) | Vacuum Capacity +15 s/level | S11: seconds = 30 s base (`VacuumConfig`) + this; capacity in eggs = seconds × the Flock's current eggs/s (Stevin, Oct 20) |
 | `vacuumRange` | 0 | Vacuum Range | – | S11 |
 | `chickenFeed` | 0 | Chicken Feed = 1 | – | S11; `ArmyService.UpgradeChicken` requires it (S7 gate) |
@@ -325,7 +327,8 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 - **Keeps:** chickens (rolled and Fuse levels, Giants, mutations), Index, rank,
   Gems, Gem Upgrades, passes, daily streak, Hill wins, **camp and King progress**
   (`firstWins`, `frontierWins`, `laneCamps`, `kingCleared`, `kingBountyPaid`), the
-  tutorial, the vacuum, Auto Roll settings, selections (filtered to the new sizes).
+  tutorial, Auto Roll settings, selections (filtered to the new sizes). The Egg Vacuum
+  is a tree node since S14, so it resets with the tree.
 - **Enemy scale:** x1 through Rebirth 2, then +0.25 per rank (x3 at Rebirth 10, x8 at 30).
   Camps scale by the **attacker's** rank. The `BattleService` call-site change is
   cleared with the lead.
@@ -412,7 +415,7 @@ bonus with the new tier values; ties round up.
 | Running research jobs | Count as finished |
 | Unused paid research-skip time (`research.skipCredit`) | Gems: 1 per 5 minutes, rounded up |
 | Rebirth 1 / Rebirth 2 holders | Keep rank and multiplier; 100 / 220 Gems; their Rebirth chickens |
-| Finished or skipped Commander guide (or a pre-starter-army cohort) | `eggVacuum = true` |
+| Finished or skipped Commander guide (or a pre-starter-army cohort) | `EggVacuum` node owned for this run (S14; via the `eggVacuum` flag) |
 | Anyone who ever bought a chicken level (`cashLevels`) | `ChickenFeed` node owned for this run |
 | Coins, chickens and their levels, Index, passes, receipts | Unchanged |
 

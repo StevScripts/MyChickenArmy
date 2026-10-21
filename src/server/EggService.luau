@@ -477,7 +477,8 @@ function EggService:Step(sessions,dt,now)
   local yard=self:Yard(session)
   self:SettleClaims(session,yard,now,false)
   local position,character,humanoid,root=playerRoot(session)
-  if root and session.eggVacuum==true and holding(character,VACUUM_TOOL) then self:Vacuum(session,yard,root,now) end
+  -- The vacuum is an Upgrades > Tools node (October 20, S14); a Rebirth takes it back.
+  if root and (session.researchEffects.eggVacuum or 0)>=1 and holding(character,VACUUM_TOOL) then self:Vacuum(session,yard,root,now) end
   for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end
   for i=#(yard.deposits or {}),1,-1 do if now-yard.deposits[i].at>3 then table.remove(yard.deposits,i) end end
   self:Deposit(session,position,now)

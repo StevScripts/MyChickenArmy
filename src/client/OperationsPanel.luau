@@ -175,7 +175,7 @@ function Panel:Refresh(force: boolean?)
 	for id in data.wins or {} do table.insert(wins,id) end
 	table.sort(wins)
 	local key=table.concat({tostring(self.tier),tostring(self.selected),tostring(data.tier),table.concat(wins,","),
-		tostring(data.activeId),tostring(data.pendingReward),tostring(state.power),tostring(state.research and state.research.revision),
+		tostring(data.activeId),tostring(data.pendingReward),tostring(state.power),
 		tostring(state.armyState)},"|")
 	if not force and key==self.key then return end
 	self.key=key
@@ -287,7 +287,7 @@ function Panel:BuildDetail(content,data,state)
 		local home=state.armyState=="Home" or state.armyState=="Following"
 		button=Theme.ActionButton(content,"Deploy",if not home then "Army busy" elseif cleared then "Defend again" else "Defend",function()
 			if not home then return end
-			app:Request("StartOperation",{operationId=id,expectedRevision=state.research and state.research.revision})
+			app:Request("StartOperation",{operationId=id})
 		end,if home then GREEN else Theme.ActionColors.disabled)
 		button.Active=home
 	end

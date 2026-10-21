@@ -245,10 +245,13 @@ function Commander:Celebrate()
 	end)
 end
 
-function Commander:Signal(signal)
-	local input=if UserInputService.PreferredInput==Enum.PreferredInput.Touch then "Touch"
+function Commander:InputKind()
+	return if UserInputService.PreferredInput==Enum.PreferredInput.Touch then "Touch"
 		elseif UserInputService.PreferredInput==Enum.PreferredInput.Gamepad then "Gamepad" else "Keyboard"
-	self.app:Request("TutorialSignal",{signal=signal,input=input})
+end
+
+function Commander:Signal(signal)
+	self.app:Request("TutorialSignal",{signal=signal,input=self:InputKind()})
 end
 
 function Commander:ClearFocus()
@@ -257,6 +260,37 @@ end
 
 function Commander:Focus(target)
 	self.pointerGuide:SetTarget(target,self.app.reducedMotion)
+end
+
+-- The guided Upgrades hex: the HUD Upgrades button, the hex itself, or the Open or
+-- Back hex on the way to its map. In My Army, the Flock or Army "+" opens the same
+-- hex (October 20 launch review: Expand quitters opened My Army, not Upgrades).
+function Commander:UpgradeTarget(nodeId,inTree,inArmy)
+	local app=self.app
+	local node=CashNodes.Nodes[nodeId]
+	if not node then return nil end
+	if inTree then
+		local research=app.research
+		local category=research.category or "Main"
+		local open=CashNodes.OpenNode(node.category)
+		local show=if node.category==category then nodeId
+			elseif category=="Main" then (open and open.id) else CashNodes.Roots[category]
+		local view=show and research.nodes[show]
+		return view and view.button
+	end
+	if inArmy then
+		local browser=app.chickenBrowser
+		return if node.family=="Flock" then browser.flockPlus elseif node.family=="ArmySize" then browser.capacityPlus else nil
+	end
+	return if app.panel.Visible then nil else app.hud.shortcuts:FindFirstChild("Upgrades")
+end
+
+-- A tool's dock slot (Egg Vacuum or Chicken Feed); the dock hides itself behind menus.
+-- Roblox's own hotbar is CoreGui, so without the custom dock there is no pointer.
+function Commander:ToolSlot(name)
+	local dock=self.app.tools and self.app.tools.dock
+	local slot=dock and dock.slots and dock.slots[name]
+	return slot and slot.button
 end
 
 function Commander:Update()
@@ -273,7 +307,7 @@ function Commander:Update()
 	if not self.ready and not blocked and character and character:FindFirstChild("HumanoidRootPart") then
 		self.ready=true;self:Signal("Ready")
 	end
-	local current=Guide.Resolve(state)
+	local current=Guide.Resolve(state,self:InputKind())
 	if self.completedBeforeVisit and current and current.id=="Complete" then current=nil end
 	-- The victory line stays eight seconds, then the same strip carries a
 	-- snapshot-derived next goal (also for players who finished earlier).
@@ -328,23 +362,37 @@ function Commander:Update()
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end
 	if inTree~=self.wasTree then
 		self.wasTree=inTree;self:Signal(if inTree then "TreeOpen" else "TreeClose")
-		if inTree and id=="Expand" then
-			local node=CashNodes.NextId("ArmySize",state.boardUpgrades.ArmySize)
-			app.research:Center(node)
-			if UserInputService.GamepadEnabled then app.research:Select(node,true);GuiService.SelectedObject=app.research.nodes[node].button end
-		end
+	end
+	-- The Flock Size I and Army Size I lessons center their hex once per tree visit,
+	-- including when the second lesson starts with the tree still open.
+	local lessonNode=if id=="Flock" or id=="Expand" then current.node else nil
+	if not inTree then
+		self.centered=nil
+	elseif lessonNode and self.centered~=lessonNode and app.research.nodes[lessonNode] then
+		self.centered=lessonNode
+		app.research:Center(lessonNode)
+		if UserInputService.GamepadEnabled then app.research:Select(lessonNode,true);GuiService.SelectedObject=app.research.nodes[lessonNode].button end
 	end
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
 	local target
-	if not blocked and id=="Expand" then
-		if inTree then
-			local node=CashNodes.NextId("ArmySize",state.boardUpgrades.ArmySize)
-			target=app.research.nodes[node] and app.research.nodes[node].button
-			if app.research.selected==node and not self.sent.NodeInspect then self.sent.NodeInspect=true;self:Signal("NodeInspect") end
-		elseif not app.panel.Visible then target=app.hud.shortcuts:FindFirstChild("Upgrades") end
-	elseif not blocked and id=="Select" then
-		target=if inTree then app.research.root:FindFirstChild("Exit",true)
-			elseif inArmy then app.chickenBrowser.best elseif not app.panel.Visible then app.hud.army else nil
+	local where=current.target
+	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
+	if blocked then
+		target=nil
+	elseif id=="Select" then
+		target=if inTree then exit elseif inArmy then app.chickenBrowser.best elseif not app.panel.Visible then app.hud.army else nil
+	elseif id=="Deploy" then
+		-- October 20 launch review: 60% of Deploy quitters were still inside Upgrades.
+		target=if inTree then exit else nil
+	elseif where=="Upgrades" and current.node then
+		target=self:UpgradeTarget(current.node,inTree,inArmy)
+		if id=="Expand" and inTree and app.research.selected==current.node and not self.sent.NodeInspect then
+			self.sent.NodeInspect=true;self:Signal("NodeInspect")
+		end
+	elseif where=="VacuumTool" or where=="FeedTool" then
+		target=if app.panel.Visible or inTree then nil else self:ToolSlot(if where=="VacuumTool" then "EggVacuum" else "ChickenFeed")
+	elseif where=="Rebirth" then
+		target=if app.panel.Visible or inTree then nil else app.hud.reenlist
 	end
 	self:Focus(target)
 end

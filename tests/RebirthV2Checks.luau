@@ -371,27 +371,49 @@ function Checks.Run()
 	test("Revision 12 saves keep the tree, Gems, Skip credits and settings",function()
 		local s=fixture(-9315)
 		s.rebirths=4
-		s.upgradeTree={EggSpeed=2,Flock=3,ArmySize=1}
+		-- S14: the Egg Vacuum is a bought Tools node (Stevin, October 20).
+		s.upgradeTree={EggSpeed=2,Flock=3,ArmySize=1,EggVacuum=1}
 		s.gemUpgrades={AutoRoll=1,CoinBoost=3,TimeSkip=2}
 		s:RefreshEffects()
 		s.gems,s.gemsEarned=77,300
-		s.autoRebirth,s.rebirthSkips,s.missionTierLegacy,s.eggVacuum=false,2,1,true
+		s.autoRebirth,s.rebirthSkips,s.missionTierLegacy=false,2,1
 		s.rebirthChickenCredits={"Veteran2"}
 		local data=s:ToData()
 		assert(data.dataRevision==12 and Config.DataRevision==12,"Revision "..tostring(data.dataRevision))
 		local t=Session.new(-9315,"Restore fixture",1)
 		local ok,message=t:LoadData(data)
 		assert(ok and message=="Loaded.",message)
-		assert(t.rebirths==4 and levelsText(t.upgradeTree)=="ArmySize=1, EggSpeed=2, Flock=3",levelsText(t.upgradeTree))
+		assert(t.rebirths==4 and levelsText(t.upgradeTree)=="ArmySize=1, EggSpeed=2, EggVacuum=1, Flock=3",levelsText(t.upgradeTree))
 		assert(t.gems==77 and t.gemsEarned==300 and levelsText(t.gemUpgrades)=="AutoRoll=1, CoinBoost=3, TimeSkip=2",
 			levelsText(t.gemUpgrades))
-		assert(t.autoRebirth==false and t.rebirthSkips==2 and t.missionTierLegacy==1 and t.eggVacuum==true,"Settings")
+		assert(t.autoRebirth==false and t.rebirthSkips==2 and t.missionTierLegacy==1 and t.eggVacuum==false,"Settings")
 		assert(#t.rebirthChickenCredits==1 and t.rebirthChickenCredits[1]=="Veteran2","Chicken credits")
-		assert(t.eggSpeedLevel==2 and t.capacity==4 and t:FlockSize()==6 and t.researchEffects.timeSkipMinutes==10,
-			"Derived fields")
+		assert(t.eggSpeedLevel==2 and t.capacity==4 and t:FlockSize()==6 and t.researchEffects.timeSkipMinutes==10
+			and t.researchEffects.eggVacuum==1,"Derived fields")
 		near(t.researchEffects.coinBoost,0.3,"Coin Boost")
 		assert(t.economyConversion==nil,"A revision 12 save converted again")
 		return "Every new field reloads"
+	end)
+
+	test("A saved Egg Vacuum grant becomes this run's Tools node once; a Rebirth takes it back",function()
+		local data=fixture(-9320):ToData()
+		data.upgradeTree,data.eggVacuum={Luck=1},true
+		local t=Session.new(-9320,"Vacuum fixture",1)
+		local ok,message=t:LoadData(data)
+		assert(ok,message)
+		assert(levelsText(t.upgradeTree)=="EggVacuum=1, Luck=1" and t.researchEffects.eggVacuum==1 and t.eggVacuum==false,
+			levelsText(t.upgradeTree))
+		local saved=t:ToData()
+		assert(saved.eggVacuum==false and saved.upgradeTree.EggVacuum==1,"Saved as a node")
+		-- The Rebirth reset empties the tree; the old grant must not come back.
+		t.upgradeTree={}
+		local again=Session.new(-9320,"Vacuum reload fixture",1)
+		ok,message=again:LoadData(t:ToData())
+		assert(ok,message)
+		assert(next(again.upgradeTree)==nil and again.researchEffects.eggVacuum==0,levelsText(again.upgradeTree))
+		local quote=Upgrades.NodeOffer(again,"VacuumCapacity1")
+		assert(quote.status=="Locked" and quote.spendReason=="Buy Egg Vacuum first.",tostring(quote.spendReason))
+		return "Granted once, re-bought after Rebirth"
 	end)
 
 	test("Junk in the new save fields reads leniently and never refuses the profile",function()
@@ -432,11 +454,12 @@ function Checks.Run()
 		assert(ok and message=="Loaded and converted to the new Upgrades.",message)
 		-- Egg Speed 2.5x and Army Size 7 sit halfway between two tiers: ties round up.
 		-- The running Roll Speed job counts as finished; 5 chickens fill Flock Size 5.
-		assert(levelsText(u.upgradeTree)=="ArmySize=3, ChickenFeed=1, Damage=2, EggSpeed=4, EggValue=3, Flock=2, "
+		-- A finished guide keeps the Egg Vacuum as this run's Tools node (S14).
+		assert(levelsText(u.upgradeTree)=="ArmySize=3, ChickenFeed=1, Damage=2, EggSpeed=4, EggVacuum=1, EggValue=3, Flock=2, "
 			.."Luck=4, OfflineTime=1, RollSlot=4, RollSpeed=1",levelsText(u.upgradeTree))
 		assert(u.capacity==8 and u.rollSlotsUnlocked==5 and u:FlockSize()==5,"Derived fields")
 		assert(levelsText(u.gemUpgrades)=="AutoRoll=1, Rally=1",levelsText(u.gemUpgrades))
-		assert(u.missionTierLegacy==1 and u.eggVacuum==true,"Mission tier and Egg Vacuum")
+		assert(u.missionTierLegacy==1 and u.eggVacuum==false and u.researchEffects.eggVacuum==1,"Mission tier and Egg Vacuum")
 		-- 1,000 s of unused skip time is 4 Gems; two ranks at double Gems are 2 x (50 + 60).
 		assert(u.gems==224 and u.gemsEarned==224,"Gems "..u.gems)
 		assert(veterans(u)==2,"Rebirth chickens "..veterans(u))
@@ -462,7 +485,7 @@ function Checks.Run()
 		local ok,message=u:LoadData(old)
 		assert(ok,message)
 		assert(levelsText(u.upgradeTree)=="RollSlot=5" and u.rollSlotsUnlocked==6,levelsText(u.upgradeTree))
-		assert(u.gems==0 and u.missionTierLegacy==0 and u.eggVacuum==false and next(u.gemUpgrades)==nil,"Extras")
+		assert(u.gems==0 and u.missionTierLegacy==0 and u.researchEffects.eggVacuum==0 and next(u.gemUpgrades)==nil,"Extras")
 		return "Six podiums kept"
 	end)
 

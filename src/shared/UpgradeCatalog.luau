@@ -21,7 +21,7 @@ export type Node = {
 }
 
 Catalog.Categories = {"Main", "Tools", "Player", "Army"}
--- Each category's center hex. "start", "back", "open" and "tool" nodes always count as owned.
+-- Each category's center hex. "start", "back" and "open" nodes always count as owned.
 Catalog.Roots = {Main = "Start", Tools = "ToolsBack", Player = "PlayerBack", Army = "ArmyBack"}
 
 -- `effect`: key in the effect table (UpgradeCatalog.Effects); `field`: a derived
@@ -80,6 +80,11 @@ local families: {Family} = {
 		format = "unlock", description = "Special rolls reach the highest tier.",
 		tiers = tiers({{3, 1000000}}), positions = {{1, -6}}, prerequisite = "DiamondMachine"},
 	-- Tools ----------------------------------------------------------------------
+	-- October 20 (Stevin, S14): the hand vacuum is bought here and resets on Rebirth,
+	-- like Chicken Feed. It replaces the free gift at the end of the Commander guide.
+	{id = "EggVacuum", name = "Egg Vacuum", category = "Tools", icon = "eggVacuum", effect = "eggVacuum", base = 0,
+		format = "unlock", description = "Equip the Egg Vacuum to pull in nearby eggs, then sell them on the pad.",
+		tiers = tiers({{1, 500}}), positions = {{-1, 0}}},
 	-- October 20 (Stevin): capacity is sized in seconds of the Flock's current laying
 	-- and shown in eggs (seconds x Flock eggs/s). Values are bonus seconds on top of
 	-- the Egg Vacuum's 30 s base (S11's VacuumConfig): 45, 60, 90, 120 s in total.
@@ -160,8 +165,6 @@ add({id = "OpenArmy", kind = "open", category = "Main", q = -2, r = 1, name = "A
 for _, category in {"Tools", "Player", "Army"} do
 	add({id = Catalog.Roots[category], kind = "back", category = category, q = 0, r = 0, name = "Back", icon = "back", opens = "Main"})
 end
--- The free hand vacuum (granted when the Commander guide ends), shown for context.
-add({id = "EggVacuum", kind = "tool", category = "Tools", q = -1, r = 0, name = "Egg Vacuum", icon = "eggVacuum"})
 for _, family in families do
 	for tier in family.tiers do
 		local position = family.positions[tier]
@@ -251,7 +254,7 @@ Catalog.DefaultEffects = table.freeze({
 	callArmy = 1, fusion = 0, autoRoll = 0, production = 0, eggValue = 0, pickupStuds = 0, bounty = 0,
 	offlineHours = 8, rollingLuck = 0, rollingSpeed = 0, speed = 0, slots = 1, capture = 0, walk = 0,
 	formations = 0, operations = 0, holdCap = 0,
-	flockSize = 3, vacuumCapacity = 0, vacuumRange = 0, chickenFeed = 0, goldMachine = 0, goldRate = 0,
+	flockSize = 3, eggVacuum = 0, vacuumCapacity = 0, vacuumRange = 0, chickenFeed = 0, goldMachine = 0, goldRate = 0,
 	coinBoost = 0, gemBonus = 0, timeSkipMinutes = 0, keepTiers = 0, mutationLuck = 0,
 	offlineEfficiency = 0, rebirthChickenChance = 0.01, autoRebirth = 0,
 })

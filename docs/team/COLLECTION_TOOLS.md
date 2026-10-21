@@ -27,9 +27,11 @@ Tuning lives in `src/shared/VacuumConfig.luau`.
 
 ## Egg Vacuum (held tool)
 
-- Granted when the Commander guide ends or is skipped (`ToolService:Step` sets
-  `eggVacuum`). Saves converted from before October 20 get it in
-  `EconomyMigration`.
+- Bought in Upgrades > Tools (the `EggVacuum` node, 500 Coins) and reset on
+  Rebirth like Chicken Feed (Stevin, October 20, in S14; this replaced the free
+  gift when the guide ended). `ToolService.Owns` reads `researchEffects.eggVacuum`.
+  Saves converted from before October 20 that finished or skipped the guide own
+  the node for their current run (`EconomyMigration`, then `PlayerSession:LoadData`).
 - While it is in hand, `EggService:Vacuum` pulls the nearest ready eggs within
   **Range** (10 studs, plus `vacuumRange`), up to 8 stacks per step, until it is
   full.
@@ -80,8 +82,8 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
 ## Tools and the dock
 
 - `ToolService` keeps each Backpack holding exactly the owned tools. It re-syncs
-  every 0.5 s, so tools come back after a respawn and Feed goes away after a
-  Rebirth.
+  every 0.5 s, so tools come back after a respawn and both go away after a
+  Rebirth until they are bought again.
 - Tools are server-made, so a Tool created on a client never counts.
 - Each Tool has an invisible Handle at the hand, with the visible parts welded
   to it. They are Massless and never collide, touch or block clicks.

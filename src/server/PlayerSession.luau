@@ -28,7 +28,8 @@ PlayerSession.CarryLimit = 1e12
 -- Saved tutorial flags. To persist a new one, add it here (one word) and list it in
 -- your hand-off (docs/team/OVERHAUL_CONTRACT_20261020.md §2).
 local TUTORIAL_KEYS = {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp",
-	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen"}
+	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen",
+	"vacuumUsed"}
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)
@@ -64,6 +65,7 @@ function PlayerSession:Reset()
 	self.missionTierLegacy = 0
 	-- Saved for S10 (Flock layers), S11 (hand vacuum) and S12 (Gold rolls).
 	self.flockSelection = nil :: {string}?
+	-- Legacy grant flag only: the Egg Vacuum is an Upgrades tree node now (LoadData).
 	self.eggVacuum = false
 	self.vacuumCargo = {count=0,value=0}
 	self.goldRolls = {count=0}
@@ -273,8 +275,12 @@ function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean,
 		reserve-=self:StarterArmyReserve()
 	end
 	if self.coins-amount<reserve then
-		local reason=if self.tutorial.starterArmy then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size."
-			else "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Roll FREE at the lever!"
+		-- October 20 launch review: once the recruit is bought, name only Army Size
+		-- (1,307 refusals named a recruit the player already had).
+		local reason=if not self.tutorial.starterArmy
+			then "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Roll FREE at the lever!"
+			elseif self:StarterRecruitPending() then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size I."
+			else "Keep "..Currency.Text(reserve).." for Army Size I in Upgrades."
 		return false,reason
 	end
 	return true,""
@@ -1024,7 +1030,7 @@ function PlayerSession:LoadData(data)
 		return false,"Invalid saved promotion."
 	end
 	-- Revision 12: the tree is the source of every run upgrade (lenient read).
-	local tree=if legacyEconomy then {} else UpgradeCatalog.ReadTree(data.upgradeTree)
+	local tree: {[string]: number}=if legacyEconomy then {} else UpgradeCatalog.ReadTree(data.upgradeTree)
 	local capacity,grant=data.capacity,data.legacyCapacityGrant or 0
 	if legacyEconomy then
 		if legacy then
@@ -1213,6 +1219,10 @@ function PlayerSession:LoadData(data)
 		missionTierLegacy=readCount(data.missionTierLegacy,3)
 		eggVacuum=data.eggVacuum==true
 	end
+	-- Stevin, October 20 (S14): the Egg Vacuum is bought in Upgrades > Tools and resets
+	-- on Rebirth. A legacy grant (a finished or skipped guide, converted above, or an
+	-- earlier revision-12 gift) becomes this run's EggVacuum node, once.
+	if eggVacuum then tree.EggVacuum=1 end
 	local passGemGifts={}
 	if type(data.passGemGifts)=="table" then
 		for key,given in data.passGemGifts do
@@ -1255,7 +1265,7 @@ function PlayerSession:LoadData(data)
 	self.rebirthSkips=readCount(data.rebirthSkips,1000)
 	self.passGemGifts,self.rebirthChickenCredits=passGemGifts,chickenCredits
 	self.missionTierLegacy=missionTierLegacy
-	self.flockSelection,self.eggVacuum=flockSelection,eggVacuum
+	self.flockSelection,self.eggVacuum=flockSelection,false
 	self.vacuumCargo={count=cargoCount,value=cargoValue}
 	self.goldRolls={count=if type(data.goldRolls)=="table" then readCount(data.goldRolls.count,1e6) else 0}
 	self.plotBuild=nil

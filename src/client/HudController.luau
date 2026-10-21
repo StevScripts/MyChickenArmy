@@ -18,9 +18,10 @@ local Hud={}
 Hud.__index=Hud
 
 
+-- October 20: Call Army is free for everyone (effects.callArmy is always 1).
 local function callArmyUnlocked(state)
-	local research=state and state.research
-	return research~=nil and research.effects~=nil and (research.effects.callArmy or 0)>=1
+	local effects=state and state.effects
+	return effects~=nil and (effects.callArmy or 0)>=1
 end
 
 function Hud.new(app,shell)
@@ -33,7 +34,7 @@ function Hud.new(app,shell)
 		app.audio:Play("Click")
 		app:Request(action)
 	end
-	-- Hidden until the CallArmy research completes (no locked teaser on the HUD).
+	-- Shown with My Army's commands; free for everyone since October 20.
 	self.callArmy=Theme.IconButton(navigation,"CallArmy","Call Army",Theme.Assets.CallArmy or "",function()
 		if callArmyUnlocked(app.state) then app:Request("CallArmy") end
 	end)
@@ -72,7 +73,7 @@ function Hud.new(app,shell)
 	self.cashIcon=Theme.Image(cash,"CashIcon",Theme.Assets.Coin,UDim2.fromScale(0.22,0.509),UDim2.fromScale(0.0021,0.0423))
 	Theme.Aspect(self.cashIcon,1)
 	self.money.Position,self.money.Size=UDim2.fromScale(0.24,0.0614),UDim2.fromScale(0.76,0.4477)
-	-- Friend Boost row (FriendBoost.luau mounts into it); the yard Bag line stays last.
+	-- Friend Boost row (FriendBoost.luau mounts into it); the yard Carrying line stays last.
 	self.friendBoostSlot=Theme.Container(cash,"FriendBoostSlot")
 	self.friendBoostSlot.Position,self.friendBoostSlot.Size=UDim2.fromScale(0,0.515),UDim2.fromScale(1,0.2)
 	self.income=Theme.Display(cash,"Income","",20)
@@ -449,8 +450,9 @@ end
 
 function Hud:UpdateEggLine(eggs)
 	if eggs.requiresDeposit then
+		-- Everything the pad will sell: the clicked bag plus the Egg Vacuum's cargo.
 		local count=eggs.carriedCount or 0
-		self.income.Text="Bag: "..Theme.Money(count)..(if count==1 then " egg" else " eggs")
+		self.income.Text="Carrying: "..Theme.Money(count)..(if count==1 then " egg" else " eggs")
 			.." · Worth "..Theme.Coins(eggs.carriedValue or 0)
 	else self.income.Text="Yard eggs: "..Theme.Coins(eggs.value or 0) end
 end

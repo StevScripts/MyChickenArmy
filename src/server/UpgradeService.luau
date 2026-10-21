@@ -11,7 +11,7 @@ local Tree = require(Shared.UpgradeCatalog)
 local UpgradeService = {}
 UpgradeService.__index = UpgradeService
 
-local KIND_STATUS = {start = "Start", open = "Open", back = "Back", tool = "Tool"}
+local KIND_STATUS = {start = "Start", open = "Open", back = "Back"}
 
 local function decimal(value)
 	return (string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", ""))
@@ -123,6 +123,7 @@ local function boughtMessage(session, node): string
 	if family == "RollSlot" then return "Roll slot unlocked! Your next roll uses " .. session.rollSlotsUnlocked .. " podiums." end
 	if family == "Flock" then return "Flock Size " .. session:FlockSize() .. ": more of your chickens lay eggs." end
 	if family == "ChickenFeed" then return "Chicken Feed unlocked! Equip it and walk to one of your chickens." end
+	if family == "EggVacuum" then return "Egg Vacuum unlocked! Equip it to pull in nearby eggs, then sell them on the pad." end
 	local value = Tree.ValueText(family, node.tier)
 	return node.name .. " bought: " .. value .. "."
 end

@@ -7,6 +7,68 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Click eggs, Flock Size I and a bought Egg Vacuum: October 20 overhaul (S14)
+
+Stevin's decisions in session S14 (October 20, 2026). They supersede the egg count,
+the vacuum gift and the Next-goal order below; everything else stands.
+
+**Guide (full card)**
+- **Collect** asks for **20** eggs (was 40) and names the player's input: "Click eggs
+  to collect them (0/20)", "Tap eggs to collect them (0/20)" or "Press R2 to collect
+  eggs (0/20)". One layout; only the words change. Saved counts above 20 read as 20.
+- **Flock Size I** is a new step after the recruit: "Upgrades → Flock Size I" (300
+  Coins), then "Upgrades → Army Size I". In the tree the pointer sits on the hex,
+  centered once per visit. In My Army it sits on the Flock or Army "+".
+  - Flock Size I may not spend the 1,200 Coins held for Army Size I, so the guide
+    sends the player for eggs instead ("Collect eggs worth 100 more Coins").
+  - The 600 + 1,200 reserve is unchanged. Its refusal now names only Army Size I once
+    the recruit is bought (the launch review counted 1,307 refusals naming a recruit
+    the player already had).
+- **Deploy** also points at the Upgrades Exit while the tree is still open.
+- **Return** is checked before the fight. An army walking home keeps its battle
+  record, so "Wait for your army to return" never showed (launch review).
+- Order: Collect → Sell → Roll → Recruit → (Grow) → Flock → Expand → Select → Deploy
+  → Cluck Camp captured!
+
+**Egg Vacuum.** Bought in Upgrades > Tools (the `EggVacuum` node, 500 Coins) and reset
+on Rebirth like Chicken Feed. It replaces the free gift at the end of the guide.
+Converted saves that finished or skipped the guide own it for their current run.
+
+**Next goals (quiet line), first match wins**
+1. Army walking home: "Collect eggs while your army returns". In a fight: nothing.
+2. No chickens or no Army: "Roll a chicken at your podium" / "My Army → Select Best".
+3. "Rebirth is ready! Open Rebirth on the right", only once `rebirth.eligible` (no
+   King needed). The pointer is on the HUD Rebirth button.
+4. Tools, each only when the server says it can be bought now:
+   - "Buy the Egg Vacuum in Upgrades > Tools";
+   - "Equip your Egg Vacuum, then walk near your eggs", until its first egg (saved
+     `tutorial.vacuumUsed`, set by `TutorialService.ObserveVacuum` for every player);
+   - "Buy Chicken Feed in Upgrades > Tools";
+   - "Vacuum full? Buy Vacuum Capacity in Upgrades > Tools", while the vacuum is full.
+5. Before the King, the next camp or the King: "Attack Fort Roost". When the odds read
+   Very tough, the gap and the cheapest step: "Army 63 / Fort Roost 107: feed your
+   Army chickens" (Feed owned and affordable), "… buy the chicken on your podium" (it
+   makes the Army stronger), "… buy Army Size II in Upgrades" (spare chickens only),
+   "… sell eggs, then feed your Army chickens", or "… sell eggs for Chicken Feed
+   (Upgrades > Tools)". This replaces "Buy Egg Value" and "Roll or Fuse chickens".
+6. After the King: the first Mission win, then "Rebirth N: 32K / 50K Coins", then a
+   rival camp.
+
+Fuse and Egg Value lines are gone. Upgrades goals point at the HUD Upgrades button,
+then the Tools Open hex, then the hex. Tool goals point at the dock slot; with
+Roblox's own hotbar there is nothing to point at, so the line shows alone.
+
+**Analytics.** `Guide.Version` is `cluck-6-click-eggs`. The new milestone `Flock`
+shows up as ledger `guide.enter.Flock`. It is not an onboarding funnel step, so the
+schema is unchanged. A pad sale that includes vacuum eggs counts as the player's own
+action; vacuum pickups do not. FlockEquip, FlockUnequip and FlockBest are meaningful
+actions.
+
+**Checks.** `tests/CommanderGuideChecks.luau` (10 checks: wording, route order,
+reserve, Return, tool goals, the Very tough plan, Rebirth placement, the bought
+vacuum, `vacuumUsed`, and a real starter session buying Flock Size I and Army Size I).
+All 10 fail on the previous code. Run headless with Lune; not yet in Studio.
+
 ## Quieter next goals: October 9 (user decision)
 
 The full Commander card (portrait, typewriter, entrance motion, celebration) now

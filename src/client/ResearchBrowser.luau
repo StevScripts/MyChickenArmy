@@ -52,8 +52,8 @@ local LOOKS={
 	available={art="hexFill",rim=Color3.fromRGB(78,80,86)},
 	unknown={art="hexMask",tint=Color3.fromRGB(86,88,92),rim=Color3.fromRGB(46,47,51)},
 }
--- The free Egg Vacuum always counts as owned; price color alone marks unaffordable.
-LOOKS.tool,LOOKS.unaffordable=LOOKS.owned,LOOKS.available
+-- Price color alone marks unaffordable.
+LOOKS.unaffordable=LOOKS.available
 local TOOLTIP_WIDTH=.218
 local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
@@ -452,7 +452,7 @@ function Browser:Badge(category)
 	return if type(count)=="number" then count else 0
 end
 
--- Special hexes (Start, Open, Back, the free Egg Vacuum) always count as owned.
+-- Special hexes (Start, Open, Back) always count as owned.
 function Browser:Known(id)
 	local node=id and View.Nodes[id]
 	if not node then return false end
@@ -604,11 +604,6 @@ function Browser:TooltipText(id)
 	if node.kind=="open" then
 		local count=self:Badge(node.opens)
 		return node.name,"Open the "..node.name.." upgrades.",if count>0 then count.." ready to buy" else nil,nil,nil
-	end
-	if node.kind=="tool" then
-		local tools=self.app.state and self.app.state.tools
-		local owned=type(tools)=="table" and tools.eggVacuum==true
-		return node.name,if owned then "Your Egg Vacuum. Upgrade it here." else "Free when the Commander guide ends. You can upgrade it before then.",nil,nil,nil
 	end
 	if look=="unknown" then
 		local prerequisite=node.prerequisite and View.Nodes[node.prerequisite]

@@ -8,7 +8,8 @@ local Tutorial = {}
 Tutorial.__index = Tutorial
 local checkpoints = {30, 60, 180, 300, 600}
 local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, BuyUpgrade=true, Expand=true,
-	UpgradeChicken=true, SetArmy=true, SelectBest=true, Attack=true, CallArmy=true}
+	UpgradeChicken=true, SetArmy=true, SelectBest=true, Attack=true, CallArmy=true,
+	FlockEquip=true, FlockUnequip=true, FlockBest=true}
 local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
 	IntroStarted=true, IntroFinished=true, IntroSkipped=true, HillIntroStarted=true, HideGoals=true, ShowGoals=true,
 	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true}
@@ -109,9 +110,24 @@ function Tutorial:Independent(record, action)
 	self:Emit(record, "FTUEIndependentAction", os.clock()-record.endedAt, "AfterGuide", action)
 end
 
+-- The "Equip your Egg Vacuum" Next goal ends the first time the bought vacuum pulls
+-- in an egg (October 20, S14). Saved for every player, not only guide visits.
+function Tutorial.ObserveVacuum(session: any, state: any)
+	if session.tutorial.vacuumUsed then return end
+	local eggs = state.eggs or {}
+	local used = type(eggs.vacuum) == "table" and (tonumber(eggs.vacuum.count) or 0) > 0
+	for _, receipt in eggs.receipts or {} do
+		if receipt.collector == "vacuum" then used = true end
+	end
+	if not used then return end
+	session.tutorial.vacuumUsed = true;session:Touch()
+	if type(state.tutorial) == "table" then state.tutorial.vacuumUsed = true end
+end
+
 function Tutorial:Observe(session, state)
 	local r = self.records[session.userId]
 	if not r or not session.loaded or session.closing or session.saveLost then return end
+	Tutorial.ObserveVacuum(session, state)
 	-- Disposable Studio resets replace the tutorial table; never reuse the old visit's observations.
 	if r.initialized and r.tutorial~=session.tutorial then
 		self:Begin(r.player,session);r=self.records[session.userId]
@@ -133,7 +149,10 @@ function Tutorial:Observe(session, state)
 	for kind, receipts in {Pickup=(state.eggs or {}).receipts or {},Sale=(state.eggs or {}).deposits or {}} do
 		for _,receipt in receipts do
 			local key=kind..":"..receipt.id
-			if receipt.collector~="player" or r.receipts[key] then continue end
+			-- A pad sale is always the player's own step, even with vacuum eggs in it;
+			-- the held vacuum's pickups run by themselves, so they never count.
+			local own=receipt.collector=="player" or (kind=="Sale" and receipt.collector=="vacuum")
+			if not own or r.receipts[key] then continue end
 			r.receipts[key]=true;table.insert(r.receiptOrder,key)
 			if #r.receiptOrder>128 then r.receipts[table.remove(r.receiptOrder,1)]=nil end
 			self:FirstAction(r,"Egg"..kind);self:Independent(r,"Egg"..kind)

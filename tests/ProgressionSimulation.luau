@@ -267,7 +267,7 @@ local function resolve(state,now)
 		s.firstWins[index]=true
 		state.flags[index]=true
 		s:UnlockProgress()
-		s.tutorial.wonCamp=true;s.tutorial.guideCompleted=true;s.eggVacuum=true
+		s.tutorial.wonCamp=true;s.tutorial.guideCompleted=true
 		stats.battleCash+=s:Credit(math.floor(cash*rush),"battle")
 		refreshTerritory(state)
 		mark(state,"FirstCamp",now)

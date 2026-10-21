@@ -1,10 +1,14 @@
 --!strict
 -- Snapshot-only guidance. Never changes prices, eligibility or player actions.
 local Currency = require(script.Parent.CurrencyLimits)
+local Tree = require(script.Parent.UpgradeCatalog)
 local Guide = {}
-Guide.Version = "cluck-5-forty-eggs"
-Guide.EggGoal = 40
-Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win"}
+-- October 20 overhaul (S14, Stevin): eggs are clicked and the goal is 20, Flock Size I
+-- joins the opening before Army Size I, the Egg Vacuum is bought in Upgrades > Tools,
+-- and Next goals use Rebirth v2. docs/team/COMMANDER_TUTORIAL.md has the contract.
+Guide.Version = "cluck-6-click-eggs"
+Guide.EggGoal = 20
+Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Flock", "Expand", "Select", "Deploy", "Win"}
 
 function Guide.CollectedEggCount(tutorial)
 	local count = tutorial.collectedEggCount
@@ -16,10 +20,19 @@ function Guide.CollectedEggCount(tutorial)
 	return if count==nil and (tutorial.collectedEggs==true or tutorial.guideCompleted==true) then Guide.EggGoal else 0
 end
 
+-- Flock Size from the snapshot (S10's state.flock), or nil before it existed.
+local function flockSize(state): number?
+	local flock = state.flock
+	if type(flock) == "table" and type(flock.size) == "number" then return flock.size end
+	local effects = state.effects
+	return if type(effects) == "table" and type(effects.flockSize) == "number" then effects.flockSize else nil
+end
+
 function Guide.Facts(state)
 	local t = state.tutorial or {}
 	local won = t.wonCamp == true or (state.campsWon or 0) > 0 or state.kingCleared == true
 	for _, value in state.firstWins or {} do if value then won = true end end
+	local flock = flockSize(state)
 	return {
 		Roll = t.rolled == true,
 		-- The free squad must not count as completing the recruit lesson.
@@ -28,6 +41,8 @@ function Guide.Facts(state)
 		Collect = Guide.CollectedEggCount(t) >= Guide.EggGoal,
 		Sell = t.soldEggs == true,
 		Grow = #(state.pets or {}) >= 4,
+		-- Flock Size I: four chickens lay (it starts at 3). A snapshot without it never blocks.
+		Flock = flock == nil or flock >= 4,
 		Expand = (state.capacity or 3) >= 4,
 		Select = (state.selectedCount or #(state.selectedIds or {})) >= 4,
 		Deploy = t.guideDeployed == true,
@@ -35,26 +50,44 @@ function Guide.Facts(state)
 	}
 end
 
--- The opening Collect/Sell lessons are underway: the guide has not been skipped
--- or completed, its recruit-first route (legacy openings) is done, and either
--- lesson is unfinished. The Auto Collect vacuum pauses meanwhile so a pass
--- cannot finish the lessons by itself (EggService).
-function Guide.IncomeLessonActive(state)
-	local t = state.tutorial or {}
-	if t.guideSkipped or t.guideCompleted then return false end
-	local f = Guide.Facts(state)
-	if f.Win or (f.Collect and f.Sell) then return false end
-	if #(state.pets or {}) == 0 or (not t.starterArmy and not f.Recruit) then return false end
-	return true
+local function step(id: string, text: string, target: string?, node: string?)
+	return {id=id, text=text, target=target, node=node}
 end
 
-local function step(id, text, target)
-	return {id=id, text=text, target=target}
+-- A quiet post-guide line (CommanderGuide shows it as "Next: ...").
+local function goal(key: string, text: string, where: string?, node: string?)
+	local result = step("Goal:" .. key, text, where, node)
+	result.goal = true
+	return result
 end
 
-local function earn(state, price)
+-- The server's quote for one Upgrades hex ({status, price?}), or nil before the tree.
+local function treeNode(state, id: string?)
+	local tree = state.upgradeTree
+	local nodes = if type(tree) == "table" then tree.nodes else nil
+	return if id and type(nodes) == "table" then nodes[id] else nil
+end
+
+-- The family's next Upgrades hex ("ArmySize1"), or nil once it is maxed.
+function Guide.NextNode(state, familyId: string): string?
+	local family = Tree.Families[familyId]
+	if not family then return nil end
+	local tree = state.upgradeTree
+	local owned = if type(tree) == "table" and type(tree.families) == "table" then tree.families[familyId] else 0
+	if type(owned) ~= "number" then owned = 0 end
+	if owned >= #family.tiers then return nil end
+	return Tree.NodeId(familyId, owned + 1)
+end
+
+-- Coins the player may spend right now (the starter reserve stays protected).
+local function spendable(state): number
+	return math.max(0, (state.coins or 0) - (state.starterCashReserve or 0))
+end
+
+-- `reserve`: Coins held back for another purchase (the starter Army Size earmark).
+local function earn(state, price: number?, reserve: number?)
 	local carried = (state.eggs or {}).carriedValue or 0
-	local needed = if price then math.max(0, price - (state.coins or 0)) else 1
+	local needed = if price then math.max(0, price + (reserve or 0) - (state.coins or 0)) else 1
 	-- Keep gathering until this trip can fund the purchase. Any nonempty bag
 	-- used to send players back to the pad, then straight back to the yard.
 	if carried > 0 and carried >= needed then
@@ -81,6 +114,18 @@ local function recruit(state, growing)
 		return earn(state, offer.price)
 	end
 	return step(id, if growing then "Buy a chicken ("..count.."/4)" else "Buy the chicken", "RollStation")
+end
+
+-- One Upgrades purchase in the opening (Flock Size I, Army Size I): the hex, or a
+-- trip to the eggs first when the server says it can't be afforded yet.
+local function purchase(state, id: string, familyId: string, reserve: number?)
+	local quote = treeNode(state, Guide.NextNode(state, familyId))
+	if quote and quote.status == "Unaffordable" and type(quote.price) == "number"
+		and quote.price + (reserve or 0) > (state.coins or 0) then
+		return earn(state, quote.price, reserve)
+	end
+	local node = Guide.NextNode(state, familyId) or Tree.NodeId(familyId, 1)
+	return step(id, "Upgrades → " .. Tree.Nodes[node].name, "Upgrades", node)
 end
 
 -- Army power vs a garrison's power (Rules.PetPower sums). Defenders respawn every
@@ -128,79 +173,135 @@ local function rivalCamp(state)
 	return open
 end
 
+-- An Army chicken at home that Chicken Feed can level with the Coins on hand.
+local function feedable(state): boolean
+	local coins = spendable(state)
+	for _, pet in state.pets or {} do
+		if pet.selected and pet.canUpgrade and type(pet.upgradePrice) == "number" and pet.upgradePrice <= coins then
+			return true
+		end
+	end
+	return false
+end
+
+-- A podium offer that makes the picked Army stronger and can be bought now.
+local function strongerOffer(state): boolean
+	local coins = spendable(state)
+	for _, offer in state.offers or {state.offer} do
+		if offer.improvesArmy and type(offer.price) == "number" and offer.price <= coins then return true end
+	end
+	return false
+end
+
+-- The next camp or the King. October 20 launch review: winning Fort Roost on day 1
+-- is what brings players back, and 71% of attacks were hopeless. When the odds read
+-- Very tough, name the gap and the cheapest step that adds power. Never a gate.
+local function attack(state, entry: any, where: string)
+	local king = entry.id == "king:1"
+	if Guide.Difficulty(state.power, entry.power) ~= "Very tough" then
+		return goal("Attack:" .. entry.id, if king then "Challenge the Chicken King" else "Attack " .. entry.name, where)
+	end
+	local gap = "Army " .. shortCash(state.power) .. " / " .. (if king then "King" else entry.name) .. " "
+		.. shortCash(entry.power) .. ": "
+	local key = "Power:" .. entry.id .. ":"
+	local tools = state.tools
+	local fed = type(tools) == "table" and tools.chickenFeed == true
+	if fed and feedable(state) then return goal(key .. "Feed", gap .. "feed your Army chickens", "FeedTool") end
+	if strongerOffer(state) then return goal(key .. "Recruit", gap .. "buy the chicken on your podium", "RollStation") end
+	local slots = Guide.NextNode(state, "ArmySize")
+	local quote = treeNode(state, slots)
+	if slots and quote and quote.status == "Available" and #(state.pets or {}) > (state.capacity or 3) then
+		return goal(key .. "Slots", gap .. "buy " .. Tree.Nodes[slots].name .. " in Upgrades", "Upgrades", slots)
+	end
+	if fed then return goal(key .. "Earn", gap .. "sell eggs, then feed your Army chickens", "Yard") end
+	return goal(key .. "Save", gap .. "sell eggs for Chicken Feed (Upgrades > Tools)", "Yard")
+end
+
+-- Upgrades > Tools tips: buy the Egg Vacuum (it resets on Rebirth), use it once,
+-- buy Chicken Feed, and more Vacuum Capacity while the vacuum is full.
+local function toolGoal(state, t: any)
+	local tools = state.tools
+	if type(tools) ~= "table" then return nil end
+	if tools.eggVacuum ~= true then
+		local quote = treeNode(state, "EggVacuum")
+		if quote and quote.status == "Available" then
+			return goal("Vacuum", "Buy the Egg Vacuum in Upgrades > Tools", "Upgrades", "EggVacuum")
+		end
+	elseif not t.vacuumUsed then
+		return goal("EquipVacuum", "Equip your Egg Vacuum, then walk near your eggs", "VacuumTool")
+	end
+	if tools.chickenFeed ~= true then
+		local quote = treeNode(state, "ChickenFeed")
+		if quote and quote.status == "Available" then
+			return goal("Feed", "Buy Chicken Feed in Upgrades > Tools", "Upgrades", "ChickenFeed")
+		end
+	end
+	local vacuum = tools.vacuum
+	if tools.eggVacuum == true and type(vacuum) == "table" and (vacuum.count or 0) >= math.max(1, vacuum.capacity or 0) then
+		local node = Guide.NextNode(state, "VacuumCapacity")
+		local quote = treeNode(state, node)
+		if node and quote and quote.status == "Available" then
+			return goal("Capacity", "Vacuum full? Buy Vacuum Capacity in Upgrades > Tools", "Upgrades", node)
+		end
+	end
+	return nil
+end
+
 -- After the opening guide: one compact, snapshot-derived next goal. Never a
--- prerequisite; cash upgrades and every target stay available as before.
+-- prerequisite; Coins upgrades and every target stay available as before.
 -- ignoreSkip: the world NEXT marker predates the guide and stays for skipped players.
 function Guide.NextGoal(state, ignoreSkip)
 	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
 	local t = state.tutorial or {}
 	if t.guideSkipped and not ignoreSkip then return nil end -- Respect a hidden guide; Settings can resume it.
-	-- October 9: goals are opt-out (Settings). October 14 launch: after the King
-	-- (or a Rebirth, which keeps them open) they point once at a Veteran mission.
+	-- October 9: goals are opt-out (Settings).
 	if t.goalsHidden then return nil end
-	local function goal(key, text, where)
-		local result = step("Goal:" .. key, text, where)
-		result.goal = true
-		return result
-	end
-	if state.incoming or state.outgoing then return nil end -- The battle UI owns this moment.
-	local rebirth = state.rebirth or {}
-	local rebirths = tonumber(rebirth.rank) or 0
-	-- After the first capture: point once at the Fuse Machine when it can be researched now.
-	if not state.mergeUnlocked and ((state.campsWon or 0) > 0 or state.kingCleared) then
-		local fuse = ((state.research or {}).offers or {}).FuseMachine
-		if fuse and fuse.status == "Available" then
-			return goal("Fuse", "Research the Fuse Machine in Upgrades", "Upgrades")
-		end
-	end
-	if state.kingCleared or rebirths >= 1 then
-		local wins = (state.operations or {}).wins or {}
-		if not (wins["1:1"] or wins["1:2"] or wins["1:3"]) then
-			return goal("Operations", "Attack a loyalist site on the island", "Mission")
-		end
-	end
-	-- October 14: only Rebirth 1 needs the King, and Rebirth opens from its HUD button.
-	if state.kingCleared or rebirths >= 1 then
-		local cost = rebirth.cost
-		if rebirth.enabled ~= false and rebirth.nextRank and type(cost) == "number" and cost > 0
-			and (state.coins or 0) >= cost * 0.5 then
-			if (state.coins or 0) >= cost then return goal("Rebirth", "Rebirth is ready: open Rebirth (right side)", nil) end
-			return goal("Rebirth", "Rebirth: " .. shortCash(state.coins) .. " / " .. shortCash(cost) .. " Coins", nil)
-		end
-	end
-	if state.kingCleared then
-		if rivalCamp(state) then return goal("Rival", "Take a rival's camp for bonus egg value", nil) end
-		return nil
-	end
+	if state.incoming then return nil end -- The battle UI owns this moment.
+	-- Before `outgoing`: an army walking home still has its battle record.
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
 		return goal("Return", "Collect eggs while your army returns", "Yard")
 	end
+	if state.outgoing then return nil end
 	if #(state.pets or {}) == 0 then return goal("Recruit", "Roll a chicken at your podium", "RollStation") end
 	if (state.selectedCount or #(state.selectedIds or {})) == 0 then return goal("Select", "My Army → Select Best", "Army") end
-	local function attack(id, name, where)
-		local entry = target(state, id)
-		if not entry then return nil end
-		if Guide.Difficulty(state.power, entry.power) == "Very tough" then
-			-- The cheapest helpful step first: Egg Value while it is affordable, then chickens.
-			local value = (state.boardUpgrades or {}).EggValue
-			if value and value.price and value.canSpend and value.unlocked ~= false then
-				return goal("Value", "Buy Egg Value in Upgrades to grow faster", "Upgrades")
-			end
-			return goal("Grow:" .. id, "Roll or Fuse chickens for " .. name, "RollStation")
+	-- Rebirth v2 needs only Coins (50K for Rebirth 1) and the Army home. It resets the
+	-- Upgrades tree, so it comes before the tool purchases (Stevin: only once ready).
+	local rebirth = state.rebirth or {}
+	if rebirth.enabled ~= false and rebirth.eligible == true and rebirth.nextRank then
+		return goal("Rebirth", "Rebirth is ready! Open Rebirth on the right", "Rebirth")
+	end
+	local tool = toolGoal(state, t)
+	if tool then return tool end
+	if not state.kingCleared then
+		local camps = state.routeCamps or {}
+		for index = 1, 10 do
+			local entry = target(state, "camp:" .. index)
+			if not entry then break end
+			if not camps[index] and not entry.owned then return attack(state, entry, "Camp" .. index) end
 		end
-		return goal("Attack:" .. id, if id == "king:1" then "Challenge the Chicken King" else "Attack " .. name, where)
+		local king = not state.ownsKing and target(state, "king:1")
+		return if king then attack(state, king, "KingArena") else nil
 	end
-	local camps = state.routeCamps or {}
-	for index = 1, 10 do
-		local entry = target(state, "camp:" .. index)
-		if not entry then break end
-		if not camps[index] and not entry.owned then return attack(entry.id, entry.name, "Camp" .. index) end
+	-- After the King: the first Mission win, then the next Rebirth, then rival camps.
+	local operations = state.operations or {}
+	local wins = operations.wins or {}
+	if (operations.tier or 1) >= 1 and not (wins["1:1"] or wins["1:2"] or wins["1:3"]) then
+		return goal("Operations", "Attack a loyalist site on the island", "Mission")
 	end
-	if not state.ownsKing then return attack("king:1", "the King", "KingArena") end
+	local cost = rebirth.cost
+	if rebirth.enabled ~= false and rebirth.nextRank and type(cost) == "number" and cost > 0 then
+		return goal("Rebirth:" .. tostring(rebirth.nextRank), "Rebirth " .. tostring(rebirth.nextRank) .. ": "
+			.. shortCash(state.coins) .. " / " .. shortCash(cost) .. " Coins", nil)
+	end
+	if rivalCamp(state) then return goal("Rival", "Take a rival's camp for bonus egg value", nil) end
 	return nil
 end
 
-function Guide.Resolve(state)
+-- The Collect lesson names the player's own input; the layout is the same everywhere.
+local COLLECT = {Touch = "Tap eggs to collect them", Gamepad = "Press R2 to collect eggs"}
+
+-- input: "Touch", "Gamepad" or anything else for mouse and keyboard (CommanderGuide).
+function Guide.Resolve(state, input: string?)
 	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
 	local t, f = state.tutorial or {}, Guide.Facts(state)
 	if t.guideSkipped then return nil end
@@ -211,20 +312,23 @@ function Guide.Resolve(state)
 	if state.incoming then
 		return step("Defend", "Your army is defending", nil)
 	end
-	if state.outgoing then
-		return step("Battle", "Your army is fighting", nil)
-	end
+	-- Before `outgoing`: an army walking home still has its battle record, and the
+	-- launch review found this step never showed while it was checked second.
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
 		if t.starterArmy and f.Sell then
 			return step("Return", "Wait for your army to return", nil)
 		end
 		return step("Return", "Collect eggs while they return", "Yard")
 	end
+	if state.outgoing then
+		return step("Battle", "Your army is fighting", nil)
+	end
 	-- Starter birds can teach income before recruiting. Legacy openings retain
 	-- their recruit-first route, and an empty flock always needs an egg producer.
 	if #(state.pets or {})==0 or (not t.starterArmy and not f.Recruit) then return recruit(state, false) end
 	if not f.Collect then
-		return step("Collect", "Collect "..Guide.EggGoal.." eggs ("..Guide.CollectedEggCount(t).."/"..Guide.EggGoal..")", "Yard")
+		return step("Collect", (COLLECT[input or ""] or "Click eggs to collect them")
+			.." ("..Guide.CollectedEggCount(t).."/"..Guide.EggGoal..")", "Yard")
 	end
 	if not f.Sell then
 		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state) end
@@ -234,10 +338,13 @@ function Guide.Resolve(state)
 	-- The new squad already has four birds after Recruit. Older empty-yard saves
 	-- can still grow their flock without resetting or granting them extra birds.
 	if not f.Grow then return recruit(state, true) end
+	-- October 20: Flock Size I lets the fourth chicken lay too. It may not spend the
+	-- Coins held for Army Size I (PlayerSession:CanSpendCash).
+	if not f.Flock then return purchase(state, "Flock", "Flock", state.starterCashReserve) end
 	if not f.Expand then
 		local offer = state.nextSlot
 		if offer and (state.coins or 0) < offer.price then return earn(state, offer.price) end
-		return step("Expand", "Buy Army Size → " .. ((state.nextSlot and state.nextSlot.capacity) or 4) .. " in Upgrades", "Upgrades")
+		return purchase(state, "Expand", "ArmySize")
 	end
 	if not f.Select then
 		return step("Select", "My Army → Select Best", "Army")

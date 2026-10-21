@@ -1,9 +1,9 @@
 --!strict
--- October 20 hand tools (docs/team/COLLECTION_TOOLS.md). Grants the Egg Vacuum when the
--- Commander guide ends, keeps every Backpack holding exactly the tools its player owns
--- (Chicken Feed follows the Upgrades tree, so a Rebirth takes it back), builds the held
--- models from parts and sells chicken levels to an equipped Chicken Feed. EggService
--- runs the vacuum itself; ToolController and ToolDock are the client side.
+-- October 20 hand tools (docs/team/COLLECTION_TOOLS.md). Keeps every Backpack holding
+-- exactly the tools its player owns (both are bought in Upgrades > Tools, so a Rebirth
+-- takes them back), builds the held models from parts and sells chicken levels to an
+-- equipped Chicken Feed. EggService runs the vacuum itself; ToolController and
+-- ToolDock are the client side.
 local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Shared=ReplicatedStorage.PetRoll.Shared
@@ -18,8 +18,9 @@ function ToolService.new(world)
  return setmetatable({world=world,templates={},nextSyncAt=0},ToolService)
 end
 
+-- Both tools are Upgrades tree nodes (Stevin, October 20: the vacuum is bought too).
 function ToolService.Owns(session,name: string): boolean
- if name=="EggVacuum" then return session.eggVacuum==true end
+ if name=="EggVacuum" then return (session.researchEffects.eggVacuum or 0)>=1 end
  if name=="ChickenFeed" then return (session.researchEffects.chickenFeed or 0)>=1 end
  return false
 end
@@ -29,11 +30,6 @@ function ToolService.Holding(player: Player?,name: string): boolean
  local character=player and player.Character
  local tool=character and character:FindFirstChild(name)
  return tool~=nil and tool:IsA("Tool") and tool:GetAttribute("PetRollTool")==name
-end
-
-local function guideDone(session): boolean
- local tutorial=session.tutorial
- return type(tutorial)=="table" and (tutorial.guideCompleted==true or tutorial.guideSkipped==true)
 end
 
 -- The Duck's voxel egg, shrunk to `height` with its centre at `at` (its mesh origin is
@@ -159,13 +155,6 @@ function ToolService:Step(sessions,now: number)
  self.nextSyncAt=now+SYNC_SECONDS
  for _,session in sessions do
   if not session.loaded or session.closing or session.saveLost then continue end
-  -- The vacuum is the guide's parting gift (finished or skipped). Saves converted
-  -- from before October 20 already carry it (EconomyMigration).
-  if session.eggVacuum~=true and guideDone(session) then
-   session.eggVacuum=true
-   session.banner="New tool: the Egg Vacuum! Equip it to pull in nearby eggs, then sell them on the pad."
-   session:Touch()
-  end
   local player=Players:GetPlayerByUserId(session.userId)
   if player then self:Sync(player,session) end
  end

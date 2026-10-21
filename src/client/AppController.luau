@@ -62,7 +62,7 @@ for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[ac
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
 		confirm = nil, panelKey = "", reducedMotion = false, toastSerial = 0, alive = true,
-		recruitIntents = {}, recruitReceipts = {}, productionRequests = {}, productionReceipts = {}, menuBlurOwners = {}}, AppController)
+		recruitIntents = {}, recruitReceipts = {}, menuBlurOwners = {}}, AppController)
 	self.audio = AudioController.new()
 	self.feedback = ActionFeedback.new(self)
 	self.eggs = EggController.new(self)
@@ -85,15 +85,6 @@ function AppController:Request(action, payload)
 	self.requestId += 1
 	local request = payload or {}
 	request.action, request.id = action, self.requestId
-	local productionKey=if action=="Income" then "EggValue" elseif action=="BoardUpgrade" or action=="CashUpgrade" then request.upgradeKey else nil
-	if productionKey=="EggValue" or productionKey=="EggSpeed" then
-		local offer=self.state and self.state.boardUpgrades and self.state.boardUpgrades[productionKey]
-		if offer then
-			-- Keep the displayed server offer with this request; the reply has no upgrade key.
-			self.productionRequests[request.id]={key=productionKey,level=offer.level,currentText=offer.currentText,
-				expiresAt=os.clock()+30}
-		end
-	end
 	self.remotes.RequestAction:FireServer(request)
 	return self.requestId
 end
@@ -180,26 +171,6 @@ function AppController:Pet(id)
 	return nil
 end
 
-function AppController:TrackProductionUpgrade(result, quiet)
-	if result.action~="BoardUpgrade" and result.action~="CashUpgrade" and result.action~="Income" then return false end
-	if self.productionReceipts[result.id] then return true,false end
-	local requested=self.productionRequests[result.id]
-	if not requested then return false end
-	self.productionRequests[result.id]=nil
-	if not result.ok then return false end
-	self.productionReceipts[result.id]=os.clock()+600
-	if quiet then return true,true end
-	local offer=self.state.boardUpgrades and self.state.boardUpgrades[requested.key]
-	if not offer or offer.level~=requested.level+1 then
-		self:Notify(result.message,true)
-		return true,true
-	end
-	local name=if requested.key=="EggSpeed" then "Egg Speed" else "Egg Value"
-	local benefit=if requested.key=="EggSpeed" then "Every chicken produces more eggs" else "Same value for every new egg"
-	self:Notify(name..": "..requested.currentText.." → "..offer.currentText.."\n"..benefit,true)
-	return true,true
-end
-
 -- Purchase classification describes selection, not a bird arriving at a battle.
 -- Keep that identity independently of any encounter so late replication and a
 -- later first deployment cannot drop the acknowledgement or replay an old one.
@@ -256,8 +227,6 @@ function AppController:StepRecruitFeedback()
 	if not self.state then return end
 	local now = os.clock()
 	for id, expires in self.recruitReceipts do if now >= expires then self.recruitReceipts[id] = nil end end
-	for id, expires in self.productionReceipts do if now >= expires then self.productionReceipts[id] = nil end end
-	for id, request in self.productionRequests do if now >= request.expiresAt then self.productionRequests[id] = nil end end
 	for id, intent in self.recruitIntents do
 		local pet = self:Pet(id)
 		if now >= intent.expiresAt or not pet then self.recruitIntents[id] = nil;continue end
@@ -814,7 +783,6 @@ function AppController:RenderPanel(force)
 	local state = self.state
 	local keys = {self.page, tostring(self.selected), tostring(self.confirm), tostring(state.capacity), tostring(state.luck), tostring(state.incomeLevel), state.armyState, tostring(state.campsWon),tostring(state.incoming)}
 	if self.page=="Formations" or self.page=="Operations" then
-		table.insert(keys,tostring(state.research and state.research.revision))
 		table.insert(keys,table.concat(state.selectedIds or {},","))
 		table.insert(keys,tostring(state.operations and state.operations.activeId))
 	end
@@ -896,8 +864,6 @@ function AppController:Receive(packet)
 	-- Admin replies go to the Admin page's output when it is open.
 	if self.adminPanel and self.adminPanel:Receive(result) then result=nil end
 	local shownRecruit, newRecruit = false, false
-	local shownProduction,newProduction=false,false
-	if result then shownProduction,newProduction=self:TrackProductionUpgrade(result,researchFeedback) end
 	self.chickenBrowser:Receive(result)
 	self.sellMenu:Receive(result)
 	local shownCrate=self.commerce:Receive(result)
@@ -905,12 +871,11 @@ function AppController:Receive(packet)
 	self.eggBoard:Receive(result)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" and result.action~="AcknowledgeResearch" then
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
-		if not researchFeedback and not shownProduction and not shownCrate
+		if not researchFeedback and not shownCrate
 			and not (result.ok and (result.action=="Roll" or shownRecruit or QUIET_SUCCESS[result.action])) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
-		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand")
-			and (not shownProduction or newProduction) then self.feedback:Action(result.action) end
+		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "Attack" then self:ClosePanel() end
 	end
 	local count, limit, capacity, selectedCount, deployedCount = self:Counts()
@@ -939,8 +904,8 @@ function AppController:Receive(packet)
 		if source then Theme.Motion:Shake(source.Visual,6) end
 	end
 	if result and result.ok then
-		local changed=if (result.action=="Expand" or result.action=="Income" or result.action=="Luck")
-			and (not shownProduction or newProduction) then self.progression.row else nil
+		local changed=if result.action=="Expand" or result.action=="Income" or result.action=="Luck"
+			then self.progression.row else nil
 		if changed then
 			local name=if result.action=="Expand" then "Capacity" else result.action
 			local card=changed:FindFirstChild(name)
@@ -1038,7 +1003,6 @@ function AppController:Destroy()
 	if self.tools then self.tools:Destroy() end
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
-	self.productionRequests,self.productionReceipts={},{}
 	self.gui:Destroy()
 end
 

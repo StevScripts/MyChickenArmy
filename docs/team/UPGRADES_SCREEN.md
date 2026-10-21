@@ -35,7 +35,7 @@ text come from `UpgradeCatalog`; the client never computes a price.
 
 | State | Look |
 |---|---|
-| Owned / maxed, and the free Egg Vacuum | Bright Army green (#A3FF00 → #00D300) |
+| Owned / maxed | Bright Army green (#A3FF00 → #00D300) |
 | Buyable now | Dark hex, gold price, red "!" badge |
 | Not affordable (or held by the starter reserve) | Dark hex, red price |
 | Locked, next to a visible hex | Grey "?" |
