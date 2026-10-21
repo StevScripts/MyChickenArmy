@@ -203,8 +203,9 @@ cd tools/sim && ./lune run harness.luau ../.. rarity_probe.luau profile=fast rol
 cd tools/sim && ./lune run harness.luau ../.. rarity_probe.luau profile=casual playMinutes=45 awayMinutes=1395 hours=240 seeds=2
 ```
 
-Checks: `tools/sim/runsuite.luau LuckWindowChecks` (9 of 10; the one failure predates
-this change and expects zero-Luck odds without the Oct 14 top-band keep),
-`PlaytimeChecks` (12 of 12, including the new "amount is fixed at unlock" check),
-`ResearchRollingChecks` (8 of 9, the same pre-existing tooltip rounding mismatch as
-before), `DailyChecks` and `RebirthV2Checks` all green.
+Checks, all green with `tools/sim/runsuite.luau`: `LuckWindowChecks` 10 of 10 (the
+zero-Luck expectation now applies the Oct 14 top-band keep; the boundary probe scales
+with the multiplier), `ResearchRollingChecks` 9 of 9 (Secret counts as Rare+, the legacy
+Offers view is checked against the tree's twelve Luck tiers and price),
+`PlaytimeChecks` 12 of 12 (including the new "amount is fixed at unlock" check),
+`DailyChecks` 10 of 10 and `RebirthV2Checks` 27 of 27.
