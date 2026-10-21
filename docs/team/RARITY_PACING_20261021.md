@@ -208,4 +208,7 @@ zero-Luck expectation now applies the Oct 14 top-band keep; the boundary probe s
 with the multiplier), `ResearchRollingChecks` 9 of 9 (Secret counts as Rare+, the legacy
 Offers view is checked against the tree's twelve Luck tiers and price),
 `PlaytimeChecks` 12 of 12 (including the new "amount is fixed at unlock" check),
-`DailyChecks` 10 of 10 and `RebirthV2Checks` 27 of 27.
+`DailyChecks` 10 of 10. `RebirthV2Checks` is 25 of 27 on main since P4 (3be3233, Time Skip
+waits as a saved claim): its two failures assert the Time Skip Coins sit in the wallet
+right after a Rebirth (lines 176 and 447), which P4 changed on purpose; that suite
+belongs to the Rebirth session and is unrelated to this change (27 of 27 before P4).
