@@ -267,10 +267,10 @@ function CoinBurst.Count(self: Burst, root: BasePart, share: number)
 		local gui = Instance.new("BillboardGui")
 		gui.Name, gui.Adornee, gui.Size = "CoinCounter", root, UDim2.fromScale(width, style.Height)
 		-- Camera-relative: the row starts just right of the character.
-		-- Pulled toward the camera so the player's own chickens rarely cover it. Not
-		-- AlwaysOnTop: Studio screenshots skip those, which hid it during review.
+		-- Pulled toward the camera, and AlwaysOnTop so walls and chickens never hide it.
+		-- (Studio Flow screenshots skip AlwaysOnTop billboards; check it by eye in play.)
 		gui.StudsOffset = Vector3.new(style.Gap + width / 2, style.Lift, style.Toward)
-		gui.AlwaysOnTop, gui.LightInfluence, gui.MaxDistance = false, 0, 120
+		gui.AlwaysOnTop, gui.LightInfluence, gui.MaxDistance = true, 0, 120
 		local row = Instance.new("Frame")
 		row.Name, row.BackgroundTransparency = "Row", 1
 		row.AnchorPoint, row.Position, row.Size = Vector2.new(0, 0.5), UDim2.fromScale(0, 0.5), UDim2.fromScale(1, 1)
