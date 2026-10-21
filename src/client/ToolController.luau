@@ -28,6 +28,10 @@ local GAP=5
 -- The vacuum's egg bar: thin (a quarter of a slot) and about as wide as My Army's row.
 local BAR_HEIGHT=math.round(ICON*0.27)
 local BAR_WIDTH=0.9
+-- Pixels up from the screen's bottom that the hotbar, the egg bar and a 3 px margin
+-- take: My Army sits right above (HudController). One rule for every device: 84 with
+-- 60 px slots, 135 with consoles' 100 px slots.
+Controller.BottomReserve=ICON+GAP+BAR_HEIGHT+3
 local GOLD=Theme.Arcade.gold
 local RED=Theme.Arcade.red
 

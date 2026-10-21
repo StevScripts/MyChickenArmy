@@ -9,6 +9,7 @@ local ResearchAssets=require(script.Parent.ResearchAssets)
 local HillHud=require(script.Parent.HillHud)
 local RebirthPanel=require(script.Parent.RebirthPanel)
 local FreeGiftController=require(script.Parent.FreeGiftController)
+local ToolController=require(script.Parent.ToolController)
 local ShopCatalog=require(game.ReplicatedStorage.PetRoll.Shared.ShopCatalog)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
@@ -28,11 +29,12 @@ function Hud.new(app,shell)
 	local self=setmetatable({app=app},Hud)
 	-- October 20 (Stevin): My Army sits centred just above Roblox's own hotbar, one
 	-- layout for every device, 20% smaller than before so a phone keeps room above it.
-	-- October 21 (Stevin): it floated too far up; it now sits 84 px up, close over the
-	-- hotbar (65 px) with just room for the vacuum's egg bar in between.
+	-- October 21 (Stevin): it floated too far up; it now sits close over the hotbar with
+	-- just room for the vacuum's egg bar in between. The space comes from the hotbar's
+	-- own size (ToolController.BottomReserve): 84 px on PC, more with consoles' slots.
 	local navigation=Theme.Frame(shell,"Navigation",UDim2.fromScale(0.248,0.204))
 	self.navigation=navigation
-	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-84),1
+	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-ToolController.BottomReserve),1
 	self.army=Theme.IconButton(navigation,"Army","My Army",Theme.Assets.ArmyHud or Theme.Assets.Army,function() app:TogglePage("Army") end)
 	local function command(action)
 		app.audio:Play("Click")
