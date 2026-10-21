@@ -61,7 +61,11 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   rank (R50 496T); enemy scale caps at rank 30 (x8); six Gem cards gained levels as the
   sink for ranks 26–50 (Coin Boost and Keep Upgrades unchanged). Never make the late
   ladder steeper again without re-running the login-model simulation:
-  `docs/team/REBIRTH_PACING_20261021.md`.
+  `docs/team/REBIRTH_PACING_20261021.md`. Later Oct 21 (P5, reference parity): Rebirth 2
+  costs 1M like the reference (50K, 1M, 20M, 400M, 8B … 4.2T at 10, 117T at 30, 927T at
+  50) because in-run growth is tamed instead (Feed x1.6 eggs a level with x4 quotes, Egg
+  Speed/Value III–IV and Flock 7–15 priced 25K–2B) and the egg multiplier gains x1.5 on
+  ranks 5–10 and +5% a rank after (x125 at 10), see "reference-shaped ladder" in that doc.
 - **Flock** = chickens laying in the yard (only they lay, also offline), not the Sep 29
   25–100 capacity. Storage holds the rest (hidden cap 1,000); the **Army** is its own pick.
   Yard builds are instant (ends Oct 16 timed builds).
