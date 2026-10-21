@@ -65,7 +65,7 @@ local COLUMNS=4
 local GAP=0.03
 local CELL_W=(1-(COLUMNS-1)*GAP)/COLUMNS
 local CELL_H=CELL_W*1.12
-local SECTION_H=0.075
+local SECTION_H=0.06
 local SECTION_GAP=0.035
 -- The mutation tab column outside the window: its share of the window's width and
 -- height (five tabs about 48 px each on a phone, nearly square everywhere).
@@ -127,10 +127,10 @@ function Browser.new(app,parent)
 
 	-- Top row: "Normal (x1)" and the progress bar with the Index book at its left end.
 	local tabTitle=label(root,"TabTitle","Normal (x1)",WHITE)
-	place(tabTitle,0,0.005,0.3,0.1)
+	place(tabTitle,0,0.01,0.27,0.085)
 	self.tabTitle=tabTitle
 	local bar=Theme.Frame(root,"Progress",UDim2.new(),BLACK)
-	place(bar,0.35,0.02,0.65,0.075)
+	place(bar,0.34,0.018,0.66,0.068)
 	bar.BackgroundTransparency=0.2
 	Theme.Stroke(bar,BLACK,2)
 	bar.ClipsDescendants=false
@@ -141,7 +141,7 @@ function Browser.new(app,parent)
 	place(count,0.1,0.06,0.8,0.88)
 	local book=Theme.Image(root,"Book",Theme.Assets.Index,UDim2.new())
 	book.AnchorPoint=Vector2.new(0.5,0.5)
-	place(book,0.355,0.0575,0.09,0.13)
+	place(book,0.345,0.052,0.08,0.115)
 	Theme.Aspect(book,1)
 	book.ZIndex=bar.ZIndex+4
 	self.bar,self.fill,self.count,self.book=bar,fill,count,book
@@ -149,7 +149,7 @@ function Browser.new(app,parent)
 	-- One scrolling collection: rarity sections of cards.
 	local grid=Instance.new("ScrollingFrame")
 	grid.Name="IndexGrid"
-	place(grid,0,0.13,1,0.87)
+	place(grid,0,0.12,1,0.88)
 	grid.BackgroundTransparency,grid.BorderSizePixel,grid.ScrollBarThickness=1,0,0
 	grid.ScrollBarImageColor3=Theme.ActionColors.navigation
 	grid.AutomaticCanvasSize,grid.CanvasSize=Enum.AutomaticSize.None,UDim2.new()
