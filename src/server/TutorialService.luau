@@ -12,7 +12,7 @@ local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, Bu
 	FlockEquip=true, FlockUnequip=true, FlockBest=true}
 local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
 	IntroStarted=true, IntroFinished=true, IntroSkipped=true, HillIntroStarted=true, HideGoals=true, ShowGoals=true,
-	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true}
+	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true, ToolsOpen=true, VacuumEquip=true}
 local inputs = {Keyboard=true, Touch=true, Gamepad=true}
 -- Eggs wait for the first-visit film: a long allowance while the client loads,
 -- then a film-length one once it reports the film started.

@@ -20,17 +20,7 @@ Guide.Core = {"Collect", "Sell", "Flock", "Roll", "Recruit"}
 Guide.Tips = {"Vacuum", "VacuumUse", "VacuumSell", "Expand", "Select", "Deploy", "Win"}
 Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Flock", "Core", "Vacuum", "VacuumUse",
 	"VacuumSell", "Expand", "Select", "Deploy", "Win"}
-
--- The Tutorial analytics funnel (Analytics, Schema.Funnels.Tutorial): entry, the
--- core lessons, the core payoff, then the tips. Append only; never reorder.
-Guide.FunnelSteps = {"Started"}
-for _, id in Guide.Core do table.insert(Guide.FunnelSteps, id) end
-table.insert(Guide.FunnelSteps, "CoreDone")
-for _, id in Guide.Tips do
-	if id ~= "VacuumSell" then table.insert(Guide.FunnelSteps, id) end
-end
--- Appended after Win (analytics names are append-only), though it is played third.
-table.insert(Guide.FunnelSteps, "VacuumSell")
+-- The analytics funnel for this guide is Schema.TutorialFunnel (server, version 11).
 
 function Guide.VacuumEggCount(tutorial): number
 	local count = tutorial.vacuumEggCount

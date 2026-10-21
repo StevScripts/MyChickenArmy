@@ -27,6 +27,8 @@ local function optional(name: string): any
 end
 local Funnels = optional("AnalyticsFunnels")
 local PlayerInfo = optional("AnalyticsPlayer")
+-- Version 11: the Tutorial funnel; it owns Roblox's Onboarding dashboard.
+local TutorialFunnel = optional("AnalyticsTutorial")
 
 local Analytics = {}
 Analytics.__index = Analytics
@@ -88,16 +90,6 @@ function Analytics.MergeProfile(old: any, ours: any): any
 		result.tracked = old.tracked
 	end
 	result.rebirths = math.max(old.rebirths or 0, ours.rebirths or 0)
-	-- Version 9 Tutorial funnel: only profiles that started it carry `tut`.
-	if old.tut or ours.tut then
-		local merged = table.clone(ours.tut or {})
-		for key, value in old.tut or {} do
-			if merged[key] == nil then merged[key] = value
-			elseif type(value) == "number" and type(merged[key]) == "number" then merged[key] = math.min(value, merged[key]) end
-		end
-		result.tut = merged
-		result.tutRbx = math.max(old.tutRbx or 0, ours.tutRbx or 0)
-	end
 	for _, name in {"onb", "features", "ret", "launch"} do
 		local merged = table.clone(ours[name] or {})
 		for key, value in old[name] or {} do
@@ -109,7 +101,7 @@ function Analytics.MergeProfile(old: any, ours: any): any
 	if old.firstPurchase and (not ours.firstPurchase or old.firstPurchase < ours.firstPurchase) then
 		result.firstPurchase = old.firstPurchase
 	end
-	for _, part in {Funnels, PlayerInfo} do
+	for _, part in {Funnels, PlayerInfo, TutorialFunnel} do
 		if part and part.MergeProfile then pcall(part.MergeProfile, old, ours, result) end
 	end
 	return result
@@ -150,7 +142,7 @@ function Analytics.new(deps: Deps?)
 		local product = ShopCatalog.Products[key]
 		if product and type(product.productId) == "number" and product.productId > 0 then self.productKeys[product.productId] = key end
 	end
-	for _, entry in {{"funnels", Funnels}, {"playerInfo", PlayerInfo}} do
+	for _, entry in {{"funnels", Funnels}, {"playerInfo", PlayerInfo}, {"tutorialFunnel", TutorialFunnel}} do
 		local module = entry[2]
 		if module then
 			local ok, part = pcall(module.new, self)
@@ -260,6 +252,7 @@ function Analytics:Join(player: Player, session)
 	self.ledger:Count("players.joinAttempt")
 	self.ledger:Count("play.start")
 	self:_Part(self.funnels, "Join", st)
+	self:_Part(self.tutorialFunnel, "Join", st)
 	self:_Part(self.playerInfo, "Join", st, player, session)
 	self:_Reach(st, Schema.OnboardingIndex.Joined)
 end
@@ -336,16 +329,12 @@ function Analytics:_Resolve(st, ok: boolean, profile: any, fresh: boolean)
 	self.ledger:Count(if st.isNew then "players.join.new" else "players.join.returning")
 	if st.tracked then self.ledger:Count("players.join.tracked") end
 	st.robloxNext = (if st.profile then st.profile.rbx or 0 else 0) + 1
-	-- Version 9 Tutorial funnel: fresh saves from now on, and any profile that began it.
-	if st.profile and fresh and not st.profile.tut then st.profile.tut = {} end
-	st.tutTracked = fresh or (st.profile ~= nil and st.profile.tut ~= nil)
-	st.tutReached = {}
-	st.tutNext = (if st.profile then st.profile.tutRbx or 0 else 0) + 1
 	st.ready = true
 	for _, index in st.queue do self:_Record(st, index) end
 	st.queue = {}
 	self:_SendOnboarding(st)
 	self:_Part(self.funnels, "Profile", st)
+	self:_Part(self.tutorialFunnel, "Profile", st)
 	self:_Part(self.playerInfo, "Profile", st)
 end
 
@@ -369,6 +358,9 @@ end
 
 -- Roblox onboarding steps, strictly in order (see Schema.RobloxGapRelease).
 function Analytics:_SendOnboarding(st)
+	-- Version 11: Roblox's Onboarding dashboard belongs to the Tutorial funnel
+	-- (AnalyticsTutorial); these older steps now fill the ledger only.
+	if Schema.TutorialFunnel then return end
 	if not st.tracked or not st.robloxNext then return end
 	local total = #Schema.Onboarding
 	while st.robloxNext <= total do
@@ -427,7 +419,7 @@ function Analytics:Observe(session, state)
 	end
 	st.lastState = state
 	self:_Part(self.funnels, "State", st, session, state)
-	self:_Tutorial(st, session, state)
+	self:_Part(self.tutorialFunnel, "State", st, session, state)
 	if not st.tracked then return end
 	local t = session.tutorial or {}
 	local I = Schema.OnboardingIndex
@@ -444,63 +436,10 @@ function Analytics:Observe(session, state)
 	if (session.rebirths or 0) >= 1 then self:_Reach(st, I.Rebirth1) end
 end
 
--- Tutorial funnel (Schema.Tutorial, version 9) ----------------------------------
-
-function Analytics:_TutorialReached(st, index: number): boolean
-	if st.tutReached[index] then return true end
-	local profile = st.profile
-	return profile ~= nil and profile.tut ~= nil and profile.tut[Schema.StepCode(index)] ~= nil
-end
-
--- Which steps are true right now. Tips count once the core is done.
-local function tutorialFacts(session, state): {[string]: boolean}
-	local t = session.tutorial or {}
-	local facts = Guide.Facts(state)
-	local now = {Started = t.guideStarted == true, CoreDone = facts.Core == true}
-	for _, id in Guide.Core do now[id] = facts[id] == true end
-	for _, id in Guide.Tips do now[id] = facts.Core == true and facts[id] == true end
-	-- The guide completes on the camp win even when a tip was passed by.
-	now.Win = facts.Win == true
-	return now
-end
-
-function Analytics:_Tutorial(st, session, state)
-	if not st.tutTracked then return end
-	local now = tutorialFacts(session, state)
-	local profile = st.profile
-	for index, step in Schema.Tutorial do
-		if now[step.id] and not self:_TutorialReached(st, index) then
-			st.tutReached[index] = true
-			local code = Schema.StepCode(index)
-			local play = self:_Play(st)
-			if profile and profile.tut then profile.tut[code] = math.floor(play) end
-			self.ledger:Count("tut.reach." .. code)
-			self.ledger:Hist("tut.t." .. code, "seconds", play)
-			if profile and profile.firstDay then self.ledger:Cohort(profile.firstDay, "tut." .. code) end
-			local played = table.find(Schema.TutorialPlayOrder, step.id)
-			local before = played and played > 1 and Schema.TutorialIndex[Schema.TutorialPlayOrder[played - 1]]
-			if before and not self:_TutorialReached(st, before) then self.ledger:Count("tut.gap." .. code) end
-			self:_Trail(st, "tut:" .. step.id)
-		end
-	end
-	-- Roblox gets the steps in order. A step passed by is released once the guide is
-	-- complete (Win), so the dashboard still shows the finish.
-	local total = #Schema.Tutorial
-	while st.tutNext <= total do
-		local index = st.tutNext
-		if not self:_TutorialReached(st, index) and not now.Win then return end
-		local player, name, id = st.player, Schema.Tutorial[index].id, "tut-" .. tostring(st.userId)
-		self:_Queue(false, "funnel:Tutorial:" .. name, function()
-			AnalyticsService:LogFunnelStepEvent(player, "Tutorial", id, index, name)
-		end)
-		st.tutNext += 1
-		if profile then profile.tutRbx = math.max(profile.tutRbx or 0, index) end
-	end
-end
-
 function Analytics:Signal(session, signal: any)
 	local st = self:_State(session)
 	if not st or type(signal) ~= "string" or #signal > 32 then return end
+	self:_Part(self.tutorialFunnel, "Signal", st, signal)
 	local I = Schema.OnboardingIndex
 	if signal == "IntroStarted" then
 		st.introStarted = true
@@ -1061,11 +1000,6 @@ function Analytics:Leave(session)
 	self.ledger:Hist("econ.sessionEarned", "cash", st.sessionEarned)
 	if st.rolls > 0 then self.ledger:Hist("roll.perSession", "count", st.rolls) end
 	if st.guideStep and st.guideStepAt then self.ledger:Hist("guide.dwell." .. st.guideStep, "seconds", now - st.guideStepAt) end
-	if st.tutTracked then
-		local furthest = 0
-		for index in Schema.Tutorial do if self:_TutorialReached(st, index) then furthest = index end end
-		if furthest < #Schema.Tutorial then self.ledger:Count("tut.exit." .. Schema.StepCode(furthest)) end
-	end
 	local stage = self:_Stage(st)
 	local onboarding = st.tracked and string.sub(stage, 1, 4) == "Onb:"
 	if onboarding then
@@ -1094,6 +1028,7 @@ function Analytics:Leave(session)
 	end
 	self:_FlushEconomy(st)
 	self:_Part(self.funnels, "Leave", st, session)
+	self:_Part(self.tutorialFunnel, "Leave", st, session)
 	self:_Part(self.playerInfo, "Leave", st, session)
 	if onboarding or self.random() < JOURNEY_SAMPLE then
 		local rejects = {}

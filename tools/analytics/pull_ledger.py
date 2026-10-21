@@ -35,9 +35,24 @@ TOP_CAP = 150
 ONBOARDING = ["Joined", "ProfileLoaded", "IntroStarted", "IntroEnded", "ControlReady", "FirstEgg", "Collect",
               "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win", "GuideComplete",
               "Camp2", "Camp3", "King", "Rebirth1"]
-# Schema.Tutorial (version 9, October 21): the short core + tips guide.
-TUTORIAL = ["Started", "Collect", "Sell", "Flock", "Roll", "Recruit", "CoreDone",
-            "Vacuum", "VacuumUse", "Expand", "Select", "Deploy", "Win", "VacuumSell"]  # must match Schema.Onboarding
+# Schema.TutorialFunnel (version 11, later October 21): the reworked tutorial funnel,
+# ledger keys tf.*. Must match the schema (id, Roblox label); see TUTORIAL_FUNNEL.md.
+TUTORIAL = [
+    ("Joined", "Joined the game"), ("Loaded", "Save loaded"), ("IntroDone", "Intro film done"),
+    ("Control", "Player has control"), ("Egg1", "1st egg clicked (1/3)"), ("Egg2", "2nd egg clicked (2/3)"),
+    ("Egg3", "3rd egg clicked (lesson 1 done)"), ("Sold", "Sold eggs on the pad (2/5)"),
+    ("UpgradesOpen", "Opened Upgrades (Flock)"), ("FlockBought", "Bought Flock Size I (3/5)"),
+    ("LeverPulled", "Pulled the lever (4/5)"), ("ChickenTaken", "Took the chicken (5/5)"),
+    ("CoreDone", "TUTORIAL COMPLETE shown"), ("DailyDay1", "Daily Rewards Day 1"),
+    ("VacUpgradesOpen", "Opened Upgrades (vacuum tip)"), ("ToolsOpen", "Opened the Tools category"),
+    ("VacuumClaimed", "Claimed the Egg Vacuum (1/7)"), ("VacuumEquipped", "Equipped the vacuum"),
+    ("Vacuum10", "Vacuumed 10 eggs"), ("Vacuum20", "Vacuumed 20 eggs (2/7)"),
+    ("VacuumSold", "Sold the vacuum eggs (3/7)"), ("ArmyUpgradesOpen", "Opened Upgrades (Army tip)"),
+    ("ArmySizeBought", "Bought Army Size I (4/7)"), ("MyArmyOpen", "Opened My Army"),
+    ("ArmyPicked", "Four chickens in the Army (5/7)"), ("ArmySent", "Sent the Army to Cluck Camp (6/7)"),
+    ("CluckCampWon", "Captured Cluck Camp (7/7)"), ("FortRoostWon", "Won Fort Roost"),
+    ("IronbeakWon", "Won Ironbeak HQ"), ("KingCleared", "Beat the Chicken King"), ("Rebirth1", "First Rebirth"),
+]
 PLAYERS = "PetRollAnalyticsPlayers_v1"
 # Schema.FeatureFunnels step ids, in order (NN = index). Must match the schema; funnels
 # found in the data but missing here still appear with numbered steps.
@@ -330,13 +345,16 @@ def summarize(days):
                        "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"onb.t.{code}"), 0.5)})
         previous = reached
     tutorial, previous = [], None
-    first = c.get("tut.reach.01")
-    for index, step in enumerate(TUTORIAL, start=1):
+    first = c.get("tf.reach.01")
+    for index, (step_id, label) in enumerate(TUTORIAL, start=1):
         code = f"{index:02d}"
-        reached = c.get(f"tut.reach.{code}", 0)
-        tutorial.append({"step": f"{code} {step}", "reached": reached, "ofStarted": pct(reached, first),
-                         "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"tut.t.{code}"), 0.5),
-                         "outOfOrder": c.get(f"tut.gap.{code}", 0), "exitsHere": c.get(f"tut.exit.{code}", 0)})
+        reached = c.get(f"tf.reach.{code}", 0)
+        tutorial.append({"step": f"{code} {label}", "id": step_id, "reached": reached, "ofJoined": pct(reached, first),
+                         "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"tf.t.{code}"), 0.5),
+                         "dwellP50": percentile(h.get(f"tf.d.{code}"), 0.5),
+                         "firstSessionPct": pct(c.get(f"tf.s1.{code}"), reached),
+                         "outOfOrder": c.get(f"tf.gap.{code}", 0), "passedOver": c.get(f"tf.skip.{code}", 0),
+                         "exitsHere": c.get(f"tf.exit.{code}", 0)})
         previous = reached
     exits = sorted(({"guideStep": k[len("onb.exit."):], "n": v} for k, v in c.items() if k.startswith("onb.exit.")),
                    key=lambda e: -e["n"])

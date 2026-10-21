@@ -135,7 +135,10 @@ function Checks.Run()
 		task.wait()
 		local onboarding = {}
 		for _, label in labels do if string.sub(label, 1, 11) == "onboarding:" then table.insert(onboarding, string.sub(label, 12)) end end
-		local expected = {"01 Joined", "02 ProfileLoaded", "03 IntroStarted", "04 IntroEnded", "05 ControlReady", "06 FirstEgg", "07 Collect", "08 Sell"}
+		-- Version 11: Roblox's Onboarding dashboard carries the Tutorial funnel. Flock Size I
+		-- reads as bought (no flock snapshot), so the soft "Opened Upgrades" is passed over.
+		local expected = {}
+		for _, index in {1, 2, 3, 4, 5, 6, 7, 8, 10} do table.insert(expected, Schema.TutorialFunnelName(index)) end
 		assert(table.concat(onboarding, ",") == table.concat(expected, ","), table.concat(onboarding, ","))
 		local bucket = ledger.pending["2026-10-09"]["v1"]
 		assert(bucket.c["onb.reach.08"] == 1 and bucket.x["2026-10-09"]["onb.08"] == 1 and bucket.x["2026-10-09"]["cohort.size"] == 1)
@@ -159,7 +162,7 @@ function Checks.Run()
 		assert(b2.c["onb.reach.08"] == nil, "step re-counted in a later session")
 	end)
 
-	check("Version 9 Tutorial funnel: each guide step once, tips after the core, passed tips released on the win", function()
+	check("Version 11 Tutorial funnel: every guide action once, in order, soft steps passed over, exits recorded", function()
 		local labels, clock = {}, 100
 		local players = fakeStore()
 		local ledger = Ledger.new({store = fakeStore(), playerStore = players, studio = true, shard = 0, version = "v1",
@@ -168,41 +171,82 @@ function Checks.Run()
 			wall = function() return 1791547200 end, sender = function(label) table.insert(labels, label) end})
 		local session = fakeSession(77)
 		analytics:Join({UserId = 77}, session); analytics:Loaded(session); task.wait()
-		assert(analytics.players[77].tutTracked, "fresh save tracks the Tutorial funnel")
+		local st = analytics.players[77]
+		assert(st.tf and st.tf.tracked, "a fresh save is tracked")
+		local I = Schema.TutorialFunnelIndex
 		local t = session.tutorial
-		t.guideStarted, t.collectedEggCount, t.soldEggs = true, 5, true
-		local state = {tutorial = t, pets = {1, 2, 3}, capacity = 3, selectedCount = 3, firstWins = {}, flock = {size = 4},
+		t.guideStarted = true
+		local state = {tutorial = t, pets = {1, 2, 3}, capacity = 3, selectedCount = 3, firstWins = {}, flock = {size = 3},
 			tools = {eggVacuum = false}}
 		local function observe() clock += 1; analytics:Observe(session, state) end
+		local function signal(name) clock += 1; analytics:Signal(session, name) end
 		local function sent()
 			local list = {}
 			for _, label in labels do
-				if string.sub(label, 1, 16) == "funnel:Tutorial:" then table.insert(list, string.sub(label, 17)) end
+				if string.sub(label, 1, 11) == "onboarding:" then table.insert(list, string.sub(label, 12, 13)) end
 			end
 			return table.concat(list, ",")
 		end
-		observe(); observe()
-		assert(sent() == "Started,Collect,Sell,Flock", sent())
-		state.capacity = 4 -- Army Size I bought early: not a tip until the core is done
-		t.rolled, t.bought, state.pets = true, true, {1, 2, 3, 4}
-		observe()
-		assert(sent() == "Started,Collect,Sell,Flock,Roll,Recruit,CoreDone", sent())
+		signal("IntroSkipped"); signal("Ready")
+		t.collectedEggCount = 1; observe()
+		t.collectedEggCount = 3; observe()
+		t.soldEggs = true; observe()
+		signal("TreeOpen") -- Flock Size I not bought yet: Opened Upgrades (Flock)
+		state.flock.size = 4; observe()
+		t.rolled = true; observe()
+		t.bought, state.pets = true, {1, 2, 3, 4}; observe()
+		session.daily = {streak = 1, lastDay = 20000}; observe()
+		assert(sent() == "01,02,03,04,05,06,07,08,09,10,11,12,13,14", "core: " .. sent())
+		state.tools.eggVacuum = true; observe() -- claimed without the two menu signals reaching us
+		signal("VacuumEquip")
+		t.vacuumEggCount = 10; observe()
+		t.vacuumEggCount = 20; observe()
+		t.vacuumSold = true; observe()
+		state.capacity = 4; observe() -- Army Size I without a TreeOpen: passed over too
+		signal("ArmyOpen")
+		state.selectedCount = 4; observe()
+		t.guideDeployed = true; observe()
+		t.wonCamp = true; observe(); observe()
+		assert(sent() == "01,02,03,04,05,06,07,08,09,10,11,12,13,14,17,18,19,20,21,23,24,25,26,27", "tips: " .. sent())
 		local bucket = ledger.pending["2026-10-09"]["v1"]
-		assert(bucket.c["tut.reach.07"] == 1 and bucket.c["tut.reach.10"] == 1 and bucket.c["tut.gap.10"] == 1, "Expand reached out of order")
-		t.wonCamp = true
-		observe()
-		assert(sent() == "Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win,VacuumSell", sent())
-		assert(bucket.c["tut.reach.13"] == 1 and bucket.c["tut.reach.08"] == nil, "Win counted; the passed Vacuum tip is not")
-		observe()
-		assert(#string.split(sent(), ",") == 14, "re-sent")
+		for _, id in {"VacUpgradesOpen", "ToolsOpen", "ArmyUpgradesOpen"} do
+			local nn = Schema.StepCode(I[id])
+			assert(bucket.c["tf.skip." .. nn] == 1 and bucket.c["tf.reach." .. nn] == nil, id .. " passed over")
+		end
+		assert(bucket.c["tf.reach.27"] == 1 and bucket.c["tf.gap.17"] == nil and bucket.c["tf.s1.27"] == 1, "win, no false gap")
+		assert(bucket.h["tf.t.05"] and bucket.h["tf.d.05"], "time and dwell histograms")
+		assert(bucket.x["2026-10-09"]["tf.27"] == 1, "cohort")
 		analytics:Leave(session); task.wait()
+		assert(bucket.c["tf.exit.27"] == nil, "a finished guide is not an exit")
 		local saved = players.data[Schema.PlayerKey(77)]
-		assert(saved and saved.tut and saved.tut["13"] and saved.tutRbx == 14, "profile keeps the funnel")
-		assert(#Schema.Tutorial == #Guide.FunnelSteps, "Schema.Tutorial matches TutorialGuide.FunnelSteps")
-		for index, step in Schema.Tutorial do assert(Guide.FunnelSteps[index] == step.id, step.id) end
+		assert(saved and saved.tf and saved.tf["27"] and saved.tfSkip["15"] and saved.tfRbx == 27, "profile keeps the funnel")
+		-- A player who stops after one egg: the exit and the lesson on screen are recorded.
+		local quitter = fakeSession(78)
+		analytics:Join({UserId = 78}, quitter); analytics:Loaded(quitter); task.wait()
+		quitter.tutorial.guideStarted, quitter.tutorial.collectedEggCount = true, 1
+		clock += 1; analytics:Observe(quitter, {tutorial = quitter.tutorial, pets = {1, 2, 3}, capacity = 3, firstWins = {}})
+		analytics:Leave(quitter); task.wait()
+		assert(bucket.c["tf.exit.05"] == 1 and bucket.c["tf.exitLesson.None"] == 1, "exit at Egg1")
 	end)
 
-	check("Roblox onboarding steps go out strictly in order; early steps wait, optional ones are passed over", function()
+	check("Tutorial funnel schema: unique ids, short Roblox labels, every step fully described", function()
+		local seen = {}
+		assert(#Schema.TutorialFunnel == 31 and #Schema.TutorialFunnel <= Schema.RobloxLimits.stepsPerFunnel)
+		for index, step in Schema.TutorialFunnel do
+			assert(not seen[step.id], "duplicate " .. step.id); seen[step.id] = true
+			assert(Schema.TutorialFunnelIndex[step.id] == index and (step.kind == "hard" or step.kind == "soft"), step.id)
+			assert(#Schema.TutorialFunnelName(index) <= 40, step.id .. " label")
+			for _, field in {"screen", "trigger", "about"} do
+				assert(type(step[field]) == "string" and #step[field] >= 8, step.id .. " needs " .. field)
+			end
+		end
+		assert(Schema.Funnels.Tutorial == nil, "the version 9 recurring funnel is gone")
+		local funnels = 1
+		for _ in Schema.Funnels do funnels += 1 end
+		assert(funnels <= Schema.RobloxLimits.funnels, "Roblox funnel count " .. funnels)
+	end)
+
+	check("Roblox onboarding (Tutorial funnel) goes out in order: missing hard steps wait, then fill", function()
 		local labels = {}
 		local ledger = Ledger.new({store = fakeStore(), playerStore = fakeStore(), studio = true, shard = 0, version = "v1",
 			clock = function() return 1791547200 end})
@@ -210,22 +254,23 @@ function Checks.Run()
 		local session = fakeSession(9)
 		analytics:Join({UserId = 9}, session); analytics:Loaded(session); task.wait()
 		local st = analytics.players[9]
-		local I = Schema.OnboardingIndex
-		analytics:_Reach(st, I.Expand) -- a BiggerArmy pass owner starts with capacity 4+
+		local part, I = analytics.tutorialFunnel, Schema.TutorialFunnelIndex
 		local function sent()
 			local list = {}
 			for _, label in labels do if string.sub(label, 1, 11) == "onboarding:" then table.insert(list, string.sub(label, 12, 13)) end end
 			return table.concat(list, ",")
 		end
+		part:Reach(st, I.Egg3) -- eggs counted before the intro and ready reports
 		assert(sent() == "01,02", sent())
-		analytics:Signal(session, "IntroSkipped") -- no film: IntroStarted never happens
-		analytics:Signal(session, "Ready")
-		assert(sent() == "01,02,04,05", sent())
-		for _, id in {"FirstEgg", "Collect", "Sell", "Roll", "Recruit", "Grow"} do analytics:_Reach(st, I[id]) end
-		assert(sent() == "01,02,04,05,06,07,08,09,10,11,12", sent())
+		analytics:Signal(session, "IntroSkipped"); analytics:Signal(session, "Ready")
+		assert(sent() == "01,02,03,04", sent())
+		part:Reach(st, I.Sold)
+		assert(sent() == "01,02,03,04", "Egg1 waits for three later steps: " .. sent())
+		part:Reach(st, I.FlockBought)
+		assert(sent() == "01,02,03,04,07,08,10", sent())
 		local bucket = ledger.pending["2026-10-09"]["v1"]
-		assert(bucket.c["onb.robloxGapFill.03"] == 1 and bucket.c["onb.outOfOrder.12"] == 1)
-		assert(st.profile.rbx == 12)
+		assert(bucket.c["tf.robloxGapFill.05"] == 1 and bucket.c["tf.robloxGapFill.06"] == 1 and bucket.c["tf.gap.07"] == 1)
+		assert(bucket.c["tf.skip.09"] == 1 and st.profile.tfRbx == 10)
 	end)
 
 	check("Playtime funnel sends 10-second then minute checkpoints and records where the session ended", function()

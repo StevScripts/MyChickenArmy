@@ -20,10 +20,12 @@ local Schema = {}
 -- 8 (October 20 overhaul, S16): Playtime Rewards (the playtime Coins source and
 -- playtimeReward.claim.<1..12>).
 -- 9 (October 21): the Tutorial funnel for the short core + tips guide
--- (TutorialGuide.FunnelSteps; ledger tut.*; Roblox funnel "Tutorial").
+-- (ledger tut.*; Roblox funnel "Tutorial"; replaced by version 11).
 -- 10 (later October 21): Tutorial step 14 VacuumSell (the vacuum tip now fills 20
 -- eggs and sells them; played third among the tips, appended after Win).
-Schema.Version = 10
+-- 11 (later October 21): complete rework. Schema.TutorialFunnel (31 steps, ledger
+-- tf.*) replaces the 9/10 Tutorial funnel and takes over Roblox's Onboarding dashboard.
+Schema.Version = 11
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -100,15 +102,12 @@ Schema.Funnels = {
 	-- Version 5: five more Roblox dashboards (9 of 10 with onboarding). Sent by
 	-- AnalyticsFunnels from the matching FeatureFunnels steps (RobloxSteps below).
 	Research = {"TreeOpened", "Started", "Completed"},
-	-- Version 9: Fuse left the Roblox dashboards (Fuse was removed October 20) so the
-	-- Tutorial funnel fits Roblox's ten. The ledger's Fuse feature funnel stays.
+	-- Version 9: Fuse left the Roblox dashboards (Fuse was removed October 20). The
+	-- ledger's Fuse feature funnel stays.
 	Rebirth = {"Eligible", "Opened", "Rebirthed"},
 	Mission = {"Spawned", "Started", "Won"},
 	Daily = {"Available", "Opened", "Claimed"},
 	Playtime = {} :: {string}, -- version 6: checkpoint labels, filled from Schema.Playtime below
-	-- Version 9 (October 21): the guide, step by step (Schema.Tutorial below). It takes
-	-- the retired Fuse funnel's place in the Roblox Analytics UI.
-	Tutorial = {} :: {string},
 }
 Schema.RollFunnelSessionCap = 30 -- Roblox roll-funnel sessions per player session (rate budget)
 
@@ -125,40 +124,172 @@ for minute = 1, 100 do table.insert(Schema.Playtime, {seconds = minute * 60, lab
 for index = 1, math.min(#Schema.Playtime, 100) do Schema.Funnels.Playtime[index] = Schema.Playtime[index].label end
 function Schema.PlaytimeCode(index: number): string return string.format("%03d", index) end
 
--- Version 9 Tutorial funnel (October 21): one row per TutorialGuide.FunnelSteps entry,
--- for players whose guide starts from a fresh save under this version:
---   Started, the five core lessons, CoreDone, then the six tips ending on Win.
--- Ledger: tut.reach.NN (reached), tut.t.NN (play seconds to reach), tut.gap.NN
--- (counted because a later step in the same part happened first), tut.exit.NN (the
--- furthest step when a session ended unfinished) and the cohort tut.NN.
--- Roblox: LogFunnelStepEvent(player, "Tutorial", "tut-<userId>", NN, name).
-Schema.Tutorial = {
-	{id = "Started",   about = "Guide began for a fresh save (FTUEEntered)."},
-	{id = "Collect",   about = "TUTORIAL 1/5: collected TutorialGuide.EggGoal eggs."},
-	{id = "Sell",      about = "TUTORIAL 2/5: first sale on the green pad."},
-	{id = "Flock",     about = "TUTORIAL 3/5: bought Flock Size I."},
-	{id = "Roll",      about = "TUTORIAL 4/5: pulled the lever (FREE starter roll)."},
-	{id = "Recruit",   about = "TUTORIAL 5/5: took the FREE chicken."},
-	{id = "CoreDone",  about = "Core payoff shown; Daily Rewards unlocks (tutorial.coreDone)."},
-	{id = "Vacuum",    about = "TIP 1/7: claimed the FREE Egg Vacuum."},
-	{id = "VacuumUse", about = "TIP 2/7: vacuumed TutorialGuide.VacuumGoal (20) eggs."},
-	{id = "Expand",    about = "TIP 4/7: bought Army Size I."},
-	{id = "Select",    about = "TIP 5/7: picked four chickens for the Army."},
-	{id = "Deploy",    about = "TIP 6/7: sent the Army to Cluck Camp."},
-	{id = "Win",       about = "TIP 7/7: captured Cluck Camp (guide complete)."},
-	-- Version 10: played as TIP 3/7, between VacuumUse and Expand.
-	{id = "VacuumSell", about = "TIP 3/7: sold the vacuumed eggs on the pad (tutorial.vacuumSold)."},
+-- Version 11 Tutorial funnel (later October 21, Stevin: "a complete rework of the
+-- funnels to the tutorial, be VERY detailed"). One ordered funnel that follows a fresh
+-- player through every action of the Drop a Fruit style guide, from joining to the
+-- first Rebirth. It replaces the version 9/10 "Tutorial" recurring funnel and owns
+-- Roblox's single Onboarding dashboard (LogOnboardingFunnelStepEvent) from now on;
+-- the version 1-8 Schema.Onboarding steps above keep filling the ledger (onb.*) so
+-- older days stay comparable, but no longer go to Roblox. AnalyticsTutorial owns it.
+--
+-- Who is counted: players whose save is fresh when this version first sees them
+-- (Analytics.FreshSave) and who keep a profile.tf record; everyone else is ignored.
+--
+-- Step kinds:
+--   hard  a saved fact (save data or the server snapshot). Reached the moment it is
+--         true, even if earlier steps are not (counted as tf.gap.NN then).
+--   soft  a menu or tool action the client reports (TutorialSignal) while that lesson
+--         is on screen. When a later step of the same lesson happens first, the soft
+--         step is passed over (tf.skip.NN), never invented: the player may have
+--         opened the menu before the lesson asked, or the signal was lost.
+--
+-- Ledger (Schema.LedgerStore, per game version and day):
+--   tf.reach.NN            players reaching step NN (once per player, ever)
+--   tf.reach.NN|<platform> the same split by platform (Phone, Tablet, PC, Console...)
+--   tf.t.NN                histogram: total play seconds from first join to step NN
+--   tf.d.NN                histogram: seconds since the previous reached step (dwell)
+--   tf.s1.NN               reached during the player's first session
+--   tf.gap.NN              reached while the step before it was still missing
+--   tf.skip.NN             a soft step passed over because a later step happened
+--   tf.exit.NN             a session ended unfinished with NN its furthest step
+--   tf.exitLesson.<id>     the guide lesson on screen when that session ended
+--   tf.skipGuide.NN        the player hid the guide (Settings) with NN furthest
+--   x[firstDay] tf.NN      cohort: players of that first day who ever reached NN
+-- Roblox: LogOnboardingFunnelStepEvent(player, NN, "NN <label>", {version, platform}),
+-- strictly in order (Roblox fills earlier steps itself): soft steps are passed over
+-- once a later step happens; a missing hard step is released after
+-- Schema.RobloxGapRelease later steps.
+Schema.TutorialFunnel = {
+	{id = "Joined", kind = "hard", label = "Joined the game",
+		screen = "Loading screen; the player's yard is assigned.",
+		trigger = "PlayerAdded on a server (Analytics:Join).",
+		about = "Every tracked fresh player starts here. 100% by definition; all other rates are read against it."},
+	{id = "Loaded", kind = "hard", label = "Save loaded",
+		screen = "Still loading; the starter save (3 Ducks, 2,400 Coins) is ready.",
+		trigger = "DataService loaded the profile and Analytics resolved the ledger profile (Analytics:Loaded).",
+		about = "A drop from Joined is players leaving or failing before their save loads: DataStore errors, slow devices or instant quits. Compare with data.loadFail and load.serverSeconds."},
+	{id = "IntroDone", kind = "hard", label = "Intro film done",
+		screen = "The first-visit film plays (or not, with reduced motion), then the yard.",
+		trigger = "Client TutorialSignal IntroFinished or IntroSkipped (also sent when no film plays).",
+		about = "A drop here is quitting during the film. Read with intro.skipped vs intro.finished: many skips mean the film is too long."},
+	{id = "Control", kind = "hard", label = "Player has control",
+		screen = "Loading veil gone, character standing in the yard, guide card about to show.",
+		trigger = "Client TutorialSignal Ready (CommanderGuide, once the character exists and nothing blocks the screen).",
+		about = "The real start of play. Join-to-here time (tf.t) is the loading cost; a big drop from IntroDone means the client failed to finish loading."},
+	{id = "Egg1", kind = "hard", label = "1st egg clicked (1/3)",
+		screen = "TUTORIAL 1/5 'Click your eggs to collect them! (0/3)': one egg glows gold and a white hand taps it.",
+		trigger = "tutorial.collectedEggCount >= 1 (EggService pays a clicked egg).",
+		about = "Did the player understand the very first instruction? A drop from Control means they never clicked an egg: the glowing egg or hand is not obvious, or the egg is off screen. tf.d.05 is how long the first click took."},
+	{id = "Egg2", kind = "hard", label = "2nd egg clicked (2/3)",
+		screen = "Same lesson, counter 1/3; the glow moves to the next nearest egg.",
+		trigger = "tutorial.collectedEggCount >= 2.",
+		about = "Repeating the action. Almost everyone who clicks one egg should click a second; a drop means the glow did not move clearly or no egg was ready (laying is 3 s per chicken)."},
+	{id = "Egg3", kind = "hard", label = "3rd egg clicked (lesson 1 done)",
+		screen = "Counter reaches 3/3; the green check pops and the card moves on.",
+		trigger = "tutorial.collectedEggCount >= TutorialGuide.EggGoal (3).",
+		about = "TUTORIAL 1/5 complete. Time from Control to here (tf.d.05 + .06 + .07) is how long collecting takes."},
+	{id = "Sold", kind = "hard", label = "Sold eggs on the pad (2/5)",
+		screen = "TUTORIAL 2/5 'Sell your eggs on the green pad!' with the ground beam to the pad; coins fly to the player.",
+		trigger = "tutorial.soldEggs (first pad deposit).",
+		about = "The first payoff: Coins go up. A drop means the beam or pad is hard to find; dwell (tf.d.08) is the walk to the pad."},
+	{id = "UpgradesOpen", kind = "soft", label = "Opened Upgrades (Flock)",
+		screen = "TUTORIAL 3/5 'Spend your Coins in Upgrades!': screen darkened, gold ring and arrow on the Upgrades button.",
+		trigger = "TutorialSignal TreeOpen while Flock Size I is not bought yet.",
+		about = "Does the dark screen plus ring get the first menu open? A drop from Sold to here is the clearest UI-comprehension failure in the guide."},
+	{id = "FlockBought", kind = "hard", label = "Bought Flock Size I (3/5)",
+		screen = "Inside Upgrades: 'Buy Flock Size I!' with the hex ringed (300 Coins).",
+		trigger = "Flock Size >= 4 (TutorialGuide.Facts Flock).",
+		about = "First purchase. A drop between UpgradesOpen and here means the tree confused them (closed it, clicked other hexes). Read with ui.TreeClose and feature.first.Upgrades."},
+	{id = "LeverPulled", kind = "hard", label = "Pulled the lever (4/5)",
+		screen = "TUTORIAL 4/5 'Pull the lever for a chicken!' with the beam to the lever.",
+		trigger = "tutorial.rolled (RollService:Roll).",
+		about = "Getting the player out of the menu and to the roll machine. A drop here often means they stayed in Upgrades or could not find the lever prompt."},
+	{id = "ChickenTaken", kind = "hard", label = "Took the chicken (5/5)",
+		screen = "TUTORIAL 5/5 'Grab your chicken!': the rolled Duck on the podium costs 0 Coins.",
+		trigger = "tutorial.bought (first recruit).",
+		about = "Last core action. Should be close to 100% of LeverPulled; a drop means the reveal hid the podium prompt."},
+	{id = "CoreDone", kind = "hard", label = "TUTORIAL COMPLETE shown",
+		screen = "'TUTORIAL COMPLETE! Your Flock is laying!' with confetti for 4 s; My Army appears.",
+		trigger = "tutorial.coreDone saved (TutorialService, all core facts true).",
+		about = "The short core is finished. The share of Joined reaching this is the headline completion rate of the tutorial; tf.t.13 is how long the whole core took (target under a minute after Control)."},
+	{id = "DailyDay1", kind = "soft", label = "Daily Rewards Day 1",
+		screen = "Daily Rewards popup opens with Day 1 claimed (Coins).",
+		trigger = "session.daily.lastDay > 0 (DailyService grants within 10 s of CoreDone).",
+		about = "The return hook. Soft because a server can lag; passed over (tf.skip.14) if the player moves on first. Compare later with D1 retention per cohort."},
+	{id = "VacUpgradesOpen", kind = "soft", label = "Opened Upgrades (vacuum tip)",
+		screen = "TIP 1/7 'Open Upgrades for an Egg Vacuum!' with the dark screen and ring on Upgrades.",
+		trigger = "TutorialSignal TreeOpen after CoreDone while the Egg Vacuum is not owned.",
+		about = "Do players keep following after the core payoff? A big drop from CoreDone means the tips feel optional or the Daily popup broke the flow."},
+	{id = "ToolsOpen", kind = "soft", label = "Opened the Tools category",
+		screen = "Inside Upgrades: 'Open the Tools category!' with the ring on the Tools hex.",
+		trigger = "TutorialSignal ToolsOpen (the Upgrades map switched to Tools) while the Egg Vacuum is not owned.",
+		about = "The second level of menu navigation. A drop between VacUpgradesOpen and here means the Open hexes are not recognised as buttons."},
+	{id = "VacuumClaimed", kind = "hard", label = "Claimed the Egg Vacuum (1/7)",
+		screen = "'Claim your Egg Vacuum!' on the ringed Egg Vacuum hex (0 Coins during the guide).",
+		trigger = "The Egg Vacuum is owned (state.tools.eggVacuum) or was used (tutorial.vacuumUsed).",
+		about = "TIP 1/7 done."},
+	{id = "VacuumEquipped", kind = "soft", label = "Equipped the vacuum",
+		screen = "'Equip your Egg Vacuum!' with the hotbar slot darkened and ringed.",
+		trigger = "TutorialSignal VacuumEquip (the vacuum tool is in the character) before 20 eggs are vacuumed.",
+		about = "Roblox's hotbar is unfamiliar to many new players. A drop here means they never pressed the slot (or the number key)."},
+	{id = "Vacuum10", kind = "hard", label = "Vacuumed 10 eggs",
+		screen = "'Walk near eggs to vacuum them up! (10/20)'.",
+		trigger = "tutorial.vacuumEggCount >= 10.",
+		about = "Halfway. The vacuum only works while held and near eggs; a drop between Equipped and here means they put it away or stood still."},
+	{id = "Vacuum20", kind = "hard", label = "Vacuumed 20 eggs (2/7)",
+		screen = "Counter reaches 20/20.",
+		trigger = "tutorial.vacuumEggCount >= TutorialGuide.VacuumGoal (20).",
+		about = "TIP 2/7 done. tf.d.19 + tf.d.20 is how long filling takes (about 15 s with four chickens if eggs were waiting)."},
+	{id = "VacuumSold", kind = "hard", label = "Sold the vacuum eggs (3/7)",
+		screen = "TIP 3/7 'Sell your vacuumed eggs on the green pad!', then 'TIP • COMPLETE! Egg Vacuum learned!'.",
+		trigger = "tutorial.vacuumSold (a pad sale carrying vacuum eggs once the 20 were in).",
+		about = "The vacuum loop closes. A drop means they kept collecting instead of selling; check whether the vacuum filled up (the guide then says 'Vacuum full!')."},
+	{id = "ArmyUpgradesOpen", kind = "soft", label = "Opened Upgrades (Army tip)",
+		screen = "TIP 4/7 'Open Upgrades for more Army slots!' with the ring on Upgrades.",
+		trigger = "TutorialSignal TreeOpen after VacuumSold while Army Size I is not bought.",
+		about = "Third trip into Upgrades; should be quick by now. A drop means the battle half of the tips is losing players."},
+	{id = "ArmySizeBought", kind = "hard", label = "Bought Army Size I (4/7)",
+		screen = "'Buy Army Size I!' on the ringed hex (1,200 Coins, held in reserve since the start).",
+		trigger = "Army capacity >= 4.",
+		about = "TIP 4/7 done."},
+	{id = "MyArmyOpen", kind = "soft", label = "Opened My Army",
+		screen = "TIP 5/7 'Open My Army!' with the ring on the My Army button.",
+		trigger = "TutorialSignal ArmyOpen after Army Size I while fewer than four chickens are picked.",
+		about = "Often passed over: the automatic Army fills the new slot by itself, so Select can be true right after Army Size I."},
+	{id = "ArmyPicked", kind = "hard", label = "Four chickens in the Army (5/7)",
+		screen = "'Press Equip Best!' inside My Army.",
+		trigger = "Four or more chickens selected for the Army.",
+		about = "TIP 5/7 done."},
+	{id = "ArmySent", kind = "hard", label = "Sent the Army to Cluck Camp (6/7)",
+		screen = "TIP 6/7 'Send your Army to Cluck Camp!' with the beam to the camp's command prompt.",
+		trigger = "tutorial.guideDeployed (an Attack on a main-route camp).",
+		about = "The first fight starts. A drop here means the camp prompt is hard to find or the player is afraid to lose chickens."},
+	{id = "CluckCampWon", kind = "hard", label = "Captured Cluck Camp (7/7)",
+		screen = "The battle, then 'Cluck Camp captured!' and GUIDE COMPLETE.",
+		trigger = "First camp win (firstWins, campsWon or tutorial.wonCamp).",
+		about = "The whole guide is done. ArmySent minus this is lost fights or quits during the battle."},
+	{id = "FortRoostWon", kind = "hard", label = "Won Fort Roost",
+		screen = "No guide card; quiet Next goals point at Fort Roost and name the power gap.",
+		trigger = "firstWins[2].",
+		about = "The October 20 funnel review found next-day return is about 20% for players who win Fort Roost on day 1 and 2% for those who don't. The most important post-guide step; read by cohort."},
+	{id = "IronbeakWon", kind = "hard", label = "Won Ironbeak HQ",
+		screen = "Next goals.", trigger = "firstWins[3].",
+		about = "Mid-route progress, usually a later session (tf.s1 is low here)."},
+	{id = "KingCleared", kind = "hard", label = "Beat the Chicken King",
+		screen = "Next goals.", trigger = "session.kingCleared.",
+		about = "End of the main route."},
+	{id = "Rebirth1", kind = "hard", label = "First Rebirth",
+		screen = "Rebirth screen.", trigger = "session.rebirths >= 1.",
+		about = "Long-term retention marker: the player understood the reset loop."},
 }
-for index, step in Schema.Tutorial do Schema.Funnels.Tutorial[index] = step.id end
--- The order the guide plays them in (VacuumSell was appended); tut.gap compares a
--- step with the one played before it.
-Schema.TutorialPlayOrder = {"Started", "Collect", "Sell", "Flock", "Roll", "Recruit", "CoreDone",
-	"Vacuum", "VacuumUse", "VacuumSell", "Expand", "Select", "Deploy", "Win"}
-Schema.TutorialIndex = {} :: {[string]: number}
-for index, step in Schema.Tutorial do Schema.TutorialIndex[step.id] = index end
--- Which part each step belongs to; gaps only fill inside a part.
-Schema.TutorialPart = {Started = 0, Collect = 1, Sell = 1, Flock = 1, Roll = 1, Recruit = 1, CoreDone = 2,
-	Vacuum = 3, VacuumUse = 3, Expand = 3, Select = 3, Deploy = 3, Win = 3, VacuumSell = 3}
+Schema.TutorialFunnelIndex = {} :: {[string]: number}
+for index, step in Schema.TutorialFunnel do
+	assert(#step.label <= 36, "Tutorial funnel label too long: " .. step.id)
+	Schema.TutorialFunnelIndex[step.id] = index
+end
+function Schema.TutorialFunnelName(index: number): string
+	return Schema.StepCode(index) .. " " .. Schema.TutorialFunnel[index].label
+end
 
 -- Roblox progression path for the main route.
 Schema.MainRoute = {path = "MainRoute", levels = {"Cluck Camp", "Fort Roost", "Ironbeak HQ", "Chicken King"}}

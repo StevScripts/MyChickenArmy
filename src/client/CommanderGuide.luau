@@ -531,6 +531,11 @@ function Commander:Update()
 		if UserInputService.GamepadEnabled then app.research:Select(lessonNode,true);GuiService.SelectedObject=app.research.nodes[lessonNode].button end
 	end
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
+	-- The Tutorial funnel's soft steps (AnalyticsTutorial): the Tools map and the
+	-- vacuum in hand, each reported as it starts.
+	local inTools=inTree and app.research.category=="Tools"
+	if inTools~=self.wasTools then self.wasTools=inTools;if inTools then self:Signal("ToolsOpen") end end
+	if holdingVacuum~=self.wasHolding then self.wasHolding=holdingVacuum;if holdingVacuum then self:Signal("VacuumEquip") end end
 	local target,placement
 	local where=current.target
 	-- Menu lessons dim the screen around their control; Next goals never do.

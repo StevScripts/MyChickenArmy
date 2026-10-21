@@ -114,8 +114,8 @@ function Checks.Run()
 		local deploy=Guide.Resolve(state)
 		expect(deploy,"Deploy","Send your Army to Cluck Camp!")
 		assert(deploy.index==6,"Deploy is TIP 6/7")
-		local order=table.concat(Guide.FunnelSteps,",")
-		assert(order=="Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win,VacuumSell",order)
+		local order=table.concat(Guide.Tips,",")
+		assert(order=="Vacuum,VacuumUse,VacuumSell,Expand,Select,Deploy,Win",order)
 		return "Flock before the roll, tips after the core"
 	end)
 

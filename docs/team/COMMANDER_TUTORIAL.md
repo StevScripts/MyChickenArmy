@@ -7,6 +7,17 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Funnels reworked: later October 21 (analytics schema 11)
+
+Stevin: "Add a complete rework of the funnels to the tutorial. Be VERY detailed." The
+tutorial is now measured by one 31-step funnel, from join to the first Rebirth, with every
+guide action as a step (each egg, each menu opened, the Tools tab, equipping the vacuum,
+10 and 20 vacuumed eggs, the payoff, Daily Day 1, …). It owns Roblox's Onboarding dashboard
+and replaces the schema 9/10 "Tutorial" funnel below. The client now also reports
+`ToolsOpen` and `VacuumEquip` (CommanderGuide). Full step-by-step descriptions:
+`docs/analytics/TUTORIAL_FUNNEL.md`; schema `Schema.TutorialFunnel`; code
+`src/server/AnalyticsTutorial.luau`.
+
 ## No "FREE" on the chicken lines: later October 21
 
 Stevin: "I dont like the term free, just say chicken." The roll lessons read "Pull the
