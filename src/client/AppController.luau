@@ -493,6 +493,8 @@ function AppController:CloseOtherMenus(keep: string?)
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
 	if keep~="autoRoll" and self.autoRollMenu then self.autoRollMenu:Dismiss(true) end
 	if keep~="playtime" and self.playtimePanel then self.playtimePanel:Dismiss(true) end
+	-- October 21 (P4): a waiting Time Skip claim steps aside and comes back afterwards.
+	if keep~="timeSkip" and self.timeSkip then self.timeSkip:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 

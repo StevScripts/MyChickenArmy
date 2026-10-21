@@ -20,18 +20,26 @@ throughout. Rule for the round: copy the UX 1:1, in My Chicken Army's art style.
 
 | # | Unlocks at | Reward | Tile |
 |---|---|---|---|
-| 1 | 1 min | Coins: 1 min of income | blue |
-| 2 | 3 min | Coins: 1.5 min | blue |
-| 3 | 5 min | Coins: 2.5 min | blue |
+| 1 | 1 min | Coins: 0.4 min of income | blue |
+| 2 | 3 min | Coins: 0.6 min | blue |
+| 3 | 5 min | Coins: 1 min | blue |
 | 4 | 8 min | +100% Luck for 5 min | pink, clover |
-| 5 | 12 min | Coins: 5 min | blue |
-| 6 | 15 min | Coins: 6 min | green |
-| 7 | 20 min | Coins: 7.5 min | blue |
+| 5 | 12 min | Coins: 2 min | blue |
+| 6 | 15 min | Coins: 2.4 min | green |
+| 7 | 20 min | Coins: 3 min | blue |
 | 8 | 25 min | +50% Coins for 10 min | gold, coin |
-| 9 | 30 min | Coins: 12.5 min | blue |
+| 9 | 30 min | Coins: 5 min | blue |
 | 10 | 40 min | +100% Luck for 10 min | pink, clover |
-| 11 | 50 min | Coins: 17.5 min | green |
+| 11 | 50 min | Coins: 7 min | green |
 | 12 | 60 min | 3 Free Rolls | gold |
+
+**October 21 (Stevin: "check if the playtime rewards money is unbalanced"):** one
+reference unit is now 0.4 minutes of steady income (21.4 minutes over the hour) instead
+of one minute (53.5 minutes): the 1:1 amounts were 20–27% of every Coin for an hour of
+play and 29–31% for two 30-minute visits a day, and they were computed at claim time,
+so saving tiles for the end of a visit paid 10–100x more. A Coins tile's amount is now
+fixed when it unlocks. Ratios, unlock times, boosts and Free Rolls are unchanged. The
+measurements: `docs/team/RARITY_PACING_20261021.md`.
 
 The reference's timers (00:04, 02:04 … 57:04 at 2:56 played) give exactly these
 unlock times. Its Coins amounts (3,762 … 65,849) give the 1 : 1.5 : 2.5 : 5 : 6 : 7.5 :
@@ -45,10 +53,12 @@ unlock times. Its Coins amounts (3,762 … 65,849) give the 1 : 1.5 : 2.5 : 5 : 
   `PlayerSession:Reset` clears both. They are never written by `ToData`.
 - **Request:** `ClaimPlaytime {index}`. It refuses a bad index, a claimed tile, or a tile
   that is still locked ("Keep playing! This reward unlocks in 04:12.").
-  - **Coins:** `DailyService.CashFor(session, minutes)`, credited as source `playtime`.
-    The steady income includes 2x Coins, Rebirth and Coin Boost, but never Gold Rush,
-    Friend Boost or a Playtime Coins boost. The amount is capped by the wallet's room.
-    A full wallet leaves the tile ready.
+  - **Coins:** minutes of `DailyService.Income` (October 21: fixed by `lockedCoins`
+    the first time Snapshot or Claim sees the tile unlocked, kept in
+    `session.playtime.locked[index]`), credited as source `playtime`. The steady
+    income includes 2x Coins, Rebirth and Coin Boost, but never Gold Rush, Friend
+    Boost or a Playtime Coins boost. The amount is capped by the wallet's room at
+    claim time. A full wallet leaves the tile ready.
   - **Luck boost:** `PlayerSession:RollLuckBonus()` = (1 + Extra Luck) × (1 + bonus) − 1,
     the same way a Gold roll multiplies Luck. `RollService:Roll` and the session's
     `odds` use it. Hill rolls and the Upgrades tooltips keep the plain value.
@@ -65,7 +75,8 @@ unlock times. Its Coins amounts (3,762 … 65,849) give the 1 : 1.5 : 2.5 : 5 : 
     claim your 3 Free Rolls."). In the first build they used Hill-roll Luck and gave
     Legendaries and Mythics every play-hour.
 - **Snapshot:** `state.playtime = {enabled, startedAt, tiles = {{index, kind, at, unlockAt,
-  claimed, coins?}}}`. `coins` is what a Coins tile pays right now.
+  claimed, coins?}}}`. `coins` is what a Coins tile pays: the fixed amount once it has unlocked, a projection
+  of today's income while it is still locked.
 - **Snapshot:** `state.boosts = {coins, luck, running = {[kind] = {bonus, endsAt}}}`.
 
 ## Boosts readout (`src/client/BoostReadout.luau`)

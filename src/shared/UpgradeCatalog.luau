@@ -82,11 +82,15 @@ local families: {Family} = {
 		positions = walk(-1, -1, {"NW", "SW", "NW"}), prerequisite = "OpenTools"},
 	-- Three chains, each its own clover: Luck I–IV, Super Luck I–IV, Mega Luck I–IV
 	-- (Stevin, October 20). Values are Luck strength; the window math stays bounded.
+	-- October 21 (Stevin: "Luck should take a bit"): Luck I–IV stay cheap (cycle 1–2),
+	-- Super Luck is priced for Rebirth 2–5 (62M–36B) and Mega Luck for Rebirth 7–17
+	-- (120B–5.5T), about 5–8% of that rank's cost; the old 250K–150M ladder was fully
+	-- bought by minute 30 (docs/team/RARITY_PACING_20261021.md).
 	{id = "Luck", name = "Luck", category = "Main", icon = "luck", field = "luck", base = 1,
 		format = "multiplier", description = "Favor stronger chickens in normal rolls.",
 		tiers = tiers({{1.25, 800}, {1.5, 4000}, {2, 16000}, {3, 60000},
-			{3.5, 250000}, {4, 600000}, {4.5, 1500000}, {5, 4000000},
-			{6, 10000000}, {7, 25000000}, {8, 60000000}, {10, 150000000}}),
+			{3.5, 5000000}, {4, 50000000}, {4.5, 400000000}, {5, 2000000000},
+			{6, 10000000000}, {7, 50000000000}, {8, 150000000000}, {10, 400000000000}}),
 		labels = chains({{"Luck", "luck"}, {"Super Luck", "superLuck"}, {"Mega Luck", "megaLuck"}}),
 		-- Luck curls under Roll Speed, Super Luck climbs the right edge, Mega Luck tops it.
 		positions = walk(1, 2, {"S", "SE", "SE", "NE", "SE", "NE", "SE", "SE", "S", "SW", "NW"}), prerequisite = "RollSpeed1"},
