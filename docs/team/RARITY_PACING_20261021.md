@@ -161,10 +161,33 @@ Playtime cut takes another ~15% of income. The 30-hour fast-nonstop run is in §
 - **Saves:** nothing saved changes. `session.luck` is still the tier; older tiers keep
   their number and gain the new, weaker strength. `session.playtime` is never saved.
 
-## 5. Thirty hours nonstop (fast profile, 2 seeds), after the change
+## 5. Thirty hours nonstop (fast profile, lever every 8 s, 2 seeds), after the change
 
-See the run log appended below when it finished; the figures to compare with
-REBIRTH_PACING_20261021.md are Rebirth 10 / 20 / 30 wall-clock hours.
+| Milestone | After (median) | Before (REBIRTH_PACING_20261021.md, shipped ladder) |
+|---|---|---|
+| Rebirth 5 | 59 min | 48 min |
+| Rebirth 10 | 3.9 h | 2.6 h |
+| Rebirth 15 | 8.8 h | 5.9 h |
+| Rebirth 20 | 20.8 h | 10.6 h |
+| Rank after 30 h | 21 and 24 | 30 at ~21 h |
+| First Mythic owned | 45 min | 14–34 min |
+| Playtime share of Coins | 7% | 16% |
+
+Luck ladder in that run (the model's conservative buyer, first purchase):
+
+| Tier | Seed 1 | Seed 2 |
+|---|---|---|
+| Super Luck IV (2B) | 1.4 h (Rebirth 5) | 1.3 h (Rebirth 5) |
+| Mega Luck I (10B) | 2.8 h (Rebirth 8) | 2.2 h (Rebirth 7) |
+| Mega Luck II (50B) | 5.7 h (Rebirth 11) | 5.2 h (Rebirth 11) |
+| Mega Luck III (150B) | 8.4 h (Rebirth 13) | 7.6 h (Rebirth 13) |
+| Mega Luck IV (400B) | not within 30 h | 23.5 h (Rebirth 21) |
+
+So the retune roughly doubles the time to Rebirth 20 under the ladder that was fitted
+with the old Luck curve: the Flock's best layers are Legendaries instead of Mythics for
+hours longer, and Playtime Coins fell from 16% to 7%. The Rebirth ladder (Config.Rebirth
+.Costs) is being re-fitted on top of this by the Rebirth balance session; fit against
+these numbers, not the October 21 morning ones, and keep "more, not harder".
 
 ## Reproducing
 
@@ -180,8 +203,12 @@ cd tools/sim && ./lune run harness.luau ../.. rarity_probe.luau profile=fast rol
 cd tools/sim && ./lune run harness.luau ../.. rarity_probe.luau profile=casual playMinutes=45 awayMinutes=1395 hours=240 seeds=2
 ```
 
-Checks: `tools/sim/runsuite.luau LuckWindowChecks` (9 of 10; the one failure predates
-this change and expects zero-Luck odds without the Oct 14 top-band keep),
-`PlaytimeChecks` (12 of 12, including the new "amount is fixed at unlock" check),
-`ResearchRollingChecks` (8 of 9, the same pre-existing tooltip rounding mismatch as
-before), `DailyChecks` and `RebirthV2Checks` all green.
+Checks, all green with `tools/sim/runsuite.luau`: `LuckWindowChecks` 10 of 10 (the
+zero-Luck expectation now applies the Oct 14 top-band keep; the boundary probe scales
+with the multiplier), `ResearchRollingChecks` 9 of 9 (Secret counts as Rare+, the legacy
+Offers view is checked against the tree's twelve Luck tiers and price),
+`PlaytimeChecks` 12 of 12 (including the new "amount is fixed at unlock" check),
+`DailyChecks` 10 of 10. `RebirthV2Checks` is 25 of 27 on main since P4 (3be3233, Time Skip
+waits as a saved claim): its two failures assert the Time Skip Coins sit in the wallet
+right after a Rebirth (lines 176 and 447), which P4 changed on purpose; that suite
+belongs to the Rebirth session and is unrelated to this change (27 of 27 before P4).

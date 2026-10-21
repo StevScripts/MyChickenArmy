@@ -72,15 +72,30 @@ function Checks.Run(catalogOddsFactory)
 	end
 
 	check("Zero Luck preserves every normal species probability and all ten strength budgets", function()
+		-- October 14 (PetCatalog.LuckTopBandKeep): the top band keeps only that share of its
+		-- budget and the rest drops to the band below; members still split a band by weight.
+		local keep = Catalog.LuckTopBandKeep or 1
+		local top = #Representatives
+		local budgets = table.clone(OpeningBudgets)
+		budgets[top - 1] += budgets[top] * (1 - keep)
+		budgets[top] *= keep
+		local members = table.create(top, 0)
+		for _, species in Catalog.Order do
+			local definition = Catalog[species]
+			if definition.weight > 0 and not definition.crateExclusive then
+				members[assert(bandFor(Catalog, species), "Missing strength band for " .. species)] += definition.weight
+			end
+		end
 		local odds, total = oddsAt(0, 1, 0), 0
 		for _, species in Catalog.Order do
 			local definition = Catalog[species]
-			local expected = if definition.crateExclusive then 0 else definition.weight / OpeningTotal
+			local band = if definition.weight > 0 and not definition.crateExclusive then bandFor(Catalog, species) else nil
+			local expected = if band then budgets[band] / OpeningTotal * definition.weight / members[band] else 0
 			near(odds[species], expected, species)
 			total += odds[species]
 		end
 		near(total, 1)
-		for band, chance in bandOdds(odds, Catalog) do near(chance, OpeningBudgets[band] / OpeningTotal) end
+		for band, chance in bandOdds(odds, Catalog) do near(chance, budgets[band] / OpeningTotal) end
 		for band = 2, #Representatives do
 			local before, after = Representatives[band - 1], Representatives[band]
 			assert(Catalog[after].income > Catalog[before].income)

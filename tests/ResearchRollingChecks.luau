@@ -5,6 +5,7 @@ local Catalog=require(Shared.PetCatalog)
 local ResearchCatalog=require(Shared.ResearchCatalog)
 local ResearchRules=require(Shared.ResearchRules)
 local Rules=require(Shared.Rules)
+local UpgradeCatalog=require(Shared.UpgradeCatalog)
 local ShopCatalog=require(Shared.ShopCatalog)
 local Server=game.ServerStorage.PetRoll
 local Session=require(Server.PlayerSession)
@@ -114,26 +115,30 @@ function Checks.Run()
 		local offers=Upgrades.Offers({},session)
 		near(tonumber(offers.Luck.currentText:match("[%d.]+")),4)
 		near(tonumber(offers.Luck.nextText:match("[%d.]+")),Rules.LuckMultiplier(1)*4)
+		-- October 15 "1 in X": Secret chickens count as Rare+ and Epic+ (UpgradeService.luckChances).
 		local current,nextOdds=Rules.Odds(0,1,2,1),Rules.Odds(1,1,2,1)
-		near(offers.Luck.rarePlusChance,rarityChance(current,{"Rare","Epic","Legendary","Mythic"}))
-		near(offers.Luck.nextRarePlusChance,rarityChance(nextOdds,{"Rare","Epic","Legendary","Mythic"}))
-		near(offers.Luck.epicPlusChance,rarityChance(current,{"Epic","Legendary","Mythic"}))
-		near(offers.Luck.nextEpicPlusChance,rarityChance(nextOdds,{"Epic","Legendary","Mythic"}))
+		near(offers.Luck.rarePlusChance,rarityChance(current,{"Rare","Epic","Legendary","Mythic","Secret"}))
+		near(offers.Luck.nextRarePlusChance,rarityChance(nextOdds,{"Rare","Epic","Legendary","Mythic","Secret"}))
+		near(offers.Luck.epicPlusChance,rarityChance(current,{"Epic","Legendary","Mythic","Secret"}))
+		near(offers.Luck.nextEpicPlusChance,rarityChance(nextOdds,{"Epic","Legendary","Mythic","Secret"}))
 		near(offers.Luck.topBandChance,atLeastIncome(current,Rules.LuckWindow(0,2,1).topIncome))
 		near(offers.Luck.nextTopBandChance,atLeastIncome(nextOdds,Rules.LuckWindow(1,2,1).topIncome))
 		assert(offers.Luck.windowText==offers.Luck.window.rangeText and offers.Luck.windowText~="")
 		assert(offers.Luck.nextWindowText==offers.Luck.nextWindow.rangeText and offers.Luck.nextWindowText~="")
 		assert(offers.Luck.window.topName==Rules.LuckWindow(0,2,1).topName)
-		assert(offers.Luck.price==Config.LuckPrices[1] and offers.Luck.unlocked)
-		-- At high combined luck Epic+ has plateaued, but the last cash upgrade
-		-- still improves the strongest band and must disclose that benefit.
-		session.luck=19
+		-- October 20 tree: Luck I is the tree's first tier, not the old cash track price.
+		assert(offers.Luck.price==UpgradeCatalog.Price("Luck",1) and offers.Luck.unlocked)
+		-- The last tier (October 21 curve: Epic+ keeps rising to the cap instead of
+		-- plateauing) must still disclose a better strongest band.
+		local tiers=#UpgradeCatalog.Families.Luck.tiers
+		-- The next price comes from the saved tree tier, the odds from session.luck: set both.
+		session.upgradeTree.Luck,session.luck=tiers-1,tiers-1
 		local high=Upgrades.Offers({},session).Luck
-		near(high.epicPlusChance,high.nextEpicPlusChance)
-		near(high.topBandChance,atLeastIncome(Rules.Odds(19,1,2,1),Rules.LuckWindow(19,2,1).topIncome))
-		near(high.nextTopBandChance,atLeastIncome(Rules.Odds(20,1,2,1),Rules.LuckWindow(20,2,1).topIncome))
+		assert(high.nextEpicPlusChance+1e-12>=high.epicPlusChance)
+		near(high.topBandChance,atLeastIncome(Rules.Odds(tiers-1,1,2,1),Rules.LuckWindow(tiers-1,2,1).topIncome))
+		near(high.nextTopBandChance,atLeastIncome(Rules.Odds(tiers,1,2,1),Rules.LuckWindow(tiers,2,1).topIncome))
 		assert(high.nextTopBandChance>high.topBandChance)
-		session.luck=20
+		session.upgradeTree.Luck,session.luck=tiers,tiers
 		local capped=Upgrades.Offers({},session).Luck
 		near(capped.topBandChance,high.nextTopBandChance)
 		assert(capped.nextTopBandChance==nil)

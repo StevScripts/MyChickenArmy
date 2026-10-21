@@ -198,7 +198,6 @@ function Eggs:Arrive(value,now,collector)
   self.floatPending=pending+value
  end
  self:FlushFloat(now)
- if collector~="vacuum" and self.app.hud and self.requiresDeposit then Theme.Motion:Pulse(self.app.hud.income,Feel.Egg.HudPulse) end
 end
 
 -- The reference's cascade: a short bright tick per egg, pitch rising from ChimePitch[1]
