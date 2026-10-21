@@ -166,8 +166,9 @@ function Checks.Run()
   near(withGold,bothPlain*1.25,"Offline rate") -- (1 + 1.5) / 2
   local snap=s:Snapshot(0)
   local rate={}
-  for _,entry in snap.pets do rate[entry.id]=entry.eggsPerSecond end
-  near(rate[gold.id],1.5*rate[plain.id],"Snapshot eggs/s")
+  -- October 21 one egg = one egg: a chicken's strength (and mutation) raises each egg's worth.
+  for _,entry in snap.pets do rate[entry.id]=entry.eggValue end
+  near(rate[gold.id],1.5*rate[plain.id],"Snapshot Coins/egg")
   -- Mutations never touch combat.
   local a,b=Rules.Stats("Knight",1,3),Rules.Stats("Knight",1,3)
   assert(a.damage==b.damage and a.hp==b.hp)

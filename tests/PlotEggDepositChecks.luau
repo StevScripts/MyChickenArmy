@@ -38,22 +38,21 @@ return function()
   table.insert(yard.drops,{id="flying",claimAt=2,value=55,stack=2})
   eggs:Release(session);eggs:Release(session)
   assert(session.coins==before and session.eggCarry.value==55 and session.eggCarry.count==2,"Disconnect pickup lost or paid twice")
-  -- October 20 hand vacuum: a split stack keeps every Coin, vacuum claims settle into
-  -- the vacuum's own cargo, and the pad sells the bag and the vacuum as one sale.
-  local stack={id="stack",petId="p",species="Duck",x=0,y=0,z=0,value=41,stack=10,born=0,readyAt=0}
-  table.insert(yard.drops,stack)
-  local part=eggs:Split(yard,stack,3)
-  assert(part.stack==3 and stack.stack==7 and part.value+stack.value==41 and part.id~=stack.id,"Split lost or made value")
+  -- October 20 hand vacuum (October 21: one egg is one egg, no stacks to split): a
+  -- vacuum claim settles into the vacuum's own cargo, and the pad sells the bag and
+  -- the vacuum as one sale.
+  local part={id="egg",petId="p",species="Duck",x=0,y=0,z=0,value=41,stack=1,born=0,readyAt=0}
+  table.insert(yard.drops,part)
   eggs:Claim(yard,part,4,"vacuum",Vector3.zero)
-  yard.vacuumPending,yard.vacuumPendingValue=3,part.value
+  yard.vacuumPending,yard.vacuumPendingValue=1,part.value
   eggs:SettleClaims(session,yard,10,false)
-  assert(session.vacuumCargo.count==3 and session.vacuumCargo.value==part.value and yard.vacuumPending==0,"Vacuum claim missed its cargo")
+  assert(session.vacuumCargo.count==1 and session.vacuumCargo.value==part.value and yard.vacuumPending==0,"Vacuum claim missed its cargo")
   local bagCount,bagValue,coinsBefore=session.eggCarry.count,session.eggCarry.value,session.coins
   assert(eggs:Deposit(session,pad.Position,11),"Bag and vacuum sale rejected")
   assert(session.coins==coinsBefore+bagValue+part.value and session.eggCarry.count==0 and session.vacuumCargo.count==0,"Pad sale missed the vacuum")
   -- Release above dropped the old yard; the sale is recorded in the fresh one.
   local sale=eggs:Yard(session).deposit
-  assert(sale and sale.collector=="vacuum" and sale.count==bagCount+3,"Vacuum sale receipt")
+  assert(sale and sale.collector=="vacuum" and sale.count==bagCount+1,"Vacuum sale receipt")
   local legacy=Session.new(-819,"Old plot",2);legacy.loaded=true;legacy.eggCarry={count=2,value=55}
   local legacyCoins=legacy.coins;eggs:Pay(legacy,eggs:Yard(legacy),{id="legacy",value=10,stack=1},3)
   assert(legacy.coins==legacyCoins+65 and legacy.eggCarry.value==0,"Old plot strands carried eggs")
