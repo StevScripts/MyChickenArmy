@@ -2,7 +2,7 @@
 -- October 20 hand tools, client side (docs/team/COLLECTION_TOOLS.md). The Egg Vacuum
 -- and Chicken Feed are real Tools in Roblox's own hotbar (Stevin, October 20): Roblox
 -- equips them by slot key, tap or gamepad. This keeps that hotbar switched on, shows
--- the vacuum's "carried / capacity" meter right of the hotbar slots, gives the
+-- the vacuum's thin "carried / capacity" egg bar between My Army and the hotbar, gives the
 -- Commander guide one invisible anchor over each tool's slot (hintAnchors), and puts
 -- the native Feed prompt on the nearest of your chickens at home. ToolService owns the
 -- tools, levels and Coins.
@@ -25,7 +25,9 @@ local PROMPT_LIFT=Vector3.new(0,1.2,0)
 -- and a new tool takes the lowest free slot. Our anchors and meter follow that.
 local ICON=if GuiService:IsTenFootInterface() then 100 else 60
 local GAP=5
-local METER_SIZE=Vector2.new(150,46)
+-- The vacuum's egg bar: thin (a quarter of a slot) and about as wide as My Army's row.
+local BAR_HEIGHT=math.round(ICON*0.27)
+local BAR_WIDTH=0.9
 local GOLD=Theme.Arcade.gold
 local RED=Theme.Arcade.red
 
@@ -129,37 +131,49 @@ function Controller:PlaceAnchors(filled: {Tool}): number
  return right
 end
 
--- The vacuum meter: "120 / 300", and a sell hint once it is full.
+-- The vacuum's egg bar (Stevin, October 20): a thin bar in the gap between the My Army
+-- row and the hotbar. Gold fills as the vacuum fills, with "120 / 300" on it; full,
+-- it turns red and reads "Full! Sell on the pad".
 function Controller:BuildMeter()
- local meter=Theme.Frame(self.screen,"VacuumMeter",UDim2.fromOffset(METER_SIZE.X,METER_SIZE.Y),Color3.new(0,0,0))
- meter.AnchorPoint,meter.BackgroundTransparency,meter.Visible=Vector2.new(0,0.5),0.35,false
+ local meter=Theme.Frame(self.screen,"VacuumMeter",UDim2.fromOffset(300,BAR_HEIGHT),Color3.new(0,0,0))
+ meter.AnchorPoint,meter.BackgroundTransparency,meter.Visible=Vector2.new(0.5,0.5),0.35,false
  Theme.Stroke(meter,Color3.new(0,0,0),2)
- local count=Theme.Label(meter,"Count","0 / 0",24,GOLD)
- count.Position,count.Size=UDim2.fromScale(0.05,0.05),UDim2.fromScale(0.9,0.58)
- local hint=Theme.Label(meter,"Hint","Full! Sell on the pad",16,Color3.new(1,1,1))
- hint.Position,hint.Size=UDim2.fromScale(0.05,0.62),UDim2.fromScale(0.9,0.33)
- for _,label in {count,hint} do
-  label.TextScaled,label.TextWrapped,label.TextXAlignment=true,false,Enum.TextXAlignment.Center
- end
- self.meter,self.meterCount,self.meterHint=meter,count,hint
+ local fill=Theme.Frame(meter,"Fill",UDim2.fromScale(0,1),GOLD)
+ local count=Theme.Label(meter,"Count","0 / 0",14,Color3.new(1,1,1))
+ count.Position,count.Size=UDim2.fromScale(0.02,0),UDim2.fromScale(0.96,1)
+ count.TextScaled,count.TextWrapped,count.TextXAlignment=true,false,Enum.TextXAlignment.Center
+ self.meter,self.meterFill,self.meterCount=meter,fill,count
 end
 
-function Controller:RenderMeter(held: Tool?,right: number)
+function Controller:RenderMeter(held: Tool?,_right: number)
  local tools=self.app.state and self.app.state.tools
  local vacuum=tools and tools.vacuum
  local shown=held~=nil and held.Name=="EggVacuum" and type(vacuum)=="table" and not self.app.panel.Visible
  self.meter.Visible=shown
  if not shown then return end
- self.meter.Position=UDim2.new(0.5,right+12,1,-(GAP+ICON/2))
+ -- Midway between My Army's row and the hotbar's top, centred under that row.
+ local origin:Vector2,size:Vector2=self.screen.AbsolutePosition,self.screen.AbsoluteSize
+ local hotbarTop=size.Y-(GAP+ICON)
+ local x,y,width=size.X/2,hotbarTop-GAP-BAR_HEIGHT,300
+ local navigation:GuiObject?=self.app.hud and self.app.hud.navigation
+ if navigation and navigation.AbsoluteSize.X>0 then
+  local bottom=navigation.AbsolutePosition.Y-origin.Y+navigation.AbsoluteSize.Y
+  x=navigation.AbsolutePosition.X-origin.X+navigation.AbsoluteSize.X/2
+  width=navigation.AbsoluteSize.X*BAR_WIDTH
+  if bottom<hotbarTop then y=(bottom+hotbarTop)/2 end
+ end
+ self.meter.Position,self.meter.Size=UDim2.fromOffset(x,y),UDim2.fromOffset(width,BAR_HEIGHT)
  local count,capacity=math.floor(vacuum.count or 0),math.max(1,math.floor(vacuum.capacity or 0))
  local full=count>=capacity
- local text=Theme.Money(count).." / "..Theme.Money(capacity)
- if self.meterCount.Text~=text then
-  self.meterCount.Text=text
-  if not self.app.reducedMotion then Theme.Motion:Pulse(self.meterCount,1.06) end
+ local text=if full then "Full! Sell on the pad" else Theme.Money(count).." / "..Theme.Money(capacity)
+ if self.meterCount.Text~=text then self.meterCount.Text=text end
+ local ratio=math.clamp(count/capacity,0,1)
+ if ratio~=self.meterRatio then
+  -- Reduced motion sets the fill at once (UIMotion).
+  self.meterRatio=ratio
+  Theme.Motion:Tween(self.meterFill,"fill",{Size=UDim2.fromScale(ratio,1)},0.15)
  end
- self.meterCount.TextColor3=if full then RED else GOLD
- self.meterHint.Visible=full
+ self.meterFill.BackgroundColor3=if full then RED else GOLD
 end
 
 -- One native prompt that rides on the nearest of your chickens at home.

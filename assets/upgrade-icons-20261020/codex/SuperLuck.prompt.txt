@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Super Luck icon for the Upgrades tree of the Roblox game My Chicken Army. Image 1 is the approved in-game Luck icon (a chunky glossy four-leaf clover) and is the edit target.
+
+Edit image 1 using it as the actual image input: keep exactly the same clover shape, stem, outline weight, highlights, perspective, size and framing, and recolor the whole clover to bright cyan: pale aqua highlights, vivid cyan leaves and deeper teal shading.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/SuperLuck-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

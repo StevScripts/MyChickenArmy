@@ -265,14 +265,17 @@ end
 -- Arrow spots in the target's own size (GuideFocus.Placement). Hotbar slots sit side by
 -- side, so their arrow comes from above, pointing down (October 20 playtest).
 local ABOVE: GuideFocus.Placement={offset=Vector2.new(0,-1),size=.8}
--- A hex with hexes on all six sides: a short arrow in the gap just under it, between
--- the two lower hexes and above their names.
+-- A pointy-top hex with hexes on all six sides and no "?" beside it: a short arrow in
+-- the gap just under it, between the two lower hexes and above their names.
 local UNDER_HEX: GuideFocus.Placement={offset=Vector2.new(0,.68),size=.32}
-local HEX_ARROW=.6 -- Share of a hex's height: fits inside the empty cell beside it.
-type Grid={step:number,row:number,width:number,height:number}
+-- Share of a hex's height: inside the cell beside it and clear of every other hex's
+-- name, on pointy-top and flat-top maps alike (checked against both layouts).
+local HEX_ARROW=.5
+type Grid={step:number,row:number,width:number,height:number,Offset:((side:{number})->Vector2)?}
 
 -- October 20 playtest: beside a hex, the arrow covered the next hex's name. It rests in
--- an empty neighbouring cell instead (TutorialGuide.PointerSide), on the map's own grid.
+-- an empty neighbouring cell instead (TutorialGuide.PointerSide), on the map's own grid,
+-- or else on a neighbouring "?" hex, which has no name to hide.
 function Commander:HexPlacement(id:string):GuideFocus.Placement?
 	local research=self.app.research
 	local grid:Grid?,view=research.Grid,research.nodes[id]
@@ -283,18 +286,34 @@ function Commander:HexPlacement(id:string):GuideFocus.Placement?
 	local center=button.AbsolutePosition+button.AbsoluteSize/2
 	local area,areaSize=research.root.AbsolutePosition,research.root.AbsoluteSize
 	local margin=button.AbsoluteSize.Y*HEX_ARROW/2
-	local function step(side:{number}):Vector2 return Vector2.new(hex.step*(side[1]+side[2]/2),hex.row*side[2]) end
+	-- A neighbour cell's centre in canvas pixels: the map's own Offset (flat-top hexes,
+	-- Upgrades tree v2), or the pointy-top formula the map used before.
+	local function step(side:{number}):Vector2
+		return if hex.Offset then hex.Offset(side) else Vector2.new(hex.step*(side[1]+side[2]/2),hex.row*side[2])
+	end
+	-- Sideways first, then lower, then right, wherever the map draws each side.
+	local order=table.clone(Guide.PointerSides)
+	table.sort(order,function(a,b)
+		local pa,pb=step(a),step(b)
+		if math.abs(pa.X)~=math.abs(pb.X) then return math.abs(pa.X)>math.abs(pb.X) end
+		if pa.Y~=pb.Y then return pa.Y>pb.Y end
+		return pa.X>pb.X
+	end)
 	local function shown(other:string):boolean
 		local neighbour=research.nodes[other]
 		return neighbour~=nil and neighbour.button.Visible
+	end
+	local function coverable(other:string):boolean
+		local neighbour=research.nodes[other]
+		return neighbour~=nil and neighbour.look=="unknown"
 	end
 	-- Skip cells whose arrow would leave the screen.
 	local function fits(side:{number}):boolean
 		local at=center+step(side)*scale
 		return at.X-margin>=area.X and at.X+margin<=area.X+areaSize.X and at.Y-margin>=area.Y and at.Y+margin<=area.Y+areaSize.Y
 	end
-	local side=Guide.PointerSide(id,shown,fits)
-	if not side then return UNDER_HEX end
+	local side=Guide.PointerSide(id,shown,fits,order,coverable)
+	if not side then return if hex.Offset then nil else UNDER_HEX end
 	local cell=step(side)
 	return {offset=Vector2.new(cell.X/hex.width,cell.Y/hex.height),size=HEX_ARROW}
 end

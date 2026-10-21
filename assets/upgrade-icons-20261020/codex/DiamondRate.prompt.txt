@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Diamond Rate icon for the Upgrades tree of the Roblox game My Chicken Army (special Diamond rolls come more often). Image 1 is the approved Diamond dice icon and is the edit target. Image 2 is the approved Gold Rate icon and shows the exact green circular double arrows to add.
+
+Edit image 1 using it as the actual image input: keep the die exactly as drawn (shape, colors, pips, sparkles, outline weight, size and framing). Add chunky bright-green circular double arrows with a thick black outline at the lower left, slightly overlapping the die, drawn like the arrows in image 2, with no disc or badge behind them.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/DiamondRate-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

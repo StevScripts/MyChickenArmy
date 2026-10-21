@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Feed Max Level icon for the Upgrades tree of the Roblox game My Chicken Army (Chicken Feed can level chickens higher). Image 1 is the approved in-game Chicken Feed icon (a feed sack) and is the edit target. Image 2 is the approved Vacuum Capacity icon and shows the exact chunky green up arrows to add.
+
+Edit image 1 using it as the actual image input: keep the sack exactly as drawn (shape, colors, emblem, outline weight, size and framing). Add two stacked chunky bright-green blocky up arrows with a thick black outline at the lower left, slightly overlapping the sack, drawn like the arrows in image 2.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/FeedMaxLevel-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

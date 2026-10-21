@@ -14,12 +14,12 @@ local settings = Config.GoldRolls
 GoldRolls.Kinds = settings.Kinds
 -- Saved goldRolls field for each kind (count is the original Gold field).
 GoldRolls.Fields = {Gold = "count", Diamond = "diamond", Prism = "prism"} :: {[string]: string}
--- Counter icons. The dice art waits for its upload; until then the S6 machine icons
--- stand in (Prism uses the "RainbowMachine" art).
+-- Counter icons: S6b's Gold, Diamond and Prism dice (uploaded October 20; receipts in
+-- assets/upgrade-icons-20261020/upload-receipts.json).
 GoldRolls.Icons = {
-	Gold = "rbxassetid://75354767460656",
-	Diamond = "rbxassetid://113120386630417",
-	Prism = "rbxassetid://90010215769789",
+	Gold = "rbxassetid://134479804954469",
+	Diamond = "rbxassetid://96923790490502",
+	Prism = "rbxassetid://75988321934625",
 } :: {[string]: string}
 -- Podium glow and tag color for each kind.
 GoldRolls.Colors = {
