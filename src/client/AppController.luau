@@ -52,6 +52,9 @@ local BaseController = require(script.Parent.BaseController)
 local BattleController = require(script.Parent.BattleController)
 local DuckAnimator = require(script.Parent.DuckAnimator)
 local GalaxyCrateVisuals = require(script.Parent.GalaxyCrateVisuals)
+-- October 21 game feel: shared camera and world punctuation (docs/team/GAME_FEEL_20261021.md).
+local ScreenFeel = require(script.Parent.ScreenFeel)
+local WorldFeel = require(script.Parent.WorldFeel)
 local AppController = {}
 AppController.__index = AppController
 local C = Theme.Colors
@@ -955,6 +958,10 @@ function AppController:Start()
 	-- Every Motion-bound button clicks; hand-written Click calls share the voice key and cooldown.
 	Theme.Motion.sound=function(cue) self.audio:Play(cue) end
 	self.feedback:Start()
+	-- October 21 game feel: every controller shares these for shake/flash/zoom and
+	-- world bursts/rings/floating text (budgeted; reduced motion aware).
+	self.screenFeel=ScreenFeel.new(self);self.screenFeel:Start()
+	self.worldFeel=WorldFeel.new(self);self.worldFeel:Start()
 	self.commerce:Start()
 	self.eggs:Start()
 	self.tools=ToolController.new(self)
@@ -1023,6 +1030,8 @@ function AppController:Destroy()
 	if self.tools then self.tools:Destroy() end
 	if self.chickenLabel then self.chickenLabel:Destroy() end
 	if self.levelUpBanner then self.levelUpBanner:Destroy() end
+	if self.screenFeel then self.screenFeel:Destroy() end
+	if self.worldFeel then self.worldFeel:Destroy() end
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
 	self.gui:Destroy()

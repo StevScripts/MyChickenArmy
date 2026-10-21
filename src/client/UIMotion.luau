@@ -1,6 +1,7 @@
 --!strict
 -- Client presentation only. Timings never gate a request or manufacture a reward.
 local TweenService=game:GetService("TweenService")
+local UserInputService=game:GetService("UserInputService")
 local Motion={}
 Motion.__index=Motion
 
@@ -13,6 +14,9 @@ function Motion.new()
 		hiding=setmetatable({}, {__mode="k"}),
 		bindings=setmetatable({}, {__mode = "k"}),
 		spins=setmetatable({}, {__mode = "k"}),
+		-- October 21 game feel: staggered reveals per container and count-up tick callbacks.
+		reveals=setmetatable({}, {__mode = "k"}),
+		countTicks=setmetatable({}, {__mode = "k"}),
 		panelSerial=0,
 	},Motion)
 end
@@ -390,7 +394,363 @@ function Motion:Reset()
 	local pending={}
 	for object,channels in self.tracks do for channel in channels do table.insert(pending,{object,channel}) end end
 	for _,pair in pending do self:Cancel(pair[1],pair[2]) end
+	for _,handle in self.reveals do handle.cancel() end
 	self.panelSerial+=1
+end
+
+-- ===== October 21 game-feel vocabulary (docs/team/GAME_FEEL_20261021.md) =====
+-- Every helper below is an ordinary TweenService tween through Motion:Tween, so it
+-- cancels on Destroying, never fights a button press, and settles to its resting
+-- state under reduced motion. Presentation only: nothing here changes game state.
+
+-- Named easings so every screen punctuates the same way.
+Motion.Ease={
+	Pop={style=Enum.EasingStyle.Back,direction=Enum.EasingDirection.Out},
+	Snap={style=Enum.EasingStyle.Quart,direction=Enum.EasingDirection.Out},
+	Soft={style=Enum.EasingStyle.Sine,direction=Enum.EasingDirection.InOut},
+	Bouncy={style=Enum.EasingStyle.Elastic,direction=Enum.EasingDirection.Out},
+	Enter={style=Enum.EasingStyle.Quad,direction=Enum.EasingDirection.Out},
+	Leave={style=Enum.EasingStyle.Quad,direction=Enum.EasingDirection.In},
+}
+-- Confetti colours: the UI kit's gold, lime, sky, pink, violet and paper.
+Motion.Palette={Color3.fromRGB(255,214,48),Color3.fromRGB(81,255,59),Color3.fromRGB(66,211,255),
+	Color3.fromRGB(255,94,139),Color3.fromRGB(210,116,255),Color3.fromRGB(255,251,233)}
+
+local function touchOnly()
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
+-- Absolute pixels (Vector2) -> a Scale UDim2 inside `parent`; the inverse for Fly/Float.
+function Motion:Point(parent,absolute)
+	local size=parent.AbsoluteSize
+	if size.X<=0 or size.Y<=0 then return UDim2.fromScale(0.5,0.5) end
+	local relative=absolute-parent.AbsolutePosition
+	return UDim2.fromScale(relative.X/size.X,relative.Y/size.Y)
+end
+
+-- The screen-space centre of a GuiObject, for Point.
+function Motion:CenterOf(item)
+	return item.AbsolutePosition+item.AbsoluteSize/2
+end
+
+-- A quick emphasis pop (bigger than PopScale's hover pop) for a value that just changed.
+function Motion:Punch(item,amount,seconds)
+	self:PopScale(item,amount or 1.18,seconds or 0.3)
+end
+
+-- Count a label toward `value` (Quart Out), punching it on gains and calling
+-- options.tick(value) at most every options.tickGap seconds for a tick sound.
+-- Spends drop at once (options.fallSeconds), like Count: never ahead of the server.
+function Motion:CountTo(label,value,format,seconds,options)
+	options=options or {}
+	local amount=label:FindFirstChild("DisplayedAmount")
+	if not amount then
+		amount=Instance.new("NumberValue");amount.Name="DisplayedAmount";amount.Value=value;amount.Parent=label
+		amount:SetAttribute("Target",value)
+		amount.Changed:Connect(function(v)
+			label.Text=format(v)
+			local tick=self.countTicks[label]
+			if tick and os.clock()-(amount:GetAttribute("LastTick") or 0)>=tick.gap then
+				amount:SetAttribute("LastTick",os.clock())
+				tick.fn(v)
+			end
+		end)
+		label.Text=format(value)
+		return
+	end
+	local previous=amount:GetAttribute("Target")
+	if previous==value then return end
+	amount:SetAttribute("Target",value)
+	local rising=value>(previous or amount.Value)
+	if rising and options.tick then self.countTicks[label]={fn=options.tick,gap=options.tickGap or 0.06} else self.countTicks[label]=nil end
+	if rising and options.punch~=false then self:Punch(options.punchTarget or label,options.punch or 1.12,0.28) end
+	self:Tween(amount,"count",{Value=value},if rising then (seconds or 0.45) else (options.fallSeconds or 0),
+		Enum.EasingStyle.Quart,Enum.EasingDirection.Out,function() self.countTicks[label]=nil end)
+end
+
+-- Run `each(item,index,delay)` across items with a short gap, the last starting within
+-- `window` seconds however long the list is. Returns a handle with cancel().
+function Motion:Stagger(items,each,gap,window)
+	local handle={alive=true,cancel=nil}
+	function handle.cancel() handle.alive=false end
+	local count=#items
+	if count==0 then return handle end
+	local step=math.min(gap or 0.04,(window or 0.45)/math.max(1,count-1))
+	for index,item in items do
+		local delay=(index-1)*step
+		if delay<=0 or self.reduced then each(item,index,0)
+		else task.delay(delay,function() if handle.alive and item.Parent then each(item,index,delay) end end) end
+	end
+	return handle
+end
+
+-- Grow a container's visible children in one after another (cards, rows, tiles) when
+-- a menu opens or a list refreshes. Replaces any reveal still running on the container.
+-- options: from (0.7), seconds (0.26), gap (0.035), window (0.4), limit (40), each(item,index).
+function Motion:Reveal(container,options)
+	options=options or {}
+	local previous=self.reveals[container]
+	if previous then previous.cancel() end
+	local items={}
+	for _,child in container:GetChildren() do
+		if child:IsA("GuiObject") and child.Visible then table.insert(items,child) end
+	end
+	table.sort(items,function(a,b)
+		if a.LayoutOrder~=b.LayoutOrder then return a.LayoutOrder<b.LayoutOrder end
+		local pa,pb=a.AbsolutePosition,b.AbsolutePosition
+		if math.abs(pa.Y-pb.Y)>2 then return pa.Y<pb.Y end
+		return pa.X<pb.X
+	end)
+	local limit=options.limit or 40
+	local from=options.from or 0.7
+	for index,item in items do
+		if index>limit then break end
+		local scale=self:ScaleOf(item)
+		self:Cancel(scale,"pop");self:Cancel(scale,"press")
+		scale.Scale=if self.reduced then 1 else from
+	end
+	local handle=self:Stagger(items,function(item,index)
+		if index>limit then return end
+		self:Tween(self:ScaleOf(item),"pop",{Scale=1},options.seconds or 0.26,Enum.EasingStyle.Back)
+		if options.each then options.each(item,index) end
+	end,options.gap or 0.035,options.window or 0.4)
+	local stop=handle.cancel
+	function handle.cancel()
+		stop()
+		for _,item in items do
+			local scale=item:FindFirstChildWhichIsA("UIScale")
+			if scale then self:Cancel(scale,"pop");scale.Scale=1 end
+		end
+		if self.reveals[container]==handle then self.reveals[container]=nil end
+	end
+	self.reveals[container]=handle
+	return handle
+end
+
+-- A quick colour wash over an item (a bar that filled, a card that confirmed).
+function Motion:Flash(item,color,seconds,peak)
+	if not item or not item.Parent then return end
+	local flash=item:FindFirstChild("MotionFlash")
+	if not flash then
+		flash=Instance.new("Frame")
+		flash.Name,flash.Size,flash.BorderSizePixel,flash.BackgroundTransparency="MotionFlash",UDim2.fromScale(1,1),0,1
+		local corner=item:FindFirstChildWhichIsA("UICorner")
+		if corner then corner:Clone().Parent=flash end
+		flash.Parent=item
+	end
+	flash.ZIndex=item.ZIndex+6
+	flash.BackgroundColor3=color or Color3.new(1,1,1)
+	self:Cancel(flash,"flash")
+	if self.reduced then flash.Visible=false;return end
+	flash.Visible=true
+	flash.BackgroundTransparency=1-(peak or 0.55)
+	self:Tween(flash,"flash",{BackgroundTransparency=1},seconds or 0.35,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function() flash.Visible=false end)
+end
+
+-- Floating "+12" text that pops in, rises and fades. `position` is a UDim2 inside
+-- `parent` (see Point). options: color, size (px), seconds (0.9), rise (0.08 scale),
+-- font, stroke, limit (12 alive per parent). Reduced motion shows it still, then removes it.
+function Motion:Float(parent,text,position,options)
+	options=options or {}
+	local holder=parent:FindFirstChild("MotionFloats")
+	if not holder then
+		holder=Instance.new("Frame")
+		holder.Name,holder.Size,holder.BackgroundTransparency,holder.ZIndex="MotionFloats",UDim2.fromScale(1,1),1,30
+		holder.Parent=parent
+	end
+	local alive=holder:GetChildren()
+	if #alive>=(options.limit or 12) then alive[1]:Destroy() end
+	local size=options.size or 26
+	local label=Instance.new("TextLabel")
+	label.Name,label.Text,label.BackgroundTransparency="MotionFloat",text,1
+	label.Font,label.TextSize,label.TextColor3=options.font or Enum.Font.SourceSansBold,size,options.color or Color3.new(1,1,1)
+	label.AnchorPoint,label.Position,label.Size=Vector2.new(0.5,0.5),position,UDim2.fromOffset(size,size)
+	label.AutomaticSize,label.TextWrapped,label.ZIndex=Enum.AutomaticSize.XY,false,31
+	local stroke=Instance.new("UIStroke")
+	stroke.Color,stroke.Thickness,stroke.LineJoinMode=options.stroke or Color3.fromRGB(20,32,15),math.max(1.5,size*0.08),Enum.LineJoinMode.Round
+	stroke.Parent=label
+	label.Parent=holder
+	local seconds=options.seconds or 0.9
+	if self.reduced then
+		task.delay(seconds,function() if label.Parent then label:Destroy() end end)
+		return label
+	end
+	local scale=self:ScaleOf(label)
+	scale.Scale=0.6
+	self:Tween(scale,"pop",{Scale=1},0.22,Enum.EasingStyle.Back)
+	self:Tween(label,"float",{Position=position-UDim2.fromScale(0,options.rise or 0.08)},seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+	task.delay(seconds*0.55,function()
+		if not label.Parent then return end
+		self:Tween(stroke,"float-fade",{Transparency=1},seconds*0.45,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+		self:Tween(label,"float-fade",{TextTransparency=1},seconds*0.45,Enum.EasingStyle.Quad,Enum.EasingDirection.In,function() label:Destroy() end)
+	end)
+	return label
+end
+
+-- An image that flies from one screen point to another in a small arc (a coin into
+-- the Coins readout, a chicken into the Army count). from/to are UDim2 inside parent
+-- (see Point). options: size (UDim2), seconds (0.55), arc (0.08), spin (180),
+-- onArrive(), limit (16). Reduced motion skips the flight and arrives at once.
+function Motion:Fly(parent,asset,from,to,options)
+	options=options or {}
+	local function arrive() if options.onArrive then options.onArrive() end end
+	if self.reduced then arrive();return nil end
+	local holder=parent:FindFirstChild("MotionFlyers")
+	if not holder then
+		holder=Instance.new("Frame")
+		holder.Name,holder.Size,holder.BackgroundTransparency,holder.ZIndex="MotionFlyers",UDim2.fromScale(1,1),1,32
+		holder.Parent=parent
+	end
+	if #holder:GetChildren()>=(options.limit or 16) then arrive();return nil end
+	local image=Instance.new("ImageLabel")
+	image.Name,image.Image,image.BackgroundTransparency="MotionFlyer",asset,1
+	image.AnchorPoint,image.Position,image.Size=Vector2.new(0.5,0.5),from,options.size or UDim2.fromOffset(36,36)
+	image.ScaleType,image.ZIndex=Enum.ScaleType.Fit,33
+	image.Parent=holder
+	local seconds=options.seconds or 0.55
+	local scale=self:ScaleOf(image)
+	scale.Scale=0.5
+	self:Tween(scale,"pop",{Scale=1.15},0.18,Enum.EasingStyle.Back)
+	local mid=from:Lerp(to,0.5)-UDim2.fromScale(0,options.arc or 0.08)
+	self:Tween(image,"fly",{Position=mid},seconds*0.45,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function()
+		self:Tween(scale,"pop",{Scale=0.7},seconds*0.55,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+		self:Tween(image,"fly",{Position=to},seconds*0.55,Enum.EasingStyle.Quad,Enum.EasingDirection.In,function()
+			image:Destroy()
+			arrive()
+		end)
+	end)
+	self:Tween(image,"spin",{Rotation=options.spin or 180},seconds,Enum.EasingStyle.Linear)
+	return image
+end
+
+-- Confetti pieces thrown from `origin` (UDim2, default upper centre) that fall and
+-- fade. options: count (28 desktop / 16 touch), origin, spread (0.5), seconds (1.4),
+-- colors. One burst per parent at a time; reduced motion shows none.
+function Motion:Confetti(parent,options)
+	if self.reduced or not parent or not parent.Parent then return nil end
+	options=options or {}
+	local existing=parent:FindFirstChild("MotionConfetti")
+	if existing then existing:Destroy() end
+	local holder=Instance.new("Frame")
+	holder.Name,holder.Size,holder.BackgroundTransparency,holder.ZIndex="MotionConfetti",UDim2.fromScale(1,1),1,28
+	holder.ClipsDescendants=true
+	holder.Parent=parent
+	local count=options.count or (if touchOnly() then 16 else 28)
+	local origin=options.origin or UDim2.fromScale(0.5,0.3)
+	local spread=options.spread or 0.5
+	local seconds=options.seconds or 1.4
+	local palette=options.colors or Motion.Palette
+	local random=Random.new()
+	for _=1,count do
+		local piece=Instance.new("Frame")
+		piece.Size=UDim2.fromOffset(random:NextInteger(7,13),random:NextInteger(6,16))
+		piece.BackgroundColor3,piece.BorderSizePixel=palette[random:NextInteger(1,#palette)],0
+		piece.AnchorPoint,piece.Position,piece.Rotation,piece.ZIndex=Vector2.new(0.5,0.5),origin,random:NextNumber(0,360),29
+		piece.Parent=holder
+		local dx=random:NextNumber(-spread,spread)
+		local peak=origin+UDim2.fromScale(dx*0.6,-random:NextNumber(0.08,0.28))
+		local landing=origin+UDim2.fromScale(dx,random:NextNumber(0.45,0.75))
+		local up=random:NextNumber(0.25,0.4)*seconds
+		self:Tween(piece,"burst",{Position=peak},up,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function()
+			self:Tween(piece,"burst",{Position=landing,BackgroundTransparency=1},seconds-up,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+		end)
+		self:Tween(piece,"spin",{Rotation=piece.Rotation+random:NextNumber(-540,540)},seconds,Enum.EasingStyle.Linear)
+	end
+	task.delay(seconds+0.1,function() if holder.Parent then holder:Destroy() end end)
+	return holder
+end
+
+-- A press ring that expands out of an item and fades (big confirms, claims).
+function Motion:Ripple(item,color)
+	if self.reduced or not item or not item.Parent then return end
+	local ring=Instance.new("Frame")
+	ring.Name,ring.AnchorPoint,ring.Position="MotionRipple",Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+	ring.Size,ring.BackgroundTransparency,ring.BorderSizePixel,ring.ZIndex=UDim2.fromScale(0.7,0.7),1,0,item.ZIndex+7
+	local corner=item:FindFirstChildWhichIsA("UICorner")
+	if corner then corner:Clone().Parent=ring end
+	local stroke=Instance.new("UIStroke")
+	stroke.Color,stroke.Thickness,stroke.Transparency,stroke.LineJoinMode=color or Color3.new(1,1,1),3,0.1,Enum.LineJoinMode.Round
+	stroke.Parent=ring
+	ring.Parent=item
+	self:Tween(stroke,"ripple",{Transparency=1,Thickness=0.5},0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+	self:Tween(ring,"ripple",{Size=UDim2.fromScale(1.35,1.35)},0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function() ring:Destroy() end)
+end
+
+-- A pulsing stroke around something ready to use (an affordable node, a claimable
+-- tile). StopGlow/Settle removes it. Reduced motion keeps a steady ring instead.
+function Motion:Glow(item,color,thickness)
+	if not item or not item.Parent then return end
+	local stroke=item:FindFirstChild("MotionGlow")
+	if not stroke then
+		stroke=Instance.new("UIStroke")
+		stroke.Name,stroke.ApplyStrokeMode,stroke.LineJoinMode="MotionGlow",Enum.ApplyStrokeMode.Border,Enum.LineJoinMode.Round
+		stroke.Parent=item
+	end
+	stroke.Color,stroke.Enabled=color or Motion.Palette[1],true
+	local thick=thickness or 3
+	self:Loop(stroke,"glow",{Transparency=0.85,Thickness=thick*0.5},{Transparency=0.15,Thickness=thick},0.7)
+end
+
+function Motion:StopGlow(item)
+	local stroke=item and item:FindFirstChild("MotionGlow")
+	if not stroke then return end
+	self:StopLoop(stroke,"glow")
+	stroke.Enabled=false
+end
+
+-- Gentle up-and-down attention bob on the item's own Position. Shake interrupts it.
+function Motion:Bob(item,amount,seconds)
+	if not item or not item.Parent then return end
+	local rest=self.restingPositions[item] or item.Position
+	self.restingPositions[item]=rest
+	self:Loop(item,"bob",{Position=rest-UDim2.fromScale(0,amount or 0.02)},{Position=rest},seconds or 0.55)
+end
+
+function Motion:StopBob(item)
+	if not item then return end
+	self:StopLoop(item,"bob")
+	self.restingPositions[item]=nil
+end
+
+-- Side-to-side rotation wobble (a gift waiting to be opened). StopWobble squares it.
+function Motion:Wobble(item,degrees,seconds)
+	if not item or not item.Parent then return end
+	local amount=degrees or 6
+	self:Loop(item,"wobble",{Rotation=amount},{Rotation=-amount},seconds or 0.35)
+	if self.reduced then item.Rotation=0 end
+end
+
+function Motion:StopWobble(item)
+	if not item then return end
+	self:StopLoop(item,"wobble")
+	item.Rotation=0
+end
+
+-- Slide an item from one Position to another (`ease` from Motion.Ease).
+function Motion:Slide(item,from,to,seconds,ease)
+	self:Cancel(item,"slide")
+	if self.reduced then item.Position=to;return end
+	item.Position=from
+	local easing=ease or Motion.Ease.Enter
+	self:Tween(item,"slide",{Position=to},seconds or 0.28,easing.style,easing.direction)
+end
+
+-- Tween a fill bar's X scale to `fraction`; a gain flashes the bar (flashColor=false skips).
+function Motion:Progress(bar,fraction,seconds,flashColor)
+	fraction=math.clamp(fraction,0,1)
+	local size=bar.Size
+	local rising=fraction>size.X.Scale+0.0005
+	self:Tween(bar,"progress",{Size=UDim2.new(fraction,size.X.Offset,size.Y.Scale,size.Y.Offset)},seconds or 0.35,Enum.EasingStyle.Quart,Enum.EasingDirection.Out)
+	if rising and flashColor~=false then self:Flash(bar,flashColor or Color3.new(1,1,1),0.3,0.4) end
+end
+
+-- Stop every attention loop on an item (breathe, glow, bob, wobble) before hiding it.
+function Motion:Settle(item)
+	if not item then return end
+	self:StopBreathe(item)
+	self:StopGlow(item)
+	self:StopBob(item)
+	self:StopWobble(item)
 end
 
 return Motion

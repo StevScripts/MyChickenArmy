@@ -123,6 +123,29 @@ function AudioController:BindUI(root)
 	table.insert(self.connections,root.DescendantRemoving:Connect(remove))
 end
 
+-- October 21 game feel: whether an authored cue exists with a SoundId, so callers can
+-- pick a fallback cue themselves instead of relying on the generic Pop.
+function AudioController:Has(name)
+	local template = self.templates[name]
+	return template ~= nil and template.SoundId ~= ""
+end
+
+-- A positioned one-shot (8–42 stud roll-off) at a world point: a transient
+-- attachment under Terrain carries the voice and is swept up after it ends.
+function AudioController:PlayAt(name, position, pitch, options)
+	if not self.alive or not self.sfxEnabled then return end
+	local attachment = Instance.new("Attachment")
+	attachment.Name, attachment.WorldPosition = "PetRollAudioPoint", position
+	attachment.Parent = workspace.Terrain
+	local merged = table.clone(options or {})
+	merged.parent = attachment
+	local sound = self:Play(name, pitch, merged)
+	if not sound then attachment:Destroy(); return nil end
+	sound.Destroying:Once(function() attachment:Destroy() end)
+	Debris:AddItem(attachment, 8)
+	return sound
+end
+
 -- VFX templates are optional and never fall back to UI clicks. Reuse each
 -- spatial loop; changes to its authored ID replace only that playback copy.
 function AudioController:VFXLoop(name, parent, current)
@@ -178,6 +201,9 @@ function AudioController:Play(name, pitch, options)
 	sound:SetAttribute("Fallback", fallbackUsed)
 	sound.SoundGroup, sound.Looped, sound.PlayOnRemove = self.sfxGroup, options.looped==true, false
 	sound.PlaybackSpeed = pitch or template.PlaybackSpeed
+	-- October 21 game feel: a little random pitch so repeated cues (clucks, ticks,
+	-- pickups) never sound like one sample on a loop.
+	if options.pitchVariance then sound.PlaybackSpeed *= 1 + (math.random() * 2 - 1) * options.pitchVariance end
 	if options.volume then sound.Volume=options.volume end
 	if options.parent then
 		sound.RollOffMode=Enum.RollOffMode.InverseTapered
