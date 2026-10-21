@@ -85,6 +85,10 @@ All existing gameplay triggers and spatial audio parents remain unchanged.
 
 ## October 21 game-feel cues
 
+(The families and volumes below describe the first, v1 version of the recipe. The
+"Pet Simulator-style restyle" section further down supersedes them: same cues, same
+attributes, bubblier sounds and lower event levels.)
+
 The October 21 game-feel pass (`docs/team/GAME_FEEL_20261021.md` §3) adds 48 cues;
 `assets/audio/add_feel_sounds_20261021.luau` authors them. Paste the file into the
 Command Bar in canonical Edit mode and run it once (loadstring is disabled in Studio).
@@ -121,6 +125,52 @@ To retune, change `Volume`, `PlaybackSpeed` or `SoundId` on the Sound in Explore
 and save the place; the controller reads templates live. To try the alternate, paste
 the id from the `Alternate` attribute into `SoundId`. A cue no code calls yet just
 sits in the library; clearing a `SoundId` silences that cue (`audio:Has` goes false).
+
+## October 21 Pet Simulator-style restyle
+
+Later on October 21 Stevin set the target character for the whole cue set: Pet
+Simulator 99 / X (BIG Games). Bright, bubbly, candy-like and satisfying: soft
+pop/tock clicks, tiny blip hovers, bubbly pops for pickups, coin plings that rise in
+pitch, sparkly shimmers, a pop-plus-sparkle egg-hatch feel for reveals, cash-register
+chimes for purchases, crystal tings for Gems, a magical rising sparkle for level-ups,
+boop notifications, whoosh-plus-fanfare for big events. Nothing harsh, sci-fi, wooden
+or industrial. Sound-alikes only: never a Creator Store re-upload of Pet Simulator's own
+audio (names like "Pet Sim X hatch"), because Roblox moderates those and they go silent
+in the live game.
+
+`assets/audio/add_feel_sounds_20261021.luau` is now the v2 (restyle) recipe. Paste it
+into the Command Bar in canonical Edit mode and run it once. For each cue it:
+
+- creates the Sound if missing, or fills a blank `SoundId`, as before;
+- otherwise replaces the `SoundId` **only** when the Sound has no
+  `Restyled = "PetSim-20261021"` attribute **and** its current id is one the recipe
+  wrote earlier (the v1 id, or for the older `Click`, `Pop` and `SkillTree*` cues the
+  id the first recipes set). Any other id is Stevin's own pick and is left alone
+  (reported as "kept");
+- before replacing, stores the old id in a `Previous` attribute and sets
+  `Restyled = "PetSim-20261021"`, and sets the new `Volume` and `PlaybackSpeed`
+  (pitch is part of the style: a few clips run at 1.1-1.3);
+- keeps the `Alternate` attribute (a second verified id to try by hand).
+
+Levels (Stevin, live listening): event cues (Gold Rush, Missions, Rebirth, reveals,
+fanfares) stay under about 0.35 and must never startle; ambient and world cues (lays,
+clucks) stay under about 0.25. Three cues are Stevin's own live picks, already in Studio
+with a `Previous` attribute, and the recipe recognises them and never re-sources them:
+`EggLay` = `rbxassetid://9116312491` (PSE "Lip Pops Dry Plosive Short Snaps 2", 0.45 s)
+at Volume 0.14, because the cartoon plop sounded out of place; `GoldRushStart` =
+`rbxassetid://9126076118` (PSE "Synth Sparkle Tone Burst Ding 15", 0.74 s) at Volume
+0.22, because the rising power-up was too loud and startling; `GoldRushEnd` =
+`rbxassetid://9116418035` (PSE "Magic Tone Falling Shimmer Flanged 3", 3.29 s) at
+Volume 0.2.
+
+Reruns change nothing: a Sound marked `Restyled` is skipped even if its id was edited
+afterwards. To revert one cue, paste its `Previous` attribute back into `SoundId`
+(and clear `Restyled` if you want a later recipe run to touch it again). The cues the
+recipe deliberately leaves on their v1 sound are listed in the recipe header. Stevin's
+own picks (Collection/Money, CoinPickup, CoinDrop, EggPickup, EggDeposit, Collect,
+VFX/UI/Purchase, VFX/UI/Error, Combat/*, CallArmyWhistle, Intro/*, Music/*, and the
+five tuned Rolling cues RollLever/RollTick/RollLand/RollReveal/RollRare) are never
+touched by this recipe.
 
 The library is Studio-owned; the scripts-only Rojo project intentionally does
 not overwrite it. `assets/audio/organize_sounds.luau` is the initial migration
