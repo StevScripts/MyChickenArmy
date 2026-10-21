@@ -35,6 +35,7 @@ local FriendBoostService=require(script.Parent.FriendBoostService)
 local GemUpgradeService=require(script.Parent.GemUpgradeService)
 local RebirthChickens=require(script.Parent.RebirthChickens)
 local ToolService=require(script.Parent.ToolService)
+local PlaytimeService=require(script.Parent.PlaytimeService)
 local GameServer={}
 -- October 20 economy: Auto Rebirth, waiting Skip credits and Rebirth chicken credits.
 local REBIRTH_STEP_SECONDS=1
@@ -110,6 +111,11 @@ function GameServer:Send(player,result)
 	state.autoRoll=RollService.AutoSnapshot(session)
 	state.goldRolls=RollService.GoldSnapshot(session)
 	state.rebirth.missionRunning=RebirthService.OperationRunning(session,self)
+	-- October 20 Playtime Rewards and the top-right Coins/Luck readout (S16).
+	if session.loaded then
+		state.playtime=PlaytimeService.Snapshot(session)
+		state.boosts=PlaytimeService.Boosts(session)
+	end
 	state.boardUpgrades=self.upgrades:Offers(session)
  local routeCamps,routeOutposts=self.battles:RouteProgress(session)
  state.routeCamps,state.routeOutposts=table.clone(routeCamps),table.clone(routeOutposts)
@@ -343,6 +349,10 @@ function GameServer:Handle(player,request)
 		end
 	elseif action=="SetAutoRebirth" then
 		ok,message=GemUpgradeService.SetAutoRebirth(session,request.enabled)
+	elseif action=="ClaimPlaytime" then
+		-- October 20 Playtime Rewards (S16): one ready tile, paid by the server.
+		ok,message,receipt=PlaytimeService.Claim(session,request.index,self)
+		if ok then self.analytics:LaunchCount(session,"playtimeReward.claim."..tostring(request.index)) end
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
 		-- Pre-tree board keys (old cash hexes) map to the family's next node.
 		ok,message=self.upgrades:Buy(player,session,request.upgradeKey,request.expectedLevel,request.expectedPrice)

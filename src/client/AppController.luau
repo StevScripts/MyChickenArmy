@@ -29,6 +29,9 @@ local OfflineCashController = require(script.Parent.OfflineCashController)
 local FreeGiftController = require(script.Parent.FreeGiftController)
 local GoldRushController = require(script.Parent.GoldRushController)
 local FriendBoost = require(script.Parent.FriendBoost)
+local PlaytimePanel = require(script.Parent.PlaytimePanel)
+local BoostReadout = require(script.Parent.BoostReadout)
+local CornerNotice = require(script.Parent.CornerNotice)
 local ToolController = require(script.Parent.ToolController)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
@@ -58,6 +61,8 @@ local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBas
 
 -- October 20 Flock edits confirm themselves in My Army (the strip, counts and card pops).
 for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end
+-- October 20 (S16): PlaytimePanel shows its own claim feedback.
+QUIET_SUCCESS.ClaimPlaytime = true
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -359,7 +364,7 @@ function AppController:OpenSell(petId: string?)
 	self:OpenPage("Sell")
 end
 
--- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift" | "autoRoll".
+-- One menu at a time. keep: "main" | "research" | "operations" | "rebirth" | "daily" | "freeGift" | "autoRoll" | "playtime".
 -- Callers take their own blur (SetMenuBlur(name,true)) BEFORE calling this; each
 -- closed menu releases only its own blur owner, so the shared blur stays on.
 -- Safe with nothing open. The offline receipt is always dismissed (already paid).
@@ -377,6 +382,7 @@ function AppController:CloseOtherMenus(keep: string?)
 	if keep~="daily" and self.dailyReward then self.dailyReward:Dismiss(true) end
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
 	if keep~="autoRoll" and self.autoRollMenu then self.autoRollMenu:Dismiss(true) end
+	if keep~="playtime" and self.playtimePanel then self.playtimePanel:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
@@ -896,6 +902,9 @@ function AppController:Receive(packet)
 	self.freeGift:Render(state,result)
 	self.operationsPanel:Render(state,result)
 	self.autoRollMenu:Render(state,result)
+	-- October 20 (S16): the top-right Coins/Luck readout and Playtime Rewards.
+	if self.boostReadout then self.boostReadout:Render(state) end
+	if self.playtimePanel then self.playtimePanel:Render(state,result) end
 	if self.commander then self.commander:Update() end
 	-- After menus and popups render, so the first-time Hill film sees them open.
 	if self.hillIntro then self.hillIntro:Observe(state) end
@@ -930,6 +939,10 @@ function AppController:Start()
 	-- October 20 live Coin boosts: the Gold Rush chip/sky/air and the Friend Boost line.
 	self.goldRush=GoldRushController.new(self)
 	self.friendBoost=FriendBoost.new(self)
+	-- October 20 (S16): the corner notice, the Coins/Luck readout and Playtime Rewards.
+	self.cornerNotice=CornerNotice.new(self)
+	self.boostReadout=BoostReadout.new(self)
+	self.playtimePanel=PlaytimePanel.new(self)
 	self.commander=CommanderGuide.new(self)
 	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)
@@ -998,6 +1011,9 @@ function AppController:Destroy()
 	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy();self.autoRollMenu:Destroy()
 	if self.goldRush then self.goldRush:Destroy() end
 	if self.friendBoost then self.friendBoost:Destroy() end
+	if self.playtimePanel then self.playtimePanel:Destroy() end
+	if self.boostReadout then self.boostReadout:Destroy() end
+	if self.cornerNotice then self.cornerNotice:Destroy() end
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
 	table.clear(self.menuBlurOwners)
 	if self.tools then self.tools:Destroy() end

@@ -20,6 +20,7 @@ Stories.List={
 	{id="Settings",name="Settings"},
 	{id="AutoRoll",name="Auto Roll settings"},
 	{id="AutoRollAlert",name="Auto Roll hit alert"},
+	{id="Playtime",name="Playtime Rewards + boosts readout"},
 }
 
 local function noop() end
@@ -237,6 +238,27 @@ Render.AutoRollAlert=function(ctx)
 	local menu=require(ctx.code.AutoRollMenu).new(app)
 	app.autoRollMenu=menu
 	menu:Render(ctx.state)
+end
+
+-- October 20 Playtime Rewards (S16): 9.5 minutes into a visit, two tiles claimed, two
+-- ready, a Luck boost running; the top-right Coins/Luck readout beside the window.
+Render.Playtime=function(ctx)
+	local app=makeApp(ctx)
+	local Rewards=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PlaytimeRewards)
+	local now=workspace:GetServerTimeNow()
+	local startedAt=now-570
+	local income=math.max(10,tonumber(ctx.state.income) or 0)
+	local tiles={}
+	for index,tile in Rewards.Tiles do
+		tiles[index]={index=index,kind=tile.kind,at=tile.at,unlockAt=startedAt+tile.at*60,claimed=index<=2,
+			coins=if tile.kind=="Coins" then math.floor(income*(tile.coinMinutes or 0)*60) else nil}
+	end
+	ctx.state.playtime={enabled=true,startedAt=startedAt,tiles=tiles}
+	ctx.state.boosts={coins=9.2,luck=4.5,running={Luck={bonus=1,endsAt=now+184}}}
+	require(ctx.code.BoostReadout).new(app):Render(ctx.state)
+	local panel=require(ctx.code.PlaytimePanel).new(app)
+	panel:Render(ctx.state)
+	panel:Open()
 end
 
 function Stories.Render(id,ctx)

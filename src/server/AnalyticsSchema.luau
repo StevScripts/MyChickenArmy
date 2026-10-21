@@ -17,7 +17,9 @@ local Schema = {}
 -- 7 (October 20 overhaul, S7): Rebirth v2 (rebirth2.*), Gems as a second currency
 -- (Analytics:Gems, gems.*), Upgrades tree and Gem Upgrade buys, Rebirth chickens,
 -- retired-pass Gems gifts, the economy migration, the Time Skip coin source.
-Schema.Version = 7
+-- 8 (October 20 overhaul, S16): Playtime Rewards (the playtime Coins source and
+-- playtimeReward.claim.<1..12>).
+Schema.Version = 8
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -130,6 +132,7 @@ Schema.Sources = {
 	robux     = {transaction = "IAP",         sku = "CashPack"},
 	daily     = {transaction = "TimedReward", sku = "DailyStreak"},
 	rebirth   = {transaction = "Gameplay",    sku = "TimeSkip"},    -- version 7: Rebirth Time Skip Coins
+	playtime  = {transaction = "TimedReward", sku = "PlaytimeReward"}, -- version 8: Playtime Rewards Coins tiles
 }
 Schema.IgnoredSources = {debug = true}
 Schema.Sinks = {
@@ -204,6 +207,8 @@ Schema.LaunchCounters = {
 	["autoRoll.recruit"] = true,  -- Auto Roll bought an offer at the recruit value
 	["autoRoll.recruitHeld"] = true, -- recruited from the hit alert, from anywhere
 	["autoRoll.skip"] = true,     -- Skip on the hit alert
+	-- Version 8, S16 (Playtime Rewards; GameServer emits it).
+	["playtimeReward.claim"] = true, -- playtimeReward.claim.<1..12>: a Playtime Rewards tile claimed
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {

@@ -24,7 +24,8 @@ function RollService:Roll(session, now: number)
 	session.recruitTier=session.promotion
 	local rng = session.debugRandom or self.random
 	local paidLuck = session:PaidLuckMultiplier()
-	local researchLuck = session.researchEffects.rollingLuck or 0
+	-- Extra Luck plus a running Playtime Rewards Luck boost (S16).
+	local researchLuck = session:RollLuckBonus()
 	-- October 20 Gold rolls (GoldRolls): with the Gold Machine every Nth lever pull,
 	-- manual or Auto Roll, is special and every podium on it rolls with extra Luck.
 	local special = if starter then nil else GoldRolls.Advance(session.goldRolls, session.researchEffects)

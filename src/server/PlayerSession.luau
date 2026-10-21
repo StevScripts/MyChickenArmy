@@ -21,6 +21,7 @@ local RebirthService = require(script.Parent.RebirthService)
 local GoldRushService = require(script.Parent.GoldRushService)
 local RebirthChickens = require(script.Parent.RebirthChickens)
 local EconomyMigration = require(script.Parent.EconomyMigration)
+local PlaytimeService = require(script.Parent.PlaytimeService)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 -- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
@@ -69,6 +70,9 @@ function PlayerSession:Reset()
 	self.eggVacuum = false
 	self.vacuumCargo = {count=0,value=0}
 	self.goldRolls = {count=0}
+	-- October 20 Playtime Rewards (S16, PlaytimeService): this visit's clock, claims and
+	-- timed boosts. Live only, never saved; a new visit (or a reset) starts over.
+	self.playtime,self.playtimeBoosts = nil,nil
 	self.plotBuild = nil
 	self.eggCarry={count=0,value=0}
 	self.offlineCash = {at=0,rate=0}
@@ -214,6 +218,12 @@ function PlayerSession:PaidLuckMultiplier(): number
  return if self.entitlements.DoubleLuck and self.paidRandomAllowed==true then 2 else 1
 end
 
+-- Roll Luck's research bonus (ChickenLuck) with a Playtime Rewards Luck boost (S16):
+-- "+100% Luck" doubles it the way a Gold roll multiplies it.
+function PlayerSession:RollLuckBonus(): number
+ return (1+(self.researchEffects.rollingLuck or 0))*(1+PlaytimeService.Boost(self,"Luck"))-1
+end
+
 function PlayerSession:LuckGuarantee()
  local schedule=ShopCatalog.GuaranteedLuck
  local count=self.guaranteedLuckRolls
@@ -236,8 +246,10 @@ function PlayerSession:EarnedAmount(amount: number, source: string, steady: bool
  -- October 20 Gem Upgrade Coin Boost: egg Coins only, offline included (S7).
  local coinBoost=if source=="eggs" then 1+(self.researchEffects.coinBoost or 0) else 1
  -- October 20 live boosts on earned Coins, counted when Coins are paid: Gold Rush
- -- (server-wide) and Friend Boost. `steady` leaves both out (offline earnings).
- local live=if earned and not steady then GoldRushService.Multiplier()*(1+(self.friendBoost or 0)) else 1
+ -- (server-wide), Friend Boost and a Playtime Rewards Coins boost (S16). `steady`
+ -- leaves them out (offline earnings, daily and playtime Coins).
+ local live=if earned and not steady then GoldRushService.Multiplier()*(1+(self.friendBoost or 0))
+  *(1+PlaytimeService.Boost(self,"Coins")) else 1
  return amount * (if earned and self.entitlements.DoubleCash then 2 else 1) * rebirth * coinBoost * live
 end
 
@@ -784,7 +796,7 @@ function PlayerSession:Snapshot(now: number)
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
 		selectionMode=if self.armySelection==nil then "Auto" else "Manual",
 		selectedCount=#best,deployedCount=#deployedIds,overflowCount=math.max(0,#pets-self:CollectionLimit()),
-		offer=offer,offers=offers,rollSlotCount=self.rollSlotCount or 1,rollRemaining=math.max(0,self.rollReadyAt-now),odds=Rules.Odds(self.luck,self.recruitTier,self:PaidLuckMultiplier(),self.researchEffects.rollingLuck),luck=self.luck,
+		offer=offer,offers=offers,rollSlotCount=self.rollSlotCount or 1,rollRemaining=math.max(0,self.rollReadyAt-now),odds=Rules.Odds(self.luck,self.recruitTier,self:PaidLuckMultiplier(),self:RollLuckBonus()),luck=self.luck,
 		campUnlocked=self.campUnlocked,armyState=self.armyState,outgoing=self.outgoing,incoming=self.incoming,stationedAt=self.stationedAt,
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
 		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner,
