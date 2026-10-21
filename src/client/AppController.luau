@@ -941,7 +941,7 @@ function AppController:RenderPanel(force)
 		self.panelTitle.Text="Shop";self.shopBrowser:Render(force);return
 	end
 	if indexing then
-		self.panelTitle.Text="Chicken Index";self.indexBrowser:Render(force);return
+		self.panelTitle.Text="Index";self.indexBrowser:Render(force);return
 	end
 	if browsing then
 		self.panelTitle.Text="My Army"
