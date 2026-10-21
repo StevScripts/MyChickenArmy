@@ -46,7 +46,7 @@ Tuning lives in `src/shared/VacuumConfig.luau`.
 - Cargo is saved as `vacuumCargo`. Claims already in flight finish into it,
   even if the vacuum is put away or the player leaves. Rebirth clears it after
   `EggService:Release` settles it.
-- Pulled eggs fly into the nozzle attachment of the held model. The dock shows
+- Pulled eggs fly into the nozzle attachment of the held model. The meter shows
   `carried / capacity`, which counts eggs still in flight. When it is full it
   turns red and reads "Full! Sell on the pad".
 
@@ -79,7 +79,7 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
   walk up to your chicken to level it up." `state.tools` being present tells
   `ChickenBrowser` to hide its Coins Upgrade button.
 
-## Tools and the dock
+## Tools and the hotbar
 
 - `ToolService` keeps each Backpack holding exactly the owned tools. It re-syncs
   every 0.5 s, so tools come back after a respawn and both go away after a
@@ -94,14 +94,25 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
 - A Studio Tool named `EggVacuum` or `ChickenFeed` in
   `ReplicatedStorage.PetRoll.Assets.Tools` replaces the parts-built model.
 - `state.tools = {eggVacuum, chickenFeed, order, vacuum, clickRange, feedRange}`.
-- `ToolDock` sits just above My Army, with one layout for every device: one
-  square slot per owned tool with its key number, and the equipped slot
-  outlined in white.
-- Keys 1 and 2, or tapping a slot, equip a tool or put it away. Gamepad L1/R1
-  step through the tools and then empty hands. On a gamepad an R2 "Collect" hint
-  shows next to the dock.
-- Roblox's own hotbar stays hidden. `ToolController` re-hides it after a
-  cutscene restores the CoreGui.
+- The tools live in Roblox's own hotbar (Stevin, October 20; the custom
+  `ToolDock` is retired). Roblox handles the slot keys, tapping and the gamepad,
+  and shows each Tool's `TextureId` icon. `ToolController` keeps
+  `CoreGuiType.Backpack` switched on.
+- Roblox draws the hotbar on the whole screen (BackpackScript):
+  - 60 px slots with 5 px gaps (100 px slots on consoles), 70 px tall;
+  - only filled slots show, centred;
+  - a new tool takes the lowest free slot;
+  - a 30 px backpack arrow sits centred 80–110 px up whenever tools show.
+- My Army (with Call Army and My Base) sits centred 116 px above the bottom of
+  the safe area, clear of the hotbar and that arrow. It is 20% smaller than
+  before (Navigation 0.248 × 0.204 of the screen), with one layout for every
+  device.
+- While the vacuum is in hand, its meter (`carried / capacity`, red with "Full!
+  Sell on the pad" when full) sits just right of the hotbar slots.
+- For the Commander guide, `app.tools.hintAnchors.EggVacuum` and
+  `.ChickenFeed` are invisible, non-interactive Frames over each owned tool's
+  slot. They follow Roblox's slot order and centring, and are nil while a tool
+  isn't in the hotbar.
 - Icons: `rbxassetid://130089766443010` (Egg Vacuum) and `rbxassetid://122007287446526`
   (Chicken Feed), from `assets/upgrade-icons-20261020/upload-receipts.json`.
 

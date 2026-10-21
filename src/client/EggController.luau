@@ -170,7 +170,7 @@ function Eggs:Feedback(id,value,count,receipt)
  if self.feedback[id] then return end
  local now=os.clock();self.feedback[id]=now
  if not self.finishedFlights[id] then self:PickupCue(receipt and receipt.collector,now) end
- -- Vacuum pickups fill its meter (ToolDock) instead of the popup over the player.
+ -- Vacuum pickups fill its meter (ToolController) instead of the popup over the player.
  if receipt and receipt.collector=="vacuum" then return end
  local root=self:Root()
  if not root then return end

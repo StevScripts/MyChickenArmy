@@ -1,55 +1,45 @@
 --!strict
--- October 20 hand tools, client side (docs/team/COLLECTION_TOOLS.md). Equips the Egg
--- Vacuum and Chicken Feed from the dock, number keys 1 and 2 and gamepad L1/R1, keeps
--- Roblox's own hotbar hidden (the dock replaces it) and puts the native Feed prompt on
--- the nearest of your chickens at home. ToolService owns the tools, levels and Coins.
+-- October 20 hand tools, client side (docs/team/COLLECTION_TOOLS.md). The Egg Vacuum
+-- and Chicken Feed are real Tools in Roblox's own hotbar (Stevin, October 20): Roblox
+-- equips them by slot key, tap or gamepad. This keeps that hotbar switched on, shows
+-- the vacuum's "carried / capacity" meter right of the hotbar slots, gives the
+-- Commander guide one invisible anchor over each tool's slot (hintAnchors), and puts
+-- the native Feed prompt on the nearest of your chickens at home. ToolService owns the
+-- tools, levels and Coins.
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local StarterGui=game:GetService("StarterGui")
-local ContextActionService=game:GetService("ContextActionService")
-local UserInputService=game:GetService("UserInputService")
+local GuiService=game:GetService("GuiService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
 local Config=require(Shared.Config)
 local Tools=require(Shared.VacuumConfig)
 local Theme=require(script.Parent.UITheme)
-local ToolDock=require(script.Parent.ToolDock)
 local Controller={}
 Controller.__index=Controller
 
-local KEYS={Enum.KeyCode.One,Enum.KeyCode.Two,Enum.KeyCode.Three}
 local POLL_SECONDS=0.1
--- A cutscene restores the CoreGui it saved; hide the default hotbar again soon after.
-local HOTBAR_CHECK_SECONDS=2
 local PROMPT_LIFT=Vector3.new(0,1.2,0)
+-- Roblox's hotbar (CoreGui BackpackScript): 60 px slots (100 px on consoles) with
+-- 5 px gaps, at the bottom of the whole screen. Only filled slots show, centred,
+-- and a new tool takes the lowest free slot. Our anchors and meter follow that.
+local ICON=if GuiService:IsTenFootInterface() then 100 else 60
+local GAP=5
+local METER_SIZE=Vector2.new(150,46)
+local GOLD=Theme.Arcade.gold
+local RED=Theme.Arcade.red
 
 function Controller.new(app)
- local self=setmetatable({app=app,connections={},nextPollAt=0,nextHotbarAt=0},Controller)
- self.dock=ToolDock.new(app,function(name) self:Toggle(name) end)
- self:HideHotbar()
+ local self=setmetatable({app=app,connections={},nextPollAt=0,slots={},hintAnchors={},anchorFrames={}},Controller)
+ -- Roblox's own hotbar is the tool bar now; a cutscene restores whatever it saved.
+ pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack,true) end)
+ -- The hotbar is drawn on the whole screen, not inside the device safe area.
+ self.screen=Theme.InsetContainer(app.hudLayer,"ToolHotbar",Enum.ScreenInsets.None)
+ self:BuildMeter()
  self:BuildPrompt()
- for index,name in Tools.ToolOrder do
-  ContextActionService:BindAction("PetRollTool"..index,function(_,state)
-   if state~=Enum.UserInputState.Begin or UserInputService:GetFocusedTextBox() or not self:Owned()[name] then
-    return Enum.ContextActionResult.Pass
-   end
-   self:Toggle(name)
-   return Enum.ContextActionResult.Sink
-  end,false,KEYS[index])
- end
- ContextActionService:BindAction("PetRollToolCycle",function(_,state,input)
-  if state~=Enum.UserInputState.Begin or self:Blocked() then return Enum.ContextActionResult.Pass end
-  self:Cycle(if input.KeyCode==Enum.KeyCode.ButtonL1 then -1 else 1)
-  return Enum.ContextActionResult.Sink
- end,false,Enum.KeyCode.ButtonL1,Enum.KeyCode.ButtonR1)
  table.insert(self.connections,RunService.Heartbeat:Connect(function() self:Step(os.clock()) end))
+ table.insert(self.connections,Players.LocalPlayer.CharacterAdded:Connect(function() table.clear(self.slots) end))
  return self
-end
-
-function Controller:HideHotbar()
- pcall(function()
-  if StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) then StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack,false) end
- end)
 end
 
 function Controller:Blocked(): boolean
@@ -61,12 +51,6 @@ function Controller:Blocked(): boolean
  return camera==nil or camera.CameraType==Enum.CameraType.Scriptable
 end
 
--- Tool name -> true for each tool the server says this player owns.
-function Controller:Owned(): {[string]: boolean}
- local tools=self.app.state and self.app.state.tools
- return {EggVacuum=tools~=nil and tools.eggVacuum==true,ChickenFeed=tools~=nil and tools.chickenFeed==true}
-end
-
 -- The game tool in the local player's hand.
 function Controller:Held(): Tool?
  local character=Players.LocalPlayer.Character
@@ -74,38 +58,108 @@ function Controller:Held(): Tool?
  return if tool and tool:GetAttribute("PetRollTool")~=nil then tool else nil
 end
 
-function Controller:Humanoid(): Humanoid?
- local character=Players.LocalPlayer.Character
- local humanoid=character and character:FindFirstChildOfClass("Humanoid")
- return if humanoid and humanoid.Health>0 then humanoid else nil
-end
-
--- Equip a tool, or put it away when it is already in hand.
-function Controller:Toggle(name: string)
- local humanoid=self:Humanoid()
- if not humanoid then return end
- self.app.audio:Play("Click")
- local held=self:Held()
- if held and held.Name==name then humanoid:UnequipTools();return end
- local backpack=Players.LocalPlayer:FindFirstChildOfClass("Backpack")
- local tool=backpack and backpack:FindFirstChild(name)
- if tool and tool:IsA("Tool") then humanoid:EquipTool(tool) end
-end
-
--- Gamepad bumpers: step through the owned tools, then empty hands.
-function Controller:Cycle(direction: number)
- local owned,list=self:Owned(),{}
- for _,name in Tools.ToolOrder do if owned[name] then table.insert(list,name) end end
- if #list==0 then return end
- local held,index=self:Held(),0
- for i,name in list do if held and held.Name==name then index=i end end
- local nextIndex=(index+direction)%(#list+1)
- if nextIndex==0 then
-  local humanoid=self:Humanoid()
-  if humanoid and held then self.app.audio:Play("Click");humanoid:UnequipTools() end
- else
-  self:Toggle(list[nextIndex])
+-- Mirrors which hotbar slot each tool holds: a slot frees when its tool leaves both
+-- the Backpack and the character, and a new tool takes the lowest free slot (tools
+-- that arrive together go in the order ToolService gives them).
+function Controller:TrackSlots(): {Tool}
+ local player=Players.LocalPlayer
+ local containers: {Instance}={}
+ local backpack=player:FindFirstChildOfClass("Backpack")
+ if backpack then table.insert(containers,backpack) end
+ if player.Character then table.insert(containers,player.Character) end
+ local present: {[Tool]: boolean}={}
+ local arrivals: {Tool}={}
+ for _,container in containers do
+  for _,item in container:GetChildren() do
+   if item:IsA("Tool") then present[item]=true end
+  end
  end
+ for index,tool in self.slots do if not present[tool] then self.slots[index]=nil end end
+ local tracked: {[Tool]: boolean}={}
+ for _,tool in self.slots do tracked[tool]=true end
+ for tool in present do if not tracked[tool] then table.insert(arrivals,tool) end end
+ local order=Tools.ToolOrder
+ table.sort(arrivals,function(a,b)
+  local ia,ib=table.find(order,a.Name) or #order+1,table.find(order,b.Name) or #order+1
+  return if ia==ib then a.Name<b.Name else ia<ib
+ end)
+ for _,tool in arrivals do
+  local index=1
+  while self.slots[index] do index+=1 end
+  self.slots[index]=tool
+ end
+ local filled: {Tool}={}
+ local indices={}
+ for index in self.slots do table.insert(indices,index) end
+ table.sort(indices)
+ for _,index in indices do table.insert(filled,self.slots[index]) end
+ return filled
+end
+
+-- One invisible, non-interactive anchor over each of our tools' hotbar slots for the
+-- Commander guide (hintAnchors.EggVacuum / .ChickenFeed; nil while not owned).
+function Controller:PlaceAnchors(filled: {Tool}): number
+ local count=#filled
+ local right=0
+ local shown: {[string]: boolean}={}
+ for visual,tool in filled do
+  local center=(visual-(count/2+0.5))*(ICON+GAP)
+  right=math.max(right,center+ICON/2)
+  local name=tool:GetAttribute("PetRollTool")
+  if type(name)=="string" and not shown[name] then
+   shown[name]=true
+   local frame=self.anchorFrames[name]
+   if not frame then
+    frame=Instance.new("Frame")
+    frame.Name="HotbarAnchor"..name
+    frame.BackgroundTransparency,frame.BorderSizePixel=1,0
+    frame.Active,frame.Selectable,frame.Interactable=false,false,false
+    frame.Size=UDim2.fromOffset(ICON,ICON)
+    frame.Parent=self.screen
+    self.anchorFrames[name]=frame
+   end
+   frame.Position=UDim2.new(0.5,center-ICON/2,1,-(GAP+ICON))
+   frame.Visible=true
+  end
+ end
+ for name,frame in self.anchorFrames do
+  frame.Visible=shown[name]==true
+  self.hintAnchors[name]=if shown[name] then frame else nil
+ end
+ return right
+end
+
+-- The vacuum meter: "120 / 300", and a sell hint once it is full.
+function Controller:BuildMeter()
+ local meter=Theme.Frame(self.screen,"VacuumMeter",UDim2.fromOffset(METER_SIZE.X,METER_SIZE.Y),Color3.new(0,0,0))
+ meter.AnchorPoint,meter.BackgroundTransparency,meter.Visible=Vector2.new(0,0.5),0.35,false
+ Theme.Stroke(meter,Color3.new(0,0,0),2)
+ local count=Theme.Label(meter,"Count","0 / 0",24,GOLD)
+ count.Position,count.Size=UDim2.fromScale(0.05,0.05),UDim2.fromScale(0.9,0.58)
+ local hint=Theme.Label(meter,"Hint","Full! Sell on the pad",16,Color3.new(1,1,1))
+ hint.Position,hint.Size=UDim2.fromScale(0.05,0.62),UDim2.fromScale(0.9,0.33)
+ for _,label in {count,hint} do
+  label.TextScaled,label.TextWrapped,label.TextXAlignment=true,false,Enum.TextXAlignment.Center
+ end
+ self.meter,self.meterCount,self.meterHint=meter,count,hint
+end
+
+function Controller:RenderMeter(held: Tool?,right: number)
+ local tools=self.app.state and self.app.state.tools
+ local vacuum=tools and tools.vacuum
+ local shown=held~=nil and held.Name=="EggVacuum" and type(vacuum)=="table" and not self.app.panel.Visible
+ self.meter.Visible=shown
+ if not shown then return end
+ self.meter.Position=UDim2.new(0.5,right+12,1,-(GAP+ICON/2))
+ local count,capacity=math.floor(vacuum.count or 0),math.max(1,math.floor(vacuum.capacity or 0))
+ local full=count>=capacity
+ local text=Theme.Money(count).." / "..Theme.Money(capacity)
+ if self.meterCount.Text~=text then
+  self.meterCount.Text=text
+  if not self.app.reducedMotion then Theme.Motion:Pulse(self.meterCount,1.06) end
+ end
+ self.meterCount.TextColor3=if full then RED else GOLD
+ self.meterHint.Visible=full
 end
 
 -- One native prompt that rides on the nearest of your chickens at home.
@@ -169,12 +223,11 @@ function Controller:Feed()
 end
 
 function Controller:Step(now: number)
- if now>=self.nextHotbarAt then self.nextHotbarAt=now+HOTBAR_CHECK_SECONDS;self:HideHotbar() end
  if now>=self.nextPollAt then
   self.nextPollAt=now+POLL_SECONDS
   local held=self:Held()
-  local tools=self.app.state and self.app.state.tools
-  self.dock:Render(self:Owned(),held and held.Name,tools and tools.vacuum)
+  local right=self:PlaceAnchors(self:TrackSlots())
+  self:RenderMeter(held,right)
   self:UpdateTarget(held~=nil and held.Name=="ChickenFeed")
  end
  -- Chickens roam: the prompt follows its chicken every frame.
@@ -193,9 +246,7 @@ end
 function Controller:Destroy()
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)
- for index in Tools.ToolOrder do ContextActionService:UnbindAction("PetRollTool"..index) end
- ContextActionService:UnbindAction("PetRollToolCycle")
- self.dock:Destroy()
+ if self.screen then self.screen:Destroy() end
  if self.folder then self.folder:Destroy() end
 end
 
