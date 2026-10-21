@@ -1,0 +1,10 @@
+{
+ "method": "Studio Flow, edit context, AssetService:CreateEditableImage + CreateAssetAsync (raw RGBA from prepare_upload.py in assets/gold-coins-20261020, served from 127.0.0.1)",
+ "placeId": 96683186622050,
+ "creatorType": "Group",
+ "creatorId": 778575811,
+ "uploadedAt": "2026-10-21",
+ "assets": [
+  {"key": "DailyCalendar", "file": "Calendar.png", "size": [538, 538], "assetId": 85849770547707, "content": "rbxassetid://85849770547707", "usedBy": "src/client/DailyRewardController.luau Controller.Calendar"}
+ ]
+}

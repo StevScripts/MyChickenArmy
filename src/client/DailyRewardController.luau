@@ -44,7 +44,7 @@ local CLAIM_RIBBON = Color3.fromRGB(46,176,34)
 local COME_BACK = "Come back later for your daily reward! Your chickens keep earning while you're away!"
 -- Header calendar (assets/rewards-popups-20261021/Calendar.png). Until the lead
 -- uploads it and fills this in, the header shows the Time Skip clock.
-Controller.Calendar = ""
+Controller.Calendar = "rbxassetid://85849770547707"
 local CLOCK = Theme.GemArt.TimeSkip
 local MIN_INCOME = 10 -- DailyService.MinIncome
 local DAY_SECONDS = 86400 -- DailyService.DaySeconds (UTC days)
