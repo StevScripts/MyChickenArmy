@@ -11,11 +11,29 @@ local CombatEffects = require(script.Parent.CombatEffects)
 local C = Theme.Colors
 local HIT_COLOR = Color3.fromRGB(255, 65, 65)
 local HIT_FADE = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+-- October 21 game feel timings (docs/team/GAME_FEEL_20261021.md); tune in ConquestPresentation.
+local Feel = Theme.Conquest
+-- UIMotion helpers are untyped; an any-typed alias keeps strict inference out of presentation calls.
+local Motion: any = Theme.Motion
 local BattleController = {}
 BattleController.__index = BattleController
 
 function BattleController.new(app)
-	return setmetatable({app = app, views = {}, modelViews = {}, captureViews = {}, snapshots = {}, connections = {}, phases = {}, rewardSerials = {}, coinEffects = 0, effects = 0, alive = true}, BattleController)
+	return setmetatable({app = app, views = {}, modelViews = {}, captureViews = {}, snapshots = {}, connections = {}, phases = {}, rewardSerials = {}, coinEffects = 0, effects = 0, alive = true,
+		marches = {}, lastHitShake = 0, lastKnockoutShake = 0}, BattleController)
+end
+
+local function isMission(battle)
+	return type(battle.target) == "string" and string.sub(battle.target, 1, 10) == "operation:"
+end
+
+-- The player's own chicken on their own side, or an enemy of their army, in their own battle.
+local function ownUnit(battle, unit, userId)
+	return unit.petId ~= nil and ((unit.side == "A" and battle.attacker == userId) or (unit.side == "B" and battle.defender == userId))
+end
+
+local function enemyUnit(battle, unit, userId)
+	return (battle.attacker == userId and unit.side == "B") or (battle.defender == userId and unit.side == "A")
 end
 
 
@@ -55,16 +73,36 @@ end
 function BattleController:ReleaseCapture(id)
 	local view=self.captureViews[id]
 	if not view then return end
-	if view.tween then view.tween:Cancel();view.tween:Destroy() end
-	view.gui:Destroy();view.anchor:Destroy();if view.zone then view.zone:Destroy() end
 	self.captureViews[id]=nil
+	if view.dimTween then view.dimTween:Cancel();view.dimTween:Destroy() end
+	Motion:Cancel(view.fill,"progress")
+	local gui,anchor,zone=view.gui,view.anchor,view.zone
+	local function drop() gui:Destroy();anchor:Destroy();if zone then zone:Destroy() end end
+	if self.app.reducedMotion or not self.alive or not gui.Enabled then drop();return end
+	-- Shrink out, then free the meter; a same-id meter can be rebuilt meanwhile.
+	Motion:Appear(view.body,false,nil)
+	task.delay(Feel.LeaveSeconds+0.05,drop)
+end
+
+-- "CaptureTick" (fallback "Pop") rising a step per section: on the HUD for the
+-- player's own conquest, at the camp for a spectator.
+function BattleController:CaptureTick(battle,view,section)
+	local audio=self.app.audio
+	local cue=if audio:Has("CaptureTick") then "CaptureTick" else "Pop"
+	local pitch=Feel.TickPitchBase+Feel.TickPitchStep*section
+	local userId=Players.LocalPlayer.UserId
+	if battle.attacker==userId or battle.defender==userId then
+		audio:Play(cue,pitch,{noFallback=true,voiceKey="CaptureTick",cooldown=0.1})
+	elseif self.app.worldFeel then
+		self.app.worldFeel:Sound(cue,view.anchor.Position,pitch,{noFallback=true,voiceKey="CaptureTickFar",cooldown=0.1,volume=0.5})
+	end
 end
 
 function BattleController:UpdateCapture(battle)
 	local presentation=capturePresentation(battle)
 	local completed=presentation.completed
 	if (not presentation.active and not completed) or (battle.conquest and completed) then self:ReleaseCapture(battle.id);return end
-	local view=self.captureViews[battle.id]
+	local view: any=self.captureViews[battle.id]
 	if not view then
 		local anchor=Instance.new("Part")
 		anchor.Name,anchor.Size="Capture_"..battle.id,Vector3.one
@@ -83,23 +121,29 @@ function BattleController:UpdateCapture(battle)
 		local gui=Instance.new("BillboardGui")
 		gui.Name,gui.Size,gui.Adornee="ConquestMeter",UDim2.fromScale(Theme.Conquest.Width,Theme.Conquest.Height),anchor
 		gui.AlwaysOnTop,gui.MaxDistance,gui.LightInfluence,gui.Parent=true,Theme.Conquest.MaxDistance,0,Players.LocalPlayer.PlayerGui
-		local title=Theme.Display(gui,"Title","Conquering",27,Theme.Arcade.red)
+		-- One group holds the whole meter so it grows in, shrinks out and dims as one.
+		local body=Instance.new("CanvasGroup")
+		body.Name,body.Size,body.BackgroundTransparency,body.BorderSizePixel="Body",UDim2.fromScale(1,1),1,0
+		body.AnchorPoint,body.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5) -- grows from the middle
+		body.Visible,body.Parent=false,gui
+		local title=Theme.Display(body,"Title","Conquering",27,Theme.Arcade.red)
 		title.Position,title.Size,title.TextXAlignment=UDim2.fromScale(0.08,0),UDim2.fromScale(0.84,0.35),Enum.TextXAlignment.Center
-		Theme.Motion:Center(title) -- stage pops grow from the middle; same place at rest
-		local detail=Theme.Display(gui,"Detail","",20)
+		Motion:Center(title) -- stage pops grow from the middle; same place at rest
+		local detail=Theme.Display(body,"Detail","",20)
 		detail.Position,detail.Size,detail.TextXAlignment=UDim2.fromScale(0.1,0.36),UDim2.fromScale(0.8,0.23),Enum.TextXAlignment.Center
-		local track,fill=Theme.SegmentedBar(gui,"Progress",UDim2.fromScale(1,0.27),Theme.Conquest.Segments)
+		local track,fill=Theme.SegmentedBar(body,"Progress",UDim2.fromScale(1,0.27),Theme.Conquest.Segments)
 		track.Position=UDim2.fromScale(0,0.66)
 		fill.Parent.BackgroundColor3=Theme.Conquest.Track
 		Theme.Gradient(fill.Parent,Color3.fromRGB(235,245,248),Color3.fromRGB(160,180,186))
-		view={anchor=anchor,zone=zone,gui=gui,title=title,detail=detail,fill=fill,progress=-1}
+		view={anchor=anchor,zone=zone,gui=gui,body=body,title=title,detail=detail,fill=fill,progress=-1,section=-1,dimmed=false,dimTween=nil,stage=nil,completedAt=nil}
 		self.captureViews[battle.id]=view
+		Motion:Appear(body,true,Feel.AppearFrom)
 	end
 	if completed and not view.completedAt then view.completedAt=os.clock() end
 	local progress=presentation.value
 	local stageChanged=view.stage~=presentation.stage
 	-- Pop the title on a real stage change, not when the meter first appears.
-	if stageChanged and view.stage~=nil then Theme.Motion:PopScale(view.title,1.15) end
+	if stageChanged and view.stage~=nil then Motion:PopScale(view.title,1.15) end
 	view.stage=presentation.stage
 	view.title.Text,view.title.TextColor3=presentation.title,presentation.color
 	view.detail.Text=presentation.detail
@@ -108,20 +152,68 @@ function BattleController:UpdateCapture(battle)
 		view.zone.Color=presentation.color
 	end
 	view.fill.BackgroundColor3=presentation.color
+	-- Paused (no attacker counting) dims the whole meter; resuming restores it.
+	local dimmed=presentation.paused and not completed
+	if dimmed~=view.dimmed then
+		view.dimmed=dimmed
+		if view.dimTween then view.dimTween:Cancel();view.dimTween:Destroy();view.dimTween=nil end
+		local goal=if dimmed then Feel.PausedTransparency else 0
+		if self.app.reducedMotion then view.body.GroupTransparency=goal
+		else view.dimTween=TweenService:Create(view.body,TweenInfo.new(Feel.DimSeconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{GroupTransparency=goal});view.dimTween:Play() end
+	end
 	-- Interpolate only toward a received server value; never predict a victory.
 	if progress~=view.progress or stageChanged or presentation.paused then
-		if view.tween then view.tween:Cancel();view.tween:Destroy() end
 		view.progress=progress
-		local size=UDim2.fromScale(progress,1)
-		if self.app.reducedMotion or completed or stageChanged or presentation.paused then view.fill.Size=size;view.tween=nil
-		else view.tween=TweenService:Create(view.fill,TweenInfo.new(0.18,Enum.EasingStyle.Linear),{Size=size});view.tween:Play() end
+		if completed or stageChanged or presentation.paused then Motion:Cancel(view.fill,"progress");view.fill.Size=UDim2.fromScale(progress,1)
+		else Motion:Progress(view.fill,progress,Feel.FillSeconds,false) end
 	end
+	-- A section just filled on the player's side: white wash and a rising tick.
+	local section=if presentation.stage=="Enemy" then 0 else math.floor(progress*Feel.Segments+1e-4)
+	if stageChanged then view.section=section
+	elseif section>view.section then
+		if view.section>=0 and not completed then
+			Motion:Flash(view.fill,Color3.new(1,1,1),Feel.TickFlashSeconds,Feel.TickFlashPeak)
+			self:CaptureTick(battle,view,section)
+		end
+		view.section=section
+	elseif section<view.section then view.section=section end
+end
+
+function BattleController:Within(position, range)
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return root ~= nil and (root.Position - position).Magnitude < range
 end
 
 function BattleController:IsNearby(position)
-	local character = Players.LocalPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	return root and (root.Position - position).Magnitude < 120
+	return self:Within(position, 120)
+end
+
+-- October 21 game feel: the camera answers the player's own fight. A hit on one of
+-- their chickens close by gives a small shake (cooldown so a brawl never rumbles);
+-- their chicken knocking an enemy out shakes once more; losing one shakes harder
+-- under a short red flash. Spectated fights never move the camera.
+function BattleController:HitFeel(battle, unit, view, now)
+	local feel = self.app.screenFeel
+	if not feel or not ownUnit(battle, unit, Players.LocalPlayer.UserId) then return end
+	if now - self.lastHitShake < Feel.HitShakeGap or not self:Within(view.position, Feel.HitShakeRange) then return end
+	self.lastHitShake = now
+	feel:Impact(1)
+end
+
+function BattleController:KnockoutFeel(battle, unit, view, now)
+	local feel = self.app.screenFeel
+	if not feel or not self:Within(view.position, Feel.KnockoutShakeRange) then return end
+	local userId = Players.LocalPlayer.UserId
+	if ownUnit(battle, unit, userId) then
+		if now - self.lastKnockoutShake < Feel.KnockoutShakeGap then return end
+		self.lastKnockoutShake = now
+		feel:Impact(2)
+		feel:Flash(HIT_COLOR, 0.15, 0.3)
+	elseif enemyUnit(battle, unit, userId) and now - self.lastHitShake >= Feel.HitShakeGap then
+		self.lastHitShake = now
+		feel:Impact(1)
+	end
 end
 
 function BattleController:Ring(position, color, large)
@@ -235,22 +327,87 @@ function BattleController:Flash(view)
 	tween:Play()
 end
 
+-- The Army sets off: one whistle and one dust wave where it stands (once per march leg).
+function BattleController:MarchStart(battle)
+	local audio = self.app.audio
+	if audio:Has("MarchStart") then audio:Play("MarchStart", 1, {noFallback = true, voiceKey = "MarchStart", cooldown = 1})
+	else audio:Play("CallArmyWhistle", 1, {noFallback = true, voiceKey = "CallArmyWhistle", cooldown = 0.75, volume = 0.2}) end
+	local feel = self.app.worldFeel
+	if not feel then return end
+	local sum, count = Vector3.zero, 0
+	for _, unit in battle.units do
+		if unit.side ~= "A" or unit.hp <= 0 then continue end
+		local model = self:FindActor(battle.id, unit.id)
+		sum += if model and model.PrimaryPart then model.PrimaryPart.Position else Vector3.new(unit.x, 1.2, unit.z)
+		count += 1
+	end
+	if count > 0 then feel:Poof(sum / count - Vector3.new(0, 1, 0), {count = 12, size = 1.6}) end
+end
+
+-- Camp victory: the ActionFeedback burst and Victory cue, plus a green celebrate,
+-- confetti on the HUD and a Fanfare a beat later. Missions are MissionTracker's.
+function BattleController:Victory(battle)
+	self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z), battle.captureRadius)
+	if isMission(battle) then return end
+	local feel = self.app.screenFeel
+	if feel then feel:Celebrate(Theme.Arcade.green, 2) end
+	if self.app.gui then Motion:Confetti(self.app.gui, {origin = UDim2.fromScale(0.5, 0.12)}) end
+	if not self.app.audio:Has("Fanfare") then return end
+	task.delay(Feel.FanfareDelay, function()
+		if self.alive then self.app.audio:Play("Fanfare", 1, {noFallback = true, voiceKey = "Fanfare", cooldown = 1}) end
+	end)
+end
+
+-- An authored flag that becomes owned: a burst and ring at the cloth with "FlagRaise".
+function BattleController:FlagRaised(group)
+	local feel = self.app.worldFeel
+	if not feel then return end
+	local flags = group:FindFirstChild("Flags")
+	local part = if flags and flags:IsA("BasePart") then flags elseif flags then flags:FindFirstChildWhichIsA("BasePart", true) else nil
+	local position = (if part then part.Position elseif group:IsA("Model") then group:GetPivot().Position else nil)
+	if not position then return end
+	position += Vector3.new(0, 4, 0)
+	if not feel:Near(position, 120) then return end
+	feel:Celebrate(position, Feel.Owned, 2)
+	local audio = self.app.audio
+	local cue = if audio:Has("FlagRaise") then "FlagRaise" elseif audio:Has("Whoosh") then "Whoosh" else "Pop"
+	feel:Sound(cue, position, 1, {voiceKey = "FlagRaise", cooldown = 0.5})
+end
+
+function BattleController:WatchFlags(world)
+	-- Saved ownership restored right after joining is not a new capture: a short grace.
+	local watchedAt = os.clock()
+	local function watch(item)
+		if not item:IsA("Model") or (item:GetAttribute("CampName") == nil and item.Name ~= "KingArena") then return end
+		table.insert(self.connections, item:GetAttributeChangedSignal("Conquered"):Connect(function()
+			if self.alive and os.clock() - watchedAt > 3 and item:GetAttribute("Conquered") == true then self:FlagRaised(item) end
+		end))
+	end
+	for _, item in world:GetDescendants() do watch(item) end
+	table.insert(self.connections, world.DescendantAdded:Connect(watch))
+end
+
 function BattleController:PhaseFeedback(battle)
 	local old = self.phases[battle.id]
 	self.phases[battle.id] = battle.phase
-	if old == battle.phase or not old then return end
 	local userId = Players.LocalPlayer.UserId
+	local marching = battle.attacker == userId and battle.phase == "Travel" and battle.travelStage == "Marching"
+	if marching and not self.marches[battle.id] then self.marches[battle.id] = true; self:MarchStart(battle)
+	elseif not marching then self.marches[battle.id] = nil end
+	if old == battle.phase or not old then return end
 	if battle.attacker ~= userId and battle.defender ~= userId then return end
+	if old == "Travel" and (battle.phase == "Fight" or battle.phase == "Capture") then
+		self:Ring(Vector3.new(battle.x, 1.2, battle.z), if battle.attacker == userId then C.gold else Theme.Arcade.red, true)
+	end
 	if battle.phase == "Holding" then
 		local won = if battle.defender == userId then battle.outcome == "B" else battle.outcome == nil or battle.outcome == "A"
-		if won and not battle.friendlyTerritory then
-			self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z),battle.captureRadius)
-		end
+		if won and not battle.friendlyTerritory then self:Victory(battle) end
 	elseif battle.phase == "Returning" and battle.outcome then
 		local won = (battle.attacker == userId and battle.outcome == "A") or (battle.defender == userId and battle.outcome == "B")
-		if won and old ~= "Holding" and not battle.friendlyTerritory then self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z),battle.captureRadius)
+		if won and old ~= "Holding" and not battle.friendlyTerritory then self:Victory(battle)
 		elseif won then return
-		elseif battle.outcome ~= "Recall" then self.app.audio:Play("Pop", 0.65) end
+		-- Mission losses and early leaves answer through MissionTracker; camps stay quiet.
+		elseif battle.outcome ~= "Recall" and not isMission(battle) then self.app.audio:Play("Pop", 0.65) end
 	elseif battle.phase == "Fight" and self:IsNearby(Vector3.new(battle.x, 1.2, battle.z)) then self.app.audio:Play("Pop", 0.9) end
 end
 
@@ -273,8 +430,8 @@ function BattleController:KillFeedback(battle)
   gui.Parent=anchor
   -- October 20: a gold coin beside the amount instead of "$".
   local row,text,coin=Theme.CoinAmount(gui,"CoinAmount","+"..Theme.Money(drop.amount),25,C.gold)
-  Theme.Motion:Center(row)
-  Theme.Motion:PopScale(row,0.6)
+  Motion:Center(row)
+  Motion:PopScale(row,0.6)
   if not self.app.reducedMotion then
    TweenService:Create(anchor,TweenInfo.new(0.85,Enum.EasingStyle.Quad),{Position=position+Vector3.new(0,3,0)}):Play()
    -- The root label is a transparent Display holder; its visible text is on these children.
@@ -307,6 +464,7 @@ function BattleController:Receive(snapshots)
 	end
 	snapshots=battles
 	self.snapshots = snapshots
+	local now = os.clock()
 	local seen, battlesSeen = {}, {}
 	for _, battle in snapshots do
 		for _, unit in battle.units do seen[battle.id .. ":" .. unit.id] = true end
@@ -367,11 +525,12 @@ function BattleController:Receive(snapshots)
 				if self:IsNearby(view.position) then
 					local damage=math.max(0,(view.hp or unit.hp)-unit.hp)
 					self.combat:Hit(self:Chest(view),damage,damage>=(unit.maxHp or 40)*0.25)
+					self:HitFeel(battle,unit,view,now)
 				end
 			end
 			if unit.hp <= 0 and (view.hp > 0 or not view.unit) then
 				-- Only a knockout seen happening gets a poof, not one already down on binding.
-				if view.unit and self:IsNearby(view.position) then self.combat:Knockout(self:Chest(view)) end
+				if view.unit and self:IsNearby(view.position) then self.combat:Knockout(self:Chest(view));self:KnockoutFeel(battle,unit,view,now) end
 				self:Defeat(view)
 			elseif unit.hp > 0 and (view.hp <= 0 or (unit.spawnSerial or 0)>(view.spawnSerial or 0)) then
 				self:Respawn(view,unit,os.clock())
@@ -386,7 +545,7 @@ function BattleController:Receive(snapshots)
 		end
 	end
 	for key, view in self.views do if not seen[key] then self:ReleaseView(view);self.views[key] = nil end end
-	for id in self.phases do if not battlesSeen[id] then self.phases[id] = nil;self.rewardSerials[id]=nil end end
+	for id in self.phases do if not battlesSeen[id] then self.phases[id] = nil;self.rewardSerials[id]=nil;self.marches[id]=nil end end
 	for _,reclaim in reclaims do battlesSeen[reclaim.id]=true;self:UpdateCapture(reclaim) end
 	for id in self.captureViews do if not battlesSeen[id] then self:ReleaseCapture(id) end end
 	self:UpdateStatus()
@@ -417,6 +576,11 @@ function BattleController:Start(remote)
 	self.folder = Instance.new("Folder")
 	self.folder.Name, self.folder.Parent = "PetRollBattleVisuals", workspace
 	self.combat = CombatEffects.new(self.app, self.folder)
+	-- Owned flags celebrate when their camp's Conquered attribute turns on (server-owned).
+	task.spawn(function()
+		local world = workspace:WaitForChild("PetRollWorld", 120)
+		if world and self.alive then self:WatchFlags(world) end
+	end)
 	table.insert(self.connections, remote.OnClientEvent:Connect(function(snapshots) self:Receive(snapshots) end))
 	table.insert(self.connections, RunService.RenderStepped:Connect(function()
 		local now = os.clock()
@@ -449,7 +613,7 @@ function BattleController:Destroy()
 	for id in self.captureViews do self:ReleaseCapture(id) end
 	if self.folder then self.folder:Destroy() end
 	if self.card then self.card:Destroy() end
-	self.views, self.modelViews, self.snapshots, self.phases = {}, {}, {}, {}
+	self.views, self.modelViews, self.snapshots, self.phases, self.marches = {}, {}, {}, {}, {}
 end
 
 return BattleController

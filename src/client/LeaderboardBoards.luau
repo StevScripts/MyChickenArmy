@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(script.Parent.UITheme)
+local Motion: any = Theme.Motion -- untyped helpers; the alias keeps strict inference out of presentation calls
 
 local Boards = {}
 Boards.__index = Boards
@@ -157,6 +158,7 @@ function Boards:Row(view, i: number)
 	local name = display(row, "Name", "", 38, px(ROW_HEIGHT * 2 + 8, 0), UDim2.new(1, -(ROW_HEIGHT * 2 + 8) - 168, 1, 0))
 	local value = display(row, "Value", "", 38, UDim2.new(1, -168, 0, 0), UDim2.new(0, 158, 1, 0), view.style.valueColor, Enum.TextXAlignment.Right)
 	local entry = {frame = row, outline = outline, tile = tile, rank = rank, avatar = avatar, name = name, value = value}
+	Motion:Center(row) -- the reveal grows each row from its middle; same place at rest
 	view.rows[i] = entry
 	return entry
 end
@@ -177,7 +179,7 @@ function Boards:Thumbnail(userId: number, avatar: ImageLabel)
 	end)
 end
 
-function Boards:Render(view)
+function Boards:Render(view: any)
 	local data = self.data[view.key] or {}
 	local style = view.style
 	view.title.Text = data.title or ""
@@ -197,6 +199,7 @@ function Boards:Render(view)
 			row.rank.Text, row.tile.BackgroundColor3 = tostring(i), EMPTY_TILE
 			row.name.Text, row.value.Text = "", ""
 			row.outline.Color, row.outline.Thickness = Theme.Arcade.border, 2
+			Motion:StopGlow(row.frame)
 			continue
 		end
 		local userId = tonumber(entry.userId) or 0
@@ -206,8 +209,14 @@ function Boards:Render(view)
 		row.value.Text = formatValue(style, tonumber(entry.value) or 0)
 		local mine = userId == me
 		row.outline.Color, row.outline.Thickness = if mine then style.color else Theme.Arcade.border, if mine then 3 else 2
+		-- October 21 game feel: the player's own row keeps a thin gold pulse while shown.
+		if mine then Motion:Glow(row.frame, Theme.Arcade.gold, 2) else Motion:StopGlow(row.frame) end
 		self:Thumbnail(userId, row.avatar)
 	end
+	-- Rows grow in one after another on every render; the top rank shines once as it lands.
+	Motion:Reveal(view.list, {limit = 10, from = 0.8, window = 0.35, each = function(item, index)
+		if index == 1 and entries[1] then Motion:Shine(item) end
+	end})
 end
 
 function Boards:Destroy()
