@@ -56,6 +56,9 @@ function Editor.Open()
 			browser=require(code.ChickenBrowser).new(app,canvas);app.chickenBrowser=browser;app.panelTitle=browser.title
 			app.selected=app.state.pets[1] and app.state.pets[1].id
 			render=function() browser:Render(true) end
+		elseif page=="Sell" then
+			browser=require(code.SellMenu).new(app,canvas);app.sellMenu=browser
+			render=function() browser:Begin(nil);browser:Render(true) end
 		elseif page=="Shop" then
 			browser=require(code.ShopBrowser).new(app,canvas);app.shopBrowser=browser
 			render=function() browser:Render(true) end
@@ -140,8 +143,8 @@ function Editor.Open()
 		end))
 	end
 	table.insert(connections,layouts:GetAttributeChangedSignal("PreviewMenu"):Connect(function() choose(layouts:GetAttribute("PreviewMenu")) end))
-	choose(layouts:GetAttribute("PreviewMenu") or "MyArmy")
-	game:GetService("Selection"):Set({layouts.MyArmy})
+	choose(layouts:GetAttribute("PreviewMenu") or "MyArmyGrid")
+	game:GetService("Selection"):Set({layouts.MyArmyGrid})
 	return "Menu previews ready. Select a menu, edit Size, or change MenuLayouts.PreviewMenu. Save the place to retain your settings."
 end
 

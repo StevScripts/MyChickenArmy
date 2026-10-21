@@ -45,31 +45,15 @@ function ArmyService.SelectBest(session)
 	return true,"Best chickens selected."
 end
 
--- October 20 Flock: which chickens lay eggs. Equipping turns the Flock into the
--- player's own picks (kept exactly); FlockBest goes back to the automatic best layers.
-function ArmyService.FlockEquip(session,petId,replaceId)
-	local pet=if type(petId)=="string" and #petId<=64 then session.pets[petId] else nil
-	if not pet then return false,"Choose one of your own chickens." end
-	local picks=session:FlockIds()
-	if table.find(picks,petId) then return false,"That chicken is already in your Flock." end
-	if replaceId~=nil then
-		local index=if type(replaceId)=="string" then table.find(picks,replaceId) else nil
-		if not index then return false,"Your Flock changed. Choose again." end
-		picks[index]=petId
-	elseif #picks<session:FlockSlots() then table.insert(picks,petId)
-	else return false,"Your Flock is full. Choose a Flock chicken to swap out." end
-	session.flockSelection=picks;session:Touch()
-	return true,Catalog[pet.species].name.." joined your Flock."
+-- October 21 (owner): the Flock is always the best egg layers, with no picks. A
+-- Flock chicken away with the Army leaves its slot to the next best layer at home.
+-- Older clients still send these; FlockBest clears any picks an old save kept.
+function ArmyService.FlockEquip(_session,_petId,_replaceId)
+	return false,"Your Flock is always your best egg layers."
 end
 
-function ArmyService.FlockUnequip(session,petId)
-	local picks=session:FlockIds()
-	local index=if type(petId)=="string" then table.find(picks,petId) else nil
-	if not index then return false,"That chicken isn't in your Flock." end
-	if #picks<=1 then return false,"Keep at least one chicken laying eggs." end
-	table.remove(picks,index)
-	session.flockSelection=picks;session:Touch()
-	return true,"Moved to storage. It won't lay eggs."
+function ArmyService.FlockUnequip(_session,_petId)
+	return false,"Your Flock is always your best egg layers."
 end
 
 function ArmyService.FlockBest(session)
@@ -138,12 +122,30 @@ function ArmyService.ApplyFormation(session,slot,expectedIds,expectedRevision)
 	return true,"Formation applied."..(if skipped>0 then " "..skipped.." unavailable chickens skipped." else "")
 end
 
-function ArmyService.Favorite(session, petId)
-	local pet = if type(petId)=="string" then session.pets[petId] else nil
-	if not pet then return false, "Select one of your chickens." end
-	pet.favorite = not pet.favorite
+-- One chicken toggles; My Army's lock mode sends `petIds` with `locked` for a batch.
+-- Locked (favorite) chickens can't be sold.
+function ArmyService.Favorite(session, petId, petIds, locked)
+	if petIds==nil then
+		local pet = if type(petId)=="string" then session.pets[petId] else nil
+		if not pet then return false, "Select one of your chickens." end
+		pet.favorite = not pet.favorite
+		session:Touch()
+		return true, if pet.favorite then "Chicken locked." else "Chicken unlocked."
+	end
+	local limit=math.max(Config.LegacyCollectionLimit,session:CollectionLimit())
+	if type(petIds)~="table" or #petIds==0 or #petIds>limit or type(locked)~="boolean" then
+		return false, "Choose chickens to lock."
+	end
+	local seen={}
+	for index,id in petIds do
+		if type(index)~="number" or index%1~=0 or index<1 or index>#petIds or type(id)~="string"
+			or seen[id] or not session.pets[id] then return false, "Your chickens changed. Choose again." end
+		seen[id]=true
+	end
+	for id in seen do session.pets[id].favorite=locked end
 	session:Touch()
-	return true, if pet.favorite then "Chicken protected from selling." else "Chicken unprotected."
+	local count=#petIds
+	return true, (if locked then "Locked " else "Unlocked ")..count..(if count==1 then " chicken." else " chickens.")
 end
 
 function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)

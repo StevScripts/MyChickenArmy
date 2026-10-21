@@ -515,10 +515,10 @@ local function saleEligibility(session,id,context): (boolean,string)
 	if minimum>0 and context.count<=minimum then
 		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
-	if pet.favorite then return false,"Favorite chickens can't be sold." end
+	if pet.favorite then return false,"Locked chickens can't be sold." end
 	if not session:IsPetHome(id) then return false,"Your Army is away with this chicken." end
 	if context.selected[id] then return false,"Remove it from your Army first." end
-	if context.flock[id] then return false,"Remove it from your Flock first." end
+	-- October 21: Flock chickens sell too; the next best layer takes the slot.
 	return true,"Ready to sell."
 end
 
@@ -1282,17 +1282,6 @@ function PlayerSession:LoadData(data)
 			end
 		end
 	end
-	-- S10's manual Flock layers: owned chickens only, in order, no repeats.
-	local flockSelection
-	if type(data.flockSelection)=="table" then
-		flockSelection={}
-		local seen={}
-		for _,id in data.flockSelection do
-			if #flockSelection<50 and type(id)=="string" and pets[id] and not seen[id] then
-				seen[id]=true;table.insert(flockSelection,id)
-			end
-		end
-	end
 	-- S11's hand-vacuum cargo; an unreadable pair is emptied, never refused.
 	local cargo=data.vacuumCargo
 	local cargoCount=if type(cargo)=="table" then clampHigh(cargo.count,0,PlayerSession.CarryLimit,true) else nil
@@ -1310,7 +1299,8 @@ function PlayerSession:LoadData(data)
 	self.rebirthSkips=readCount(data.rebirthSkips,1000)
 	self.passGemGifts,self.rebirthChickenCredits=passGemGifts,chickenCredits
 	self.missionTierLegacy,self.mutationKeep=missionTierLegacy,mutationKeep
-	self.flockSelection,self.eggVacuum=flockSelection,false
+	-- October 21 (owner): the Flock is always automatic; old saved picks are dropped.
+	self.flockSelection,self.eggVacuum=nil,false
 	self.vacuumCargo={count=cargoCount,value=cargoValue}
 	-- S12b: one pull count per machine (count = Gold, diamond, prism); missing means 0.
 	local goldRolls:any=if type(data.goldRolls)=="table" then data.goldRolls else {}
