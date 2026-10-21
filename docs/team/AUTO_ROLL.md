@@ -16,11 +16,14 @@ Owner decisions, October 20 (Stevin):
 - **Unlock:** the Auto Roll Gem Upgrade (`GemUpgradeCatalog.AutoRoll`, effect
   `autoRoll`). Locked requests reply "Unlock Auto Roll in Gem Upgrades."
 - **Panel** (`AutoRollMenu`, a Frame under `PetRollGui`):
-  - Opened from the HUD Auto Roll button (and "Auto Roll settings" in Settings).
+  - Later October 20 owner request: the HUD Auto Roll button itself turns Auto Roll
+    on/off. A gear button just left of it pops this board out beside it (bottom edges
+    level), with no blur; the gear, the X, Esc/B or a press anywhere outside closes it
+    (that press still reaches the world or the HUD toggle). "Auto Roll settings" in
+    Settings opens it too.
   - It is their board in our style: square shell, studded Army-green header with the
     Auto Roll icon (rbxassetid://83070773137079), a dark see-through body, Source
-    Sans Bold.
-  - The header holds the red OFF / green ON pill.
+    Sans Bold. The power pill moved out of the header to the HUD button.
   - "Stop When Appear" is a scrolling list (four rows at a time) of rows with the
     name in its color and a red OFF / green ON pill.
   - A bottom "< Rarity >" switcher with blue arrows pages through:
@@ -38,7 +41,7 @@ Owner decisions, October 20 (Stevin):
   - With the lever ready, it holds while a chicken worth keeping waits on a podium
     (the best one: Rebirth chickens first, then the rarest), else it pulls the lever.
   - The player ends a hold by recruiting the chicken at its podium, pulling the lever,
-    or turning Auto Roll off and back on in the panel. Turning it back on rolls on
+    or turning Auto Roll off and back on with the HUD button. Turning it back on rolls on
     past the chickens already on the podiums.
 - **Hit banner:** "Auto Roll found a Rare chicken!" in big outlined blue across the
   top, with confetti, for 3 s, once per find.
@@ -47,7 +50,11 @@ Owner decisions, October 20 (Stevin):
   - Reduced motion keeps it still and skips the confetti.
   - The HUD button turns gold (PAUSED) while it holds.
 - **HUD button** (`HudController`): "Auto Roll" over ON / OFF / PAUSED (green / red /
-  gold), on the right edge under Rebirth, clear of the phone jump button.
+  gold), on the right edge under Rebirth, clear of the phone jump button. A press flips
+  ON/OFF at once (PAUSED → OFF); the gear (`AutoRoll.Settings`) opens the board.
+  The gear is hidden until the mouse is over the button or the gear (owner request);
+  it also shows while either is gamepad-selected, while the board is open, and for 4 s
+  after a touch press, since phones have no hover.
 - **Saved `autoRoll`** (`AutoRollRules.Read`, lenient):
   - Shape: `{enabled, rarities={[rarity]=true}, mutations={[id or "Normal"]=true},
     newChicken, newMutation}`.

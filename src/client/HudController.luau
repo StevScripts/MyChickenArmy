@@ -12,6 +12,7 @@ local FreeGiftController=require(script.Parent.FreeGiftController)
 local ShopCatalog=require(game.ReplicatedStorage.PetRoll.Shared.ShopCatalog)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
+local GEAR_PEEK_SECONDS=4
 local ARMY_HOME_SCALE=0.82
 local Hud={}
 Hud.__index=Hud
@@ -130,12 +131,13 @@ function Hud.new(app,shell)
 	-- October 16 owner request: Auto Roll is a plain text button on the right, like Mini
 	-- War's Auto Sell / Auto Collect; green ON, red OFF, gold while it holds a chicken.
 	-- October 20 (S12, S12b): shown once the Auto Roll Gem Upgrade is owned, on the right
-	-- edge under Rebirth (clear of the phone jump button); pressing it opens the panel.
+	-- edge under Rebirth (clear of the phone jump button). Later October 20 owner request:
+	-- pressing it turns Auto Roll on/off; the gear beside it pops out the stop list.
 	local autoRoll=Theme.Button(shell,"AutoRoll","",function()
 		local auto=app.state and app.state.autoRoll
 		if not auto or not auto.unlocked then return end
 		app.audio:Play("Click")
-		if app.autoRollMenu then app.autoRollMenu:Open() end
+		if app.autoRollMenu then app.autoRollMenu:TogglePower() end
 	end,A.red)
 	autoRoll.AnchorPoint,autoRoll.Position,autoRoll.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.735),UDim2.fromScale(0.15,0.075)
 	autoRoll.TextColor3,autoRoll.Visible=Color3.new(1,1,1),false
@@ -146,8 +148,43 @@ function Hud.new(app,shell)
 	local stateLabel=Theme.Label(autoRoll.Visual,"State","OFF",20)
 	stateLabel.Position,stateLabel.Size,stateLabel.ZIndex=UDim2.fromScale(0.04,0.56),UDim2.fromScale(0.92,0.36),6
 	stateLabel.TextXAlignment=Enum.TextXAlignment.Center
+	local gear=Theme.Button(autoRoll,"Settings","",function()
+		local auto=app.state and app.state.autoRoll
+		if not auto or not auto.unlocked then return end
+		app.audio:Play("Click")
+		if app.autoRollMenu then app.autoRollMenu:Toggle() end
+	end,Theme.ActionColors.navigation)
+	gear.AnchorPoint,gear.Position,gear.Size=Vector2.new(1,0.5),UDim2.fromScale(-0.04,0.5),UDim2.fromScale(1,1)
+	Theme.Aspect(gear,1)
+	Theme.Image(gear.Visual,"Icon","rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab@2x.png",
+		UDim2.fromScale(0.64,0.64),UDim2.fromScale(0.18,0.15)).ZIndex=6
+	-- Later October 20 owner request: the gear shows only while the mouse is over the
+	-- button or the gear, while either is selected (gamepad), while the board is open,
+	-- and for a few seconds after a touch press (phones have no hover).
+	gear.Visible=false
+	local hovered,selected={},{}
+	for _,item in {autoRoll,gear} do
+		item.InputBegan:Connect(function(input)
+			if input.UserInputType==Enum.UserInputType.MouseMovement then
+				hovered[item]=true;self:UpdateAutoRollGear()
+			elseif input.UserInputType==Enum.UserInputType.Touch then
+				self.autoRollPeekUntil=os.clock()+GEAR_PEEK_SECONDS
+				self:UpdateAutoRollGear()
+				task.delay(GEAR_PEEK_SECONDS+0.05,function() self:UpdateAutoRollGear() end)
+			end
+		end)
+		item.InputEnded:Connect(function(input)
+			if input.UserInputType~=Enum.UserInputType.MouseMovement then return end
+			hovered[item]=nil
+			-- Grace for the small gap between the button and the gear.
+			task.delay(0.2,function() self:UpdateAutoRollGear() end)
+		end)
+		item.SelectionGained:Connect(function() selected[item]=true;self:UpdateAutoRollGear() end)
+		item.SelectionLost:Connect(function() selected[item]=nil;self:UpdateAutoRollGear() end)
+	end
+	self.autoRollHovered,self.autoRollSelected=hovered,selected
 	Theme.ScaleText(autoRoll)
-	self.autoRoll,self.autoRollState=autoRoll,stateLabel
+	self.autoRoll,self.autoRollState,self.autoRollSettings=autoRoll,stateLabel,gear
 	-- Rebirth: its own icon at the middle of the right edge (October 14 owner
 	-- request; the left column keeps Shop, Index and Upgrades).
 	local rebirthCorner=Theme.Frame(shell,"RebirthCorner",UDim2.fromScale(0.082,0.16))
@@ -484,6 +521,17 @@ function Hud:LayoutShortcuts()
 	end
 end
 
+function Hud:UpdateAutoRollGear()
+	local gear=self.autoRollSettings
+	if not gear then return end
+	local menu=self.app.autoRollMenu
+	local shown=next(self.autoRollHovered)~=nil or next(self.autoRollSelected)~=nil
+		or os.clock()<(self.autoRollPeekUntil or 0) or (menu~=nil and menu.gui~=nil and not menu.closing)
+	if shown==gear.Visible then return end
+	gear.Visible=shown
+	if shown then Theme.Motion:PopScale(gear.Visual,0.7,0.15) end
+end
+
 function Hud:UpdateAutoRoll(state)
 	local auto=state.autoRoll
 	local unlocked=auto~=nil and auto.unlocked==true
@@ -493,9 +541,13 @@ function Hud:UpdateAutoRoll(state)
 	self.autoRollUnlocked=unlocked
 	self.autoRoll.Visible=unlocked
 	if not unlocked then return end
-	local color=if not auto.enabled then A.red elseif auto.holding then A.gold else A.green
+	-- A press shows its new state at once, before the snapshot echoes it.
+	local menu=self.app.autoRollMenu
+	local enabled=if menu then menu:PowerOn() else auto.enabled==true
+	local holding=enabled and auto.enabled==true and auto.holding==true
+	local color=if not enabled then A.red elseif holding then A.gold else A.green
 	if self.autoRoll.BackgroundColor3~=color then self.autoRoll.BackgroundColor3=color end
-	self.autoRollState.Text=if not auto.enabled then "OFF" elseif auto.holding then "PAUSED" else "ON"
+	self.autoRollState.Text=if not enabled then "OFF" elseif holding then "PAUSED" else "ON"
 end
 
 -- Shown until the free chicken is claimed; breathes to invite a tap.
