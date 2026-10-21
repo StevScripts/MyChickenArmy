@@ -26,7 +26,16 @@ local Schema = {}
 -- 11 (later October 21): complete rework. Schema.TutorialFunnel (24 steps for the
 -- seven-lesson tutorial, ledger tf.*) replaces the 9/10 Tutorial funnel and takes over
 -- Roblox's Onboarding dashboard.
-Schema.Version = 11
+-- 12 (later October 21, Stevin: "get rid of any old [funnels] and replace them with
+-- the new funnels"): the version 1-8 Schema.Onboarding steps (Grow, Expand, Select,
+-- Deploy, GuideComplete: lessons the seven-lesson tutorial no longer has) stop
+-- recording; Schema.TutorialFunnel is the only onboarding funnel and also sets the
+-- session stage ("Tut:<step>" / "Post"). The feature funnels of removed systems
+-- (Research, Fuse, the inspector's ChickenLevel, timed-build Plot) are gone, the
+-- Research Roblox dashboard becomes Upgrades, and the overhaul systems get their own
+-- funnels (Flock, Vacuum, Feed, GoldRolls, Mutations, Gems, PlaytimeRewards). Old
+-- days keep their onb.* and fun.<removed>.* keys in the ledger; nothing reads them.
+Schema.Version = 12
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -56,43 +65,11 @@ function Schema.JourneyKey(day: string, shard: number): string return "j/" .. da
 function Schema.RollupKey(day: string): string return "r/" .. day end
 function Schema.PlayerKey(userId: number): string return "p/" .. userId end
 
--- Onboarding funnel. Index = Roblox LogOnboardingFunnelStepEvent step and the NN in
--- ledger names (onb.reach.NN). Only players first seen with a fresh save are
--- "tracked" into it. Steps can be reached out of order; Roblox auto-completes
--- skipped earlier steps, the ledger records what actually happened.
-Schema.Onboarding = {
-	{id = "Joined",        about = "PlayerAdded on a server; plot assigned."},
-	{id = "ProfileLoaded", about = "Game save loaded (or Studio session ready)."},
-	{id = "IntroStarted",  about = "Client began the first-visit film (optional: no film for reduced motion).", optional = true},
-	{id = "IntroEnded",    about = "Film finished or skipped (or client reported no film)."},
-	{id = "ControlReady",  about = "Loading veil gone; player has control (TutorialSignal Ready)."},
-	{id = "FirstEgg",      about = "First egg picked up (tutorial.collectedEggCount > 0)."},
-	{id = "Collect",       about = "Guide egg goal reached (TutorialGuide.EggGoal eggs)."},
-	{id = "Sell",          about = "First egg deposit at the sell pad."},
-	{id = "Roll",          about = "First lever pull."},
-	{id = "Recruit",       about = "First recruit bought from a roll offer."},
-	{id = "Grow",          about = "Owns 4+ chickens."},
-	{id = "Expand",        about = "Army size (capacity) 4+."},
-	{id = "Select",        about = "4+ chickens selected for the army."},
-	{id = "Deploy",        about = "Army sent to a camp (guideDeployed)."},
-	{id = "Win",           about = "First camp captured (Cluck Camp in practice)."},
-	{id = "GuideComplete", about = "Commander guide marked complete."},
-	{id = "Camp2",         about = "Fort Roost first win."},
-	{id = "Camp3",         about = "Ironbeak HQ first win."},
-	{id = "King",          about = "Chicken King first clear."},
-	{id = "Rebirth1",      about = "First re-enlist (Veteran I)."},
-}
--- Roblox auto-completes every earlier step when a later one is logged, so
--- Analytics sends steps strictly in this order. A missing step is passed over
--- only when it is optional and a later step happened, or when this many later
--- steps happened (onb.robloxGapFill.NN counts each pass-over).
+-- Roblox auto-completes every earlier onboarding step when a later one is logged, so
+-- the Tutorial funnel (below) sends steps strictly in order. A missing hard step is
+-- passed over once this many later steps happened (tf.robloxGapFill.NN counts each).
 Schema.RobloxGapRelease = 3
-Schema.OnboardingIndex = {} :: {[string]: number}
-for index, step in Schema.Onboarding do Schema.OnboardingIndex[step.id] = index end
 function Schema.StepCode(index: number): string return string.format("%02d", index) end
-function Schema.StepName(index: number): string
-	return Schema.StepCode(index) .. " " .. Schema.Onboarding[index].id
-end
 
 -- Recurring funnels (Roblox LogFunnelStepEvent). Onboarding counts as one of
 -- Roblox's 10 funnel dashboards, so at most 9 here.
@@ -102,9 +79,10 @@ Schema.Funnels = {
 	Camp = {"Deployed", "Won"},
 	-- Version 5: five more Roblox dashboards (9 of 10 with onboarding). Sent by
 	-- AnalyticsFunnels from the matching FeatureFunnels steps (RobloxSteps below).
-	Research = {"TreeOpened", "Started", "Completed"},
-	-- Version 9: Fuse left the Roblox dashboards (Fuse was removed October 20). The
-	-- ledger's Fuse feature funnel stays.
+	-- Version 12: Upgrades replaces Research (research merged into the instant tree on
+	-- October 20, so its Started/Completed steps never fired again).
+	Upgrades = {"Opened", "Inspected", "Bought"},
+	-- Version 9: Fuse left the Roblox dashboards (Fuse was removed October 20).
 	Rebirth = {"Eligible", "Opened", "Rebirthed"},
 	Mission = {"Spawned", "Started", "Won"},
 	Daily = {"Available", "Opened", "Claimed"},
@@ -130,8 +108,8 @@ function Schema.PlaytimeCode(index: number): string return string.format("%03d",
 -- player through every action of the seven-lesson tutorial (eggs, selling, rolling,
 -- the Egg Vacuum), then the first camp wins and the first Rebirth. It replaces the version 9/10 "Tutorial" recurring funnel and owns
 -- Roblox's single Onboarding dashboard (LogOnboardingFunnelStepEvent) from now on;
--- the version 1-8 Schema.Onboarding steps above keep filling the ledger (onb.*) so
--- older days stay comparable, but no longer go to Roblox. AnalyticsTutorial owns it.
+-- since version 12 it is the only onboarding funnel (the version 1-8 onb.* steps are
+-- retired). AnalyticsTutorial owns it.
 --
 -- Who is counted: players whose save is fresh when this version first sees them
 -- (Analytics.FreshSave) and who keep a profile.tf record; everyone else is ignored.
@@ -154,7 +132,6 @@ function Schema.PlaytimeCode(index: number): string return string.format("%03d",
 --   tf.skip.NN             a soft step passed over because a later step happened
 --   tf.exit.NN             a session ended unfinished with NN its furthest step
 --   tf.exitLesson.<id>     the guide lesson on screen when that session ended
---   tf.skipGuide.NN        the player hid the guide (Settings) with NN furthest
 --   x[firstDay] tf.NN      cohort: players of that first day who ever reached NN
 -- Roblox: LogOnboardingFunnelStepEvent(player, NN, "NN <label>", {version, platform}),
 -- strictly in order (Roblox fills earlier steps itself): soft steps are passed over
@@ -396,41 +373,16 @@ Schema.FeatureFunnels = {
 		{id = "Unlocked8", trigger = "state:rollSlotCount>=8"},
 	}},
 	{id = "AutoRoll", steps = {
-		{id = "Available", trigger = "state:research completed AutoRoll"},
+		{id = "Available", trigger = "state:effects.autoRoll (the Auto Roll Gem Upgrade)"},
 		{id = "Enabled", trigger = "action:SetAutoRoll (on)"},
 		{id = "Stopped", trigger = "server:autoroll.stop"},
 	}},
 	{id = "Upgrades", steps = {
 		{id = "MenuOpened", trigger = "client:menu.open=Upgrades"},
 		{id = "Inspected", trigger = "client:inspect=Upgrades/*"},
-		{id = "FirstBuy", trigger = "action:CashUpgrade|BoardUpgrade|BuyUpgrade|Luck|Income|Expand"},
-		{id = "Buys10", trigger = "10 cash upgrades ever"},
-		{id = "Buys50", trigger = "50 cash upgrades ever"},
-	}},
-	{id = "Research", steps = {
-		{id = "TreeOpened", trigger = "client:menu.open=Upgrades"},
-		{id = "NodeInspected", trigger = "client:inspect=Upgrades/node"},
-		{id = "Started", trigger = "action:StartResearch"},
-		{id = "Completed", trigger = "state:research.completed count rose"},
-		{id = "Completed5", trigger = "state:5 nodes completed"},
-		{id = "Completed15", trigger = "state:15 nodes completed"},
-		{id = "SkipPrompted", trigger = "action:PreparePurchase ResearchSkip*"},
-		{id = "SkipBought", trigger = "robux:ResearchSkip"},
-	}},
-	{id = "Fuse", steps = {
-		{id = "Unlocked", trigger = "state:mergeUnlocked"},
-		{id = "Available", trigger = "state:mergeOptions not empty"},
-		{id = "Opened", trigger = "action:OpenMerge or client:menu.open=Fuse"},
-		{id = "Fused", trigger = "action:Merge|MergeAll"},
-		{id = "Fused5", trigger = "5 fusions ever"},
-		{id = "Giant", trigger = "server:giant.fuse NewGiant/Giant"},
-		{id = "Colossal", trigger = "server:giant.fuse NewColossal/Colossal"},
-	}},
-	{id = "ChickenLevel", steps = {
-		{id = "ArmyOpened", trigger = "client:menu.open=Army"},
-		{id = "ChickenInspected", trigger = "client:inspect=Army/chicken"},
-		{id = "Upgraded", trigger = "action:UpgradeChicken"},
-		{id = "Upgraded10", trigger = "10 chicken levels ever"},
+		{id = "FirstBuy", trigger = "action:BuyUpgrade (an Upgrades tree node; old clients' CashUpgrade|BoardUpgrade|Luck|Income|Expand too)"},
+		{id = "Buys10", trigger = "10 Upgrades bought ever"},
+		{id = "Buys50", trigger = "50 Upgrades bought ever"},
 	}},
 	{id = "Army", steps = {
 		{id = "ArmyOpened", trigger = "client:menu.open=Army"},
@@ -501,13 +453,6 @@ Schema.FeatureFunnels = {
 		{id = "Shown", trigger = "server:offline.shown or client:menu.open=Offline"},
 		{id = "Claimed", trigger = "server:offline.claimed"},
 	}},
-	{id = "Plot", steps = {
-		{id = "Expanded", trigger = "action:BoardUpgrade PlotSize|BuyUpgrade Flock*"},
-		{id = "BuildStarted", trigger = "server:plot.buildStart"},
-		{id = "BuildDone", trigger = "server:plot.buildDone"},
-		{id = "Max", trigger = "retired October 20 (storage cap 1,000; see FlockMax)"},
-		{id = "FlockMax", trigger = "state:effects.flockSize at the top Flock Size tier (version 7)"},
-	}},
 	{id = "Hill", steps = {
 		{id = "Entered", trigger = "server:hill.enter"},
 		{id = "Held", trigger = "server:hill.hold"},
@@ -520,6 +465,48 @@ Schema.FeatureFunnels = {
 	{id = "Leaderboard", steps = {
 		{id = "Viewed", trigger = "client:leaderboard.view"},
 	}},
+	-- Version 12: the October 20 overhaul systems (they replace Research, Fuse,
+	-- ChickenLevel and Plot above).
+	{id = "Flock", steps = {
+		{id = "Tier1", trigger = "state:effects.flockSize >= Flock Size I (4 chickens laying)"},
+		{id = "Tier4", trigger = "state:effects.flockSize >= Flock Size IV"},
+		{id = "Tier6", trigger = "state:effects.flockSize >= Flock Size VI"},
+		{id = "Max", trigger = "state:effects.flockSize at the top Flock Size tier"},
+	}},
+	{id = "Vacuum", steps = {
+		{id = "Owned", trigger = "state:tools.eggVacuum (claimed in the tutorial's lesson 5)"},
+		{id = "CapacityUp", trigger = "state:effects.vacuumCapacity >= 1"},
+		{id = "RangeUp", trigger = "state:effects.vacuumRange >= 1"},
+	}},
+	{id = "Feed", steps = {
+		{id = "Owned", trigger = "state:tools.chickenFeed (bought in Upgrades > Tools)"},
+		{id = "Fed", trigger = "action:FeedChicken (a chicken level bought with Feed)"},
+		{id = "Fed10", trigger = "10 chicken levels ever"},
+		{id = "MaxLevelUp", trigger = "state:effects.feedMaxLevel >= 1 (Feed Max Level I)"},
+	}},
+	{id = "GoldRolls", steps = {
+		{id = "GoldMachine", trigger = "state:effects.goldMachine >= 1"},
+		{id = "GoldRoll", trigger = "server:goldRoll.pull.Gold"},
+		{id = "DiamondMachine", trigger = "state:effects.goldMachine >= 2"},
+		{id = "DiamondRoll", trigger = "server:goldRoll.pull.Diamond"},
+		{id = "PrismMachine", trigger = "state:effects.goldMachine >= 3"},
+		{id = "PrismRoll", trigger = "server:goldRoll.pull.Prism"},
+	}},
+	{id = "Mutations", steps = {
+		{id = "Unlocked", trigger = "state:effects.mutations >= 1 (Mutations bought in the tree)"},
+		{id = "Offered", trigger = "server:mutation.offer.<id>"},
+		{id = "Bought", trigger = "server:mutation.buy.<id>"},
+	}},
+	{id = "Gems", steps = {
+		{id = "Earned", trigger = "server:gems.earned (a Rebirth paid Gems)"},
+		{id = "Bought", trigger = "server:gemUpgrade.buy.<id>"},
+		{id = "Bought5", trigger = "5 Gem Upgrade levels ever"},
+	}},
+	{id = "PlaytimeRewards", steps = {
+		{id = "Claimed", trigger = "server:playtimeReward.claim.<n>"},
+		{id = "Tile6", trigger = "server:playtimeReward.claim.<6+>"},
+		{id = "Tile12", trigger = "server:playtimeReward.claim.12"},
+	}},
 }
 Schema.FeatureFunnelIndex = {} :: {[string]: {[string]: number}}
 for _, funnel in Schema.FeatureFunnels do
@@ -530,7 +517,7 @@ end
 -- Feature funnel step -> Roblox funnel step (Schema.Funnels). One Roblox funnel
 -- session per player per funnel per UTC day.
 Schema.RobloxSteps = {
-	Research = {TreeOpened = 1, Started = 2, Completed = 3},
+	Upgrades = {MenuOpened = 1, Inspected = 2, FirstBuy = 3},
 	Rebirth = {Eligible = 1, Opened = 2, Rebirthed = 3},
 	Mission = {Spawned = 1, Started = 2, Won = 3},
 	Daily = {Available = 1, Opened = 2, Claimed = 3},
@@ -619,13 +606,15 @@ Schema.CustomEvents = {
 	"FTUEActionRejected", "FTUEEntryFailure", "FTUEFollowupWindow", "FTUEGuidanceEnded", "FTUEIndependentAction",
 	"FTUEInteraction", "FTUEHintShown", "FTUEReadySeconds", "FTUEStepStalled", "FTUESurvival",
 	"ConquestFirstWin", "KingFirstClear", "ConquestFailed",
-	"SessionEnded", "OnboardingExit", "FeatureFirstUse", "RobuxPurchase", "ScriptError", "ClientPerf", "RollSummary",
+	"SessionEnded", "FeatureFirstUse", "RobuxPurchase", "ScriptError", "ClientPerf", "RollSummary",
 	-- Version 5 (AnalyticsPlayer / AnalyticsFunnels).
 	"PlayerSegment",  -- value = session minutes; fields device tier, payer state, platform
 	"RobuxSpend",     -- value = actual Robux; fields kind, key, device tier
 	"MenuDwell",      -- value = seconds; fields menu, platform, stage
 	"FunnelDrop",     -- value = furthest step index; fields funnel, step id, platform
 	"DeviceProfile",  -- value = memory MB at first report; fields platform, tier, screen class
+	-- Version 12 (replaces OnboardingExit, the retired onboarding funnel's exit).
+	"TutorialExit",   -- value = seconds since the last Tutorial funnel step; fields "NN <id>", lesson, S1/S2/S3+
 }
 
 -- Histogram buckets. A value lands in the first bucket whose edge >= value

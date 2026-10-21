@@ -19,7 +19,7 @@ request.
   graphics quality, input types and sensors. `AnalyticsPlayer.DeviceTier` turns them into
   Low / Mid / High. The Roblox Creator Dashboard already splits its own charts by
   platform, OS and country.
-- **Limits.** Roblox: 10 funnels (we use 10: Onboarding, which carries the schema 11 Tutorial funnel, plus 9 recurring; see TUTORIAL_FUNNEL.md), 100 custom events (35), 3 custom fields,
+- **Limits.** Roblox: 10 funnels (we use 9: Onboarding, which carries the Tutorial funnel, plus 8 recurring; schema 12 replaced Research with Upgrades; see TUTORIAL_FUNNEL.md), 100 custom events (35), 3 custom fields,
   8,000 field combinations, 120 + 20×CCU requests/min (budgeted per server). Ledger: top
   tables cap at 150 keys; detail strings are validated and length-capped; per-player
   profile stays small (session log keeps the last 10).
@@ -29,7 +29,7 @@ request.
 
 | Question | Where |
 |---|---|
-| Where do new players quit? | Onboarding funnel + exits (existing), plus `lastExit` per player |
+| Where do new players quit? | Tutorial funnel + exits (`tf.exit`, `TutorialExit`; schema 12), plus `lastExit` per player |
 | Which features do players find, use and abandon? | Feature funnels (section 3) |
 | Which menus do players open, how long, which buttons? | Client UI events (section 4) |
 | Who pays, how much, on what device, from where? | Robux + segments (sections 5, 6) |
@@ -54,8 +54,10 @@ animating them. The UI observer watches the PlayerGui tree instead (section 4).
 ## 3. Feature funnels (ledger, all players)
 
 `Schema.FeatureFunnels` lists 22 funnels with their steps and triggers: Roll, RollSlots,
-AutoRoll, Upgrades, Research, Fuse, ChickenLevel, Army, Route, Sell, Index, Shop, Crate,
-Pass, Rebirth, Mission, Daily, Offline, Plot, Hill, Settings, Leaderboard. For every step:
+AutoRoll, Upgrades, Army, Route, Sell, Index, Shop, Crate, Pass, Rebirth, Mission, Daily,
+Offline, Hill, Settings, Leaderboard, and since schema 12 Flock, Vacuum, Feed, GoldRolls,
+Mutations, Gems, PlaytimeRewards (Research, Fuse, ChickenLevel and Plot were removed; see
+AGENT_GUIDE.md section 13). For every step:
 
 - `fun.<F>.s.<NN>`: sessions that reached step NN (once per session).
 - `fun.<F>.p.<NN>`: players who reached it for the first time ever (profile `fun[F][NN]`).
@@ -64,7 +66,7 @@ Pass, Rebirth, Mission, Daily, Offline, Plot, Hill, Settings, Leaderboard. For e
 - `fun.<F>.last.<NN>`: at session end, the furthest step of each funnel touched that
   session (where the funnel stalls).
 - Cohort view: `x[firstDay]["fun.<F>.<NN>"]` for tracked players.
-- Roblox dashboards for Research, Fuse, Rebirth, Mission, Daily (`Schema.RobloxSteps`).
+- Roblox dashboards for Upgrades (schema 12, was Research), Rebirth, Mission, Daily (`Schema.RobloxSteps`; Fuse left in schema 9).
 - `FunnelDrop` custom event at session end for funnels that started but did not finish
   (sampled to stay in budget).
 
@@ -113,7 +115,7 @@ top `ui.leaderboard.view`, `ui.camera.zoom`, `ui.chat.sent`, `ui.emote`,
   The old `robux.estimate` stays for continuity.
 - Profile: `robuxActual`, `robuxByKey[key]`, `purchases`, `firstPurchase`,
   `lastPurchase`, `firstPurchaseDevice`.
-- Funnels Shop, Crate, Pass, Research (skips) and prompt results (section 4).
+- Funnels Shop, Crate, Pass and prompt results (section 4).
 - `RobuxSpend` custom event with the real amount.
 
 ## 6. Player profile and segments (`p/<userId>`, worker B)

@@ -12,7 +12,6 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
 local ShopCatalog = require(Shared.ShopCatalog)
-local Guide = require(Shared.TutorialGuide)
 local Schema = require(script.Parent.AnalyticsSchema)
 local Ledger = require(script.Parent.AnalyticsLedger)
 
@@ -27,7 +26,8 @@ local function optional(name: string): any
 end
 local Funnels = optional("AnalyticsFunnels")
 local PlayerInfo = optional("AnalyticsPlayer")
--- Version 11: the Tutorial funnel; it owns Roblox's Onboarding dashboard.
+-- Version 11: the Tutorial funnel; it owns Roblox's Onboarding dashboard. Version 12:
+-- it is the only onboarding funnel and names the session stage.
 local TutorialFunnel = optional("AnalyticsTutorial")
 
 local Analytics = {}
@@ -42,7 +42,7 @@ local QUEUE_CAP = 400
 local REPORT_MIN_SECONDS = 20
 local CLIENT_PERF_SECONDS = 300
 local OBSERVE_SECONDS = 0.5
-local JOURNEY_SAMPLE = 0.05 -- share of post-onboarding sessions kept as journeys
+local JOURNEY_SAMPLE = 0.05 -- share of post-tutorial sessions kept as journeys
 
 local function fields(a: string?, b: string?, c: string?)
 	local result = {}
@@ -232,18 +232,21 @@ function Analytics:_Play(st): number
 	return base + (self.clock() - st.joinedAt)
 end
 
+-- "Tut:<furthest Tutorial funnel step>", "Post" or "Untracked" (AnalyticsTutorial).
 function Analytics:_Stage(st): string
-	if not st.tracked then return "Untracked" end
-	local done = st.profile and st.profile.onb and st.profile.onb[Schema.StepCode(Schema.OnboardingIndex.GuideComplete)]
-	if done or st.reachedSession[Schema.OnboardingIndex.GuideComplete] then return "Post" end
-	return "Onb:" .. Schema.Onboarding[math.max(1, st.maxStep)].id
+	local part = self.tutorialFunnel
+	if part then
+		local ok, stage = pcall(part.Stage, part, st)
+		if ok and type(stage) == "string" then return stage end
+	end
+	return if st.tracked then "Tut:Joined" else "Untracked"
 end
 
 function Analytics:Join(player: Player, session)
 	local now = self.clock()
 	local st = {player = player, session = session, userId = session.userId, anon = anon(session.userId),
-		joinedAt = now, platform = "Unknown", ready = false, queue = {}, reachedSession = {},
-		maxStep = 0, trail = {}, journeySteps = {}, rejects = {}, econ = {}, sessionEarned = 0,
+		joinedAt = now, platform = "Unknown", ready = false,
+		trail = {}, rejects = {}, econ = {}, sessionEarned = 0,
 		rolls = 0, buys = 0, rollsSinceBuy = 0, rollFunnels = 0, shopFunnel = {}, errors = 0,
 		pingSum = 0, pingN = 0, fpsSum = 0, fpsN = 0, nextClientPerf = 0, lastReport = -math.huge,
 		observedAt = -math.huge, sessionIndex = 0, playNext = 1,
@@ -254,7 +257,6 @@ function Analytics:Join(player: Player, session)
 	self:_Part(self.funnels, "Join", st)
 	self:_Part(self.tutorialFunnel, "Join", st)
 	self:_Part(self.playerInfo, "Join", st, player, session)
-	self:_Reach(st, Schema.OnboardingIndex.Joined)
 end
 
 function Analytics:LoadFailed(session, reason: string?)
@@ -271,7 +273,6 @@ function Analytics:Loaded(session)
 	self.ledger:Hist("load.serverSeconds", "seconds", st.loadedAt - st.joinedAt)
 	local fresh = Analytics.FreshSave(session)
 	st.freshSave = fresh
-	self:_Reach(st, Schema.OnboardingIndex.ProfileLoaded)
 	task.spawn(function()
 		local ok, profile = self.ledger:LoadProfile(st.userId)
 		if self.players[st.userId] ~= st then return end
@@ -291,7 +292,7 @@ function Analytics:_Resolve(st, ok: boolean, profile: any, fresh: boolean)
 		st.isNew = true
 		st.profile = {schema = Schema.Version, first = wall, firstVersion = Config.Version,
 			firstDay = if fresh then today else nil, tracked = fresh, preexisting = not fresh,
-			lastDay = today, days = 1, sessions = 0, play = 0, onb = {}, onbMax = 0, features = {}, ret = {},
+			lastDay = today, days = 1, sessions = 0, play = 0, features = {}, ret = {},
 			purchases = 0, robux = 0}
 		st.tracked = fresh
 		self.ledger:Count("players.unique")
@@ -299,7 +300,7 @@ function Analytics:_Resolve(st, ok: boolean, profile: any, fresh: boolean)
 		if fresh then self.ledger:Cohort(today, "cohort.size") end
 	else
 		st.profile = profile
-		profile.onb, profile.features, profile.ret = profile.onb or {}, profile.features or {}, profile.ret or {}
+		profile.features, profile.ret = profile.features or {}, profile.ret or {}
 		st.tracked = profile.tracked == true
 		if profile.lastDay ~= today then
 			profile.lastDay = today
@@ -328,79 +329,10 @@ function Analytics:_Resolve(st, ok: boolean, profile: any, fresh: boolean)
 	self.ledger:Count("players.join")
 	self.ledger:Count(if st.isNew then "players.join.new" else "players.join.returning")
 	if st.tracked then self.ledger:Count("players.join.tracked") end
-	st.robloxNext = (if st.profile then st.profile.rbx or 0 else 0) + 1
 	st.ready = true
-	for _, index in st.queue do self:_Record(st, index) end
-	st.queue = {}
-	self:_SendOnboarding(st)
 	self:_Part(self.funnels, "Profile", st)
 	self:_Part(self.tutorialFunnel, "Profile", st)
 	self:_Part(self.playerInfo, "Profile", st)
-end
-
--- Onboarding -----------------------------------------------------------------
-
-function Analytics:_Reach(st, index: number)
-	if st.reachedSession[index] then return end
-	st.reachedSession[index] = true
-	st.maxStep = math.max(st.maxStep, index)
-	local code = Schema.StepCode(index)
-	st.journeySteps[code] = math.floor(self.clock() - st.joinedAt)
-	self:_Trail(st, "onb:" .. Schema.Onboarding[index].id)
-	if st.ready then self:_Record(st, index) else table.insert(st.queue, index) end
-end
-
-function Analytics:_Reached(st, index: number): boolean
-	if st.reachedSession[index] then return true end
-	local profile = st.profile
-	return profile ~= nil and profile.onb[Schema.StepCode(index)] ~= nil
-end
-
--- Roblox onboarding steps, strictly in order (see Schema.RobloxGapRelease).
-function Analytics:_SendOnboarding(st)
-	-- Version 11: Roblox's Onboarding dashboard belongs to the Tutorial funnel
-	-- (AnalyticsTutorial); these older steps now fill the ledger only.
-	if Schema.TutorialFunnel then return end
-	if not st.tracked or not st.robloxNext then return end
-	local total = #Schema.Onboarding
-	while st.robloxNext <= total do
-		local index = st.robloxNext
-		if not self:_Reached(st, index) then
-			local later = 0
-			for j = index + 1, total do if self:_Reached(st, j) then later += 1 end end
-			local needed = if Schema.Onboarding[index].optional then 1 else Schema.RobloxGapRelease
-			if later < needed then return end
-			self.ledger:Count("onb.robloxGapFill." .. Schema.StepCode(index))
-			st.robloxNext += 1
-			continue
-		end
-		local player, name = st.player, Schema.StepName(index)
-		self:_Queue(true, "onboarding:" .. name, function()
-			AnalyticsService:LogOnboardingFunnelStepEvent(player, index, name, fields(Config.Version))
-		end)
-		st.robloxNext += 1
-		if st.profile then st.profile.rbx = math.max(st.profile.rbx or 0, index) end
-	end
-end
-
-function Analytics:_Record(st, index: number)
-	if not st.tracked then return end
-	local code = Schema.StepCode(index)
-	local profile = st.profile
-	if profile and profile.onb[code] then return end -- reached in an earlier session
-	if index > 1 and not self:_Reached(st, index - 1) and not Schema.Onboarding[index - 1].optional then
-		self.ledger:Count("onb.outOfOrder." .. code)
-	end
-	local play = self:_Play(st)
-	if profile then
-		profile.onb[code] = math.floor(play)
-		profile.onbMax = math.max(profile.onbMax or 0, index)
-		if profile.firstDay then self.ledger:Cohort(profile.firstDay, "onb." .. code) end
-	end
-	self.ledger:Count("onb.reach." .. code)
-	self.ledger:Hist("onb.t." .. code, "seconds", play)
-	self.ledger:Hist("onb.session." .. code, "count", math.max(1, st.sessionIndex))
-	if st.ready then self:_SendOnboarding(st) end
 end
 
 function Analytics:Observe(session, state)
@@ -420,45 +352,24 @@ function Analytics:Observe(session, state)
 	st.lastState = state
 	self:_Part(self.funnels, "State", st, session, state)
 	self:_Part(self.tutorialFunnel, "State", st, session, state)
-	if not st.tracked then return end
-	local t = session.tutorial or {}
-	local I = Schema.OnboardingIndex
-	if (tonumber(t.collectedEggCount) or 0) > 0 or Guide.CollectedEggCount(t) > 0 then self:_Reach(st, I.FirstEgg) end
-	local facts = Guide.Facts(state)
-	for _, id in Guide.Milestones do
-		if facts[id] and I[id] then self:_Reach(st, I[id]) end
-	end
-	if t.guideCompleted then self:_Reach(st, I.GuideComplete) end
-	local wins = session.firstWins or {}
-	if wins[2] then self:_Reach(st, I.Camp2) end
-	if wins[3] then self:_Reach(st, I.Camp3) end
-	if session.kingCleared then self:_Reach(st, I.King) end
-	if (session.rebirths or 0) >= 1 then self:_Reach(st, I.Rebirth1) end
 end
 
 function Analytics:Signal(session, signal: any)
 	local st = self:_State(session)
 	if not st or type(signal) ~= "string" or #signal > 32 then return end
 	self:_Part(self.tutorialFunnel, "Signal", st, signal)
-	local I = Schema.OnboardingIndex
 	if signal == "IntroStarted" then
 		st.introStarted = true
 		self.ledger:Count("intro.started")
-		self:_Reach(st, I.IntroStarted)
 	elseif signal == "IntroFinished" or signal == "IntroSkipped" then
 		if st.introEnded then return end
 		st.introEnded = true
 		self.ledger:Count(if not st.introStarted then "intro.notShown"
 			elseif signal == "IntroSkipped" then "intro.skipped" else "intro.finished")
-		self:_Reach(st, I.IntroEnded)
 	elseif signal == "Ready" then
 		if st.readyAt then return end
 		st.readyAt = self.clock()
 		self.ledger:Hist("load.readySeconds", "seconds", st.readyAt - st.joinedAt)
-		self:_Reach(st, I.ControlReady)
-	elseif signal == "Skip" then
-		self.ledger:Count("guide.skipped")
-		self:_Trail(st, "guideSkip")
 	else
 		self.ledger:Count("ui." .. signal)
 	end
@@ -706,7 +617,7 @@ function Analytics:_Purchase(st, kind: string, key: string, price: number, actua
 	self.ledger:Count("robux." .. kind .. "." .. key)
 	self.ledger:Count("robux.estimate", price)
 	local stage = self:_Stage(st)
-	self.ledger:Count("robux.stage." .. (if stage == "Post" then "Post" elseif stage == "Untracked" then "Untracked" else "Onboarding"))
+	self.ledger:Count("robux.stage." .. (if stage == "Post" then "Post" elseif stage == "Untracked" then "Untracked" else "Tutorial"))
 	if profile then
 		profile.purchases = (profile.purchases or 0) + 1
 		profile.robux = (profile.robux or 0) + price
@@ -975,6 +886,14 @@ end
 
 -- Leaving ------------------------------------------------------------------------
 
+-- Furthest Tutorial funnel step (the journey's mx), 0 when unknown.
+local function tutorialFurthest(self: any, st: any): number
+	local part = self.tutorialFunnel
+	if not part then return 0 end
+	local ok, index = pcall(part.Furthest, part, st)
+	return if ok and type(index) == "number" then index else 0
+end
+
 function Analytics:Leave(session)
 	local st = self:_State(session)
 	if not st then return end
@@ -1000,21 +919,9 @@ function Analytics:Leave(session)
 	self.ledger:Hist("econ.sessionEarned", "cash", st.sessionEarned)
 	if st.rolls > 0 then self.ledger:Hist("roll.perSession", "count", st.rolls) end
 	if st.guideStep and st.guideStepAt then self.ledger:Hist("guide.dwell." .. st.guideStep, "seconds", now - st.guideStepAt) end
+	-- Version 12: tutorial exits (tf.exit.NN, TutorialExit) come from AnalyticsTutorial:Leave.
 	local stage = self:_Stage(st)
-	local onboarding = st.tracked and string.sub(stage, 1, 4) == "Onb:"
-	if onboarding then
-		local step = st.guideStep or "None"
-		local dwell = if st.guideStepAt then now - st.guideStepAt else seconds
-		local maxCode = Schema.StepCode(math.max(st.maxStep, if st.profile then st.profile.onbMax or 0 else 0))
-		self.ledger:Count("onb.exit." .. step)
-		self.ledger:Count("onb.exitMax." .. maxCode)
-		self.ledger:Hist("onb.exitDwell." .. step, "seconds", dwell)
-		if st.sessionIndex <= 1 then self.ledger:Count("onb.exitFirstSession." .. step) end
-		local player, sessionLabel = st.player, if st.sessionIndex <= 1 then "S1" elseif st.sessionIndex == 2 then "S2" else "S3+"
-		self:_Queue(false, "custom:OnboardingExit", function()
-			AnalyticsService:LogCustomEvent(player, "OnboardingExit", math.floor(dwell), fields(step, "Max" .. maxCode, sessionLabel))
-		end)
-	end
+	local inTutorial = string.sub(stage, 1, 4) == "Tut:"
 	local player = st.player
 	self:_Queue(false, "custom:SessionEnded", function()
 		AnalyticsService:LogCustomEvent(player, "SessionEnded", math.floor(seconds), fields(platform, stage, cohort))
@@ -1030,13 +937,13 @@ function Analytics:Leave(session)
 	self:_Part(self.funnels, "Leave", st, session)
 	self:_Part(self.tutorialFunnel, "Leave", st, session)
 	self:_Part(self.playerInfo, "Leave", st, session)
-	if onboarding or self.random() < JOURNEY_SAMPLE then
+	if inTutorial or self.random() < JOURNEY_SAMPLE then
 		local rejects = {}
 		for action, count in st.rejects do table.insert(rejects, action .. "x" .. count) end
 		self.ledger:Journey({
 			u = st.anon, v = Config.Version, p = platform, n = st.sessionIndex, new = st.isNew == true,
 			tr = st.tracked == true, s = math.floor(seconds), pl = math.floor(self:_Play(st)), stage = stage,
-			st = st.journeySteps, ex = st.guideStep, mx = st.maxStep, c = session.coins, pe = session:Count(),
+			st = if st.tf then st.tf.at else nil, ex = st.guideStep, mx = tutorialFurthest(self, st), c = session.coins, pe = session:Count(),
 			r = st.rolls, b = st.buys, er = st.errors, earned = st.sessionEarned, rej = rejects,
 			ping = if st.pingN > 0 then math.floor(st.pingSum / st.pingN) else nil,
 			fps = if st.fpsN > 0 then math.floor(st.fpsSum / st.fpsN) else nil, trail = st.trail,

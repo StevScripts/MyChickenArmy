@@ -4,7 +4,7 @@
 -- state `st`; this module adds:
 --   st.fun                session state (steps reached, furthest step, pending steps)
 --   profile.fun[F][NN]    play seconds when the player first reached step NN of F
---   profile.funN          small lifetime counters this module owns (buys, fuses, ...)
+--   profile.funN          small lifetime counters this module owns (buys, upgrades, ...)
 --   profile.funRbx        {d = UTC day, s = {[F] = bitmask}} Roblox steps sent today
 -- Ledger names: fun.<F>.s.<NN>, fun.<F>.p.<NN>, fun.<F>.t.<NN> (seconds hist),
 -- fun.<F>.last.<NN>, cohort fun.<F>.<NN>, fun.unknown, analytics.funnelError.
@@ -15,11 +15,9 @@ local Catalog = require(Shared.PetCatalog) :: any
 local ShopCatalog = require(Shared.ShopCatalog) :: any
 local Schema = require(script.Parent.AnalyticsSchema)
 local UpgradeCatalog = require(Shared.UpgradeCatalog)
--- Flock Size at its top tier (the Plot funnel's FlockMax step).
-local FlockMax = (function()
-	local tiers = UpgradeCatalog.Families.Flock.tiers
-	return tiers[#tiers].value
-end)()
+-- Flock Size values of the tiers the Flock funnel marks (version 12).
+local FlockTiers = UpgradeCatalog.Families.Flock.tiers
+local FlockSteps = {{tier = 1, id = "Tier1"}, {tier = 4, id = "Tier4"}, {tier = 6, id = "Tier6"}, {tier = #FlockTiers, id = "Max"}}
 local RobloxSteps = Schema.RobloxSteps :: any
 local RobloxNames = Schema.Funnels :: any
 
@@ -46,15 +44,15 @@ for index, rarity in Schema.Rarities do RarityRank[rarity] = index end
 
 -- Own counters (profile.funN) -> the AnalyticsPlayer lifetime key (profile.life),
 -- read with max so players with history before version 5 still cross thresholds.
-local LifeKeys = {buys = "buys", fuses = "fuses", upgrades = "upgrades", levels = "chickenLevels", missions = "missionsWon"}
+local LifeKeys = {buys = "buys", upgrades = "upgrades", levels = "chickenLevels", missions = "missionsWon"}
 -- counter -> {{at least, funnel, step}}
 local Thresholds = {
 	buys = {{10, "Roll", "Recruited10"}},
-	fuses = {{5, "Fuse", "Fused5"}},
 	upgrades = {{10, "Upgrades", "Buys10"}, {50, "Upgrades", "Buys50"}},
-	levels = {{10, "ChickenLevel", "Upgraded10"}},
+	levels = {{10, "Feed", "Fed10"}},
 	missions = {{5, "Mission", "Won5"}},
 	pur = {{2, "Shop", "Repeat"}},
+	gemBuys = {{5, "Gems", "Bought5"}},
 } :: {[string]: any}
 
 -- Successful request -> steps. Extra conditions live in actionImpl.
@@ -67,13 +65,10 @@ local ActionSteps = {
 	Luck = {{"Upgrades", "FirstBuy"}},
 	Income = {{"Upgrades", "FirstBuy"}},
 	Expand = {{"Upgrades", "FirstBuy"}},
-	StartResearch = {{"Research", "Started"}},
 	PreparePurchase = {{"Shop", "Prompted"}},
 	RefreshShop = {{"Shop", "Opened"}},
-	OpenMerge = {{"Fuse", "Opened"}},
-	Merge = {{"Fuse", "Fused"}},
-	MergeAll = {{"Fuse", "Fused"}},
-	UpgradeChicken = {{"ChickenLevel", "Upgraded"}},
+	-- GameServer reports a FeedChicken level as UpgradeChicken (the action it replaced).
+	UpgradeChicken = {{"Feed", "Fed"}},
 	SelectBest = {{"Army", "Selected"}},
 	SetArmy = {{"Army", "Selected"}},
 	Equip = {{"Army", "Selected"}},
@@ -92,9 +87,8 @@ local UpgradeActions = {CashUpgrade = true, BoardUpgrade = true, BuyUpgrade = tr
 
 -- client menu.open detail (Schema.Menus key) -> steps
 local MenuSteps = {
-	Upgrades = {{"Upgrades", "MenuOpened"}, {"Research", "TreeOpened"}},
-	Army = {{"ChickenLevel", "ArmyOpened"}, {"Army", "ArmyOpened"}},
-	Fuse = {{"Fuse", "Opened"}},
+	Upgrades = {{"Upgrades", "MenuOpened"}},
+	Army = {{"Army", "ArmyOpened"}},
 	Sell = {{"Sell", "Opened"}},
 	Index = {{"Index", "Opened"}},
 	Shop = {{"Shop", "Opened"}},
@@ -110,12 +104,10 @@ local MenuSteps = {
 -- server event name -> step (prefix names such as mission.won.<tier> are handled in serverImpl)
 local ServerSteps = {
 	["autoroll.stop"] = {"AutoRoll", "Stopped"},
-	["research.complete"] = {"Research", "Completed"},
 	["daily.shown"] = {"Daily", "Available"},
 	["offline.shown"] = {"Offline", "Shown"},
 	["offline.claimed"] = {"Offline", "Claimed"},
-	["plot.buildStart"] = {"Plot", "BuildStarted"},
-	["plot.buildDone"] = {"Plot", "BuildDone"},
+	["gems.earned"] = {"Gems", "Earned"},
 	["hill.enter"] = {"Hill", "Entered"},
 	["hill.hold"] = {"Hill", "Held"},
 	["hill.win"] = {"Hill", "Won"},
@@ -148,7 +140,7 @@ local function newSession()
 		pending = {} :: {any},                       -- {funnel, index, session seconds} before the profile
 		n = {} :: {[string]: number},                -- counters not yet in profile.funN
 		rbx = nil :: any,                            -- Roblox day masks when there is no profile
-		cache = {rev = nil :: any, at = -math.huge, research = nil :: number?},
+		cache = {rev = nil :: any, at = -math.huge},
 		drops = 0, resolved = false, warned = false,
 	}
 end
@@ -329,9 +321,7 @@ local function offerAffordable(session: any): boolean
 end
 
 local function shopKeySteps(self: any, st: any, key: string, bought: boolean)
-	if startsWith(key, "ResearchSkip") then
-		named(self, st, "Research", if bought then "SkipBought" else "SkipPrompted")
-	elseif startsWith(key, "OuterSpaceCrate") then
+	if startsWith(key, "OuterSpaceCrate") then
 		named(self, st, "Crate", if bought then "Bought" else "Prompted")
 	elseif ShopCatalog.Definitions[key] ~= nil then
 		named(self, st, "Pass", if bought then "Bought" else "Prompted")
@@ -360,15 +350,6 @@ local function actionImpl(self: any, st: any, session: any, action: any, ok: any
 		if rank >= RarityRank.Legendary then named(self, st, "Roll", "LegendaryOrBetter") end
 	elseif UpgradeActions[action] then
 		addCounter(self, st, "upgrades", 1)
-		if ((action == "BoardUpgrade" or action == "CashUpgrade") and req.upgradeKey == "PlotSize")
-			or (action == "BuyUpgrade" and type(req.nodeId) == "string" and string.sub(req.nodeId, 1, 5) == "Flock") then
-			named(self, st, "Plot", "Expanded")
-		end
-	elseif action == "Merge" then
-		addCounter(self, st, "fuses", 1)
-	elseif action == "MergeAll" then
-		local count = if type(req.triples) == "table" then #req.triples else 1
-		addCounter(self, st, "fuses", math.clamp(count, 1, 50))
 	elseif action == "UpgradeChicken" then
 		addCounter(self, st, "levels", 1)
 	elseif action == "PreparePurchase" then
@@ -376,14 +357,6 @@ local function actionImpl(self: any, st: any, session: any, action: any, ok: any
 	elseif action == "SetAutoRoll" then
 		if req.enabled == true then named(self, st, "AutoRoll", "Enabled") end
 	end
-end
-
-local function countCompleted(completed: any): number
-	local count = 0
-	for id, done in completed do
-		if done and id ~= "Start" then count += 1 end -- Start is granted to every save
-	end
-	return count
 end
 
 -- DailyService grants on the server once per UTC day after the guide is done, so
@@ -414,23 +387,26 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 	if slots >= 4 then named(self, st, "RollSlots", "Unlocked4") end
 	if slots >= 8 then named(self, st, "RollSlots", "Unlocked8") end
 
-	-- October 20: Auto Roll is a Gem Upgrade (effects.autoRoll), no longer research.
-	local effects = state.effects
-	if type(effects) == "table" and (tonumber(effects.autoRoll) or 0) >= 1 then named(self, st, "AutoRoll", "Available") end
-	local research = state.research
-	local completed = if type(research) == "table" then research.completed else nil
-	if type(completed) == "table" then
-		local count = countCompleted(completed)
-		if cache.research ~= nil and count > cache.research then named(self, st, "Research", "Completed") end
-		if cache.research == nil or count > cache.research then cache.research = count end
-		if count >= 5 then named(self, st, "Research", "Completed5") end
-		if count >= 15 then named(self, st, "Research", "Completed15") end
+	-- Upgrades tree and Gem Upgrade effects (October 20 overhaul).
+	local effects = if type(state.effects) == "table" then state.effects else {}
+	local function effect(key: string): number return tonumber(effects[key]) or 0 end
+	if effect("autoRoll") >= 1 then named(self, st, "AutoRoll", "Available") end
+	local flock = effect("flockSize")
+	for _, step in FlockSteps do
+		local tier = FlockTiers[step.tier]
+		if tier and flock >= tier.value then named(self, st, "Flock", step.id) end
 	end
-
-	if state.mergeUnlocked == true then
-		named(self, st, "Fuse", "Unlocked")
-		if type(state.mergeOptions) == "table" and next(state.mergeOptions) ~= nil then named(self, st, "Fuse", "Available") end
-	end
+	local tools = state.tools
+	if type(tools) == "table" and tools.eggVacuum == true then named(self, st, "Vacuum", "Owned") end
+	if effect("vacuumCapacity") >= 1 then named(self, st, "Vacuum", "CapacityUp") end
+	if effect("vacuumRange") >= 1 then named(self, st, "Vacuum", "RangeUp") end
+	if type(tools) == "table" and tools.chickenFeed == true then named(self, st, "Feed", "Owned") end
+	if effect("feedMaxLevel") >= 1 then named(self, st, "Feed", "MaxLevelUp") end
+	local machines = effect("goldMachine")
+	if machines >= 1 then named(self, st, "GoldRolls", "GoldMachine") end
+	if machines >= 2 then named(self, st, "GoldRolls", "DiamondMachine") end
+	if machines >= 3 then named(self, st, "GoldRolls", "PrismMachine") end
+	if effect("mutations") >= 1 then named(self, st, "Mutations", "Unlocked") end
 
 	local wins = state.firstWins
 	if type(wins) == "table" then
@@ -449,11 +425,6 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 		if rank >= 5 then named(self, st, "Rebirth", "Rebirth5") end
 		if rank >= 10 then named(self, st, "Rebirth", "Rebirth10") end
 	end
-
-	-- October 20: Plot Max retired (CollectionLimit is the 1,000 storage cap); FlockMax
-	-- marks the top Flock Size tier instead.
-	local effects = state.effects
-	if type(effects) == "table" and (tonumber(effects.flockSize) or 0) >= FlockMax then named(self, st, "Plot", "FlockMax") end
 	if dailyAvailable(self, session, state) then named(self, st, "Daily", "Available") end
 end
 
@@ -464,12 +435,9 @@ local function clientImpl(self: any, st: any, name: any, detail: any)
 		local list = MenuSteps[d]
 		if list then for _, pair in list do named(self, st, pair[1], pair[2]) end end
 	elseif name == "inspect" then
-		local menu, kind = string.match(d, "^([^/]+)/(.*)$")
+		local menu = string.match(d, "^([^/]+)/")
 		if menu == "Upgrades" then
 			named(self, st, "Upgrades", "Inspected")
-			if kind == "node" then named(self, st, "Research", "NodeInspected") end
-		elseif menu == "Army" and kind == "chicken" then
-			named(self, st, "ChickenLevel", "ChickenInspected")
 		elseif menu == "Index" then
 			named(self, st, "Index", "Inspected")
 		end
@@ -488,24 +456,27 @@ local function clientImpl(self: any, st: any, name: any, detail: any)
 	end
 end
 
-local function giantStep(self: any, st: any, outcome: string?)
-	if outcome == "NewGiant" or outcome == "Giant" then
-		named(self, st, "Fuse", "Giant")
-	elseif outcome == "NewColossal" or outcome == "Colossal" then
-		named(self, st, "Fuse", "Colossal")
-	end
-end
-
 local function serverImpl(self: any, st: any, name: any, detail: any)
 	if type(name) ~= "string" or #name > MAX_TEXT then return end
 	local d = if type(detail) == "string" then string.sub(detail, 1, MAX_TEXT) else nil
 	local simple = ServerSteps[name]
 	if simple then
 		named(self, st, simple[1], simple[2])
-	elseif name == "giant.result" then
-		giantStep(self, st, d)
-	elseif startsWith(name, "giant.fuse.") then
-		giantStep(self, st, string.sub(name, #"giant.fuse." + 1))
+	elseif startsWith(name, "goldRoll.pull.") then
+		local kind = string.sub(name, #"goldRoll.pull." + 1)
+		if kind == "Gold" or kind == "Diamond" or kind == "Prism" then named(self, st, "GoldRolls", kind .. "Roll") end
+	elseif startsWith(name, "mutation.offer.") then
+		named(self, st, "Mutations", "Offered")
+	elseif startsWith(name, "mutation.buy.") then
+		named(self, st, "Mutations", "Bought")
+	elseif startsWith(name, "gemUpgrade.buy.") then
+		named(self, st, "Gems", "Bought")
+		addCounter(self, st, "gemBuys", 1)
+	elseif startsWith(name, "playtimeReward.claim.") then
+		local tile = tonumber(string.sub(name, #"playtimeReward.claim." + 1)) or 0
+		named(self, st, "PlaytimeRewards", "Claimed")
+		if tile >= 6 then named(self, st, "PlaytimeRewards", "Tile6") end
+		if tile >= 12 then named(self, st, "PlaytimeRewards", "Tile12") end
 	elseif under(name, "mission.spawn") then
 		named(self, st, "Mission", "Spawned")
 	elseif under(name, "mission.start") then

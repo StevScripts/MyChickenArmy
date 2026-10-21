@@ -16,8 +16,8 @@ a part of `Analytics`. Checks: `tests/AnalyticsChecks.luau` (three "Tutorial fun
 
 | Before | Now |
 |---|---|
-| Roblox **Onboarding** dashboard: 20 steps of the *old* guide (Grow, Expand, Select…), most of which no longer happen in that order. | Roblox **Onboarding** dashboard carries this 24-step Tutorial funnel. The old 20 steps keep filling the ledger only (`onb.*`), so earlier days stay comparable. |
-| A separate recurring Roblox funnel "Tutorial" (schema 9/10, 14 coarse steps, ledger `tut.*`). | Removed. Its job is done here in far more detail. Roblox now has 10 funnel slots used (Onboarding + 9). |
+| Roblox **Onboarding** dashboard: 20 steps of the *old* guide (Grow, Expand, Select…), most of which no longer happen in that order. | Roblox **Onboarding** dashboard carries this 24-step Tutorial funnel. Since schema 12 the old 20 steps (`onb.*`) are not recorded at all; this is the only onboarding funnel, and it also sets the session stage (`Tut:<step id>` / `Post`) used by custom events and journeys. |
+| A separate recurring Roblox funnel "Tutorial" (schema 9/10, 14 coarse steps, ledger `tut.*`). | Removed. Its job is done here in far more detail. Roblox now has 9 funnel slots used (Onboarding + 8; schema 12 swapped the dead Research dashboard for Upgrades). |
 | Only lesson completions were counted. | Every click the tutorial asks for is a step: each egg, opening Upgrades, the Tools tab, equipping the vacuum, 10 and 20 vacuumed eggs, plus the completion screen and the first Daily reward. |
 | One time per step (seconds since join). | Time since join **and** dwell since the previous step, first-session share, per-platform reaches, out-of-order reaches, steps passed over and where unfinished sessions stopped (step and on-screen lesson). |
 
@@ -55,9 +55,8 @@ Ledger (`PetRollAnalytics_v1`, per day and game version; Studio writes the `_Stu
 | `tf.s1.NN` | reached during the player's first session |
 | `tf.gap.NN` | reached while the step before it was still missing (out of order) |
 | `tf.skip.NN` | soft step passed over |
-| `tf.exit.NN` | a session ended before the tutorial completed (step 18) with NN as the furthest step |
+| `tf.exit.NN` | a session ended before the tutorial completed (step 18) with NN as the furthest step (`00` = none); the Roblox custom event `TutorialExit` (schema 12) carries the same step, the lesson and S1/S2/S3+ |
 | `tf.exitLesson.<id>` | the guide lesson on screen when that session ended (`TutorialGuide` step id) |
-| `tf.skipGuide.NN` | the player hid the guide in Settings with NN as the furthest step |
 | `tf.robloxGapFill.NN` | a missing hard step Roblox was told to pass (see below) |
 | cohort `x[firstDay] tf.NN` | players whose first day was `firstDay` who ever reached NN |
 

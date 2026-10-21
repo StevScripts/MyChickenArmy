@@ -2,7 +2,9 @@
 -- Version 11 Tutorial funnel (Schema.TutorialFunnel; docs/analytics/TUTORIAL_FUNNEL.md).
 -- A part of Analytics: the host calls every public method through Analytics:_Part, so
 -- an error here only loses this funnel's data. Observation only; it never changes
--- gameplay. It owns Roblox's Onboarding dashboard from version 11 on.
+-- gameplay. It owns Roblox's Onboarding dashboard from version 11 on, and since
+-- version 12 it is the only onboarding funnel: it also names the session stage
+-- (Tutorial.Stage) and sends the TutorialExit custom event.
 --
 -- Per-session state lives in st.tf; per-player state in profile.tf (step code ->
 -- play seconds when reached), profile.tfSkip (code -> true when passed over) and
@@ -18,6 +20,7 @@ Tutorial.__index = Tutorial
 
 local CF1 = Enum.AnalyticsCustomFieldKeys.CustomField01.Name
 local CF2 = Enum.AnalyticsCustomFieldKeys.CustomField02.Name
+local CF3 = Enum.AnalyticsCustomFieldKeys.CustomField03.Name
 local Steps = Schema.TutorialFunnel
 local Index = Schema.TutorialFunnelIndex
 
@@ -41,7 +44,8 @@ end
 local function code(index: number): string return Schema.StepCode(index) end
 
 function Tutorial:Join(st)
-	st.tf = {reached = {}, skipped = {}, queue = {}, lastAt = nil, next = 1, ready = false}
+	-- at: step code -> seconds into this session (the sampled journey's step times).
+	st.tf = {reached = {}, skipped = {}, queue = {}, at = {}, lastAt = nil, next = 1, ready = false}
 	self:Reach(st, Index.Joined)
 end
 
@@ -91,6 +95,8 @@ function Tutorial:Record(st, index: number)
 	if self:Reached(st, index) then tf.reached[index] = true; return end
 	tf.reached[index] = true
 	local nn = code(index)
+	local now: number = host.clock()
+	tf.at[nn] = math.floor(now - (tonumber(st.joinedAt) or now))
 	local play: number = host:_Play(st)
 	local ledger = host.ledger
 	ledger:Count("tf.reach." .. nn)
@@ -187,12 +193,6 @@ function Tutorial:Signal(st, signal: string)
 	if signal == "IntroFinished" or signal == "IntroSkipped" then self:Reach(st, Index.IntroDone); return end
 	if signal == "Ready" then self:Reach(st, Index.Control); return end
 	local facts = st.tfFacts
-	if signal == "Skip" then
-		local furthest = 0
-		for index in Steps do if tf.reached[index] then furthest = index end end
-		self.host.ledger:Count("tf.skipGuide." .. code(furthest))
-		return
-	end
 	if not facts then return end
 	-- Each menu or tool action counts for the lesson that asks for it.
 	local vacuumLesson = facts.Recruit and not facts.Vacuum
@@ -205,17 +205,51 @@ function Tutorial:Signal(st, signal: string)
 	end
 end
 
+-- Furthest step this player ever reached (0 = none yet).
+function Tutorial:Furthest(st): number
+	if not st.tf then return 0 end
+	local furthest = 0
+	for index in Steps do if self:Reached(st, index) then furthest = index end end
+	return furthest
+end
+
+-- Session stage for Analytics (custom event fields, Robux and economy splits,
+-- journeys): "Post" once the tutorial is complete, else "Tut:<furthest step id>".
+-- Players this funnel does not track are "Untracked".
+function Tutorial:Stage(st): string
+	local session = st.session
+	local saved: any = if type(session) == "table" then session.tutorial else nil
+	if type(saved) == "table" and saved.guideCompleted == true then return "Post" end
+	local tf = st.tf
+	if not tf or (tf.ready and not tf.tracked) then return "Untracked" end
+	local furthest = self:Furthest(st)
+	if furthest >= Index.TutorialComplete then return "Post" end
+	return "Tut:" .. (if furthest > 0 then Steps[furthest].id else Steps[1].id)
+end
+
 -- Where an unfinished tutorial session ended.
 function Tutorial:Leave(st, _session)
 	local tf = st.tf
 	if not tf or not tf.ready or not tf.tracked then return end
-	local furthest = 0
-	for index in Steps do if self:Reached(st, index) then furthest = index end end
+	local furthest = self:Furthest(st)
 	if furthest >= Index.TutorialComplete then return end
-	local ledger = self.host.ledger
+	local host = self.host
+	local ledger = host.ledger
 	ledger:Count("tf.exit." .. code(furthest))
-	local record = self.host.tutorial and self.host.tutorial.records and self.host.tutorial.records[st.userId]
-	ledger:Count("tf.exitLesson." .. tostring(record and record.step or "None"))
+	local record = host.tutorial and host.tutorial.records and host.tutorial.records[st.userId]
+	local lesson = tostring(record and record.step or "None")
+	ledger:Count("tf.exitLesson." .. lesson)
+	local player = st.player
+	if not player then return end
+	local step = if furthest > 0 then code(furthest) .. " " .. Steps[furthest].id else "00 None"
+	local play: number = host:_Play(st)
+	local since = math.max(0, math.floor(play - (tonumber(tf.lastAt) or 0)))
+	local sessionIndex = st.sessionIndex or 1
+	local customFields = {[CF1] = string.sub(step, 1, 50), [CF2] = string.sub(lesson, 1, 50),
+		[CF3] = if sessionIndex <= 1 then "S1" elseif sessionIndex == 2 then "S2" else "S3+"}
+	host:_Queue(false, "custom:TutorialExit", function()
+		AnalyticsService:LogCustomEvent(player, "TutorialExit", since, customFields)
+	end)
 end
 
 return Tutorial

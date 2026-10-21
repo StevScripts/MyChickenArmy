@@ -46,7 +46,7 @@ function Checks.Run()
 		local funnels = 1 -- onboarding
 		for _, steps in Schema.Funnels do funnels += 1; assert(#steps <= Schema.RobloxLimits.stepsPerFunnel) end
 		assert(funnels <= Schema.RobloxLimits.funnels)
-		assert(#Schema.Onboarding <= Schema.RobloxLimits.stepsPerFunnel)
+		assert(#Schema.TutorialFunnel <= Schema.RobloxLimits.stepsPerFunnel)
 		local transactions, skus = {}, {}
 		for _, d in Schema.Sources do transactions[d.transaction] = true; skus[d.sku] = true end
 		for _, d in Schema.Sinks do transactions[d.transaction] = true; skus[d.sku] = true end
@@ -55,7 +55,7 @@ function Checks.Run()
 		for _ in skus do sCount += 1 end
 		-- Recruit and Upgrade expand by rarity / upgrade key (<= 6 + 10).
 		assert(tCount <= Schema.RobloxLimits.transactionTypes and sCount + 16 <= Schema.RobloxLimits.itemSkus)
-		for index, step in Schema.Onboarding do assert(Schema.OnboardingIndex[step.id] == index) end
+		assert(Schema.Onboarding == nil and Schema.OnboardingIndex == nil, "version 12 retired the old onboarding steps")
 	end)
 
 	check("Histogram labels are stable and cover every value", function()
@@ -105,7 +105,7 @@ function Checks.Run()
 		assert(#order == 2 and order[1] == "high" and order[2] == "low1", table.concat(order, ","))
 	end)
 
-	check("A fresh player's onboarding is recorded once, in order, with cohort and journey", function()
+	check("A fresh player's tutorial is recorded once, in order, with cohort and journey", function()
 		local labels, clock = {}, 100
 		local store, players = fakeStore(), fakeStore()
 		local ledger = Ledger.new({store = store, playerStore = players, studio = true, shard = 1, version = "v1",
@@ -140,13 +140,17 @@ function Checks.Run()
 		for index = 1, 8 do table.insert(expected, Schema.TutorialFunnelName(index)) end
 		assert(table.concat(onboarding, ",") == table.concat(expected, ","), table.concat(onboarding, ","))
 		local bucket = ledger.pending["2026-10-09"]["v1"]
-		assert(bucket.c["onb.reach.08"] == 1 and bucket.x["2026-10-09"]["onb.08"] == 1 and bucket.x["2026-10-09"]["cohort.size"] == 1)
+		assert(bucket.c["tf.reach.08"] == 1 and bucket.x["2026-10-09"]["tf.08"] == 1 and bucket.x["2026-10-09"]["cohort.size"] == 1)
+		assert(bucket.c["onb.reach.01"] == nil, "version 12 no longer records the old onboarding steps")
 		assert(bucket.c["intro.skipped"] == 1 and bucket.c["roll.count"] == 1 and bucket.c["roll.anyAffordable"] == 1)
 		assert(bucket.c["econ.src.eggs"] == 160 and bucket.t.reject["Buy | Not enough cash"] == 1)
-		assert(bucket.c["onb.exit.None"] == 1 or bucket.c["session.count"] == 1)
-		assert(#ledger.journeys["2026-10-09"] == 1, "onboarding sessions always keep a journey")
+		assert(bucket.c["tf.exit.08"] == 1 and bucket.c["session.count"] == 1)
+		assert(#ledger.journeys["2026-10-09"] == 1, "tutorial sessions always keep a journey")
+		local journey = ledger.journeys["2026-10-09"][1]
+		assert(journey.stage == "Tut:Sold" and journey.mx == 8 and journey.st["08"], "journey stage " .. tostring(journey.stage))
+		assert(table.find(labels, "custom:TutorialExit"), "TutorialExit sent")
 		local saved = players.data[Schema.PlayerKey(42)]
-		assert(saved and saved.tracked and saved.onb["08"] and saved.sessions == 1, "profile saved")
+		assert(saved and saved.tracked and saved.tf["08"] and saved.onb == nil and saved.sessions == 1, "profile saved")
 		-- Second session: same steps are not counted again; day-1 return lands on the cohort.
 		local ledger2 = Ledger.new({store = store, playerStore = players, studio = true, shard = 1, version = "v1",
 			clock = function() return 1791547200 + 86400 end})
@@ -158,7 +162,7 @@ function Checks.Run()
 		analytics2:Observe(session2, {tutorial = session2.tutorial, pets = {1, 2, 3}, capacity = 3, firstWins = {}})
 		local b2 = ledger2.pending["2026-10-10"]["v1"]
 		assert(b2.x["2026-10-09"]["ret.d1"] == 1, "D1 return")
-		assert(b2.c["onb.reach.08"] == nil, "step re-counted in a later session")
+		assert(b2.c["tf.reach.08"] == nil, "step re-counted in a later session")
 	end)
 
 	check("Version 11 Tutorial funnel: every tutorial action once, in order, soft steps passed over, exits recorded", function()
@@ -312,15 +316,16 @@ function Checks.Run()
 
 	check("Report summarizes funnels, cohorts and raises flags from merged shards", function()
 		local bucket = Ledger.NewBucket()
-		bucket.c["onb.reach.01"], bucket.c["onb.reach.02"], bucket.c["onb.reach.05"] = 100, 98, 50
+		bucket.c["tf.reach.01"], bucket.c["tf.reach.02"], bucket.c["tf.reach.05"] = 100, 98, 50
 		bucket.c["session.count"], bucket.c["session.seconds"] = 100, 30000
-		bucket.c["onb.exit.Collect"], bucket.c["onb.exit.Sell"] = 40, 10
-		bucket.x["2026-10-08"] = {["cohort.size"] = 100, ["ret.d1"] = 10, ["onb.01"] = 100}
+		bucket.c["tf.exit.07"], bucket.c["tf.exit.08"] = 40, 10
+		bucket.x["2026-10-08"] = {["cohort.size"] = 100, ["ret.d1"] = 10, ["tf.01"] = 100}
 		bucket.h["session.seconds"] = {le60 = 50, le300 = 50}
 		local summary = Report.Summarize({["2026-10-09"] = {v = {v1 = bucket}, shards = 2, source = "shards"}})
-		assert(summary.onboardingFunnel[2].ofPrevious == 98 and summary.onboardingFunnel[5].ofJoined == 50)
+		assert(summary.tutorialFunnel[2].ofPrevious == 98 and summary.tutorialFunnel[5].ofJoined == 50)
 		assert(summary.totals.avgSessionSec == 300 and summary.totals.session.p50 == "le60")
-		assert(summary.cohorts[1].retention.d1.pct == 10 and summary.onboardingExits[1].guideStep == "Collect")
+		assert(summary.cohorts[1].retention.d1.pct == 10 and summary.tutorialExits[1].id == "Egg3")
+		assert(summary.cohorts[1].steps["01"] == 100 and summary.onboardingFunnel == nil)
 		local areas = {}
 		for _, f in summary.flags do areas[f.area] = true end
 		assert(areas.onboarding and areas.retention, "expected onboarding and retention flags")
@@ -369,10 +374,10 @@ function Checks.Run()
 	check("Report computes feature funnels, UI, devices, Robux, server events and new flags", function()
 		local b = Ledger.NewBucket()
 		b.c["session.count"], b.c["players.unique"] = 200, 100
-		b.c["fun.Fuse.p.01"], b.c["fun.Fuse.p.02"], b.c["fun.Fuse.p.03"] = 100, 80, 20
-		b.c["fun.Fuse.s.01"], b.c["fun.Fuse.last.02"] = 150, 30
-		b.h["fun.Fuse.t.03"] = {le60 = 10, le600 = 10}
-		b.x["2026-10-08"] = {["cohort.size"] = 50, ["fun.Fuse.01"] = 40, ["fun.Fuse.03"] = 5}
+		b.c["fun.Feed.p.01"], b.c["fun.Feed.p.02"], b.c["fun.Feed.p.03"] = 100, 80, 20
+		b.c["fun.Feed.s.01"], b.c["fun.Feed.last.02"] = 150, 30
+		b.h["fun.Feed.t.03"] = {le60 = 10, le600 = 10}
+		b.x["2026-10-08"] = {["cohort.size"] = 50, ["fun.Feed.01"] = 40, ["fun.Feed.03"] = 5}
 		b.c["ui.menu.open.Army"], b.c["ui.menu.open.Shop"] = 150, 10
 		b.h["ui.menu.dwell.Army"] = {le5 = 100, le60 = 20}
 		b.c["ui.prompt.bought"], b.c["ui.prompt.cancel"] = 5, 20
@@ -388,12 +393,12 @@ function Checks.Run()
 		b.h["perf.fps.tier.Low"] = {le20 = 25, le60 = 5}
 		local s = Report.Summarize({["2026-10-09"] = {v = {v1 = b}, shards = 1, source = "shards"}})
 		local fuse
-		for _, f in s.featureFunnels do if f.funnel == "Fuse" then fuse = f end end
+		for _, f in s.featureFunnels do if f.funnel == "Feed" then fuse = f end end
 		assert(fuse and fuse.started == 100 and fuse.steps[1].conversionFromPrev == nil)
 		assert(fuse.steps[2].conversionFromPrev == 80 and fuse.steps[3].conversionFromPrev == 25)
 		assert(fuse.steps[3].timeP50 == "le60" and fuse.steps[3].timeP90 == "le600" and fuse.steps[2].lastStepSessions == 30)
 		assert(fuse.steps[4].conversionFromPrev == 0, "20 -> 0 players is 0%")
-		assert(fuse.worstStep and fuse.worstStep.id == "Fused" and fuse.worstStep.fromPlayers == 20, "worst needs >= 20 at prev")
+		assert(fuse.worstStep and fuse.worstStep.id == "MaxLevelUp" and fuse.worstStep.fromPlayers == 20, "worst needs >= 20 at prev")
 		assert(fuse.cohorts[1].cohort == "2026-10-08" and fuse.cohorts[1].steps["03"] == 5 and fuse.cohorts[1].size == 50)
 		assert(s.ui.menus[1].menu == "Army" and s.ui.menus[1].dwellP50 == "le5" and s.ui.topClicks[1].key == "Army/Close")
 		assert(s.ui.prompts.cancelRate == 80)
@@ -409,7 +414,7 @@ function Checks.Run()
 		assert(rebirths and rebirths.p50 == "le0" and rebirths.n == 10)
 		local texts = {}
 		for _, f in s.flags do texts[f.area] = (texts[f.area] or "") .. f.text .. "\n" end
-		assert(texts.funnel and string.find(texts.funnel, "Available -> Opened", 1, true), "funnel flag")
+		assert(texts.funnel and string.find(texts.funnel, "Fed -> Fed10", 1, true), "funnel flag")
 		assert(texts.monetization, "prompt cancel flag")
 		assert(texts.health and string.find(texts.health, "save failures", 1, true), "save fail flag")
 		assert(texts.performance and string.find(texts.performance, "Low-tier", 1, true), "tier fps flag")

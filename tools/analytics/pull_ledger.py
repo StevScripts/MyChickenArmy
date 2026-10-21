@@ -32,11 +32,9 @@ LEDGER = "PetRollAnalytics_v1"
 STUDIO_SUFFIX = "_Studio"
 SHARDS = 16  # must match Schema.Shards
 TOP_CAP = 150
-ONBOARDING = ["Joined", "ProfileLoaded", "IntroStarted", "IntroEnded", "ControlReady", "FirstEgg", "Collect",
-              "Sell", "Roll", "Recruit", "Grow", "Expand", "Select", "Deploy", "Win", "GuideComplete",
-              "Camp2", "Camp3", "King", "Rebirth1"]
-# Schema.TutorialFunnel (version 11, later October 21): the reworked tutorial funnel,
-# ledger keys tf.*. Must match the schema (id, Roblox label); see TUTORIAL_FUNNEL.md.
+# Schema.TutorialFunnel (version 11, later October 21): the tutorial funnel, ledger
+# keys tf.*. Since version 12 it is the only onboarding funnel (the old onb.* steps are
+# retired). Must match the schema (id, Roblox label); see TUTORIAL_FUNNEL.md.
 TUTORIAL = [
     ("Joined", "Joined the game"),
     ("Loaded", "Save loaded"),
@@ -71,9 +69,6 @@ FEATURE_FUNNELS = {
     "RollSlots": ["Unlocked2", "Unlocked4", "Unlocked8"],
     "AutoRoll": ["Available", "Enabled", "Stopped"],
     "Upgrades": ["MenuOpened", "Inspected", "FirstBuy", "Buys10", "Buys50"],
-    "Research": ["TreeOpened", "NodeInspected", "Started", "Completed", "Completed5", "Completed15", "SkipPrompted", "SkipBought"],
-    "Fuse": ["Unlocked", "Available", "Opened", "Fused", "Fused5", "Giant", "Colossal"],
-    "ChickenLevel": ["ArmyOpened", "ChickenInspected", "Upgraded", "Upgraded10"],
     "Army": ["ArmyOpened", "Selected", "Deployed", "Won", "CallArmy", "Rally", "Formation"],
     "Route": ["Camp1", "Camp2", "Camp3", "AllCamps", "King"],
     "Sell": ["Opened", "Sold"],
@@ -85,10 +80,17 @@ FEATURE_FUNNELS = {
     "Mission": ["Spawned", "Opened", "Started", "Won", "Won5"],
     "Daily": ["Available", "Opened", "Claimed", "Streak3", "Streak7"],
     "Offline": ["Shown", "Claimed"],
-    "Plot": ["Expanded", "BuildStarted", "BuildDone", "Max"],
     "Hill": ["Entered", "Held", "Won"],
     "Settings": ["Opened", "Changed"],
     "Leaderboard": ["Viewed"],
+    # Version 12: the October 20 overhaul systems.
+    "Flock": ["Tier1", "Tier4", "Tier6", "Max"],
+    "Vacuum": ["Owned", "CapacityUp", "RangeUp"],
+    "Feed": ["Owned", "Fed", "Fed10", "MaxLevelUp"],
+    "GoldRolls": ["GoldMachine", "GoldRoll", "DiamondMachine", "DiamondRoll", "PrismMachine", "PrismRoll"],
+    "Mutations": ["Unlocked", "Offered", "Bought"],
+    "Gems": ["Earned", "Bought", "Bought5"],
+    "PlaytimeRewards": ["Claimed", "Tile6", "Tile12"],
 }
 DEVICE_TIERS = ["Low", "Mid", "High", "Unknown"]  # must match Schema.DeviceTiers
 PLATFORMS = ["Desktop", "Mobile", "Tablet", "Console", "VR", "Unknown"]
@@ -181,7 +183,7 @@ def player_row(entry, profile):
             "platform": dev.get("platform"), "tier": dev.get("tier"), "os": dev.get("os"), "input": dev.get("input"),
             "geo": profile.get("geo"), "premium": profile.get("premium"), "age": profile.get("age"),
             "joinSource": profile.get("joinSource"), "friendsInServer": profile.get("friendsInServer"),
-            "rebirths": profile.get("rebirths"), "onbMax": profile.get("onbMax"), "lastExit": profile.get("lastExit"),
+            "rebirths": profile.get("rebirths"), "tutorialMax": max((int(k) for k in (profile.get("tf") or {}) if str(k).isdigit()), default=None), "lastExit": profile.get("lastExit"),
             "snap": profile.get("snap"), "life": profile.get("life"), "funN": profile.get("funN")}
 
 
@@ -346,14 +348,6 @@ def summarize(days):
         for bucket in entry["v"].values():
             merge(total, bucket)
     c, h = total["c"], total["h"]
-    funnel, previous = [], None
-    first = c.get("onb.reach.01")
-    for index, step in enumerate(ONBOARDING, start=1):
-        code = f"{index:02d}"
-        reached = c.get(f"onb.reach.{code}", 0)
-        funnel.append({"step": f"{code} {step}", "reached": reached, "ofJoined": pct(reached, first),
-                       "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"onb.t.{code}"), 0.5)})
-        previous = reached
     tutorial, previous = [], None
     first = c.get("tf.reach.01")
     for index, (step_id, label) in enumerate(TUTORIAL, start=1):
@@ -366,20 +360,20 @@ def summarize(days):
                          "outOfOrder": c.get(f"tf.gap.{code}", 0), "passedOver": c.get(f"tf.skip.{code}", 0),
                          "exitsHere": c.get(f"tf.exit.{code}", 0)})
         previous = reached
-    exits = sorted(({"guideStep": k[len("onb.exit."):], "n": v} for k, v in c.items() if k.startswith("onb.exit.")),
+    exits = sorted(({"step": k[len("tf.exit."):], "n": v} for k, v in c.items() if k.startswith("tf.exit.")),
                    key=lambda e: -e["n"])
     cohorts = []
     for day, counters in sorted(total["x"].items()):
         size = counters.get("cohort.size", 0)
         cohorts.append({"cohort": day, "size": size,
                         "retention": {k[4:]: {"n": v, "pct": pct(v, size)} for k, v in counters.items() if k.startswith("ret.d")},
-                        "steps": {k[4:]: v for k, v in counters.items() if k.startswith("onb.")}})
+                        "steps": {k[3:]: v for k, v in counters.items() if k.startswith("tf.")}})
     sessions = c.get("session.count", 0)
     return {
         "totals": {"unique": c.get("players.unique", 0), "new": c.get("players.new", 0), "sessions": sessions,
                    "avgSessionSec": round(c.get("session.seconds", 0) / sessions) if sessions else None,
                    "sessionP50": percentile(h.get("session.seconds"), 0.5)},
-        "onboardingFunnel": funnel, "tutorialFunnel": tutorial, "onboardingExits": exits, "cohorts": cohorts,
+        "tutorialFunnel": tutorial, "tutorialExits": exits, "cohorts": cohorts,
         "economy": {"sourceTotal": c.get("econ.srcTotal", 0), "sinkTotal": c.get("econ.sinkTotal", 0)},
         "rolls": {"count": c.get("roll.count", 0), "anyAffordablePct": pct(c.get("roll.anyAffordable"), c.get("roll.count"))},
         "featureFunnels": feature_funnels(c, h),

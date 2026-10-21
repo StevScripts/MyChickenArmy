@@ -404,19 +404,8 @@ function Report.Summarize(pulled: any, options: Options?)
 			errorsClient = b.c["err.client"] or 0})
 	end
 
-	-- Onboarding funnel by day of reach (all tracked players in range).
-	local funnel = {}
-	local first = c["onb.reach.01"]
-	local previous = nil
-	for index, step in Schema.Onboarding do
-		local code = Schema.StepCode(index)
-		local reached = c["onb.reach." .. code] or 0
-		table.insert(funnel, {step = Schema.StepName(index), reached = reached, ofJoined = pct(reached, first),
-			ofPrevious = pct(reached, previous), timeToStep = stat(h["onb.t." .. code]), about = step.about})
-		previous = reached
-	end
-
-	-- Version 11 Tutorial funnel (Schema.TutorialFunnel; docs/analytics/TUTORIAL_FUNNEL.md).
+	-- Version 11 Tutorial funnel (since version 12 the only onboarding funnel; the
+	-- retired onb.* keys of older days are not read) (Schema.TutorialFunnel; docs/analytics/TUTORIAL_FUNNEL.md).
 	-- Per step: players reaching it, % of Joined and of the step before, play time to
 	-- reach it, dwell since the step before, first-session share, out-of-order reaches
 	-- (gap), soft steps passed over (skip), unfinished sessions that stopped here
@@ -442,14 +431,9 @@ function Report.Summarize(pulled: any, options: Options?)
 		local size = counters["cohort.size"] or 0
 		local row = {cohort = day, size = size, steps = {}, retention = {}, payers = counters["robux.payer"] or 0,
 			anyLater = counters["ret.anyLater"] or 0, anyLaterPct = pct(counters["ret.anyLater"], size)}
-		for index in Schema.Onboarding do
-			local code = Schema.StepCode(index)
-			row.steps[code] = counters["onb." .. code] or 0
-		end
-		row.tutorial = {}
 		for index in Schema.TutorialFunnel do
 			local code = Schema.StepCode(index)
-			if counters["tf." .. code] then row.tutorial[code] = counters["tf." .. code] end
+			if counters["tf." .. code] then row.steps[code] = counters["tf." .. code] end
 		end
 		for _, d in Schema.RetentionDays do
 			local n = counters["ret.d" .. d]
@@ -459,15 +443,15 @@ function Report.Summarize(pulled: any, options: Options?)
 	end
 	table.sort(cohorts, function(a, b) return a.cohort < b.cohort end)
 
+	-- Unfinished tutorial sessions by furthest step (tf.exit.NN).
 	local exits = {}
-	for step, n in prefixed(c, "onb.exit.") do
-		table.insert(exits, {guideStep = step, n = n, firstSession = c["onb.exitFirstSession." .. step] or 0,
-			dwell = stat(h["onb.exitDwell." .. step])})
+	for index, step in Schema.TutorialFunnel do
+		local n = c["tf.exit." .. Schema.StepCode(index)]
+		if n then table.insert(exits, {step = Schema.TutorialFunnelName(index), id = step.id, n = n}) end
 	end
+	local none = c["tf.exit.00"]
+	if none then table.insert(exits, {step = "00 None", id = "None", n = none}) end
 	table.sort(exits, function(a, b) return a.n > b.n end)
-	local exitMax = {}
-	for code, n in prefixed(c, "onb.exitMax.") do table.insert(exitMax, {maxStep = code, n = n}) end
-	table.sort(exitMax, function(a, b) return a.maxStep < b.maxStep end)
 
 	local dwell = {}
 	for name, hist in h do
@@ -552,7 +536,7 @@ function Report.Summarize(pulled: any, options: Options?)
 			session = stat(h["session.seconds"]), sessionNew = stat(h["session.seconds.new"]),
 			sessionReturning = stat(h["session.seconds.returning"]), playerMinutes = c["player.minutes"] or 0,
 			serverMinutes = c["server.minutes"] or 0},
-		daily = daily, onboardingFunnel = funnel, tutorialFunnel = tutorialFunnel, tutorialExitLessons = tutorialExitLessons, cohorts = cohorts, onboardingExits = exits, exitByMaxStep = exitMax,
+		daily = daily, tutorialFunnel = tutorialFunnel, tutorialExits = exits, tutorialExitLessons = tutorialExitLessons, cohorts = cohorts,
 		guideDwell = dwell, intro = prefixed(c, "intro."), economy = economy, rolls = rolls, camps = camps,
 		features = features, robux = robux, platforms = platforms, screens = prefixed(c, "client.screen."),
 		perf = perf, health = health, loop = prefixed(c, "loop."),
@@ -572,22 +556,28 @@ end
 function Report.Flags(s: any)
 	local flags = {}
 	local function flag(severity: string, area: string, text: string) table.insert(flags, {severity = severity, area = area, text = text}) end
-	local joined = s.onboardingFunnel[1] and s.onboardingFunnel[1].reached or 0
+	-- Tutorial funnel: the seven lessons (through TutorialComplete) should keep nearly
+	-- everyone; soft steps are skipped because a later step may pass them over.
+	local tutorial = s.tutorialFunnel
+	local joined = tutorial[1] and tutorial[1].reached or 0
 	if joined >= 20 then
-		for i = 2, #s.onboardingFunnel do
-			local row = s.onboardingFunnel[i]
-			if row.ofPrevious and row.ofPrevious < 80 and i <= 9 then
-				flag("high", "onboarding", row.step .. " keeps only " .. row.ofPrevious .. "% of the previous step (" .. row.reached .. " players).")
-			elseif row.ofPrevious and row.ofPrevious < 60 then
-				flag("medium", "onboarding", row.step .. " keeps " .. row.ofPrevious .. "% of the previous step.")
+		local complete = Schema.TutorialFunnelIndex.TutorialComplete
+		for i = 2, #tutorial do
+			local row = tutorial[i]
+			if row.kind == "hard" and row.ofPrevious then
+				if row.ofPrevious < 80 and i <= complete then
+					flag("high", "onboarding", row.step .. " keeps only " .. row.ofPrevious .. "% of the previous step (" .. row.reached .. " players).")
+				elseif row.ofPrevious < 60 then
+					flag("medium", "onboarding", row.step .. " keeps " .. row.ofPrevious .. "% of the previous step.")
+				end
 			end
 		end
 	end
 	local exitTotal = 0
-	for _, e in s.onboardingExits do exitTotal += e.n end
-	if exitTotal >= 20 and s.onboardingExits[1] and s.onboardingExits[1].n / exitTotal >= 0.3 then
-		flag("high", "onboarding", "Guide step '" .. s.onboardingExits[1].guideStep .. "' is where " ..
-			math.floor(s.onboardingExits[1].n / exitTotal * 100) .. "% of onboarding exits happen.")
+	for _, e in s.tutorialExits do exitTotal += e.n end
+	if exitTotal >= 20 and s.tutorialExits[1] and s.tutorialExits[1].n / exitTotal >= 0.3 then
+		flag("high", "onboarding", "Tutorial step '" .. s.tutorialExits[1].step .. "' is the furthest step in " ..
+			math.floor(s.tutorialExits[1].n / exitTotal * 100) .. "% of unfinished tutorial sessions.")
 	end
 	for _, cohort in s.cohorts do
 		local d1 = cohort.retention.d1
@@ -680,7 +670,8 @@ function Report.SummaryJSON(options: Options?): string
 	return HttpService:JSONEncode(Report.Summary(options))
 end
 
--- Sampled journeys for one day: onboarding sessions plus ~5% of the rest.
+-- Sampled journeys for one day: tutorial sessions plus ~5% of the rest.
+-- onlyOnboarding keeps the tutorial ones (stage "Tut:<step>"; "Onb:" before version 12).
 function Report.Journeys(options: {day: string?, env: string?, limit: number?, onlyOnboarding: boolean?, store: any?}?)
 	local opts = options or {}
 	local ds = store(opts :: any)
@@ -692,7 +683,8 @@ function Report.Journeys(options: {day: string?, env: string?, limit: number?, o
 		if ok and type(record) == "table" then
 			dropped += record.dropped or 0
 			for _, entry in record.list or {} do
-				if not opts.onlyOnboarding or (type(entry.stage) == "string" and string.sub(entry.stage, 1, 4) == "Onb:") then
+				local prefix = if type(entry.stage) == "string" then string.sub(entry.stage, 1, 4) else ""
+				if not opts.onlyOnboarding or prefix == "Tut:" or prefix == "Onb:" then
 					table.insert(list, entry)
 				end
 			end
@@ -712,6 +704,14 @@ local function spend(row: any): number
 	return math.max(row.robuxActual or 0, row.robux or 0)
 end
 
+-- Furthest Tutorial funnel step in a profile's tf record (nil if it has none).
+local function tutorialMax(tf: any): number?
+	if type(tf) ~= "table" then return nil end
+	local furthest = 0
+	for code in tf do furthest = math.max(furthest, tonumber(code) or 0) end
+	return furthest
+end
+
 -- One profile (`p/<userId>`) as a flat row. Profiles from before version 5 have
 -- no dev/geo/robuxActual fields; those stay nil (robuxActual 0). `robux` is the
 -- launch-price estimate: the larger of the v1 `robux` and the v5 `robuxEstimate`.
@@ -724,7 +724,7 @@ function Report.PlayerRow(key: string, profile: any)
 		lastPurchase = profile.lastPurchase, firstPurchaseDevice = profile.firstPurchaseDevice,
 		platform = dev.platform, tier = dev.tier, os = dev.os, input = dev.input, geo = profile.geo,
 		premium = profile.premium, age = profile.age, joinSource = profile.joinSource,
-		friendsInServer = profile.friendsInServer, rebirths = profile.rebirths, onbMax = profile.onbMax,
+		friendsInServer = profile.friendsInServer, rebirths = profile.rebirths, tutorialMax = tutorialMax(profile.tf),
 		lastExit = profile.lastExit, snap = profile.snap, life = profile.life, funN = profile.funN}
 end
 
