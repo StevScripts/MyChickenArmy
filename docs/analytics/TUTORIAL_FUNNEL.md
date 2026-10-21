@@ -6,7 +6,7 @@ tutorial. Be VERY detailed in the funnel descriptions." This is that funnel: one
 with every action of the Drop a Fruit–style guide (`docs/team/COMMANDER_TUTORIAL.md`)
 as its own step. Latest October 21 (Stevin: "keep the tutorial as SHORT as possible"): the
 tutorial is seven lessons — click eggs, sell, roll, take the chicken, claim the Egg Vacuum,
-vacuum 20 eggs, sell them — and completes there; fights are left to the quiet Next goals.
+vacuum 20 eggs, sell them — and completes there. Nothing instructs the player after it (no Next goals).
 
 Source of truth: `Schema.TutorialFunnel` in `src/server/AnalyticsSchema.luau` (this page is
 generated from it; if they disagree, the schema wins). Tracking: `src/server/AnalyticsTutorial.luau`,
@@ -236,21 +236,21 @@ Read it: `AnalyticsReport.Summary({days = 7}).tutorialFunnel` in Studio Edit (ea
 - **What it tells you:** The return hook. Soft because a server can lag; passed over (tf.skip.19) if a later step happens first. Compare with D1 retention per cohort.
 
 
-### After the tutorial (no card, quiet Next goals)
+### After the tutorial (no instructions)
 
 
 #### 20 Captured Cluck Camp  
 `CluckCampWon` · hard
 
-- **On screen:** No tutorial card; the quiet 'Next:' line points at Cluck Camp (and names a cheap power step when the fight is Very tough).
+- **On screen:** Nothing on screen guides the player any more; they find Cluck Camp on their own (camp signs show Should win / Close fight / Very tough).
 - **Counts when:** First camp win (firstWins, campsWon or tutorial.wonCamp).
-- **What it tells you:** First fight, now taught by Next goals instead of the tutorial. A drop from TutorialComplete is players who never fought or lost; read with the Camp funnel (Deployed, Won).
+- **What it tells you:** First fight, found without any instructions (Stevin removed all post-tutorial guidance). A drop from TutorialComplete is players who never fought or lost; read with the Camp funnel (Deployed, Won). If this is low, fighting needs its own discovery hook.
 
 
 #### 21 Won Fort Roost  
 `FortRoostWon` · hard
 
-- **On screen:** Next goals point at Fort Roost and name the power gap.
+- **On screen:** No guidance; the camp sign shows the fight estimate.
 - **Counts when:** firstWins[2].
 - **What it tells you:** The October 20 funnel review found next-day return is about 20% for players who win Fort Roost on day 1 and 2% for those who don't. The most important post-tutorial step; read by cohort.
 
@@ -258,7 +258,7 @@ Read it: `AnalyticsReport.Summary({days = 7}).tutorialFunnel` in Studio Edit (ea
 #### 22 Won Ironbeak HQ  
 `IronbeakWon` · hard
 
-- **On screen:** Next goals.
+- **On screen:** No guidance.
 - **Counts when:** firstWins[3].
 - **What it tells you:** Mid-route progress, usually in a later session (tf.s1 is low here).
 
@@ -266,7 +266,7 @@ Read it: `AnalyticsReport.Summary({days = 7}).tutorialFunnel` in Studio Edit (ea
 #### 23 Beat the Chicken King  
 `KingCleared` · hard
 
-- **On screen:** Next goals.
+- **On screen:** No guidance.
 - **Counts when:** session.kingCleared.
 - **What it tells you:** End of the main route.
 

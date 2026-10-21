@@ -25,11 +25,19 @@ list, "TUTORIAL • n/7", and completes after it (`guideCompleted` + `coreDone` 
 Then "TUTORIAL COMPLETE! Keep collecting eggs and rolling chickens!" with confetti, My Army
 appears and Daily Rewards Day 1 opens.
 
+**No instructions after the tutorial (later the same day, Stevin: "there should be no
+instructions after the player collects their daily reward").** After the completion card
+(8 s) and the Daily Rewards popup nothing guides the player: `TutorialGuide.NextGoal`
+and the quiet "Next:" line are deleted, the world marker no longer shows NEXT camp goals
+or automatic first-Mission ATTACK hints (it still follows a Mission picked with GUIDE in
+the Missions panel), and the Settings "Next goal hints" toggle is gone (the saved
+`goalsHidden` flag stays, unused). Older sections below that describe Next goals are
+history.
+
 Removed from the tutorial: Flock Size I (the vacuum lesson already teaches Upgrades; the
 fourth Duck sits in storage until a Flock upgrade), the "TIP" list, the vacuum's
-"TIP • COMPLETE" card, and the Army Size I / Equip Best / Cluck Camp lessons. Fighting is
-led by the quiet Next goals ("Attack Cluck Camp", with the power gap and the cheapest step
-when it is Very tough). The 1,200 Army Size reserve is released when the guide completes.
+"TIP • COMPLETE" card, and the Army Size I / Equip Best / Cluck Camp lessons. Players find camps and fights on
+their own. The 1,200 Army Size reserve is released when the guide completes.
 Nothing in the tutorial costs Coins, so the player still has 2,400 at the end.
 
 ## Funnels reworked: later October 21 (analytics schema 11)

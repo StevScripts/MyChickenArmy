@@ -76,7 +76,8 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   lessons "TUTORIAL • n/7", only the essentials: click 3 eggs, sell, pull the lever,
   take the chicken (0 Coins), claim the Egg Vacuum (0 Coins), vacuum 20 eggs, sell them.
   The guide completes there; Flock Size I, Army Size I and Cluck Camp are not lessons
-  (quiet Next goals lead to fights). No "FREE" wording anywhere. Menu lessons
+  and nothing instructs the player after the tutorial: no Next goals, no NEXT marker,
+  no automatic Mission hints (only a Mission picked with GUIDE). No "FREE" wording anywhere. Menu lessons
   darken the screen around their control with a gold ring, and the egg lesson lights
   one egg with a tapping hand. This overrides the Oct 6 no-dimming/no-highlight rule
   for the guide; don't remove them. Contract: `docs/team/COMMANDER_TUTORIAL.md`.

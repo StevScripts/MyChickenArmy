@@ -559,36 +559,19 @@ function BaseController:UpdateObjective()
    end
   elseif guidance.target then target=plot and plot:FindFirstChild(guidance.target) end
  end
- local where=nil
- if not guidance then
-  -- Same source as the Commander's next-goal line, so marker and text agree.
-  -- (Optional outposts are disabled; Progression.Outposts() is empty.)
-  local goal=Guide.NextGoal(state,true)
-  where=goal and goal.target
-  if where and string.sub(where,1,4)=="Camp" then target=lane and lane:FindFirstChild(where)
-  elseif where=="KingArena" then target=world:FindFirstChild("KingArena")
-  elseif where=="RollStation" then target=plot and plot:FindFirstChild("RollStation") end
- end
- -- A mission in progress outranks every other goal: point at its site. With no
- -- other goal, point at the waiting mission that leaves soonest.
- -- October 20 (owner): these mission arrows and the beam only teach the first
- -- Mission win, and they obey Settings > Next goal hints.
+ -- Later October 21 (Stevin): no instructions after the tutorial. The marker only
+ -- follows the tutorial's own lessons and a Mission the player picked with GUIDE in
+ -- the Missions panel (the automatic NEXT camp goal and first-Mission hints are gone).
  local ops=state.operations
- local missionHints=not (state.tutorial or {}).goalsHidden and next((ops and ops.wins) or {})==nil
  local missionFolder=world:FindFirstChild("Missions")
- local zone=ops and ops.activeSite and missionFolder and missionFolder:FindFirstChild("Mission_"..ops.activeSite)
- local invasion=if missionHints and zone and zone.PrimaryPart then zone.PrimaryPart:FindFirstChild("Marker") else nil
- if invasion then target=invasion end
  local waiting=nil
- -- GUIDE in the Missions panel picks a site and outranks other goals; without it,
- -- point at the first open mission when nothing else is a goal.
  local tracker=self.app.missionTracker
  local guided=tracker and tracker.guideId
  local nextMission=nil
  for _,mission in (ops and ops.missions) or {} do
-  if not mission.locked and not mission.yours and not mission.busy and (guided==nil or mission.id==guided) then nextMission=mission;break end
+  if not mission.locked and not mission.yours and not mission.busy and mission.id==guided then nextMission=mission;break end
  end
- if not invasion and (guided~=nil or (missionHints and not guidance and (target==nil or where=="Mission"))) and nextMission and missionFolder then
+ if guided~=nil and nextMission and missionFolder then
   local site=missionFolder:FindFirstChild("Mission_"..nextMission.id)
   waiting=site and site.PrimaryPart and site.PrimaryPart:FindFirstChild("Marker")
   if waiting then target=waiting end
@@ -597,11 +580,8 @@ function BaseController:UpdateObjective()
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
  self.objective.Adornee=anchor
- local panel=self.app.operationsPanel
- local left=invasion and panel and panel.expiresAt and math.max(0,math.ceil(panel.expiresAt-os.clock()))
  local waitLeft=waiting and tracker and tracker:Remaining(nextMission.id)
- self.objectiveCaption.Text=if invasion then (if left then ("ATTACK %d:%02d"):format(left//60,left%60) else "ATTACK")
-  elseif waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
+ self.objectiveCaption.Text=if waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
   elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  -- Pop on a new goal only; the ticking countdown digits are ignored.
@@ -610,10 +590,10 @@ function BaseController:UpdateObjective()
  self.objectiveKey=captionKey
  self.objective.Enabled=anchor~=nil and not self.app.panel.Visible and not self.app.dialogueActive
   and not (self.app.research and self.app.research.root.Visible) and not (self.app.offlineCash and self.app.offlineCash.gui)
-  and (invasion~=nil or state.armyState=="Home" or state.armyState=="Following") and not state.incoming
+  and (state.armyState=="Home" or state.armyState=="Following") and not state.incoming
   and not (self.commandHeading.Enabled and self.nearestCommand and self.nearestCommand.model==target)
   and not (self.lockedHeading.Enabled and self.lockedHeading.Adornee==anchor)
- self:UpdateGuideTrail(anchor,self.objective.Enabled and (guidance~=nil or invasion~=nil or waiting~=nil))
+ self:UpdateGuideTrail(anchor,self.objective.Enabled and (guidance~=nil or waiting~=nil))
  if self.app.commander then self.app.commander:Update() end
 end
 

@@ -68,13 +68,11 @@ end
 
 function Commander:FitInstruction()
 	-- TextScaled enables wrapping in Roblox. Cap it at the largest size that fits;
-	-- only text/frame changes remeasure, never a frame-by-frame loop. The full guide
-	-- card stays one line. October 15 (owner, mobile): the quiet post-guide line may
-	-- wrap to two lines, so long goals stay readable on a phone instead of shrinking.
+	-- only text/frame changes remeasure, never a frame-by-frame loop. The guide card
+	-- stays one line.
 	local label=self.instruction
 	local space=label.AbsoluteSize
 	if space.X<=0 or space.Y<=0 then return end
-	if self.quiet then self:FitQuiet();return end
 	local low,high,best=1,100,1
 	while low<=high do
 		local size=math.floor((low+high)/2)
@@ -84,58 +82,6 @@ function Commander:FitInstruction()
 		else high=size-1 end
 	end
 	for _,limit in self.instructionLimits do limit.MaxTextSize=best end
-end
-
--- October 9: post-guide goals use a quiet line: half width, no portrait,
--- no typewriter or entrance motion. The full card belongs to the guide itself.
-local FULL = {card=UDim2.fromScale(.86,.115), aspect=7.4, bodyPosition=UDim2.fromScale(.1,.13), bodySize=UDim2.fromScale(.9,.78),
-	bodyTransparency=.28, textPosition=UDim2.fromScale(.18,.33), textSize=UDim2.fromScale(.795,.53)}
--- The quiet card's height allowance (.3) only matters when FitQuiet lowers its aspect.
-local QUIET = {card=UDim2.fromScale(.46,.3), aspect=7.5, bodyPosition=UDim2.fromScale(0,.1), bodySize=UDim2.fromScale(1,.8),
-	bodyTransparency=.45, textPosition=UDim2.fromScale(.04,.18), textSize=UDim2.fromScale(.92,.64)}
-
--- October 16 (owner, mobile: "super shrunk"): a landscape phone is short, so the
--- 7.5:1 quiet line was only ~40pt tall and long goals fell to ~12pt. One layout for
--- every device: when the text would drop below QUIET_MIN_TEXT, the card gets taller
--- (lower aspect) so it wraps at that size instead. Measured from the screen width
--- allowance only, so the resize it causes cannot change the answer (no feedback loop).
-local QUIET_MIN_TEXT, QUIET_MAX_TEXT, QUIET_MIN_ASPECT = 20, 30, 3
-function Commander:FitQuiet()
-	local label,area=self.instruction,self.card.Parent.AbsoluteSize
-	local cardWidth=math.min(area.X*QUIET.card.X.Scale,area.Y*QUIET.card.Y.Scale*QUIET.aspect)
-	local textWidth=math.max(1,cardWidth*QUIET.textSize.X.Scale-4)
-	local function largest(textHeight)
-		local low,high,best=1,QUIET_MAX_TEXT,1
-		while low<=high do
-			local size=math.floor((low+high)/2)
-			local bounds=TextService:GetTextSize(label.Text,size,label.Font,Vector2.new(textWidth,100000))
-			if bounds.X<=textWidth and bounds.Y<=textHeight*.96 then best,low=size,size+1 else high=size-1 end
-		end
-		return best
-	end
-	local aspect=QUIET.aspect
-	local best=largest(cardWidth/aspect*QUIET.textSize.Y.Scale)
-	if best<QUIET_MIN_TEXT then
-		local bounds=TextService:GetTextSize(label.Text,QUIET_MIN_TEXT,label.Font,Vector2.new(textWidth,100000))
-		-- 2% headroom so the minimum size itself passes the fit test after rounding.
-		aspect=math.clamp(cardWidth*QUIET.textSize.Y.Scale*.96/(math.max(1,bounds.Y)*1.02),QUIET_MIN_ASPECT,QUIET.aspect)
-		best=largest(cardWidth/aspect*QUIET.textSize.Y.Scale)
-	end
-	if self.cardAspect and self.cardAspect.AspectRatio~=aspect then self.cardAspect.AspectRatio=aspect end
-	for _,limit in self.instructionLimits do limit.MaxTextSize=best end
-end
-
-function Commander:SetQuiet(quiet)
-	if self.quiet == quiet then return end
-	self.quiet = quiet
-	local layout = if quiet then QUIET else FULL
-	self.card.Size = layout.card
-	if self.cardAspect then self.cardAspect.AspectRatio = layout.aspect end
-	self.body.Position, self.body.Size, self.body.BackgroundTransparency = layout.bodyPosition, layout.bodySize, layout.bodyTransparency
-	self.instruction.Position, self.instruction.Size = layout.textPosition, layout.textSize
-	self.portrait.Visible = not quiet
-	self.tag.Visible = not quiet
-	self:FitInstruction()
 end
 
 function Commander:CancelTypewriter()
@@ -171,22 +117,22 @@ function Commander:Present(visible, changed)
 		Theme.Motion:Cancel(self.card,"guide-enter")
 		Theme.Motion:Cancel(self.portrait,"guide-salute");self.portrait.Rotation=0
 		self.card.Position=CARD_POSITION
-	elseif (not self.wasVisible or changed) and not self.app.reducedMotion and not self.quiet then
+	elseif (not self.wasVisible or changed) and not self.app.reducedMotion then
 		Theme.Motion:Cancel(self.card,"guide-enter")
 		self.card.Position=CARD_POSITION+UDim2.fromScale(0,.008)
 		Theme.Motion:Tween(self.card,"guide-enter",{Position=CARD_POSITION},ENTER_SECONDS)
 		self.portrait.Rotation=-6
 		Theme.Motion:Tween(self.portrait,"guide-salute",{Rotation=0},.24)
-	elseif self.app.reducedMotion or self.quiet then
+	elseif self.app.reducedMotion then
 		Theme.Motion:Cancel(self.card,"guide-enter");self.card.Position=CARD_POSITION
 		Theme.Motion:Cancel(self.portrait,"guide-salute");self.portrait.Rotation=0
 	end
 	self.card.Visible,self.wasVisible=visible,visible
 	-- Top-centre priority: a lesson card hides the Hill banner (HillHud reads this).
-	self.lessonVisible=visible and not self.quiet
+	self.lessonVisible=visible
 	local app=self.app
 	-- Notices sit below the card, so move a showing one when the card appears, hides or resizes.
-	local layout=if visible then (if self.quiet then "quiet" else "lesson") else "hidden"
+	local layout=if visible then "lesson" else "hidden"
 	if layout~=self.noticeLayout then
 		self.noticeLayout=layout
 		if app.PlaceNotice then app:PlaceNotice() end
@@ -440,9 +386,8 @@ function Commander:Update()
 			current=nil
 		end
 	end
-	if not current then current=Guide.NextGoal(state) end
-	-- A live Hill round takes the top slot; quiet next-goal lines wait (lessons never do).
-	if current and current.goal and app.hud and app.hud.hill and app.hud.hill.bannerVisible then current=nil end
+	-- Later October 21 (Stevin): no instructions after the tutorial, so nothing follows
+	-- the completion card (the old quiet "Next:" goals are gone).
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
 	if self.facts and not self.completedBeforeVisit then
@@ -450,9 +395,9 @@ function Commander:Update()
 	end
 	-- The payoff shares the Complete card's id, so the line types once and its 8 s count on.
 	if self:Celebrating() then current={id="Complete",text=self.payoff.text,tag=self.payoff.tag} end
-	self:SetArmyHidden(current~=nil and not current.goal and not facts.Core
+	self:SetArmyHidden(current~=nil and not facts.Core
 		and (state.tutorial or {}).starterArmy==true and not self.completedBeforeVisit)
-	if self.facts and current and not current.goal then
+	if self.facts and current then
 		for _,milestone in Guide.Milestones do
 			if facts[milestone] and not self.facts[milestone] then self.celebrate=true end
 		end
@@ -497,17 +442,14 @@ function Commander:Update()
 	for prompt in self.prompts do
 		if not prompt.Parent then self.prompts[prompt]=nil
 		elseif (current.target=="RollStation" and prompt:FindFirstAncestor("RollStation"))
-			or ((id=="Deploy" or string.sub(id,1,12)=="Goal:Attack:") and prompt.Name=="ArmyCommandPrompt") then atTarget=true end
+			or (id=="Deploy" and prompt.Name=="ArmyCommandPrompt") then atTarget=true end
 	end
 	-- Let the game's native action prompt take over when the player reaches it.
 	-- Notices no longer hide the card; AppController:NoticePosition places them below it.
-	-- Lessons stay on screen over their menu, above the dimmed screen (the reference);
-	-- quiet Next goals still step aside for menus.
-	local quiet=current.goal==true
-	local menuLesson=not quiet and current.outside~=nil
+	-- Menu lessons stay on screen over their menu, above the dimmed screen (the reference).
+	local menuLesson=current.outside~=nil
 	local visible=(menuLesson or (not app.panel.Visible and not inTree)) and not blocked and not atTarget
-	self:SetQuiet(quiet)
-	self:SetInstruction(if quiet then "Next: "..current.text else text,visible and self.pendingType and not quiet)
+	self:SetInstruction(text,visible and self.pendingType)
 	self.tag.Text=if current.tag and current.index then current.tag.." • "..current.index.."/"..current.total
 		elseif current.tag then current.tag elseif id=="Complete" then "TUTORIAL COMPLETE!" else ""
 	if visible then self.pendingType=false end
@@ -534,8 +476,8 @@ function Commander:Update()
 	if holdingVacuum~=self.wasHolding then self.wasHolding=holdingVacuum;if holdingVacuum then self:Signal("VacuumEquip") end end
 	local target,placement
 	local where=current.target
-	-- Menu lessons dim the screen around their control; Next goals never do.
-	local dim=not quiet and (where=="Upgrades" or where=="VacuumTool" or id=="Select" or id=="Deploy")
+	-- Menu lessons dim the screen around their control.
+	local dim=where=="Upgrades" or where=="VacuumTool" or id=="Select" or id=="Deploy"
 	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
 	if blocked then
 		target=nil

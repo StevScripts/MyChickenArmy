@@ -665,13 +665,6 @@ function AppController:RenderSettings()
 	if auto and auto.unlocked then
 		self:Button("AutoRollSettings", "Auto Roll settings", function() self.autoRollMenu:Open() end, Theme.ActionColors.navigation)
 	end
-	-- After the guide, a quiet next-goal line points to the next camp until the King.
-	if tutorial.guideCompleted or tutorial.wonCamp then
-		local hidden=tutorial.goalsHidden==true
-		toggle("ToggleGoals", "Next goal hints", not hidden, function()
-			self:Request("TutorialSignal",{signal=if hidden then "ShowGoals" else "HideGoals"})
-		end)
-	end
 	-- Testers: a disposable brand-new profile; the real save is kept and returns on rejoin.
 	if self.state.newPlayerTestAllowed then
 		if self.confirm and self.confirm.kind == "NewPlayerTest" then

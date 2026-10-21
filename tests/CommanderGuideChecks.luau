@@ -29,21 +29,13 @@ local function opening()
 			EggVacuum={status="Available",price=0}}}}
 end
 
--- Just after Cluck Camp: guide complete, Fort Roost next at 63 vs 107 power.
+-- A player who finished the tutorial earlier (guide complete, nothing pending).
 local function afterGuide()
 	local state=opening()
-	state.tutorial={starterArmy=true,guideStarted=true,guideCompleted=true,bought=true,soldEggs=true,
-		rolled=true,collectedEggCount=20,wonCamp=true}
+	state.tutorial={starterArmy=true,guideStarted=true,guideCompleted=true,coreDone=true,bought=true,soldEggs=true,
+		rolled=true,collectedEggCount=3,vacuumEggCount=20,vacuumSold=true}
 	state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
-	state.capacity,state.selectedCount,state.coins,state.power,state.flock=4,4,800,63,{size=4}
-	state.starterCashReserve,state.starterArmyReserve=0,0
-	state.campsWon,state.routeCamps=1,{true}
-	state.targets={{id="camp:1",name="Cluck Camp",power=40,owned=true},{id="camp:2",name="Fort Roost",power=107}}
-	state.tools={eggVacuum=false,chickenFeed=false,vacuum={count=0,capacity=40}}
-	state.rebirth={enabled=true,eligible=false,nextRank=1,cost=50000}
-	state.upgradeTree={families={Flock=1,ArmySize=1},nodes={EggVacuum={status="Available",price=500},
-		ChickenFeed={status="Unaffordable",price=1000},ArmySize2={status="Unaffordable",price=6000},
-		VacuumCapacity1={status="Locked",price=500}}}
+	state.tools={eggVacuum=true,chickenFeed=false,vacuum={count=0,capacity=40}}
 	return state
 end
 
@@ -116,88 +108,19 @@ function Checks.Run()
 		expect(Guide.Resolve(state),"Return","Wait for your army to return")
 		state.armyState="Marching"
 		expect(Guide.Resolve(state),"Battle","Your army is fighting")
-		local after=afterGuide()
-		after.outgoing,after.armyState="battle2","Returning"
-		expect(Guide.NextGoal(after),"Goal:Return","Collect eggs while your army returns")
-		after.incoming=true
-		assert(Guide.NextGoal(after)==nil,"Defending shows no goal")
 		return "Returning beats outgoing"
 	end)
 
-	test("After the guide: buy the Egg Vacuum, equip it, then Chicken Feed",function()
+	test("After the tutorial there are no more instructions",function()
 		local state=afterGuide()
-		local vacuum=Guide.NextGoal(state)
-		expect(vacuum,"Goal:Vacuum","Buy the Egg Vacuum in Upgrades > Tools")
-		assert(vacuum.goal and vacuum.target=="Upgrades" and vacuum.node=="EggVacuum","Vacuum hex")
-		state.tools.eggVacuum=true
-		local equip=Guide.NextGoal(state)
-		expect(equip,"Goal:EquipVacuum","Equip your Egg Vacuum, then walk near your eggs")
-		assert(equip.target=="VacuumTool","Dock slot target")
-		state.tutorial.vacuumUsed=true
-		state.upgradeTree.nodes.ChickenFeed.status="Available"
-		expect(Guide.NextGoal(state),"Goal:Feed","Buy Chicken Feed in Upgrades > Tools")
-		state.tools.vacuum={count=40,capacity=40}
-		state.upgradeTree.nodes.VacuumCapacity1.status="Available"
-		state.upgradeTree.nodes.ChickenFeed.status="Unaffordable"
-		expect(Guide.NextGoal(state),"Goal:Capacity","Vacuum full? Buy Vacuum Capacity in Upgrades > Tools")
-		return "Vacuum, equip, Feed, capacity"
-	end)
-
-	test("A Very tough Fort Roost names the gap and the cheapest step; never Fuse",function()
-		local state=afterGuide()
-		state.tools.eggVacuum,state.tutorial.vacuumUsed=true,true
-		local texts={}
-		local function goal()
-			local current=Guide.NextGoal(state)
-			table.insert(texts,current and current.text or "")
-			return current
-		end
-		expect(goal(),"Goal:Power:camp:2:Save","Army 63 / Fort Roost 107: sell eggs for Chicken Feed (Upgrades > Tools)")
-		state.tools.chickenFeed=true
-		state.pets={{id="a",selected=true,canUpgrade=true,upgradePrice=450},{id="b"},{id="c"},{id="d"}}
-		local feed=goal()
-		expect(feed,"Goal:Power:camp:2:Feed","Army 63 / Fort Roost 107: feed your Army chickens")
-		assert(feed.target=="FeedTool","Feed slot target")
-		state.coins=300
-		state.offers={{price=250,improvesArmy=true}}
-		expect(goal(),"Goal:Power:camp:2:Recruit","Army 63 / Fort Roost 107: buy the chicken on your podium")
-		state.offers={}
-		state.coins=7000
-		state.pets[1].upgradePrice=9000
-		state.pets[5]={id="e"}
-		state.upgradeTree.nodes.ArmySize2.status="Available"
-		local slots=goal()
-		expect(slots,"Goal:Power:camp:2:Slots","Army 63 / Fort Roost 107: buy Army Size II in Upgrades")
-		assert(slots.node=="ArmySize2","Army Size II hex")
-		state.upgradeTree.nodes.ArmySize2.status="Unaffordable"
-		expect(goal(),"Goal:Power:camp:2:Earn","Army 63 / Fort Roost 107: sell eggs, then feed your Army chickens")
-		state.power=150
-		expect(goal(),"Goal:Attack:camp:2","Attack Fort Roost")
-		for _,text in texts do
-			assert(not string.find(text,"Fuse") and not string.find(text,"%$"),"Old wording: "..text)
-		end
-		return #texts.." goals, none mention Fuse"
-	end)
-
-	test("Rebirth: only once ready before the King, progress after it",function()
-		local state=afterGuide()
-		state.coins,state.power=30000,300
-		expect(Guide.NextGoal(state),"Goal:Vacuum",nil,"30K of 50K stays quiet before the King")
-		state.rebirth.eligible=true
-		local ready=Guide.NextGoal(state)
-		expect(ready,"Goal:Rebirth","Rebirth is ready! Open Rebirth on the right")
-		assert(ready.target=="Rebirth","HUD Rebirth button")
-		state.rebirth.eligible=false
-		state.tools.eggVacuum,state.tutorial.vacuumUsed=true,true
-		state.kingCleared,state.operations=true,{tier=1,wins={}}
-		expect(Guide.NextGoal(state),"Goal:Operations","Attack a loyalist site on the island")
-		state.operations.wins={["1:2"]=true}
-		expect(Guide.NextGoal(state),"Goal:Rebirth:1","Rebirth 1: 30K / 50K Coins")
-		state.tutorial.goalsHidden=true
-		assert(Guide.NextGoal(state)==nil,"Settings hid the goals")
-		state.tutorial.goalsHidden,state.tutorial.guideSkipped=false,true
-		assert(Guide.NextGoal(state)==nil and Guide.NextGoal(state,true)~=nil,"Skipped guide keeps the world marker only")
-		return "Ready, Missions, then progress"
+		expect(Guide.Resolve(state),"Complete",Guide.CompleteText,"Only the completion card")
+		assert(Guide.NextGoal==nil,"Next goals were removed")
+		state.outgoing,state.armyState="battle2","Returning"
+		expect(Guide.Resolve(state),"Complete",nil,"No battle or return lines after the tutorial")
+		local skipped=opening()
+		skipped.tutorial.guideSkipped=true
+		assert(Guide.Resolve(skipped)==nil,"A hidden guide shows nothing")
+		return "Complete card, then nothing"
 	end)
 
 	test("The Egg Vacuum is a 500-Coin Tools node that a session buys",function()
