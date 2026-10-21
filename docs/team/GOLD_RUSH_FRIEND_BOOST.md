@@ -50,7 +50,8 @@ next to the 2x Coins pass and the Rebirth egg multiplier.
 
 ## Gold Rush presentation (`client/GoldRushController.luau`)
 
-- **Chip:** lower right, above Camps held / Flock (above Auto Roll while that shows).
+- **Chip:** the bottom-right corner (October 21, Stevin: the Camps held / Flock lines
+  that sat there are gone).
   It reads "Gold Rush in 14:32" in gold, then "2x Coins! 4:12" in bright gold with
   the coin breathing. Tapping it explains the event. It hides while a menu panel or
   a dialogue is open.

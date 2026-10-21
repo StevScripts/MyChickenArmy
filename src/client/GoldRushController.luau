@@ -1,8 +1,8 @@
 --!strict
 -- October 20 Gold Rush presentation (docs/team/GOLD_RUSH_FRIEND_BOOST.md). Reads the
 -- server's window (ReplicatedStorage.PetRoll attributes GoldRushStartsAt and
--- GoldRushEndsAt, in server time) and shows a countdown chip above Camps held /
--- Flock, a start notice, a warm gold tint, a gold sky and gold sparkles and coins
+-- GoldRushEndsAt, in server time) and shows a countdown chip in the bottom-right
+-- corner, a start notice, a warm gold tint, a gold sky and gold sparkles and coins
 -- drifting around the camera. Visual only: there is nothing to pick up, and the
 -- server already applies the Coins multiplier. Reduced motion keeps the tint and
 -- sky (no fades) and skips the particles.
@@ -72,20 +72,13 @@ function Controller:BuildChip()
 			times(),rush.Seconds//60,rush.EverySeconds//60),"info")
 	end)
 	self.chip,self.icon,self.clock=chip,icon,text
-	local autoRoll=app.hud and app.hud.autoRoll
-	if autoRoll then
-		table.insert(self.connections,autoRoll:GetPropertyChangedSignal("Visible"):Connect(function() self:Place() end))
-	end
 	self:Place()
 end
 
--- Above the Auto Roll toggle while it shows, otherwise just above Camps held / Flock.
+-- October 21 (Stevin): the bottom-right corner, where Camps held / Flock were (Auto
+-- Roll sits higher on the right edge, so the two never meet).
 function Controller:Place()
-	local hud=self.app.hud
-	if not hud then return end
-	local anchor=if hud.autoRoll and hud.autoRoll.Visible then hud.autoRoll else hud.totals
-	if not anchor then return end
-	self.chip.Position=UDim2.fromScale(0.988,anchor.Position.Y.Scale-anchor.Size.Y.Scale-0.01)
+	self.chip.Position=UDim2.fromScale(0.988,0.98)
 end
 
 function Controller:Step()
