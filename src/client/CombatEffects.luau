@@ -96,14 +96,16 @@ function Effects:Number(position: Vector3, amount: number, big: boolean)
 	label.BackgroundTransparency, label.Size, label.Font = 1, UDim2.fromScale(1, 1), Theme.Font
 	label.Text, label.TextColor3 = "-" .. math.floor(amount + 0.5), if big then GOLD else Color3.new(1, 1, 1)
 	label.Parent = gui
-	local stroke = Instance.new("UIStroke");stroke.Color, stroke.Thickness, stroke.Parent = INK, if big then 3 else 2.5, label
-	local size = if big then 38 else 28
+	local stroke = Instance.new("UIStroke");stroke.Color, stroke.Thickness, stroke.Parent = INK, if big then 3.5 else 2.5, label
+	-- October 21 game feel: critical and splash hits land bigger, tilted and rise higher.
+	local size = if big then 44 else 28
+	label.Rotation = if big then math.random(-8, 8) else 0
 	if self.app.reducedMotion then
 		label.TextSize = size
 	else
 		label.TextSize = 10
-		TweenService:Create(label, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextSize = size}):Play()
-		TweenService:Create(anchor, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = start + Vector3.new(0, 2.2, 0)}):Play()
+		TweenService:Create(label, TweenInfo.new(if big then 0.22 else 0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextSize = size}):Play()
+		TweenService:Create(anchor, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = start + Vector3.new(0, if big then 2.8 else 2.2, 0)}):Play()
 	end
 	TweenService:Create(label, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0.55), {TextTransparency = 1}):Play()
 	TweenService:Create(stroke, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0.55), {Transparency = 1}):Play()
