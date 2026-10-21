@@ -73,8 +73,11 @@ local function cancelSize(view)
 	if view.sizeConnection then view.sizeConnection:Disconnect();view.sizeConnection=nil end
 	cancelTween(view,"sizeTween")
 end
+-- Hex grid in canvas pixels: a q step is 154 right, an r step 133.4 down (and 77 right),
+-- each hex 144 x 164. CommanderGuide reads it to rest its arrow in an empty cell.
+Browser.Grid={step=154,row=133.4,width=144,height=164}
 local function point(node)
-	return Vector2.new((690+154*(node.q+node.r/2))/1440,(450+133.4*node.r)/930)
+	return Vector2.new((690+Browser.Grid.step*(node.q+node.r/2))/1440,(450+Browser.Grid.row*node.r)/930)
 end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)

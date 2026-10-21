@@ -258,17 +258,54 @@ function Commander:ClearFocus()
 	self.pointerGuide:SetTarget(nil,self.app.reducedMotion)
 end
 
-function Commander:Focus(target)
-	self.pointerGuide:SetTarget(target,self.app.reducedMotion)
+function Commander:Focus(target,placement)
+	self.pointerGuide:SetTarget(target,self.app.reducedMotion,placement)
+end
+
+-- Arrow spots in the target's own size (GuideFocus.Placement). Hotbar slots sit side by
+-- side, so their arrow comes from above, pointing down (October 20 playtest).
+local ABOVE: GuideFocus.Placement={offset=Vector2.new(0,-1),size=.8}
+-- A hex with hexes on all six sides: a short arrow in the gap just under it, between
+-- the two lower hexes and above their names.
+local UNDER_HEX: GuideFocus.Placement={offset=Vector2.new(0,.68),size=.32}
+local HEX_ARROW=.6 -- Share of a hex's height: fits inside the empty cell beside it.
+type Grid={step:number,row:number,width:number,height:number}
+
+-- October 20 playtest: beside a hex, the arrow covered the next hex's name. It rests in
+-- an empty neighbouring cell instead (TutorialGuide.PointerSide), on the map's own grid.
+function Commander:HexPlacement(id:string):GuideFocus.Placement?
+	local research=self.app.research
+	local grid:Grid?,view=research.Grid,research.nodes[id]
+	if type(grid)~="table" or not view then return nil end
+	local hex=grid :: Grid
+	local button:GuiObject=view.button
+	local scale=button.AbsoluteSize.Y/hex.height
+	local center=button.AbsolutePosition+button.AbsoluteSize/2
+	local area,areaSize=research.root.AbsolutePosition,research.root.AbsoluteSize
+	local margin=button.AbsoluteSize.Y*HEX_ARROW/2
+	local function step(side:{number}):Vector2 return Vector2.new(hex.step*(side[1]+side[2]/2),hex.row*side[2]) end
+	local function shown(other:string):boolean
+		local neighbour=research.nodes[other]
+		return neighbour~=nil and neighbour.button.Visible
+	end
+	-- Skip cells whose arrow would leave the screen.
+	local function fits(side:{number}):boolean
+		local at=center+step(side)*scale
+		return at.X-margin>=area.X and at.X+margin<=area.X+areaSize.X and at.Y-margin>=area.Y and at.Y+margin<=area.Y+areaSize.Y
+	end
+	local side=Guide.PointerSide(id,shown,fits)
+	if not side then return UNDER_HEX end
+	local cell=step(side)
+	return {offset=Vector2.new(cell.X/hex.width,cell.Y/hex.height),size=HEX_ARROW}
 end
 
 -- The guided Upgrades hex: the HUD Upgrades button, the hex itself, or the Open or
 -- Back hex on the way to its map. In My Army, the Flock or Army "+" opens the same
 -- hex (October 20 launch review: Expand quitters opened My Army, not Upgrades).
-function Commander:UpgradeTarget(nodeId,inTree,inArmy)
+function Commander:UpgradeTarget(nodeId:string,inTree:boolean,inArmy:boolean):(any,GuideFocus.Placement?)
 	local app=self.app
 	local node=CashNodes.Nodes[nodeId]
-	if not node then return nil end
+	if not node then return nil,nil end
 	if inTree then
 		local research=app.research
 		local category=research.category or "Main"
@@ -276,19 +313,25 @@ function Commander:UpgradeTarget(nodeId,inTree,inArmy)
 		local show=if node.category==category then nodeId
 			elseif category=="Main" then (open and open.id) else CashNodes.Roots[category]
 		local view=show and research.nodes[show]
-		return view and view.button
+		if not view then return nil,nil end
+		return view.button,self:HexPlacement(show)
 	end
 	if inArmy then
 		local browser=app.chickenBrowser
-		return if node.family=="Flock" then browser.flockPlus elseif node.family=="ArmySize" then browser.capacityPlus else nil
+		return if node.family=="Flock" then browser.flockPlus elseif node.family=="ArmySize" then browser.capacityPlus else nil,nil
 	end
-	return if app.panel.Visible then nil else app.hud.shortcuts:FindFirstChild("Upgrades")
+	return if app.panel.Visible then nil else app.hud.shortcuts:FindFirstChild("Upgrades"),nil
 end
 
--- A tool's dock slot (Egg Vacuum or Chicken Feed); the dock hides itself behind menus.
--- Roblox's own hotbar is CoreGui, so without the custom dock there is no pointer.
-function Commander:ToolSlot(name)
-	local dock=self.app.tools and self.app.tools.dock
+-- A tool's hotbar slot: S11b's anchor over that slot in Roblox's own hotbar, then its
+-- single hotbar anchor, then the older custom dock's slot (which hides behind menus).
+function Commander:ToolSlot(name:string):GuiObject?
+	local tools=self.app.tools
+	if not tools then return nil end
+	local anchors=tools.hintAnchors
+	local anchor=(if type(anchors)=="table" then anchors[name] else nil) or tools.hintAnchor
+	if typeof(anchor)=="Instance" and anchor:IsA("GuiObject") then return anchor end
+	local dock=tools.dock
 	local slot=dock and dock.slots and dock.slots[name]
 	return slot and slot.button
 end
@@ -374,7 +417,7 @@ function Commander:Update()
 		if UserInputService.GamepadEnabled then app.research:Select(lessonNode,true);GuiService.SelectedObject=app.research.nodes[lessonNode].button end
 	end
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
-	local target
+	local target,placement
 	local where=current.target
 	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
 	if blocked then
@@ -385,16 +428,17 @@ function Commander:Update()
 		-- October 20 launch review: 60% of Deploy quitters were still inside Upgrades.
 		target=if inTree then exit else nil
 	elseif where=="Upgrades" and current.node then
-		target=self:UpgradeTarget(current.node,inTree,inArmy)
+		target,placement=self:UpgradeTarget(current.node,inTree,inArmy)
 		if id=="Expand" and inTree and app.research.selected==current.node and not self.sent.NodeInspect then
 			self.sent.NodeInspect=true;self:Signal("NodeInspect")
 		end
 	elseif where=="VacuumTool" or where=="FeedTool" then
 		target=if app.panel.Visible or inTree then nil else self:ToolSlot(if where=="VacuumTool" then "EggVacuum" else "ChickenFeed")
+		placement=if target then ABOVE else nil
 	elseif where=="Rebirth" then
 		target=if app.panel.Visible or inTree then nil else app.hud.reenlist
 	end
-	self:Focus(target)
+	self:Focus(target,placement)
 end
 
 function Commander:Destroy()
