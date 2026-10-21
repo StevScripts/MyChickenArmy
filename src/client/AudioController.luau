@@ -130,6 +130,16 @@ function AudioController:Has(name)
 	return template ~= nil and template.SoundId ~= ""
 end
 
+-- Play `name` when it is authored, else `fallback` (nil fallback = silence). Never the
+-- generic Pop: a cue that is not in the library yet should stay quiet, not click.
+function AudioController:Cue(name, fallback, pitch, options)
+	local merged = table.clone(options or {})
+	if merged.noFallback == nil then merged.noFallback = true end
+	local chosen = if self:Has(name) then name else fallback
+	if not chosen then return nil end
+	return self:Play(chosen, pitch, merged)
+end
+
 -- A positioned one-shot (8–42 stud roll-off) at a world point: a transient
 -- attachment under Terrain carries the voice and is swept up after it ends.
 function AudioController:PlayAt(name, position, pitch, options)

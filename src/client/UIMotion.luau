@@ -682,9 +682,27 @@ function Motion:Glow(item,color,thickness)
 	if not item or not item.Parent then return end
 	local stroke=item:FindFirstChild("MotionGlow")
 	if not stroke then
-		stroke=Instance.new("UIStroke")
-		stroke.Name,stroke.ApplyStrokeMode,stroke.LineJoinMode="MotionGlow",Enum.ApplyStrokeMode.Border,Enum.LineJoinMode.Round
-		stroke.Parent=item
+		-- An item that already owns a UIStroke keeps it: the glow rides a transparent ring
+		-- child instead, so the two strokes never fight over one edge.
+		local host=item
+		if item:FindFirstChildWhichIsA("UIStroke") then
+			local ring=item:FindFirstChild("MotionGlowRing")
+			if not ring then
+				ring=Instance.new("Frame")
+				ring.Name,ring.Size,ring.BackgroundTransparency,ring.BorderSizePixel="MotionGlowRing",UDim2.fromScale(1,1),1,0
+				ring.ZIndex,ring.Active=item.ZIndex+1,false
+				local corner=item:FindFirstChildWhichIsA("UICorner")
+				if corner then corner:Clone().Parent=ring end
+				ring.Parent=item
+			end
+			host=ring
+		end
+		stroke=host:FindFirstChild("MotionGlow")
+		if not stroke then
+			stroke=Instance.new("UIStroke")
+			stroke.Name,stroke.ApplyStrokeMode,stroke.LineJoinMode="MotionGlow",Enum.ApplyStrokeMode.Border,Enum.LineJoinMode.Round
+			stroke.Parent=host
+		end
 	end
 	stroke.Color,stroke.Enabled=color or Motion.Palette[1],true
 	local thick=thickness or 3
@@ -692,7 +710,12 @@ function Motion:Glow(item,color,thickness)
 end
 
 function Motion:StopGlow(item)
-	local stroke=item and item:FindFirstChild("MotionGlow")
+	if not item then return end
+	local stroke=item:FindFirstChild("MotionGlow")
+	if not stroke then
+		local ring=item:FindFirstChild("MotionGlowRing")
+		stroke=ring and ring:FindFirstChild("MotionGlow")
+	end
 	if not stroke then return end
 	self:StopLoop(stroke,"glow")
 	stroke.Enabled=false
