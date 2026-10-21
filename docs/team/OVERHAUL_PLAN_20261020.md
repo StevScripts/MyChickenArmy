@@ -261,6 +261,13 @@ Draft node list (S7 finalizes it in P0):
 - Batch 2 is the linked core (tree, Rebirth, Flock, tools, economy, guide), shipped
   together.
 - Stevin publishes (File → Publish to Roblox) and restarts servers.
+- Every publish needs "Migrate To Latest Update" (or a server restart), every time. An
+  older build drops saved keys it doesn't know when it saves (new Gem levels, new tree
+  families), and pre-overhaul builds refuse revision-12 saves.
+- Batch 2 went live on Oct 20 at 22:07 (about main 8f0d63c), and Stevin restarted the
+  servers. The 10 Research Skip products and Finish Processing Now went off sale with his
+  yes. Saved tiers change meaning only through S7's per-feature version keys
+  (`upgradeTreeVersion` and TreeMigrations), never through a dataRevision bump.
 
 ## Rules this supersedes
 
