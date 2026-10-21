@@ -565,3 +565,30 @@ Recording: `~/Downloads/ScreenRecording_10-20-2026 20-54-22_1.MP4` (landscape ph
 
 Not taken from the recording: the throw hole, the Blitz tool, the Center teleport, the
 offer carousel, the Halloween event and the weather rotation (Stevin skipped these).
+
+Round 2 status (Oct 20 ~22:15): S11b, S12b, S16 and S18 merged; S17 paused by Stevin.
+Stevin's answers during the merges: My Army shrinks about 20% to sit above Roblox's
+hotbar, with the vacuum meter right of the slots (S11b); the guide arrow comes in from
+an empty neighbouring hex and points down at tool slots (S14).
+
+## Round 3 (Oct 20 ~22:05, from three Drop a Fruit Upgrades screenshots)
+
+Screenshots (Stevin's Desktop): `Screenshot 2026-10-20 at 10.02.57 PM.png` (Tools
+subtree), `10.03.21 PM` (main tree) and `10.04.17 PM` (Luck → Super Luck). Each name has
+a U+202F before "PM".
+
+| ID | Session | Notes |
+| --- | --- | --- |
+| S9c | Upgrades tree v2 like the reference | Tools (Open) above Start and Player (Open) below; Roll Slots zig-zag; Roll Speed I–V; tool chains (Vacuum Capacity I–IV, Feed Max Level I–III) |
+
+Decisions (Stevin, in the lead session):
+- Luck has three chains, Luck I–IV → Super Luck I–IV → Mega Luck I–IV. Each chain's tier I
+  opens after the previous chain's IV.
+- Gold, Diamond and Prism Rate have 4 tiers each and halve by tier IV: every 10 → 5,
+  100 → 50 and 500 → 250 rolls.
+- Mutations are bought with Coins in the tree (Golden, Rainbow, Shadow, Cosmic). This
+  replaces the Rebirth-rank unlocks (Rainbow 1 / Shadow 5 / Cosmic 10). Saves that
+  unlocked one by rank must keep it.
+- Chicken Feed Max Level I–III is in the Tools tree for Coins. S7b drops "Chicken Feed Max
+  Level [0/5]" from the Gem shop.
+- "Mainly make sure everything is aesthetic in the upgrades menu."
