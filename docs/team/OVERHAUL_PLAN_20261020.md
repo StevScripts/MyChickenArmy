@@ -546,3 +546,20 @@ Before editing anything, tell Stevin in a few lines what you'll change and which
 - **Release:** Studio playtests before each batch and release notes.
 - **Stevin decides:** publishing and the Creator Dashboard pass changes. Some
   passes may already be off sale; check the dashboard.
+
+## Round 2 (Oct 20 evening, from Stevin's second Drop a Fruit recording)
+
+Stevin's rule: copy the reference game's UX 1:1, but in My Chicken Army's art style.
+Recording: `~/Downloads/ScreenRecording_10-20-2026 20-54-22_1.MP4` (landscape phone,
+149 s). Each prompt lists the timestamps.
+
+| ID | Session | Notes |
+| --- | --- | --- |
+| S11b | Native Roblox toolbar | Egg Vacuum and Chicken Feed as real Tools in Roblox's hotbar; My Army sits above it |
+| S12b | Auto Roll panel 1:1 + both roll counters | ON/OFF header, "Stop When Appear" per rarity, Rarity/Mutation/New pages; replaces the typed "1 in X" |
+| S16 | Playtime Rewards + boosts readout | 12 timed session rewards; total Coins × and Luck × top right |
+| S17 | Quests | "Quest Complete! Roll 5 Uncommon chickens"; named Quests (Missions are army fights) |
+| S18 | Big chicken labels + level-up banner | The nearest chicken shows "LVL n · Name · value"; "leveled up! n → n+1" banner |
+
+Not taken from the recording: the throw hole, the Blitz tool, the Center teleport, the
+offer carousel, the Halloween event and the weather rotation (Stevin skipped these).
