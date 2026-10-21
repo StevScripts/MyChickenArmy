@@ -87,10 +87,12 @@ function Checks.Run()
 		return "30 Veterans, damage 101-165 at the top"
 	end)
 
-	test("Tree values, mutation ranks and default effects",function()
+	test("Tree values, mutation unlocks and default effects",function()
 		assert(Rules.EggUnitValue(0)==4 and Rules.EggUnitValue(4)==20,"Egg unit value "..Rules.EggUnitValue(4))
 		assert(Rules.LuckWindow(4).multiplier==3,"Luck tier 4")
-		assert(Mutations.Defs.Shadow.unlockRank==5 and Mutations.Defs.Cosmic.unlockRank==10,"Mutation ranks")
+		-- S9c: mutations are tree hexes (Golden..Cosmic in Order), not Rebirth ranks.
+		assert(#Tree.Families.Mutation.tiers==#Mutations.Order and (Mutations.Defs.Shadow::any).unlockRank==nil,"Mutation tree hexes")
+		assert(Tree.Effects({Mutation=2},{}).mutations==2,"Mutation tier effect")
 		local effects=Tree.Effects({},{})
 		assert(effects.flockSize==3 and effects.timeSkipMinutes==5 and effects.callArmy==1,"Flock, Time Skip, Call Army")
 		assert(effects.keepTiers==0 and effects.autoRebirth==0 and effects.rebirthChickenChance==0.01,"Gem defaults")

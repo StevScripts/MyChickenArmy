@@ -98,10 +98,13 @@ local Config = {
   DefaultRarities={"Legendary","Mythic","Secret"},DefaultMutations={"Golden","Rainbow","Shadow","Cosmic"},
   DefaultNewChicken=true,DefaultNewMutation=false},
  -- October 20 Gold rolls (S12, S12b; GoldRolls.luau). Each machine counts lever pulls on its
- -- own: Gold every Every[goldRate+1]th pull, Diamond and Prism every KindEvery pulls.
- -- A special pull rolls every podium with Luck[n]x Luck (Kinds[n]); if two land on one
- -- pull, the bigger boost wins. goldMachine 1/2/3 owns Gold, +Diamond, +Prism.
- GoldRolls={Every={10,8,6},Luck={2,5,10},Kinds={"Gold","Diamond","Prism"},KindEvery={Diamond=100,Prism=500}},
+ -- own: Gold every Every[goldRate+1]th pull, Diamond every KindEvery.Diamond[diamondRate+1]th
+ -- and Prism every KindEvery.Prism[prismRate+1]th. Tree v2 (Stevin, S9c): each Rate has four
+ -- tiers that halve the count by tier IV. A special pull rolls every podium with Luck[n]x
+ -- Luck (Kinds[n]); if two land on one pull, the bigger boost wins. goldMachine 1/2/3 owns
+ -- Gold, +Diamond, +Prism. Live Gold Rate II meant every 6, so saves move to tier III (S7).
+ GoldRolls={Every={10,8,7,6,5},Luck={2,5,10},Kinds={"Gold","Diamond","Prism"},
+  KindEvery={Diamond={100,85,70,60,50},Prism={500,425,350,300,250}}},
  SlotLevels={3,4,5,6,7,8,9,10},
  SlotUnlocks={
   [3]={capacity=4,price=1200},

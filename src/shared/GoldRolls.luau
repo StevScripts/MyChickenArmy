@@ -2,7 +2,8 @@
 -- October 20 overhaul Gold rolls (S12; S12b counters). Stevin's Drop a Fruit recording
 -- shows the machine's Gold and Diamond counts side by side ("6 Rolls Left" with a gold
 -- die, "98 Rolls Left" with a blue one), so each machine counts lever pulls on its own:
--- Gold every 10th pull (8, 6 with Gold Rate), Diamond every 100th, Prism every 500th.
+-- Gold every 10th pull, Diamond every 100th, Prism every 500th; each machine's Rate tiers
+-- in the Upgrades tree halve its count by tier IV (tree v2, S9c).
 -- A special pull rolls every podium with extra Luck; when two land on one pull the
 -- bigger boost wins. Numbers live in Config.GoldRolls. RollService counts pulls in the
 -- saved goldRolls = {count (Gold), diamond, prism}; a Rebirth resets them.
@@ -39,13 +40,16 @@ function GoldRolls.Machine(effects: any): number
 	return whole(type(effects) == "table" and effects.goldMachine, #settings.Kinds)
 end
 
--- Lever pulls per special pull of this kind.
+-- The Upgrades tree effect that shortens each kind's count (tree v2, S9c).
+local RATES = {Gold = "goldRate", Diamond = "diamondRate", Prism = "prismRate"}
+
+-- Lever pulls per special pull of this kind, from its Rate tier.
 function GoldRolls.Every(kind: string, effects: any): number
-	if kind == "Gold" then
-		local rate = whole(type(effects) == "table" and effects.goldRate, #settings.Every - 1)
-		return settings.Every[rate + 1]
-	end
-	return (settings.KindEvery and settings.KindEvery[kind]) or 100
+	local list = if kind == "Gold" then settings.Every else settings.KindEvery and settings.KindEvery[kind]
+	if type(list) == "number" then return list end
+	if type(list) ~= "table" or #list == 0 then return 100 end
+	local rate = whole(type(effects) == "table" and effects[RATES[kind]], #list - 1)
+	return list[rate + 1]
 end
 
 -- The Luck multiplier a special pull of this kind adds (1 for a normal pull).

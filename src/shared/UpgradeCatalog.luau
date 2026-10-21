@@ -9,8 +9,6 @@ local Config = require(script.Parent.Config)
 local Gems = require(script.Parent.GemUpgradeCatalog)
 local Mutations = require(script.Parent.MutationCatalog)
 local Catalog = {}
--- Chicken Feed's level cap before Max Level tiers (Rules.LevelCap adds feedMaxLevel).
-local FEED_LEVEL_CAP = 10
 
 export type Tier = {value: number, price: number, yardStage: number?}
 -- A tier's own hex name, icon and big tier number (Luck's Super/Mega chains, mutations).
@@ -315,7 +313,7 @@ function Catalog.ValueText(familyId: string, tier: number): string
 	elseif format == "seconds" then return "+" .. decimal(value) .. " s " .. (family.unit or "")
 	elseif format == "hours" then return tostring(value) .. " h"
 	elseif format == "level" then return if value > 0 then family.name .. " " .. (ROMAN[value] or tostring(value)) else "None"
-	elseif format == "maxLevel" then return "Lv " .. (FEED_LEVEL_CAP + value)
+	elseif format == "maxLevel" then return "Lv " .. (Config.MaxPetLevel + value)
 	elseif format == "mutation" then
 		local id = Mutations.Order[value]
 		return if id then Mutations.Defs[id].name .. " chickens can roll" else "No mutations"

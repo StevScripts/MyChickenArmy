@@ -55,12 +55,9 @@ function RebirthService.EnemyScale(rank: number): number
 	return 1 + rules.EnemyScalePerRank * math.max(0, clampRank(rank) - rules.EnemyFreeRanks)
 end
 
--- The mutation a rank first allows on rolls (MutationCatalog unlockRank), for the panel.
-function RebirthService.Unlock(rank: number): {name: string, multiplier: number}?
-	for _, id in MutationCatalog.Order do
-		local def = MutationCatalog.Defs[id]
-		if def.unlockRank == rank and rank > 0 then return {name = def.name, multiplier = def.multiplier} end
-	end
+-- October 20 tree v2 (Stevin, S9c): mutations are bought in the Upgrades tree, so no rank
+-- unlocks one any more. Kept for the panel's `unlockNext` field, which stays empty.
+function RebirthService.Unlock(_rank: number): {name: string, multiplier: number}?
 	return nil
 end
 
@@ -102,7 +99,8 @@ local function resetFeedLevels(session)
 	end
 end
 
--- The tree a Rebirth leaves: only Keep Upgrades' tiers of Egg Speed, Egg Value and Luck.
+-- The tree a Rebirth leaves: only Keep Upgrades' tiers of Egg Speed, Egg Value and Luck,
+-- plus the mutations a save already had by rank (mutationKeep, S9c), which never reset.
 local function keptTree(session): {[string]: number}
 	local keep = session.researchEffects and session.researchEffects.keepTiers or 0
 	local tree = {}
@@ -110,6 +108,9 @@ local function keptTree(session): {[string]: number}
 		local tier = math.min(UpgradeCatalog.Tier(session.upgradeTree, family), keep)
 		if tier > 0 then tree[family] = tier end
 	end
+	local mutations = UpgradeCatalog.Families.Mutation
+	local kept = if type(session.mutationKeep) == "number" then math.floor(session.mutationKeep) else 0
+	if mutations and kept > 0 then tree.Mutation = math.min(kept, #mutations.tiers) end
 	return tree
 end
 
@@ -163,13 +164,20 @@ end
 -- The reset manifest the Rebirth screen shows (same lists the transaction applies).
 local function manifest(session)
 	local keep = session.researchEffects and session.researchEffects.keepTiers or 0
-	local resets = {"All your Coins", "Every upgrade in the Upgrades tree",
+	local resets = {"All your Coins", "Every upgrade in the Upgrades tree, mutations included",
 		"Chicken levels bought with Chicken Feed", "Carried eggs"}
 	if keep > 0 then
 		resets[2] = "The Upgrades tree (you keep " .. keep .. (if keep == 1 then " tier" else " tiers")
 			.. " of Egg Speed, Egg Value and Luck)"
 	end
 	local keeps = {"Every chicken and the Index", "Gems and Gem Upgrades", "Camps and the King you beat", "Passes"}
+	-- Mutations a save had by rank before the tree sold them (S9c) never reset.
+	local kept = if type(session.mutationKeep) == "number" then math.floor(session.mutationKeep) else 0
+	if kept > 0 then
+		local names = {}
+		for index = 1, math.min(kept, #MutationCatalog.Order) do table.insert(names, MutationCatalog.Order[index]) end
+		table.insert(keeps, "Your " .. table.concat(names, ", ") .. " mutation unlocks")
+	end
 	return resets, keeps
 end
 

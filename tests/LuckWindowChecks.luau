@@ -245,9 +245,11 @@ function Checks.Run(catalogOddsFactory)
 	check("Window metadata advances continuously and retains useful research and paid progress beyond cash cap", function()
 		local opening = Rules.LuckWindow(0, 1, 0)
 		near(opening.multiplier, 1); near(opening.shift, 0); near(opening.left, 1); near(opening.right, 5)
+		-- S9c: the cash cap is the tree's top Luck tier (Mega Luck IV); the shift stays bounded.
+		local top = UpgradeCatalog.LuckMultiplier(LuckTiers)
 		local cashCap, stackedCap = Rules.LuckWindow(20, 1, 0), Rules.LuckWindow(20, 2, 1)
-		near(cashCap.multiplier, 3); near(cashCap.shift, 3.6)
-		near(stackedCap.multiplier, 12); near(stackedCap.shift, 99 / 14)
+		near(cashCap.multiplier, top); near(cashCap.shift, 9 * (1 - 3 / (top + 2)))
+		near(stackedCap.multiplier, top * 4); near(stackedCap.shift, 9 * (1 - 3 / (top * 4 + 2)))
 		assert(stackedCap.left > cashCap.left and stackedCap.right >= cashCap.right)
 		for _, paid in {1, 2} do
 			for _, research in ResearchBonuses do
@@ -267,7 +269,8 @@ function Checks.Run(catalogOddsFactory)
 				end
 			end
 		end
-		return "Cash cap shifts 3.6 bands; both bonuses shift about 7.07; pointers remain ordered and bounded"
+		return ("Cash cap shifts %.2f bands; both bonuses shift %.2f; pointers remain ordered and bounded")
+			:format(cashCap.shift, stackedCap.shift)
 	end)
 
 	if catalogOddsFactory then
