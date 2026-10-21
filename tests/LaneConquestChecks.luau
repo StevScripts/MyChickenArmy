@@ -66,16 +66,13 @@ function Checks.Run()
   assert(service2:Attack(own,"camp:3",0) and current(service2,own).target=="camp:3","Own lane still forced order")
  end)
 
- test("New commanders take their own Cluck Camp first",function()
-  local s,_,service=setup();s.tutorial.wonCamp=false
-  for _,id in {"camp:2","camp:2:1","king:1"} do
+ test("No camp locks: a new commander may attack any camp first (Stevin, October 21)",function()
+  for _,id in {"camp:2","camp:2:1"} do
+   local s,_,service=setup();s.tutorial.wonCamp=false
    local entry=assert(target(service,s,id))
-   assert(not entry.available and entry.reason=="Take your Cluck Camp first",id)
-   local ok,why=service:Attack(s,id,0);assert(not ok and why:find("Cluck Camp",1,true))
+   assert(entry.available,id)
+   assert(service:Attack(s,id,0),id)
   end
-  assert(target(service,s,"camp:1").available and service:Attack(s,"camp:1",0))
-  conquer(service,s,1)
-  assert(service:Started(s) and target(service,s,"camp:2:1").available)
  end)
 
  test("A foreign win is saved per lane, takes the flag and grants no first win",function()
@@ -132,26 +129,22 @@ function Checks.Run()
   assert(f.territoryBonus==0)
  end)
 
- test("The hold limit stops a new capture until one is unclaimed; research raises it",function()
+ test("No hold cap: an empty Army sends its best and a win past eight holds still plants a flag",function()
   local s,f,service=setup()
-  local others={}
   for plot=3,6 do
    local o=Session.new(-940-plot,"Other"..plot,plot);o.tutorial.wonCamp=true
-   service.sessions[o.userId]=o;table.insert(others,o)
+   service.sessions[o.userId]=o
   end
-  for plot=3,5 do for i=1,3 do
-   if service:HoldCount(s)<Config.Territories.HoldLimit then service:SetTerritoryOwner(plot..":"..i,s,{plot=plot,index=i}) end
-  end end
-  assert(service:HoldCount(s)==8 and service:HoldLimit(s)==8)
-  local entry=assert(target(service,s,"camp:2:1"))
-  assert(not entry.available and entry.reason:find("8/8",1,true))
-  local ok,why=service:Attack(s,"camp:2:1",0);assert(not ok and why:find("Unclaim",1,true))
-  s.researchEffects.holdCap=9
-  assert(service:HoldLimit(s)==9 and service:Attack(s,"camp:2:1",1))
-  -- A capture that lands on a full limit beats the camp but plants no flag.
-  s.researchEffects.holdCap=0
+  for plot=3,5 do for i=1,3 do service:SetTerritoryOwner(plot..":"..i,s,{plot=plot,index=i}) end end
+  assert(service:HoldCount(s)==9)
+  assert(target(service,s,"camp:2:1").available)
+  s.armySelection={};s:RefreshArmy()
+  assert(#s:Lineup()==0,"Unequip All left an empty Army")
+  assert(service:Attack(s,"camp:2:1",1),"Empty Army order refused")
+  assert(#s:Lineup()>0,"The best chickens were not sent")
   conquer(service,s,2)
-  assert(not service.campOwners["2:1"] and s.laneCamps[tostring(f.userId)]==1 and s.lastResult:find("limit",1,true))
+  assert(service.campOwners["2:1"] and service.campOwners["2:1"].userId==s.userId,"No flag past the old limit")
+  assert(s.laneCamps[tostring(f.userId)]==1)
  end)
 
  test("A returning army turns around; a beaten one recovers first",function()
