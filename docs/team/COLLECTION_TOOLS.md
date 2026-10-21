@@ -107,8 +107,10 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
   the safe area, clear of the hotbar and that arrow. It is 20% smaller than
   before (Navigation 0.248 × 0.204 of the screen), with one layout for every
   device.
-- While the vacuum is in hand, its meter (`carried / capacity`, red with "Full!
-  Sell on the pad" when full) sits just right of the hotbar slots.
+- While the vacuum is in hand, its egg bar sits in the gap between the My Army row
+  and the hotbar (Stevin, October 20, S14). It is thin (a quarter of a slot), about
+  as wide as the My Army row, and fills gold with `carried / capacity` on it. When
+  full it turns red and reads "Full! Sell on the pad".
 - For the Commander guide, `app.tools.hintAnchors.EggVacuum` and
   `.ChickenFeed` are invisible, non-interactive Frames over each owned tool's
   slot. They follow Roblox's slot order and centring, and are nil while a tool

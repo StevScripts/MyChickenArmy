@@ -60,12 +60,16 @@ then the Tools Open hex, then the hex.
 **Arrow placement (October 20 playtest, Stevin approved).** Hexes are packed edge to
 edge, so an arrow beside a hex covered the next hex's name.
 - In the Upgrades tree, the arrow rests in an empty neighbouring cell (no hex, or a
-  hidden one), sized to 60% of a hex so it follows the map zoom, and points at the
-  target. It tries right, left, below right, below left, above right, then above left
-  (`TutorialGuide.PointerSide`, with `ResearchBrowser.Grid` for the spacing) and skips
-  cells off the screen.
-- A hex with hexes on all six sides (Army Size I, the Army map's Back) gets a short
-  arrow (32% of a hex) in the gap just under it, above the two lower hexes' names.
+  hidden one), half a hex tall so it follows the map zoom, and points at the target.
+  The six sides are tried by where they land on screen: sideways first, then lower,
+  then right (`TutorialGuide.PointerSide`; `ResearchBrowser.Grid.Offset` when the map
+  has it, as in flat-top tree v2). Cells off the screen are skipped.
+- With no empty cell, it rests on a neighbouring "?" hex, which has no name (Army
+  Size II beside Army Size I today; Flock Size I in tree v2). On a pointy-top map with
+  neither, a short arrow (32% of a hex) sits in the gap just under the hex. On a
+  flat-top map the normal arrow is the last resort (only the Army map's Back hex).
+- Checked against both layouts (today's and S9c's tree v2): no arrow covers another
+  hex's icon, tier number or name, including its bounce.
 - Tool goals point down from above the tool's own hotbar slot:
   `app.tools.hintAnchors[toolName]` from S11b, then a single `app.tools.hintAnchor`,
   then the older dock slot.
