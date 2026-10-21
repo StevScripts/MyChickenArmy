@@ -56,6 +56,12 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Rebirth** resets Coins to 0 (not 2,400; Time Skip then pays), Feed levels and the tree,
   except Keep Upgrades tiers and `mutationKeep`. Gems and Gem Upgrades never reset.
   Mutations (Golden, Rainbow, Shadow, Cosmic) are bought in the tree, not unlocked by rank.
+  Oct 21 ladder (Stevin, after the pacing simulation: "more, not harder"): 50 ranks;
+  Rebirth 1–20 unchanged, 21–30 grow x1.2 a rank (R30 51T, was 340T), 31–50 x1.12 a
+  rank (R50 496T); enemy scale caps at rank 30 (x8); six Gem cards gained levels as the
+  sink for ranks 26–50 (Coin Boost and Keep Upgrades unchanged). Never make the late
+  ladder steeper again without re-running the login-model simulation:
+  `docs/team/REBIRTH_PACING_20261021.md`.
 - **Flock** = chickens laying in the yard (only they lay, also offline), not the Sep 29
   25–100 capacity. Storage holds the rest (hidden cap 1,000); the **Army** is its own pick.
   Yard builds are instant (ends Oct 16 timed builds).

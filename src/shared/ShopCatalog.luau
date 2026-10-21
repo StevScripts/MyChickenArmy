@@ -102,8 +102,8 @@ local ShopCatalog = {
 			description="Rebirth now and keep your upgrades (Rebirth 1-5)."},
 		RebirthSkip2 = {productId=3720462968, name="Skip Rebirth 6-15", rebirthSkip=true, ranks={6, 15}, proposedPrice=99, paidRandom=true,
 			description="Rebirth now and keep your upgrades (Rebirth 6-15)."},
-		RebirthSkip3 = {productId=3720462985, name="Skip Rebirth 16-30", rebirthSkip=true, ranks={16, 30}, proposedPrice=199, paidRandom=true,
-			description="Rebirth now and keep your upgrades (Rebirth 16-30)."},
+		RebirthSkip3 = {productId=3720462985, name="Skip Rebirth 16-50", rebirthSkip=true, ranks={16, 50}, proposedPrice=199, paidRandom=true,
+			description="Rebirth now and keep your upgrades (Rebirth 16-50)."},
 		-- October 16 chicken offers (docs/team/CHICKEN_OFFERS.md): a Robux ladder in the free
 		-- gift's HUD slot, one step at a time. `image` is the offer art (portrait + light VFX).
 		ChickenOffer1 = {productId=3719084263, name="Chicken Jockey", proposedPrice=9, chickenOffer=1, species="Jockey", image="rbxassetid://94324670825392"},

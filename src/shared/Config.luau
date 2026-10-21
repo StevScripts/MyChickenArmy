@@ -58,19 +58,25 @@ local Config = {
  -- with Stevin's changes). Coins on hand are the only requirement (no camps, no King);
  -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins
  -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
- -- then +EnemyScalePerRank per rank of the attacker. Mission tiers open at King clear
- -- or MissionTierRanks (Veteran, Elite, Royal). Costs are the October 21 re-fit with
- -- tests/ProgressionSimulation after tree v2, Gem slots, Coins reset to 0 and Playtime
- -- Rewards (fast player; plan v2 times: Rebirth 1 ≈ 10 min, 5 ≈ 54 min, 10 ≈ 2.9 h,
- -- 20 ≈ 11.6 h, 30 ≈ 34 h). Results and method: docs/team/OVERHAUL_CONTRACT_20261020.md
- -- §10. Saved ranks above MaxRank keep the highest rank.
- -- The Oct 15 $50M…$185T 20-rank ladder is history (docs/team/REBIRTH_LADDER.md).
- Rebirth={Enabled=true,Version=2,MaxRank=30,
+ -- then +EnemyScalePerRank per rank of the attacker, capped at EnemyScaleMaxRank (x8:
+ -- ranks 31–50 add no enemy strength beyond the old top). Mission tiers open at King
+ -- clear or MissionTierRanks (Veteran, Elite, Royal). Saved ranks above MaxRank keep
+ -- the highest rank.
+ -- Costs: Rebirth 1–20 are the October 21 re-fit with tests/ProgressionSimulation
+ -- (OVERHAUL_CONTRACT §10). Later on October 21 (Stevin: "more, not harder") the tail
+ -- was reshaped: 21–30 grow x1.2 a rank (R30 51T, was 340T) and 31–50 x1.12 a rank,
+ -- so a late Rebirth takes 40–120 min of play instead of 3.5–7 h and the game no
+ -- longer ends after about a week. Fit and login-model results:
+ -- docs/team/REBIRTH_PACING_20261021.md. The Oct 15 $50M…$185T 20-rank ladder is
+ -- history (docs/team/REBIRTH_LADDER.md).
+ Rebirth={Enabled=true,Version=2,MaxRank=50,
   Costs={5e4,6.2e7,1e9,8.6e9,3.6e10,5.6e10,1.2e11,2.6e11,6e11,1.1e12,
    1.2e12,2.2e12,2.9e12,3.8e12,4.5e12,5e12,5.5e12,6.3e12,7.3e12,8.3e12,
-   1.1e13,1.7e13,3e13,3.8e13,5.5e13,7.2e13,1.2e14,1.5e14,2.1e14,3.4e14},
+   9.96e12,1.2e13,1.43e13,1.72e13,2.07e13,2.48e13,2.97e13,3.57e13,4.28e13,5.14e13,
+   5.76e13,6.45e13,7.22e13,8.09e13,9.06e13,1.01e14,1.14e14,1.27e14,1.43e14,1.6e14,
+   1.79e14,2e14,2.24e14,2.51e14,2.81e14,3.15e14,3.53e14,3.95e14,4.43e14,4.96e14},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
-  EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,
+  EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,
   GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
   MissionTierRanks={5,10,15}},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).

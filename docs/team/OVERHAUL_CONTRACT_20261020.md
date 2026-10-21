@@ -336,24 +336,29 @@ until the post-S9c re-fit.
 
 | Row | Opens at | Id | Name | Max | Card text (next level) | Gem prices (draft) |
 |---|---|---|---|---|---|---|
-| 1 | start | `RollSpeed` | Roll Speed | 5 | +10% faster rolls | 5, 10, 20, 35, 60 |
-| 1 | start | `ExtraLuck` | Extra Luck | 5 | +10% roll luck | 5, 10, 20, 35, 60 |
-| 2 | start | `VacuumCapacity` | Vacuum Capacity | 3 | +15 s of eggs in your vacuum | 10, 25, 50 |
+| 1 | start | `RollSpeed` | Roll Speed | 8 (was 5) | +10% faster rolls | 5, 10, 20, 35, 60, 100, 160, 250 |
+| 1 | start | `ExtraLuck` | Extra Luck | 8 (was 5) | +10% roll luck | 5, 10, 20, 35, 60, 100, 160, 250 |
+| 2 | start | `VacuumCapacity` | Vacuum Capacity | 5 (was 3) | +15 s of eggs in your vacuum | 10, 25, 50, 100, 175 |
 | 2 | start | `AutoRoll` | Auto Roll | 1 | Unlocks Auto Roll | 15 |
 | 3 | Rebirth 1 | `FlockSlot` | +1 Flock Slot | 2 | +1 chicken laying eggs in your Flock | 20, 60 |
 | 3 | Rebirth 1 | `ArmySlot` | +1 Army Slot | 2 | +1 chicken in your Army | 25, 75 |
 | 4 | Rebirth 2 | `CoinBoost` | Coin Boost | 10 | +10% Coins from eggs | 10, 15, 25, 40, 60, 90, 135, 200, 300, 450 |
 | 4 | Rebirth 2 | `AutoRebirth` | Auto Rebirth | 1 | Rebirths for you when you have enough Coins | 25 |
-| 5 | Rebirth 3 | `TimeSkip` | Time Skip | 6 (starts at 1) | +5 min of Coins when you rebirth | 20, 40, 70, 110, 160 |
+| 5 | Rebirth 3 | `TimeSkip` | Time Skip | 9 (starts at 1; was 6) | +5 min of Coins when you rebirth | 20, 40, 70, 110, 160, 230, 320, 430 |
 | 5 | Rebirth 3 | `MoreGems` | More Gems | 5 | +10% Gems from every rebirth | 25, 50, 90, 140, 200 |
 | 6 | Rebirth 5 | `KeepUpgrades` | Keep Upgrades | 3 | Keep 1 tier of Egg Speed, Egg Value and Luck | 40, 90, 160 |
 | 6 | Rebirth 5 | `Rally` | Rally | 2 | Rally: +20% army damage for 8 s, then 12 s | 30, 80 |
 | 7 | Rebirth 8 | `MutationLuck` | Mutation Luck | 5 | +10% mutation chance | 40, 80, 130, 190, 260 |
-| 7 | Rebirth 8 | `OfflineCoins` | Offline Coins | 4 | Earn 5% more while away | 30, 60, 100, 150 |
-| 8 | Rebirth 12 | `ArmyPower` | Army Power | 5 | +5% army damage and health | 50, 100, 175, 275, 400 |
+| 7 | Rebirth 8 | `OfflineCoins` | Offline Coins | 8 (was 4) | Earn 5% more while away | 30, 60, 100, 150, 210, 280, 360, 450 |
+| 8 | Rebirth 12 | `ArmyPower` | Army Power | 10 (was 5) | +5% army damage and health | 50, 100, 175, 275, 400, 550, 725, 925, 1150, 1400 |
 | 8 | Rebirth 12 | `RebirthChickenOdds` | Rebirth Chicken Odds | 5 | Rebirth chickens show up 20% more | 30, 60, 100, 150, 220 |
 
 Saved levels never change with a row move: a level bought before keeps its effect.
+
+October 21 (the 50-rank ladder, `docs/team/REBIRTH_PACING_20261021.md`): the board was
+complete by about Rebirth 25, so the six cards marked "was" gained levels as a Gem sink
+for ranks 26–50 (about 7,300 more Gems; the board now totals about 12,500). Coin Boost
+and Keep Upgrades were left alone because more of them would speed every run.
 
 Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 "no rank gates on Coins upgrades" rule does not apply to their row locks.
@@ -361,7 +366,10 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 ## 7. Rebirth v2 (`RebirthService`, `Config.Rebirth`)
 
 - **Requirement:** Coins on hand only (no camps, no King). Army home and no Mission
-  running. 30 ranks, from 50K Coins to 340T (fitted costs in §10).
+  running. 50 ranks, from 50K Coins to 496T: ranks 1–20 are the §10 fit, 21–30 grow
+  x1.2 a rank (R30 51.4T) and 31–50 x1.12 a rank (October 21 reshape, Stevin: "more,
+  not harder"; `docs/team/REBIRTH_PACING_20261021.md`). Enemy scale is capped at rank
+  30 (x8), so ranks 31–50 add no enemy strength.
 - **Rewards:**
   - Egg Coins x(1 + rank).
   - Gems = (40 + 10 × rank) × (1 + `gemBonus`), floored.
