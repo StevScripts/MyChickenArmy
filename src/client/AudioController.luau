@@ -255,7 +255,10 @@ function AudioController:Play(name, pitch, options)
 	-- October 21 game feel: a little random pitch so repeated cues (clucks, ticks,
 	-- pickups) never sound like one sample on a loop.
 	if options.pitchVariance then sound.PlaybackSpeed *= 1 + (math.random() * 2 - 1) * options.pitchVariance end
-	if options.volume then sound.Volume=options.volume end
+	-- October 21 level pass: cues carrying a `Leveled` attribute had their Volume set from
+	-- a measured peak (AudioAnalyzer) so no cue is startling; a caller's volume override
+	-- only applies to unleveled cues (Stevin's own picks, fallbacks) or with forceVolume.
+	if options.volume and (options.forceVolume or template:GetAttribute("Leveled") == nil) then sound.Volume=options.volume end
 	if options.parent then
 		sound.RollOffMode=Enum.RollOffMode.InverseTapered
 		sound.RollOffMinDistance,sound.RollOffMaxDistance=8,42

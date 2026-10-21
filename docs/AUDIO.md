@@ -177,3 +177,34 @@ not overwrite it. `assets/audio/organize_sounds.luau` is the initial migration
 and recovery recipe, not the routine editing surface. Rerunning it preserves
 existing SoundIds. `assets/audio/checks.luau` contains silent isolated checks
 using a disposable cloned library.
+
+## October 21 level pass (measured, not guessed)
+
+Every game-feel cue was measured in Studio Edit with an `AudioPlayer → Wire →
+AudioAnalyzer` chain (no device output wired, so the measurement is silent):
+the peak level of each clip at Volume 1 over its length. Each Sound's Volume was
+then set to `target ÷ measured peak` so the effective peak (peak × Volume) lands on
+its family's target, and the Sound carries `MeasuredPeak`, `TargetPeak` and
+`Leveled="Oct21-analyzer"` attributes. Targets: hover 0.09, count ticks 0.11, UI
+clicks/pops/toggles 0.18–0.22, confirms/claims/notices 0.20–0.22, purchases 0.25–0.28,
+reveal stingers/fanfares 0.25–0.28, chicken level-up 0.22, ambient clucks 0.10, egg
+lay 0.05, vacuum loop 0.08. Stevin's own picks (Money, CoinPickup, CoinDrop, EggPickup,
+EggDeposit, Collect, ChickenPurchase, Error, the Rolling lever/tick/land/reveal/rare
+cues and his Gold Rush start/end) were not re-leveled.
+
+Clips that measured near-silent (peak under 0.1 at Volume 1) were swapped for their
+alternates and the old id kept in `Previous`: UIHover and SkillTreeHover → GladGhost6
+`ui_hover_bubble_pop_02` (79315763728779); Lock → CoreKit `wood_toggle`
+(90515507208380); Shimmer → `Glitter Sparkle Magic Sound` (117011707307950); Rebirth →
+PSE `Magical Exit Sparkling Pass Bys Clinking Chimes 4` (9125635297); LevelUp →
+`Chat Progress` (1293433423); PodiumThump → `bounce1` (138910257412285); RollMythic →
+APM `Stunning Sting` (1836477530); EggLay → `Roblox GUI - Bubble` (17208204604) at
+Volume 0.21 (effective peak 0.05: quiet on purpose). The loudest offenders before the
+pass were SkillTreeOpen (0.85), SkillTreeNodeAdded (0.75), SkillTreeClose (0.53),
+TierUp (0.42) and Pop (0.40).
+
+`AudioController:Play` now ignores a caller's `volume` override for any Sound with the
+`Leveled` attribute (pass `forceVolume=true` to insist), so screens cannot push a
+leveled cue past its target; unleveled cues keep their contextual overrides. To
+re-level after swapping a clip: measure its peak the same way and set Volume =
+target ÷ peak, or clear `Leveled` to let code overrides apply again.
