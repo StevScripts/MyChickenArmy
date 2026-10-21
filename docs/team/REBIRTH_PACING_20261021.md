@@ -176,3 +176,230 @@ lune run harness.luau <repo> variant.luau seeds=1 firstSeed=1 hours=120 profile=
 ```
 
 From Studio: `require(game.ServerStorage.PetRollTests.ProgressionSimulation).Run({hours=720, profile="casual", playMinutes=45, awayMinutes=1395})`.
+
+## October 21 later: reference-shaped ladder (P5, reference parity pass)
+
+Stevin, from the third Drop a Fruit recording: "The rebirth value goes from 50,000 for
+number one to 1 million; our jump is too high … make the barrier to entry easier, but
+also don't make it super easy for players to get coins really fast." The live ladder
+went 50K → 62M (Rebirth 2 cost 1,240x Rebirth 1). Contract:
+`REFERENCE_PARITY_20261021.md` §2.5 (Costs[1] = 50K, Costs[2] = 1M; ratios 3–20
+through Rebirth 10 and 1.1–3 after; the October 21 time targets; Coins no faster than
+today in the first hour).
+
+### Why Rebirth 2 had to cost 62M
+
+A trace of the live economy (fast player, seed 1) shows it. Rebirth 1 comes at 9 min
+with the Flock earning 680 Coins/s. The Time Skip pays 170K, which rebuys Egg Speed and
+Egg Value I–IV at once (101K for x15), so the rate is 10K/s one minute later. Chicken
+Feed then doubles a chicken's eggs per level and reaches Lv 5–6 within seven minutes
+(x32), and the 12- and 15-minute Playtime tiles pay 11 minutes of that rate: 580K/s and
+76M by minute 16. Every later run rebuys the whole tree in its first minute, so only
+the first run is poor, and the ladder has to jump once.
+
+### What changed
+
+| Knob | Before | After | Where |
+|---|---|---|---|
+| Eggs per Chicken Feed level (Lv 1–10) | x2 | x1.6 | `Rules.EggLevelGrowth` |
+| Feed quote | `RecruitPrice(level) × 0.75 × 2.5^(level−1)` (x5 a level) | `RecruitPrice(level) × 0.45 × 2^(level−1)` (x4 a level); each level pays back in the same time as before | `Config.Economy.ChickenUpgradeRecruitFraction`, `Rules.ChickenUpgradeGrowth` |
+| Feed Lv 10 → 11 quote | 1.25 × the Lv 9 → 10 quote | 5/3 × (same payback as before) | `Rules.FeedPastCapFirst` |
+| Egg Speed III / IV | 8K / 30K | 250K / 60M | `UpgradeCatalog` |
+| Egg Value III / IV | 12K / 45K | 400K / 250M | `UpgradeCatalog` |
+| Flock Size 7, 8, 10, 12, 15 | 4.5K, 9K, 18K, 35K, 70K | 25K, 250K, 3M, 80M, 2B | `UpgradeCatalog` |
+| Rebirth egg multiplier | x(1 + rank): x2, x3 … x11 at 10, x31 at 30, x51 at 50 | x(1 + rank), times x1.7 for each of ranks 5–10 and x1.06 for each rank after, rounded: never below x(1 + rank) (table below) | `RebirthService.Multiplier`; `Config.Rebirth.EggBoostPerRank` 1.7, `EggBoostFromRank` 5, `EggBoostToRank` 10, `EggLateGrowthPerRank` 1.06 |
+| Rebirth costs | 50K, 62M, 1B … 1.1T at 10, 51.4T at 30, 496T at 50 | 50K, 1M, 20M, 400M, 8B … 4.7T at 10, 384T at 30, 3.13e15 at 50 (table below) | `Config.Rebirth.Costs` |
+
+Tier values are unchanged (only prices moved), so saved tiers keep their meaning and no
+`TreeMigrations` step is needed. Saved Feed levels keep their numbers; a chicken fed to
+Lv 10 lays 1.6^9 = 69x its base instead of 512x until the next Rebirth takes the levels
+back. Time Skip, Gem Upgrades (prices and effects) and the 11 original tier species are
+untouched. No `DataRevision` change.
+
+### How the knobs were chosen (fast player, 4–6 seeds per row)
+
+Ranks 1–2 are fixed (50K, 1M), so only income knobs move Rebirth 2; every other cost
+was fitted with the P0 method (move each cost by the ratio of target gap to measured
+gap, damped, inside the ratio bands).
+
+| Variant | Result |
+|---|---|
+| Live income, 50K / 1M / then x5 | Rebirth 2–5 all inside minute 12–13: ranks 3–5 would need ratios far above 20 |
+| Feed x1.6 only | Rebirth 2 at 12 min, 5 at 16 min: the tree is still rebought at once |
+| Pricier Egg Speed/Value III–IV and Flock 7+ (several price sets), with or without Feed x1.6 or a +50%-a-rank egg multiplier | Rebirth 2 always lands at 14–15 min (see below) |
+| Tree prices + Feed x2 | ranks 3–5 pinned at the x20 cap (Rebirth 3 at 16 min), ranks 8–10 pinned at the x3 floor and still late (Rebirth 9 at 2.8 h, target 2.4 h) |
+| Tree prices + Feed x1.6 | Rebirth 3 at 21 min, 5 at 47 min; ranks 7–10 at the x3 floor and late (Rebirth 9 at 3.3 h) |
+| Even pricier tree tops (Egg Value IV up to 100B) | slower still: Rebirth 7 at 2.2–2.4 h at the x3 floor |
+| Tree prices + Feed x1.6 + egg multiplier x1.35 on ranks 5–10 | Rebirth 10 at 3.2 h with ratios at the x3 floor |
+| ... + x1.5 on ranks 5–10 | on target through Rebirth 12 with ratios 3.0–4.8 (before the retune) |
+| Tail at the x1.1 floor, no late growth (6 seeds, 40 h) | Rebirth 20 at 12.0 h, 30 at 27.8 h, 40 reached by 1 of 6 |
+| Tail with +4% egg multiplier a rank past 10 | Rebirth 30 at 20.0 h, 40 at 32.6 h (3 of 4), 50 by 1 of 4; the fit wanted ratios below 1.1 |
+| Tail with +6% a rank | Rebirth 30 at 15.7 h, 50 at 28.5 h with ratios 1.12–1.15 (too fast) |
+| Tail with +5% a rank and ratios 1.31 / 1.17 / 1.11 (first confirmation, 6 fresh seeds) | too steep after a wall at Rebirth 16 (Royal Missions open at 15 and the simulated player spends on its army): Rebirth 20 at 12.8 h, 30 at 37.6 h (3 of 6) |
+| After main's rarity pacing retune (41ee725: gentler Luck, Super/Mega Luck 5M–400B, Playtime Coins x0.4) with x1.5 on ranks 5–10 | Rebirth 1–5 on target (11, 17, 24, 38, 55 min) but ranks 6–9 at the x3 floor and Rebirth 10 at 3.0–4.0 h |
+| ... with x1.7 on ranks 5–10 | Rebirth 6–10 on target with ratios 3–4.3 (chosen) |
+| Tail on the retune, +5% and +7% a rank past 10 (5 seeds each, 40 h) | ranks 11–20 far too steep for the retuned Luck (Rebirth 15 at 9.1–9.4 h, 20 at 19–20 h), ranks 30–40 at about 35–40 min a rank with +7%; the costs were moved by each rank's target / measured gap, smoothed, with +6% (chosen) |
+| First confirmation on the merged code (6 fast, 3 casual, 3 daily seeds) | fast Rebirth 20 at 13.6 h and 30 at 26.4 h (late), casual 11.5 h and 21.1 h, daily Rebirth 30 on day 22; a x1.41 step at Rebirth 32 made late casual ranks 100–180 min. Ranks 16–50 were lowered (16–18 to the x1.1 floor, 21–31 by 20%, the step at 32 removed): the shipped ladder |
+
+Why the egg multiplier had to change: with the in-run explosion gone, income between
+Rebirth 5 and 10 grows only about 1.8x a rank at the target gaps, so the contract's x3
+floor would push Rebirth 10 to 3–4 h. The extra x1.7 a rank on ranks 5–10 puts the
+between-run growth where the reference has its big steps and stops at 10. The late
+x1.06 a rank exists for the same reason: Feed levels past 10 add only +25% each, so
+late income grows about 5% a rank and the x1.1 floor alone made each late Rebirth longer
+than the last (Rebirth 30 at 28 h, 40 reached by 1 of 6 seeds). Both factors are ≥ 1, so
+no saved rank lays for less than its old x(1 + rank) (`RebirthV2Checks` asserts it).
+
+| Rebirth | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Old egg multiplier | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 |
+| New | 2 | 3 | 4 | 5 | 10 | 20 | 39 | 75 | 142 | 266 | 307 | 353 | 402 | 457 | 517 | 582 | 653 | 731 | 816 | 908 |
+
+Rebirth 30 is x2,400 and Rebirth 50 x12,662 (were x31 and x51). The Rebirth screen's
+multiplier tile reads `quote.multiplierNow/Next` from the server quote, i.e. this
+function; no client computes the multiplier itself.
+
+### Rebirth 2 and the Playtime tiles
+
+Rebirth 1 comes at 8–11 minutes (50K, as before). Before the rarity pacing retune
+(41ee725) the 12- and 15-minute Playtime tiles paid 11 minutes of steady income, so with
+Gold Rush and the Time Skip a 1M Rebirth 2 at minute 19 would have needed a second run
+earning less than the first run's last minute; every tamed variant landed Rebirth 2 at
+13–15 minutes. The retune pays 0.4 of those minutes (2 and 2.4), and Rebirth 2 now lands
+at 17 minutes on the merged code (target 18–20).
+
+### Costs (`Config.Rebirth.Costs`, Coins; "x prev" is the ratio to the rank before)
+
+| Rebirth | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 50K | 1M | 20M | 400M | 8B | 24B | 72B | 255B | 1.09T | 4.7T |
+| x prev | – | 20.00 | 20.00 | 20.00 | 20.00 | 3.00 | 3.00 | 3.54 | 4.27 | 4.31 |
+| Was | 50K | 62M | 1B | 8.6B | 36B | 56B | 120B | 260B | 600B | 1.1T |
+
+| Rebirth | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 9.6T | 15T | 22T | 31.8T | 39T | 42.9T | 47.2T | 52T | 61.1T | 71.2T |
+| x prev | 2.04 | 1.56 | 1.47 | 1.45 | 1.23 | 1.10 | 1.10 | 1.10 | 1.18 | 1.17 |
+| Was | 1.2T | 2.2T | 2.9T | 3.8T | 4.5T | 5T | 5.5T | 6.3T | 7.3T | 8.3T |
+
+| Rebirth | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 86.4T | 101T | 115T | 128T | 152T | 177T | 221T | 263T | 324T | 384T |
+| x prev | 1.21 | 1.17 | 1.14 | 1.11 | 1.19 | 1.16 | 1.25 | 1.19 | 1.23 | 1.19 |
+| Was | 9.96T | 12T | 14.3T | 17.2T | 20.7T | 24.8T | 29.7T | 35.7T | 42.8T | 51.4T |
+
+| Rebirth | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 456T | 510T | 580T | 642T | 712T | 788T | 870T | 959T | 1.07e15 | 1.18e15 |
+| x prev | 1.19 | 1.12 | 1.14 | 1.11 | 1.11 | 1.11 | 1.10 | 1.10 | 1.12 | 1.10 |
+| Was | 57.6T | 64.5T | 72.2T | 80.9T | 90.6T | 101T | 114T | 127T | 143T | 160T |
+
+| Rebirth | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 1.3e15 | 1.43e15 | 1.58e15 | 1.74e15 | 1.92e15 | 2.12e15 | 2.34e15 | 2.58e15 | 2.84e15 | 3.13e15 |
+| x prev | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 |
+| Was | 179T | 200T | 224T | 251T | 281T | 315T | 353T | 395T | 443T | 496T |
+
+The early ratios sit at the x20 cap through Rebirth 5 and near the x3 floor at 6–7:
+the cap is binding (Rebirth 3 and 4 come at about 24 and 37 minutes instead of the
+interpolated 30 and 42), the floor nearly so. Ranks 16–18 sit at the x1.1 floor because
+of a wall at Rebirth 16 (Royal Missions open at 15 and the simulated player spends a
+quarter of its Coins on its army while it cannot win them; the morning fit had x1.1 there
+too), so Rebirth 16 stays the longest early rank.
+
+### Results (merged code: P4 Time Skip claim + rarity pacing retune 41ee725)
+
+Confirmation on fresh seeds with the committed code: fast nonstop seeds 121–126 (40 h),
+casual 131–133 (40 h), 45 min a day 141–143 (60 days). "Before" is the morning economy
+with the morning ladder (this doc's Shipped section and 3 fast seeds of d4d1e20). For
+reference, the rarity retune with the morning ladder measured fast Rebirth 20 at 25.8 h
+and 30 at 62.5 h, and the 45-min player's Rebirth 30 on day 51–57
+(`RARITY_PACING_20261021.md` §5; that simulation never claimed the Time Skip, so it ran
+11–17% short of Coins).
+
+| Rebirth | Target (fast) | Fast, before | **Fast, after** | Casual, after | 45 min a day, before | **45 min a day, after** | 45 min a day, played |
+|---|---|---|---|---|---|---|---|
+| 1 | ~10 min | 8 min | 10 min | 12 min | 5 min | 8 min | 8 min |
+| 2 | 18–20 min | 16 min | 17 min | 17 min | – | 16 min | 16 min |
+| 5 | ~55 min | 48 min | 55 min | 59 min | day 2 | day 1 | 45 min |
+| 10 | ~2.9 h | 2.6 h | 2.9 h | 2.8 h | day 4 | day 2 | 2.0 h |
+| 20 | ~11 h | 10.5 h | 12.9 h | 11.3 h | day 12 | day 11 | 8.4 h |
+| 30 | ~21 h | 19.6 h | 24.6 h | 20.5 h | day 21 | day 18 | 13.9 h |
+| 40 | – | 30.5 h | 33.9 h (4 of 6) | 31.8 h | day 31 | day 27 | 20.3 h |
+| 50 | ~40 h | 38 h (1 of 3) | 38.7 h (1 of 6) | – (0 of 3) | day 44 (2 of 3) | day 38 | 29.1 h |
+
+Minutes of play per Rebirth (median across seeds; the longest single seed in brackets):
+
+| Ranks | Fast | Casual | 45 min a day |
+|---|---|---|---|
+| 2–5 | 7–20 (22) | 7–24 (27) | 7–14 (16) |
+| 6–10 | 17–34 (46) | 14–32 (34) | 7–26 (28) |
+| 11–15 | 35–54 (59) | 31–52 (53) | 21–41 (43) |
+| 16–20 | 68–93 (119) | 53–70 (90) | 35–56 (73) |
+| 21–30 | 55–80 (101) | 51–64 (78) | 12–42 (59) |
+| 31–40 | 62–89 (135) | 49–81 (101) | 31–52 (56) |
+| 41–50 | 49–108 (122) | 46–116 (119) | 31–77 (81) |
+
+45 min a day, one visit a day (60 days):
+
+- seed 141: Rebirth 50 after 37 days (Rebirth 50 on day 36); 2 of days 12–37 without a Rebirth; longest drought 1 day
+- seed 142: Rebirth 50 after 44 days (Rebirth 50 on day 43); 1 of days 12–44 without a Rebirth; longest drought 1 day
+- seed 143: Rebirth 50 after 39 days (Rebirth 50 on day 38); 1 of days 12–39 without a Rebirth; longest drought 1 day
+
+Against the targets: Rebirth 1 (10 min), 5 (55 min) and 10 (2.9 h) are on target and
+Rebirth 2 is 17 min (target 18–20, 1–3 min early). The fast player is late from Rebirth
+16: Rebirth 20 at 12.9 h (+1.9 h) and 30 at 24.6 h (+3.6 h, +17%), and only 1 of 6 seeds
+reaches Rebirth 50 within 40 h (38.7 h; the morning economy also reached it with 1 of 3).
+The 45-min-a-day player is early: Rebirth 30 on day 18 (target day 21), Rebirth 50 on day
+36–43. Lowering ranks 16–50 further for the fast player would move the daily player
+further ahead (the retune's Playtime cut hurts long visits more than daily logins), so
+this ladder sits between the two; casual nonstop (60-minute visits) is on target (11.3 h,
+20.5 h). No rank takes more than 2.5 h of play (longest single gap 135 min, a fast seed
+at Rebirth 40), and the daily player never goes more than a day without a Rebirth after
+day 12 (1–2 such days per seed).
+
+### Coins per minute in the first hour (all sources, fast player, medians)
+
+| Window | Morning economy, morning ladder | Retuned main (41ee725), morning ladder | **After (this ladder)** |
+|---|---|---|---|
+| 0–10 min | 188K | 69K | 25K |
+| 10–30 min | 860M | 273M | 26.6M |
+| 30–60 min | 3.91B | 2.31B | 493M |
+
+Before columns: 6 fast seeds (11–16) of the same instrumented simulation on d4d1e20 and
+on main 41ee725; after: the 6 confirmation seeds. Coins arrive slower than before in
+every window of the first hour.
+
+### Reproducing
+
+Lune harness (scratch, see "Reproducing" above; `tools/sim/` now holds the same harness
+in the repo). The fit ran the real modules with key=value knobs patched on top
+(`eggGrowth`, `feedFirst`, `feedGrowth`, `pastFirst`, `multStep`/`multFrom`/`multTo`/
+`multLate`, `tree=<patched UpgradeCatalog>`, `costs=<json>`); the confirmation runs use
+the committed code with no patches:
+
+```
+lune run harness.luau <repo> sim.luau seeds=1 firstSeed=91 hours=40 profile=fast out=ff-91.json      # seeds 91-96
+lune run harness.luau <repo> sim.luau seeds=1 firstSeed=101 hours=40 profile=casual out=fc-101.json  # seeds 101-103
+lune run harness.luau <repo> sim.luau seeds=1 firstSeed=111 hours=1440 profile=casual playMinutes=45 awayMinutes=1395 out=fd-111.json  # 111-113
+(cd tools/sim; ./lune run harness.luau ../.. rarity_probe.luau profile=fast hours=4 seeds=2)
+```
+
+`ProgressionSimulation` now plays to `Config.Rebirth.MaxRank` by default (was 30),
+claims the Time Skip right after each Rebirth (P4), records the Coins earned with every
+milestone, prints "Coins earned per minute" for the first hour and can trace a run
+(`traceEvery=<seconds>`). From Studio:
+`require(game.ServerStorage.PetRollTests.ProgressionSimulation).Run({hours=40, profile="fast"})`.
+
+### Live notes
+
+- Saved tiers keep their values; only the price of the next tier changed. A player who
+  owns Egg Speed IV keeps x3.
+- Fed chickens lay less until the next Rebirth (Lv 10: 69x base instead of 512x); the
+  Feed quote for the next level is lower to match.
+- Every rank from 5 up earns more egg Coins than before (Rebirth 8: x75, was x9); costs
+  of ranks a player has not reached yet moved both ways (Rebirth 7 72B, was 120B;
+  Rebirth 10 4.7T, was 1.1T; Rebirth 20 71.2T, was 8.3T).
+- Offline Coins, daily rewards, Playtime tiles and Time Skip are minutes of steady
+  income, so they grow with the multiplier as before.
+
