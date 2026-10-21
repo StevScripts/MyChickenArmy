@@ -26,6 +26,19 @@ local EQUIPPED=Color3.fromRGB(127,255,0)
 local SELECTED=Color3.fromRGB(0,223,255)
 local POWER=Color3.fromRGB(255,72,72)
 local GOLD=Color3.fromRGB(255,221,96)
+local UNEQUIPPED=Color3.fromRGB(170,180,186)
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it. Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
+local function denied(item)
+	Theme.Motion:Shake(item,5)
+	cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
+end
 local Art={
 	Helmet="rbxassetid://80504375672119",
 	Damage="rbxassetid://127164621014549",
@@ -154,6 +167,10 @@ local function button(parent,name,text,callback,key)
 	Theme.Studs(visual.Face,0.07,24,0).ZIndex=visual.Face.ZIndex+1
 	Theme.ScaleText(item)
 	tone(item)
+	-- A press on a greyed button: BindButton's small "no" shake plus a soft Locked cue.
+	item.MouseButton1Down:Connect(function()
+		if not item.Active then cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2}) end
+	end)
 	return item
 end
 
@@ -201,7 +218,8 @@ end
 function Browser.new(app,parent)
 	local self=setmetatable({app=app,parent=parent,key="",gridKey="",pending=nil,connections={},cards={},
 		mode=nil,marked={},markOrder={},placing=nil,inspecting=false,query="",sort="Power",compact=false,
-		visible={},shown=0,wanted=PAGE,flashToken=0},Browser)
+		visible={},shown=0,wanted=PAGE,flashToken=0,revealOnRender=false,detailShown=false,barShown=false},Browser)
+	Audio=app.audio
 	local root=Instance.new("Frame")
 	root.Name,root.BackgroundTransparency,root.BorderSizePixel="ChickenBrowser",1,0
 	root.Visible,root.ClipsDescendants=false,false
@@ -274,10 +292,11 @@ function Browser.new(app,parent)
 	for index,key in SORTS do
 		local item=iconButton(sortBox,"Sort"..key,if key=="Power" then Art.Damage else EggArt.Image("Duck"),function()
 			if self.sort==key then return end
-			self.app.audio:Play("Click")
+			cue("TabSwitch","Click")
 			self.sort,self.wanted=key,PAGE
 			self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 		end,"Dark")
+		item:SetAttribute("ClickSound",false)
 		rect(item,6+(index-1)*40,34,37,37,89,78)
 		Theme.Aspect(item,1)
 		self.sortButtons[key]=item
@@ -313,6 +332,7 @@ function Browser.new(app,parent)
 	self.empty=label(body,"Empty","",MUTED)
 	rect(self.empty,GRID.x+40,GRID.y+150,GRID.w-80,60,BODY.w,BODY.h)
 	self.empty.TextWrapped,self.empty.Visible=true,false
+	Theme.Motion:Center(self.empty)
 
 	self:BuildDetail()
 
@@ -325,10 +345,11 @@ function Browser.new(app,parent)
 	self.unequip=button(root,"UnequipAll","Unequip All",function() self:UnequipAll() end,"Red")
 	rect(self.unequip,325,504,195,53,W,H)
 	self.compactButton=button(root,"Compact","",function()
-		self.app.audio:Play("Click")
+		cue("TabSwitch","Click")
 		self.compact=not self.compact
 		self:Render(true)
 	end,"Blue")
+	self.compactButton:SetAttribute("ClickSound",false)
 	rect(self.compactButton,632,504,55,53,W,H)
 	Theme.Aspect(self.compactButton,55/53)
 	-- A small tile grid on the button: 2 x 2 normally, 3 x 3 when compact is on.
@@ -355,6 +376,9 @@ function Browser.new(app,parent)
 		self.query=string.lower(search.Text):match("^%s*(.-)%s*$") or ""
 		self.wanted=PAGE;self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 	end))
+	-- Engaging the search answers once; keystrokes stay silent.
+	table.insert(self.connections,search.Focused:Connect(function() cue("TabSwitch","Click");Theme.Motion:Glow(searchShell,SELECTED,2.5) end))
+	table.insert(self.connections,search.FocusLost:Connect(function() Theme.Motion:StopGlow(searchShell) end))
 
 	-- Lock, Sell and Replace modes: a bar over the bottom row with Confirm / Cancel.
 	local bar=rect(frame(root,"ModeBar"),349,464,332,113,W,H)
@@ -362,9 +386,10 @@ function Browser.new(app,parent)
 	bar.ZIndex,bar.Visible,bar.Active=body.ZIndex+20,false,true
 	surface(bar,TONES.Blue[1],TONES.Blue[3],INK,3)
 	Theme.Studs(bar,0.14,28,0).ZIndex=bar.ZIndex
-	self.bar=bar
+	self.bar,self.barRest=bar,bar.Position
 	self.barTitle=rect(label(bar,"Title","Select Chickens",WHITE,true),10,6,312,44,332,113)
 	self.confirm=button(bar,"Confirm","Confirm",function() self:ConfirmMode() end,"Green")
+	self.confirm:SetAttribute("ClickSound",false)
 	rect(self.confirm,12,54,150,50,332,113)
 	self.cancel=button(bar,"Cancel","Cancel",function() self.app.audio:Play("Click");self:ExitModes();self:Render(true) end,"Red")
 	rect(self.cancel,170,54,150,50,332,113)
@@ -397,6 +422,8 @@ function Browser:BuildDetail()
 	detail.ZIndex,detail.Visible,detail.Active=self.grid.ZIndex+10,false,true
 	surface(detail,Color3.fromRGB(0,196,255),Color3.fromRGB(0,105,190),INK,3)
 	Theme.Studs(detail,0.14,28,0).ZIndex=detail.ZIndex
+	-- Same resting rect; the card pops open from its centre.
+	Theme.Motion:Center(detail)
 	self.detail=detail
 	local close=button(detail,"CloseDetail","X",function()
 		self.app.audio:Play("Click");self.inspecting,self.app.selected=false,nil;self:Render()
@@ -498,7 +525,7 @@ function Browser:ShowTooltip(card,pet,point)
 	-- centre for gamepads), kept inside the game view.
 	local origin=self.root.AbsolutePosition
 	local at=point or (card.AbsolutePosition+card.AbsoluteSize/2)
-	tip.Visible=true
+	Theme.Motion:Appear(tip,true,0.85)
 	local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1e4,1e4)
 	local height=tip.AbsoluteSize.Y
 	local x=math.min(at.X+6*u,viewport.X-width-4)
@@ -508,7 +535,7 @@ function Browser:ShowTooltip(card,pet,point)
 end
 
 function Browser:HideTooltip(card)
-	if card==nil or self.tipFor==card then self.tooltip.Visible,self.tipFor=false,nil end
+	if card==nil or self.tipFor==card then Theme.Motion:Appear(self.tooltip,false);self.tipFor=nil end
 end
 
 -- Opens Upgrades at the family's next tier; false once the family is maxed.
@@ -533,14 +560,39 @@ function Browser:OpenInventory()
 	self.inspecting,self.app.selected=false,nil
 	self.wanted=PAGE
 	if self.grid then self.grid.CanvasPosition=Vector2.zero end
+	-- The grid grows in once per open, never on every snapshot re-render.
+	self.revealOnRender=true
 end
 
+-- `extra.cue`/`extra.fallback` replace the plain Click for confirms.
 function Browser:Send(action,payload,extra)
 	if self.pending then return end
-	self.app.audio:Play("Click")
+	if extra and extra.cue then cue(extra.cue,extra.fallback) else self.app.audio:Play("Click") end
 	local id=self.app:Request(action,payload)
 	self.pending={id=id,at=os.clock(),action=action,extra=extra,before=table.clone(self.app.state.selectedIds or {})}
 	self:UpdateAction()
+end
+
+-- A refusal: the line under the window, a "no" shake on `item` and the Locked cue.
+function Browser:Deny(text,item)
+	self:Flash(text)
+	denied(item or self.flash)
+end
+
+-- Three to five coins fly from `from` (a GuiObject) into the HUD Coins readout.
+function Browser:CoinsToHud(from,count)
+	local app=self.app
+	local gui=app.gui
+	if not (app.hud and app.hud.money and gui and from and from.Parent) then return end
+	local target=Theme.Motion:Point(gui,Theme.Motion:CenterOf(app.hud.money))
+	local origin=Theme.Motion:Point(gui,Theme.Motion:CenterOf(from))
+	cue("Whoosh",nil,nil,{voiceKey="CoinWhoosh",cooldown=0.3})
+	for index=1,math.clamp(count or 4,3,5) do
+		local spread=UDim2.fromScale((index-3)*0.012,0)
+		Theme.Motion:Fly(gui,Theme.Assets.Coin,origin+spread,target,{seconds=0.5+index*0.04,arc=0.1,onArrive=function()
+			if index==1 then cue("CoinPickup","Collect",1,{voiceKey="CoinArrive",cooldown=0.15,pitchVariance=0.05}) end
+		end})
+	end
 end
 
 function Browser:Receive(result)
@@ -549,16 +601,22 @@ function Browser:Receive(result)
 	local pending=self.pending
 	if not pending or not result or result.id~=pending.id then return end
 	self.pending=nil
-	if not result.ok then self:Flash(result.message or "That didn't work. Try again.");return end
+	if not result.ok then self:Deny(result.message or "That didn't work. Try again.");return end
 	if pending.action=="Sell" then
 		local count,total=pending.extra.count,pending.extra.total
 		self:ExitModes()
 		self:Flash(count.." "..(if count==1 then "Chicken" else "Chickens").." Sold! +"..Theme.CompactCoins(total))
+		-- ActionFeedback's sale payoff already ticks the Coins; the flyers add the flight.
+		self:CoinsToHud(self.flash,math.clamp(count,3,5))
 	elseif pending.action=="Favorite" then
+		local locking=pending.extra and pending.extra.locked==true
 		self:ExitModes()
 		self:Flash(result.message or "Done.",WHITE)
+		cue(if locking then "Lock" else "Unlock","Click",if locking then 0.9 else 1.1)
+		Theme.Motion:Punch(self.lockIcon,1.3,0.32)
+		self.lockPop={ids=pending.extra and pending.extra.ids or {},locked=locking,at=os.clock()}
 	elseif pending.action=="SetArmy" or pending.action=="SelectBest" then
-		self.armyPop={before=pending.before,at=os.clock()}
+		self.armyPop={before=pending.before,at=os.clock(),action=pending.action}
 	end
 end
 
@@ -594,14 +652,23 @@ function Browser:Mark(pet)
 	else
 		if self.mode=="Sell" then
 			local ok,reason=sellable(pet)
-			if not ok then self.app.audio:Play("Click");self:Flash(reason);return end
+			if not ok then
+				local entry=self.cards[id]
+				self:Deny(reason,entry and entry.background)
+				return
+			end
 		end
 		self.marked[id]=true;table.insert(self.markOrder,id)
 	end
-	self.app.audio:Play("Click")
 	self:UpdateMarks()
 	local entry=self.cards[id]
-	if entry then Theme.Motion:PopScale(entry.card,if self.marked[id] then 1.08 else 0.94) end
+	if self.marked[id] then
+		cue("Select","Click",nil,{pitchVariance=0.04})
+		if entry then Theme.Motion:Punch(entry.mark,1.2,0.3) end
+	else
+		self.app.audio:Play("Click")
+		if entry then Theme.Motion:PopScale(entry.card,0.94) end
+	end
 end
 
 -- Marked chickens still owned (and, for Sell, still sellable) with the sale total.
@@ -627,12 +694,13 @@ function Browser:ConfirmMode()
 	if not self:CanEdit() then return end
 	if self.mode=="Sell" or self.mode=="Lock" then
 		local ids,total,anyUnlocked=self:MarkedIds()
-		if #ids==0 then Theme.Motion:Shake(self.confirm.Visual,6);return end
+		if #ids==0 then denied(self.confirm.Visual);return end
+		Theme.Motion:Ripple(self.confirm,WHITE)
 		if self.mode=="Sell" then
 			-- The server rechecks ownership, protection and the exact total atomically.
-			self:Send("Sell",{petIds=ids,expectedTotal=total,sparesOnly=true},{count=#ids,total=total})
+			self:Send("Sell",{petIds=ids,expectedTotal=total,sparesOnly=true},{count=#ids,total=total,cue="Confirm",fallback="UIPurchase"})
 		else
-			self:Send("Favorite",{petIds=ids,locked=anyUnlocked})
+			self:Send("Favorite",{petIds=ids,locked=anyUnlocked},{ids=ids,locked=anyUnlocked,cue="Confirm",fallback="UIPurchase"})
 		end
 	end
 end
@@ -641,8 +709,8 @@ function Browser:UnequipAll()
 	if not self:CanEdit() then return end
 	self:ExitModes()
 	local current=self.app.state.selectedIds or {}
-	if #current==0 then self:Flash("Your Army is already empty.");return end
-	self:Send("SetArmy",{petIds={},expectedIds=table.clone(current)})
+	if #current==0 then self:Deny("Your Army is already empty.",self.unequip.Visual);return end
+	self:Send("SetArmy",{petIds={},expectedIds=table.clone(current)},{cue="Unequip",fallback="Click"})
 end
 
 function Browser:Inspect(id)
@@ -651,7 +719,6 @@ function Browser:Inspect(id)
 	self:Render()
 	local entry=self.cards[id]
 	if entry then local card=entry.card;task.defer(function() Theme.Motion:PopScale(card,1.05) end) end
-	Theme.Motion:PopScale(self.detail,1.03)
 end
 
 function Browser:Tapped(pet)
@@ -659,7 +726,11 @@ function Browser:Tapped(pet)
 	elseif self.mode=="Replace" then
 		local ids=self.placingExpected or {}
 		local slot=table.find(ids,pet.id)
-		if not slot then self.app.audio:Play("Click");self:Flash("Choose a checked Army chicken to replace.");return end
+		if not slot then
+			local entry=self.cards[pet.id]
+			self:Deny("Choose a checked Army chicken to replace.",entry and entry.background)
+			return
+		end
 		self:Drop(self.placing,slot,false,ids)
 	else self:Inspect(pet.id) end
 end
@@ -695,14 +766,14 @@ end
 function Browser:LockSelected()
 	local pet=self.app:Pet(self.app.selected)
 	if not pet or not self:CanEdit() then return end
-	self:Send("Favorite",{petIds={pet.id},locked=not pet.favorite})
+	self:Send("Favorite",{petIds={pet.id},locked=not pet.favorite},{ids={pet.id},locked=not pet.favorite})
 end
 
 function Browser:Drop(id,slot,leaveArmy,expected)
 	if not self:CanEdit() then return end
 	local current=self.app.state.selectedIds or {}
 	if table.concat(current,"|")~=table.concat(expected,"|") then
-		self:ExitModes();self:Flash("Your Army changed. Choose again.");self:Render(true);return
+		self:ExitModes();self:Deny("Your Army changed. Choose again.");self:Render(true);return
 	end
 	local ids=table.clone(expected)
 	local old=table.find(ids,id)
@@ -716,9 +787,11 @@ function Browser:Drop(id,slot,leaveArmy,expected)
 	else return end
 	local colossals=0
 	for _,petId in ids do local pet=self.app:Pet(petId);if pet and Giant.IsColossal(pet.giantSize) then colossals+=1 end end
-	if colossals>Giant.MaxArmyColossals then self:Flash("Only 1 Colossal per Army.");return end
+	if colossals>Giant.MaxArmyColossals then self:Deny("Only 1 Colossal per Army.",self.equip.Visual);return end
 	self:ExitModes()
-	self:Send("SetArmy",{petIds=ids,expectedIds=table.clone(expected)})
+	-- Leaving the Army answers with Unequip; joining or swapping with Equip.
+	local joining=not (leaveArmy and old and not slot)
+	self:Send("SetArmy",{petIds=ids,expectedIds=table.clone(expected)},{cue=if joining then "Equip" else "Unequip",fallback=if joining then "Pop" else "Click"})
 end
 
 function Browser:Card(pet,order,inArmy)
@@ -757,8 +830,9 @@ function Browser:Card(pet,order,inArmy)
 	end
 	local mutation=MutationVFX.Badge(card,pet.mutation)
 	if mutation then rect(mutation,26,4,56,16,108,108) end
-	-- Lock / Sell marks: a dark cell under a padlock or a red X.
-	local mark=frame(card,"Mark",UDim2.fromScale(1,1))
+	-- Lock / Sell marks: a dark cell under a padlock or a red X (centred so it punches in place).
+	local mark=frame(card,"Mark",UDim2.fromScale(1,1),UDim2.fromScale(0.5,0.5))
+	mark.AnchorPoint=Vector2.new(0.5,0.5)
 	mark.BackgroundColor3,mark.BackgroundTransparency,mark.ZIndex,mark.Visible=Color3.new(),0.45,card.ZIndex+9,false
 	local cross=label(mark,"Cross","X",POWER,true)
 	rect(cross,14,8,80,80,108,108)
@@ -769,8 +843,11 @@ function Browser:Card(pet,order,inArmy)
 	outline.ZIndex=card.ZIndex+11
 	local border=Theme.Stroke(outline,if inArmy then EQUIPPED else color,if inArmy then 2.5 else 2)
 	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	self.cards[pet.id]={card=card,border=border,color=color,inArmy=inArmy,mark=mark,cross=cross,padlock=padlock}
+	-- `background` is what a refusal shakes: grid cells themselves are laid out.
+	self.cards[pet.id]={card=card,border=border,color=color,inArmy=inArmy,mark=mark,cross=cross,padlock=padlock,background=background}
 	card:SetAttribute("PetId",pet.id);card:SetAttribute("InArmy",inArmy)
+	-- Tapped picks the cue itself (Select, Click or Locked).
+	card:SetAttribute("ClickSound",false)
 	card.Activated:Connect(function() self:Tapped(pet) end)
 	card.MouseButton2Click:Connect(function() if not self.mode then self:Inspect(pet.id) end end)
 	card.InputChanged:Connect(function(input)
@@ -837,7 +914,14 @@ function Browser:UpdateAction()
 	setTone(self.compactButton,if self.compact then "Green" else "Blue")
 	for key,item in self.sortButtons do setTone(item,if self.sort==key then "Green" else "Dark") end
 	local selecting=self.mode=="Sell" or self.mode=="Lock"
-	self.bar.Visible=self.mode~=nil
+	local barShown=self.mode~=nil
+	if barShown~=self.barShown then
+		self.barShown=barShown
+		-- The bar pops up from under the bottom row when a mode starts.
+		if barShown then Theme.Motion:Slide(self.bar,self.barRest+UDim2.fromScale(0,0.05),self.barRest,0.3,Theme.Motion.Ease.Pop)
+		else Theme.Motion:Cancel(self.bar,"slide");self.bar.Position=self.barRest end
+	end
+	self.bar.Visible=barShown
 	-- The bar covers Unequip All and the compact toggle, as in the reference; they
 	-- also hide so a click can never land on them by mistake.
 	self.unequip.Visible,self.compactButton.Visible=self.mode==nil,self.mode==nil
@@ -860,7 +944,11 @@ end
 
 function Browser:RenderDetail(pet)
 	local show=pet~=nil and self.inspecting and not self.mode
+	local opening=show and not self.detailShown
+	local switching=show and self.detailShown and self.detailFor~=pet.id
+	self.detailShown,self.detailFor=show,if show then pet.id else nil
 	self.detail.Visible=show
+	if opening then Theme.Motion:PopScale(self.detail,0.88,0.28) end
 	if self.detailPortrait then self.detailPortrait:Destroy();self.detailPortrait=nil end
 	if not show then return end
 	local definition=Catalog[pet.species]
@@ -871,9 +959,9 @@ function Browser:RenderDetail(pet)
 	local mutation=Mutations.Get(pet.mutation)
 	self.detailVariant.Text=(if mutation then mutation.name else "Normal").." · Lv. "..(pet.level or 1)
 	self.detailVariant.TextColor3=if mutation then mutation.color else WHITE
-	-- The same tile as the grid, without the click behaviour.
-	local holder=frame(self.detailCard,"Tile",UDim2.fromScale(1,1))
-	holder.ClipsDescendants=true
+	-- The same tile as the grid, without the click behaviour (centred so it punches in place).
+	local holder=frame(self.detailCard,"Tile",UDim2.fromScale(1,1),UDim2.fromScale(0.5,0.5))
+	holder.AnchorPoint,holder.ClipsDescendants=Vector2.new(0.5,0.5),true
 	local background=Theme.Image(holder,"RarityBackground",Art.Card[definition.rarity] or Art.Card.Mythic,UDim2.fromScale(1,1))
 	background.ScaleType,background.ZIndex=Enum.ScaleType.Stretch,holder.ZIndex+1
 	local portrait=Preview.Create(holder,pet,UDim2.fromScale(1.04,1.04),UDim2.fromScale(-0.02,-0.06))
@@ -886,6 +974,8 @@ function Browser:RenderDetail(pet)
 	local border=Theme.Stroke(holder,INK,3)
 	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	self.detailPortrait=holder
+	-- The portrait punches in when the card opens or shows another chicken.
+	if opening or switching then Theme.Motion:Punch(holder,1.16,0.3) end
 end
 
 function Browser:FitCells()
@@ -959,9 +1049,15 @@ function Browser:Render(force)
 		self.visible,self.chosen,self.shown=visible,chosen,0
 		self:ShowCards()
 		self.grid.CanvasPosition=scroll
+		local wasEmpty=self.empty.Visible
 		self.empty.Visible=#visible==0
 		self.empty.Text=if self.query~="" then "No matching chickens"
 			else "No chickens yet. Roll chickens at the lever in your yard!"
+		if self.empty.Visible and not wasEmpty then Theme.Motion:PopScale(self.empty,0.9) end
+		if self.revealOnRender then
+			self.revealOnRender=false
+			Theme.Motion:Reveal(self.grid,{limit=32,window=0.4})
+		end
 	end
 	self:RenderDetail(pets[self.app.selected])
 	self:UpdateMarks();self:Highlight();self:UpdateAction()
@@ -971,8 +1067,33 @@ function Browser:Render(force)
 		if os.clock()-pop.at<1 then
 			local was={}
 			for _,id in pop.before do was[id]=true end
-			for id,entry in self.cards do if (was[id]==true)~=entry.inArmy then Theme.Motion:PopScale(entry.card,1.06) end end
-			Theme.Motion:PopScale(self.capacity,1.15)
+			-- Joined: a wash in the Army green; left: a grey wash. Equip Best sweeps
+			-- the new Army in a wave and confirms once.
+			local joined,left={},{}
+			for id,entry in self.cards do
+				if (was[id]==true)~=entry.inArmy then table.insert(if entry.inArmy then joined else left,entry.card) end
+			end
+			table.sort(joined,function(a,b) return a.LayoutOrder<b.LayoutOrder end)
+			for _,card in left do Theme.Motion:Flash(card,UNEQUIPPED,0.4,0.45) end
+			if pop.action=="SelectBest" then
+				Theme.Motion:Stagger(joined,function(card) Theme.Motion:Flash(card,EQUIPPED,0.45,0.6) end,0.05,0.45)
+				cue("Confirm","UIPurchase")
+			else
+				for _,card in joined do Theme.Motion:Flash(card,EQUIPPED,0.45,0.6) end
+			end
+			Theme.Motion:Punch(self.capacity,1.2,0.3)
+		end
+	end
+	local lockPop=self.lockPop
+	if lockPop then
+		self.lockPop=nil
+		if os.clock()-lockPop.at<1 then
+			for _,id in lockPop.ids do
+				local entry=self.cards[id]
+				local padlock=entry and entry.card:FindFirstChild("Locked")
+				if padlock then Theme.Motion:Punch(padlock,1.4,0.32)
+				elseif entry then Theme.Motion:PopScale(entry.card,1.06) end
+			end
 		end
 	end
 end
