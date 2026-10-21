@@ -53,27 +53,18 @@ local FIGMA={
   ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0)),
  }),
 }
+-- Card styles for the passes on sale (Catalog.Order, October 20: four passes).
 local PASSES={
- {key="AutoCollectEggs",name="Auto Collect Eggs",description="Collect eggs without walking over them.",color=Color3.fromRGB(255,188,32),top=Color3.fromRGB(233,103,10),rim=Color3.fromRGB(255,232,174),title=Color3.fromRGB(255,244,216),icon="EggMagnet",background="orange"},
  {key="DoubleCash",name="2x Coins",description="Earn twice as many coins.",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),rim=Color3.fromRGB(233,255,160),title=Color3.fromRGB(242,255,216),icon="Cash",background="cash",double=true},
  {key="DoubleEggSpawn",name="2x Egg Spawn",description="Chickens lay eggs twice as often.",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),rim=Color3.fromRGB(188,239,255),title=Color3.fromRGB(227,250,255),icon="Eggs",background="eggs",double=true},
- {key="AutoMerge",name="Auto Fuse",description="Fuse matching chickens for you.",color=Color3.fromRGB(8,207,243),top=Color3.fromRGB(0,110,228),rim=Color3.fromRGB(179,240,255),title=Color3.fromRGB(222,248,255),icon="AutoMerge",background="cyan"},
- {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 17 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
+ {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 17 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army",double=false},
  {key="DoubleLuck",name="2x Luck",description="2x Luck strength. Favor stronger chickens.",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),rim=Color3.fromRGB(255,236,173),title=Color3.fromRGB(255,242,205),icon="DoubleLuck",background="gold",double=true},
-}
-local EXISTING_STYLES={
- EggMagnet={icon="EggMagnet",background="cyan",palette=4},
- CommanderBanner={icon="CommanderBanner",background="gold",palette=6},
- DoubleBounty={icon="DoubleBounty",background="army",palette=5},
 }
 -- October 15 shop redesign (owner reference: StarterGui.GUI.FRAMES.Shop): one short
 -- line per offer; the card itself is the button.
 local PASS_COPY={
- AutoCollectEggs="A vacuum collects your eggs!",DoubleCash="2x coins from eggs and fights!",
- DoubleEggSpawn="Chickens lay 2x the eggs!",AutoMerge="Fuses matches for you!",
+ DoubleCash="2x coins from eggs and fights!",DoubleEggSpawn="Chickens lay 2x the eggs!",
  BiggerArmy="+5 army slots!",DoubleLuck="Stronger chickens more often!",
- EggMagnet="Grab eggs from 2x as far!",CommanderBanner="Gold frame + crown flags!",
- DoubleBounty="2x coins from NPC kills!",
 }
 -- Placeholder quantities; RenderCashAmounts shows the live payout. Checkout prices always come from Roblox.
 local CASH_TIERS={
@@ -85,6 +76,8 @@ local CASH_TIERS={
 local COIN_CARD_TOP,COIN_CARD_BOTTOM=Color3.fromRGB(56,198,255),Color3.fromRGB(0,96,226)
 -- Recording-led spacing, expressed relative to section width on every screen.
 local OFFER_COLUMNS=3
+-- Passes sit two per row (2x2) on wide cards (owner, October 21).
+local PASS_COLUMNS=2
 local OFFER_GAP=0.016
 -- Section title bars follow the reference's 21.9:1 dark bar at 93% width.
 local TITLE_WIDTH=0.93
@@ -92,7 +85,7 @@ local HEADING_HEIGHT=TITLE_WIDTH/21.94
 local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.018
 -- Wider than the old 1.48 GUI.FRAMES proportion; matches MenuLayout.Defaults.Shop.
 local SHOP_ASPECT=1.78
-local PASS_RATIO=1
+local PASS_RATIO=1.62
 local CASH_RATIO=1.05
 local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Coin Packs"}
 local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Coins"}
@@ -159,7 +152,7 @@ local function guaranteedOffers(shop)
 end
 
 function Browser.new(app,parent)
- local self=setmetatable({app=app,alive=true,sections={},tabs={},cards={},existingCards={},
+ local self=setmetatable({app=app,alive=true,sections={},tabs={},cards={},
   passCount=0,connections={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy"},Browser)
  local root=frame(parent,"ShopBrowser",UDim2.fromScale(1,1))
  root.BackgroundTransparency,root.Visible,root.ZIndex=1,false,2
@@ -380,8 +373,8 @@ function Browser:CreatePasses()
  layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
  self.passLayout=layout
  for _,definition in PASSES do
-  local offer=Catalog.Definitions[definition.key]
-  if not offer or offer.enabled==false then continue end
+  -- Only passes on sale (Catalog.Order); off-sale passes keep their server benefits.
+  if not table.find(Catalog.Order,definition.key) then continue end
   self.passCount+=1
   local view=self:OfferCard(grid,definition.key,definition,self.passCount)
   view.multiplier=Art.PassIcon(view.art,definition.icon,definition.double)
@@ -392,23 +385,6 @@ function Browser:CreatePasses()
    end,P.cyan)
    dress(details,P.cyan);details.ZIndex=12;view.details=details
   end
-  self:BindOfferMotion(view,"Passes")
- end
- self:CreateExistingPasses(section)
-end
-
-function Browser:CreateExistingPasses(_section)
- -- Keep configured offers adjacent in the same grid when release features are hidden.
- for _,key in {"EggMagnet","CommanderBanner","DoubleBounty"} do
-  local definition=Catalog.Definitions[key]
-  if not definition or definition.enabled==false then continue end
-  self.passCount+=1
-  local style=EXISTING_STYLES[key]
-  local palette=table.clone(PASSES[style.palette])
-  palette.name=definition.name
-  local view=self:OfferCard(self.passGrid,key,palette,self.passCount)
-  Art.PassIcon(view.art,style.icon)
-  self.existingCards[key],self.cards[key]=view,view
   self:BindOfferMotion(view,"Passes")
  end
 end
@@ -819,33 +795,35 @@ function Browser:Resize()
  self.galaxy.root.Position,self.galaxy.root.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/featuredSectionHeight),UDim2.fromScale(1,GalaxyCrateShop.Height/featuredSectionHeight)
  local passRatio=PASS_RATIO
  local cardWidth=(1-OFFER_GAP*(OFFER_COLUMNS-1))/OFFER_COLUMNS
- local passRows=math.ceil(self.passCount/OFFER_COLUMNS)
- local passCardHeight=cardWidth/passRatio
+ local passCardWidth=(1-OFFER_GAP*(PASS_COLUMNS-1))/PASS_COLUMNS
+ local passRows=math.ceil(self.passCount/PASS_COLUMNS)
+ local passCardHeight=passCardWidth/passRatio
  local gridHeight=passRows*passCardHeight+math.max(0,passRows-1)*OFFER_GAP
  local passHeight=SECTION_CONTENT_TOP+gridHeight
  self.sections.Passes.Size=UDim2.fromScale(0.98,passRows+1)
  layoutSection(self.sections.Passes,passHeight)
  self.passGrid.Position,self.passGrid.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/passHeight),UDim2.fromScale(1,gridHeight/passHeight)
- self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(OFFER_GAP,OFFER_GAP/gridHeight),UDim2.fromScale(cardWidth,passCardHeight/gridHeight)
- self.passLayout.FillDirectionMaxCells=OFFER_COLUMNS
+ self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(OFFER_GAP,OFFER_GAP/gridHeight),UDim2.fromScale(passCardWidth,passCardHeight/gridHeight)
+ self.passLayout.FillDirectionMaxCells=PASS_COLUMNS
  for _,view in self.cards do
-  -- Square card: name on top, big art on a sunburst, one line, full-width price.
-  view.rays.AnchorPoint,view.rays.Position,view.rays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.43),UDim2.fromScale(0.82,0.82)
+  -- Wide card: art and sunburst on the left, name top-right, one line of
+  -- copy, then a big price pill bottom-right.
+  view.rays.AnchorPoint,view.rays.Position,view.rays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.62,1.0)
   Theme.Aspect(view.rays,1)
   view.art.AnchorPoint=Vector2.new(0.5,0.5)
-  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.43),UDim2.fromScale(0.6,0.5)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.47,0.76)
   Theme.Aspect(view.art,1)
   view.artRestSize=view.art.Size
-  view.title.AnchorPoint,view.title.Position,view.title.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.03),UDim2.fromScale(0.92,0.13)
-  view.title.TextWrapped,view.title.TextXAlignment=false,Enum.TextXAlignment.Center
-  view.description.AnchorPoint,view.description.Position=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.67)
-  view.description.Size=UDim2.fromScale(0.92,0.1)
-  view.description.TextWrapped,view.description.TextXAlignment=false,Enum.TextXAlignment.Center
+  view.title.AnchorPoint,view.title.Position,view.title.Size=Vector2.new(1,0),UDim2.fromScale(0.965,0.06),UDim2.fromScale(0.56,0.25)
+  view.title.TextWrapped,view.title.TextXAlignment=false,Enum.TextXAlignment.Right
+  view.description.AnchorPoint,view.description.Position=Vector2.new(1,0),UDim2.fromScale(0.965,0.33)
+  view.description.Size=UDim2.fromScale(0.5,0.27)
+  view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Right
   if view.details then
-   -- The odds button tucks into the art's upper-right corner.
-   view.details.AnchorPoint,view.details.Position,view.details.Size=Vector2.new(1,0),UDim2.fromScale(0.96,0.18),UDim2.fromScale(0.24,0.11)
+   -- The odds button tucks into the art's lower-left corner.
+   view.details.AnchorPoint,view.details.Position,view.details.Size=Vector2.new(0,1),UDim2.fromScale(0.03,0.93),UDim2.fromScale(0.2,0.2)
   end
-  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.96),UDim2.fromScale(0.86,0.17)
+  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(1,1),UDim2.fromScale(0.965,0.93),UDim2.fromScale(0.5,0.25)
  end
  local cashCardWidth=cardWidth
  local cashCardHeight=cashCardWidth/CASH_RATIO

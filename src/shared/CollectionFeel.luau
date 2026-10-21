@@ -45,7 +45,9 @@ return {
 		-- "CoinPickup" (falls back to "Collect") plays as each coin lands, rising a little.
 		TickVolume = 0.35, PitchStep = 0.02, PitchMax = 1.25, PitchJitter = 0.04,
 		HoldTimeout = 4, -- A held sale always reaches the Coins readout within this time.
-		Flash = {Size = {5, 11}, Seconds = 0.38, Transparency = 0.15, GlowTransparency = 0.55, Sparkles = 14}, -- Bubble on the first coin.
+		DropVolume = 0.4, DropSeconds = 0.9, -- "CoinDrop" plays as the coins spill out of the pad.
+		SpillPuff = {Sparkles = 16}, -- Gold puff at the pad as the coins burst out.
+		Flash = {Size = {5, 11}, Seconds = 0.38, Transparency = 0.15, GlowTransparency = 0.55, Sparkles = 14}, -- Bubble on stepping in and on the first coin.
 		Counter = {
 			Height = 1.5, Gap = 0.4, Lift = 0.4, -- Studs: number height, gap right of the root, rise.
 			Toward = 3, -- Studs toward the camera, so nearby chickens rarely cover it.

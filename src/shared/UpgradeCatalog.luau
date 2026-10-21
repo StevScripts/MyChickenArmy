@@ -60,16 +60,17 @@ end
 
 local families: {Family} = {
 	-- Main tree ------------------------------------------------------------------
-	-- Tools (Open) sits on top of Start and Player (Open) under it. Every hex touches the
-	-- hex it needs, so a few chains open from a neighbour, as in the reference.
+	-- October 21 (Stevin): the three Open hexes touch Start and alternate with green ones
+	-- (Tools on top, Army right, Player left), and every chain zig-zags in a tight band.
+	-- Every hex touches the hex it needs, so a few chains open from a neighbour.
 	{id = "EggSpeed", name = "Egg Speed", category = "Main", icon = "eggSpeed", field = "eggSpeedLevel", base = 1,
 		format = "multiplier", description = "Chickens in your Flock lay eggs faster.",
 		tiers = tiers({{1.25, 400}, {1.5, 2000}, {2, 8000}, {3, 30000}}),
-		positions = walk(1, -1, {"NE", "N", "NE"})},
+		positions = walk(1, -1, {"NE", "SE", "NE"})},
 	{id = "EggValue", name = "Egg Value", category = "Main", icon = "eggValue", field = "incomeLevel", base = 1,
 		format = "multiplier", description = "Every new egg is worth more Coins.",
 		tiers = tiers({{1.5, 600}, {2, 3000}, {3, 12000}, {5, 45000}}),
-		positions = walk(0, -2, {"N", "N", "N"}), prerequisite = "OpenTools"},
+		positions = walk(0, -2, {"NW", "NE", "NW"}), prerequisite = "OpenTools"},
 	-- Three chains, each its own clover: Luck I–IV, Super Luck I–IV, Mega Luck I–IV
 	-- (Stevin, October 20). Values are Luck strength; the window math stays bounded.
 	{id = "Luck", name = "Luck", category = "Main", icon = "luck", field = "luck", base = 1,
@@ -78,29 +79,31 @@ local families: {Family} = {
 			{3.5, 250000}, {4, 600000}, {4.5, 1500000}, {5, 4000000},
 			{6, 10000000}, {7, 25000000}, {8, 60000000}, {10, 150000000}}),
 		labels = chains({{"Luck", "luck"}, {"Super Luck", "superLuck"}, {"Mega Luck", "megaLuck"}}),
-		positions = walk(3, -1, {"NE", "SE", "NE", "SE", "S", "SE", "S", "S", "SW", "S", "SW"}), prerequisite = "RollSpeed1"},
+		-- Each chain is a row under Roll Speed: Luck right, Super Luck back, Mega Luck right.
+		positions = walk(1, 2, {"SE", "SE", "NE", "S", "SW", "NW", "SW", "S", "NE", "SE", "NE"}), prerequisite = "RollSpeed1"},
 	-- Flock Size = chickens out in the yard laying. yardStage is the authored yard
 	-- expansion (PlayerSession.plotSizeLevel, 0-7) that tier opens.
 	{id = "Flock", name = "Flock Size", category = "Main", icon = "flockSize", effect = "flockSize", base = 3,
 		format = "count", unit = "chickens laying", description = "More of your chickens lay eggs in the yard.",
 		tiers = tiers({{4, 300, 0}, {5, 900, 1}, {6, 2000, 2}, {7, 4500, 3}, {8, 9000, 4}, {10, 18000, 5},
 			{12, 35000, 6}, {15, 70000, 7}}),
-		positions = walk(-1, 0, {"NW", "N", "NW", "N", "NW", "N", "NW"})},
+		positions = walk(-1, 0, {"NW", "SW", "NW", "SW", "NW", "SW", "NW"})},
 	-- Tier 1 is the Commander guide's protected 1,200-Coin Army Size 4 (COMMANDER_TUTORIAL.md).
+	-- It opens from Army (Open), which always counts as owned, so it needs nothing new.
 	{id = "ArmySize", name = "Army Size", category = "Main", icon = "armySize", field = "capacity", base = Config.StartingSlots,
 		format = "count", unit = "Army slots", description = "Send more chickens into battle.",
 		tiers = tiers({{4, 1200}, {6, 6000}, {8, 25000}, {10, 90000}}),
-		positions = walk(-1, 1, {"NW", "SW", "NW"})},
-	-- Roll Slots zig-zag down under Player (Stevin: "not a straight line").
+		positions = walk(2, -1, {"SE", "NE", "SE"}), prerequisite = "OpenArmy"},
+	-- Roll Slots zig-zag down under Start (Stevin: "not a straight line").
 	{id = "RollSlot", name = "Roll Slot", category = "Main", icon = "rollSlots", field = "rollSlotsUnlocked", base = 1,
 		format = "count", unit = "podiums", description = "Roll on more of your podiums at once.",
 		tiers = tiers({{2, 1000}, {3, 4000}, {4, 12000}, {5, 30000}, {6, 75000}, {7, 180000}, {8, 400000}}),
-		positions = walk(1, 0, {"S", "SW", "S", "SE", "S", "SW"})},
+		positions = walk(0, 1, {"SW", "SE", "SW", "SE", "SW", "SE"})},
 	-- Each tier shortens the roll (RollService: RollRevealSeconds / (1 + rollingSpeed)).
 	{id = "RollSpeed", name = "Roll Speed", category = "Main", icon = "rollSpeed", effect = "rollingSpeed", base = 0,
 		format = "percent", description = "Every roll takes less time.",
 		tiers = tiers({{0.2, 1500}, {0.4, 7500}, {0.6, 30000}, {0.8, 100000}, {1, 300000}}),
-		positions = walk(2, 0, {"SE", "SE", "SE", "S"}), prerequisite = "RollSlot1"},
+		positions = walk(1, 1, {"NE", "SE", "NE", "SE"}), prerequisite = "RollSlot1"},
 	-- Mutations are bought here (Stevin, October 20), rarest furthest out. The value is
 	-- how many of MutationCatalog.Order can roll; it resets on Rebirth like the tree.
 	{id = "Mutation", name = "Mutations", category = "Main", icon = "mutationGolden", effect = "mutations", base = 0,
@@ -108,30 +111,30 @@ local families: {Family} = {
 		tiers = tiers({{1, 10000}, {2, 100000}, {3, 1000000}, {4, 10000000}}),
 		labels = {{name = "Golden Chickens", icon = "mutationGolden"}, {name = "Rainbow Chickens", icon = "mutationRainbow"},
 			{name = "Shadow Chickens", icon = "mutationShadow"}, {name = "Cosmic Chickens", icon = "mutationCosmic"}},
-		positions = walk(4, -1, {"SE", "SE", "SE"}), prerequisite = "Luck1"},
+		positions = walk(2, 1, {"SE", "NE", "SE"}), prerequisite = "Luck1"},
 	-- Gold rolls (S12): each machine counts its own pulls; its Rate tiers shorten that
-	-- count (Config.GoldRolls). The machines step out to the lower left, rates below.
+	-- count (Config.GoldRolls). Gold, Diamond and Prism are three bands left of Player.
 	{id = "GoldMachine", name = "Gold Machine", category = "Main", icon = "goldMachine", effect = "goldMachine", base = 0,
 		format = "unlock", description = "Your roll machine counts down to a Gold roll.",
-		tiers = tiers({{1, 25000}}), positions = walk(-1, 2), prerequisite = "OpenPlayer"},
+		tiers = tiers({{1, 25000}}), positions = walk(-2, 1), prerequisite = "OpenPlayer"},
 	{id = "GoldRate", name = "Gold Rate", category = "Main", icon = "goldRate", effect = "goldRate", base = 0,
 		format = "level", description = "Gold rolls come around sooner.",
 		tiers = tiers({{1, 60000}, {2, 150000}, {3, 400000}, {4, 1000000}}),
-		positions = walk(-2, 3, {"S", "S", "S"}), prerequisite = "GoldMachine"},
+		positions = walk(-3, 2, {"NW", "SW", "NW"}), prerequisite = "GoldMachine"},
 	{id = "DiamondMachine", name = "Diamond Machine", category = "Main", icon = "diamondMachine", effect = "goldMachine", base = 0,
 		format = "unlock", description = "Adds Diamond rolls on their own counter, separate from Gold rolls.",
-		tiers = tiers({{2, 300000}}), positions = walk(-3, 3), prerequisite = "GoldRate1"},
+		tiers = tiers({{2, 300000}}), positions = walk(-2, 2), prerequisite = "GoldRate1"},
 	{id = "DiamondRate", name = "Diamond Rate", category = "Main", icon = "diamondRate", effect = "diamondRate", base = 0,
 		format = "level", description = "Diamond rolls come around sooner.",
 		tiers = tiers({{1, 750000}, {2, 2000000}, {3, 5000000}, {4, 12000000}}),
-		positions = walk(-4, 4, {"S", "S", "S"}), prerequisite = "DiamondMachine"},
+		positions = walk(-3, 3, {"NW", "SW", "NW"}), prerequisite = "DiamondMachine"},
 	{id = "PrismMachine", name = "Prism Machine", category = "Main", icon = "prismMachine", effect = "goldMachine", base = 0,
 		format = "unlock", description = "Adds Prism rolls on their own counter, separate from Gold and Diamond rolls.",
-		tiers = tiers({{3, 1000000}}), positions = walk(-5, 4), prerequisite = "DiamondRate1"},
+		tiers = tiers({{3, 1000000}}), positions = walk(-2, 3), prerequisite = "DiamondRate1"},
 	{id = "PrismRate", name = "Prism Rate", category = "Main", icon = "prismRate", effect = "prismRate", base = 0,
 		format = "level", description = "Prism rolls come around sooner.",
 		tiers = tiers({{1, 8000000}, {2, 20000000}, {3, 50000000}, {4, 120000000}}),
-		positions = walk(-6, 5, {"S", "S", "S"}), prerequisite = "PrismMachine"},
+		positions = walk(-3, 4, {"NW", "SW", "NW"}), prerequisite = "PrismMachine"},
 	-- Tools ----------------------------------------------------------------------
 	-- Like the reference: Back in the middle, each tool a branch with its own chains.
 	-- October 20 (Stevin, S14): the hand vacuum is bought here and resets on Rebirth,
@@ -145,7 +148,7 @@ local families: {Family} = {
 	{id = "VacuumCapacity", name = "Vacuum Capacity", category = "Tools", icon = "vacuumCapacity", effect = "vacuumCapacity", base = 0,
 		format = "seconds", unit = "of eggs", description = "Your Egg Vacuum holds more eggs (seconds of your Flock's laying).",
 		tiers = tiers({{15, 500}, {30, 3000}, {60, 12000}, {90, 40000}}),
-		positions = walk(-2, 2, {"S", "SW", "S"}), prerequisite = "EggVacuum"},
+		positions = walk(-2, 2, {"SE", "SW", "SE"}), prerequisite = "EggVacuum"},
 	{id = "VacuumRange", name = "Vacuum Range", category = "Tools", icon = "vacuumRange", effect = "vacuumRange", base = 0,
 		format = "studs", description = "Your Egg Vacuum reaches eggs from farther away.",
 		tiers = tiers({{4, 2000}, {8, 15000}, {12, 75000}}), positions = walk(-2, 1, {"NW", "SW"}), prerequisite = "EggVacuum"},
@@ -157,33 +160,33 @@ local families: {Family} = {
 	{id = "FeedMaxLevel", name = "Max Level", category = "Tools", icon = "feedMaxLevel", effect = "feedMaxLevel", base = 0,
 		format = "maxLevel", description = "Chicken Feed levels your chickens higher.",
 		tiers = tiers({{3, 50000}, {6, 400000}, {10, 2500000}}),
-		positions = walk(2, 0, {"S", "SE"}), prerequisite = "ChickenFeed"},
+		positions = walk(2, 0, {"SE", "NE"}), prerequisite = "ChickenFeed"},
 	-- Player ---------------------------------------------------------------------
 	{id = "WalkSpeed", name = "Walk Speed", category = "Player", icon = "walkSpeed", effect = "walk", base = 0,
 		format = "percent", description = "You move faster.",
-		tiers = tiers({{0.05, 2000}, {0.10, 10000}, {0.15, 40000}}), positions = walk(1, -1, {"NE", "N"})},
+		tiers = tiers({{0.05, 2000}, {0.10, 10000}, {0.15, 40000}}), positions = walk(1, -1, {"NE", "SE"})},
 	{id = "ClickRange", name = "Click Range", category = "Player", icon = "clickRange", effect = "pickupStuds", base = 0,
 		format = "studs", description = "Collect eggs from farther away.",
-		tiers = tiers({{1.5, 1000}, {3, 6000}, {4.5, 25000}}), positions = walk(-1, 0, {"NW", "N"})},
+		tiers = tiers({{1.5, 1000}, {3, 6000}, {4.5, 25000}}), positions = walk(-1, 0, {"NW", "SW"})},
 	{id = "OfflineTime", name = "Offline Time", category = "Player", icon = "offlineTime", effect = "offlineHours", base = 8,
 		format = "hours", description = "Your Flock earns Coins for longer while you're away.",
-		tiers = tiers({{9, 10000}, {10, 50000}, {12, 200000}}), positions = walk(0, 1, {"S", "S"})},
+		tiers = tiers({{9, 10000}, {10, 50000}, {12, 200000}}), positions = walk(0, 1, {"SE", "SW"})},
 	-- Army -----------------------------------------------------------------------
 	{id = "Damage", name = "Damage", category = "Army", icon = "damage", effect = "damage", base = 0,
 		format = "percent", description = "Your army deals more damage.",
-		tiers = tiers({{0.05, 1000}, {0.10, 8000}, {0.25, 50000}}), positions = walk(1, -1, {"NE", "N"})},
+		tiers = tiers({{0.05, 1000}, {0.10, 8000}, {0.25, 50000}}), positions = walk(1, -1, {"NE", "SE"})},
 	{id = "BossDamage", name = "Boss Damage", category = "Army", icon = "bossDamage", effect = "bossDamage", base = 0,
 		format = "percent", description = "Your army deals more damage to bosses.",
-		tiers = tiers({{0.15, 250000}}), positions = walk(2, -4), prerequisite = "Damage3"},
+		tiers = tiers({{0.15, 250000}}), positions = walk(4, -3), prerequisite = "Damage3"},
 	{id = "Health", name = "Health", category = "Army", icon = "health", effect = "health", base = 0,
 		format = "percent", description = "Your chickens have more health.",
-		tiers = tiers({{0.05, 1500}, {0.10, 12000}, {0.25, 60000}}), positions = walk(-1, 0, {"NW", "N"})},
+		tiers = tiers({{0.05, 1500}, {0.10, 12000}, {0.25, 60000}}), positions = walk(-1, 0, {"NW", "SW"})},
 	{id = "MarchSpeed", name = "March Speed", category = "Army", icon = "marchSpeed", effect = "march", base = 0,
 		format = "percent", description = "Your army marches faster.",
-		tiers = tiers({{0.05, 3000}, {0.10, 20000}, {0.20, 100000}}), positions = walk(0, -1, {"N", "N"})},
+		tiers = tiers({{0.05, 3000}, {0.10, 20000}, {0.20, 100000}}), positions = walk(0, -1, {"NE", "NW"})},
 	{id = "CaptureSpeed", name = "Capture Speed", category = "Army", icon = "captureSpeed", effect = "capture", base = 0,
 		format = "percent", description = "Your army captures camps faster.",
-		tiers = tiers({{0.10, 4000}, {0.20, 30000}, {0.30, 150000}}), positions = walk(-1, -1, {"N", "N"}),
+		tiers = tiers({{0.10, 4000}, {0.20, 30000}, {0.30, 150000}}), positions = walk(-1, -1, {"NW", "NE"}),
 		prerequisite = "MarchSpeed1"},
 	{id = "Armor", name = "Armor", category = "Army", icon = "armor", effect = "armor", base = 0,
 		format = "reduction", description = "Your chickens take less damage.",
@@ -193,7 +196,7 @@ local families: {Family} = {
 		tiers = tiers({{0.10, 5000}, {0.20, 40000}}), positions = walk(-1, 1, {"SW"})},
 	{id = "Bounty", name = "Bounty", category = "Army", icon = "bounty", effect = "bounty", base = 0,
 		format = "percent", description = "Earn more Coins from defeated enemies.",
-		tiers = tiers({{0.05, 5000}, {0.10, 40000}, {0.20, 200000}}), positions = walk(0, 1, {"S", "S"})},
+		tiers = tiers({{0.05, 5000}, {0.10, 40000}, {0.20, 200000}}), positions = walk(0, 1, {"SE", "SW"})},
 }
 
 Catalog.FamilyOrder = {} :: {string}
@@ -219,8 +222,8 @@ local function add(node: Node)
 end
 add({id = "Start", kind = "start", category = "Main", q = 0, r = 0, name = "Start", icon = "start"})
 add({id = "OpenTools", kind = "open", category = "Main", q = 0, r = -1, name = "Tools", icon = "openTools", opens = "Tools"})
-add({id = "OpenPlayer", kind = "open", category = "Main", q = 0, r = 1, name = "Player", icon = "openPlayer", opens = "Player"})
-add({id = "OpenArmy", kind = "open", category = "Main", q = -1, r = -1, name = "Army", icon = "openArmy", opens = "Army"})
+add({id = "OpenPlayer", kind = "open", category = "Main", q = -1, r = 1, name = "Player", icon = "openPlayer", opens = "Player"})
+add({id = "OpenArmy", kind = "open", category = "Main", q = 1, r = 0, name = "Army", icon = "openArmy", opens = "Army"})
 for _, category in {"Tools", "Player", "Army"} do
 	add({id = Catalog.Roots[category], kind = "back", category = category, q = 0, r = 0, name = "Back", icon = "back", opens = "Main"})
 end

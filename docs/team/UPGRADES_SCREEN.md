@@ -35,8 +35,9 @@ text come from `UpgradeCatalog`; the client never computes a price.
 
 ## Layout (tree v2, Stevin October 20)
 
-- Flat-topped hexes (164 x 144) in axial cells, like the reference: Tools (Open) sits
-  directly on top of Start and Player (Open) directly under it. The pointy-top hex art
+- Flat-topped hexes (164 x 144) in axial cells, like the reference. October 21
+  (Stevin): the three Open hexes touch Start and alternate with green ones: Tools
+  (Open) on top, Army (Open) to the right, Player (Open) to the left. The pointy-top hex art
   is turned a quarter, so no new upload was needed. `Browser.Grid = {step=133.4,
   row=154, width=164, height=144, flat=true}`; `Browser.Grid.Offset({q,r})` is a cell's
   centre offset in the same units (S14's guide arrow uses it).
@@ -44,19 +45,19 @@ text come from `UpgradeCatalog`; the client never computes a price.
   hexes share a cell, so the screen draws no link lines. A few chains open from a
   neighbour, as in the reference: Roll Speed I needs Roll Slot I, Luck I needs Roll
   Speed I, Golden needs Luck I, Diamond Machine needs Gold Rate I, Prism Machine needs
-  Diamond Rate I, Capture Speed I needs March Speed I. Flock and Army Size open from
-  Start (the Commander guide), Egg Value from Tools (Open) and Gold Machine from
-  Player (Open); Open hexes count as owned.
-- Main: Flock Size up-left, Egg Value straight up above Tools, Egg Speed up-right,
-  Army (Open) beside Tools, Army Size to the left, Roll Slots I–VII zig-zagging down
-  under Player, Roll Speed I–V diagonally down-right, Luck I–IV → Super Luck I–IV →
-  Mega Luck I–IV arcing round the right (one family, 12 tiers, each chain its own
-  clover and numbered 1–4), Golden → Rainbow → Shadow → Cosmic inside that arc, and
-  the Gold, Diamond and Prism Machines stepping out to the lower left with their
-  Rate I–IV chains hanging below.
+  Diamond Rate I, Capture Speed I needs March Speed I. Flock, Egg Speed and Roll Slot
+  open from Start, Army Size from Army (Open), Egg Value from Tools (Open) and Gold
+  Machine from Player (Open); Open hexes count as owned.
+- Main (October 21, Stevin: "not a straight line", "closer together"): every chain
+  zig-zags in a tight band. Flock Size left, Egg Value up above Tools, Egg Speed right,
+  Army Size right below it, Roll Slots I–VII zig-zagging down under Start, Roll Speed
+  I–V right under Army Size, Golden → Rainbow → Shadow → Cosmic right under Roll
+  Speed, and Luck I–IV → Super Luck I–IV → Mega Luck I–IV as three rows under that
+  (one family, 12 tiers, each chain numbered 1–4). The Gold, Diamond and Prism Machines
+  are three bands left of Player, each machine followed by its Rate I–IV.
 - Tools: Back in the middle, Egg Vacuum down-left (Vacuum Capacity I–IV, Vacuum Range
   I–III), Chicken Feed down-right (Max Level I–III). Player and Army: chains around
-  Back.
+  Back. Every chain in every map zig-zags; none runs in a straight line.
 
 ## Hexes
 

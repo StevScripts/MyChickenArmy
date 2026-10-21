@@ -81,6 +81,7 @@ function CoinBurst.Play(self: Burst, origin: Vector3, value: number, eggs: numbe
 	local base = groundBelow(if pad then pad.Position else origin)
 	local halfX = if pad then pad.Size.X / 2 + Feel.Spill else math.huge
 	local halfZ = if pad then pad.Size.Z / 2 + Feel.Spill else math.huge
+	self:Spill(base)
 	local random = self.random
 	local released = 0
 	for index = 1, count do
@@ -192,6 +193,29 @@ function CoinBurst.Finish(self: Burst, coin: Coin, quiet: boolean)
 		end
 	end
 	coin.land(coin.share, coin.index, quiet)
+end
+
+-- A gold puff where the coins burst out of the pad.
+function CoinBurst.Spill(self: Burst, base: Vector3)
+	local spill = Feel.SpillPuff
+	local anchor = Instance.new("Part")
+	anchor.Name, anchor.Size, anchor.Transparency = "CoinSpill", Vector3.one, 1
+	anchor.Anchored, anchor.CanCollide, anchor.CanTouch, anchor.CanQuery, anchor.CastShadow = true, false, false, false, false
+	anchor.Position = base + Vector3.new(0, 0.5, 0)
+	local puff = Instance.new("ParticleEmitter")
+	puff.Name, puff.Texture = "Sparkles", "rbxasset://textures/particles/sparkles_main.dds"
+	puff.Color = ColorSequence.new(Color3.fromRGB(255, 221, 87), Color3.new(1, 1, 1))
+	puff.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0)})
+	puff.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)})
+	puff.Lifetime, puff.Speed = NumberRange.new(0.35, 0.7), NumberRange.new(6, 12)
+	puff.SpreadAngle, puff.Acceleration = Vector2.new(40, 40), Vector3.new(0, -20, 0)
+	puff.EmissionDirection, puff.Rate, puff.LightEmission = Enum.NormalId.Top, 0, 1
+	puff.Parent = anchor
+	anchor.Parent = workspace.CurrentCamera
+	self.leftovers[anchor] = true
+	anchor.Destroying:Once(function() self.leftovers[anchor] = nil end)
+	puff:Emit(spill.Sparkles)
+	Debris:AddItem(anchor, 1)
 end
 
 -- A white bubble swells around the player and fades, with a puff of sparkles.
