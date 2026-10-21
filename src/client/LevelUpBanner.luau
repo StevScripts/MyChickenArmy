@@ -66,9 +66,17 @@ function Banner:Show(text: string)
 	group.Visible=true
 	-- A new level while it shows only bumps it.
 	if entering then group.GroupTransparency=1 end
-	scale.Scale=if entering then 0.7 else 1.12
+	-- October 21 game feel: it slams in from large (Back), with confetti, a chime and a
+	-- small camera punch; one emphasis for the moment.
+	scale.Scale=if entering then 1.5 else 1.12
 	Theme.Motion:Tween(group,"banner-fade",{GroupTransparency=0},0.16)
-	Theme.Motion:Tween(scale,"banner-pop",{Scale=1},0.28,Enum.EasingStyle.Back)
+	Theme.Motion:Tween(scale,"banner-pop",{Scale=1},0.3,Enum.EasingStyle.Back)
+	if entering then
+		local app=self.app
+		Theme.Motion:Confetti(group.Parent,{origin=group.Position,spread=0.3,seconds=1.3})
+		app:Cue("LevelUp","UIPurchase")
+		if app.screenFeel then app.screenFeel:Zoom(2,0.4) end
+	end
 	task.delay(HOLD_SECONDS,function()
 		if self.alive and serial==self.serial then self:Leave() end
 	end)

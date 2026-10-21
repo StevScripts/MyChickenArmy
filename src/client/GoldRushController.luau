@@ -64,6 +64,7 @@ function Controller:BuildChip()
 	local text=Theme.Display(chip,"Clock","",26,IDLE_COLOR)
 	text.Position,text.Size=UDim2.fromScale(0,0.05),UDim2.fromScale(0.885,0.9)
 	text.TextXAlignment,text.TextScaled,text.TextWrapped=Enum.TextXAlignment.Right,true,false
+	Theme.Motion:Center(text) -- the last-ten-seconds breathing grows from its middle
 	Theme.ScaleText(chip)
 	chip.Activated:Connect(function()
 		local rush=Config.GoldRush
@@ -99,6 +100,12 @@ function Controller:Step()
 		self.clock.Text=if active then times().." Coins! "..clock(endsAt-serverNow)
 			elseif startsAt>serverNow then "Gold Rush in "..clock(startsAt-serverNow) else "Gold Rush soon"
 	end
+	-- October 21 game feel: the clock breathes through the last ten seconds.
+	local ending=active and known and endsAt-serverNow<=10
+	if ending~=(self.clockBreathing==true) then
+		self.clockBreathing=ending
+		if ending then Theme.Motion:Breathe(self.clock,1.1,0.5) else Theme.Motion:StopBreathe(self.clock) end
+	end
 	if self.active then self:StepAir() end
 end
 
@@ -113,20 +120,27 @@ function Controller:SetActive(active: boolean, seconds: number)
 	self.clock.TextColor3=if active then RUSH_COLOR else IDLE_COLOR
 	if active then
 		Theme.Motion:Breathe(self.icon,1.15,0.5)
+		-- October 21 game feel: the chip's gold ring pulses for the whole rush.
+		Theme.Motion:Glow(self.chip,RUSH_COLOR,2)
 		self:StartAir()
 		-- Not on the first look: someone joining mid-rush already sees the gold world.
 		if self.seen then
 			local minutes=math.max(1,math.floor(seconds/60+0.5))
 			app:Notify(string.format("Gold Rush! %s Coins for %d minute%s!",times(),minutes,
 				if minutes==1 then "" else "s"),true)
-			-- A dedicated "GoldRush" sound in the audio library wins once the lead adds one.
-			local templates=app.audio and app.audio.templates
-			app.audio:Play(if templates and templates.GoldRush then "GoldRush" else "Victory",nil,{noFallback=true})
-			Theme.Motion:PopScale(self.chip,1.2,0.35)
+			-- "GoldRushStart" from the library (GAME_FEEL §3); an older "GoldRush" cue, then
+			-- Victory, stand in until it exists.
+			local audio=app.audio
+			local fallback=if type(audio.Has)=="function" and audio:Has("GoldRush") then "GoldRush" else "Victory"
+			app:Cue("GoldRushStart",fallback)
+			if app.screenFeel then app.screenFeel:Flash(Theme.Arcade.gold,0.2,0.5) end
+			Theme.Motion:Punch(self.chip,1.2,0.35)
 		end
 	else
 		Theme.Motion:StopBreathe(self.icon)
+		Theme.Motion:StopGlow(self.chip)
 		self:StopAir()
+		if self.seen then app:Cue("GoldRushEnd") end
 	end
 end
 

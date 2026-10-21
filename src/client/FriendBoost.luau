@@ -62,8 +62,14 @@ function FriendBoost:Refresh(announce: boolean)
 	self.label.Text="Friend Boost: +"..percent(self.boost).."%"
 	self.label.TextColor3=if self.boost>0 then GREEN else WHITE
 	if announce and self.boost>previous then
-		Theme.Motion:PopScale(self.label,1.15)
+		Theme.Motion:Punch(self.label,1.2,0.3)
 		self.app:Notify("A friend is here! Friend Boost: +"..percent(self.boost).."% Coins",true)
+	end
+	-- October 21 game feel: the row glows green while friends boost; nothing loops at +0%.
+	local active=self.boost>0
+	if active~=(self.glowing==true) then
+		self.glowing=active
+		if active then Theme.Motion:Glow(self.row,GREEN,2) else Theme.Motion:StopGlow(self.row) end
 	end
 end
 
