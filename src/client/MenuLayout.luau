@@ -1,11 +1,15 @@
 --!strict
 -- Studio owns each menu's Scale geometry and native aspect constraint.
 local Layout={}
-Layout.Names={Army="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settings="Settings",Odds="Odds",Offline="OfflineEarnings",Rebirth="Rebirth"}
+Layout.Names={Army="MyArmyGrid",Sell="MyArmy",Shop="Shop",Index="Index",Upgrades="Upgrades",Settings="Settings",Odds="Odds",Offline="OfflineEarnings",Rebirth="Rebirth"}
 -- GUI.FRAMES proportions expressed against our full-screen parent (the original
 -- FRAMES is a small proxy). No viewport math, size limits, or device breakpoints.
 Layout.Defaults={
-	Army={size=Vector2.new(0.629404,0.82),aspect=1274/876},
+	-- October 21 (owner): My Army copies the reference Pets window, measured from his
+	-- recording: 960 x 557 of a 1728 x 1084 view, its body centred on screen. The
+	-- new "MyArmyGrid" control keeps the old saved MyArmy frame for the Sell screen.
+	Army={size=Vector2.new(0.5556,0.5138),position=Vector2.new(0.479,0.4875),aspect=960/557},
+	Sell={size=Vector2.new(0.629404,0.82),aspect=1274/876},
 	-- October 15 (owner): wider shop; section tabs sit outside its left edge.
 	-- October 16 (owner): a tiny bit less wide (1.78 -> 1.62), same height.
 	Shop={size=Vector2.new(0.64,0.80),position=Vector2.new(0.535,0.52),aspect=1.62},
@@ -19,8 +23,8 @@ Layout.Defaults={
 	Rebirth={size=Vector2.new(0.86,0.9),aspect=1.94},
 }
 
--- October 20: the Sell screen is My Army's sell mode and uses My Army's saved frame.
-Layout.Shared={Sell="Army"}
+-- October 21: the Sell screen keeps the frame My Army used before ("MyArmy").
+Layout.Shared={}
 
 function Layout.Control(gui,page)
 	page=Layout.Shared[page] or page
@@ -57,7 +61,7 @@ function Layout.CreateControls(gui)
 		folder=Instance.new("Frame")
 		folder.Name,folder.Size,folder.BackgroundTransparency="MenuLayouts",UDim2.fromScale(1,1),1
 		folder.BorderSizePixel,folder.Parent=0,gui
-		folder:SetAttribute("PreviewMenu","MyArmy")
+		folder:SetAttribute("PreviewMenu","MyArmyGrid")
 	end
 	for page,name in Layout.Names do
 		local definition=Layout.Defaults[page]
@@ -69,7 +73,7 @@ function Layout.CreateControls(gui)
 			frame.Parent=folder
 		end
 		if not frame:GetAttribute("NativeAspectLayout") then
-			if fresh or page~="Army" then
+			if fresh or page~="Sell" then
 				frame.Size=UDim2.fromScale(definition.size.X,definition.size.Y)
 				local position=definition.position or Vector2.new(0.5,0.5)
 				frame.Position,frame.AnchorPoint=UDim2.fromScale(position.X,position.Y),Vector2.new(0.5,0.5)

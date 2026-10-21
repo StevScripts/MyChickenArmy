@@ -5,6 +5,7 @@
 -- confirms the claim (CollectEggs); a refused egg drops back. Eggs the held vacuum
 -- pulls fly into its nozzle. Walking over eggs no longer collects them.
 local Players=game:GetService("Players")
+local ContentProvider=game:GetService("ContentProvider")
 local RunService=game:GetService("RunService")
 local TweenService=game:GetService("TweenService")
 local UserInputService=game:GetService("UserInputService")
@@ -26,7 +27,15 @@ local POPUP_HOLD,POPUP_FADE,POPUP_LIFT=0.7,0.4,0.5
 local POPUP_OFFSET=Vector3.new(0,3.7,0)
 -- Picking: a direct hit on an egg wins; otherwise the egg drawn nearest the pointer
 -- within this share of the screen height (taps get more room than the mouse).
-local PICK_SHARE,PICK_MIN,TOUCH_PICK_SHARE,TOUCH_PICK_MIN=0.05,36,0.08,48
+local PICK_SHARE,PICK_MIN,TOUCH_PICK_SHARE,TOUCH_PICK_MIN=0.065,44,0.08,48
+-- Hovering a clickable egg (the same pick a click uses) shows the hand cursor and
+-- pops that egg out a little. The game can't load rbxasset://SystemCursors, so the hand
+-- is our own image (assets/egg-hover-cursor-20261021); Roblox centres a cursor image on
+-- the pointer, so its fingertip sits at the image centre.
+local HOVER_CURSOR="rbxassetid://74062853444480"
+local HOVER_SCALE,HOVER_LIFT=0.18,0.18
+local HOVER_IN=TweenInfo.new(0.18,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+local HOVER_OUT=TweenInfo.new(0.12,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 local TAP_SECONDS,TAP_PIXELS=0.35,14 -- Longer or farther touches are camera drags.
 local CONFIRM_SECONDS=1.2 -- An unconfirmed click drops its egg back after this.
 local GAMEPAD_REPEAT=0.2 -- Holding R2 grabs the next nearest egg this often.
@@ -35,7 +44,8 @@ local VACUUM_RING=Color3.fromRGB(150,214,255)
 
 function Eggs.new(app)
  return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,
-  totalCount=0,totalValue=0,popupTweens={},optimistic={},queue={},touches={},lastFlush=0,connections={}},Eggs)
+  totalCount=0,totalValue=0,popupTweens={},optimistic={},queue={},touches={},lastFlush=0,connections={},
+  mousePoint=nil::Vector2?,hoverPop=Instance.new("NumberValue"),leavePop=Instance.new("NumberValue")},Eggs)
 end
 
 function Eggs:Root()
@@ -65,6 +75,11 @@ function Eggs:Start()
  local tooFar=Theme.Label(self.tooFar,"Text","Get closer",22)
  tooFar.Size,tooFar.TextXAlignment,tooFar.TextWrapped=UDim2.fromScale(1,1),Enum.TextXAlignment.Center,false
  self.connection=RunService.RenderStepped:Connect(function() self:Step(os.clock()) end)
+ task.spawn(function() -- Load the hand now so the first hover doesn't flash a blank cursor.
+  local probe=Instance.new("ImageLabel");probe.Image=HOVER_CURSOR
+  pcall(function() ContentProvider:PreloadAsync({probe}) end)
+  probe:Destroy()
+ end)
  self:BindInput()
 end
 
@@ -75,6 +90,12 @@ function Eggs:BindInput()
    self:Click(Vector2.new(input.Position.X,input.Position.Y),false)
   elseif input.UserInputType==Enum.UserInputType.Touch then
    self.touches[input]={at=os.clock(),x=input.Position.X,y=input.Position.Y}
+   self.mousePoint=nil::Vector2? -- Touch has no hover.
+  end
+ end))
+ table.insert(self.connections,UserInputService.InputChanged:Connect(function(input,processed)
+  if input.UserInputType==Enum.UserInputType.MouseMovement then
+   self.mousePoint=if processed then nil else Vector2.new(input.Position.X,input.Position.Y)
   end
  end))
  table.insert(self.connections,UserInputService.InputEnded:Connect(function(input,processed)
@@ -307,6 +328,28 @@ function Eggs:Click(point: Vector2,touch: boolean)
  if view then self:Grab(view,now) end
 end
 
+-- The egg under the mouse gets the hand cursor and pops out; one shared tween each
+-- for the egg coming in and the egg going back (Step applies them to the egg size).
+function Eggs:StepHover(now: number)
+ local view=if self.mousePoint and not self:Blocked() then self:PickAt(self.mousePoint,false,now) else nil
+ if view==self.hoverView then return end
+ if self.hoverTween then self.hoverTween:Cancel() end
+ if self.leaveTween then self.leaveTween:Cancel() end
+ self.leaveView,self.leavePop.Value=self.hoverView,self.hoverPop.Value
+ self.hoverView,self.hoverPop.Value=view,0
+ if self.app.reducedMotion then
+  self.leavePop.Value,self.hoverPop.Value=0,1
+ else
+  self.hoverTween=TweenService:Create(self.hoverPop,HOVER_IN,{Value=1});self.hoverTween:Play()
+  self.leaveTween=TweenService:Create(self.leavePop,HOVER_OUT,{Value=0});self.leaveTween:Play()
+ end
+ UserInputService.MouseIcon=if view then HOVER_CURSOR else ""
+end
+
+function Eggs:HoverPop(view): number
+ return if view==self.hoverView then self.hoverPop.Value elseif view==self.leaveView then self.leavePop.Value else 0
+end
+
 -- Gamepad: the nearest ready egg in Click Range.
 function Eggs:GrabNearest(now: number)
  self.lastGamepadGrab=now
@@ -339,6 +382,7 @@ function Eggs:Grab(view,now: number): boolean
  view.picked=true
  view.data.collector="player"
  self:StartFlight(view,now)
+ self:StepHover(now) -- The grabbed egg is no longer under the hand.
  return true
 end
 
@@ -470,6 +514,7 @@ function Eggs:Step(now)
  self:StepCollectionRange(root,now)
  if self.gamepadHeld and now-(self.lastGamepadGrab or 0)>=GAMEPAD_REPEAT then self:GrabNearest(now) end
  self:Flush(now)
+ self:StepHover(now)
  if self.tooFar.Enabled and (now>=(self.tooFarUntil or 0) or not self.tooFar.Adornee or not self.tooFar.Adornee.Parent) then
   self.tooFar.Enabled=false;self.tooFar.Adornee=nil
  end
@@ -514,7 +559,8 @@ function Eggs:Step(now)
    view:Set(position,size*(1+math.sin(t*math.pi)*0.08),math.sin(t*math.pi)*0.35,view.seed)
   else
    local bob=if self.app.reducedMotion then 0 else math.sin(age*2.6+view.seed)*0.07
-   view:Set(view.ground+Vector3.new(0,bob,0),size,0,view.seed)
+   local pop:number=self:HoverPop(view)
+   view:Set(view.ground+Vector3.new(0,bob+pop*HOVER_LIFT,0),size*(1+pop*HOVER_SCALE),0,view.seed)
   end
  end
  if self.popup.Enabled then
@@ -532,6 +578,10 @@ function Eggs:Destroy()
  table.clear(self.connections)
  ContextActionService:UnbindAction("PetRollCollectEggs")
  self:CancelPopupTweens()
+ if self.hoverTween then self.hoverTween:Cancel() end
+ if self.leaveTween then self.leaveTween:Cancel() end
+ self.hoverPop:Destroy();self.leavePop:Destroy()
+ if self.hoverView then UserInputService.MouseIcon="" end
  for _,view in self.views do view:Destroy() end
  table.clear(self.views)
  if self.rangeRing then self.rangeRing:Destroy() end

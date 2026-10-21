@@ -24,6 +24,17 @@ Tuning lives in `src/shared/VacuumConfig.luau`.
   add no extra parts, and they still never collide or touch. The Glow part stays
   out of the ray. A click that lands on one of your own chickens keeps the
   existing Army shortcut.
+- A click doesn't need to hit the egg exactly: the egg drawn nearest the pointer
+  counts within 6.5% of the screen height (at least 44 px; taps get 8%, 48 px).
+- Hover (mouse only, Stevin October 20): the egg a click would take shows the
+  white-glove hand cursor and pops out 18% bigger and slightly higher with one
+  shared Back-out tween. When the pointer leaves, it settles back. Reduced motion
+  skips the animation and keeps the pop static.
+- The hand is `rbxassetid://74062853444480` (source and prompt in
+  `assets/egg-hover-cursor-20261021/`). Roblox centres a cursor image on the
+  pointer, so the fingertip sits at the image centre. Don't switch back to
+  `rbxasset://SystemCursors/PointingHand`: it doesn't load in a game
+  (AssetFetchStatus.Failure, October 21).
 
 ## Egg Vacuum (held tool)
 

@@ -34,13 +34,27 @@ return {
 		Radius = {2, 4.5}, Spill = 0.6, -- Landing distance from the pad centre; may spill past its edge.
 		Height = {2.6, 4.2}, -- Top of the pop above the floor.
 		LaunchStagger = 0.025, -- Between coins leaving the pad.
-		RiseSeconds = 0.22, FallSeconds = 0.55, -- Rise (Quad Out), then drop with a Bounce ease.
-		RestSeconds = 0.12, -- On the pad before the first coin flies in.
-		FlyStagger = 0.045, FlySeconds = 0.32, -- One coin after another into the player (Back In).
+		RiseSeconds = 0.18, FallSeconds = 0.34, -- Rise (Quad Out), then drop with a Bounce ease.
+		RestSeconds = 0.05, -- On the pad before the first coin flies in.
+		-- October 21 pickup (Stevin's reference recording): a stream of coins arcs into the
+		-- player, a white bubble flashes, and a running "N [coin]" counter rides beside them.
+		FlyStagger = 0.035, FlySeconds = 0.36, -- One coin after another into the player.
+		FlyArc = {1.5, 5}, FlyArcPerStud = 0.3, -- Arc peak above the straight line, by distance.
 		FlipSeconds = {0.16, 0.26}, FlipWidth = 0.15, -- Spin: each coin squashes edge-on and back.
 		MaxDistance = 60, -- From the pad; a farther player gets the plain Money burst instead.
-		TickVolume = 0.3, PitchStep = 0.035, PitchMax = 1.4, -- "Collect" plays as each coin lands.
+		-- "CoinPickup" (falls back to "Collect") plays as each coin lands, rising a little.
+		TickVolume = 0.35, PitchStep = 0.02, PitchMax = 1.25, PitchJitter = 0.04,
 		HoldTimeout = 4, -- A held sale always reaches the Coins readout within this time.
+		DropVolume = 0.4, DropSeconds = 0.9, -- "CoinDrop" plays as the coins spill out of the pad.
+		SpillPuff = {Sparkles = 16}, -- Gold puff at the pad as the coins burst out.
+		Flash = {Size = {5, 11}, Seconds = 0.38, Transparency = 0.15, GlowTransparency = 0.55, Sparkles = 14}, -- Bubble on stepping in and on the first coin.
+		Counter = {
+			Height = 1.5, Gap = 0.4, Lift = 0.4, -- Studs: number height, gap right of the root, rise.
+			Toward = 3, -- Studs toward the camera, so nearby chickens rarely cover it.
+			Pop = 1.3, PopSeconds = 0.16, -- Each landing coin swells the number briefly.
+			Idle = 1.1, -- No coin for this long ends the streak; the counter stays where it was.
+			Linger = 1.6, Fade = 0.35, -- A left-behind counter's life, then its fade.
+		},
 	},
 	-- Sound IDs are editable Sound objects in SoundService.MyChickenArmyAudio.
 }

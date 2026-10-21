@@ -453,7 +453,8 @@ Before editing anything, tell Stevin in a few lines what you'll change and which
 - **Goal:** plan v2 P4. Build it to the plan's element spec:
   - `RebirthPanel` rebuilt;
   - a new `GemUpgradeGrid`;
-  - a Gems counter above Coins;
+  - Gems shown only in the Rebirth screen (S19 removed the HUD counter above Coins;
+    Stevin: "I only want it visible in the rebirth screen not with the coins");
   - Rebirth chicken silhouettes in the Index;
   - a `MenuLayout` entry and a LabStories story with `LateGameState.json`.
 
@@ -601,3 +602,10 @@ Decisions (Stevin, in the lead session):
 - Chicken Feed Max Level I–III is in the Tools tree for Coins. S7b drops "Chicken Feed Max
   Level [0/5]" from the Gem shop.
 - "Mainly make sure everything is aesthetic in the upgrades menu."
+
+Round 3 status (Oct 20 ~23:10): S9c (tree v2) and S7c (TreeMigrations, `mutationKeep`)
+merged, as are S19 (Gems only in the Rebirth screen), S20 (calmer roll snap-back) and S14's
+egg bar and tree v2 arrows; S9d moved AutoRollChecks to the new Rate tiers. The S6b dice
+and S6c tree icons are uploaded. In progress: S7's single Rebirth-cost refit, the "Hex
+screen upgrade layout" session (a tighter map on S9c) and the "Game passes layout and
+cleanup" session.

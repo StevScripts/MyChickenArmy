@@ -2,8 +2,8 @@
 -- October 20 hand tools (docs/team/COLLECTION_TOOLS.md). Keeps every Backpack holding
 -- exactly the tools its player owns (both are bought in Upgrades > Tools, so a Rebirth
 -- takes them back), builds the held models from parts and sells chicken levels to an
--- equipped Chicken Feed. EggService runs the vacuum itself; ToolController and
--- ToolDock are the client side.
+-- equipped Chicken Feed. EggService runs the vacuum itself; ToolController is the
+-- client side (the tools sit in Roblox's own hotbar; the custom ToolDock is retired).
 local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Shared=ReplicatedStorage.PetRoll.Shared

@@ -2,7 +2,9 @@
 -- October 20 overhaul Auto Roll panel (S12b; docs/team/AUTO_ROLL.md). Stevin: copy Drop
 -- a Fruit's Auto Roll board 1:1 in My Chicken Army's art style. The header carries the
 -- Auto Roll ON/OFF pill; "Stop When Appear" lists one ON/OFF row per rarity; the bottom
--- "< Rarity >" switcher pages Rarity, Mutation and New. When Auto Roll stops, the banner
+-- "< Rarity >" switcher pages Rarity, Mutation and New. Later October 20 owner request:
+-- the HUD button itself turns Auto Roll on/off, and the gear beside it pops this board
+-- out next to it (no power pill, no blur; a press outside closes it). When Auto Roll stops, the banner
 -- "Auto Roll found a Rare chicken!" crosses the top with confetti. RollService decides
 -- everything; this only presents state.autoRoll and sends SetAutoRoll.
 local GuiService=game:GetService("GuiService")
@@ -26,8 +28,9 @@ local ROW_FILL=Color3.fromRGB(30,35,39)
 local BANNER_BLUE=Color3.fromRGB(84,176,255)
 local CONFETTI={Color3.fromRGB(255,214,0),Color3.fromRGB(0,221,255),Color3.fromRGB(255,95,180),
 	Color3.fromRGB(99,239,0),Color3.fromRGB(255,140,0),WHITE}
--- Whole window, header included (aspect = width / height): a tall board like theirs.
-local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.34,0.84),0.74
+-- Whole window, header included (aspect = width / height): a tall board like theirs,
+-- popped out beside the HUD gear.
+local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.3,0.6),0.74
 local VISIBLE_ROWS=4
 local BANNER_SECONDS=3
 local PENDING_SECONDS=2
@@ -89,6 +92,22 @@ function Menu:Set(row, on: boolean)
 	self:Refresh()
 end
 
+-- The HUD Auto Roll button: on/off, shown at once (HudController reads PowerOn).
+function Menu:PowerOn(): boolean
+	return self:Value(POWER)
+end
+
+function Menu:TogglePower()
+	self:Set(POWER,not self:Value(POWER))
+	local hud=self.app.hud
+	if hud and self.app.state then hud:UpdateAutoRoll(self.app.state) end
+end
+
+-- The HUD gear: pop the board out, or put it away.
+function Menu:Toggle()
+	if self.gui and not self.closing then self:Dismiss() else self:Open() end
+end
+
 local function setPill(button,on: boolean)
 	local text=if on then "ON" else "OFF"
 	if button.Text~=text then button.Text=text end
@@ -98,7 +117,6 @@ end
 
 function Menu:Refresh()
 	if not self.gui then return end
-	setPill(self.power,self:Value(POWER))
 	for _,entry in self.pills do setPill(entry.button,self:Value(entry.row)) end
 	self.pageLabel.Text=Menu.Pages[self.page]
 end
@@ -129,12 +147,14 @@ function Menu:Dismiss(immediate: boolean?)
 	end
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
-	self.app:SetMenuBlur("autoRoll",false)
 	local function finish()
 		if self.gui~=gui then return end
 		self.gui,self.panel,self.closing=nil,nil,false
 		table.clear(self.pills)
 		gui:Destroy()
+		-- The HUD gear hides again unless the mouse is still on it.
+		local hud=self.app.hud
+		if hud and hud.UpdateAutoRollGear then hud:UpdateAutoRollGear() end
 	end
 	if immediate then finish();return end
 	Theme.Motion:Tween(panel,"autoroll-size",{Size=UDim2.fromScale(PANEL_SIZE.X.Scale*0.97,PANEL_SIZE.Y.Scale*0.97)},0.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
@@ -185,16 +205,12 @@ function Menu:Open()
 	if self.gui and not self.closing then return end
 	self:Dismiss(true)
 	local app=self.app
-	-- Acquire the blur before closing other menus so their exit cannot clear it.
-	app:SetMenuBlur("autoRoll",true)
 	app:CloseOtherMenus("autoRoll")
 	self.previousSelection=GuiService.SelectedObject
 	local gui=Theme.InsetContainer(app.other,"AutoRollMenu",Enum.ScreenInsets.CoreUISafeInsets)
 	gui.ZIndex=30
 	self.gui,self.closing,self.page=gui,false,1
 	local frames=Theme.Container(gui,"FRAMES")
-	local backdrop=Theme.Frame(Theme.InsetContainer(frames,"BackdropLayer",Enum.ScreenInsets.None),"Backdrop",UDim2.fromScale(1,1))
-	backdrop.BackgroundTransparency,backdrop.Active=1,true
 	local panel=Instance.new("CanvasGroup")
 	panel.Name="AutoRoll"
 	panel.BackgroundTransparency,panel.BorderSizePixel,panel.GroupTransparency=1,0,1
@@ -202,6 +218,29 @@ function Menu:Open()
 	panel.AnchorPoint,panel.Position,panel.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),PANEL_SIZE
 	panel.Parent,self.panel=frames,panel
 	Theme.Aspect(panel,PANEL_ASPECT)
+	-- Pop out to the left of the HUD gear, bottom edges level; centred when the gear is
+	-- hidden (the UI Lab story).
+	local hud=app.hud
+	local gear=(hud and hud.autoRollSettings)::GuiObject?
+	-- Opened from Settings, the gear shows while the board is open.
+	if hud and hud.UpdateAutoRollGear then hud:UpdateAutoRollGear() end
+	local function follow()
+		if not (gear and gear.Parent and hud.autoRoll.Visible) then
+			panel.AnchorPoint,panel.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+			return
+		end
+		local corner=gear.AbsolutePosition-frames.AbsolutePosition
+		local gap=gear.AbsoluteSize.Y*0.2
+		panel.AnchorPoint=Vector2.new(1,1)
+		panel.Position=UDim2.fromOffset(corner.X-gap,corner.Y+gear.AbsoluteSize.Y)
+	end
+	follow()
+	if gear then
+		for _,property in {"AbsolutePosition","AbsoluteSize"} do
+			table.insert(self.connections,gear:GetPropertyChangedSignal(property):Connect(follow))
+			table.insert(self.connections,frames:GetPropertyChangedSignal(property):Connect(follow))
+		end
+	end
 	local header=Theme.Header(panel,"Header","Auto Roll",GREEN)
 	header.PageIcon.Image,header.PageIcon.Visible=Menu.Icon,true
 	Theme.LayoutHeader(header)
@@ -215,16 +254,6 @@ function Menu:Open()
 		self:Dismiss()
 	end
 	Theme.HeaderClose(header,close)
-	-- The Auto Roll ON/OFF pill sits in the header, left of the close button.
-	local power=Theme.Button(header,"Power","OFF",function()
-		app.audio:Play("Click")
-		self:Set(POWER,not self:Value(POWER))
-	end,RED)
-	power.ZIndex=header.ZIndex+4
-	Theme.RelativeRect(power,1110,16,230,84,1474,116)
-	Theme.Aspect(power,230/84)
-	Theme.RelativeRect(header.Title,141,7,950,102,1474,116)
-	self.power=power
 	-- Stop When Appear: the title, the list and the page switcher.
 	local title=Theme.Display(main,"StopWhenAppear","Stop When Appear",34,WHITE)
 	title.TextXAlignment,title.TextScaled=Enum.TextXAlignment.Center,true
@@ -265,10 +294,23 @@ function Menu:Open()
 		if inputState==Enum.UserInputState.Begin then close() end
 		return Enum.ContextActionResult.Sink
 	end,false,3000,Enum.KeyCode.ButtonB)
+	-- A press anywhere but the board or its gear closes it; the press still goes
+	-- through (the world, the HUD toggle). The gear's own press toggles it instead.
+	local playerGui=gui:FindFirstAncestorOfClass("PlayerGui")
 	table.insert(self.connections,UserInputService.InputBegan:Connect(function(input)
-		if input.KeyCode==Enum.KeyCode.Escape then close() end
+		if input.KeyCode==Enum.KeyCode.Escape then close();return end
+		local kind=input.UserInputType
+		if kind~=Enum.UserInputType.MouseButton1 and kind~=Enum.UserInputType.Touch then return end
+		if not playerGui or self.closing then return end
+		for _,hit in playerGui:GetGuiObjectsAtPosition(input.Position.X,input.Position.Y) do
+			if hit==panel or hit:IsDescendantOf(panel) or (gear and (hit==gear or hit:IsDescendantOf(gear))) then return end
+		end
+		self:Dismiss()
 	end))
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject=power end
+	if UserInputService.GamepadEnabled then
+		local first=self.pills[pageRows(Menu.Pages[1])[1].id]
+		if first then GuiService.SelectedObject=first.button end
+	end
 end
 
 -- Banner ------------------------------------------------------------------------

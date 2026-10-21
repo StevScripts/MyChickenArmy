@@ -65,6 +65,8 @@ local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBas
 for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end
 -- October 20 (S18): a Chicken Feed level shows the "leveled up!" banner instead.
 QUIET_SUCCESS.FeedChicken = true
+-- October 21: My Army shows its own sale and lock results under the window.
+QUIET_SUCCESS.Sell, QUIET_SUCCESS.Favorite = true, true
 -- October 20 (S16): PlaytimePanel shows its own claim feedback.
 QUIET_SUCCESS.ClaimPlaytime = true
 
