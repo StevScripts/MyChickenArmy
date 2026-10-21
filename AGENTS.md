@@ -129,7 +129,8 @@ Contract: `docs/team/GAME_FEEL_20261021.md`.
 strength moves the favored range `ChickenLuck.ShiftPerDecade` (2.25) bands per x10 of
 Luck (x3 = 1.07 bands, Legendary 3.7% a podium; x10 = 2.25, Legendary 8.6%), never the
 old `9 (M − 1)/(M + 2)` curve that put Legendaries on 22% of podiums at Luck IV. Super
-Luck is priced for Rebirth 2–5 (5M–2B) and Mega Luck for Rebirth 7–17 (10B–400B).
+Luck is priced for Rebirth 2–5 (5M–2B) and Mega Luck for Rebirth 5–11 (10B–400B; x10
+Luck at about 3.8 h nonstop or day 4–5 at 45 min a day on the P5 ladder).
 Playtime Coins tiles pay 0.4 minutes of income per reference unit (21.4 min an hour, was
 53.5) and are fixed when the tile unlocks. Base "1 in X" odds, chicken prices and the
 free 4-second lever were left alone (the levers if ownership must slow too). Re-run

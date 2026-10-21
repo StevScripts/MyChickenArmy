@@ -83,9 +83,9 @@ local families: {Family} = {
 	-- Three chains, each its own clover: Luck I–IV, Super Luck I–IV, Mega Luck I–IV
 	-- (Stevin, October 20). Values are Luck strength; the window math stays bounded.
 	-- October 21 (Stevin: "Luck should take a bit"): Luck I–IV stay cheap (cycle 1–2),
-	-- Super Luck is priced for Rebirth 2–5 (62M–36B) and Mega Luck for Rebirth 7–17
-	-- (120B–5.5T), about 5–8% of that rank's cost; the old 250K–150M ladder was fully
-	-- bought by minute 30 (docs/team/RARITY_PACING_20261021.md).
+	-- Super Luck is priced for Rebirth 2–5 and Mega Luck for Rebirth 5–11 of the P5 ladder
+	-- (x10 Luck at ~3.8 h nonstop, day 4–5 at 45 min a day); the old 250K–150M ladder was
+	-- fully bought by minute 30 (docs/team/RARITY_PACING_20261021.md §6).
 	{id = "Luck", name = "Luck", category = "Main", icon = "luck", field = "luck", base = 1,
 		format = "multiplier", description = "Favor stronger chickens in normal rolls.",
 		tiers = tiers({{1.25, 800}, {1.5, 4000}, {2, 16000}, {3, 60000},

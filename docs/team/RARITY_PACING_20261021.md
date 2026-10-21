@@ -201,6 +201,36 @@ hours longer, and Playtime Coins fell from 16% to 7%. The Rebirth ladder (Config
 .Costs) is being re-fitted on top of this by the Rebirth balance session; fit against
 these numbers, not the October 21 morning ones, and keep "more, not harder".
 
+## 6. On the merged main (P5 reference-shaped Rebirth ladder, 4805271)
+
+P5 re-fitted `Config.Rebirth.Costs` (50K, 1M, 20M … 3.13e15), Feed growth and the late
+Egg Speed / Egg Value / Flock tiers on top of this retune; the Luck tiers and Playtime
+tiles are unchanged. Same probes, same seeds, merged code:
+
+| Milestone | Fast nonstop (2 seeds, median) | 45 min a day (2 seeds) | Stevin's target (REBIRTH_PACING) |
+|---|---|---|---|
+| Rebirth 10 | 2.75 h | day 3 | ~2.9 h / day 4 |
+| Rebirth 20 | 12.1 h | day 12 | ~11 h / day 12 |
+| Rebirth 30 | 21.1 h | day 20 | ~21 h / day 21 |
+| Rebirth 40 | 30.8 h | day 30 | – |
+| Rebirth 50 | 43.6 h (seeds 43.6 and 60.8) | day 41–42 | ~40 h / day 44 |
+| First Mythic owned | 42 min | 28 min | – |
+| Playtime share of Coins | 6% | 7–8% | – |
+
+Engaged first hour on the merged main: Legendary offers 646–752, Mythic 104–121,
+Secret 1–5; first Legendary owned 14–18 min, first Mythic 35–44 min; Luck IV at
+17–20 min, Super Luck I ~30 min, Super Luck II ~47 min, Playtime 10–11% of Coins.
+
+The Luck ladder against the new costs (Rebirth 5 = 8B, 7 = 72B, 9 = 1.09T, 10 = 4.7T):
+Super Luck IV (2B) lands at Rebirth 4–5, Mega Luck I (10B) at Rebirth 5–6, Mega Luck
+II (50B) at Rebirth 7, Mega Luck III (150B) at Rebirth 8–9 and Mega Luck IV (400B) at
+Rebirth 9–11: 3.8 h nonstop (first bought at 227 min) and day 4–5 at 45 min a day.
+Hours and days, not the half hour it was; raise the eight Super/Mega prices in
+`UpgradeCatalog` if x10 Luck should come later still.
+
+Checks on the merged main, all green: `RebirthV2Checks` 28 of 28, `LuckWindowChecks`
+10 of 10, `ResearchRollingChecks` 9 of 9, `PlaytimeChecks` 12 of 12, `DailyChecks` 10 of 10.
+
 ## Reproducing
 
 ```bash
