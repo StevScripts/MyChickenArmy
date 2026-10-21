@@ -40,16 +40,15 @@ One active controller remains and matches the Rojo source.
 
 ## A small first edit
 
-Open `src/client/RollPresentationController.luau`. Near the top are:
+Open `src/client/RollCamera.luau`. Near the top are the roll push-in knobs:
 
 ```lua
-local ROLL_ZOOM_DEGREES = 2
-local ROLL_ZOOM_OUT_SECONDS = 0.35
-local ROLL_ZOOM_OUT_EASING = Enum.EasingStyle.Back
-local ROLL_ZOOM_OUT_DIRECTION = Enum.EasingDirection.Out
+local PUSH_DEGREES = 11.5
+local PUSH_EASING = Enum.EasingStyle.Sine
+local PUSH_DIRECTION = Enum.EasingDirection.Out
 ```
 
-Change just one value, save, then restart Play and roll. This gives you direct control over the effect without changing camera controls or purchase logic. Shared menu animations live in `src/client/UIMotion.luau`.
+Change just one value, save, then restart Play and roll. The per-rarity `REVEAL` table just below sets the reveal pop, flash, speed lines and shake. This gives you direct control over the effect without changing camera controls or purchase logic. Shared menu animations live in `src/client/UIMotion.luau`.
 
 ## What belongs where
 
@@ -84,7 +83,7 @@ For a feature, use a small branch and inspect the diff before committing. For ex
 ```sh
 git switch -c stevin/roll-camera-feel
 git diff
-git add src/client/RollPresentationController.luau
+git add src/client/RollCamera.luau
 git commit -m "Adjust roll camera feel"
 ```
 

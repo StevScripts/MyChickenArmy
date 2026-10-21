@@ -1,8 +1,9 @@
 --!strict
 -- Shared toolkit for mission theme kits (docs/team/MISSIONS_PLAN.md §4).
 -- October 14 owner rules: every site is about camp-sized (the camps are a 36-stud
--- square with a 14-stud clear centre) and every block carries the map's stud
--- texture (MissionSite.Studify adds it to every face after the build).
+-- square with a 14-stud clear centre) and every block carries the map's studs.
+-- Since October 20, MissionSite.Studify gives plain blocks the map's stud
+-- MaterialVariants after the build (the old Texture overlay is gone).
 -- Frame space: origin at the courtyard centre, -Z is the back (away from the
 -- owner's base), +Z the open entrance. Footprint: |x| <= 20, -21 <= z <= 21.
 local Airship = require(script.Parent.Parent.InvasionAirship)

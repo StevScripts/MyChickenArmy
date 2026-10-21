@@ -1,5 +1,11 @@
 # Upgrade eligibility — no camp prerequisites
 
+**October 20 overhaul:** the cash tracks and research are now the Upgrades tree:
+named tiers, instant Coins purchases, reset on Rebirth. The no camp/rank/King gate
+rule below still holds for every tree node (Gem Upgrades' Rebirth-rank rows cost
+Gems, not Coins). Track lengths, prices and boards below are history. See
+`AGENTS.md` › October 20 overhaul and [the contract §4](team/OVERHAUL_CONTRACT_20261020.md).
+
 **October 6 plot parity:** all six authored home plots now have Plot1's
 square-to-T yard/fence expansion, matching deck and eight roll podiums.
 This replaces the earlier single-podium and uniform-expansion limits on

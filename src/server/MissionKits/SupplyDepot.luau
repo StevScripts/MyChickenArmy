@@ -2,7 +2,7 @@
 -- Missions theme kit: Supply Depot. A small loyalist supply yard, camp-sized
 -- (Common). The seed picks the hero piece (striped supply tent, wooden warehouse,
 -- loading crane), the perimeter (post-and-rail fence or crate barricade), a wood
--- tone, a tarp colour and the props. MissionSite.Studify adds the stud texture.
+-- tone, a tarp colour and the props. MissionSite.Studify adds the stud materials.
 local Airship = require(script.Parent.Parent.InvasionAirship)
 local Common = require(script.Parent.Common)
 local rgb = Common.rgb

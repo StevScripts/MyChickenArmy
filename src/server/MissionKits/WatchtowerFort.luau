@@ -3,7 +3,7 @@
 -- (Common: radius 15, footprint ~40 studs). The seed picks one of three hero
 -- pieces (watchtower, twin towers with a bridge, keep), one of three wall layouts
 -- (ring with gatehouse, horseshoe, two arms), a stone palette, an accent and the
--- props. MissionSite.Studify adds the map's stud texture to every face.
+-- props. MissionSite.Studify adds the map's stud materials.
 local Airship = require(script.Parent.Parent.InvasionAirship)
 local Common = require(script.Parent.Common)
 local crown = Airship.Crown
