@@ -229,6 +229,8 @@ function Checks.Run()
 		local multipliers={[0]=1,2,3,4,5,10,20,39,75,142,266,307,353}
 		for rank=0,12 do assert(Rebirth.Multiplier(rank)==multipliers[rank],"Egg multiplier "..rank.." "..Rebirth.Multiplier(rank)) end
 		assert(Rebirth.Multiplier(20)==908 and Rebirth.Multiplier(30)==2400 and Rebirth.Multiplier(50)==12662,"Egg multiplier 20/30/50")
+		-- Live saves hold ranks: no rank may lay for less than the old x(1 + rank).
+		for rank=0,Config.Rebirth.MaxRank do assert(Rebirth.Multiplier(rank)>=1+rank,"Below the old multiplier at "..rank) end
 		assert(Rebirth.EnemyScale(0)==1 and Rebirth.EnemyScale(2)==1 and Rebirth.EnemyScale(3)==1.25
 			and Rebirth.EnemyScale(10)==3 and Rebirth.EnemyScale(30)==8,"Enemy scale")
 		assert(Rebirth.EnemyScale(31)==8 and Rebirth.EnemyScale(50)==8,"Enemy scale capped at rank 30")

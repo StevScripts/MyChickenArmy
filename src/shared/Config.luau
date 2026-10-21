@@ -74,10 +74,11 @@ local Config = {
  -- docs/team/REBIRTH_PACING_20261021.md. The Oct 15 $50M…$185T 20-rank ladder is
  -- history (docs/team/REBIRTH_LADDER.md).
  -- October 21 later (P5, reference parity; REBIRTH_PACING_20261021.md "reference-shaped
- -- ladder"): Rebirth 2 costs 1M like the reference (was 62M). In-run growth is tamed
- -- (Feed x1.6 eggs a level, pricier Egg Speed/Egg Value III-IV and Flock 7-15) and the
- -- ranks step up instead: x20 to Rebirth 5, x3-5 to 10, then x1.3, x1.17 and x1.11 a rank
- -- to 3.2e15 at 50, with the egg multiplier boosted on ranks 5-10 and +5% a rank after.
+ -- ladder"; fitted on the rarity pacing retune 41ee725): Rebirth 2 costs 1M like the
+ -- reference (was 62M). In-run growth is tamed (Feed x1.6 eggs a level, pricier Egg
+ -- Speed/Egg Value III-IV and Flock 7-15) and the ranks step up instead: x20 to Rebirth 5,
+ -- x3-4.3 to 10, x1.5-2 to 13, x1.1-1.25 to 30, x1.41 at 31, then x1.1 to 4.84e15 at 50,
+ -- with the egg multiplier x1.7 more on ranks 5-10 and x1.06 a rank after.
  Rebirth={Enabled=true,Version=2,MaxRank=50,
   Costs={5e4,1e6,2e7,4e8,8e9,2.4e10,7.2e10,2.55e11,1.09e12,4.7e12,
    9.6e12,1.5e13,2.2e13,3.18e13,3.9e13,4.58e13,5.35e13,6.26e13,7.83e13,9.12e13,
