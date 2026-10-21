@@ -74,9 +74,12 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
 
 ## HUD and Index
 
-- **Gems counter:** a gem icon and a purple number sit just above the Coins. It shows
-  once `gems` or `gemsEarned` is above zero, and "Rebirth N" and the Hill chip move
-  up to make room (`HudController:BuildGems/UpdateGems/PlaceGems`).
+- **No Gems on the HUD** (later October 20, S19). Stevin: "I only want it visible in
+  the rebirth screen not with the coins." The Gem Upgrades balance is the only Gems
+  readout; it follows `state.gems` on every packet, after a Rebirth and after a Gem
+  purchase. "Rebirth N" and the Hill chip keep their places above the Coins. S8's
+  counter (`HudController:BuildGems/UpdateGems/PlaceGems`) was removed; it is in
+  commit ae94c9d.
 - **HUD Rebirth button:** it shows once the Coins reach a quarter of the next cost, or
   once the player has a rank. Each new rank re-arms the "Rebirth ready" toast.
 - **Index:** the Rebirth chickens (`PetCatalog.RebirthOrder`) come last. Locked ones
