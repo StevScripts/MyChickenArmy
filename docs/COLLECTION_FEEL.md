@@ -30,8 +30,8 @@ unload will too. Robot vacuum deliveries stay quiet.
   "N [coin]" counter (white number, black outline, coin image) sits beside the
   player and pops with each coin. After `Counter.Idle` seconds without a coin it
   stays where the player stood, lingers and fades; the next sale starts a new one.
-  The counter is not always-on-top: Studio screenshots skip always-on-top
-  billboards. It sits `Counter.Toward` studs toward the camera instead.
+  The counter is always-on-top and sits `Counter.Toward` studs toward the camera.
+  Studio Flow screenshots skip always-on-top billboards, so check it by eye in play.
 - Sounds: EggDeposit when the coins pop, CashTick (Money) on the first landing,
   then CoinPickup on each coin with a slightly rising, jittered pitch. CoinPickup
   (`SoundService.MyChickenArmyAudio.Collection.CoinPickup`, Studio-owned, asset
