@@ -208,3 +208,18 @@ TierUp (0.42) and Pop (0.40).
 leveled cue past its target; unleveled cues keep their contextual overrides. To
 re-level after swapping a clip: measure its peak the same way and set Volume =
 target ÷ peak, or clear `Leveled` to let code overrides apply again.
+
+### Spectral pass (same day)
+
+Each cue's spectrum (`AudioAnalyzer:GetSpectrum()`, 512 bins, 0–24 kHz) was summed
+over its length into four bands: below 2 kHz, 2–6, 6–12 and above 12 kHz. A cue was
+treated as piercing when more than a fifth of its energy sat above 12 kHz or most of
+it above 6 kHz, and it was swapped for a warm clip of the same role (old id kept in
+`Previous`): GoldRushStart → `crystal fx` 79130903404606 (74 % below 2 kHz, Volume
+0.40, effective peak 0.07; the sparkle ding had 68 % above 12 kHz), Confirm → Roblox
+GUI `Send` 17208399163 (Volume 0.55; `Success Correct` had 25 % above 12 kHz), GemGain
+→ `gem collect` 11439707919 (Volume 0.33; `DiamondCollect` had 80 % above 6 kHz).
+Kept bright by design: Shimmer, GoldRushEnd (falling shimmer), MutationHit (arcade
+sparkle), CountTick (a 0.18 s tick at effective peak 0.11). Everything else is
+dominated by energy below 2 kHz. The near-silent Roblox "RBLX UI" / "Roblox GUI"
+hover clips and `UI_Tick` (peak ≤ 0.01) are unusable as cues.
