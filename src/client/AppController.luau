@@ -103,6 +103,18 @@ function AppController:Request(action, payload)
 	return self.requestId
 end
 
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md §3): play a catalog cue, or
+-- `fallback` while the Studio library lacks it; with neither it stays silent (never
+-- the generic Pop). UI Lab stub apps have an audio table without Has: fallback or silent.
+function AppController:Cue(name, fallback, pitch, options)
+	local audio=self.audio
+	if not audio then return nil end
+	local has=type(audio.Has)=="function" and audio:Has(name)
+	local merged=table.clone(options or {})
+	if merged.noFallback==nil then merged.noFallback=true end
+	return audio:Play(if has or not fallback then name else fallback,pitch,merged)
+end
+
 
 function AppController:NoticePosition()
 	if self.panel.Visible then return UDim2.fromScale(0.5,0.14) end
@@ -151,6 +163,9 @@ function AppController:Notify(text, ok)
 	end
 	if kind=="error" then
 		self.audio:Play("Error",nil,{voiceKey="ErrorNotification",cooldown=0.25})
+	elseif kind=="success" then
+		-- October 21 game feel: good news gets a soft badge chime (the library sets its level).
+		self:Cue("Badge",nil,nil,{voiceKey="Notice",cooldown=0.4})
 	end
 	local repeated=self.toastFrame.Visible and self.noticeText==text and self.noticeKind==kind
 	self.noticeText,self.noticeKind=text,kind
@@ -358,6 +373,11 @@ function AppController:OpenPage(page)
 	self:FitPanel()
 	self:RenderPanel(true)
 	Theme.Motion:OpenPanel(self.panel,self.backdrop,switching)
+	-- October 21 game feel: the shell answers with a cue, the title punches and the
+	-- standard rows settle in one after another (Army/Sell/Shop/Index/Upgrades reveal their own).
+	self:Cue("MenuOpen","Pop")
+	if self.panelHeader.Visible then Theme.Motion:Punch(self.panelTitle,1.08,0.28) end
+	if self.content.Visible then Theme.Motion:Reveal(self.content,{limit=24,from=0.8}) end
 	self:PlaceNotice()
 	if UserInputService.GamepadEnabled then GuiService.SelectedObject=if page=="Upgrades" then self.progression.closeButton elseif page=="Sell" then self.sellMenu.sell else self.closeButton end
 	ContextActionService:BindActionAtPriority("PetRollClosePanel",function(_,state)
@@ -409,6 +429,7 @@ function AppController:CloseMainPanel()
 	if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(self.panel) then
 		GuiService.SelectedObject=if self.previousSelection and self.previousSelection.Parent then self.previousSelection else nil
 	end
+	self:Cue("MenuClose","Click")
 	Theme.Motion:ClosePanel(self.panel,self.backdrop,function()
 		self.panelClosing=false
 		self:PlaceNotice()
@@ -654,6 +675,7 @@ function AppController:RenderSettings()
 	-- Toggles read at a glance: green when ON, gray when OFF.
 	local function toggle(name, label, on, callback)
 		return self:Button(name, label .. "  ·  " .. (if on then "ON" else "OFF"), function()
+			self:Cue("Toggle","Click")
 			callback()
 			-- The row is rebuilt with its new state; let the fresh switch land with a pop.
 			local fresh=self.content:FindFirstChild(name)
@@ -890,7 +912,9 @@ function AppController:Receive(packet)
 		if result.ok and result.action == "Attack" then self:ClosePanel() end
 	end
 	local count, limit, capacity, selectedCount, deployedCount = self:Counts()
-	self.hud:Update(state, count, limit, capacity, selectedCount, deployedCount)
+	-- October 21 game feel: the result tells the HUD whether a Coins gain is a receipt
+	-- worth a "+N Coins" float (claims, sales), not a steady income tick.
+	self.hud:Update(state, count, limit, capacity, selectedCount, deployedCount, result)
 	self.base:UpdateObjective()
 	self:StepRecruitFeedback()
 	-- Rank-ups arrive as the server's own message (e.g. "Fusion up to Lv 5 unlocked!"); show it as sent.
@@ -927,7 +951,12 @@ function AppController:Receive(packet)
 		end
 		-- Quiet HUD commands confirm on the button that sent them. (Cash gains pop in HudController.)
 		local source=self:CommandButton(result.action)
-		if source then Theme.Motion:Pop(source.Visual,1.1) end
+		if source then
+			Theme.Motion:Pop(source.Visual,1.1)
+			-- October 21 game feel: the pressed command rings out; My Base whooshes the player off.
+			if result.action=="CallArmy" or result.action=="GoBase" then Theme.Motion:Ripple(source.Visual,Theme.PageColors.Army) end
+			if result.action=="GoBase" then self:Cue("Whoosh") end
+		end
 		if result.action=="TestNewPlayer" and self.intro then self.intro:PlayAsNewPlayer() end
 	end
 end

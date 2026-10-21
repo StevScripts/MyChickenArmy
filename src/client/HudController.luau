@@ -4,7 +4,6 @@ local Theme=require(script.Parent.UITheme)
 local GuiService=game:GetService("GuiService")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
-local TweenService=game:GetService("TweenService")
 local ResearchAssets=require(script.Parent.ResearchAssets)
 local HillHud=require(script.Parent.HillHud)
 local RebirthPanel=require(script.Parent.RebirthPanel)
@@ -127,6 +126,12 @@ function Hud.new(app,shell)
 	upgradesCount.AnchorPoint,upgradesCount.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
 	upgradesCount.Size,upgradesCount.TextScaled,upgradesCount.ZIndex,upgradesCount.TextXAlignment=UDim2.fromScale(0.8,0.8),true,9,Enum.TextXAlignment.Center
 	self.upgradesBadge,self.upgradesCount=upgradesBadge,upgradesCount
+	-- October 21 game feel: one gold ring round the badge pulses while anything is
+	-- affordable (its own frame: the badge's black outline keeps its stroke).
+	local upgradesGlow=Theme.Frame(upgradesBadge,"GlowRing",UDim2.fromScale(1.32,1.32))
+	upgradesGlow.AnchorPoint,upgradesGlow.Position,upgradesGlow.BackgroundTransparency,upgradesGlow.ZIndex=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),1,7
+	Theme.Round(upgradesGlow).CornerRadius=UDim.new(0.5,0)
+	self.upgradesGlow=upgradesGlow
 	-- October 16 owner request: Auto Roll is a plain text button on the right, like Mini
 	-- War's Auto Sell / Auto Collect; green ON, red OFF, gold while it holds a chicken.
 	-- October 20 (S12, S12b): shown once the Auto Roll Gem Upgrade is owned, on the right
@@ -238,6 +243,8 @@ function Hud.new(app,shell)
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self:Layout()
+	-- October 21 game feel: the Army count punches from its middle when it changes.
+	Theme.Motion:Center(self.armyCount)
 	self:BindBasePresence()
 	local inputConnection=UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function() self:ApplyInputLayout() end)
 	navigation.Destroying:Once(function() inputConnection:Disconnect() end)
@@ -546,6 +553,15 @@ function Hud:UpdateAutoRoll(state)
 	local color=if not enabled then A.red elseif holding then A.gold else A.green
 	if self.autoRoll.BackgroundColor3~=color then self.autoRoll.BackgroundColor3=color end
 	self.autoRollState.Text=if not enabled then "OFF" elseif holding then "PAUSED" else "ON"
+	-- October 21 game feel: the gear turns while Auto Roll runs (a plain looping tween,
+	-- not Motion:Spin, which every menu close stops). Reduced motion leaves it still.
+	local turning=enabled and not holding
+	if turning~=(self.gearTurning==true) then
+		self.gearTurning=turning
+		local icon=self.autoRollSettings.Visual.Icon
+		if turning then Theme.Motion:Tween(icon,"spin",{Rotation=icon.Rotation+360},4,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1)
+		else Theme.Motion:Cancel(icon,"spin");icon.Rotation=0 end
+	end
 end
 
 -- Shown until the free chicken is claimed; breathes to invite a tap.
@@ -637,10 +653,61 @@ function Hud:UpdateChickenOffer(state)
 	if shown then Theme.Motion:Breathe(self.offer.Visual,1.06,0.8) else Theme.Motion:StopBreathe(self.offer.Visual) end
 end
 
+-- October 21 game feel: a confirmed gain punches the number and flicks the coin, at
+-- most once per 0.35 s (coin bursts land many shares a second) and never on a spend.
 -- The icon is aspect-constrained (anchor 0,0), so it swells from its corner; keep it small.
 function Hud:PopCash()
-	Theme.Motion:PopScale(self.cashIcon,1.12)
-	Theme.Motion:PopScale(self.money,1.06)
+	local now=os.clock()
+	if now-(self.lastPopAt or -1)<0.35 then return end
+	self.lastPopAt=now
+	Theme.Motion:Punch(self.money,1.1,0.28)
+	Theme.Motion:PopScale(self.cashIcon,1.14,0.3)
+	if Theme.Motion.reduced then return end
+	self.cashIcon.Rotation=-18
+	Theme.Motion:Tween(self.cashIcon,"flick",{Rotation=0},0.32,Enum.EasingStyle.Back)
+end
+
+-- The readout counts toward `value` (Quart Out) with a tick that rises in pitch across
+-- the count; spends drop at once. The target is always ShownCoins, never past the
+-- server's balance. seconds=0 lands at once without a tick (the first packet).
+function Hud:CountCoins(value,seconds)
+	local amount=self.money:FindFirstChild("DisplayedAmount")
+	-- A count already running keeps its start, so the pitch keeps rising as coins land.
+	if not amount or amount.Value==amount:GetAttribute("Target") then self.countFrom=if amount then amount.Value else value end
+	self.countTo=value
+	local instant=seconds==0
+	Theme.Motion:CountTo(self.money,value,function(v) return Theme.CompactMoney(v) end,seconds,
+		{punch=false,tickGap=0.07,tick=if instant then nil else function(v) self:CoinTick(v) end})
+end
+
+function Hud:CoinTick(value)
+	local from,to=self.countFrom or 0,self.countTo or 0
+	local progress=if to>from then math.clamp((value-from)/(to-from),0,1) else 1
+	self.app:Cue("CountTick",nil,0.9+0.25*progress,{voiceKey="CountTick",cooldown=0.06})
+end
+
+-- A "+N Coins" float over the readout for a receipt worth showing: a sale whose coins
+-- are flying in, or a confirmed action result (claims, chicken sales), of at least
+-- 100 Coins or 1% of the balance. Steady income ticks never float.
+function Hud:QueueFloat(gain,balance,result)
+	local feedback=self.app.feedback
+	local flying=if feedback then feedback:CoinsInFlight() else 0
+	local receipt=flying>0 or (type(result)=="table" and result.ok==true)
+	if not receipt or (gain<100 and gain<balance*0.01) then return end
+	self.floatPending=(self.floatPending or 0)+gain
+end
+
+-- Shown once the sale's coins have landed and the offline receipt is closed, at most
+-- one every 0.6 s (several receipts in that window add up into one float).
+function Hud:FlushFloat()
+	local pending=self.floatPending or 0
+	if pending<=0 then return end
+	local feedback=self.app.feedback
+	if (if feedback then feedback:CoinsInFlight() else 0)>0 or (self.heldCash or 0)>0 then return end
+	if os.clock()-(self.lastFloatAt or -10)<0.6 then return end
+	self.floatPending,self.lastFloatAt=0,os.clock()
+	Theme.Motion:Float(self.cashReadout,"+"..Theme.CompactCoins(pending),UDim2.fromScale(0.55,0.02),
+		{color=Theme.Colors.coins,size=24,rise=0.3,seconds=1.1,limit=3})
 end
 
 -- October 20 egg-sale coin burst: Coins still flying in from the sell pad stay out of
@@ -656,14 +723,16 @@ function Hud:RefreshCoins()
 	local state=self.app.state
 	if not state then return end
 	local shown=self:ShownCoins(state)
-	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
+	self:CountCoins(shown)
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
 	self.lastCoins=shown
+	self:FlushFloat()
 end
 
--- Called when the offline receipt closes: a few coin icons fly from the receipt
--- (origin: absolute screen point, or nil) into the coin readout, then the
--- balance counts up to the real total. Plain TweenService tweens.
+-- Called when the offline receipt closes: a few coins fly from the receipt (origin:
+-- absolute screen point, or nil) into the coin readout with a whoosh, then the
+-- balance counts up to the real total with a CashTick. Theme.Motion:Fly tweens
+-- above every layer; reduced motion (or no origin) settles at once.
 function Hud:ReleaseOfflineCash(receiptId,origin)
 	if receiptId==nil or self.releasedReceipt==receiptId or self.releasingReceipt==receiptId then return end
 	-- Keep holding through the flight; settle() lets the full balance show.
@@ -672,35 +741,30 @@ function Hud:ReleaseOfflineCash(receiptId,origin)
 	local function settle()
 		self.releasedReceipt,self.heldCash=receiptId,0
 		local coins=if app.state then self:ShownCoins(app.state) else 0
-		Theme.Motion:Count(self.money,coins,function(value) return Theme.CompactMoney(value) end,1)
+		self:CountCoins(coins,1)
 		self.lastCoins=coins
 		self:PopCash()
 		app.audio:Play("CashTick",1,{voiceKey="OfflineCash",maxVoices=2})
 	end
-	local layer=app.hudLayer
-	if app.reducedMotion or not origin or not layer then settle();return end
-	local base=layer.AbsolutePosition
-	local target=self.cashIcon.AbsolutePosition+self.cashIcon.AbsoluteSize/2-base
-	local start=origin-base
+	local gui=app.gui
+	if app.reducedMotion or not origin or not gui then settle();return end
+	local motion=Theme.Motion
+	local target=motion:Point(gui,motion:CenterOf(self.cashIcon))
 	local size=math.max(36,self.cashIcon.AbsoluteSize.X*0.7)
 	local arrived=false
-	for index=1,7 do
-		local icon=Instance.new("ImageLabel")
-		icon.Name,icon.Image,icon.BackgroundTransparency="OfflineCashFly",Theme.Assets.Coin,1
-		icon.AnchorPoint,icon.Size,icon.ZIndex=Vector2.new(0.5,0.5),UDim2.fromOffset(size,size),40
-		-- Start in a loose cluster, then arc down-left into the readout.
+	app:Cue("Whoosh")
+	for index=1,5 do
+		-- Start in a loose cluster round the amount, then arc one after another into the coin.
 		local spread=Vector2.new(math.random(-60,60),math.random(-40,40))
-		icon.Position=UDim2.fromOffset(start.X+spread.X,start.Y+spread.Y)
-		icon.Parent=layer
-		local delay=(index-1)*0.07
-		local flight=TweenService:Create(icon,TweenInfo.new(0.55,Enum.EasingStyle.Quad,Enum.EasingDirection.In,0,false,delay),
-			{Position=UDim2.fromOffset(target.X,target.Y),Size=UDim2.fromOffset(size*0.6,size*0.6),Rotation=math.random(-40,40)})
-		flight.Completed:Once(function()
-			icon:Destroy()
-			Theme.Motion:PopScale(self.cashIcon,1.12)
-			if not arrived then arrived=true;settle() end
+		task.delay((index-1)*0.06,function()
+			-- A torn-down HUD or a newer receipt (its own flight settles) ends this one.
+			if not app.alive or self.releasingReceipt~=receiptId then return end
+			motion:Fly(gui,Theme.Assets.Coin,motion:Point(gui,origin+spread),target,{size=UDim2.fromOffset(size,size),
+				seconds=0.55,arc=0.06,spin=math.random(-60,60),onArrive=function()
+					motion:PopScale(self.cashIcon,1.12)
+					if not arrived then arrived=true;settle() end
+				end})
 		end)
-		flight:Play()
 	end
 end
 
@@ -712,11 +776,21 @@ function Hud:UpdateUpgradesBadge(state)
 	self.upgradesCount.Text=if total>99 then "99+" else tostring(total)
 	local previous=self.upgradesReady
 	Theme.Motion:Appear(self.upgradesBadge,total>0)
-	if previous and previous>0 and total>previous then Theme.Motion:PopScale(self.upgradesBadge,1.25) end
+	-- October 21 game feel: a rise punches the count with a badge chime (its first
+	-- appearance grows in through Appear); the gold ring pulses while any is ready.
+	if previous and total>previous then
+		if previous>0 then Theme.Motion:Punch(self.upgradesBadge,1.3,0.32) end
+		self.app:Cue("Badge","Pop")
+	end
+	if (total>0)~=(self.upgradesGlowing==true) then
+		self.upgradesGlowing=total>0
+		if total>0 then Theme.Motion:Glow(self.upgradesGlow,A.gold,2) else Theme.Motion:StopGlow(self.upgradesGlow) end
+	end
 	self.upgradesReady=total
 end
 
-function Hud:Update(state,count,limit,capacity,selected,deployed)
+-- result: the packet's action result, if any (October 21: receipts float "+N Coins").
+function Hud:Update(state,count,limit,capacity,selected,deployed,result)
 	self:UpdateOpening(state)
 	self:UpdateAutoRoll(state)
 	self:UpdateTerritory(state)
@@ -731,15 +805,25 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	self.heldCash=if type(receipt)=="table" and (tonumber(receipt.amount) or 0)>0 and receipt.id~=self.releasedReceipt
 		then receipt.amount else 0
 	local shown=self:ShownCoins(state)
-	Theme.Motion:Count(self.money,shown,function(value) return Theme.CompactMoney(value) end)
+	-- The first packet lands at once; later ones count up with ticks.
+	self:CountCoins(shown,if self.lastCoins==nil then 0 else nil)
 	-- Confirmed gains only (never the first packet or a purchase).
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
 	self.lastCoins=shown
+	local coins=state.coins or 0
+	if self.lastStateCoins and coins>self.lastStateCoins then self:QueueFloat(coins-self.lastStateCoins,coins,result) end
+	self.lastStateCoins=coins
+	self:FlushFloat()
 	self:UpdateEggLine(state.eggs or {})
 	local atHome=state.armyState=="Home"
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
-	self.armyCount.Text=(if atHome then selected else deployed).."/"..capacity
+	local armyText=(if atHome then selected else deployed).."/"..capacity
+	if self.armyCount.Text~=armyText then
+		self.armyCount.Text=armyText
+		-- October 21 game feel: a changed count punches (not on the first packet).
+		if self.lastCount then Theme.Motion:Punch(self.armyCount,1.25,0.3) end
+	end
 	local callUnlocked=callArmyUnlocked(state)
 	if callUnlocked~=self.callUnlocked then self.callUnlocked=callUnlocked;self:UpdateArmyCommands(false) end
 	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
