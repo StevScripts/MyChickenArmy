@@ -42,6 +42,9 @@
 --    kept and reported.
 --  * cues marked keep=true stay on their v1 sound (create/fill only, no Restyled).
 --  * reruns change nothing. To revert a cue, paste `Previous` back into SoundId.
+--  * a Sound with an OwnerApproved attribute is never touched (no id, volume, speed or
+--    note). Stevin replaced the sounds himself on October 21 and approved the library
+--    (assets/audio/library_20261021.json); every Sound then carried OwnerApproved.
 -- Never touched: Collection Money/CoinPickup/CoinDrop/EggPickup/EggDeposit/Collect,
 -- VFX/UI Purchase and Error, Combat/*, CallArmyWhistle, Intro/*, Music/*, and Rolling
 -- RollLever/RollTick/RollLand/RollReveal/RollRare.
@@ -146,6 +149,11 @@ for _,entry in cues do
 	local allowed={}
 	for _,old in entry.previous do allowed["rbxassetid://"..old]=true end
 	local outcome
+	if sound and sound:GetAttribute("OwnerApproved") ~= nil then
+		table.insert(counts.kept,entry.cue)
+		table.insert(result,{cue=entry.cue,outcome="approved",path=sound:GetFullName(),id=sound.SoundId})
+		continue
+	end
 	if not sound then
 		sound=Instance.new("Sound")
 		sound.Name=entry.cue

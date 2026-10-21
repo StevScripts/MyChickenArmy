@@ -83,6 +83,28 @@ SpecialChickenVFX named-cue call. Four changed modules compiled and matched thei
 Studio copies by byte length/hash. No new audio asset was uploaded.
 All existing gameplay triggers and spatial audio parents remain unchanged.
 
+## October 21: Stevin's own sound library (current, supersedes the IDs below)
+
+Later on October 21, 2026 Stevin replaced the game's sounds himself in
+`SoundService.MyChickenArmyAudio` and said he likes them. That library is the
+approved one: **do not re-source, restyle or re-level any sound** unless he asks.
+
+- Snapshot: `assets/audio/library_20261021.json` (all 143 Sounds: path, cue,
+  `SoundId`, Volume, PlaybackSpeed, Looped, PlaysWhen). 32 of the IDs appeared nowhere
+  in the repo before, among them EggLay, LevelUp, VacuumFull, EggDeposit, CaptureTick,
+  FlagRaise, MarchStart, MissionWin, PodiumThump, RollRare/Legendary/Mythic/Secret, the
+  Upgrades NodeAdded/NodePop cues, the music tracks and several intro moments.
+- Every Sound carries `OwnerApproved = "2026-10-21"`. `add_feel_sounds_20261021.luau`
+  and `level_feel_sounds_20261021.luau` skip OwnerApproved Sounds entirely (checked in
+  Studio Edit: both ran with 0 property changes); the other `add_*` recipes only create
+  missing Sounds. A Sound added later without the attribute is treated as before.
+- If an unsaved session loses his picks: `assets/audio/restore_library_20261021.luau`
+  puts the snapshot back (instructions in the file), then save the place.
+- The library is Studio-owned: it only persists when the place is saved.
+
+The sections below record how the earlier IDs were chosen; the IDs they name are
+history where the snapshot differs.
+
 ## October 21 game-feel cues
 
 (The families and volumes below describe the first, v1 version of the recipe. The

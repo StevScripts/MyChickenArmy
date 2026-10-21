@@ -17,6 +17,9 @@
 --  * Feed is a normal chicken upgrade chime, not a "nom nom";
 --  * no whoosh on every UI tween: menus, the Upgrades tree and tabs use soft bubble pops,
 --    and the flyer/teleport Whoosh is half as loud.
+-- Later October 21: Stevin replaced the sounds himself and approved the library
+-- (assets/audio/library_20261021.json). A Sound with an OwnerApproved attribute is
+-- skipped entirely, so rerunning this never undoes his picks or volumes.
 assert(game.PlaceId==96683186622050 and not game:GetService("RunService"):IsRunning(), "Run in canonical Edit mode")
 local library=game.SoundService:WaitForChild("MyChickenArmyAudio")
 local function findCue(cue)
@@ -91,10 +94,11 @@ local plan={
 	MissionLose={vol=0.46,peak=0.389,target=0.18},
 	FlagRaise={vol=0.31,peak=0.713,target=0.22},
 }
-local leveled,swapped,missing={},{},{}
+local leveled,swapped,missing,approved={},{},{},{}
 for cue,p in plan do
 	local sound=findCue(cue)
 	if not sound then table.insert(missing,cue) continue end
+	if sound:GetAttribute("OwnerApproved")~=nil then table.insert(approved,cue) continue end
 	if p.swap then
 		local id="rbxassetid://"..p.swap
 		if sound.SoundId~=id then
@@ -111,7 +115,7 @@ for cue,p in plan do
 	sound:SetAttribute("Leveled","Oct21-analyzer")
 	table.insert(leveled,cue)
 end
-print(("level_feel_sounds_20261021: leveled %d, swapped %d, missing %d"):format(#leveled,#swapped,#missing))
+print(("level_feel_sounds_20261021: leveled %d, swapped %d, missing %d, owner-approved (left alone) %d"):format(#leveled,#swapped,#missing,#approved))
 if #swapped>0 then print("  swapped: "..table.concat(swapped,", ")) end
 if #missing>0 then print("  missing (run add_feel_sounds first): "..table.concat(missing,", ")) end
-return {leveled=leveled,swapped=swapped,missing=missing}
+return {leveled=leveled,swapped=swapped,missing=missing,approved=approved}

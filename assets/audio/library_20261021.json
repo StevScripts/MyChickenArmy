@@ -1,0 +1,1294 @@
+{
+ "capturedAt": "2026-10-21",
+ "source": "SoundService.MyChickenArmyAudio in Pet Roll Test (place 96683186622050), Studio Edit",
+ "note": "Stevin replaced the game's sounds himself on October 21, 2026 and approved this library. Every Sound here carries OwnerApproved=\"2026-10-21\"; the recipes in assets/audio never change an OwnerApproved Sound. restore_library_20261021.luau puts these values back if an unsaved session loses them.",
+ "sounds": [
+  {
+   "path": "CallArmyWhistle",
+   "playsWhen": "Call Army whistle.",
+   "cue": "CallArmyWhistle",
+   "soundId": "rbxassetid://129649904589836",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Collection.ChickenHappy",
+   "playsWhen": "Happy cluck (fed, equipped).",
+   "cue": "ChickenHappy",
+   "soundId": "rbxassetid://137857373943195",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.3
+  },
+  {
+   "path": "Collection.Cluck1",
+   "playsWhen": "Ambient chicken cluck (random 1 of 3).",
+   "cue": "Cluck1",
+   "soundId": "rbxassetid://125408037908664",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.24
+  },
+  {
+   "path": "Collection.Cluck2",
+   "playsWhen": "Ambient chicken cluck (random 2 of 3).",
+   "cue": "Cluck2",
+   "soundId": "rbxassetid://102341941754671",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.18
+  },
+  {
+   "path": "Collection.Cluck3",
+   "playsWhen": "Ambient chicken cluck (random 3 of 3).",
+   "cue": "Cluck3",
+   "soundId": "rbxassetid://88279026957024",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.25
+  },
+  {
+   "path": "Collection.CoinDrop",
+   "playsWhen": "Coins spilling out of the sell pad.",
+   "cue": "CoinDrop",
+   "soundId": "rbxassetid://134911555436784",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Collection.CoinPickup",
+   "playsWhen": "Each coin reaching you after an egg sale (and daily/sell coin flyers).",
+   "cue": "CoinPickup",
+   "soundId": "rbxassetid://71556378621665",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Collection.Collect",
+   "playsWhen": "Fallback tick for coin landings (used only if CoinPickup is missing).",
+   "cue": "Collect",
+   "soundId": "rbxassetid://71556378621665",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.55
+  },
+  {
+   "path": "Collection.EggDeposit",
+   "playsWhen": "Stepping on the sell pad with eggs.",
+   "cue": "EggDeposit",
+   "soundId": "rbxassetid://139421450430380",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Collection.EggLay",
+   "playsWhen": "A chicken lays an egg.",
+   "cue": "EggLay",
+   "soundId": "rbxassetid://133216848606395",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.21
+  },
+  {
+   "path": "Collection.EggPickup",
+   "playsWhen": "Picking up an egg (click, tap or vacuum).",
+   "cue": "EggPickup",
+   "soundId": "rbxassetid://6586979979",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Collection.FeedChicken",
+   "playsWhen": "Feeding a chicken with Chicken Feed.",
+   "cue": "FeedChicken",
+   "soundId": "rbxassetid://137857373943195",
+   "looped": false,
+   "speed": 1.1,
+   "volume": 0.22
+  },
+  {
+   "path": "Collection.LevelUp",
+   "playsWhen": "A chicken levels up.",
+   "cue": "LevelUp",
+   "soundId": "rbxassetid://114390175182916",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.29
+  },
+  {
+   "path": "Collection.Money",
+   "playsWhen": "Coins paid: first coin of an egg sale, offline earnings, chicken sales.",
+   "cue": "CashTick",
+   "soundId": "rbxassetid://6809101819",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.25
+  },
+  {
+   "path": "Collection.VacuumFull",
+   "playsWhen": "The Egg Vacuum's bar fills up.",
+   "cue": "VacuumFull",
+   "soundId": "rbxassetid://131661013076677",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.57
+  },
+  {
+   "path": "Collection.VacuumLoop",
+   "playsWhen": "Looped hum while the Egg Vacuum runs.",
+   "cue": "VacuumLoop",
+   "soundId": "rbxassetid://3620275022",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.2
+  },
+  {
+   "path": "Combat.CaptureTick",
+   "playsWhen": "Each section of the capture meter fills.",
+   "cue": "CaptureTick",
+   "soundId": "rbxassetid://137727855471828",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.26
+  },
+  {
+   "path": "Combat.CombatHit",
+   "playsWhen": "A chicken hits in battle.",
+   "cue": "CombatHit",
+   "soundId": "rbxassetid://9120729337",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Combat.CombatKnockout",
+   "playsWhen": "A chicken is knocked out in battle.",
+   "cue": "CombatKnockout",
+   "soundId": "rbxassetid://9116405618",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Combat.CombatKnockoutCluck",
+   "playsWhen": "Squawk when a chicken is knocked out.",
+   "cue": "CombatKnockoutCluck",
+   "soundId": "rbxassetid://77584650945481",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Combat.CombatSwing",
+   "playsWhen": "A chicken swings/pecks in battle.",
+   "cue": "CombatSwing",
+   "soundId": "rbxassetid://9120716440",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.18
+  },
+  {
+   "path": "Combat.FlagRaise",
+   "playsWhen": "A flag goes up on a captured camp.",
+   "cue": "FlagRaise",
+   "soundId": "rbxassetid://4612373756",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.31
+  },
+  {
+   "path": "Combat.Impact",
+   "playsWhen": "Generic hit/landing thud.",
+   "cue": "Impact",
+   "soundId": "rbxasset://sounds/action_jump_land.mp3",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.25
+  },
+  {
+   "path": "Combat.MarchStart",
+   "playsWhen": "Your Army sets off to a camp or Mission.",
+   "cue": "MarchStart",
+   "soundId": "rbxassetid://135612797279151",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.38
+  },
+  {
+   "path": "Combat.MissionAppear",
+   "playsWhen": "A Mission site appears.",
+   "cue": "MissionAppear",
+   "soundId": "rbxassetid://15675043410",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.47
+  },
+  {
+   "path": "Combat.MissionLose",
+   "playsWhen": "A Mission is lost.",
+   "cue": "MissionLose",
+   "soundId": "rbxassetid://2390695935",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.46
+  },
+  {
+   "path": "Combat.MissionWin",
+   "playsWhen": "A Mission is won.",
+   "cue": "MissionWin",
+   "soundId": "rbxassetid://140039147129195",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Combat.Victory",
+   "playsWhen": "Capturing a camp.",
+   "cue": "Victory",
+   "soundId": "rbxassetid://140096937597354",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Fallbacks.Impact",
+   "playsWhen": "Fallback thud when a sound hasn't loaded yet.",
+   "cue": "FallbackImpact",
+   "soundId": "rbxasset://sounds/action_jump_land.mp3",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.25
+  },
+  {
+   "path": "Fallbacks.Tick",
+   "playsWhen": "Fallback tick when a sound hasn't loaded yet.",
+   "cue": "Tick",
+   "soundId": "rbxasset://sounds/volume_slider.ogg",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.18
+  },
+  {
+   "path": "Intro.1_Island.CrownGlint",
+   "playsWhen": "Intro cutscene, scene 1_Island: CrownGlint.",
+   "cue": "Intro_CrownGlint",
+   "soundId": "rbxassetid://9116395089",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.1_Island.KingAppears",
+   "playsWhen": "Intro cutscene, scene 1_Island: KingAppears.",
+   "cue": "Intro_KingAppears",
+   "soundId": "rbxassetid://1837830192",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Intro.2_Dreamer.EggLaid",
+   "playsWhen": "Intro cutscene, scene 2_Dreamer: EggLaid.",
+   "cue": "Intro_EggLaid",
+   "soundId": "rbxassetid://77584650945481",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.2_Dreamer.HeroExclaim",
+   "playsWhen": "Intro cutscene, scene 2_Dreamer: HeroExclaim.",
+   "cue": "Intro_HeroExclaim",
+   "soundId": "rbxassetid://9117841338",
+   "looped": false,
+   "speed": 1.15,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.2_Dreamer.HeroVictory",
+   "playsWhen": "Intro cutscene, scene 2_Dreamer: HeroVictory.",
+   "cue": "Intro_HeroVictory",
+   "soundId": "rbxassetid://140096937597354",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.25
+  },
+  {
+   "path": "Intro.2_Dreamer.KingCrownGlint",
+   "playsWhen": "Intro cutscene, scene 2_Dreamer: KingCrownGlint.",
+   "cue": "Intro_KingCrownGlint",
+   "soundId": "rbxassetid://9116395089",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.2_Dreamer.LookPunchIn",
+   "playsWhen": "Intro cutscene, scene 2_Dreamer: LookPunchIn.",
+   "cue": "Intro_LookPunchIn",
+   "soundId": "rbxassetid://9120716440",
+   "looped": false,
+   "speed": 1.2,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.2_Dreamer.RushToKing",
+   "playsWhen": "Intro cutscene, scene 2_Dreamer: RushToKing.",
+   "cue": "Intro_RushToKing",
+   "soundId": "rbxassetid://9126228850",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Intro.4_Bonk.Charge",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: Charge.",
+   "cue": "Intro_Charge",
+   "soundId": "rbxassetid://9120728815",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Intro.4_Bonk.EyeSparks",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: EyeSparks.",
+   "cue": "Intro_EyeSparks",
+   "soundId": "rbxassetid://9114277402",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Intro.4_Bonk.FallWhistle",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: FallWhistle.",
+   "cue": "Intro_FallWhistle",
+   "soundId": "rbxassetid://9119198140",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Intro.4_Bonk.GuardHit",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: GuardHit.",
+   "cue": "Intro_GuardHit",
+   "soundId": "rbxassetid://9120729337",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.55
+  },
+  {
+   "path": "Intro.4_Bonk.GuardsTurn",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: GuardsTurn.",
+   "cue": "Intro_GuardsTurn",
+   "soundId": "rbxassetid://1837830192",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Intro.4_Bonk.HeroPeck",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: HeroPeck.",
+   "cue": "Intro_HeroPeck",
+   "soundId": "rbxassetid://9120716440",
+   "looped": false,
+   "speed": 1.3,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.4_Bonk.HeroPuffUp",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: HeroPuffUp.",
+   "cue": "Intro_HeroPuffUp",
+   "soundId": "rbxassetid://12222124",
+   "looped": false,
+   "speed": 0.7,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.4_Bonk.LaunchWhistle",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: LaunchWhistle.",
+   "cue": "Intro_LaunchWhistle",
+   "soundId": "rbxassetid://9119197896",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Intro.4_Bonk.StareGuard",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: StareGuard.",
+   "cue": "Intro_StareGuard",
+   "soundId": "rbxassetid://1837830192",
+   "looped": false,
+   "speed": 1.15,
+   "volume": 0.55
+  },
+  {
+   "path": "Intro.4_Bonk.StareHero",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: StareHero.",
+   "cue": "Intro_StareHero",
+   "soundId": "rbxassetid://1837830203",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.55
+  },
+  {
+   "path": "Intro.4_Bonk.SteamHiss",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: SteamHiss.",
+   "cue": "Intro_SteamHiss",
+   "soundId": "rbxassetid://9118882814",
+   "looped": false,
+   "speed": 1.3,
+   "volume": 0.3
+  },
+  {
+   "path": "Intro.4_Bonk.Stomp",
+   "playsWhen": "Intro cutscene, scene 4_Bonk: Stomp.",
+   "cue": "Intro_Stomp",
+   "soundId": "rbxassetid://9114523612",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Intro.5_CrashLanding.BigBounce",
+   "playsWhen": "Intro cutscene, scene 5_CrashLanding: BigBounce.",
+   "cue": "Intro_BigBounce",
+   "soundId": "rbxassetid://121870043011805",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.5_CrashLanding.CrashThud",
+   "playsWhen": "Intro cutscene, scene 5_CrashLanding: CrashThud.",
+   "cue": "Intro_CrashThud",
+   "soundId": "rbxassetid://9113480915",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.6
+  },
+  {
+   "path": "Intro.5_CrashLanding.SmallBounce",
+   "playsWhen": "Intro cutscene, scene 5_CrashLanding: SmallBounce.",
+   "cue": "Intro_SmallBounce",
+   "soundId": "rbxassetid://8730871251",
+   "looped": false,
+   "speed": 1.25,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.6_MissingChicken.DashToLever",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: DashToLever.",
+   "cue": "Intro_DashToLever",
+   "soundId": "rbxassetid://9120999812",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Intro.6_MissingChicken.EmptySpotAppears",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: EmptySpotAppears.",
+   "cue": "Intro_EmptySpotAppears",
+   "soundId": "rbxassetid://103129200366284",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.6_MissingChicken.HeroIdea",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: HeroIdea.",
+   "cue": "Intro_HeroIdea",
+   "soundId": "rbxassetid://9117841338",
+   "looped": false,
+   "speed": 1.2,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.6_MissingChicken.LeverHop",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: LeverHop.",
+   "cue": "Intro_LeverHop",
+   "soundId": "rbxassetid://9120914570",
+   "looped": false,
+   "speed": 1.1,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.6_MissingChicken.LeverPull",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: LeverPull.",
+   "cue": "Intro_LeverPull",
+   "soundId": "rbxassetid://9120914570",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.6_MissingChicken.NewChickenReveal",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: NewChickenReveal.",
+   "cue": "Intro_NewChickenReveal",
+   "soundId": "rbxassetid://3625285980",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.6_MissingChicken.RollTick",
+   "playsWhen": "Intro cutscene, scene 6_MissingChicken: RollTick.",
+   "cue": "Intro_RollTick",
+   "soundId": "rbxassetid://9119717523",
+   "looped": false,
+   "speed": 1.2,
+   "volume": 0.35
+  },
+  {
+   "path": "Intro.7_SquadComplete.FriendJoins",
+   "playsWhen": "Intro cutscene, scene 7_SquadComplete: FriendJoins.",
+   "cue": "Intro_FriendJoins",
+   "soundId": "rbxassetid://9117841338",
+   "looped": false,
+   "speed": 0.9,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.7_SquadComplete.RecruitJump",
+   "playsWhen": "Intro cutscene, scene 7_SquadComplete: RecruitJump.",
+   "cue": "Intro_RecruitJump",
+   "soundId": "rbxassetid://12222124",
+   "looped": false,
+   "speed": 1.15,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.7_SquadComplete.RecruitLand",
+   "playsWhen": "Intro cutscene, scene 7_SquadComplete: RecruitLand.",
+   "cue": "Intro_RecruitLand",
+   "soundId": "rbxassetid://9114523612",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.7_SquadComplete.SquadApplause",
+   "playsWhen": "Intro cutscene, scene 7_SquadComplete: SquadApplause.",
+   "cue": "Intro_SquadApplause",
+   "soundId": "rbxassetid://9113138088",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.35
+  },
+  {
+   "path": "Intro.7_SquadComplete.SquadJingle",
+   "playsWhen": "Intro cutscene, scene 7_SquadComplete: SquadJingle.",
+   "cue": "Intro_SquadJingle",
+   "soundId": "rbxassetid://92590965842700",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Intro.8_CampPayoff.PayoffCrownGlint",
+   "playsWhen": "Intro cutscene, scene 8_CampPayoff: PayoffCrownGlint.",
+   "cue": "Intro_PayoffCrownGlint",
+   "soundId": "rbxassetid://9116395089",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Intro.8_CampPayoff.PayoffJingle",
+   "playsWhen": "Intro cutscene, scene 8_CampPayoff: PayoffJingle.",
+   "cue": "Intro_PayoffJingle",
+   "soundId": "rbxassetid://92590965842700",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Music.A Military Action",
+   "playsWhen": "Music track (the Music cue picks the playing one).",
+   "cue": "A Military Action",
+   "soundId": "rbxassetid://1837777133",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Music.BackgroundMusic",
+   "playsWhen": "Background music loop.",
+   "cue": "Music",
+   "soundId": "rbxassetid://139767023947424",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Music.Chill Jazz",
+   "playsWhen": "Music track (the Music cue picks the playing one).",
+   "cue": "Chill Jazz",
+   "soundId": "rbxassetid://1845341094",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Music.Forward Advance",
+   "playsWhen": "Music track (the Music cue picks the playing one).",
+   "cue": "Forward Advance",
+   "soundId": "rbxassetid://1836332544",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "Rolling.AutoRollHit",
+   "playsWhen": "Auto Roll stops on a chicken you wanted.",
+   "cue": "AutoRollHit",
+   "soundId": "rbxassetid://107978604605265",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "Rolling.MutationHit",
+   "playsWhen": "A Golden/Rainbow/Shadow/Cosmic mutation tag appears.",
+   "cue": "MutationHit",
+   "soundId": "rbxassetid://17669542369",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.49
+  },
+  {
+   "path": "Rolling.PodiumThump",
+   "playsWhen": "The rolled chicken lands on its podium.",
+   "cue": "PodiumThump",
+   "soundId": "rbxassetid://3623733749",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.42
+  },
+  {
+   "path": "Rolling.RollEpic",
+   "playsWhen": "An Epic chicken is revealed.",
+   "cue": "RollEpic",
+   "soundId": "rbxassetid://137357606937971",
+   "looped": false,
+   "speed": 1.1,
+   "volume": 0.36
+  },
+  {
+   "path": "Rolling.RollLand",
+   "playsWhen": "The roll stops on a chicken.",
+   "cue": "RollLand",
+   "soundId": "rbxassetid://9120914570",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Rolling.RollLegendary",
+   "playsWhen": "A Legendary chicken is revealed.",
+   "cue": "RollLegendary",
+   "soundId": "rbxassetid://109488292152988",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.33
+  },
+  {
+   "path": "Rolling.RollLever",
+   "playsWhen": "Pulling a roll lever.",
+   "cue": "RollLever",
+   "soundId": "rbxassetid://9120914570",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Rolling.RollMythic",
+   "playsWhen": "A Mythic chicken is revealed.",
+   "cue": "RollMythic",
+   "soundId": "rbxassetid://109488292152988",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.33
+  },
+  {
+   "path": "Rolling.RollRare",
+   "playsWhen": "A Rare chicken is revealed.",
+   "cue": "RollRare",
+   "soundId": "rbxassetid://109488292152988",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Rolling.RollReveal",
+   "playsWhen": "A Common/Uncommon chicken is revealed.",
+   "cue": "RollReveal",
+   "soundId": "rbxassetid://9126073001",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "Rolling.RollSecret",
+   "playsWhen": "A Secret chicken is revealed.",
+   "cue": "RollSecret",
+   "soundId": "rbxassetid://115830961660092",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.33
+  },
+  {
+   "path": "Rolling.RollTick",
+   "playsWhen": "Each flicker while a podium rolls.",
+   "cue": "RollTick",
+   "soundId": "rbxassetid://9119717523",
+   "looped": false,
+   "speed": 1,
+   "volume": 1
+  },
+  {
+   "path": "VFX.Bonsai",
+   "playsWhen": "Ambient loop near a Bonsai chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Bonsai",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Devil",
+   "playsWhen": "Ambient loop near a Devil chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Devil",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Diamond",
+   "playsWhen": "Ambient loop near a Diamond chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Diamond",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Frost",
+   "playsWhen": "Ambient loop near a Frost chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Frost",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Galaxy",
+   "playsWhen": "Ambient loop near a Galaxy chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Galaxy",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Glitch",
+   "playsWhen": "Ambient loop near a Glitch chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Glitch",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.GlitchBurst",
+   "playsWhen": "Ambient loop near a GlitchBurst chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_GlitchBurst",
+   "soundId": "",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Golden",
+   "playsWhen": "Ambient loop near a Golden chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Golden",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Heavenly",
+   "playsWhen": "Ambient loop near a Heavenly chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Heavenly",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Honeycomb",
+   "playsWhen": "Ambient loop near a Honeycomb chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Honeycomb",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Jungle",
+   "playsWhen": "Ambient loop near a Jungle chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Jungle",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Lollipop",
+   "playsWhen": "Ambient loop near a Lollipop chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Lollipop",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Magma",
+   "playsWhen": "Ambient loop near a Magma chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Magma",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Rainbow",
+   "playsWhen": "Ambient loop near a Rainbow chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Rainbow",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Robo",
+   "playsWhen": "Ambient loop near a Robo chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Robo",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Shadow",
+   "playsWhen": "Ambient loop near a Shadow chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Shadow",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.SkillTree.Close",
+   "playsWhen": "Closing Upgrades.",
+   "cue": "SkillTreeClose",
+   "soundId": "rbxassetid://17208204604",
+   "looped": false,
+   "speed": 0.85,
+   "volume": 0.45
+  },
+  {
+   "path": "VFX.SkillTree.Error",
+   "playsWhen": "Can't buy an Upgrades tier.",
+   "cue": "SkillTreeError",
+   "soundId": "rbxassetid://131661013076677",
+   "looped": false,
+   "speed": 1,
+   "volume": 1
+  },
+  {
+   "path": "VFX.SkillTree.Hover",
+   "playsWhen": "Hovering an Upgrades tier.",
+   "cue": "SkillTreeHover",
+   "soundId": "rbxassetid://79315763728779",
+   "looped": false,
+   "speed": 1.2,
+   "volume": 0.11
+  },
+  {
+   "path": "VFX.SkillTree.NodeAdded",
+   "playsWhen": "A new Upgrades tier unlocks.",
+   "cue": "SkillTreeNodeAdded",
+   "soundId": "rbxassetid://136512283509258",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.29
+  },
+  {
+   "path": "VFX.SkillTree.NodePop",
+   "playsWhen": "An Upgrades tier pops in.",
+   "cue": "SkillTreeNodePop",
+   "soundId": "rbxassetid://117465761207367",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.21
+  },
+  {
+   "path": "VFX.SkillTree.Open",
+   "playsWhen": "Opening Upgrades.",
+   "cue": "SkillTreeOpen",
+   "soundId": "rbxassetid://17208204604",
+   "looped": false,
+   "speed": 1.05,
+   "volume": 0.55
+  },
+  {
+   "path": "VFX.SkillTree.Purchase",
+   "playsWhen": "Buying an Upgrades tier.",
+   "cue": "SkillTreePurchase",
+   "soundId": "rbxassetid://134952684776633",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.9
+  },
+  {
+   "path": "VFX.SkillTree.ResearchCompleted",
+   "playsWhen": "Legacy research done; fallback for MAX tiers.",
+   "cue": "SkillTreeResearchCompleted",
+   "soundId": "rbxassetid://123582256549202",
+   "looped": false,
+   "speed": 1,
+   "volume": 1
+  },
+  {
+   "path": "VFX.SkillTree.ResearchSlotAdded",
+   "playsWhen": "Legacy research slot (unused since the Oct 20 tree).",
+   "cue": "SkillTreeResearchSlotAdded",
+   "soundId": "rbxassetid://123582256549202",
+   "looped": false,
+   "speed": 1,
+   "volume": 1
+  },
+  {
+   "path": "VFX.SkillTree.ResearchStarted",
+   "playsWhen": "Legacy research start (unused since the Oct 20 tree).",
+   "cue": "SkillTreeResearchStarted",
+   "soundId": "rbxassetid://118760340244907",
+   "looped": false,
+   "speed": 1,
+   "volume": 1
+  },
+  {
+   "path": "VFX.SkillTree.TierUp",
+   "playsWhen": "An Upgrades tier is bought.",
+   "cue": "TierUp",
+   "soundId": "rbxassetid://135996502799215",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.27
+  },
+  {
+   "path": "VFX.SkillTree.UpgradeMax",
+   "playsWhen": "An Upgrades track reaches MAX.",
+   "cue": "UpgradeMax",
+   "soundId": "rbxassetid://131158134113693",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.37
+  },
+  {
+   "path": "VFX.SolarFlare",
+   "playsWhen": "Ambient loop near a SolarFlare chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_SolarFlare",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Storm",
+   "playsWhen": "Ambient loop near a Storm chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Storm",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.Toxic",
+   "playsWhen": "Ambient loop near a Toxic chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Toxic",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  },
+  {
+   "path": "VFX.UI.Badge",
+   "playsWhen": "A badge or count appears (upgrades ready, notices).",
+   "cue": "Badge",
+   "soundId": "rbxassetid://17208204604",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.9
+  },
+  {
+   "path": "VFX.UI.Claim",
+   "playsWhen": "Claiming a reward (daily, playtime, gift, offline).",
+   "cue": "Claim",
+   "soundId": "rbxassetid://87082710377514",
+   "looped": false,
+   "speed": 1,
+   "volume": 1.8
+  },
+  {
+   "path": "VFX.UI.Click",
+   "playsWhen": "Pressing any button.",
+   "cue": "Click",
+   "soundId": "rbxassetid://5852470908",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "VFX.UI.Confirm",
+   "playsWhen": "Confirm bars (Sell N, Equip Best).",
+   "cue": "Confirm",
+   "soundId": "rbxassetid://17208399163",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.55
+  },
+  {
+   "path": "VFX.UI.CountTick",
+   "playsWhen": "Count-ups (Coins readout, receipts).",
+   "cue": "CountTick",
+   "soundId": "rbxassetid://16480550203",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.19
+  },
+  {
+   "path": "VFX.UI.Equip",
+   "playsWhen": "A chicken joins your Army.",
+   "cue": "Equip",
+   "soundId": "rbxassetid://77120543307812",
+   "looped": false,
+   "speed": 1.1,
+   "volume": 0.46
+  },
+  {
+   "path": "VFX.UI.Error",
+   "playsWhen": "An action fails (not enough Coins, etc.).",
+   "cue": "Error",
+   "soundId": "rbxassetid://87519554692663",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "VFX.UI.Fanfare",
+   "playsWhen": "Big win (Mission win, Rebirth, first capture).",
+   "cue": "Fanfare",
+   "soundId": "rbxassetid://7464917496",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.28
+  },
+  {
+   "path": "VFX.UI.GemGain",
+   "playsWhen": "Gems arrive.",
+   "cue": "GemGain",
+   "soundId": "rbxassetid://11439707919",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.33
+  },
+  {
+   "path": "VFX.UI.GoldRushEnd",
+   "playsWhen": "Gold Rush ends.",
+   "cue": "GoldRushEnd",
+   "soundId": "rbxassetid://9116418035",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.2
+  },
+  {
+   "path": "VFX.UI.GoldRushStart",
+   "playsWhen": "Gold Rush begins.",
+   "cue": "GoldRushStart",
+   "soundId": "rbxassetid://79130903404606",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "VFX.UI.Hover",
+   "playsWhen": "Hovering a button.",
+   "cue": "UIHover",
+   "soundId": "rbxassetid://79315763728779",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.11
+  },
+  {
+   "path": "VFX.UI.Jingle",
+   "playsWhen": "Short success jingle (shop purchase).",
+   "cue": "Jingle",
+   "soundId": "rbxassetid://85963199032103",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.36
+  },
+  {
+   "path": "VFX.UI.Lock",
+   "playsWhen": "Locking a chicken.",
+   "cue": "Lock",
+   "soundId": "rbxassetid://90515507208380",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.28
+  },
+  {
+   "path": "VFX.UI.Locked",
+   "playsWhen": "Pressing something locked or unaffordable.",
+   "cue": "Locked",
+   "soundId": "rbxassetid://106042048386874",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.28
+  },
+  {
+   "path": "VFX.UI.MenuClose",
+   "playsWhen": "A menu closes.",
+   "cue": "MenuClose",
+   "soundId": "rbxassetid://17208204604",
+   "looped": false,
+   "speed": 0.85,
+   "volume": 0.45
+  },
+  {
+   "path": "VFX.UI.MenuOpen",
+   "playsWhen": "A menu opens.",
+   "cue": "MenuOpen",
+   "soundId": "rbxassetid://17208204604",
+   "looped": false,
+   "speed": 1.05,
+   "volume": 0.55
+  },
+  {
+   "path": "VFX.UI.NoticeIn",
+   "playsWhen": "A corner notice slides in.",
+   "cue": "NoticeIn",
+   "soundId": "rbxassetid://76932672222714",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.24
+  },
+  {
+   "path": "VFX.UI.Pop",
+   "playsWhen": "Generic pop (fallback for many small UI moments).",
+   "cue": "Pop",
+   "soundId": "rbxassetid://126269603852501",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.22
+  },
+  {
+   "path": "VFX.UI.Purchase",
+   "playsWhen": "A purchase goes through (chicken, upgrade, shop).",
+   "cue": "UIPurchase",
+   "soundId": "rbxassetid://77584650945481",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.5
+  },
+  {
+   "path": "VFX.UI.Rebirth",
+   "playsWhen": "Deep boom under the Rebirth flash.",
+   "cue": "Rebirth",
+   "soundId": "rbxassetid://9125635297",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.47
+  },
+  {
+   "path": "VFX.UI.Select",
+   "playsWhen": "Marking a chicken card.",
+   "cue": "Select",
+   "soundId": "rbxassetid://15675059323",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.4
+  },
+  {
+   "path": "VFX.UI.Shimmer",
+   "playsWhen": "Sparkle sweep (MAX tiers, Legendary+ cards, Index discovery).",
+   "cue": "Shimmer",
+   "soundId": "rbxassetid://117011707307950",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.22
+  },
+  {
+   "path": "VFX.UI.TabSwitch",
+   "playsWhen": "Switching a tab or sort.",
+   "cue": "TabSwitch",
+   "soundId": "rbxassetid://15675059323",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.3
+  },
+  {
+   "path": "VFX.UI.Toggle",
+   "playsWhen": "Flipping a switch (Settings, Auto Roll).",
+   "cue": "Toggle",
+   "soundId": "rbxassetid://125454714785814",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.45
+  },
+  {
+   "path": "VFX.UI.Unequip",
+   "playsWhen": "A chicken leaves your Army.",
+   "cue": "Unequip",
+   "soundId": "rbxassetid://76893939716509",
+   "looped": false,
+   "speed": 0.9,
+   "volume": 0.2
+  },
+  {
+   "path": "VFX.UI.Unlock",
+   "playsWhen": "Unlocking a chicken.",
+   "cue": "Unlock",
+   "soundId": "rbxassetid://131408467630923",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.26
+  },
+  {
+   "path": "VFX.UI.Whoosh",
+   "playsWhen": "Flyers and slides (coins flying, My Base teleport).",
+   "cue": "Whoosh",
+   "soundId": "rbxassetid://15674975792",
+   "looped": false,
+   "speed": 1,
+   "volume": 0.21
+  },
+  {
+   "path": "VFX.Water",
+   "playsWhen": "Ambient loop near a Water chicken (blank = silent; add a SoundId to give it one).",
+   "cue": "VFX_Water",
+   "soundId": "",
+   "looped": true,
+   "speed": 1,
+   "volume": 0.15
+  }
+ ]
+}
