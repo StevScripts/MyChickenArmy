@@ -91,7 +91,7 @@ function Tutorial:Record(st, index: number)
 	if self:Reached(st, index) then tf.reached[index] = true; return end
 	tf.reached[index] = true
 	local nn = code(index)
-	local play = host:_Play(st)
+	local play: number = host:_Play(st)
 	local ledger = host.ledger
 	ledger:Count("tf.reach." .. nn)
 	ledger:Count("tf.reach." .. nn .. "|" .. tostring(st.platform or "Unknown"))
@@ -150,7 +150,7 @@ function Tutorial:State(st, session, state)
 	local tf = st.tf
 	if not tf or not tf.ready or not tf.tracked then return end
 	st.tfFacts = Guide.Facts(state)
-	local facts, t = st.tfFacts, session.tutorial or {}
+	local facts: any, t: any = st.tfFacts, session.tutorial or {}
 	local eggs = Guide.CollectedEggCount(t)
 	local vacuumed = Guide.VacuumEggCount(t)
 	local wins = session.firstWins or {}
