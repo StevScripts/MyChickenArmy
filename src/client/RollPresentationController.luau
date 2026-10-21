@@ -25,7 +25,8 @@ local BEATS = {0.04, 0.07, 0.105, 0.145, 0.19, 0.245, 0.3, 0.365, 0.435, 0.51, 0
 local GOLD = UIColors.Rewards
 local BLUE = Color3.fromRGB(67, 181, 222)
 local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Secret=7}
--- Camera feel (push-in, punch, shake, orbit) is tuned at the top of RollCamera.
+-- Camera feel (push-in, reveal pop, flash, speed lines, shake) is tuned at the top of
+-- RollCamera. The camera always stays with the player; there is no orbit.
 -- Mutation tag: pops in this long after the species lands; Rainbow and rarer also flash.
 local MUTATION_BADGE_DELAY = 0.3
 -- October 20 Gold rolls: the special pull's tag stays this long after the reveal.

@@ -48,6 +48,33 @@ October 15 "1 in X" rarity (owner decision): every rollable chicken shows its ze
 
 October 16 timed yard builds (owner decision "Option A"): Flock Size 25→30→35 stays instant; from Flock 40 up each expansion is paid up front and finishes after `UpgradeCatalog.PlotBuildSeconds` (2, 5, 10, 25, 60 min), one at a time, counting offline. Plot prices are unchanged. Saved `plotBuild` is additive and lenient. This is a build time, not a camp/rank gate. See `docs/team/TIMED_PLOT_BUILDS.md`.
 
+## October 20 overhaul (supersedes older rules)
+Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_20261020.md`.
+- **Upgrades tree:** instant Coins tiers (no camp/rank/King gate) replace the cash tracks and
+  research, ending the Sep 27, Oct 7–8 and Oct 14 track lengths and prices, and the Sep 29
+  Roll Slot prices (eight podiums stay). The Oct 6 Luck window math stays.
+- **Rebirth** resets Coins to 0 (not 2,400; Time Skip then pays), Feed levels and the tree,
+  except Keep Upgrades tiers and `mutationKeep`. Gems and Gem Upgrades never reset.
+  Mutations (Golden, Rainbow, Shadow, Cosmic) are bought in the tree, not unlocked by rank.
+- **Flock** = chickens laying in the yard (only they lay, also offline), not the Sep 29
+  25–100 capacity. Storage holds the rest (hidden cap 1,000); the **Army** is its own pick.
+  Yard builds are instant (ends Oct 16 timed builds).
+- **Tools:** the Egg Vacuum and Chicken Feed are bought in Upgrades > Tools and live in
+  Roblox's native hotbar. Chicken levels need Feed, not the Sep 29/Oct 15 inspector
+  button; Feed Max Level I–III lifts the cap to 20, +25% eggs per level past 10.
+- **Fuse is removed** (ends Sep 25 merging, Sep 28 Colossals, Oct 6 Fuse research and
+  Oct 14 Giants). Old Giants are ordinary chickens (saved size kept). Sell has its own menu.
+- **Rolls:** Gold, Diamond and Prism rolls each count on their own; Rate I–IV halve the
+  counts (10→5, 100→50, 500→250). Auto Roll and Auto Rebirth are Gem Upgrades.
+- **Boosts:** Gold Rush (5 min every 20) and Friend Boost never apply to steady income
+  (offline, daily, Playtime Coins). Playtime Rewards reset every join; their Free Rolls
+  use lever Luck, Daily's use Hill-roll Luck.
+- **Saves:** tier-meaning changes go through `TreeMigrations` (`upgradeTreeVersion`).
+  Never bump `DataRevision`: older live servers reject newer revisions. Every publish
+  uses "Migrate To Latest Update" (restart servers).
+- **Stevin:** "dont ask me for permission no more just do it". Agents decide and build
+  without a confirm step, but still never publish or push unless asked.
+
 ## Simple animations — use TweenService
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 

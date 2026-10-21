@@ -22,7 +22,10 @@ Champion chicken at 10 wins, rendered as a crowned gold copy of the classic Chic
   would lay at home, plus **+10% per minute held, up to +50%** of the whole farm's
   income (all owned chickens). Double Cash applies through the normal `territory`
   credit source. The boost resets when the Hill changes hands and pauses during a
-  contest.
+  contest. October 20 (Flock overhaul): only Flock chickens lay, so the holder's
+  Flock keeps its full rate (fill-ins cover chickens out on the Hill and
+  `HillService:Rate` pays any shortfall) and the boost applies to the chickens
+  laying, not every owned chicken.
 - **Winning:** when the round ends, the player who held the Hill the most seconds
   (at least 15) wins. They get `hillWins + 1` and one **Hill Roll**, a free
   chicken drawn from the normal roll odds with +2.0 extra Luck strength
@@ -74,8 +77,8 @@ the game's own `Theme.Display` lettering and `Theme.SegmentedBar`:
 - **Who sees it:** players who have won all home camps or cleared the King, or who
   took part in a round or have won one. It hides under menus and dialogue.
 - **Top-slot rules while the title shows:** the Commander's quiet next-goal line
-  waits (lessons still show), the army status line hides, and toasts drop from 24%
-  to 30% screen height.
+  waits (lessons still show) and toasts drop from 24% to 30% screen height. (The
+  top army status line it also hid was removed on October 20.)
 - Studio playtest verified: chip, idle, marching, capturing and holding states,
   status/toast clearance, and a full round with the winner's Hill Roll.
 
