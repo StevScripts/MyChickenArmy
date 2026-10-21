@@ -7,7 +7,7 @@ local Battles=require(Server.BattleService)
 local AdminService=require(Server.AdminService)
 local AdminConfig=require(Server.AdminConfig)
 local Catalog=require(Shared.PetCatalog)
-local ResearchCatalog=require(Shared.ResearchCatalog)
+local UpgradeCatalog=require(Shared.UpgradeCatalog)
 local Config=require(Shared.Config)
 local Checks={}
 
@@ -67,6 +67,8 @@ function Checks.Run()
 		for _,pet in owner.pets do if pet.species==species and pet.level==4 then found+=1 end end
 		assert(found==2)
 		admin.lastCommand={}
+		-- October 20: storage holds up to Config.StorageLimit; start five short of it.
+		while owner:Count()<owner:CollectionLimit()-5 do owner:AddPet(species,1) end
 		assert(admin:Run(me,"chicken me "..species.." 1 25"))
 		assert(owner:Count()==owner:CollectionLimit(),"Flock limit exceeded")
 		admin.lastCommand={}
@@ -75,23 +77,23 @@ function Checks.Run()
 		assert(not admin:Run(me,"chicken me "..species.." 99"))
 	end)
 
-	test("Research, camps, King, army size and rolls apply to the saved session",function()
+	-- October 20: "upgrade" replaces "research" (still an alias); army sizes follow the tree.
+	test("Upgrades, camps, King, army size and rolls apply to the saved session",function()
 		local admin,owner=setup()
 		local me=actor(OWNER,"Owner")
-		assert(admin:Run(me,"research me all"))
-		for _,id in ResearchCatalog.Order do assert(owner.research.completed[id],id) end
-		assert(owner.researchEffects.holdCap==10 and owner.fusionUnlocked)
+		assert(admin:Run(me,"upgrade me all"))
+		for _,family in UpgradeCatalog.FamilyOrder do assert(owner:TreeTier(family)==#UpgradeCatalog.Families[family].tiers,family) end
 		admin.lastCommand={};assert(admin:Run(me,"king me"))
 		assert(owner.kingCleared and owner.firstWins[1] and owner.firstWins[3] and owner.tutorial.wonCamp)
-		admin.lastCommand={};assert(admin:Run(me,"army me 7") and owner.capacity==7)
-		admin.lastCommand={};assert(not admin:Run(me,"army me 99"))
+		admin.lastCommand={};assert(admin:Run(me,"army me 6") and owner.capacity==6)
+		admin.lastCommand={};assert(not admin:Run(me,"army me 7"))
 		owner.rollReadyAt=1e9
 		admin.lastCommand={};assert(admin:Run(me,"roll me "..Catalog.Order[1]))
 		assert(owner.rollReadyAt==0 and owner.debugNext==Catalog.Order[1])
 		local data=owner:ToData()
 		local loaded=Session.new(OWNER,"Owner",1)
 		assert(loaded:LoadData(data))
-		assert(loaded.kingCleared and loaded.capacity==7 and loaded.adminAssisted and loaded.research.completed.H2)
+		assert(loaded.kingCleared and loaded.capacity==6 and loaded.adminAssisted and loaded:TreeTier("Luck")==#UpgradeCatalog.Families.Luck.tiers)
 	end)
 
 	test("Targets reach other players' sessions; unknown names fail cleanly",function()

@@ -76,22 +76,15 @@ function Checks.Run()
 		for _,root in fixtures do root:Destroy() end;table.clear(fixtures)
 		table.insert(results,{name=name,passed=ok,error=if not ok then tostring(why) else nil})
 	end
-	check("Locked Call Army rejects before cooldown, recall or actor changes",function()
-		local s,ids,w,b,c,p=setup(false);local original=table.clone(w.plots[1].actors)
-		b.RecallForCommand=function() error("Locked command recalled an encounter") end
-		local ok,message=c:CallArmy(p,s,1)
-		assert(not ok and string.find(message,"Upgrades",1,true))
-		assert(s.lastArmyCall==nil and not c.following[s.userId] and s.armyState=="Home")
-		assert(not next(s.awayPets) and w.created==5)
-		for _,id in ids do assert(w.plots[1].actors[id]==original[id]) end
-		-- An active research timer is not the permanent unlock.
-		s.research.jobs={{id="call-army-pending",nodeId="CallArmy",startedAt=100,finishAt=160,paid=1000}}
-		assert(not c:CallArmy(p,s,2) and s.lastArmyCall==nil)
+	-- October 20 overhaul: Call Army is free for everyone (no research).
+	check("Call Army is free without research",function()
+		local s,_,w,_,c,p=setup(false)
+		assert(c:CallArmy(p,s,1) and s.armyState=="Following" and c.following[s.userId] and w.created==5)
 	end)
-	check("Locked following leaves battle attacks and My Base recall available",function()
+	check("Attacks and My Base recall work without research",function()
 		local s,ids,w,b,c,p=setup(false)
 		assert(c:Attack(s,"camp:1",1));local encounter=b.battles[s.outgoing]
-		assert(encounter and not c:CallArmy(p,s,2))
+		assert(encounter)
 		assert(b.battles[encounter.id]==encounter and s.outgoing==encounter.id)
 		assert(c:GoBase(p,s,3))
 		assert(not s.outgoing and not b.battles[encounter.id] and s.armyState=="Home")

@@ -3,7 +3,11 @@ local Shared = game.ReplicatedStorage.PetRoll.Shared
 local Catalog = require(Shared.PetCatalog)
 local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
+local UpgradeCatalog = require(Shared.UpgradeCatalog)
 local Checks = {}
+
+-- October 20: cash Luck is the Upgrades tree's Luck I-IV (Config.LuckPrices is a legacy view).
+local LuckTiers = #UpgradeCatalog.Families.Luck.tiers
 
 local Representatives = {"Duck", "Mallard", "Chunky", "Bucket", "Viking", "Knight", "Dragon", "Rainbow", "IceDuck", "StormDuck"}
 local OpeningBudgets = {38, 22, 22, 9, 5, 3, 0.7, 0.25, 0.05, 0.01}
@@ -114,7 +118,7 @@ function Checks.Run(catalogOddsFactory)
 		for _, paid in {1, 2} do
 			for _, research in ResearchBonuses do
 				local previous = bandOdds(oddsAt(0, paid, research), Catalog)
-				for level = 1, #Config.LuckPrices do
+				for level = 1, LuckTiers do
 					local current = bandOdds(oddsAt(level, paid, research), Catalog)
 					assertImproves(previous, current, "Cash Luck " .. level)
 					assert(current[#current] > previous[#previous], "Cash Luck stopped improving the strongest band")
@@ -122,7 +126,7 @@ function Checks.Run(catalogOddsFactory)
 				end
 			end
 		end
-		return "All twenty purchases remain useful, including with both bonus sources"
+		return "Every Luck tier remains useful, including with both bonus sources"
 	end)
 
 	check("Each research tier preserves every strength threshold and improves rolls at the cash cap", function()
@@ -214,30 +218,28 @@ function Checks.Run(catalogOddsFactory)
 	end)
 
 	check("Probabilities remain continuous as the moving window crosses every reachable band boundary", function()
-		local function checkBoundary(level, paid, research)
-			local before = oddsAt(level - 1e-7, paid, research)
-			local at = oddsAt(level, paid, research)
-			local after = oddsAt(level + 1e-7, paid, research)
+		-- October 20: cash Luck moves in whole tiers, so the research bonus (Extra Luck,
+		-- Gold rolls) carries the window continuously across each boundary.
+		local function checkBoundary(paid, research)
+			local before = oddsAt(0, paid, research - 1e-7)
+			local at = oddsAt(0, paid, research)
+			local after = oddsAt(0, paid, research + 1e-7)
 			local beforeDistance, afterDistance = 0, 0
 			for _, species in Catalog.Order do
 				beforeDistance += math.abs(before[species] - at[species])
 				afterDistance += math.abs(after[species] - at[species])
 			end
 			assert(beforeDistance < 1e-6 and afterDistance < 1e-6, "Probability jumped at a window edge")
-			assertImproves(bandOdds(before, Catalog), bandOdds(after, Catalog), "Fractional Luck boundary")
+			assertImproves(bandOdds(before, Catalog), bandOdds(after, Catalog), "Luck bonus boundary")
 		end
 		for shift = 1, 7 do
 			-- Invert the documented tuning only to locate edges; the assertion checks
 			-- continuity and ordering, not a duplicate implementation of the odds.
 			local multiplier = (9 + 2 * shift) / (9 - shift)
-			local paid, research = 1, 0
-			if multiplier > 6 then multiplier /= 4; paid, research = 2, 1
-			elseif multiplier > 3 then multiplier /= 2; paid = 2 end
-			local level = (multiplier - 1) / 0.1
-			checkBoundary(level, paid, research)
+			local paid = if multiplier > 3 then 2 else 1
+			checkBoundary(paid, multiplier / paid - 1)
 		end
-		checkBoundary(4, 1, 0)
-		return "Seven transported-band boundaries and the opening/continuation Luck transition are continuous"
+		return "Seven transported-band boundaries are continuous"
 	end)
 
 	check("Window metadata advances continuously and retains useful research and paid progress beyond cash cap", function()
@@ -250,7 +252,7 @@ function Checks.Run(catalogOddsFactory)
 		for _, paid in {1, 2} do
 			for _, research in ResearchBonuses do
 				local previous
-				for level = 0, #Config.LuckPrices do
+				for level = 0, LuckTiers do
 					local current = Rules.LuckWindow(level, paid, research)
 					assert(current.left >= 1 and current.left <= current.right and current.right <= #Representatives)
 					near(current.left, 1 + current.shift)

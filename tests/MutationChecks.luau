@@ -15,8 +15,8 @@ local Checks={}
 
 local IDS={"Golden","Rainbow","Shadow","Cosmic"}
 local MULTIPLIERS={Golden=1.5,Rainbow=2,Shadow=3,Cosmic=5}
-local CHANCES={Golden=1/40,Rainbow=1/200,Shadow=1/1000,Cosmic=1/5000}
-local UNLOCKS={Golden=0,Rainbow=1,Shadow=3,Cosmic=5}
+local CHANCES={Golden=1/250,Rainbow=1/800,Shadow=1/3000,Cosmic=1/12000}
+local UNLOCKS={Golden=0,Rainbow=1,Shadow=5,Cosmic=10}
 
 local function near(a,b,why)
  assert(math.abs(a-b)<=1e-6*math.max(1,math.abs(b)),(why or "Values differ")..": "..tostring(a).." ~= "..tostring(b))
@@ -94,15 +94,15 @@ function Checks.Run()
  test("Roll draws once per unlocked check, rarest first",function()
   local calls=0
   local miss={NextNumber=function() calls+=1;return 0.999 end}
-  for rank,expected in {[0]=1,[1]=2,[2]=2,[3]=3,[4]=3,[5]=4,[15]=4} do
+  for rank,expected in {[0]=1,[1]=2,[4]=2,[5]=3,[9]=3,[10]=4,[15]=4} do
    calls=0
    assert(Mutations.Roll(miss,rank)==nil)
    assert(calls==expected,"Rank "..rank.." drew "..calls.." times")
   end
   calls=0
   local hit={NextNumber=function() calls+=1;return 0 end}
-  assert(Mutations.Roll(hit,5)=="Cosmic" and calls==1,"Rarest is checked first")
-  assert(Mutations.Roll(hit,3)=="Shadow")
+  assert(Mutations.Roll(hit,10)=="Cosmic" and calls==1,"Rarest is checked first")
+  assert(Mutations.Roll(hit,5)=="Shadow")
   assert(Mutations.Roll(hit,1)=="Rainbow")
   assert(Mutations.Roll(hit,0)=="Golden")
   -- Junk ranks act as rank 0.
