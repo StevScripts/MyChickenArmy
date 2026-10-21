@@ -27,6 +27,10 @@
 -- MODELLING ASSUMPTIONS (quote these with any number)
 --  1. Continuous active play, no offline time, no PvP, no other commanders, no Hill
 --     boost, no passes or Robux (free player), no daily rewards, no Friend Boost.
+--     Playtime Rewards (S16): play comes in visits of visitMinutes (fast 120, casual
+--     60), and each visit claims all twelve tiles, since the clock restarts every join.
+--     Coins tiles pay minutes of steady income (DailyService.CashFor); the Luck and
+--     Coins boosts run on the simulation clock; the Free Rolls draw like a lever pull.
 --  2. Coarse ticks (default 15 s); eggs accrue in closed form. The fast player clicks
 --     every egg and sells every 60 s (clicking is unlimited, so the hand vacuum is a
 --     convenience here; the report lists the egg capacity a vacuum would need to hold
@@ -43,14 +47,16 @@
 --  6. Rebirth keeps camp/King progress but releases flags: the player re-takes camps
 --     (and the King) when attackable, for kill Coins and the territory egg bonus.
 --  7. Greedy spending each tick: economy (best payback among Egg Speed, Egg Value,
---     Flock, Chicken Feed levels on layers, recruits), combat while blocked (Army Size,
---     Feed levels on fighters, recruits), then utility within a budget (Luck, Roll
---     Slots, Roll Speed). Paybacks must beat the time left to afford the next Rebirth
---     (savingPaybackFraction). Gem Upgrades are bought after each Rebirth in a fixed
---     priority. Rebirth happens as soon as the quote is eligible.
+--     Flock, Chicken Feed levels on layers, Feed Max Level with the level it unlocks,
+--     recruits), combat while blocked (Army Size, Feed levels on fighters, recruits),
+--     then utility within a budget (Luck, Roll Slots, Roll Speed, Mutations and the
+--     Gold/Diamond/Prism machines and rates; the cheapest open hex first). Paybacks
+--     must beat the time left to afford the next Rebirth (savingPaybackFraction). Gem
+--     Upgrades are bought after each Rebirth in a fixed priority. Rebirth happens as
+--     soon as the quote is eligible.
 --  8. Auto Roll (Gem Upgrade) lets the lever run at the reveal speed instead of the
---     player's pull rate. Rebirth-chicken podium offers and Mutation Luck are not
---     modelled (they land with S12's RollService hooks).
+--     player's pull rate. Rolls go through RollService, so Gold/Diamond/Prism rolls,
+--     mutation tiers, Mutation Luck and Rebirth-chicken podium offers all apply.
 local Server=game:GetService("ServerStorage").PetRoll
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
@@ -70,19 +76,25 @@ local Upgrades=require(Server.UpgradeService)
 local GemService=require(Server.GemUpgradeService)
 local Rebirth=require(Server.RebirthService)
 local King=require(Server.KingEncounter)
+local Playtime=require(Server.PlaytimeService)
+local PlaytimeRewards=require(Shared.PlaytimeRewards)
+local DailyService=require(Server.DailyService)
 local Simulation={}
 
 local PROFILES={
-	fast={depositSeconds=60,rollEverySeconds=8,maxPaybackSeconds=1800,blockedPaybackSeconds=600},
-	casual={depositSeconds=120,rollEverySeconds=20,maxPaybackSeconds=1200,blockedPaybackSeconds=480},
+	fast={depositSeconds=60,rollEverySeconds=8,maxPaybackSeconds=1800,blockedPaybackSeconds=600,visitMinutes=120},
+	casual={depositSeconds=120,rollEverySeconds=20,maxPaybackSeconds=1200,blockedPaybackSeconds=480,visitMinutes=60},
 }
 local DEFAULTS={
-	seeds=1,hours=40,tickSeconds=15,profile="fast",
+	seeds=1,hours=40,tickSeconds=15,profile="fast",firstSeed=1, -- firstSeed: run seeds firstSeed.. (parallel fits)
 	campSeconds=90,kingSeconds=150,invasionSeconds=150,
 	savingPaybackFraction=0.5,utilityFraction=0.10,savingUtilityFraction=0.04,savingCombatFraction=0.25,
 	targetRank=30,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=60,
 	-- rushSaver: sell only during Gold Rush (S4: up to 2x egg Coins for savers).
 	goldRush=true,rushEvery=1200,rushSeconds=300,rushSaver=false,
+	-- playtime: S16's twelve tiles each visit (visitMinutes, per profile; the clock and
+	-- the claims restart every join). false leaves them out.
+	playtime=true,
 	print=true,
 }
 
@@ -368,11 +380,19 @@ local function economyCandidates(state,failed)
 	-- Chicken Feed levels on current layers (the Feed node first).
 	local feedOwned=(s.researchEffects.chickenFeed or 0)>=1
 	local bestFeedGain,bestFeedPrice=0,nil
+	local maxTier=feedOwned and nextTier(s,"FeedMaxLevel")
+	local cappedGain,cappedPrice=0,nil
 	for i=1,math.min(size,#layers) do
 		local pet=layers[i]
 		local level=pet.level or 1
 		-- The quote runs to Lv 20; the player's cap (feedMaxLevel, S7b) decides what Feed can buy.
 		local price=if level<s:LevelCap() then Rules.ChickenUpgradePrice(pet.species,level) else nil
+		-- At the cap, the next Feed Max Level tier (S9c) plus that level is one purchase.
+		local capped=maxTier and level>=s:LevelCap() and Rules.ChickenUpgradePrice(pet.species,level)
+		if capped and s:IsPetHome(pet.id) then
+			local gain=layerCash(s,pet,level+1)-layerCash(s,pet,level)
+			if gain/capped>cappedGain/(cappedPrice or math.huge) then cappedGain,cappedPrice=gain,capped end
+		end
 		if price and s:IsPetHome(pet.id) then
 			local gain=layerCash(s,pet,level+1)-layerCash(s,pet,level)
 			if feedOwned then
@@ -385,6 +405,10 @@ local function economyCandidates(state,failed)
 	if not feedOwned and bestFeedPrice then
 		local price=nodePrice(s,"ChickenFeed",1)
 		add("ChickenFeed",price+bestFeedPrice,bestFeedGain,function() return buyNode(state,"ChickenFeed",1) end)
+	end
+	if maxTier and cappedPrice then
+		add("FeedMaxLevel",nodePrice(s,"FeedMaxLevel",maxTier)+cappedPrice,cappedGain,
+			function() return buyNode(state,"FeedMaxLevel",maxTier) end)
 	end
 	return list
 end
@@ -446,15 +470,18 @@ local function chooseCombat(list,budget)
 	return nil
 end
 
--- Luck, Roll Slots and Roll Speed, cheapest first, inside the utility budget.
-local UTILITY={"Luck","RollSlot","RollSpeed"}
+-- Roll upgrades, Mutations and the Gold/Diamond/Prism machines (S9c's tree), cheapest
+-- open hex first, inside the utility budget.
+local UTILITY={"Luck","RollSlot","RollSpeed","Mutation","GoldMachine","GoldRate","DiamondMachine","DiamondRate",
+	"PrismMachine","PrismRate"}
 local function chooseUtility(state,failed,budget)
 	local s=state.session
 	local best
 	for _,familyId in UTILITY do
 		local tier=nextTier(s,familyId)
 		local price=tier and nodePrice(s,familyId,tier)
-		if tier and price and price<=budget and not failed[familyId] and (not best or price<best.price) then
+		local open=tier and Upgrades.NodeOffer(s,Tree.NodeId(familyId,tier)).status~="Locked"
+		if open and price and price<=budget and not failed[familyId] and (not best or price<best.price) then
 			best={key=familyId,price=price,buy=function() return buyNode(state,familyId,tier) end}
 		end
 	end
@@ -609,6 +636,38 @@ local function tryRebirth(state,now)
 	state.peakEggs=0
 end
 
+-- Playtime Rewards (S16): each visit restarts the twelve tiles. Coins tiles and Free
+-- Rolls use the real formulas; timed boosts run on the simulation clock (runOnce
+-- swaps PlaytimeService.Boost while it runs, so EarnedAmount and roll Luck see them).
+local function playtime(state,now)
+	local options=state.options
+	if not options.playtime or not PlaytimeRewards.Enabled then return end
+	local visit=options.visitMinutes*60
+	local start=math.floor(now/visit)*visit
+	if state.visitStart~=start then state.visitStart,state.claimed=start,{} end
+	local s=state.session
+	for index,tile in PlaytimeRewards.Tiles do
+		if not state.claimed[index] and now-start>=tile.at*60 then
+			state.claimed[index]=true
+			if tile.kind=="Coins" then
+				local coins=DailyService.CashFor(s,tile.coinMinutes or 0)
+				if coins>0 then state.stats.playtimeCash+=s:Credit(coins,"playtime") end
+			elseif tile.kind=="Boost" then
+				local kind,seconds=tile.boost or "Luck",(tile.minutes or 0)*60
+				local running=state.boosts[kind]
+				state.boosts[kind]=if running and running.endsAt>now
+					then {bonus=math.max(running.bonus,tile.bonus or 0),endsAt=running.endsAt+seconds}
+					else {bonus=tile.bonus or 0,endsAt=now+seconds}
+			else
+				-- The sim's random stream, set only for the call (RollService reads it too).
+				s.debugRandom=state.rolls.random
+				Playtime.FreeRolls(s,tile.rolls or 0)
+				s.debugRandom=nil
+			end
+		end
+	end
+end
+
 local function runOnce(seed,options)
 	local random=lcg(seed*7919)
 	local s=Session.new(-(70000+seed),"Simulation",1)
@@ -618,10 +677,15 @@ local function runOnce(seed,options)
 	local rolls=Rolls.new()
 	rolls.random=random
 	local state={session=s,options=options,rolls=rolls,upgrades=Upgrades.new(nil,rolls),
-		bag=0,deploy=nil,nextRollAt=2,milestones={},flags={},peakEggs=0,
+		bag=0,deploy=nil,nextRollAt=2,milestones={},flags={},peakEggs=0,now=0,boosts={},
 		rushPhase=(seed*277)%options.rushEvery,
 		stats={rolls=0,recruits=0,eggCash=0,battleCash=0,invasionCash=0,invasionFirsts=0,invasionReplays=0,
-			treeBuys=0,treeSpent=0,gemsEarned=0,gemsSpent=0,timeSkip=0,purchases={economy=0,combat=0,utility=0}}}
+			treeBuys=0,treeSpent=0,gemsEarned=0,gemsSpent=0,timeSkip=0,playtimeCash=0,purchases={economy=0,combat=0,utility=0}}}
+	local realBoost=Playtime.Boost
+	Playtime.Boost=function(_session,kind)
+		local boost=state.boosts[kind]
+		return if boost and state.now<boost.endsAt then boost.bonus else 0
+	end
 	local horizon,dt=options.hours*3600,options.tickSeconds
 	local nextDeposit,now=options.depositSeconds,0
 	while now<horizon and s.rebirths<options.targetRank do
@@ -629,6 +693,8 @@ local function runOnce(seed,options)
 		state.peakEggs=math.max(state.peakEggs,eggs)
 		state.bag+=rawRate(s)*dt
 		now+=dt
+		state.now=now
+		playtime(state,now)
 		if now>=nextDeposit then deposit(state,now);nextDeposit+=options.depositSeconds end
 		for _,minutes in {10,30,60,120,180} do
 			if now>=minutes*60 and not state.milestones["Min"..minutes] then mark(state,"Min"..minutes,now) end
@@ -640,6 +706,7 @@ local function runOnce(seed,options)
 		rollAndBuy(state,ctx,now)
 		chooseAttack(state,now)
 	end
+	Playtime.Boost=realBoost
 	return {seed=seed,minutes=now/60,milestones=state.milestones,stats=state.stats,
 		final={rank=s.rebirths,coins=s.coins,gems=s.gems,income=cashRate(s),power=armyPower(s),flock=s:Count(),
 			flockSize=s:FlockSize(),capacity=s:Capacity(),tree=table.clone(s.upgradeTree),gemUpgrades=table.clone(s.gemUpgrades)}}
@@ -717,13 +784,17 @@ function Simulation.Run(options)
 	end
 	local runs={}
 	local started=os.clock()
+	local realBoost=Playtime.Boost
 	local ok,problem=pcall(function()
-		for seed=1,merged.seeds do table.insert(runs,runOnce(seed,merged)) end
+		local first=merged.firstSeed or 1
+		for seed=first,first+merged.seeds-1 do table.insert(runs,runOnce(seed,merged)) end
 	end)
+	Playtime.Boost=realBoost -- runOnce swaps it for the simulation clock
 	if not ok then error(problem,0) end
 	local results={options=merged,runs=runs,seconds=os.clock()-started,
 		assumptions="Free player, continuous active play; Flock-only laying with clicked eggs sold every deposit; "
-			.."Gold Rush x2 for 5 of 20 minutes; fights decided by TutorialGuide.Difficulty and always won; "
+			.."Gold Rush x2 for 5 of 20 minutes; Playtime Rewards every "..merged.visitMinutes.."-minute visit; "
+			.."fights decided by TutorialGuide.Difficulty and always won; "
 			.."greedy payback/power/utility spending; Rebirth as soon as eligible; Gem Upgrades in a fixed priority."}
 	if merged.print then report(results) end
 	return results
