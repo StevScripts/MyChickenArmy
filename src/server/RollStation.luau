@@ -235,7 +235,7 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 			top=spin.Position+Vector3.new(0,spin.Size.Y/2+0.85,0)
 		end
 		self.counterGui,self.counterRows=rollCounters(model,top+Vector3.new(0,COUNTER_HEIGHT/2,0))
-		self.rollPrompt=prompt(self.leverBase,"RollPrompt",Enum.KeyCode.E,"Pull lever · FREE")
+		self.rollPrompt=prompt(self.leverBase,"RollPrompt",Enum.KeyCode.E,"Pull lever")
 		self.rollPrompt.MaxActivationDistance=8
 		table.insert(self.connections,self.rollPrompt.Triggered:Connect(function(player) onAction(player,"Roll",index) end))
 	end
@@ -337,7 +337,7 @@ function RollStation:Step(now, force)
 	if self.rollPrompt and self.rollPrompt.Enabled~=canRoll then self.rollPrompt.Enabled=canRoll end
 	if self.buyPrompt.Enabled ~= canBuy then self.buyPrompt.Enabled = canBuy end
 	if self.model:GetAttribute("Rolling") ~= rolling then self.model:SetAttribute("Rolling", rolling) end
-	local promptText = if canRoll then "Pull lever · FREE" else "Ready in " .. math.ceil(self.readyAt - now) .. "s"
+	local promptText = if canRoll then "Pull lever" else "Ready in " .. math.ceil(self.readyAt - now) .. "s"
 	if self.rollPrompt and self.rollPrompt.ActionText~=promptText then self.rollPrompt.ActionText=promptText end
 	-- Server owns prompts and the settled offer. Render-frame movement, sparkle
 	-- timing and audio belong together in RollPresentationController.
@@ -365,10 +365,11 @@ function RollStation:Step(now, force)
 		local oneIn = Catalog.OneInText(self.offer.species)
 		self.rarityLabel.Text = if oneIn then def.rarity .. " · " .. oneIn else def.rarity
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
-		-- October 21: the guide's starter roll costs nothing and says so.
-		self.priceLabel.Text = if price <= 0 then "FREE" else commas(price)
+		-- October 21: the guide's starter roll costs nothing; its tag shows no price
+		-- (Stevin: no "FREE" wording).
+		self.priceLabel.Text = if price <= 0 then "" else commas(price)
 		local promptText = if self.storageFull then "Storage full · sell in My Army"
-			else "Buy " .. def.name .. " · " .. (if price <= 0 then "FREE" else Currency.Text(price))
+			else "Buy " .. def.name .. (if price <= 0 then "" else " · " .. Currency.Text(price))
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
 		self.top.Color = tint
 

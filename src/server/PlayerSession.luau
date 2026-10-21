@@ -134,7 +134,7 @@ function PlayerSession:Reset()
 	self.passiveEarned, self.battleEarned, self.returnAt = 0, 0, 0
 	self.sessionIncome={eggs=0,battle=0,territory=0}
 	self.debugNext, self.debugRandom = nil, nil
-	self.lastResult, self.banner = "Your first three chickens are ready. Roll FREE to recruit your fourth!", ""
+	self.lastResult, self.banner = "Your first three chickens are ready. Pull the lever to recruit your fourth!", ""
 	for slot, species in Config.StarterFlock do
 		local pet = self:AddPet(species, 1)
 		pet.investment = 0 -- Free birds have no cash purchase to refund.
@@ -301,7 +301,7 @@ function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean,
 		-- October 20 launch review: once the recruit is bought, name only Army Size
 		-- (1,307 refusals named a recruit the player already had).
 		local reason=if not self.tutorial.starterArmy
-			then "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Roll FREE at the lever!"
+			then "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Pull the lever to roll!"
 			elseif self:StarterRecruitPending() and Config.Economy.StarterRecruitPrice>0 then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size I."
 			else "Keep "..Currency.Text(reserve).." for Army Size I in Upgrades."
 		return false,reason

@@ -602,7 +602,7 @@ function BaseController:UpdateObjective()
  local waitLeft=waiting and tracker and tracker:Remaining(nextMission.id)
  self.objectiveCaption.Text=if invasion then (if left then ("ATTACK %d:%02d"):format(left//60,left%60) else "ATTACK")
   elseif waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
-  elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL FREE")
+  elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  -- Pop on a new goal only; the ticking countdown digits are ignored.
  local captionKey=self.objectiveCaption.Text:gsub("[%d:]","")

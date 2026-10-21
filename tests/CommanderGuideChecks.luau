@@ -88,7 +88,7 @@ function Checks.Run()
 		state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
 		assert(Guide.Facts(state).Core,"Core done")
 		local vacuum=Guide.Resolve(state)
-		expect(vacuum,"Vacuum","Claim your FREE Egg Vacuum!")
+		expect(vacuum,"Vacuum","Claim your Egg Vacuum!")
 		assert(vacuum.tag=="TIP" and vacuum.index==1 and vacuum.total==7 and vacuum.node=="EggVacuum","Vacuum tip")
 		state.tools.eggVacuum=true
 		local use=Guide.Resolve(state)
@@ -370,7 +370,7 @@ function Checks.Run()
 		s.tutorial.rolled=true
 		s:AddPet("Duck",1)
 		s.tutorial.bought=true
-		expect((route()),"Vacuum","Claim your FREE Egg Vacuum!")
+		expect((route()),"Vacuum","Claim your Egg Vacuum!")
 		ok,message=service:BuyNode(s,"EggVacuum",0)
 		assert(ok,message)
 		s.tutorial.vacuumEggCount=20

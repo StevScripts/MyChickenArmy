@@ -432,8 +432,8 @@ local function resolve(state, input: string?, t, f)
 	if not f.Vacuum then
 		local node = treeNode(state, "EggVacuum")
 		if node == nil or node.status ~= "Locked" then
-			return step("Vacuum", "Claim your FREE Egg Vacuum!", "Upgrades", "EggVacuum",
-				"Open Upgrades for a FREE Egg Vacuum!", "Open the Tools category!")
+			return step("Vacuum", "Claim your Egg Vacuum!", "Upgrades", "EggVacuum",
+				"Open Upgrades for an Egg Vacuum!", "Open the Tools category!")
 		end
 	elseif not f.VacuumUse then
 		-- A full vacuum stops pulling eggs in: sell, then keep going.
