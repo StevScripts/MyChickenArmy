@@ -113,8 +113,9 @@ function Checks.Run()
 		assert(#counters==2 and counters[1].kind=="Gold" and counters[1].left==6 and counters[2].left==98)
 		assert(GoldRolls.Text(counters[1])=="6 Rolls Left" and GoldRolls.Text({kind="Gold",every=10,count=9,left=1,luck=2})=="1 Roll Left")
 		local fast={count=0}
-		for _=1,5 do assert(GoldRolls.Advance(fast,{goldMachine=1,goldRate=2})==nil) end
-		assert(GoldRolls.Advance(fast,{goldMachine=1,goldRate=2})=="Gold","Gold Rate II: every 6th")
+		-- Tree v2 (S9c): Every is {10,8,7,6,5}, so tier III is every 6th.
+		for _=1,5 do assert(GoldRolls.Advance(fast,{goldMachine=1,goldRate=3})==nil) end
+		assert(GoldRolls.Advance(fast,{goldMachine=1,goldRate=3})=="Gold","Gold Rate III: every 6th")
 		local none={count=3}
 		assert(GoldRolls.Advance(none,{goldMachine=0})==nil and none.count==3,"no machine counts nothing")
 		return "Three counters; the bigger boost wins a shared pull"
