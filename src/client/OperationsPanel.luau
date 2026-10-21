@@ -20,7 +20,7 @@ local BLUE=Theme.ReferenceColors.Upgrades
 local GREEN=Theme.ReferenceColors.Army
 local GOLD=Theme.ReferenceColors.Base
 local WHITE=Color3.new(1,1,1)
-local MUTED=Color3.fromRGB(176,190,186)
+local MUTED=Theme.Tones.Secondary
 local RED=Color3.fromRGB(232,62,48)
 local CARD=Color3.fromRGB(26,32,36)
 local EMBLEMS={Theme.Assets.TierVeteran,Theme.Assets.TierElite,Theme.Assets.TierRoyal}
@@ -42,11 +42,15 @@ local function label(parent,name,text,x,y,w,h,color,align)
 	return item
 end
 
+-- Plain cards are the shell's see-through inner card (REFERENCE_PARITY_20261021.md 2.1:
+-- lighter, translucent, 2 px dark stroke); a tinted card (selection, chips) keeps its
+-- colour and a 3 px edge.
 local function card(parent,name,x,y,w,h,color,stroke)
 	local frame=Theme.Frame(parent,name,UDim2.fromScale(w,h),color or CARD)
 	frame.Position=UDim2.fromScale(x,y)
 	frame:SetAttribute("OwnsPopupStyle",true)
-	Theme.Stroke(frame,stroke or Color3.new(0,0,0),3)
+	if color==nil or color==CARD then Theme.ShellCard(frame,stroke)
+	else Theme.Stroke(frame,stroke or Color3.new(0,0,0),3) end
 	return frame
 end
 
@@ -284,7 +288,7 @@ function Panel:BuildDetail(content,data,state)
 	local cleared=(data.wins or {})[id]==true
 	self.deploy=nil
 	-- Status row (the mockup's "CURRENT INVASION [NONE]"): power on the left, verdict chip right.
-	local status=card(content,"Status",.04,.735,.92,.09,Color3.fromRGB(16,20,24))
+	local status=card(content,"Status",.04,.735,.92,.09)
 	local enemy=Operations.Power(id)
 	local mine=tonumber(state.power) or 0
 	local node=Research.Nodes[UNLOCK_NODES[tier]]
