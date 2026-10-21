@@ -13,8 +13,9 @@ local UpgradeCatalog = require(Shared.UpgradeCatalog)
 local Migrations = {}
 
 -- S9c sets Version = 1 in the commit that changes Config.GoldRolls.Every
--- (RebirthV2Checks fails if the table changes while this is still 0).
-Migrations.Version = 0
+-- (RebirthV2Checks fails if the table changes while this is still 0). Done: S9c's
+-- Every is {10, 8, 7, 6, 5}.
+Migrations.Version = 1
 
 -- Config.GoldRolls.Every on live servers before S9c: Gold Rate tier 0 / I / II = a
 -- Gold roll every 10 / 8 / 6 pulls. Frozen.
