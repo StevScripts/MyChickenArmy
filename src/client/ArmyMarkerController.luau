@@ -2,6 +2,7 @@
 -- One portrait follows each attacking squad using the replicated actors' positions.
 local Players=game:GetService("Players")
 local Theme=require(script.Parent.UITheme)
+local Motion: any=Theme.Motion -- untyped helpers; the alias keeps strict inference out of presentation calls
 local Marker={}
 Marker.__index=Marker
 
@@ -27,7 +28,17 @@ function Marker:Release(id)
 	local view=self.views[id]
 	if not view then return end
 	if view.bannerConnection then view.bannerConnection:Disconnect() end
+	Motion:Settle(view.circle)
 	view.gui:Destroy();view.anchor:Destroy();self.views[id]=nil
+end
+
+-- October 21 game feel: the portrait breathes gently while the Army marches and
+-- settles on arrival (and under reduced motion).
+function Marker:UpdateBreath(view)
+	local marching=view.battle.phase=="Travel"
+	if marching==view.breathing then return end
+	view.breathing=marching
+	if marching then Motion:Breathe(view.circle,1.05,0.7) else Motion:StopBreathe(view.circle) end
 end
 
 function Marker:UpdateBanner(view)
@@ -99,11 +110,13 @@ function Marker:Receive(snapshots)
 			local player=Players:GetPlayerByUserId(battle.attacker)
 			label.Text=if own then "My army" else (if player then player.DisplayName else "Test army")
 			view={anchor=anchor,gui=gui,portrait=portrait,fallback=fallback,userId=battle.attacker,
-				circle=circle,crown=commanderCrown(circle)}
+				circle=circle,crown=commanderCrown(circle),battle=battle,breathing=false}
 			self.views[battle.id]=view
+			Motion:PopScale(circle,0.6,0.3) -- the marker pops in over the Army
 		end
 		view.battle=battle
 		self:BindPlayer(view)
+		self:UpdateBreath(view)
 	end
 	for id in self.views do if not seen[id] then self:Release(id) end end
 end
