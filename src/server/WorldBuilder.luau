@@ -64,7 +64,7 @@ function WorldBuilder.Sign(parent, name, cf, text, color, width, height)
 	label.Name, label.Size = "Text", UDim2.fromScale(1, 1)
 	label.BackgroundTransparency, label.TextColor3 = 1, UIColors.Text
 	label.TextStrokeColor3, label.TextStrokeTransparency = UIColors.Border, 0.15
-	label.TextSize, label.Font, label.Text = 29, Enum.Font.SourceSansBold, text
+	label.TextSize, label.Font, label.Text = 29, Enum.Font.MontserratBold, text
 	label.TextWrapped, label.TextScaled, label.Parent = true, true, gui
 	local sizeLimit = Instance.new("UITextSizeConstraint")
 	sizeLimit.MinTextSize, sizeLimit.MaxTextSize, sizeLimit.Parent = 14, 68, label
@@ -79,7 +79,7 @@ function WorldBuilder.Billboard(parent, name, at, text, color, width, distance)
 	gui.AlwaysOnTop, gui.LightInfluence, gui.Parent = false, 0, anchor
 	local label = Instance.new("TextLabel")
 	label.Name, label.Size, label.BackgroundTransparency = "Text", UDim2.fromScale(1, 1), 1
-	label.Font, label.TextSize, label.TextColor3 = Enum.Font.SourceSansBold, 22, color
+	label.Font, label.TextSize, label.TextColor3 = Enum.Font.MontserratBold, 22, color
 	label.TextStrokeColor3, label.TextStrokeTransparency = UIColors.Border, 0.2
 	label.Text, label.TextWrapped, label.Parent = text, true, gui
 	return label

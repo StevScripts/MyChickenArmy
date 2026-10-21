@@ -5,7 +5,9 @@ local Palette = require(game:GetService("ReplicatedStorage").PetRoll.Shared.UICo
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 Theme.Motion = require(script.Parent.UIMotion).new()
-Theme.Font = Enum.Font.SourceSansBold
+-- October 21 (Stevin): every game font is Montserrat Bold. Roblox's Gotham files are
+-- Montserrat now, so this enum (shown as GothamBold) renders Montserrat Bold.
+Theme.Font = Enum.Font.MontserratBold
 -- One edge hierarchy across menus; secondary surfaces never outweigh the shell.
 Theme.Border = {Shell=3, Control=2, Card=1.5, Detail=1}
 Theme.OverlayColors = {Top=Color3.fromRGB(20,22,24), Bottom=Color3.fromRGB(3,4,5)}

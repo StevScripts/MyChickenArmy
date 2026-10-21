@@ -563,7 +563,7 @@ function Motion:Float(parent,text,position,options)
 	local size=options.size or 26
 	local label=Instance.new("TextLabel")
 	label.Name,label.Text,label.BackgroundTransparency="MotionFloat",text,1
-	label.Font,label.TextSize,label.TextColor3=options.font or Enum.Font.SourceSansBold,size,options.color or Color3.new(1,1,1)
+	label.Font,label.TextSize,label.TextColor3=options.font or Enum.Font.MontserratBold,size,options.color or Color3.new(1,1,1)
 	label.AnchorPoint,label.Position,label.Size=Vector2.new(0.5,0.5),position,UDim2.fromOffset(size,size)
 	label.AutomaticSize,label.TextWrapped,label.ZIndex=Enum.AutomaticSize.XY,false,31
 	local stroke=Instance.new("UIStroke")

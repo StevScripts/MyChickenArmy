@@ -192,7 +192,7 @@ local function buildSign(anchor)
 		local label = Instance.new("TextLabel")
 		label.Name, label.BackgroundTransparency = name, 1
 		label.Position, label.Size = UDim2.fromScale(0, top), UDim2.fromScale(1, height)
-		label.Font, label.TextColor3, label.TextScaled = Enum.Font.SourceSansBold, color, true
+		label.Font, label.TextColor3, label.TextScaled = Enum.Font.MontserratBold, color, true
 		local stroke = Instance.new("UIStroke")
 		stroke.Color, stroke.Thickness, stroke.Parent = UIColors.Border, 2, label
 		local limit = Instance.new("UITextSizeConstraint")
