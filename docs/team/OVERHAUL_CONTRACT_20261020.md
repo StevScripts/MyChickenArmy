@@ -62,6 +62,25 @@ dropped, and nothing here can fail a load.
 | `vacuumCargo` | `{count, value}`, `{count=0,value=0}` | **S11** | Yes |
 | `autoRoll` | `{enabled, stopAt, recruitAt?, mutationStop}` | **S12** (`recruitAt`, `mutationStop` are new; S12 may change `Config.AutoRollStops`) | No |
 | `goldRolls` | `{count}` lever pulls toward the next special pull, `{count=0}` | **S12** | Yes |
+| `upgradeTreeVersion` | integer, missing = 0; written as `TreeMigrations.Version` | S7c | – |
+| `mutationKeep` | 0–4 mutations kept from the Rebirth rank; `nil` until S9c's `Mutation` family exists | S7c (derivation), S9c (reads it; floors the tree after a Rebirth) | No |
+
+**Live since October 20, 22:07: migrate, never bump.** Every change to what a saved
+value means needs a lenient one-time load step. Servers on an older build refuse a
+newer `DataRevision` ("This save needs recovery"), so new meanings use version keys
+instead:
+- **Upgrades tree tiers:** add a step to `TreeMigrations.Steps` and bump
+  `TreeMigrations.Version` in the same commit; never edit or reorder a released
+  step. Saves carry `upgradeTreeVersion`, steps run once on load for older saves,
+  and new profiles and revision ≤ 11 conversions start current. Step 1 (S9c): Gold
+  Rate keeps its every-N count from the frozen live table {10, 8, 6} (II → III under
+  {10, 8, 7, 6, 5}); `RebirthV2Checks` fails if that table changes while the version
+  is 0.
+- **`mutationKeep`:** set once at a save's first load under S9c's `Mutation` family,
+  from the live rank unlocks: Rebirth 10+ → 4, 5+ → 3, 1+ → 2, else 1 (Golden). New
+  profiles under the family start at 0; the load floors `upgradeTree.Mutation` to it.
+- Older servers drop saved keys they don't know when they save, so publish with
+  "Migrate To Latest Update" (or restart servers).
 
 Kept as they are: `coins`, `pets` (with `cashLevels` = levels bought with Chicken
 Feed), `discovered`, `rebirths`, `eggCarry` (the unlimited click bag), `research`
