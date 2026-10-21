@@ -63,33 +63,45 @@ local function offerLabel(parent, frame)
 	return gui, line("Text", 0, 34, 28), line("Rarity", 36, 28, 21), price
 end
 
--- October 20 Gold rolls (S12): the machine's die-and-count bar from the Drop a Fruit
--- reference ("9 Rolls Left"), floating over the lever machine for every viewer.
-local function goldCounter(parent, position)
+-- October 20 Gold rolls (S12, S12b): the machine's counters from Stevin's Drop a Fruit
+-- recording, one row per owned machine ("6 Rolls Left" over "98 Rolls Left"), floating
+-- over the lever machine for every viewer. Rows stack up from the bottom.
+local COUNTER_HEIGHT = 4.2
+local function rollCounters(parent, position)
 	local anchor = Builder.Part(parent, "GoldCounterAnchor", Vector3.one, CFrame.new(position), colors.white, false)
 	anchor.Transparency, anchor.CanQuery, anchor.CastShadow = 1, false, false
 	local gui = Instance.new("BillboardGui")
-	gui.Name, gui.Size = "GoldCounter", UDim2.fromScale(7, 1.5)
+	gui.Name, gui.Size = "GoldCounter", UDim2.fromScale(7, COUNTER_HEIGHT)
 	gui.AlwaysOnTop, gui.MaxDistance, gui.LightInfluence = true, 60, 0
 	gui.Enabled, gui.Parent = false, anchor
-	local bar = Instance.new("Frame")
-	bar.Name, bar.AnchorPoint, bar.Position = "Bar", Vector2.new(1, 0.5), UDim2.fromScale(1, 0.5)
-	bar.Size, bar.BackgroundColor3, bar.BackgroundTransparency = UDim2.fromScale(0.84, 0.8), Color3.new(0, 0, 0), 0.4
-	bar.BorderSizePixel, bar.Parent = 0, gui
-	local outline = Instance.new("UIStroke")
-	outline.Color, outline.Thickness, outline.Parent = UIColors.Border, 2, bar
-	local icon = Instance.new("ImageLabel")
-	icon.Name, icon.BackgroundTransparency, icon.ScaleType = "MachineIcon", 1, Enum.ScaleType.Fit
-	icon.AnchorPoint, icon.Position, icon.Size = Vector2.new(0, 0.5), UDim2.fromScale(0, 0.5), UDim2.fromScale(0.24, 1.15)
-	icon.ZIndex, icon.Parent = 2, gui
-	local label = Instance.new("TextLabel")
-	label.Name, label.BackgroundTransparency, label.Text = "Count", 1, ""
-	label.Position, label.Size = UDim2.fromScale(0.1, 0.06), UDim2.fromScale(0.86, 0.88)
-	label.Font, label.TextScaled, label.TextColor3 = Enum.Font.SourceSansBold, true, UIColors.Text
-	label.ZIndex, label.Parent = 2, bar
-	local stroke = Instance.new("UIStroke")
-	stroke.Color, stroke.Thickness, stroke.Transparency, stroke.Parent = UIColors.Border, 2, 0.05, label
-	return gui, icon, label
+	local list = Instance.new("UIListLayout")
+	list.SortOrder, list.VerticalAlignment = Enum.SortOrder.LayoutOrder, Enum.VerticalAlignment.Bottom
+	list.HorizontalAlignment, list.Padding, list.Parent = Enum.HorizontalAlignment.Center, UDim.new(0.03, 0), gui
+	local rows = {}
+	for index, kind in GoldRolls.Kinds do
+		local row = Instance.new("Frame")
+		row.Name, row.LayoutOrder, row.BackgroundTransparency = kind, index, 1
+		row.Size, row.Visible, row.Parent = UDim2.fromScale(1, 0.31), false, gui
+		local bar = Instance.new("Frame")
+		bar.Name, bar.AnchorPoint, bar.Position = "Bar", Vector2.new(1, 0.5), UDim2.fromScale(1, 0.5)
+		bar.Size, bar.BackgroundColor3, bar.BackgroundTransparency = UDim2.fromScale(0.84, 0.8), Color3.new(0, 0, 0), 0.4
+		bar.BorderSizePixel, bar.Parent = 0, row
+		local outline = Instance.new("UIStroke")
+		outline.Color, outline.Thickness, outline.Parent = UIColors.Border, 2, bar
+		local icon = Instance.new("ImageLabel")
+		icon.Name, icon.BackgroundTransparency, icon.ScaleType = "Icon", 1, Enum.ScaleType.Fit
+		icon.AnchorPoint, icon.Position, icon.Size = Vector2.new(0, 0.5), UDim2.fromScale(0, 0.5), UDim2.fromScale(0.24, 1.15)
+		icon.ZIndex, icon.Parent = 2, row
+		local label = Instance.new("TextLabel")
+		label.Name, label.BackgroundTransparency, label.Text = "Count", 1, ""
+		label.Position, label.Size = UDim2.fromScale(0.1, 0.06), UDim2.fromScale(0.86, 0.88)
+		label.Font, label.TextScaled, label.TextColor3 = Enum.Font.SourceSansBold, true, UIColors.Text
+		label.ZIndex, label.Parent = 2, bar
+		local stroke = Instance.new("UIStroke")
+		stroke.Color, stroke.Thickness, stroke.Transparency, stroke.Parent = UIColors.Border, 2, 0.05, label
+		rows[kind] = {row = row, icon = icon, label = label}
+	end
+	return gui, rows
 end
 
 local function commas(value)
@@ -212,16 +224,17 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 	light.Name, light.Brightness, light.Range, light.Shadows = "RevealGlow", 0, 13, false
 	light.Parent, self.light = emitterAnchor, light
 	if slot==1 then
-		-- Over the authored machine's top (Spin), else above the lever.
+		-- Over the authored machine's top (Spin), else above the lever. The lowest row
+		-- sits just over the top.
 		local spin=parent:FindFirstChild("Spin",true)
-		local top=self.leverPivot.Position+Vector3.new(0,4,0)
+		local top=self.leverPivot.Position+Vector3.new(0,3.2,0)
 		if spin and spin:IsA("Model") then
 			local box,size=spin:GetBoundingBox()
-			top=box.Position+Vector3.new(0,size.Y/2+1.6,0)
+			top=box.Position+Vector3.new(0,size.Y/2+0.85,0)
 		elseif spin and spin:IsA("BasePart") then
-			top=spin.Position+Vector3.new(0,spin.Size.Y/2+1.6,0)
+			top=spin.Position+Vector3.new(0,spin.Size.Y/2+0.85,0)
 		end
-		self.goldGui,self.goldIcon,self.goldLabel=goldCounter(model,top)
+		self.counterGui,self.counterRows=rollCounters(model,top+Vector3.new(0,COUNTER_HEIGHT/2,0))
 		self.rollPrompt=prompt(self.leverBase,"RollPrompt",Enum.KeyCode.E,"Pull lever · FREE")
 		self.rollPrompt.MaxActivationDistance=8
 		table.insert(self.connections,self.rollPrompt.Triggered:Connect(function(player) onAction(player,"Roll",index) end))
@@ -278,16 +291,17 @@ function RollStation:Sync(session)
  self.offerAdvice,self.offerImprovesArmy="",false
  local offer=if self.loaded then session.offers and session.offers[self.slot] else nil
  if offer then self.offerAdvice,self.offerImprovesArmy=session:OfferAdvice(offer.species,offer.level) end
-	if self.goldGui then
-		local gold=GoldRolls.State(session.goldRolls and session.goldRolls.count,session.researchEffects)
-		self.goldGui.Enabled=self.loaded and gold.kind~=nil
-		if gold.kind then
-			self.goldIcon.Image=GoldRolls.Icons[gold.kind] or ""
-			self.goldLabel.Text=GoldRolls.Text(gold)
-			self.goldLabel.TextColor3=if gold.ready then GoldRolls.Colors[gold.kind] else UIColors.Text
+	if self.counterGui then
+		local counters=GoldRolls.Counters(session.goldRolls,session.researchEffects)
+		self.counterGui.Enabled=self.loaded and #counters>0
+		local shown={}
+		for _,counter in counters do
+			local row=self.counterRows[counter.kind]
+			shown[counter.kind]=true
+			row.icon.Image=GoldRolls.Icons[counter.kind] or ""
+			row.label.Text=GoldRolls.Text(counter)
 		end
-		-- RollPresentationController pulses the bar while the next pull is special.
-		self.model:SetAttribute("GoldReady",if gold.kind and gold.ready and self.loaded then true else nil)
+		for kind,row in self.counterRows do row.row.Visible=shown[kind]==true end
 	end
 	local id = if offer then offer.id else "empty"
 	if self.offerId == id then return end
@@ -370,11 +384,11 @@ function RollStation:Clear()
 	if self.rollPrompt then self.rollPrompt.Enabled=false end
 	self.buyPrompt.Enabled,self.light.Brightness=false,0
 	self.offerGui.Enabled = false
-	if self.goldGui then self.goldGui.Enabled = false end
+	if self.counterGui then self.counterGui.Enabled = false end
 	self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
-	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck", "RollSpecial", "GoldReady"} do self.model:SetAttribute(name, nil) end
+	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck", "RollSpecial"} do self.model:SetAttribute(name, nil) end
 	self.model:SetAttribute("Rolling", false)
 end
 

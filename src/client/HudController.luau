@@ -11,7 +11,6 @@ local RebirthPanel=require(script.Parent.RebirthPanel)
 local FreeGiftController=require(script.Parent.FreeGiftController)
 local ShopCatalog=require(game.ReplicatedStorage.PetRoll.Shared.ShopCatalog)
 local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
-local AutoRollRules=require(game.ReplicatedStorage.PetRoll.Shared.AutoRollRules)
 local A=Theme.Arcade
 local ARMY_HOME_SCALE=0.82
 local Hud={}
@@ -124,42 +123,27 @@ function Hud.new(app,shell)
 	upgradesCount.AnchorPoint,upgradesCount.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
 	upgradesCount.Size,upgradesCount.TextScaled,upgradesCount.ZIndex,upgradesCount.TextXAlignment=UDim2.fromScale(0.8,0.8),true,9,Enum.TextXAlignment.Center
 	self.upgradesBadge,self.upgradesCount=upgradesBadge,upgradesCount
-	-- October 16 owner request: Auto Roll is a plain text toggle on the right, like
-	-- Mini War's Auto Sell / Auto Collect; green ON, red OFF, gold while it holds a
-	-- chicken. October 20 (S12, Stevin approved): shown once the Auto Roll Gem Upgrade
-	-- is owned, moved up the right edge under Rebirth so it clears the phone jump
-	-- button, with a gear for its settings and the stop value underneath.
+	-- October 16 owner request: Auto Roll is a plain text button on the right, like Mini
+	-- War's Auto Sell / Auto Collect; green ON, red OFF, gold while it holds a chicken.
+	-- October 20 (S12, S12b): shown once the Auto Roll Gem Upgrade is owned, on the right
+	-- edge under Rebirth (clear of the phone jump button); pressing it opens the panel.
 	local autoRoll=Theme.Button(shell,"AutoRoll","",function()
 		local auto=app.state and app.state.autoRoll
 		if not auto or not auto.unlocked then return end
 		app.audio:Play("Click")
-		-- While it holds a chicken, the button brings back the hit alert.
-		if auto.holding and app.autoRollMenu then app.autoRollMenu:ShowAlert();return end
-		app:Request("SetAutoRoll",{enabled=not auto.enabled})
+		if app.autoRollMenu then app.autoRollMenu:Open() end
 	end,A.red)
 	autoRoll.AnchorPoint,autoRoll.Position,autoRoll.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.735),UDim2.fromScale(0.15,0.075)
 	autoRoll.TextColor3,autoRoll.Visible=Color3.new(1,1,1),false
 	Theme.Aspect(autoRoll,3.2)
-	local gear=Instance.new("ImageButton")
-	gear.Name,gear.Image,gear.AutoButtonColor="Settings","rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab@2x.png",false
-	gear.BackgroundColor3,gear.BackgroundTransparency,gear.BorderSizePixel=Color3.new(0,0,0),0.55,0
-	gear.AnchorPoint,gear.Position,gear.Size=Vector2.new(0,0.5),UDim2.fromScale(0.035,0.5),UDim2.fromScale(0.22,0.7)
-	gear.ZIndex,gear.Parent=8,autoRoll.Visual
-	Theme.Aspect(gear,1)
-	Theme.Stroke(gear,A.border,2)
-	Theme.Motion:BindButton(gear,gear)
-	gear.Activated:Connect(function()
-		app.audio:Play("Click")
-		if app.autoRollMenu then app.autoRollMenu:Open() end
-	end)
-	local stateLabel=Theme.Display(autoRoll.Visual,"State","Auto Roll · OFF",24)
-	stateLabel.Position,stateLabel.Size,stateLabel.ZIndex=UDim2.fromScale(0.28,0.08),UDim2.fromScale(0.69,0.5),6
+	local titleLabel=Theme.Display(autoRoll.Visual,"Title","Auto Roll",24)
+	titleLabel.Position,titleLabel.Size,titleLabel.ZIndex=UDim2.fromScale(0.04,0.06),UDim2.fromScale(0.92,0.52),6
+	titleLabel.TextXAlignment=Enum.TextXAlignment.Center
+	local stateLabel=Theme.Label(autoRoll.Visual,"State","OFF",20)
+	stateLabel.Position,stateLabel.Size,stateLabel.ZIndex=UDim2.fromScale(0.04,0.56),UDim2.fromScale(0.92,0.36),6
 	stateLabel.TextXAlignment=Enum.TextXAlignment.Center
-	local stopLabel=Theme.Label(autoRoll.Visual,"StopAt","",18)
-	stopLabel.Position,stopLabel.Size,stopLabel.ZIndex=UDim2.fromScale(0.28,0.56),UDim2.fromScale(0.69,0.34),6
-	stopLabel.TextXAlignment=Enum.TextXAlignment.Center
 	Theme.ScaleText(autoRoll)
-	self.autoRoll,self.autoRollState,self.autoRollStop=autoRoll,stateLabel,stopLabel
+	self.autoRoll,self.autoRollState=autoRoll,stateLabel
 	-- Rebirth: its own icon at the middle of the right edge (October 14 owner
 	-- request; the left column keeps Shop, Index and Upgrades).
 	local rebirthCorner=Theme.Frame(shell,"RebirthCorner",UDim2.fromScale(0.082,0.16))
@@ -536,17 +520,14 @@ function Hud:UpdateAutoRoll(state)
 	local auto=state.autoRoll
 	local unlocked=auto~=nil and auto.unlocked==true
 	-- Point at the new button once, when the Gem Upgrade is bought in this session.
-	if unlocked and self.autoRollUnlocked==false then self.app:Notify("Auto Roll unlocked! Use the Auto Roll button on the right; its gear opens the settings.",true) end
+	if unlocked and self.autoRollUnlocked==false then self.app:Notify("Auto Roll unlocked! Use the Auto Roll button on the right.",true) end
 	if unlocked and self.autoRollUnlocked==false then Theme.Motion:PopScale(self.autoRoll.Visual,0.6,0.3) end
 	self.autoRollUnlocked=unlocked
 	self.autoRoll.Visible=unlocked
 	if not unlocked then return end
 	local color=if not auto.enabled then A.red elseif auto.holding then A.gold else A.green
 	if self.autoRoll.BackgroundColor3~=color then self.autoRoll.BackgroundColor3=color end
-	local status=if not auto.enabled then "OFF" elseif auto.holding then "PAUSED" else "ON"
-	self.autoRollState.Text="Auto Roll · "..status
-	local stopAt=if type(auto.stopAt)=="number" then auto.stopAt else AutoRollRules.Presets[3]
-	self.autoRollStop.Text="Stops at "..AutoRollRules.Text(stopAt)
+	self.autoRollState.Text=if not auto.enabled then "OFF" elseif auto.holding then "PAUSED" else "ON"
 end
 
 -- Shown until the free chicken is claimed; breathes to invite a tap.

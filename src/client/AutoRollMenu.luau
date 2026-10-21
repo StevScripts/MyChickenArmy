@@ -1,104 +1,123 @@
 --!strict
--- October 20 overhaul Auto Roll menu and hit alert (S12; docs/team/AUTO_ROLL.md).
--- Stevin had no HUD reference and approved the common Roblox RNG-game pattern (Sol's
--- RNG): a HUD toggle with a gear, a settings popup with a typed "1 in X" stop value,
--- and a big alert while Auto Roll holds a chicken on its podium. RollService decides
--- everything; this only presents state.autoRoll / state.goldRolls and sends
--- SetAutoRoll and RecruitHeld.
-local RunService=game:GetService("RunService")
+-- October 20 overhaul Auto Roll panel (S12b; docs/team/AUTO_ROLL.md). Stevin: copy Drop
+-- a Fruit's Auto Roll board 1:1 in My Chicken Army's art style. The header carries the
+-- Auto Roll ON/OFF pill; "Stop When Appear" lists one ON/OFF row per rarity; the bottom
+-- "< Rarity >" switcher pages Rarity, Mutation and New. When Auto Roll stops, the banner
+-- "Auto Roll found a Rare chicken!" crosses the top with confetti. RollService decides
+-- everything; this only presents state.autoRoll and sends SetAutoRoll.
 local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
+local TweenService=game:GetService("TweenService")
 local UserInputService=game:GetService("UserInputService")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
-local Catalog=require(Shared.PetCatalog)
 local Mutations=require(Shared.MutationCatalog)
+local UIColors=require(Shared.UIColors)
 local AutoRollRules=require(Shared.AutoRollRules)
-local GoldRolls=require(Shared.GoldRolls)
 local Theme=require(script.Parent.UITheme)
-local MutationVFX=require(script.Parent.SpecialChickenVFX)
 local Menu={}
 Menu.__index=Menu
 
 local GREEN=Theme.ReferenceColors.Army
-local GOLD=Theme.ReferenceColors.Base
 local BLUE=Theme.ReferenceColors.Upgrades
-local OFF=Theme.ActionColors.disabled
+local RED=Theme.ActionColors.danger
 local WHITE=Color3.new(1,1,1)
-local MUTED=Color3.fromRGB(196,204,208)
-local ERROR_RED=Color3.fromRGB(255,120,132)
--- Whole windows, header included (aspect = width / height).
-local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.46,0.74),1.3
-local ALERT_SIZE,ALERT_ASPECT=UDim2.fromScale(0.42,0.24),2.6
-local ALERT_TOP=0.1
--- The Auto Roll Gem Upgrade icon (S6, approved and uploaded October 20).
-Menu.Icon="rbxassetid://83070773137079"
-local REASONS={rebirth="Rebirth chicken",rarity="As rare as you asked for",upgrade="Makes your Army stronger"}
--- A just-sent change shows until the server echoes it, at most this long.
+local ROW_FILL=Color3.fromRGB(30,35,39)
+-- The reference banner's light blue display text.
+local BANNER_BLUE=Color3.fromRGB(84,176,255)
+local CONFETTI={Color3.fromRGB(255,214,0),Color3.fromRGB(0,221,255),Color3.fromRGB(255,95,180),
+	Color3.fromRGB(99,239,0),Color3.fromRGB(255,140,0),WHITE}
+-- Whole window, header included (aspect = width / height): a tall board like theirs.
+local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.34,0.84),0.74
+local VISIBLE_ROWS=4
+local BANNER_SECONDS=3
 local PENDING_SECONDS=2
-local ERROR_SECONDS=2.5
+-- The Auto Roll Gem Upgrade icon (S6, uploaded October 20).
+Menu.Icon="rbxassetid://83070773137079"
+Menu.Pages={"Rarity","Mutation","New"}
 
 function Menu.new(app)
-	return setmetatable({app=app,connections={},pending={},errors={},auto=nil::any,gold=nil::any,coins=0,
-		recruitDraft=nil::number?,controls=nil::any,alert=nil::any,dismissed=nil::string?,checkAt=0},Menu)
-end
-
-local function label(parent: Instance,name: string,text: string,size: number,color: Color3?,align: Enum.TextXAlignment?)
-	local item=Theme.Label(parent,name,text,size,color)
-	item.TextScaled,item.TextXAlignment=true,align or Enum.TextXAlignment.Left
-	return item
+	return setmetatable({app=app,connections={},pending={},auto=nil::any,page=1,pills={},
+		bannerOffer=nil::string?,banner=nil::any},Menu)
 end
 
 local function place(item,x,y,w,h)
 	item.Position,item.Size=UDim2.fromScale(x,y),UDim2.fromScale(w,h)
 end
 
--- The value to show for a setting: a change just sent, until the state echoes it.
-function Menu:Value(key: string): any
+-- One page's rows: {id, kind, key, name, color}.
+local function pageRows(page: string)
+	local rows={}
+	if page=="Rarity" then
+		for _,rarity in AutoRollRules.Rarities do
+			table.insert(rows,{id="rarity:"..rarity,kind="rarity",key=rarity,name=rarity,color=UIColors.Rarities[rarity] or WHITE})
+		end
+	elseif page=="Mutation" then
+		for _,id in AutoRollRules.Mutations do
+			local def=Mutations.Get(id)
+			table.insert(rows,{id="mutation:"..id,kind="mutation",key=id,name=if def then def.name else id,color=if def then def.color else WHITE})
+		end
+	else
+		table.insert(rows,{id="newChicken",kind="new",key="newChicken",name="New Chicken",color=WHITE})
+		table.insert(rows,{id="newMutation",kind="new",key="newMutation",name="New Mutation",color=WHITE})
+	end
+	return rows
+end
+
+-- A row's state from the snapshot, or a change just sent until the snapshot echoes it.
+function Menu:Value(row): boolean
 	local auto=self.auto or {}
-	local pending=self.pending[key]
+	local current
+	if row.kind=="rarity" then current=type(auto.rarities)=="table" and auto.rarities[row.key]==true
+	elseif row.kind=="mutation" then current=type(auto.mutations)=="table" and auto.mutations[row.key]==true
+	else current=auto[row.key]==true end
+	local pending=self.pending[row.id]
 	if pending then
-		if os.clock()<pending.untilAt and auto[key]~=pending.value then return pending.value end
-		self.pending[key]=nil
+		if os.clock()<pending.untilAt and current~=pending.value then return pending.value end
+		self.pending[row.id]=nil
 	end
-	return auto[key]
+	return current==true
 end
 
-function Menu:Send(changes: {[string]: any})
-	for key,value in changes do
-		self.pending[key]={value=if key=="recruitAt" and value==false then nil else value,untilAt=os.clock()+PENDING_SECONDS}
-	end
-	self.app:Request("SetAutoRoll",changes)
+local POWER={id="enabled",kind="new",key="enabled"}
+
+function Menu:Set(row, on: boolean)
+	self.pending[row.id]={value=on,untilAt=os.clock()+PENDING_SECONDS}
+	local request=if row.kind=="rarity" then {rarity=row.key,on=on}
+		elseif row.kind=="mutation" then {mutation=row.key,on=on}
+		else {[row.key]=on}
+	self.app:Request("SetAutoRoll",request)
 	self:Refresh()
 end
 
-function Menu:ShowError(row: string, text: string)
-	self.errors[row]={text=text,untilAt=os.clock()+ERROR_SECONDS}
-	self:Refresh()
-	task.delay(ERROR_SECONDS+0.05,function() if self.gui then self:Refresh() end end)
+local function setPill(button,on: boolean)
+	local text=if on then "ON" else "OFF"
+	if button.Text~=text then button.Text=text end
+	local color=if on then GREEN else RED
+	if button.BackgroundColor3~=color then button.BackgroundColor3=color end
 end
 
--- state.autoRoll and state.goldRolls arrive with every snapshot.
+function Menu:Refresh()
+	if not self.gui then return end
+	setPill(self.power,self:Value(POWER))
+	for _,entry in self.pills do setPill(entry.button,self:Value(entry.row)) end
+	self.pageLabel.Text=Menu.Pages[self.page]
+end
+
+-- state.autoRoll arrives with every snapshot; a new hold shows the banner once.
 function Menu:Render(state, _result)
 	local auto=state and state.autoRoll
 	self.auto=if type(auto)=="table" then auto else nil
-	self.gold=state and state.goldRolls
-	self.coins=(state and state.coins) or 0
 	if self.gui and not self.closing then
 		if not (self.auto and self.auto.unlocked) then self:Dismiss(true) else self:Refresh() end
 	end
-	self:UpdateAlert()
-	if not self.watch and self.app.other and not self.app.editPreview then
-		-- Menus close without a snapshot; re-check the alert a few times a second.
-		self.watch=RunService.Heartbeat:Connect(function()
-			local now=os.clock()
-			if now<self.checkAt then return end
-			self.checkAt=now+0.25
-			self:UpdateAlert()
-		end)
+	local held=self.auto and self.auto.held
+	if type(held)=="table" and held.offerId~=self.bannerOffer and not (self.app.intro and self.app.intro:Pending()) then
+		self.bannerOffer=held.offerId
+		self:ShowBanner(if type(held.banner)=="string" then held.banner else "Auto Roll found a chicken!")
 	end
 end
 
--- Settings popup ---------------------------------------------------------------
+-- Panel ------------------------------------------------------------------------
 
 function Menu:Dismiss(immediate: boolean?)
 	local gui,panel=self.gui,self.panel
@@ -113,154 +132,51 @@ function Menu:Dismiss(immediate: boolean?)
 	self.app:SetMenuBlur("autoRoll",false)
 	local function finish()
 		if self.gui~=gui then return end
-		self.gui,self.panel,self.controls,self.closing=nil,nil,nil,false
+		self.gui,self.panel,self.closing=nil,nil,false
+		table.clear(self.pills)
 		gui:Destroy()
-		self:UpdateAlert()
 	end
 	if immediate then finish();return end
 	Theme.Motion:Tween(panel,"autoroll-size",{Size=UDim2.fromScale(PANEL_SIZE.X.Scale*0.97,PANEL_SIZE.Y.Scale*0.97)},0.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
 	Theme.Motion:Tween(panel,"autoroll-fade",{GroupTransparency=1},0.16,nil,nil,finish)
 end
 
-function Menu:Toggle(parent,name,callback)
-	return Theme.Button(parent,name,"OFF",function()
-		self.app.audio:Play("Click")
-		callback()
-	end,OFF)
-end
-
--- [-] 1 in [ 20,000 ] [+]. The -/+ step through Config.AutoRoll.Presets; typing any
--- whole number from 2 to 10,000,000 works too.
-function Menu:Stepper(parent,name,row,onStep,onTyped)
-	local box=Theme.Container(parent,name)
-	local minus=Theme.Button(box,"Lower","-",function() self.app.audio:Play("Click");onStep(-1) end,BLUE)
-	place(minus,0,0,0.17,1);Theme.Aspect(minus,1)
-	local prefix=label(box,"Prefix","1 in",22,WHITE,Enum.TextXAlignment.Right)
-	place(prefix,0.18,0.18,0.16,0.64)
-	local input=Instance.new("TextBox")
-	input.Name,input.Text,input.PlaceholderText,input.ClearTextOnFocus="Value","","20,000",false
-	input.Font,input.TextScaled,input.TextColor3=Theme.Font,true,WHITE
-	input.BackgroundColor3,input.BackgroundTransparency,input.BorderSizePixel=Color3.fromRGB(8,10,12),0.28,0
-	place(input,0.36,0.05,0.45,0.9)
-	Theme.Stroke(input,Theme.Arcade.border,2)
-	input.Parent=box
-	local plus=Theme.Button(box,"Higher","+",function() self.app.audio:Play("Click");onStep(1) end,BLUE)
-	plus.AnchorPoint=Vector2.new(1,0)
-	place(plus,1,0,0.17,1);Theme.Aspect(plus,1)
-	input.FocusLost:Connect(function()
-		local digits=string.gsub(input.Text,"[^%d]","")
-		local typed=tonumber(digits)
-		if not typed or typed<AutoRollRules.Min or typed>AutoRollRules.Max then
-			self:ShowError(row,"Enter a number from "..AutoRollRules.Min.." to "..string.sub(AutoRollRules.Text(AutoRollRules.Max),6))
-			return
-		end
-		onTyped(AutoRollRules.Clean(typed) or typed)
-	end)
-	return box,input
-end
-
-function Menu:Build(main)
-	local controls={}
-	local function row(name,y,h)
-		local frame=Theme.Container(main,name)
-		place(frame,0.05,y,0.9,h)
-		return frame
+-- The list shows four rows at a time and scrolls the rest, like the reference board.
+function Menu:BuildRows()
+	local list=self.list
+	for _,child in list:GetChildren() do
+		if child:IsA("GuiObject") then child:Destroy() end
 	end
-	-- Auto Roll on/off.
-	local power=row("Power",0.035,0.13)
-	place(label(power,"Title","Auto Roll",30,WHITE),0,0,0.6,0.58)
-	place(label(power,"Hint","Rolls your podiums for you, from anywhere",18,MUTED),0,0.58,0.72,0.4)
-	controls.power=self:Toggle(power,"Toggle",function() self:Send({enabled=not self:Value("enabled")}) end)
-	controls.power.AnchorPoint=Vector2.new(1,0.5)
-	place(controls.power,1,0.5,0.24,0.85);Theme.Aspect(controls.power,2.6)
-	-- Stop at 1 in X.
-	local stop=row("StopAt",0.2,0.2)
-	place(label(stop,"Title","Stop at",28,WHITE),0,0,0.38,0.5)
-	controls.stopBox,controls.stopInput=self:Stepper(stop,"Stepper","stop",function(direction)
-		self:Send({stopAt=AutoRollRules.Step(self:Value("stopAt") or AutoRollRules.Presets[3],direction)})
-	end,function(value) self:Send({stopAt=value}) end)
-	place(controls.stopBox,0.4,0,0.6,0.5)
-	controls.stopHint=label(stop,"Hint","",18,MUTED)
-	place(controls.stopHint,0,0.55,1,0.42)
-	-- Auto-recruit at 1 in X when the Coins are there.
-	local recruit=row("Recruit",0.43,0.2)
-	place(label(recruit,"Title","Auto-recruit",28,WHITE),0,0,0.38,0.5)
-	controls.recruitBox,controls.recruitInput=self:Stepper(recruit,"Stepper","recruit",function(direction)
-		local value=AutoRollRules.Step(self:RecruitValue(),direction)
-		self.recruitDraft=value
-		if self:Value("recruitAt") then self:Send({recruitAt=value}) else self:Refresh() end
-	end,function(value)
-		self.recruitDraft=value
-		if self:Value("recruitAt") then self:Send({recruitAt=value}) else self:Refresh() end
-	end)
-	place(controls.recruitBox,0.38,0,0.42,0.5)
-	controls.recruit=self:Toggle(recruit,"Toggle",function()
-		if self:Value("recruitAt") then self:Send({recruitAt=false}) else self:Send({recruitAt=self:RecruitValue()}) end
-	end)
-	controls.recruit.AnchorPoint=Vector2.new(1,0)
-	place(controls.recruit,1,0,0.18,0.5);Theme.Aspect(controls.recruit,2.2)
-	controls.recruitHint=label(recruit,"Hint","",18,MUTED)
-	place(controls.recruitHint,0,0.55,1,0.42)
-	-- Mutations and Army upgrades.
-	local mutation=row("Mutations",0.66,0.1)
-	place(label(mutation,"Title","Stop on mutations",24,WHITE),0,0.05,0.7,0.9)
-	controls.mutation=self:Toggle(mutation,"Toggle",function() self:Send({mutationStop=not self:Value("mutationStop")}) end)
-	controls.mutation.AnchorPoint=Vector2.new(1,0.5)
-	place(controls.mutation,1,0.5,0.18,0.95);Theme.Aspect(controls.mutation,2.2)
-	local upgrade=row("Upgrades",0.775,0.1)
-	place(label(upgrade,"Title","Stop on Army upgrades",24,WHITE),0,0.05,0.7,0.9)
-	controls.upgrade=self:Toggle(upgrade,"Toggle",function() self:Send({upgradeStop=not self:Value("upgradeStop")}) end)
-	controls.upgrade.AnchorPoint=Vector2.new(1,0.5)
-	place(controls.upgrade,1,0.5,0.18,0.95);Theme.Aspect(controls.upgrade,2.2)
-	-- Rebirth chickens, and the Gold Machine count when owned.
-	local note=row("Note",0.885,0.095)
-	controls.note=label(note,"Text","",18,MUTED,Enum.TextXAlignment.Center)
-	place(controls.note,0,0,1,1)
-	self.controls=controls
-end
-
--- The recruit value shown while auto-recruit is off: the last one picked.
-function Menu:RecruitValue(): number
-	return self:Value("recruitAt") or self.recruitDraft or AutoRollRules.Presets[3]
-end
-
-local function setToggle(button,on: boolean)
-	button.Text=if on then "ON" else "OFF"
-	local color=if on then GREEN else OFF
-	if button.BackgroundColor3~=color then button.BackgroundColor3=color end
-end
-
-local function setInput(input,value: number)
-	if input:IsFocused() then return end
-	input.Text=string.sub(AutoRollRules.Text(value),6)
-end
-
-function Menu:Refresh()
-	local controls=self.controls
-	if not controls or not self.auto then return end
-	local now=os.clock()
-	setToggle(controls.power,self:Value("enabled")==true)
-	local stopAt=self:Value("stopAt") or AutoRollRules.Presets[3]
-	setInput(controls.stopInput,stopAt)
-	local stopError=self.errors.stop
-	controls.stopHint.Text=if stopError and now<stopError.untilAt then stopError.text else AutoRollRules.Describe(stopAt)
-	controls.stopHint.TextColor3=if stopError and now<stopError.untilAt then ERROR_RED else MUTED
-	local recruitOn=self:Value("recruitAt")~=nil
-	setToggle(controls.recruit,recruitOn)
-	setInput(controls.recruitInput,self:RecruitValue())
-	local recruitError=self.errors.recruit
-	controls.recruitHint.Text=if recruitError and now<recruitError.untilAt then recruitError.text
-		elseif recruitOn then AutoRollRules.Describe(self:RecruitValue(),"Recruits").." when you have the Coins"
-		else "Off: Auto Roll never spends your Coins"
-	controls.recruitHint.TextColor3=if recruitError and now<recruitError.untilAt then ERROR_RED else MUTED
-	setToggle(controls.mutation,self:Value("mutationStop")~=false)
-	setToggle(controls.upgrade,self:Value("upgradeStop")~=false)
-	local gold=self.gold
-	local line="Rebirth chickens always stop Auto Roll."
-	if type(gold)=="table" and gold.kind then
-		line..="  "..gold.kind.." Machine: "..(if gold.ready then "next roll" else gold.left.." rolls left").." · "..gold.luck.."x Luck"
+	table.clear(self.pills)
+	local rows=pageRows(Menu.Pages[self.page])
+	local slots=math.max(#rows,VISIBLE_ROWS)
+	list.CanvasSize=UDim2.fromScale(0,slots/VISIBLE_ROWS)
+	list.CanvasPosition=Vector2.zero
+	self.listLayout.Padding=UDim.new(0.14/slots,0)
+	for index,row in rows do
+		local frame=Theme.Frame(list,row.id,UDim2.fromScale(1,0.86/slots),ROW_FILL)
+		frame.LayoutOrder,frame.BackgroundTransparency=index,0.15
+		Theme.Stroke(frame,Theme.Arcade.border,2)
+		Theme.Studs(frame,0.14,28,0)
+		local name=Theme.Display(frame,"Name",row.name,32,row.color)
+		name.TextXAlignment,name.TextScaled,name.TextWrapped=Enum.TextXAlignment.Left,true,false
+		place(name,0.05,0.14,0.58,0.72)
+		name.ZIndex=4
+		local pill=Theme.Button(frame,"Toggle","OFF",function()
+			self.app.audio:Play("Click")
+			self:Set(row,not self:Value(row))
+		end,RED)
+		pill.AnchorPoint=Vector2.new(1,0.5)
+		place(pill,0.96,0.5,0.3,0.72);Theme.Aspect(pill,2.5)
+		self.pills[row.id]={button=pill,row=row}
 	end
-	controls.note.Text=line
+	Theme.ScaleText(list)
+	self:Refresh()
+end
+
+function Menu:Turn(direction: number)
+	self.page=(self.page-1+direction)%#Menu.Pages+1
+	self:BuildRows()
 end
 
 function Menu:Open()
@@ -275,8 +191,7 @@ function Menu:Open()
 	self.previousSelection=GuiService.SelectedObject
 	local gui=Theme.InsetContainer(app.other,"AutoRollMenu",Enum.ScreenInsets.CoreUISafeInsets)
 	gui.ZIndex=30
-	self.gui,self.closing=gui,false
-	self:HideAlert()
+	self.gui,self.closing,self.page=gui,false,1
 	local frames=Theme.Container(gui,"FRAMES")
 	local backdrop=Theme.Frame(Theme.InsetContainer(frames,"BackdropLayer",Enum.ScreenInsets.None),"Backdrop",UDim2.fromScale(1,1))
 	backdrop.BackgroundTransparency,backdrop.Active=1,true
@@ -300,10 +215,49 @@ function Menu:Open()
 		self:Dismiss()
 	end
 	Theme.HeaderClose(header,close)
-	self:Build(main)
+	-- The Auto Roll ON/OFF pill sits in the header, left of the close button.
+	local power=Theme.Button(header,"Power","OFF",function()
+		app.audio:Play("Click")
+		self:Set(POWER,not self:Value(POWER))
+	end,RED)
+	power.ZIndex=header.ZIndex+4
+	Theme.RelativeRect(power,1110,16,230,84,1474,116)
+	Theme.Aspect(power,230/84)
+	Theme.RelativeRect(header.Title,141,7,950,102,1474,116)
+	self.power=power
+	-- Stop When Appear: the title, the list and the page switcher.
+	local title=Theme.Display(main,"StopWhenAppear","Stop When Appear",34,WHITE)
+	title.TextXAlignment,title.TextScaled=Enum.TextXAlignment.Center,true
+	place(title,0.05,0.025,0.9,0.085)
+	local list=Instance.new("ScrollingFrame")
+	list.Name,list.BackgroundTransparency,list.BorderSizePixel="Rows",1,0
+	list.ScrollBarThickness,list.ScrollBarImageColor3=6,Color3.fromRGB(200,206,210)
+	list.ScrollingDirection,list.AutomaticCanvasSize=Enum.ScrollingDirection.Y,Enum.AutomaticSize.None
+	list.VerticalScrollBarInset=Enum.ScrollBarInset.Always
+	list.ZIndex,list.Parent=3,main
+	place(list,0.05,0.125,0.9,0.66)
+	-- Rows keep their own colors (rarity names, red/green pills).
+	list:SetAttribute("OwnsPopupStyle",true)
+	local layout=Instance.new("UIListLayout")
+	layout.SortOrder,layout.Parent=Enum.SortOrder.LayoutOrder,list
+	self.list,self.listLayout=list,layout
+	local switcher=Theme.Frame(main,"Switcher",UDim2.fromScale(0.9,0.15),ROW_FILL)
+	switcher.Position,switcher.BackgroundTransparency=UDim2.fromScale(0.05,0.815),0.15
+	Theme.Stroke(switcher,Theme.Arcade.border,2)
+	switcher:SetAttribute("OwnsPopupStyle",true)
+	local previous=Theme.Button(switcher,"Previous","<",function() app.audio:Play("Click");self:Turn(-1) end,BLUE)
+	place(previous,0.03,0.12,0.18,0.76);Theme.Aspect(previous,1)
+	local nextPage=Theme.Button(switcher,"Next",">",function() app.audio:Play("Click");self:Turn(1) end,BLUE)
+	nextPage.AnchorPoint=Vector2.new(1,0)
+	place(nextPage,0.97,0.12,0.18,0.76);Theme.Aspect(nextPage,1)
+	local pageLabel=Theme.Display(switcher,"Page","Rarity",44,WHITE)
+	pageLabel.TextXAlignment,pageLabel.TextScaled=Enum.TextXAlignment.Center,true
+	place(pageLabel,0.24,0.1,0.52,0.8)
+	pageLabel.ZIndex=4
+	self.pageLabel=pageLabel
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
-	self:Refresh()
+	self:BuildRows()
 	if not app.reducedMotion then panel.Size=UDim2.fromScale(PANEL_SIZE.X.Scale*0.94,PANEL_SIZE.Y.Scale*0.94) end
 	Theme.Motion:Tween(panel,"autoroll-size",{Size=PANEL_SIZE},0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"autoroll-fade",{GroupTransparency=0},0.22)
@@ -314,181 +268,76 @@ function Menu:Open()
 	table.insert(self.connections,UserInputService.InputBegan:Connect(function(input)
 		if input.KeyCode==Enum.KeyCode.Escape then close() end
 	end))
-	if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.controls.power end
+	if UserInputService.GamepadEnabled then GuiService.SelectedObject=power end
 end
 
--- Hit alert ---------------------------------------------------------------------
+-- Banner ------------------------------------------------------------------------
 
--- The alert waits while a menu, popup, dialogue or film is up, then shows.
-function Menu:AlertBlocked(): boolean
+-- "Auto Roll found a Rare chicken!" in big outlined blue across the top, with confetti
+-- (reduced motion keeps it still and skips the confetti), then it fades.
+function Menu:ShowBanner(text: string)
 	local app=self.app
-	if self.gui or app.dialogueActive then return true end
-	if app.panel and app.panel.Visible then return true end
-	if app.research and app.research.root and app.research.root.Visible then return true end
-	for _,popup in {app.rebirthPanel,app.operationsPanel,app.dailyReward,app.freeGift,app.offlineCash} do
-		if popup and popup.gui then return true end
+	if not app.other then return end
+	local banner=self.banner
+	if not banner then
+		local layer=Theme.InsetContainer(app.other,"AutoRollBanner",Enum.ScreenInsets.CoreUISafeInsets)
+		layer.ZIndex=27
+		local group=Instance.new("CanvasGroup")
+		group.Name,group.BackgroundTransparency,group.BorderSizePixel="Banner",1,0
+		group.AnchorPoint,group.Position,group.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.22),UDim2.fromScale(0.72,0.09)
+		group.GroupTransparency,group.Visible,group.Parent=1,false,layer
+		local label=Theme.Display(group,"Text","",64,BANNER_BLUE)
+		label.TextXAlignment,label.TextScaled,label.TextWrapped=Enum.TextXAlignment.Center,true,false
+		label.Size=UDim2.fromScale(1,1)
+		Theme.ScaleText(group)
+		banner={layer=layer,group=group,label=label,serial=0}
+		self.banner=banner
 	end
-	if app.commerce and app.commerce.cratePresenting then return true end
-	return app.intro~=nil and app.intro:Pending()
-end
-
-function Menu:BuildAlert()
-	local app=self.app
-	local layer=Theme.InsetContainer(app.other,"AutoRollAlert",Enum.ScreenInsets.CoreUISafeInsets)
-	layer.ZIndex=26
-	local card=Instance.new("CanvasGroup")
-	card.Name,card.BackgroundColor3,card.BackgroundTransparency="Alert",Color3.new(0,0,0),0.1
-	card.BorderSizePixel,card.Active,card.GroupTransparency,card.Visible=0,true,1,false
-	card.AnchorPoint,card.Position,card.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,ALERT_TOP),ALERT_SIZE
-	card.Parent=layer
-	Theme.Aspect(card,ALERT_ASPECT)
-	Theme.Stroke(card,Theme.Arcade.border,3)
-	local rim=Theme.Container(card,"Rim")
-	place(rim,0.008,0.03,0.984,0.94)
-	local rimStroke=Theme.Stroke(rim,GOLD,2)
-	local art=Theme.Container(card,"Art")
-	place(art,0.02,0.06,0.24,0.88)
-	local rays=Theme.Image(art,"Rays",Theme.Assets.Rays,UDim2.fromScale(1.3,1.3),UDim2.fromScale(-0.15,-0.15))
-	rays.ImageTransparency,rays.ZIndex=0.35,2
-	if not app.reducedMotion then
-		Theme.Motion:Tween(rays,"spin",{Rotation=360},12,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
+	banner.serial+=1
+	local serial=banner.serial
+	banner.label.Text=text
+	local group=banner.group
+	group.Visible=true
+	if app.reducedMotion then
+		group.GroupTransparency=0
+	else
+		group.GroupTransparency=1
+		Theme.Motion:Tween(group,"banner-fade",{GroupTransparency=0},0.18)
+		Theme.Motion:PopScale(group,1.25,0.3)
+		self:Confetti(banner.layer)
 	end
-	local portrait=Theme.Container(art,"Portrait")
-	local kicker=label(card,"Kicker","Auto Roll stopped",22,GOLD)
-	place(kicker,0.28,0.05,0.55,0.13)
-	local headline=Theme.Display(card,"Headline","",48,WHITE)
-	headline.TextXAlignment,headline.TextScaled,headline.TextWrapped=Enum.TextXAlignment.Left,true,false
-	place(headline,0.28,0.16,0.6,0.29)
-	local name=label(card,"ChickenName","",26,WHITE)
-	place(name,0.28,0.45,0.43,0.14)
-	local reason=label(card,"Reason","",20,MUTED)
-	place(reason,0.28,0.59,0.42,0.12)
-	local tag=Theme.Container(card,"MutationTag")
-	place(tag,0.72,0.59,0.25,0.12)
-	-- The price as the podium shows it: the gold coin beside the amount.
-	local price=Theme.Container(card,"Price")
-	place(price,0.72,0.45,0.25,0.14)
-	local coin=Theme.CoinIcon(price,"CoinIcon",UDim2.fromScale(0.24,1))
-	Theme.Aspect(coin,1)
-	local amount=label(price,"Amount","",26,Theme.Colors.coins)
-	place(amount,0.26,0,0.74,1)
-	local recruit=Theme.ActionButton(card,"Recruit","Recruit",function()
-		local held=self.alert and self.alert.held
-		if not held then return end
-		app.audio:Play("Click")
-		app:Request("RecruitHeld",{offerId=held.offerId})
-	end,GREEN)
-	place(recruit,0.28,0.74,0.42,0.21)
-	local skip=Theme.ActionButton(card,"Skip","Skip",function()
-		if not (self.alert and self.alert.held) then return end
-		app.audio:Play("Click")
-		app:Request("SetAutoRoll",{skip=true})
-		self:HideAlert()
-	end,BLUE)
-	place(skip,0.72,0.74,0.25,0.21)
-	local close=Theme.Button(card,"Close","X",function()
-		local held=self.alert and self.alert.held
-		app.audio:Play("Click")
-		-- Closing keeps the hold; the gold Auto Roll button brings the alert back.
-		self.dismissed=held and held.offerId
-		self:HideAlert()
-	end,Theme.ActionColors.danger)
-	close.AnchorPoint=Vector2.new(1,0)
-	place(close,0.985,0.06,0.07,0.18);Theme.Aspect(close,1)
-	Theme.ScaleText(card)
-	self.alert={layer=layer,card=card,rim=rimStroke,rays=rays,portrait=portrait,headline=headline,name=name,
-		reason=reason,tag=tag,amount=amount,recruit=recruit,skip=skip,held=nil::any,offerId=nil::string?,shown=false}
-end
-
-function Menu:FillAlert(held)
-	local alert=self.alert
-	local definition=Catalog[held.species]
-	if not definition then return end
-	alert.offerId=held.offerId
-	local color=Theme.Rarities[definition.rarity] or WHITE
-	local oneIn=Catalog.OneInText(held.species)
-		or (if type(held.oneIn)=="number" then AutoRollRules.Text(math.floor(held.oneIn+0.5)) else nil)
-	alert.headline.Text=if held.rebirthChicken then "Rebirth chicken!" elseif oneIn then oneIn.."!" else definition.rarity.."!"
-	alert.headline.TextColor3=color
-	alert.name.Text=definition.name.." · "..definition.rarity..(if (held.level or 1)>1 then " · Lv "..held.level else "")
-	local mutation=if Mutations.IsValid(held.mutation) then held.mutation else nil
-	alert.reason.Text=if held.reason=="mutation" and mutation then mutation.." mutation" else REASONS[held.reason] or ""
-	alert.rim.Color,alert.rays.ImageColor3=color,color
-	for _,child in alert.portrait:GetChildren() do child:Destroy() end
-	local portrait=self.app:Preview(alert.portrait,{species=held.species,stars=1,level=held.level or 1,mutation=mutation},UDim2.fromScale(1,1))
-	portrait.ZIndex=4
-	for _,child in alert.tag:GetChildren() do child:Destroy() end
-	if mutation then
-		local badge=MutationVFX.Badge(alert.tag,mutation)
-		if badge then badge.Size=UDim2.fromScale(1,1) end
-	end
-	Theme.ScaleText(alert.card)
-end
-
-function Menu:FillRecruit(held)
-	local alert=self.alert
-	local button=alert.recruit
-	local amount=Theme.Money(held.price or 0)
-	if alert.amount.Text~=amount then alert.amount.Text=amount end
-	local short=math.max(0,(held.price or 0)-self.coins)
-	local text=if held.storageFull then "Storage full"
-		elseif short>0 then "Need "..Theme.CompactCoins(short)
-		else "Recruit"
-	if button.Text~=text then button.Text=text end
-	local color=if held.canAfford and not held.storageFull then GREEN else OFF
-	if button.BackgroundColor3~=color then button.BackgroundColor3=color end
-end
-
--- The gold (holding) Auto Roll button brings a closed alert back.
-function Menu:ShowAlert()
-	self.dismissed=nil
-	self:UpdateAlert()
-end
-
-function Menu:HideAlert()
-	local alert=self.alert
-	if not alert or not alert.shown then return end
-	alert.shown=false
-	local card=alert.card
-	Theme.Motion:Tween(card,"alert-fade",{GroupTransparency=1},0.14,nil,nil,function()
-		if not alert.shown then card.Visible=false end
+	-- The UI Lab keeps it up for editing.
+	if app.editPreview then return end
+	task.delay(BANNER_SECONDS,function()
+		if banner.serial~=serial or not group.Parent then return end
+		Theme.Motion:Tween(group,"banner-fade",{GroupTransparency=1},0.3,nil,nil,function()
+			if banner.serial==serial then group.Visible=false end
+		end)
 	end)
 end
 
-function Menu:UpdateAlert()
-	local auto=self.auto
-	local held=if auto and auto.enabled and auto.unlocked then auto.held else nil
-	if type(held)~="table" or held.offerId==self.dismissed or self:AlertBlocked() then
-		if self.alert then self.alert.held=nil end
-		self:HideAlert()
-		return
+-- A short burst of falling paper squares under the banner (TweenService only).
+function Menu:Confetti(layer)
+	for index=1,26 do
+		local piece=Instance.new("Frame")
+		piece.Name,piece.BorderSizePixel="Confetti",0
+		piece.BackgroundColor3=CONFETTI[(index-1)%#CONFETTI+1]
+		piece.AnchorPoint,piece.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.008,0.016)
+		local x=0.16+math.random()*0.68
+		piece.Position,piece.Rotation=UDim2.fromScale(x,0.2+math.random()*0.05),math.random(0,90)
+		piece.ZIndex,piece.Parent=2,layer
+		local seconds=1.1+math.random()*0.8
+		local fall=TweenService:Create(piece,TweenInfo.new(seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{
+			Position=UDim2.fromScale(x+(math.random()-0.5)*0.12,0.45+math.random()*0.25),
+			Rotation=piece.Rotation+math.random(-360,360),BackgroundTransparency=1})
+		fall.Completed:Once(function() piece:Destroy() end)
+		fall:Play()
 	end
-	if not self.alert then self:BuildAlert() end
-	local alert=self.alert
-	alert.held=held
-	local fresh=alert.offerId~=held.offerId
-	if fresh then self:FillAlert(held) end
-	self:FillRecruit(held)
-	if alert.shown then return end
-	alert.shown=true
-	local card=alert.card
-	card.Visible=true
-	if fresh then self.app.audio:Play("RollRare",1.1,{volume=0.45,voiceKey="AutoRollAlert",cooldown=0.5}) end
-	if self.app.reducedMotion then
-		card.GroupTransparency,card.Position=0,UDim2.fromScale(0.5,ALERT_TOP)
-		return
-	end
-	card.Position=UDim2.fromScale(0.5,ALERT_TOP-0.04)
-	Theme.Motion:Tween(card,"alert-fade",{GroupTransparency=0},0.2)
-	Theme.Motion:Tween(card,"position",{Position=UDim2.fromScale(0.5,ALERT_TOP)},0.32,Enum.EasingStyle.Back,Enum.EasingDirection.Out,function()
-		Theme.Motion:PopScale(alert.headline,1.15,0.3)
-	end)
 end
 
 function Menu:Destroy()
 	self:Dismiss(true)
-	if self.watch then self.watch:Disconnect();self.watch=nil end
-	if self.alert then self.alert.layer:Destroy();self.alert=nil end
+	if self.banner then self.banner.layer:Destroy();self.banner=nil end
 end
 
 return Menu
