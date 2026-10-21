@@ -12,10 +12,16 @@ local BANNER=0.36 -- Banner height as a fraction of width (virtual 2000x720).
 
 local WHITE=Color3.new(1,1,1)
 local BLACK=Color3.fromRGB(3,1,4)
+-- Every Robux buy button in the shop is this crate pill (owner, October 21).
+local GREEN={top=Color3.fromRGB(156,255,19),bottom=Color3.fromRGB(21,216,11),border=Color3.fromRGB(47,116,0),rim=Color3.fromRGB(208,255,138)}
+local GOLD={top=Color3.fromRGB(255,234,18),bottom=Color3.fromRGB(255,168,23),border=Color3.fromRGB(173,121,0),rim=Color3.fromRGB(255,246,162)}
+Shop.Palettes={green=GREEN,gold=GOLD}
+-- The pill's rendered proportion inside the banner's purchase row.
+Shop.PriceAspect=430/145
 local PACKS={
- {key="OuterSpaceCrate1",quantity=1,top=Color3.fromRGB(156,255,19),bottom=Color3.fromRGB(21,216,11),border=Color3.fromRGB(47,116,0),rim=Color3.fromRGB(208,255,138)},
- {key="OuterSpaceCrate3",quantity=3,top=Color3.fromRGB(156,255,19),bottom=Color3.fromRGB(21,216,11),border=Color3.fromRGB(47,116,0),rim=Color3.fromRGB(208,255,138)},
- {key="OuterSpaceCrate10",quantity=10,top=Color3.fromRGB(255,234,18),bottom=Color3.fromRGB(255,168,23),border=Color3.fromRGB(173,121,0),rim=Color3.fromRGB(255,246,162)},
+ {key="OuterSpaceCrate1",quantity=1,palette=GREEN},
+ {key="OuterSpaceCrate3",quantity=3,palette=GREEN},
+ {key="OuterSpaceCrate10",quantity=10,palette=GOLD},
 }
 local STATUS={pending="Check Roblox",preparing="Checking…",unconfigured="Coming soon",loading="Loading…",
  offsale="Off sale",error="Retry price",checking="Checking…",ownership="Retry check",profile="Check save",
@@ -138,30 +144,30 @@ function Shop.new(app,parent)
  return self
 end
 
-function Shop:CreatePurchase(parent,pack,index)
+-- The crate buy pill in a virtual 430x150 space: dark lower lip, gradient face,
+-- studs, a light upper rim, and a Robux icon beside the price. The caller places it.
+function Shop.PriceButton(parent,name,palette,quantity)
  local button=Instance.new("TextButton")
- button.Name,button.Text,button.BackgroundTransparency=pack.key,"",1
+ button.Name,button.Text,button.BackgroundTransparency=name,"",1
  button.TextTransparency,button.AutoButtonColor,button.BorderSizePixel=1,false,0
  button.Active,button.Selectable,button.ZIndex=false,false,10
  button.Parent=parent
- button:SetAttribute("CatalogKey",pack.key)
- rect(button,(index-1)*444,0,430,150,1318,150)
  local visual=layer(button,"Visual",0,0,1,1,1,1,nil,10)
  visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
  local depth=layer(visual,"LowerLip",0,8,430,142,430,150,BLACK,10)
  rounded(depth,22/142)
  local face=layer(visual,"Face",4,4,422,134,430,150,WHITE,11)
  rounded(face,18/134)
- local outline=Theme.Stroke(face,pack.border,2)
+ local outline=Theme.Stroke(face,palette.border,2)
  outline.StrokeSizingMode,outline.Thickness=Enum.StrokeSizingMode.ScaledSize,5/134
  outline.LineJoinMode=Enum.LineJoinMode.Round
- Theme.Gradient(face,pack.top,pack.bottom)
+ local gradient=Theme.Gradient(face,palette.top,palette.bottom)
  local studs=Theme.Studs(face,0.12,28,0)
  studs.ZIndex=12
  studs:SetAttribute("StudScaleWidth",1200/422)
- local highlight=layer(face,"UpperRim",4,3,404,4,422,134,pack.rim,13)
+ local highlight=layer(face,"UpperRim",4,3,404,4,422,134,palette.rim,13)
  highlight.BackgroundTransparency=0.25
- label(visual,"Quantity","×"..pack.quantity,356,-19,74,49,430,150,16)
+ if quantity then label(visual,"Quantity","×"..quantity,356,-19,74,49,430,150,16) end
  local price=label(visual,"Price","Loading…",16,13,398,104,430,150,15)
  local currency
  if Presentation.RobuxImage then
@@ -171,12 +177,33 @@ function Shop:CreatePurchase(parent,pack,index)
  end
  currency.Visible=false
  Theme.Motion:BindButton(button,visual,face)
+ return {button=button,visual=visual,face=face,gradient=gradient,outline=outline,rim=highlight,price=price,currency=currency}
+end
+
+-- A quoted price shows the Robux icon and number; any other state fills the pill.
+function Shop.ShowPrice(view,value,quoted,muted)
+ view.currency.Visible=quoted
+ view.price.Text=value
+ rect(view.price,if quoted then 122 else 16,13,if quoted then 280 else 398,104,430,150)
+ view.price.TextColor3=if muted then Theme.Colors.muted else WHITE
+end
+
+function Shop.SetPalette(view,palette)
+ view.gradient.Color=ColorSequence.new(palette.top,palette.bottom)
+ view.outline.Color,view.rim.BackgroundColor3=palette.border,palette.rim
+end
+
+function Shop:CreatePurchase(parent,pack,index)
+ local view=Shop.PriceButton(parent,pack.key,pack.palette,pack.quantity)
+ local button=view.button
+ button:SetAttribute("CatalogKey",pack.key)
+ rect(button,(index-1)*444,0,430,150,1318,150)
  table.insert(self.connections,button.Activated:Connect(function()
   if not button.Active then return end
   self.app.audio:Play("Click")
   self.app.commerce:Buy(pack.key)
  end))
- self.buttons[pack.key]={button=button,price=price,currency=currency}
+ self.buttons[pack.key]=view
 end
 
 function Shop:Render()
@@ -188,15 +215,12 @@ function Shop:Render()
  for key,view in self.buttons do
   local status,price=commerce:State(key)
   local quoted=(status=="ready" or status=="studio") and type(price)=="number"
-  view.currency.Visible=quoted
-  view.price.Text=if quoted then Theme.Money(price) else STATUS[status] or "Unavailable"
-  rect(view.price,if quoted then 122 else 16,13,if quoted then 280 else 398,104,430,150)
+  Shop.ShowPrice(view,if quoted then Theme.Money(price) else STATUS[status] or "Unavailable",quoted,status=="restricted" or status=="offsale")
   view.button.Text=string.format("%s · %s",Catalog.Products[key].name,if quoted then "R$ "..Theme.Money(price) else view.price.Text)
   view.button.Active=not purchaseBusy and (status=="ready" or status=="error" or status=="policy" or status=="profile")
   view.button.Selectable=view.button.Active
   view.button:SetAttribute("State",status)
   view.button:SetAttribute("UnavailableReason",if view.button.Active then nil else status)
-  view.price.TextColor3=if status=="restricted" or status=="offsale" then Theme.Colors.muted else WHITE
  end
  local credits=if shop and type(shop.crateCredits)=="number" then math.max(0,math.floor(shop.crateCredits)) else 0
  local showOpen=testing or credits>0

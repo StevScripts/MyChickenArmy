@@ -6,7 +6,6 @@ local Art=require(script.Parent.ShopPreviewArt)
 local GalaxyCrateShop=require(script.Parent.GalaxyCrateShop)
 local GalaxyPresentation=require(game:GetService("ReplicatedStorage").PetRoll.Shared.GalaxyCratePresentation)
 local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
-local PetCatalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local Browser={}
 Browser.__index=Browser
 local P={
@@ -20,38 +19,6 @@ local P={
 local FIGMA={
  text=Color3.fromRGB(255,251,233),
  cash=Color3.fromRGB(99,239,0),cashTop=Color3.fromRGB(29,57,13),cashRim=Color3.fromRGB(200,247,151),
- purchase=ColorSequence.new({
-  ColorSequenceKeypoint.new(0,Color3.fromRGB(176,255,1)),
-  ColorSequenceKeypoint.new(0.009346,Color3.fromRGB(173,254,0)),
-  ColorSequenceKeypoint.new(0.037383,Color3.fromRGB(169,253,0)),
-  ColorSequenceKeypoint.new(0.074766,Color3.fromRGB(164,252,0)),
-  ColorSequenceKeypoint.new(0.16821999999999998,Color3.fromRGB(149,250,1)),
-  ColorSequenceKeypoint.new(0.26167999999999997,Color3.fromRGB(136,246,0)),
-  ColorSequenceKeypoint.new(0.35514,Color3.fromRGB(122,243,1)),
-  ColorSequenceKeypoint.new(0.4486,Color3.fromRGB(107,240,0)),
-  ColorSequenceKeypoint.new(0.54206,Color3.fromRGB(93,238,0)),
-  ColorSequenceKeypoint.new(0.63551,Color3.fromRGB(77,235,0)),
-  ColorSequenceKeypoint.new(0.72897,Color3.fromRGB(63,232,0)),
-  ColorSequenceKeypoint.new(0.82243,Color3.fromRGB(49,229,1)),
-  ColorSequenceKeypoint.new(0.91589,Color3.fromRGB(36,226,2)),
-  ColorSequenceKeypoint.new(0.98131,Color3.fromRGB(26,224,1)),
-  ColorSequenceKeypoint.new(1,Color3.fromRGB(23,223,0)),
- }),
- vaultPurchase=ColorSequence.new({
-  ColorSequenceKeypoint.new(0,Color3.fromRGB(255,217,0)),
-  ColorSequenceKeypoint.new(0.041237,Color3.fromRGB(255,213,0)),
-  ColorSequenceKeypoint.new(0.09278399999999999,Color3.fromRGB(255,210,0)),
-  ColorSequenceKeypoint.new(0.19588,Color3.fromRGB(255,202,0)),
-  ColorSequenceKeypoint.new(0.29896999999999996,Color3.fromRGB(255,194,1)),
-  ColorSequenceKeypoint.new(0.40206000000000003,Color3.fromRGB(255,186,0)),
-  ColorSequenceKeypoint.new(0.5051599999999999,Color3.fromRGB(255,178,2)),
-  ColorSequenceKeypoint.new(0.6082500000000001,Color3.fromRGB(255,170,1)),
-  ColorSequenceKeypoint.new(0.71134,Color3.fromRGB(255,162,2)),
-  ColorSequenceKeypoint.new(0.81443,Color3.fromRGB(255,155,0)),
-  ColorSequenceKeypoint.new(0.91753,Color3.fromRGB(255,147,1)),
-  ColorSequenceKeypoint.new(0.97938,Color3.fromRGB(255,142,0)),
-  ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0)),
- }),
 }
 -- Card styles for the passes on sale (Catalog.Order, October 20: four passes).
 local PASSES={
@@ -87,6 +54,9 @@ local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.018
 local SHOP_ASPECT=1.78
 local PASS_RATIO=1.62
 local CASH_RATIO=1.05
+-- Rounded offer cards (owner, October 21): corner radius as a share of the card's
+-- shorter side, about the same on every card; the wide vault card is shorter.
+local CARD_CORNER,VAULT_CORNER=0.065,0.09
 local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Coin Packs"}
 local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Coins"}
 local TITLE_GRADIENTS={
@@ -125,16 +95,6 @@ local function panel(parent,name,accent)
  return item
 end
 
-local function dress(button,color)
- button.ZIndex,button.Font,button.TextColor3=9,Theme.Font,P.white
- button.BackgroundColor3=color
- local sequence=if color==P.gold then Theme.ReferenceGradients.Base
-  elseif color==P.green then Theme.ReferenceGradients.Army
-  elseif color==P.cyan then Theme.ReferenceGradients.Upgrades else nil
- if sequence then Theme.ApplyReferenceAccent(button,sequence) end
- return button
-end
-
 local function ready(state)
  return state=="ready" or state=="error" or state=="ownership" or state=="policy" or state=="profile"
 end
@@ -153,7 +113,7 @@ end
 
 function Browser.new(app,parent)
  local self=setmetatable({app=app,alive=true,sections={},tabs={},cards={},
-  passCount=0,connections={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy"},Browser)
+  passCount=0,connections={},priceViews={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy"},Browser)
  local root=frame(parent,"ShopBrowser",UDim2.fromScale(1,1))
  root.BackgroundTransparency,root.Visible,root.ZIndex=1,false,2
  -- The shared popup visitor must also skip this subtree while another page is open.
@@ -218,7 +178,7 @@ function Browser.new(app,parent)
  self.layout=layout
  local featured=self:Section("Galaxy",SECTION_TITLES.Galaxy,0)
  self.galaxy=GalaxyCrateShop.new(app,featured)
- self:CreatePasses();self:CreateCash();self:CreateDetails()
+ self:CreatePasses();self:CreateCash()
  for _,property in {"CanvasPosition","AbsoluteCanvasSize","AbsoluteWindowSize"} do
   table.insert(self.connections,scroll:GetPropertyChangedSignal(property):Connect(function() self:UpdateSection() end))
  end
@@ -230,11 +190,11 @@ function Browser.new(app,parent)
   if input.UserInputType==Enum.UserInputType.MouseWheel then self:CancelScroll() end
  end))
  table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(function()
-  if root.Visible then self:Resize();self:AnimateSection(self.activeSection) else self:CloseDetails();self:CancelScroll();self:CancelArtworkMotion() end
+  if root.Visible then self:Resize();self:AnimateSection(self.activeSection) else self:CancelScroll();self:CancelArtworkMotion() end
  end))
  table.insert(self.connections,parent:GetPropertyChangedSignal("Visible"):Connect(function()
   if parent.Visible and root.Visible then self:AnimateSection(self.activeSection)
-  else self:CloseDetails();self:CancelArtworkMotion() end
+  else self:CancelArtworkMotion() end
  end))
  self:ApplyPresentation()
  self:Resize()
@@ -299,20 +259,28 @@ end
 
 -- The reference's offer surface: vertical gradient, dark outer edge, light inner
 -- keyline, and a white sunburst behind oversized art. `visual` is what scales on hover.
-local function offerFace(card,top,bottom)
+local function offerFace(card,top,bottom,corner)
  local visual=Theme.Container(card,"Visual")
  visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
  local face=frame(visual,"Face",UDim2.fromScale(1,1),nil,Color3.new(1,1,1))
  face.ZIndex=2
+ corner=corner or CARD_CORNER
+ Theme.Round(face).CornerRadius=UDim.new(corner,0)
  local gradient=Theme.Gradient(face,top,bottom)
  gradient.Transparency=NumberSequence.new(0)
  local edge=Theme.Stroke(face,top:Lerp(Color3.new(0,0,0),0.72),3)
- edge.BorderStrokePosition=Enum.BorderStrokePosition.Outer
+ edge.BorderStrokePosition,edge.LineJoinMode=Enum.BorderStrokePosition.Outer,Enum.LineJoinMode.Round
  local rim=Theme.Container(face,"InnerRim")
  rim.Position,rim.Size,rim.ZIndex=UDim2.fromScale(0.012,0.02),UDim2.fromScale(0.976,0.96),3
+ Theme.Round(rim).CornerRadius=UDim.new(math.max(0,corner-0.02)/0.96,0)
  local keyline=Theme.Stroke(rim,top:Lerp(Color3.new(1,1,1),0.6),2)
- keyline.Transparency=0.15
- local studs=Theme.Studs(face,0.08,28,0)
+ keyline.Transparency,keyline.LineJoinMode=0.15,Enum.LineJoinMode.Round
+ -- A CanvasGroup clips the stud tile to the rounded corners; a Frame clip stays square.
+ local mask=Instance.new("CanvasGroup")
+ mask.Name,mask.Size,mask.BackgroundTransparency,mask.ZIndex="StudMask",UDim2.fromScale(1,1),1,3
+ mask.Parent=face
+ Theme.Round(mask).CornerRadius=UDim.new(corner,0)
+ local studs=Theme.Studs(mask,0.08,28,0)
  studs.ZIndex=3
  return visual,face
 end
@@ -323,21 +291,17 @@ function Browser:Activate(key,button,cardVisual)
  self.app.audio:Play("Click")
  local state=self.app.commerce:State(key)
  if state=="owned" then self.app.commerce:Toggle(key)
- elseif state=="ready" and key=="DoubleLuck" then
-  self:ShowDetails("Luck",key)
  else self.app.commerce:Buy(key) end
 end
 
-function Browser:PurchaseButton(parent,key,color)
- local button
- button=Theme.ActionButton(parent,"Buy"..key,"Loading",function()
-  self:Activate(key,button)
- end,color or P.green)
- button.TextSize=20
- button.Active,button.Selectable=false,false
+-- The Galaxy crate's buy pill, 1:1, for every pass and coin pack (owner, October 21).
+function Browser:PurchaseButton(parent,key)
+ local view=GalaxyCrateShop.PriceButton(parent,"Buy"..key,GalaxyCrateShop.Palettes.green)
+ local button=view.button
  button:SetAttribute("CatalogKey",key)
- dress(button,color or P.green)
- button.Visual.Caption.TextColor3=P.white
+ Theme.Aspect(button,GalaxyCrateShop.PriceAspect)
+ table.insert(self.connections,button.Activated:Connect(function() self:Activate(key,button) end))
+ self.priceViews[button]=view
  return button
 end
 
@@ -379,12 +343,6 @@ function Browser:CreatePasses()
   local view=self:OfferCard(grid,definition.key,definition,self.passCount)
   view.multiplier=Art.PassIcon(view.art,definition.icon,definition.double)
   self.cards[definition.key]=view
-  if definition.key=="DoubleLuck" then
-   local details=Theme.ActionButton(view.visual,"Details","Odds",function()
-    self.app.audio:Play("Click");self:ShowDetails("Luck")
-   end,P.cyan)
-   dress(details,P.cyan);details.ZIndex=12;view.details=details
-  end
   self:BindOfferMotion(view,"Passes")
  end
 end
@@ -395,10 +353,14 @@ function Browser:UpdatePurchase(button,key,root)
  local automatic=state=="owned" and (key=="AutoMerge" or key=="AutoCollectEggs")
  local toggling=self.app.commerce.togglePending[key]~=nil
  button.Text=if automatic then (if toggling then "Updating…" elseif shop.automatic and shop.automatic[key] then "Auto: ON" else "Auto: OFF") else statusText(state,price)
+ local view=self.priceViews[button]
+ local quoted=state=="ready" and not automatic and type(price)=="number"
+ GalaxyCrateShop.ShowPrice(view,if quoted then Theme.Money(price) else button.Text,quoted,state=="restricted" or state=="offsale")
+ -- Gold like the crate's 10-pack: owned passes and the biggest coin pack.
+ GalaxyCrateShop.SetPalette(view,if state=="owned" or key=="CommandersVault" then GalaxyCrateShop.Palettes.gold else GalaxyCrateShop.Palettes.green)
  button.Active=(ready(state) or automatic) and self.app.commerce.pending==nil and not toggling
   and (automatic or self.app.commerce.autoCrate==nil)
  button.Selectable=button.Active
- dress(button,if state=="owned" then P.gold elseif button.Active then P.green else P.tab)
  button:SetAttribute("State",state)
  button:SetAttribute("UnavailableReason",if ready(state) or automatic then nil else state)
  if root then root:SetAttribute("Owned",state=="owned") end
@@ -447,7 +409,6 @@ function Browser:RenderExisting()
   end
  end
  self.cashSubtitle.Text=if bestVault then "BEST VALUE!" else "Biggest pack!"
- self:RenderDetails()
 end
 
 function Browser:CreateCash()
@@ -457,7 +418,7 @@ function Browser:CreateCash()
  vaultButton.ZIndex,vaultButton.Selectable=2,false
  vaultButton:SetAttribute("OwnsPopupStyle",true)
  vaultButton.Parent=section
- local vault,vaultFace=offerFace(vaultButton,COIN_CARD_TOP,COIN_CARD_BOTTOM)
+ local vault,vaultFace=offerFace(vaultButton,COIN_CARD_TOP,COIN_CARD_BOTTOM,VAULT_CORNER)
  vault.ClipsDescendants=true
  self.cashFeatured,self.cashFeaturedButton=vaultButton,vaultButton
  self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
@@ -470,11 +431,12 @@ function Browser:CreateCash()
  self.cashArt=art
  self.cashOverflow=Art.CashOverflow(art)
  self.cashOverflow.ScaleType,self.cashOverflow.ZIndex=Enum.ScaleType.Crop,3
+ Theme.Round(self.cashOverflow).CornerRadius=UDim.new(VAULT_CORNER,0)
  self.cashTitle=text(vault,"Title","Commander's Vault",30,UDim2.fromScale(0.03,0.07),UDim2.fromScale(0.5,0.2))
  self.cashNote=text(vault,"PreviewAmount","10M Coins",56,UDim2.fromScale(0.03,0.29),UDim2.fromScale(0.5,0.3),FIGMA.text,false)
  self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.03,0.56),UDim2.fromScale(0.4,0.12),Color3.fromRGB(255,240,90))
  vaultButton:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
- self.cashBuy=self:PurchaseButton(vault,"CommandersVault",P.gold)
+ self.cashBuy=self:PurchaseButton(vault,"CommandersVault")
  self.cashBuy.ZIndex=12
  table.insert(self.connections,vaultButton.Activated:Connect(function() self:Activate("CommandersVault",self.cashBuy,vault) end))
  Theme.Motion:BindButton(vaultButton,vault,vaultFace)
@@ -507,163 +469,6 @@ function Browser:CreateCash()
   self.cashViews[i]={root=card,key=definition.key,title=title,art=icon,rays=rays,note=note,buy=buy}
   self:BindOfferMotion(self.cashViews[i],"Cash")
  end
-end
-
-function Browser:CreateDetails()
- local root=frame(self.body,"PurchaseDetails",UDim2.fromScale(1,1),UDim2.new(),P.ink)
- root.BackgroundTransparency,root.Visible,root.Active,root.ZIndex=0.04,false,true,20
- root:SetAttribute("OwnsPopupStyle",true)
- self.detailsRoot,self.detailsRest=root,root.Position
- self.detailsTitle=text(root,"Title","Details",30,UDim2.fromScale(0.02,0.01),UDim2.fromScale(0.96,0.075))
- self.detailsDescription=plain(root,"Description","",19,UDim2.new(),UDim2.fromScale(0.98,0.23),P.white)
- self.detailsDescription.TextWrapped=true
- local scroll=Instance.new("ScrollingFrame")
- scroll.Name,scroll.Position,scroll.Size="Outcomes",UDim2.fromScale(0.02,0.1),UDim2.fromScale(0.96,0.76)
- scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,0
- scroll.ScrollBarImageColor3,scroll.AutomaticCanvasSize,scroll.CanvasSize=P.cyan,Enum.AutomaticSize.Y,UDim2.new()
- scroll.ScrollingDirection,scroll.Parent=Enum.ScrollingDirection.Y,root
- scroll.VerticalScrollBarInset=Enum.ScrollBarInset.Always
- local content=frame(scroll,"Content",UDim2.fromScale(0.98,4))
- content.BackgroundTransparency=1
- local layout=Instance.new("UIListLayout")
- layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.015,0),Enum.SortOrder.LayoutOrder,content
- self.detailsScroll,self.detailsContent,self.detailsLayout=scroll,content,layout
- self.detailsNote=plain(root,"Note","",16,UDim2.new(),UDim2.fromScale(0.98,0.15),P.muted)
- self.detailsNote.TextWrapped=true
- self.detailsActions=Theme.Container(root,"Actions")
- self.detailsActions.AnchorPoint=Vector2.new(0,1)
- local actions=Instance.new("UIListLayout")
- actions.FillDirection,actions.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
- actions.Padding,actions.Parent=UDim.new(0.015,0),self.detailsActions
- self.detailsActions.Position,self.detailsActions.Size=UDim2.fromScale(0.02,0.98),UDim2.fromScale(0.96,0.09)
- self.detailsBack=Theme.ActionButton(self.detailsActions,"Back","Back",function()
-  self.app.audio:Play("Click");self:CloseDetails()
- end,P.cyan)
- self.detailsBack.Size=UDim2.fromScale(0.34,1)
- dress(self.detailsBack,P.cyan)
- self.detailsBuy=Theme.ActionButton(self.detailsActions,"Continue","Buy",function()
-  if not self.detailsBuy.Active or not self.detailsPurchase then return end
-  self.app.audio:Play("Click")
-  self.app.commerce:Buy(self.detailsPurchase)
- end,P.green)
- self.detailsBuy.Size=UDim2.fromScale(0.645,1)
- dress(self.detailsBuy,P.green)
- self.detailsBack.LayoutOrder,self.detailsBuy.LayoutOrder=1,2
- self.detailsDescription.Parent,self.detailsDescription.LayoutOrder=content,-1
- self.detailsNote.Parent,self.detailsNote.LayoutOrder=content,1000
- for _,item in root:GetDescendants() do if item:IsA("GuiObject") then item.ZIndex+=20 end end
-end
-
-function Browser:ShowDetails(kind,purchaseKey)
- self:CancelScroll()
- self.detailsKind,self.detailsPurchase=kind,purchaseKey
- self.scroll.Visible,self.previewStatus.Visible=false,false
- self.scrollFade.Visible,self.previewBacking.Visible,self.navigation.Visible=false,false,false
- if not self.detailsRoot.Visible then
-  -- Slide up into place; CloseDetails restores the resting Position.
-  self.detailsRoot.Position=self.detailsRest+UDim2.fromScale(0,0.02)
-  Theme.Motion:Tween(self.detailsRoot,"details",{Position=self.detailsRest},0.16)
- end
- self.detailsRoot.Visible=true
- self.detailsScroll.CanvasPosition=Vector2.zero
- self:RenderDetails()
-end
-
-function Browser:CloseDetails()
- if self.detailsRoot then
-  Theme.Motion:Cancel(self.detailsRoot,"details")
-  self.detailsRoot.Visible,self.detailsRoot.Position=false,self.detailsRest
- end
- self.scroll.Visible,self.previewStatus.Visible=true,true
- self.scrollFade.Visible,self.previewBacking.Visible,self.navigation.Visible=true,true,true
- self.detailsKind,self.detailsPurchase=nil,nil
-end
-
-local function chanceText(chance)
- if type(chance)~="number" or chance<=0 then return "0%" end
- local percent=chance*100
- local digits=math.clamp(4-math.min(0,math.floor(math.log10(percent))),4,12)
- return string.format("%."..digits.."f",percent):gsub("0+$",""):gsub("%.$","").."%"
-end
-
-function Browser:RenderDetails()
- if not self.detailsKind or not self.detailsRoot.Visible then return end
- local shop=self.app.state and self.app.state.shop
- local rows={}
- local available=false
- local guaranteed=guaranteedOffers(shop)
- local note="Your available benefit is still being checked."
- if guaranteed then
-  local guarantee=shop.luckGuarantee
-  available=type(guarantee)=="table" and type(guarantee.sequence)=="table" and #guarantee.sequence>0
-   and type(guarantee.interval)=="number" and guarantee.interval>0
-   and type(guarantee.rollsRemaining)=="number" and PetCatalog[guarantee.nextSpecies]~=nil
-  self.detailsTitle.Text="2x Luck · Guaranteed Offers"
-  self.detailsDescription.Text="For this account, 2x Luck gives a known Rare+ offer every 10 manual rolls; regular rolls keep their normal odds. Normal coin price applies; higher-level offers cost more. Offers last until reroll or leaving."
-  if available then
-   table.insert(rows,{name="Fixed repeating order",value="Level 1 price"})
-   for index,species in guarantee.sequence do
-    local pet=PetCatalog[species]
-    if not pet or type(pet.price)~="number" then available=false;break end
-    table.insert(rows,{name=index..". "..pet.name,value=Theme.Coins(pet.price)})
-   end
-   if available then
-    local owned=shop.owned and shop.owned.DoubleLuck
-    note=(if owned then "Next: " else "After purchase, next: ")..PetCatalog[guarantee.nextSpecies].name
-     .." in "..guarantee.rollsRemaining..(if guarantee.rollsRemaining==1 then " roll" else " rolls")
-     ..". Progress saves; this order repeats."
-   end
-  end
- elseif shop and shop.policyReady==true and shop.paidRandomAllowed==true then
-  self.detailsTitle.Text="2x Luck · roll chances"
-  self.detailsDescription.Text="Doubles Luck strength, shifting favored results toward stronger chickens. Each chicken's chance changes differently. Your Luck upgrades and research are included; crates are unaffected."
-  local odds=shop and shop.luckOdds
-  available=odds and type(odds.withoutPass)=="table" and type(odds.withPass)=="table"
-  if available then
-   table.insert(rows,{name="Every possible chicken",value="Without pass  →  With pass"})
-   for _,species in PetCatalog.Order do
-    local before,after=odds.withoutPass[species] or 0,odds.withPass[species] or 0
-    if before>0 or after>0 then table.insert(rows,{name=PetCatalog[species].name,value=chanceText(before).."  →  "..chanceText(after)}) end
-   end
-  end
-  note="Percentages are rounded; their displayed total may differ slightly from 100%."
- else
-  self.detailsTitle.Text="Luck pass"
-  self.detailsDescription.Text="Checking which benefit is available for your account."
- end
- if not available then
-  rows={{name="Details are not ready. Please check again.",value=""}}
- end
- local signature=self.detailsKind
- for _,row in rows do signature..="|"..row.name..":"..row.value end
- if self.detailsRowsKey~=signature then
-  self.detailsRowsKey=signature
-  for _,item in self.detailsContent:GetChildren() do if item:IsA("GuiObject") and item~=self.detailsDescription and item~=self.detailsNote then item:Destroy() end end
-  -- Width controls every row; AutomaticCanvasSize only extends the scroll range.
-  local contentHeight=0.135+0.09+#rows*0.048+(#rows+1)*0.008
-  self.detailsContent.Size=UDim2.fromScale(0.98,#rows+2)
-  Theme.Aspect(self.detailsContent,1/contentHeight)
-  self.detailsDescription.Size=UDim2.fromScale(1,0.135/contentHeight)
-  self.detailsNote.Size=UDim2.fromScale(1,0.09/contentHeight)
-  self.detailsLayout.Padding=UDim.new(0.008/contentHeight,0)
-  for index,row in rows do
-   local entry=frame(self.detailsContent,"Outcome"..index,UDim2.fromScale(1,0.048/contentHeight))
-   entry.BackgroundTransparency,entry.LayoutOrder,entry.ZIndex=1,index,21
-   local name=plain(entry,"Name",row.name,20,UDim2.new(),UDim2.fromScale(0.5,1),P.white)
-   local value=plain(entry,"Chance",row.value,20,UDim2.fromScale(0.5,0),UDim2.fromScale(0.5,1),P.white)
-   name.TextWrapped,value.TextWrapped=true,true
-   value.TextXAlignment=Enum.TextXAlignment.Right
-   name.ZIndex,value.ZIndex=22,22
-   Theme.ScaleText(entry)
-  end
- end
- self.detailsNote.Text=note
- self.detailsBuy.Visible=self.detailsPurchase~=nil
- if self.detailsPurchase then
-  self:UpdatePurchase(self.detailsBuy,self.detailsPurchase)
-  if not available then self.detailsBuy.Active=false end
- end
- self.detailsBuy.Selectable=self.detailsBuy.Active
 end
 
 function Browser:BindOfferMotion(view,section)
@@ -731,7 +536,6 @@ function Browser:RefreshScrollMetrics()
 end
 
 function Browser:ScrollTo(key)
- self:CloseDetails()
  self:RefreshScrollMetrics()
  if not self.sectionStarts[key] then return end
  self:CancelScroll()
@@ -767,15 +571,6 @@ end
 function Browser:ApplyPresentation()
  -- Shared neutral shell; offer cards and title bars own their colors (OwnsPopupStyle).
  Theme.ApplyPopupStyle(self.root)
- local function offerButton(button,sequence)
-  Theme.ApplyReferenceAccent(button,sequence)
-  button.TextColor3,button.Visual.Caption.TextColor3=FIGMA.text,FIGMA.text
- end
- for _,view in self.cards do
-  offerButton(view.buy,if view.root:GetAttribute("Owned") then FIGMA.vaultPurchase else FIGMA.purchase)
- end
- for _,view in self.cashViews do offerButton(view.buy,FIGMA.purchase) end
- offerButton(self.cashBuy,FIGMA.vaultPurchase)
  for key,button in self.tabs do
   local selected=key==self.activeSection
   local caption=button.Visual.Caption
@@ -819,10 +614,6 @@ function Browser:Resize()
   view.description.AnchorPoint,view.description.Position=Vector2.new(1,0),UDim2.fromScale(0.965,0.33)
   view.description.Size=UDim2.fromScale(0.5,0.27)
   view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Right
-  if view.details then
-   -- The odds button tucks into the art's lower-left corner.
-   view.details.AnchorPoint,view.details.Position,view.details.Size=Vector2.new(0,1),UDim2.fromScale(0.03,0.93),UDim2.fromScale(0.2,0.2)
-  end
   view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(1,1),UDim2.fromScale(0.965,0.93),UDim2.fromScale(0.5,0.25)
  end
  local cashCardWidth=cardWidth
@@ -860,7 +651,7 @@ function Browser:Resize()
   view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.42),UDim2.fromScale(0.62,0.48)
   view.artRestSize=view.art.Size
   view.note.Position,view.note.Size=UDim2.fromScale(0.04,0.63),UDim2.fromScale(0.92,0.12)
-  view.buy.Position,view.buy.Size=UDim2.fromScale(0.08,0.77),UDim2.fromScale(0.84,0.19)
+  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.77),UDim2.fromScale(0.84,0.19)
  end
  Theme.ScaleText(self.root)
  self:UpdateSection()
