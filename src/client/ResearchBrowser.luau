@@ -219,10 +219,8 @@ function Browser:BuildNode(id,layer)
 	local gradient=Instance.new("UIGradient")
 	gradient.Rotation,gradient.Enabled,gradient.Parent=0,false,fill
 	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.56,.56),UDim2.fromScale(.22,.04));icon.ZIndex=4
-	-- The tier is live text over the icon's lower right, never part of the art.
-	local numeral=label(visual,"Tier",View.Numeral(node) or "",.55,.34,.3,.27)
-	numeral.TextXAlignment,numeral.ZIndex=Enum.TextXAlignment.Right,6
-	numeral.TextOutline.Thickness=.09
+	-- October 21 owner decision: the tier shows once, in the name ("Egg Speed II"),
+	-- with no big number over the icon.
 	local title=label(visual,"Title",node.name,-.06,.585,1.12,.135)
 	title.ZIndex=6
 	-- "Open" under an Open hex's name; the category's name under Back.
@@ -254,7 +252,7 @@ function Browser:BuildNode(id,layer)
 			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.22)
 		end
 	end
-	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,numeral=numeral,
+	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,
 		title=title,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
 	-- A click or tap acts on the hex at once: buy, open a subtree or go back.
 	button.Activated:Connect(function()
@@ -525,7 +523,6 @@ function Browser:RenderNode(id)
 	local waiting=self.pending[id]~=nil
 	view.icon.Visible=not hidden and view.icon.Image~=""
 	view.title.Visible,view.hidden.Visible=not hidden,hidden
-	view.numeral.Visible=not hidden and view.numeral.Text~=""
 	-- Prices only on hexes you can still buy: green when affordable, red when not.
 	local buyable=look=="available" or look=="unaffordable"
 	view.cost.Visible=buyable

@@ -73,9 +73,9 @@ text come from `UpgradeCatalog`; the client never computes a price.
 | Locked further out | Hidden |
 | Start / Open / Back | Cyan / orange / red |
 
-Each upgrade hex shows its icon, its name ("Egg Speed II") and a big tier number
-over the icon (live text, never part of the art; the catalog's `numeral`, which
-restarts at 1 for each Luck chain and is absent on mutations and single hexes). Open hexes carry a red count of
+Each upgrade hex shows its icon and its name ("Egg Speed II"). October 21 owner
+decision: the tier shows only once, in the name; the big tier number over the icon
+(copied from the reference) is gone. Open hexes carry a red count of
 the upgrades inside that can be bought now (`badges[category]`). The HUD Upgrades
 button shows `badges.total`. Prices on hexes are compact (1.2K); the card shows the
 exact amount.

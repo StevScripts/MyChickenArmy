@@ -44,12 +44,6 @@ function View.NextId(key:string,tree:any?):string?
 	return Tree.NodeId(family.id,math.min(#family.tiers,View.Tier(family.id,families)+1))
 end
 
--- The big tier number on a hex, from the catalog: none for single hexes or mutations,
--- and restarting at 1 for each Luck chain (Super Luck I shows 1).
-function View.Numeral(node:any):string?
-	return if type(node.numeral)=="number" then tostring(node.numeral) else nil
-end
-
 -- "x1.25", "x1.5": the value before and after this node's tier.
 function View.Change(node:any):(string,string)
 	return Tree.ValueText(node.family,node.tier-1),Tree.ValueText(node.family,node.tier)
