@@ -234,6 +234,33 @@ function Checks.Run()
 		return "Receipt and cargo; flag saves"
 	end)
 
+	test("The tree arrow rests in an empty neighbour cell, never on another hex",function()
+		local function all() return true end
+		local function side(id,shown,fits)
+			local found=Guide.PointerSide(id,shown or all,fits)
+			return if found then found[1]..","..found[2] else "none"
+		end
+		-- Right, left, below right, below left, above right, above left; first empty wins.
+		local expected={Flock1="0,1",OpenTools="1,0",VacuumCapacity1="-1,1",EggVacuum="0,1",ChickenFeed="1,0",
+			ArmySize2="-1,1",ToolsBack="0,1",PlayerBack="-1,1",ArmySize1="none",ArmyBack="none"}
+		for id,wanted in expected do
+			assert(side(id)==wanted,id.." points from "..side(id).." (wanted "..wanted..")")
+		end
+		-- A hidden hex (locked further out) leaves its cell free.
+		assert(side("ArmySize1",function(other) return other~="ArmySize2" end)=="-1,0","Hidden Army Size II")
+		-- A cell off the screen is skipped.
+		assert(side("OpenTools",all,function(cell) return cell[1]~=1 or cell[2]~=0 end)=="0,1","Off-screen right")
+		-- Every guided hex: the side found is really empty in its own map.
+		for _,id in {"Flock1","OpenTools","VacuumCapacity1","EggVacuum","ChickenFeed","ArmySize2"} do
+			local node,found=Tree.Nodes[id],Guide.PointerSide(id,all)
+			for other,neighbour in Tree.Nodes do
+				assert(not (neighbour.category==node.category and neighbour.q==node.q+found[1] and neighbour.r==node.r+found[2]),
+					id.."'s arrow lands on "..other)
+			end
+		end
+		return "8 hexes from an empty cell; Army Size I and Army's Back use the gap below"
+	end)
+
 	test("A real starter session walks Flock Size I and Army Size I with its reserve",function()
 		local s=Session.new(-9403,"Starter route",1)
 		-- DataService marks a loaded profile; the guide stays hidden while it is "loading".

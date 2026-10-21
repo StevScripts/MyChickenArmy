@@ -5,13 +5,25 @@ local Theme = require(script.Parent.UITheme)
 local GuideArrow = require(script.Parent.GuideArrow)
 local Focus = {}
 Focus.__index = Focus
+local POINTER_SIZE = UDim2.fromScale(.11,.145)
+
+-- An optional fixed spot for the arrow, measured in the target's own size: `offset`
+-- from the target's centre to the arrow's centre, and `size` (a share of the target's
+-- height). The arrow turns to point at the target. Without it, the arrow takes the
+-- side of the target with the most room.
+export type Placement = {offset: Vector2, size: number}
+
+local function samePlacement(a: Placement?, b: Placement?): boolean
+	if a == nil or b == nil then return a == b end
+	return a.offset == b.offset and a.size == b.size
+end
 
 function Focus.new(parent)
-	local self = setmetatable({connections={}, targetConnections={}}, Focus)
+	local self = setmetatable({connections={}, targetConnections={}, placement=nil :: Placement?}, Focus)
 	self.root = Theme.Container(parent, "CommanderPointer")
 	self.root.ZIndex, self.root.Visible = 24, false
 	self.pointer = Theme.Container(self.root, "Arrow")
-	self.pointer.AnchorPoint, self.pointer.Size, self.pointer.ZIndex = Vector2.new(.5,.5), UDim2.fromScale(.11,.145), 3
+	self.pointer.AnchorPoint, self.pointer.Size, self.pointer.ZIndex = Vector2.new(.5,.5), POINTER_SIZE, 3
 	Theme.Aspect(self.pointer, 1)
 	self.arrow = GuideArrow(self.pointer, "Pointer")
 	self.arrow.AnchorPoint, self.arrow.Position, self.arrow.Size = Vector2.new(.5,.5), UDim2.fromScale(.5,.5), UDim2.fromScale(1,1)
@@ -58,26 +70,44 @@ function Focus:Layout()
 		ancestor = ancestor.Parent
 	end
 	if x2-x1<2 or y2-y1<2 then self:HideGeometry(); return end
-	-- Pixel padding follows a measured control; menu layout itself remains native.
-	x1,y1,x2,y2 = math.max(0,x1-8),math.max(0,y1-8),math.min(size.X,x2+8),math.min(size.Y,y2+8)
-	local half = math.max(self.pointer.AbsoluteSize.X,self.pointer.AbsoluteSize.Y)*.6
-	local cx,cy,rotation = (x1+x2)/2,(y1+y2)/2,0
-	local spaces = {x1,size.X-x2,y1,size.Y-y2}
-	local side = 1
-	for i=2,4 do if spaces[i]>spaces[side] then side=i end end
-	if side==1 then cx,rotation=x1-half-10,0
-	elseif side==2 then cx,rotation=x2+half+10,180
-	elseif side==3 then cy,rotation=y1-half-10,90
-	else cy,rotation=y2+half+10,-90 end
-	self.pointer.Position = UDim2.fromScale(math.clamp(cx,half,size.X-half)/size.X,math.clamp(cy,half,size.Y-half)/size.Y)
-	self.pointer.Rotation = rotation
+	local placement = self.placement
+	if placement then
+		-- Sized from the target, so it follows a zoomed map; the arrow art points right.
+		local length = math.max(8, placement.size*s.Y)
+		local center = p+s/2
+		local at = center+Vector2.new(placement.offset.X*s.X, placement.offset.Y*s.Y)
+		local toward = center-at
+		self.pointer.Size = UDim2.fromOffset(length,length)
+		self.pointer.Position = UDim2.fromScale(at.X/size.X,at.Y/size.Y)
+		self.pointer.Rotation = math.deg(math.atan2(toward.Y,toward.X))
+	else
+		-- Pixel padding follows a measured control; menu layout itself remains native.
+		x1,y1,x2,y2 = math.max(0,x1-8),math.max(0,y1-8),math.min(size.X,x2+8),math.min(size.Y,y2+8)
+		self.pointer.Size = POINTER_SIZE
+		local half = math.max(self.pointer.AbsoluteSize.X,self.pointer.AbsoluteSize.Y)*.6
+		local cx,cy,rotation = (x1+x2)/2,(y1+y2)/2,0
+		local spaces = {x1,size.X-x2,y1,size.Y-y2}
+		local side = 1
+		for i=2,4 do if spaces[i]>spaces[side] then side=i end end
+		if side==1 then cx,rotation=x1-half-10,0
+		elseif side==2 then cx,rotation=x2+half+10,180
+		elseif side==3 then cy,rotation=y1-half-10,90
+		else cy,rotation=y2+half+10,-90 end
+		self.pointer.Position = UDim2.fromScale(math.clamp(cx,half,size.X-half)/size.X,math.clamp(cy,half,size.Y-half)/size.Y)
+		self.pointer.Rotation = rotation
+	end
 	local entering = not self.root.Visible
 	self.root.Visible = true
 	if entering then self:Animate() end
 end
 
-function Focus:SetTarget(target, reduced)
-	if target==self.target and reduced==self.reduced then if target then self:Layout() end; return end
+function Focus:SetTarget(target, reduced, placement: Placement?)
+	if target==self.target and reduced==self.reduced and samePlacement(placement,self.placement) then
+		if target then self:Layout() end
+		return
+	end
+	self.placement = placement
+	if target==self.target and reduced==self.reduced then self:Layout(); return end
 	for _,connection in self.targetConnections do connection:Disconnect() end
 	table.clear(self.targetConnections)
 	self:StopLoops()

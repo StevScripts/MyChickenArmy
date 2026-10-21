@@ -55,8 +55,22 @@ Converted saves that finished or skipped the guide own it for their current run.
    rival camp.
 
 Fuse and Egg Value lines are gone. Upgrades goals point at the HUD Upgrades button,
-then the Tools Open hex, then the hex. Tool goals point at the dock slot; with
-Roblox's own hotbar there is nothing to point at, so the line shows alone.
+then the Tools Open hex, then the hex.
+
+**Arrow placement (October 20 playtest, Stevin approved).** Hexes are packed edge to
+edge, so an arrow beside a hex covered the next hex's name.
+- In the Upgrades tree, the arrow rests in an empty neighbouring cell (no hex, or a
+  hidden one), sized to 60% of a hex so it follows the map zoom, and points at the
+  target. It tries right, left, below right, below left, above right, then above left
+  (`TutorialGuide.PointerSide`, with `ResearchBrowser.Grid` for the spacing) and skips
+  cells off the screen.
+- A hex with hexes on all six sides (Army Size I, the Army map's Back) gets a short
+  arrow (32% of a hex) in the gap just under it, above the two lower hexes' names.
+- Tool goals point down from above the tool's own hotbar slot:
+  `app.tools.hintAnchors[toolName]` from S11b, then a single `app.tools.hintAnchor`,
+  then the older dock slot.
+- Other arrows (HUD Upgrades, My Army "+", Exit, Rebirth) still take the side with the
+  most room (`GuideFocus` without a placement).
 
 **Analytics.** `Guide.Version` is `cluck-6-click-eggs`. The new milestone `Flock`
 shows up as ledger `guide.enter.Flock`. It is not an onboarding funnel step, so the

@@ -79,6 +79,29 @@ function Guide.NextNode(state, familyId: string): string?
 	return Tree.NodeId(familyId, owned + 1)
 end
 
+-- Upgrades hexes in each map cell ("Main:-1:1" -> "Flock1").
+local cellIds: {[string]: string} = {}
+for id, node in Tree.Nodes do cellIds[node.category .. ":" .. node.q .. ":" .. node.r] = id end
+
+-- October 20 playtest: an arrow beside a hex covered the next hex's name, because the
+-- hexes are packed edge to edge. The arrow rests in an empty neighbour cell instead,
+-- tried in this order: right, left, below right, below left, above right, above left
+-- (axial q, r steps; the map is pointy-top with r growing downward).
+Guide.PointerSides = {{1, 0}, {-1, 0}, {0, 1}, {-1, 1}, {1, -1}, {0, -1}}
+
+-- The first neighbour cell of an Upgrades hex with no hex shown in it, or nil when all
+-- six are taken. `shown(id)` says whether a hex is on the map now; `fits(side)` may
+-- reject a cell (the client skips cells off the screen).
+function Guide.PointerSide(nodeId: string, shown: (string) -> boolean, fits: ((side: {number}) -> boolean)?): {number}?
+	local node = Tree.Nodes[nodeId]
+	if not node then return nil end
+	for _, side in Guide.PointerSides do
+		local other = cellIds[node.category .. ":" .. (node.q + side[1]) .. ":" .. (node.r + side[2])]
+		if (other == nil or not shown(other)) and (fits == nil or fits(side)) then return side end
+	end
+	return nil
+end
+
 -- Coins the player may spend right now (the starter reserve stays protected).
 local function spendable(state): number
 	return math.max(0, (state.coins or 0) - (state.starterCashReserve or 0))
