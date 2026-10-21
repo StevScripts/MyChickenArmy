@@ -17,9 +17,10 @@ local MAX_QUEUE=6
 local TAG_COLOR=Color3.fromRGB(255,221,46)
 local BAND_COLOR=Color3.fromRGB(20,22,24)
 local WHITE=Color3.new(1,1,1)
--- Right under the coin and clover of BoostReadout (Y 0.094-0.2), over the foot of
--- their numbers, as in the reference; it shows for about 8 s.
-Notice.Position=UDim2.fromScale(0.994,0.165)
+-- Right edge under the Settings gear (0.012 + 0.072). October 21: the coin/clover
+-- readout that sat here moved to the bottom-left, so the strip moved up into its
+-- place (was Y 0.165); it shows for about 8 s.
+Notice.Position=UDim2.fromScale(0.994,0.094)
 Notice.Size=UDim2.fromScale(0.24,0.12)
 Notice.Aspect=3.6
 

@@ -1,7 +1,8 @@
 --!strict
 -- October 20 boosts readout (S16, docs/team/PLAYTIME_REWARDS.md): the reference's coin
--- "x9.2" and clover "x4.5" under the top-right buttons, showing the player's total
--- Coins and Luck multipliers. The server computes both (state.boosts,
+-- "x9.2" and clover "x4.5", showing the player's total Coins and Luck multipliers.
+-- October 21 (Stevin): moved from the top-right to one row under Friend Boost, in
+-- HudController's BoostSlot, as a single line: coin x9.2, clover x4.5. The server computes both (state.boosts,
 -- PlaytimeService.Boosts); this module only presents. Stevin, October 20, approved one
 -- addition to the reference: while a Playtime Rewards boost runs, its number turns
 -- green with the time left underneath.
@@ -16,10 +17,11 @@ Readout.Icons={Coins=Theme.Assets.Coin,Luck="rbxassetid://136683191941433"}
 local KEYS={Coins="coins",Luck="luck"}
 local GREEN=Theme.ReferenceColors.Army
 local WHITE=Color3.new(1,1,1)
--- Right edge under the Settings gear (0.012 + 0.072); CornerNotice sits over the foot
--- of the numbers for its few seconds, as in the reference.
-Readout.Position=UDim2.fromScale(0.994,0.094)
-Readout.Size=UDim2.fromScale(0.11,0.106)
+-- Fallback place when there is no HUD slot (UI Lab story): the bottom-left corner.
+Readout.Position=UDim2.fromScale(0.012,0.98)
+Readout.Size=UDim2.fromScale(0.3,0.039)
+-- One column per boost: icon, number, then the time left of a running boost.
+local COLUMN_WIDTH,COLUMN_GAP=0.37,0.02
 
 local function clock(seconds: number): string
 	seconds=math.max(0,math.ceil(seconds))
@@ -28,24 +30,24 @@ end
 
 function Readout.new(app)
 	local self=setmetatable({app=app,connections={},columns={},nextStepAt=0},Readout)
-	local root=Theme.Container(app.hudLayer,"BoostReadout")
-	root.AnchorPoint,root.Position,root.Size,root.Visible=Vector2.new(1,0),Readout.Position,Readout.Size,false
-	Theme.Aspect(root,1.75)
+	local slot=app.hud and app.hud.boostSlot
+	local root=Theme.Container(slot or app.hudLayer,"BoostReadout")
+	if not slot then root.AnchorPoint,root.Position,root.Size=Vector2.new(0,1),Readout.Position,Readout.Size end
+	root.Visible=false
 	self.root=root
 	for index,kind in PlaytimeRewards.BoostKinds do
 		local column=Theme.Container(root,kind)
-		column.Position,column.Size=UDim2.fromScale((index-1)*0.5,0),UDim2.fromScale(0.5,1)
-		local icon=Theme.Image(column,"Icon",Readout.Icons[kind],UDim2.fromScale(1,0.62),UDim2.fromScale(0.5,0))
-		icon.AnchorPoint=Vector2.new(0.5,0)
+		column.Position,column.Size=UDim2.fromScale((index-1)*(COLUMN_WIDTH+COLUMN_GAP),0),UDim2.fromScale(COLUMN_WIDTH,1)
+		local icon=Theme.Image(column,"Icon",Readout.Icons[kind],UDim2.fromScale(1,1.15),UDim2.fromScale(0,0.5))
+		icon.AnchorPoint=Vector2.new(0,0.5)
 		Theme.Aspect(icon,1)
-		-- The number overlaps the icon's foot, like the reference.
 		local value=Theme.Display(column,"Value","x1",30,WHITE)
-		value.Position,value.Size,value.ZIndex=UDim2.fromScale(-0.05,0.5),UDim2.fromScale(1.1,0.3),5
-		value.TextXAlignment,value.TextWrapped=Enum.TextXAlignment.Center,false
+		value.Position,value.Size,value.ZIndex=UDim2.fromScale(0.33,0),UDim2.fromScale(0.43,1),5
+		value.TextXAlignment,value.TextWrapped=Enum.TextXAlignment.Left,false
 		Theme.Motion:Center(value)
 		local timer=Theme.Display(column,"Timer","",20,GREEN)
-		timer.Position,timer.Size,timer.ZIndex,timer.Visible=UDim2.fromScale(0,0.79),UDim2.fromScale(1,0.21),5,false
-		timer.TextXAlignment,timer.TextWrapped=Enum.TextXAlignment.Center,false
+		timer.Position,timer.Size,timer.ZIndex,timer.Visible=UDim2.fromScale(0.77,0.15),UDim2.fromScale(0.23,0.7),5,false
+		timer.TextXAlignment,timer.TextWrapped=Enum.TextXAlignment.Left,false
 		self.columns[kind]={value=value,timer=timer,endsAt=nil,last=nil}
 	end
 	Theme.ScaleText(root)
