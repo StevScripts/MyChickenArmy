@@ -73,9 +73,9 @@ function Notice:Next()
 	local strip,content,icon,rays=self:Build(spec)
 	self.current=strip
 	local motion=Theme.Motion
-	-- Enters from the strip's right edge and eases to rest.
-	content.Position=UDim2.fromScale(1,0)
-	motion:Tween(content,"notice-slide",{Position=UDim2.fromScale(0,0)},IN_SECONDS,Enum.EasingStyle.Quart,Enum.EasingDirection.Out)
+	-- Enters from the strip's right edge with the shared Pop ease and a cue (October 21).
+	motion:Slide(content,UDim2.fromScale(1,0),UDim2.fromScale(0,0),IN_SECONDS,motion.Ease.Pop)
+	self.app:Cue("NoticeIn","Pop")
 	if motion.reduced then
 		rays.Visible=false
 	else
@@ -95,7 +95,8 @@ function Notice:Next()
 	end
 	task.delay(IN_SECONDS+HOLD_SECONDS,function()
 		if self.current~=strip or not strip.Parent then return end
-		motion:Tween(content,"notice-slide",{Position=UDim2.fromScale(1,0)},OUT_SECONDS,Enum.EasingStyle.Quad,Enum.EasingDirection.In,function()
+		local leave=motion.Ease.Leave
+		motion:Tween(content,"slide",{Position=UDim2.fromScale(1,0)},OUT_SECONDS,leave.style,leave.direction,function()
 			strip:Destroy()
 			if self.current==strip then self.current=nil;self:Next() end
 		end)

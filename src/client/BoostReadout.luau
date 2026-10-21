@@ -17,6 +17,8 @@ Readout.Icons={Coins=Theme.Assets.Coin,Luck="rbxassetid://136683191941433"}
 local KEYS={Coins="coins",Luck="luck"}
 local GREEN=Theme.ReferenceColors.Army
 local WHITE=Color3.new(1,1,1)
+-- October 21 game feel: a running boost's column glows in its own colour.
+local GLOW={Coins=Theme.Colors.coins,Luck=GREEN}
 -- Fallback place when there is no HUD slot (UI Lab story): the bottom-left corner.
 Readout.Position=UDim2.fromScale(0.012,0.98)
 Readout.Size=UDim2.fromScale(0.3,0.039)
@@ -48,7 +50,7 @@ function Readout.new(app)
 		local timer=Theme.Display(column,"Timer","",20,GREEN)
 		timer.Position,timer.Size,timer.ZIndex,timer.Visible=UDim2.fromScale(0.77,0.15),UDim2.fromScale(0.23,0.7),5,false
 		timer.TextXAlignment,timer.TextWrapped=Enum.TextXAlignment.Left,false
-		self.columns[kind]={value=value,timer=timer,endsAt=nil,last=nil}
+		self.columns[kind]={root=column,value=value,timer=timer,endsAt=nil,last=nil,glowing=false}
 	end
 	Theme.ScaleText(root)
 	-- UI Lab previews draw one still frame (Render steps once).
@@ -69,7 +71,7 @@ function Readout:Render(state)
 		local boost=running[kind]
 		column.endsAt=if type(boost)=="table" then tonumber(boost.endsAt) else nil
 		-- A confirmed rise (a boost, a friend, a Gold Rush, an upgrade) pops the number.
-		if column.last and total>column.last*1.001 then Theme.Motion:PopScale(column.value,1.2) end
+		if column.last and total>column.last*1.001 then Theme.Motion:Punch(column.value,1.25,0.3) end
 		column.last=total
 	end
 	self:Step(true)
@@ -81,13 +83,18 @@ function Readout:Step(force: boolean?)
 	if not force and now<self.nextStepAt then return end
 	self.nextStepAt=now+0.25
 	local serverNow=workspace:GetServerTimeNow()
-	for _,column in self.columns do
+	for kind,column in self.columns do
 		local left=if column.endsAt then column.endsAt-serverNow else 0
 		local shown=left>0
 		column.timer.Visible=shown
 		if shown then column.timer.Text=clock(left) end
 		local color=if shown then GREEN else WHITE
 		if column.value.TextColor3~=color then column.value.TextColor3=color end
+		-- One glow while the boost runs; nothing loops once it ends.
+		if shown~=column.glowing then
+			column.glowing=shown
+			if shown then Theme.Motion:Glow(column.root,GLOW[kind] or WHITE,2) else Theme.Motion:StopGlow(column.root) end
+		end
 	end
 end
 

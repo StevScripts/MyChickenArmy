@@ -62,6 +62,7 @@ function HillHud.new(app,shell: Instance,cash: Instance)
 	self.clock.AnchorPoint,self.clock.Position,self.clock.Size,self.clock.ZIndex=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.5,0.78),6
 	self.detail=scaled(Theme.Display(top,"Detail","",16))
 	self.detail.Position,self.detail.Size=UDim2.fromScale(0.05,0.76),UDim2.fromScale(0.9,0.22)
+	Theme.Motion:Center(self.detail) -- a new leader punches it from its middle
 
 	-- Compact chip just above the cash readout (Place follows the touch layout).
 	local waiting=Theme.Container(shell,"HillCountdown")
@@ -134,7 +135,7 @@ function HillHud:Update(state)
 	end
 	Theme.Motion:Appear(self.top,self.bannerVisible,0.85)
 	self:SetTint(open)
-	if not open then self.kind=nil;return end
+	if not open then self.kind,self.lastLeader=nil,nil;return end
 
 	local kind=self:Kind(hill)
 	local style=KINDS[kind]
@@ -144,7 +145,7 @@ function HillHud:Update(state)
 		self.title.Text,self.title.TextColor3=style.title,style.color
 		self.fillGradient.Color=ColorSequence.new(style.color:Lerp(Color3.new(1,1,1),0.35),style.color)
 		if not first then
-			Theme.Motion:PopScale(self.title,1.12)
+			Theme.Motion:Punch(self.title,1.18,0.3)
 			if kind=="defend" then Theme.Motion:Shake(self.track,6)
 			elseif kind=="hold" then Theme.Motion:Burst(self.top,UDim2.fromScale(0.5,0.2),style.color) end
 		end
@@ -153,6 +154,9 @@ function HillHud:Update(state)
 	Theme.Motion:Tween(self.fill,"fill",{Size=UDim2.fromScale(math.clamp(remaining/math.max(1,hill.roundSeconds or 300),0,1),1)},0.3)
 
 	local leader=hill.leaderName
+	-- October 21 game feel: a change of leader (the king of the round) punches the line.
+	if self.lastLeader~=nil and (leader or false)~=self.lastLeader then Theme.Motion:Punch(self.detail,1.12,0.3) end
+	self.lastLeader=leader or false
 	local leaderText=if leader and leader~=state.name then leader.." leads "..clock(hill.leaderSeconds or 0)
 		elseif leader then "You lead "..clock(hill.mySeconds or 0) else "Hold it longest to win"
 	if kind=="hold" or kind=="defend" then
