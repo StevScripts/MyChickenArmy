@@ -45,10 +45,19 @@ local GAP=0.08
 local GRID_ASPECT=(4+3*GAP)/(3+2*GAP)
 local TILE_W,TILE_H=1/(4+3*GAP),1/(3+2*GAP)
 local STEP_X,STEP_Y=(1+GAP)/(4+3*GAP),(1+GAP)/(3+2*GAP)
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it. Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 function Panel.new(app)
 	local self=setmetatable({app=app,connections={},windowConnections={},alive=true,seen={},primed=false,
-		pendingUntil=0,ready=0,nextStepAt=0},Panel)
+		pendingUntil=0,ready=0,nextStepAt=0,attention=false},Panel)
+	Audio=app.audio
 	if not app.editPreview then
 		self:BuildButton()
 		table.insert(self.connections,RunService.Heartbeat:Connect(function() self:Step() end))
@@ -100,7 +109,20 @@ function Panel:BuildButton()
 	local function sync() bar.Visible=self.shown==true and app.gui.Enabled and not GuiService.MenuIsOpen end
 	table.insert(self.connections,GuiService:GetPropertyChangedSignal("MenuIsOpen"):Connect(sync))
 	table.insert(self.connections,app.gui:GetPropertyChangedSignal("Enabled"):Connect(sync))
-	self.bar,self.button,self.badge,self.count,self.syncBar=bar,button,badge,count,sync
+	self.bar,self.button,self.badge,self.count,self.icon,self.syncBar=bar,button,badge,count,icon,sync
+end
+
+-- While a reward waits, the gift wobbles inside a gold ring; Settle squares it.
+function Panel:Attention(on: boolean)
+	if on==self.attention or not self.button then return end
+	self.attention=on
+	if on then
+		Theme.Motion:Wobble(self.icon,6,0.35)
+		Theme.Motion:Glow(self.button,Theme.ReferenceColors.Base,3)
+	else
+		Theme.Motion:StopWobble(self.icon)
+		Theme.Motion:StopGlow(self.button)
+	end
 end
 
 function Panel:Render(state, result)
@@ -114,7 +136,7 @@ function Panel:Render(state, result)
 	if shown~=self.shown then
 		self.shown=shown
 		if self.syncBar then self.syncBar() end
-		if not shown then self:Dismiss(true) end
+		if not shown then self:Dismiss(true);self:Attention(false) end
 	end
 	if result and result.action=="ClaimPlaytime" then self:Claimed(result) end
 	if self.gui then self:RefreshTiles() end
@@ -158,7 +180,8 @@ function Panel:SetBadge(ready: number)
 	if not self.badge then return end
 	self.count.Text=tostring(ready)
 	Theme.Motion:Appear(self.badge,ready>0)
-	if ready>previous and previous>0 then Theme.Motion:PopScale(self.badge,1.25) end
+	if ready>previous and previous>0 then Theme.Motion:Punch(self.badge,1.3,0.3) end
+	self:Attention(ready>0 and self.shown==true)
 end
 
 -- "Free Reward Ready!" with the reward's own icon, like the reference.
@@ -179,7 +202,8 @@ end
 
 function Panel:Close()
 	if not self.gui or self.closing then return end
-	self.app.audio:Play("Click")
+	-- Same voice key as the close button's own Click, so the two never double.
+	cue("MenuClose","Click")
 	self:Dismiss()
 end
 
@@ -194,6 +218,8 @@ function Panel:Dismiss(immediate: boolean?)
 	for _,connection in self.windowConnections do connection:Disconnect() end
 	table.clear(self.windowConnections)
 	self.app:SetMenuBlur("playtime",false)
+	-- The claimable tiles' rings stop before the window leaves.
+	for _,view in self.views or {} do Theme.Motion:StopGlow(view.button) end
 	local function finish()
 		if self.gui~=gui then return end
 		self.gui,self.panel,self.views,self.closing=nil,nil,nil,false
@@ -253,10 +279,12 @@ function Panel:Open()
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
 	self:RefreshTiles()
-	-- Slides down from the top, like the reference.
+	-- Slides down from the top, like the reference; the tiles grow in behind it.
 	if not app.reducedMotion then panel.Position=self.restingPosition-UDim2.fromScale(0,0.75) end
 	Theme.Motion:Tween(panel,"playtime-slide",{Position=self.restingPosition},0.32,Enum.EasingStyle.Quart,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"playtime-fade",{GroupTransparency=0},0.18)
+	Theme.Motion:Reveal(grid,{limit=12,window=0.4,from=0.75})
+	cue("MenuOpen","Pop",nil,{voiceKey="MenuOpen",cooldown=0.2})
 	if app.editPreview then return end
 	ContextActionService:BindActionAtPriority("PetRollPlaytimeClose",function(_,inputState)
 		if inputState==Enum.UserInputState.Begin then self:Close() end
@@ -303,6 +331,7 @@ function Panel:Tile(grid,index: number,tile: PlaytimeRewards.Tile,x: number,y: n
 	local status=Theme.Display(plate,"Status","",26,WHITE)
 	status.Position,status.Size,status.ZIndex=UDim2.fromScale(0.04,0.06),UDim2.fromScale(0.92,0.88),12
 	status.TextXAlignment,status.TextWrapped=Enum.TextXAlignment.Center,false
+	Theme.Motion:Center(status) -- same resting rect; "Claim!" punches from its middle
 	-- Claimed: darkened, with the Daily reward's green check.
 	local shade=Theme.Frame(card,"Claimed",UDim2.fromScale(1,1),Color3.fromRGB(14,22,34))
 	shade.BackgroundTransparency,shade.ZIndex,shade.Visible=0.3,9,false
@@ -311,7 +340,7 @@ function Panel:Tile(grid,index: number,tile: PlaytimeRewards.Tile,x: number,y: n
 	check.TextXAlignment=Enum.TextXAlignment.Center
 	Theme.Motion:BindButton(button,card)
 	button.Activated:Connect(function() self:TryClaim(index) end)
-	return {button=button,card=card,amount=amount,status=status,shade=shade,check=check}
+	return {button=button,card=card,amount=amount,status=status,shade=shade,check=check,icon=icon,glowing=false}
 end
 
 -- Amounts (the steady income moves) and claimed looks from the latest state.
@@ -334,9 +363,18 @@ function Panel:RefreshStatus(view,data,now: number)
 	local remaining=if type(data.unlockAt)=="number" then data.unlockAt-now else (tonumber(data.at) or 0)*60
 	local ready=not claimed and remaining<=0
 	local text=if claimed then "Claimed!" elseif ready then "Claim!" else PlaytimeRewards.Clock(remaining)
-	if view.status.Text~=text then view.status.Text=text end
+	if view.status.Text~=text then
+		view.status.Text=text
+		-- "Claim!" arrives with a punch; the countdown stays quiet.
+		if ready then Theme.Motion:Punch(view.status,1.2,0.3) end
+	end
 	local color=if claimed or ready then CLAIM else WHITE
 	if view.status.TextColor3~=color then view.status.TextColor3=color end
+	-- A claimable tile glows until it is claimed (steady ring under reduced motion).
+	if ready~=view.glowing then
+		view.glowing=ready
+		if ready then Theme.Motion:Glow(view.button,CLAIM,3) else Theme.Motion:StopGlow(view.button) end
+	end
 end
 
 -- Locked tiles do nothing, as in the reference; one claim request at a time.
@@ -350,29 +388,42 @@ function Panel:TryClaim(index: number)
 	self.app:Request("ClaimPlaytime",{index=index})
 end
 
--- The server's answer: Coins pop like the Daily reward's Collect; boosts and rolls
--- say what they gave. A refusal is shown by AppController's normal notice.
+-- The server's answer: a ring ripples out of the tile with the Claim cue and the
+-- reward floats up ("+1,200 Coins", "+100% Luck", "3 Free Rolls"); Coins also fly
+-- from the tile into the HUD Coins readout. Boosts and rolls keep the server's
+-- message. A refusal is shown by AppController's normal notice.
 function Panel:Claimed(result)
 	self.pendingUntil=0
 	if not result.ok then return end
 	local receipt=result.receipt
 	local app=self.app
-	if type(receipt)=="table" and receipt.kind=="Coins" and (tonumber(receipt.coins) or 0)>0 and app.feedback then
-		local root=app.feedback:Root()
-		app.feedback:ShowCash(if root then root.Position else Vector3.zero,receipt.coins)
-	else
-		app:Notify(result.message,true)
-	end
+	local coins=type(receipt)=="table" and receipt.kind=="Coins" and (tonumber(receipt.coins) or 0)>0
+	if not coins then app:Notify(result.message,true) end
 	local view=self.views and type(receipt)=="table" and self.views[receipt.index]
-	if view then
-		Theme.Motion:PopScale(view.card,1.12,0.26)
-		Theme.Motion:Burst(self.grid,view.button.Position+UDim2.fromScale(TILE_W/2,TILE_H/2),Theme.ReferenceColors.Base)
+	if not view or not self.grid then return end
+	local motion=Theme.Motion
+	cue("Claim","UIPurchase",nil,{voiceKey="PlaytimeClaim",cooldown=0.3})
+	motion:Ripple(view.card,WHITE)
+	local centre=view.button.Position+UDim2.fromScale(TILE_W/2,TILE_H/2)
+	local text=if coins then view.amount.Text.." Coins" else view.amount.Text
+	motion:Float(self.grid,text,centre-UDim2.fromScale(0,TILE_H*0.2),{color=if coins then Theme.Colors.coins else WHITE,size=30,rise=0.12})
+	local gui=app.gui
+	if coins and app.hud and app.hud.money and gui and view.icon.Parent then
+		local target=motion:Point(gui,motion:CenterOf(app.hud.money))
+		local origin=motion:Point(gui,motion:CenterOf(view.icon))
+		cue("Whoosh",nil,nil,{voiceKey="CoinWhoosh",cooldown=0.3})
+		for index=1,4 do
+			motion:Fly(gui,Theme.Assets.Coin,origin+UDim2.fromScale((index-2.5)*0.012,0),target,{seconds=0.5+index*0.05,arc=0.1,onArrive=function()
+				if index==1 then cue("CoinPickup","Collect",1,{voiceKey="CoinArrive",cooldown=0.15,pitchVariance=0.05}) end
+			end})
+		end
 	end
 end
 
 function Panel:Destroy()
 	self.alive=false
 	self:Dismiss(true)
+	self:Attention(false)
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
 	if self.bar then self.bar:Destroy();self.bar=nil end
