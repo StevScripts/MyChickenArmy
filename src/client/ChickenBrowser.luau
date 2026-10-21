@@ -289,7 +289,12 @@ function Browser.new(app,parent)
 	local layout=Instance.new("UIGridLayout")
 	layout.SortOrder,layout.FillDirection=Enum.SortOrder.LayoutOrder,Enum.FillDirection.Horizontal
 	layout.Parent=grid
+	-- Scale heights inside a ScrollingFrame follow the canvas, so cells take their
+	-- width from Scale and stay square through this constraint; the row gap is the
+	-- column gap converted to pixels whenever the grid resizes.
+	Theme.Aspect(layout,1)
 	self.grid,self.gridLayout=grid,layout
+	table.insert(self.connections,grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() self:FitCells() end))
 	-- AutomaticCanvasSize undercounts Scale cells; the canvas follows the layout instead.
 	local function fit() grid.CanvasSize=UDim2.fromOffset(0,math.ceil(layout.AbsoluteContentSize.Y)+4) end
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
@@ -873,6 +878,14 @@ function Browser:RenderDetail(pet)
 	self.detailPortrait=holder
 end
 
+function Browser:FitCells()
+	local look=if self.compact then LAYOUTS.Compact else LAYOUTS.Normal
+	local gap=self.grid.AbsoluteSize.X*look.gap/GRID.w
+	self.gridLayout.CellSize=UDim2.new(look.cell/GRID.w,0,0,0)
+	self.gridLayout.CellPadding=UDim2.new(look.gap/GRID.w,0,0,math.floor(gap+1.5))
+	self.fitGrid()
+end
+
 function Browser:Render(force)
 	local state=self.app.state
 	if not state then return end
@@ -889,9 +902,7 @@ function Browser:Render(force)
 	local flock=state.flock
 	self.capacity.Text=#ids.."/"..state.capacity
 	self.summary.Text=if flock then #(flock.ids or {}).."/"..(flock.size or 0) else "0/0"
-	local look=if self.compact then LAYOUTS.Compact else LAYOUTS.Normal
-	self.gridLayout.CellSize=UDim2.fromScale(look.cell/GRID.w,look.cell/GRID.h)
-	self.gridLayout.CellPadding=UDim2.fromScale(look.gap/GRID.w,(look.gap+1)/GRID.h)
+	self:FitCells()
 	local box=self.compactIcon
 	local tiles=if self.compact then 3 else 2
 	if box:GetAttribute("Tiles")~=tiles then
