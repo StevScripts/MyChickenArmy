@@ -137,8 +137,11 @@ local Config = {
  LuckOpeningLevels=4,LuckContinuationWeightPerLevel=0.10,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,
  MaxStars=1,StarHP={1},StarSize={1},SellFraction=0.5,
- -- All chickens lay the same egg. Species/levels change quantity, not unit value.
- EggBaseValue=4,EggVisualBatchSeconds=0.25,EggsPerChicken=5,EggMaxDrops=80,
+ -- October 21 (docs/team/ONE_EGG_VALUE.md): every egg on the ground is one real egg.
+ -- A chicken lays one every EggLaySeconds (Egg Speed shortens it, never below
+ -- EggMinLaySeconds) and that egg carries all the Coins it earned meanwhile, so
+ -- stronger chickens lay more valuable eggs, not more of them.
+ EggBaseValue=4,EggLaySeconds=3,EggMinLaySeconds=1,EggsPerChicken=5,EggMaxDrops=80,
  LegacyEggLaySeconds=5, -- Older profile egg timers used the original five-second cycle.
  EggSpriteImage="rbxassetid://91011618236242",EggSpriteSize=2,EggSpriteMaxDistance=120,
  EggMagnetRadius=7.5,EggSettleSeconds=0.4,EggFlightSeconds=0.62,EggPickupBatch=4,

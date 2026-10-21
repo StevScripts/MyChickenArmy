@@ -1215,7 +1215,8 @@ function Browser:SlotCard(holder,pet,armySlot,index)
  local name=label(card,"Name",(if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..definition.name:gsub(" Chicken$",""),20,
   UDim2.fromScale(4/138,110/150),UDim2.fromScale(130/138,20/150),WHITE)
  name.TextXAlignment=Enum.TextXAlignment.Center
- local eggs=label(card,"Eggs",Theme.Count(pet.eggsPerSecond or 0,"egg/s","eggs/s"),20,
+ -- October 21: stronger chickens lay more valuable eggs, not more of them.
+ local eggs=label(card,"Eggs",Theme.CompactCoins(pet.eggValue or 0).."/egg",20,
   UDim2.fromScale(4/138,130/150),UDim2.fromScale(130/138,18/150),GOLD,true)
  eggs.TextXAlignment=Enum.TextXAlignment.Center
  -- A Flock chicken out with the Army: another chicken lays in its place until it's back.
@@ -1384,7 +1385,7 @@ function Browser:RenderArmyInfo(pets,ids)
 	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual Army is selected." else "Best chickens selected automatically."
 	local flock=state.flock
 	self.infoFooter.Text="Army stats only. Best uses damage, health and splash.\nFlock: "..(if flock then #(flock.laying or {}) else 0)
-		.." laying · "..Theme.Count(state.homeEggsPerSecond or 0,"egg/s","eggs/s")
+		.." laying · "..Theme.CompactCoins(state.income or 0).."/s"
 	if #ids==0 then
 		label(self.infoRoster,"Empty","No chickens in your Army. Go back and add some.",18,
 			UDim2.fromScale(0.01,0.01),UDim2.fromScale(0.98,0.12),MUTED)
@@ -1411,10 +1412,9 @@ function Browser:RenderDetail(pet)
    elseif pet.giantSize then string.format(' · <font color="#FFB347">GIANT</font> · ×%g HP ×%g dmg · stomp',Giant.HealthMultiplier,Giant.DamageMultiplier)
    else "")
  self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or (if definition.rarity=="Secret" then Art.Glow.Mythic else nil) or Art.Glow.Common,not self.hideDetailPreview
- local eggs=pet.eggsPerSecond or Rules.EggRate(pet.species,pet.stars,pet.level)
  self.stats.Text=Theme.Number(stats.damage/stats.interval)..' <font color="#CDD6C7">DPS</font>  •  '
-  ..Theme.Number(eggs)..' <font color="#CDD6C7">'..(if Theme.Number(eggs)=="1" then "egg/s" else "eggs/s")..'</font>'
- -- The snapshot's eggs/s already includes the mutation; this tag says why.
+  ..Theme.CompactCoins(pet.eggValue or 0)..'<font color="#CDD6C7">/egg</font>'
+ -- The snapshot's egg worth already includes the mutation; this tag says why.
  local mutation=Mutations.Get(pet.mutation)
  if mutation then
   self.detailMutation=MutationVFX.Badge(self.detail,pet.mutation,"MutationEggs",
@@ -1470,13 +1470,13 @@ function Browser:Render(force)
 	self.summary.Text=if flock then string.format('<font color="#F9CE43">%d</font> / %d',#members,flock.size)
 		else string.format('<font color="#F9CE43">%d</font> / %d',#(state.pets or {}),state.collectionLimit or Config.CollectionLimit)
 	self.capacity.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ids,state.capacity)
-	self.flockRate.Text=Theme.Count(if flock then flock.eggsPerSecond or 0 else state.homeEggsPerSecond or 0,"egg/s","eggs/s")
-	self.sortButton.Text=if self.sort=="Name" then "Name A-Z" elseif self.sort=="Eggs" then "Most eggs" else "Best first"
+	self.flockRate.Text=Theme.CompactCoins(state.income or 0).."/s"
+	self.sortButton.Text=if self.sort=="Name" then "Name A-Z" elseif self.sort=="Eggs" then "Best eggs" else "Best first"
 	self.search.PlaceholderText="Search "..stored.." "..(if stored==1 then "chicken" else "chickens").."…"
 	local effects=state.effects or (state.research and state.research.effects)
 	local keys={dimensions,table.concat(ids,","),tostring(state.capacity),mode,
 		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
-		tostring(state.homeEggsPerSecond),self.query,self.sort,tostring(self.placing~=nil),
+		tostring(state.income),self.query,self.sort,tostring(self.placing~=nil),
 		table.concat(members,","),tostring(flock and flock.size),
 		tostring(effects and effects.damage),tostring(effects and effects.health)}
 	table.insert(keys,tostring(state.research and state.research.revision))
@@ -1520,7 +1520,7 @@ function Browser:Render(force)
 				local an,bn=Catalog[a.species].name,Catalog[b.species].name
 				if an~=bn then return an<bn end
 			elseif self.sort=="Eggs" then
-				local ea,eb=a.eggsPerSecond or 0,b.eggsPerSecond or 0
+				local ea,eb=a.eggValue or 0,b.eggValue or 0
 				if ea~=eb then return ea>eb end
 			end
 			if power[a.id]~=power[b.id] then return power[a.id]>power[b.id] end

@@ -49,13 +49,16 @@ local function template(species:string?):BasePart?
  return if found and found:IsA("BasePart") then found else nil
 end
 
-local function caption(adornee,count)
+-- October 21: one egg is one egg; the caption shows what it is worth.
+local function worth(value) return Feedback.Fit(value,"","",156,18,true,false) end
+
+local function caption(adornee,value)
  local gui=Instance.new("BillboardGui")
  gui.Name,gui.Adornee="EggQuantity",adornee
  gui.Size,gui.StudsOffset=UDim2.fromOffset(156,26),Vector3.new(0,1.45,0)
  gui.MaxDistance,gui.AlwaysOnTop,gui.LightInfluence=36,false,0
  gui.Enabled,gui.Active,gui.Parent=false,false,adornee
- local label=Theme.Label(gui,"Quantity",Feedback.Fit(count,"",if count==1 then " egg" else " eggs",156,18,false),18)
+ local label=Theme.Label(gui,"Quantity",worth(value),18)
  label.Size,label.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
  label.TextWrapped=false
  return gui,label
@@ -84,7 +87,7 @@ local function meshEgg(parent,data,source:BasePart)
  local half=(tonumber(body:GetAttribute("EggHeight")) or 1.75)/2
  local center=Instance.new("Attachment");center.Name="Center";center.Position=Vector3.new(0,half,0);center.Parent=body
  local count=data.stack or 1
- local gui,label=caption(center,count)
+ local gui,label=caption(center,data.value)
  local glow=body:FindFirstChild("Glow")
  if glow and glow:IsA("BasePart") then glow.CanQuery=false end
  local seed=tonumber(data.id) or 1
@@ -120,7 +123,7 @@ function EggView.new(parent,data)
  local image=EggArt.Image(data.species)
  whenReady(image,function(ok) if ok and sprite.Parent then sprite.Image=image end end)
  local count=data.stack or 1
- local captionGui,valueLabel=caption(anchor,count)
+ local captionGui,valueLabel=caption(anchor,data.value)
  anchor.Parent=parent
  return setmetatable({anchor=anchor,shell=anchor,gui=gui,image=sprite,trail=trail(anchor,Vector3.zero),caption=captionGui,valueLabel=valueLabel,
   seed=tonumber(data.id) or 1,scale=1,rotation=0,displayedValue=data.value,displayedCount=count},EggView)
@@ -132,7 +135,7 @@ function EggView:SetValue(value,count)
  self.displayedValue,self.displayedCount=value,count
  self.anchor:SetAttribute("CoinValue",value)
  self.anchor:SetAttribute("EggCount",count)
- self.valueLabel.Text=Feedback.Fit(count,"",if count==1 then " egg" else " eggs",156,18,false)
+ self.valueLabel.Text=worth(value)
 end
 
 function EggView:Set(position,scale,tilt,_yaw)

@@ -193,26 +193,27 @@ function EggService:Yard(session)
  return yard
 end
 
+-- Lays the chicken's next egg: one real egg worth everything it earned since its last.
+-- October 21 (docs/team/ONE_EGG_VALUE.md): a drop is always one egg (stack 1).
 function EggService:Lay(session,yard,petId,layer,now)
- local quantity,value=layer.count,layer.value
- if quantity<1 then return end
+ local value=layer.value
+ if value<1 then return end
  local count,existing=0,nil
  for _,drop in yard.drops do
   if drop.petId==petId and not drop.claimAt then count+=1;existing=drop end
  end
- -- A visual represents an exact quantity of identical eggs. Work is bounded by
- -- drop count, even when one chicken produces hundreds of thousands per second.
+ -- A full yard never adds eggs: the new Coins go into an egg already waiting, so
+ -- that egg is worth more while the count on the ground stays honest.
  if count>=Config.EggsPerChicken or #yard.drops>=Config.EggMaxDrops then
-  -- A stack never grows past what one empty bag can hold, so every drop stays collectable.
-  local function fits(drop) return drop.stack+quantity<=CARRY_LIMIT and drop.value+value<=CARRY_LIMIT end
+  -- An egg never grows past what one empty bag can hold, so every drop stays collectable.
+  local function fits(drop) return drop.value+value<=CARRY_LIMIT end
   if existing and not fits(existing) then existing=nil end
   if not existing then for _,drop in yard.drops do if not drop.claimAt and fits(drop) then existing=drop;break end end end
   if existing then
-   existing.value+=value;existing.stack+=quantity;yard.revision+=1
-   layer.count,layer.value=0,0
-   return
+   existing.value+=value;yard.revision+=1
+   layer.value=0
   end
-  -- All available stacks are in flight; retain their next quantity and value.
+  -- Otherwise every egg is in flight; the chicken keeps the Coins for its next egg.
   return
  end
  local pet=session.pets[petId]
@@ -227,8 +228,8 @@ function EggService:Lay(session,yard,petId,layer,now)
  local position=(frame*CFrame.new(x,layout.FootY,z)).Position
  table.insert(yard.drops,{id=tostring(self.serial),petId=petId,species=pet.species,
   x=position.X,y=position.Y,z=position.Z,originX=origin.X,originY=origin.Y+0.8,originZ=origin.Z,
-  value=value,stack=quantity,born=now,readyAt=now+Config.EggSettleSeconds})
- layer.count,layer.value=0,0
+  value=value,stack=1,born=now,readyAt=now+Config.EggSettleSeconds})
+ layer.value=0
  yard.revision+=1
 end
 
@@ -239,6 +240,7 @@ function EggService:Produce(session,dt,now)
  local production=session:EggProductionMultiplier()
  -- Held territories raise live egg value only (offline uses OfflineCash.Rate).
  local unitValue=Rules.EggUnitValue(session.incomeLevel)*(1+session.researchEffects.eggValue)*(1+(session.territoryBonus or 0))
+ local interval=Rules.LaySeconds(production)
  -- October 20 Flock: only Flock chickens lay (at home, plus fill-ins for Flock
  -- chickens away with the Army). Chickens in storage lay nothing.
  local laying={}
@@ -249,28 +251,26 @@ function EggService:Produce(session,dt,now)
   local layer=yard.layers[id]
   if not layer then
    yard.ordinal+=1
-   layer={count=0,value=0,fraction=0,elapsed=0,ordinal=yard.ordinal}
+   -- Stagger new layers so a full Flock never drops its eggs on the same tick.
+   layer={value=0,fraction=0,elapsed=(yard.ordinal*0.37)%interval,ordinal=yard.ordinal}
    yard.layers[id]=layer
   end
-  -- Speed changes affect future production only; partial eggs survive upgrades
-  -- and time away. Price each completed egg once, at the shared current value.
-  -- Launch: a mutation multiplies this chicken's eggs (1 with the foundation stub).
-  local accrued=layer.fraction+Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation)*production*dt
-  local quantity=math.floor(accrued+1e-7)
-  layer.fraction=math.max(0,accrued-quantity)
-  local priced=quantity*unitValue+session.research.eggValueRemainder
-  local whole=math.floor(priced+1e-7)
-  session.research.eggValueRemainder=math.max(0,priced-whole)
-  layer.count+=quantity;layer.value+=whole
+  -- Coins accrue every frame at the current rate; whole Coins wait in the layer
+  -- until the chicken lays its next egg. Speed changes affect future eggs only.
+  -- Launch: a mutation multiplies this chicken's Coins (1 with the foundation stub).
+  local accrued=layer.fraction+Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation)*production*unitValue*dt
+  local whole=math.floor(accrued+1e-7)
+  layer.fraction=math.max(0,accrued-whole)
+  layer.value+=whole
   layer.elapsed+=dt
-  if layer.count>0 and layer.elapsed+1e-7>=Config.EggVisualBatchSeconds then
+  if layer.elapsed+1e-7>=interval then
    layer.elapsed=0
    self:Lay(session,yard,id,layer,now)
   end
  end
  for id,layer in yard.layers do
   if not session.pets[id] then yard.layers[id]=nil
-  elseif not laying[id] and layer.count>0 and session:IsPetHome(id) then
+  elseif not laying[id] and layer.value>0 and session:IsPetHome(id) then
    -- A chicken that left the Flock at home still lays the eggs it had started.
    layer.elapsed=0
    self:Lay(session,yard,id,layer,now)
@@ -278,21 +278,18 @@ function EggService:Produce(session,dt,now)
  end
 end
 
--- Eggs per second the yard lays right now, counting the same chickens, rates and
--- boosts as Produce. The vacuum's capacity is seconds of this laying. S10's
+-- Real eggs per second the yard lays right now: one per laying chicken every
+-- Rules.LaySeconds. The vacuum's capacity is seconds of this laying. S10's
 -- LayingIds is the Flock at home plus fill-ins for layers away with the Army, so a
 -- march never shrinks the vacuum; before S10 every chicken at home lays.
 function EggService:LayingRate(session)
- local rate=0
- local function add(pet)
-  if pet then rate+=Rules.EggRate(pet.species,pet.stars,pet.level)*MutationCatalog.Multiplier(pet.mutation) end
- end
+ local layers=0
  if session.LayingIds then
-  for _,id in session:LayingIds() do add(session.pets[id]) end
+  for _,id in session:LayingIds() do if session.pets[id] then layers+=1 end end
  else
-  for id,pet in session.pets do if session:IsPetHome(id) then add(pet) end end
+  for id in session.pets do if session:IsPetHome(id) then layers+=1 end end
  end
- return rate*session:EggProductionMultiplier()
+ return layers/Rules.LaySeconds(session:EggProductionMultiplier())
 end
 
 -- Eggs the vacuum holds: Seconds plus the Tools tiers and Gem levels (also seconds)
@@ -392,22 +389,6 @@ function EggService:Claim(yard,drop,now,collector,target)
  return true
 end
 
--- Takes `take` eggs off an unclaimed stack as a new drop on the same spot. Coins stay
--- whole: the new part gets its share rounded down and the eggs left behind keep the
--- rest, so a split never creates or loses value.
-function EggService:Split(yard,drop,take)
- local stack=drop.stack or 1
- local value=math.floor(drop.value*take/stack)
- self.serial+=1
- local part=table.clone(drop)
- part.id=tostring(self.serial)
- part.stack,part.value=take,value
- drop.stack,drop.value=stack-take,drop.value-value
- table.insert(yard.drops,part)
- yard.revision+=1
- return part
-end
-
 -- October 20 click, tap and gamepad pickup. Each id names one ready stack within
 -- Click Range of the player (plus latency slack); it flies into the bag.
 function EggService:CollectClicked(session,ids,now)
@@ -437,8 +418,7 @@ function EggService:CollectClicked(session,ids,now)
  return claimed
 end
 
--- The equipped Egg Vacuum pulls the nearest ready eggs in range until it is full;
--- a stack bigger than the room left is split and the rest stays on the ground.
+-- The equipped Egg Vacuum pulls the nearest ready eggs in range until it is full.
 function EggService:Vacuum(session,yard,root,now)
  local cargo=vacuumCargo(session)
  local room=self:VacuumCapacity(session,yard,now)-cargo.count-(yard.vacuumPending or 0)
@@ -460,7 +440,6 @@ function EggService:Vacuum(session,yard,root,now)
  for _,entry in near do
   if claimed>=Tools.PickupBatch or room<1 then break end
   local drop=entry.drop
-  if (drop.stack or 1)>room then drop=self:Split(yard,drop,room) end
   local stack=drop.stack or 1
   room-=stack
   yard.vacuumPending=(yard.vacuumPending or 0)+stack

@@ -209,12 +209,12 @@ function AppController:TrackRecruit(result)
 	end
 	-- Per-bird potential, not a promise of net home income or cash paid immediately.
 	local identity=name
-	if pet and type(pet.eggsPerSecond)=="number" then
+	-- October 21: a chicken's strength is the worth of each egg it lays.
+	if pet and type(pet.eggValue)=="number" then
 		local width=math.max(1,self.toast.AbsoluteSize.X)
-		local rate=if math.floor(pet.eggsPerSecond*10+0.5)==10 then " egg/s" else " eggs/s"
-		identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · ",rate.." at home",width,self.toast.TextSize,false,true)
+		identity=EggFeedback.Fit(pet.eggValue,name.." · ","/egg at home",width,self.toast.TextSize,true,false)
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then
-			identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · ",rate,width,self.toast.TextSize,false,true)
+			identity=EggFeedback.Fit(pet.eggValue,name.." · ","/egg",width,self.toast.TextSize,true,false)
 		end
 		-- Preserve identity and assignment if a very narrow viewport cannot fit the optional rate.
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then identity=name end

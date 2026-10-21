@@ -21,15 +21,24 @@ function Rules.LevelCap(effects: any): number
 	return math.clamp(Config.MaxPetLevel + math.floor(extra :: number), Config.MaxPetLevel, Config.PetLevelLimit)
 end
 
--- Catalog income is the existing base cash/sec balance. Express it as egg quantity.
+-- Catalog income is the existing base cash/sec balance, in units of the base egg
+-- value: income per second is EggRate x EggUnitValue. October 21: this is a Coins
+-- rate, not an egg count; every chicken lays one egg per LaySeconds (below).
 -- Retain the approved level curve: a merged bird produces 2x one input bird. Levels
--- past Config.MaxPetLevel (Feed Max Level) add +25% eggs each instead (Stevin, Oct 20).
+-- past Config.MaxPetLevel (Feed Max Level) add +25% each instead (Stevin, Oct 20).
 Rules.EggGrowthPastCap = 1.25
 function Rules.EggRate(species: string, stars: number, level: number?): number
 	local rank = math.clamp(level or 1, 1, Config.PetLevelLimit)
 	local doubled = math.min(rank, Config.MaxPetLevel)
 	local base = Catalog[species].income * Config.PassiveIncomeMultiplier
 	return base / Config.EggBaseValue * 2 ^ (stars - 1) * 2 ^ (doubled - 1) * Rules.EggGrowthPastCap ^ (rank - doubled)
+end
+
+-- Seconds between two eggs from one chicken. Egg Speed and Double Egg Spawn
+-- (production) lay eggs sooner, never faster than Config.EggMinLaySeconds.
+function Rules.LaySeconds(production: number?): number
+	local speed = if type(production) == "number" and production > 0 then production else 1
+	return math.clamp(Config.EggLaySeconds / speed, Config.EggMinLaySeconds, Config.EggLaySeconds)
 end
 
 -- October 20: incomeLevel is the Upgrades tree's Egg Value tier (0-4).
