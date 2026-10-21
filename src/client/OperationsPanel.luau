@@ -153,7 +153,9 @@ function Panel:BuildShell()
 	-- Studio may author PetRollGui.MenuLayouts.Operations; otherwise one native composition.
 	if MenuLayout.Control(app.gui,"Operations") then MenuLayout.Apply(app.gui,"Operations",panel)
 	else
-		panel.Size=UDim2.fromScale(.62,.72)
+		-- October 21 responsiveness: .76 of the screen height (was .72) so the tabs, three
+		-- mission rows, status row and Defend all keep 48 px hits on a phone.
+		panel.Size=UDim2.fromScale(.66,.76)
 		Theme.Aspect(panel,1)
 	end
 	self.panelSize,self.panelPosition=panel.Size,panel.Position
