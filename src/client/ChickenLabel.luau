@@ -5,13 +5,14 @@
 -- grows as you walk up. One label at a time keeps phones light; that chicken's small
 -- nameplate hides meanwhile and every other chicken keeps its own. With Chicken Feed
 -- in hand and in reach the top line reads "LVL 3 → LVL 4", and a Feed level pops the
--- label and floats a gold "Level up!" off the chicken. Presentation only:
--- ToolController still owns the Feed prompt and the server owns every number.
+-- label and floats "Level N!" off the chicken in its rarity colour (WorldFeel:Text).
+-- October 21 game feel: the label pops in on a new chicken, the Coins/s line punches
+-- when it changes and the "→ LVL n+1" line breathes while Feed is in hand.
+-- Presentation only: ToolController still owns the Feed prompt and the server owns
+-- every number.
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local TextService=game:GetService("TextService")
-local TweenService=game:GetService("TweenService")
-local Debris=game:GetService("Debris")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
 local Config=require(Shared.Config)
@@ -55,7 +56,7 @@ local function line(parent: Instance,name: string,row: {number},color: Color3): 
 end
 
 function Label.new(app)
-	local self=setmetatable({app=app,connections={},nextPollAt=0,shown={}},Label)
+	local self=setmetatable({app=app,connections={},nextPollAt=0,shown={},breathing=false},Label)
 	local gui=Instance.new("BillboardGui")
 	gui.Name,gui.Size,gui.SizeOffset="ChickenLabel",UDim2.fromScale(WIDTH,HEIGHT),Vector2.new(0,0.5)
 	gui.AlwaysOnTop,gui.LightInfluence,gui.MaxDistance=true,0,80
@@ -139,6 +140,10 @@ function Label:SetTarget(model: Model?)
 	end
 	self:ShowNameplate()
 	self.model,self.shown=model,{}
+	if self.breathing then
+		self.breathing=false
+		Theme.Motion:StopBreathe(self.level)
+	end
 	local gui=self.gui
 	if not model then
 		gui.Enabled,gui.Adornee=false,nil
@@ -153,6 +158,7 @@ function Label:SetTarget(model: Model?)
 	self:HideNameplate()
 	self:Place()
 	gui.Enabled=true
+	Theme.Motion:PopScale(self.holder,0.7,0.26) -- Grows in on its new chicken.
 end
 
 -- The label stands on the small nameplate's spot, which ChickenGrowth raises as the
@@ -194,14 +200,21 @@ function Label:Render(pet,arrow: boolean)
 		shown.level=levelText
 		self.level.Text=levelText
 	end
+	-- The "→ LVL n+1" line breathes while Feed is in hand and in reach.
+	if nextLevel~=self.breathing then
+		self.breathing=nextLevel
+		if nextLevel then Theme.Motion:Breathe(self.level,1.05,0.7) else Theme.Motion:StopBreathe(self.level) end
+	end
 	if shown.species~=pet.species then
 		shown.species=pet.species
 		self.name.Text=if definition then definition.name else "Chicken"
 		self.name.TextColor3=definition and Theme.Rarities[definition.rarity] or UIColors.Text
 	end
 	if shown.value~=value then
+		local changed=shown.value~=nil
 		shown.value=value
 		self:LayoutCoins(value,laying)
+		if changed then Theme.Motion:Punch(self.amount,1.2,0.3) end -- A new Coins/s (a Feed level).
 	end
 end
 
@@ -219,35 +232,23 @@ function Label:LayoutCoins(text: string,coin: boolean)
 	self.amount.TextColor3=if coin then UIColors.Coins else UIColors.Muted
 end
 
--- A Feed level: the label pops with its new numbers and "Level up!" floats off the chicken.
+-- A Feed level: the label pops with its new numbers and "Level N!" floats off the
+-- chicken in its rarity colour (WorldFeel:Text keeps it, without the rise, under
+-- reduced motion). ToolController plays the crunch, crumbs, flash, hop and cluck.
 function Label:LevelUp(petId: string)
 	self.nextPollAt=0
 	self:Step(os.clock())
 	local model=self.model
 	if model and model:GetAttribute("PetId")==petId then Theme.Motion:PopScale(self.holder,1.3,0.32) end
-	if self.app.reducedMotion then return end
+	local feel=self.app.worldFeel
 	local target=self.app.base:HomePet(petId)
-	if not target or not target:IsA("Model") or not target.PrimaryPart then return end
-	local part=target.PrimaryPart
+	if not feel or not target or not target:IsA("Model") or not target.PrimaryPart then return end
+	local pet=self:Pet(petId)
+	local definition=pet and Catalog[pet.species]
 	local tag=target:FindFirstChild("Tag",true)
-	local start=Vector3.new(0,(if tag and tag:IsA("BillboardGui") then tag.StudsOffset.Y else 3)*0.55,0)
-	local gui=Instance.new("BillboardGui")
-	gui.Name,gui.Size,gui.LightInfluence="LevelUpPop",UDim2.fromScale(5,1.5),0
-	gui.AlwaysOnTop,gui.MaxDistance,gui.ResetOnSpawn=true,80,false
-	gui.Adornee,gui.StudsOffset=part,start
-	local text=Theme.Display(gui,"Text","Level up!",40,Theme.Arcade.gold)
-	text.AnchorPoint,text.Position,text.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1,1)
-	text.TextScaled,text.TextWrapped,text.TextXAlignment=true,false,Enum.TextXAlignment.Center
-	gui.Parent=self.gui.Parent
-	Theme.Motion:PopScale(text,0.4,0.3)
-	TweenService:Create(gui,TweenInfo.new(1.1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-		{StudsOffset=start+Vector3.new(0,2.4,0)}):Play()
-	local fade=TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.In,0,false,0.7)
-	for _,item in text:GetDescendants() do
-		if item:IsA("TextLabel") then TweenService:Create(item,fade,{TextTransparency=1}):Play()
-		elseif item:IsA("UIStroke") then TweenService:Create(item,fade,{Transparency=1}):Play() end
-	end
-	Debris:AddItem(gui,1.2)
+	local lift=(if tag and tag:IsA("BillboardGui") then tag.StudsOffset.Y else 3)*0.55
+	feel:Text(target.PrimaryPart.Position+Vector3.new(0,lift,0),if pet and pet.level then "Level "..pet.level.."!" else "Level up!",
+		{color=(definition and Theme.Rarities[definition.rarity]) or Theme.Arcade.gold,coin=false,size=34,seconds=1.2,rise=2.4})
 end
 
 function Label:Receive(_state,result)

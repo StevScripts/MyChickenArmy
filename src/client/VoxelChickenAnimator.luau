@@ -148,6 +148,14 @@ function VoxelChickenAnimator._events(self: Controller, now: number, allow: bool
 	end
 end
 
+-- October 21 game feel: a local clip cue (DuckAnimator:Celebrate plays "Victory" for
+-- a fed chicken). Skipped while the rig is asleep, defeated or still loading.
+function VoxelChickenAnimator.Cue(self: Controller, name: string, now: number)
+	local data = self.data
+	if self.destroyed or self.sleeping or self.defeatAt or not data or not data.clips[name] then return end
+	self.cues[name] = {name = name, started = now}
+end
+
 function VoxelChickenAnimator.Step(self: Controller, now: number, reduced: boolean?, camera: Camera?)
 	if self.destroyed then return end
 	local model = self.model

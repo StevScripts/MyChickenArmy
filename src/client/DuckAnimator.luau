@@ -1,8 +1,14 @@
 --!strict
 -- One client animator for every streamed duck rig. It only poses joints;
 -- Humanoid physics and authoritative positions remain on the server.
+-- October 21 game feel: home chickens near the player cluck now and then
+-- (Cluck1/2/3, one at a time), and a fed chicken hops (Celebrate): V3 rigs play
+-- their Victory clip, Motor6D rigs lift through the Root joint pose. Nothing here
+-- moves a model. Budgets in CollectionFeel.Feel.
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local Feel = require(game:GetService("ReplicatedStorage").PetRoll.Shared.CollectionFeel)
 local ChickenClipPlayer = require(script.Parent.ChickenClipPlayer)
 local RareChickenVFX = require(script.Parent.RareChickenVFX)
 local SpecialChickenVFX = require(script.Parent.SpecialChickenVFX)
@@ -15,6 +21,7 @@ local KingVisual = require(game:GetService("ReplicatedStorage").PetRoll.Shared.K
 local DuckAnimator = {}
 DuckAnimator.__index = DuckAnimator
 local JOINTS = {"Root", "Neck", "WingLeft", "WingRight", "FootLeft", "FootRight"}
+local CLUCKS = {"Cluck1", "Cluck2", "Cluck3"}
 
 local function phaseFor(name: string): number
 	local phase = 0
@@ -23,14 +30,14 @@ local function phaseFor(name: string): number
 end
 
 function DuckAnimator.new(audio)
-	local self = setmetatable({records = {}, connections = {}, reducedMotion = false, destroyed = false,
+	local self = setmetatable({records = {}, connections = {}, reducedMotion = false, destroyed = false, audio = audio, nextCluckAt = 0,
 		effectQuality = ChickenEffectQuality.new(), galaxyMask = GalaxyViewportEffect.new()}, DuckAnimator)
 	local function discover(item: Instance)
 		if item:IsA("Model") and (item:GetAttribute("DuckRig") == true or item:GetAttribute("SkinnedChicken") == true or item:GetAttribute("GalaxyDragonAnimation") == true) and not self.records[item] then
 			local dragon = item:GetAttribute("GalaxyDragonAnimation") == true
 			self.records[item] = {model = item, root = nil, joints = {}, phase = phaseFor(item.Name),
 				lastPose = 0, lastScan = -1, attackSerial = item:GetAttribute("AttackSerial") or 0,
-				attackAt = -10, sleeping = false, fx = if dragon or item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
+				attackAt = -10, hopAt = -10, sleeping = false, fx = if dragon or item:GetAttribute("ChickenVisualV3") then SpecialChickenVFX.new(item, audio) else RareChickenVFX.new(item),
 				glitch = if dragon then nil else GlitchEditableMesh.new(item),
 				blender = if dragon then GalaxyDragonAnimator.new(item) elseif item:GetAttribute("ChickenVisualV3") then VoxelChickenAnimator.new(item) elseif item:GetAttribute("SkinnedChicken") then ChickenClipPlayer.new(item) else nil}
 		end
@@ -63,17 +70,66 @@ function DuckAnimator:SetReducedMotion(reduced: boolean)
 	self.reducedMotion = reduced == true
 end
 
+-- A fed chicken's happy hop. V3 rigs play their Victory clip; Motor6D rigs lift
+-- through the Root joint in _step. The server owns the model's position, so the
+-- PrimaryPart is never moved. Reduced motion skips it (the flash and text remain).
+function DuckAnimator:Celebrate(model: Model)
+	local record = self.records[model]
+	if not record or self.reducedMotion then return end
+	local blender: any = record.blender
+	if blender then
+		if blender.Cue then blender:Cue("Victory", os.clock()) end
+	else
+		record.hopAt = os.clock()
+	end
+end
+
+-- Where ambient clucks are heard from: the player's root, else the camera.
+function DuckAnimator:Listener(camera: Camera?): Vector3?
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then return root.Position end
+	return if camera then camera.CFrame.Position else nil
+end
+
+-- One positioned cluck from a home chicken (only cues the library has; Effects off
+-- is silent inside AudioController).
+function DuckAnimator:Cluck(position: Vector3)
+	local audio = self.audio
+	if not audio or not audio.Has then return end
+	local names = {}
+	for _, name in CLUCKS do
+		if audio:Has(name) then table.insert(names, name) end
+	end
+	if #names == 0 then return end
+	audio:PlayAt(names[math.random(#names)], position, nil,
+		{noFallback = true, voiceKey = "AmbientCluck", cooldown = Feel.Feel.CluckGap * 0.5, pitchVariance = 0.1, maxDuration = 1.5})
+end
+
 function DuckAnimator:_step(dt: number)
 	local now = os.clock()
 	local camera = workspace.CurrentCamera
 	local tier = self.effectQuality:Step(dt)
 	local cullDistance = self.effectQuality:CullDistance()
+	-- Every CluckGap seconds one home chicken within CluckRange is picked at random
+	-- (reservoir sample inside the pose loop: no extra pass over the yard).
+	local picking = now >= self.nextCluckAt
+	local listener = if picking then self:Listener(camera) else nil
+	local cluckAt: Vector3?, cluckCount = nil, 0
 	for model, record in self.records do
 		if not model:IsDescendantOf(workspace) then
 			if record.blender then record.blender:Destroy() end
 			if record.fx then record.fx:Destroy() end
 			if record.glitch then record.glitch:Destroy() end
 			self.records[model] = nil continue
+		end
+		if listener and model:GetAttribute("PetId") ~= nil and model:GetAttribute("AtHome") ~= false
+			and not model:GetAttribute("Defeated") and model:GetAttribute("PresentationHidden") ~= true then
+			local part = model.PrimaryPart
+			if part and (part.Position - listener).Magnitude <= Feel.Feel.CluckRange then
+				cluckCount += 1
+				if math.random() * cluckCount < 1 then cluckAt = part.Position end
+			end
 		end
 		if model:GetAttribute("ChickenKing") then KingVisual.Update(model) end
 		-- Revealed offers reserve the original mesh for masking. Every roaming
@@ -127,8 +183,11 @@ function DuckAnimator:_step(dt: number)
 		local size = model:GetAttribute("Size") or 2.5
 		local bob = if reduced then 0 else (math.abs(wave) * walk * 0.024 + math.sin(record.phase * 0.5) * 0.004) * size
 		local roll = if reduced then 0 else wave * (0.012 + walk * 0.065)
+		-- Celebrate: a short lift and back on the Root joint.
+		local hop = (now - record.hopAt) / Feel.Feel.HopSeconds
+		local lift = if reduced or hop < 0 or hop >= 1 then 0 else math.sin(hop * math.pi) * Feel.Feel.HopHeight
 		local joints = record.joints
-		if joints.Root then joints.Root.Transform = CFrame.new(0, bob, -attack * size * 0.06) * CFrame.Angles(-attack * 0.11, 0, roll) end
+		if joints.Root then joints.Root.Transform = CFrame.new(0, bob + lift, -attack * size * 0.06) * CFrame.Angles(-attack * 0.11, 0, roll) end
 		if joints.Neck then joints.Neck.Transform = CFrame.Angles(-attack * 0.32, 0, -roll * 0.4) end
 		if joints.WingLeft then joints.WingLeft.Transform = CFrame.Angles(wave * walk * 0.08, 0, -walk * 0.07 - attack * 0.24) end
 		if joints.WingRight then joints.WingRight.Transform = CFrame.Angles(-wave * walk * 0.08, 0, walk * 0.07 + attack * 0.24) end
@@ -137,6 +196,10 @@ function DuckAnimator:_step(dt: number)
 	end
 	-- Copy the final bone pose, not last frame's pose, into the cosmetic viewport.
 	self.galaxyMask:Step(now, camera, self.records, tier, self.reducedMotion)
+	if picking then
+		self.nextCluckAt = now + Feel.Feel.CluckGap
+		if cluckAt then self:Cluck(cluckAt) end
+	end
 end
 
 function DuckAnimator:Destroy()
