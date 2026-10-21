@@ -907,7 +907,10 @@ function AppController:Receive(packet)
 		if not researchFeedback and not shownCrate
 			and not (result.ok and (result.action=="Roll" or shownRecruit or QUIET_SUCCESS[result.action])) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
-		if result.ok and (result.action == "Sell" or result.action == "Promote") then self.feedback:Action(result.action) end
+		-- October 21 game feel: the Sell menu and My Army play their own sale feedback
+		-- (confetti, coin flyers, CashTick), so the world payoff only covers other sales.
+		if result.ok and result.action == "Sell" and self.page ~= "Sell" and self.page ~= "Army" then self.feedback:Action("Sell") end
+		if result.ok and result.action == "Promote" then self.feedback:Action("Promote") end
 		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "Attack" then self:ClosePanel() end
 	end
