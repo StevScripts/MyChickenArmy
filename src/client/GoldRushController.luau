@@ -56,7 +56,7 @@ function Controller:BuildChip()
 	chip.Name,chip.Text,chip.AutoButtonColor,chip.Selectable="GoldRushChip","",false,false
 	chip.BackgroundTransparency,chip.BorderSizePixel=1,0
 	chip.AnchorPoint,chip.Size,chip.Visible=Vector2.new(1,1),UDim2.fromScale(0.3,0.05),false
-	chip.Parent=app.hudLayer
+	chip.Parent=(app.hud and app.hud.boostSlot) or app.hudLayer
 	Theme.Aspect(chip,10)
 	-- Text right-aligned against the coin, which sits on the right edge like the totals below.
 	local icon=Theme.Image(chip,"Icon",Theme.Assets.Coin,UDim2.fromScale(0.1,1),UDim2.fromScale(1,0.5))
@@ -77,12 +77,23 @@ function Controller:BuildChip()
 	self:Place()
 end
 
--- October 21 (Stevin): the bottom-right corner, where Camps held / Flock were (Auto
--- Roll sits higher on the right edge, so the two never meet). Later that day the
--- small coin/clover boosts (BoostReadout) took the very corner; the chip rests on them.
+-- October 21 (Stevin): the bottom-right corner, where Camps held / Flock were. Later
+-- that day the small coin/clover boosts (BoostReadout) took the very corner. October 21
+-- reference parity: the chip shares their row, just left of the pair (it lives in
+-- HudController's BoostSlot, so it follows the pair on every screen shape), which
+-- leaves the room above the pair to the boosts' breakdown and its touch area. Slot
+-- units: the chip keeps its 0.05-of-screen height (0.05/0.055 of the slot) and aspect.
+local SLOT_GAP=0.08 -- of the slot's width, between the chip's coin and the boosts
 function Controller:Place()
+	local chip=self.chip
+	if chip.Parent and chip.Parent.Name=="BoostSlot" then
+		local height=0.05/BoostReadout.Size.Y.Scale
+		chip.AnchorPoint,chip.Position=Vector2.new(1,0.5),UDim2.fromScale(-SLOT_GAP,0.5)
+		chip.Size=UDim2.fromScale(10*height/BoostReadout.Aspect,height)
+		return
+	end
 	local boosts=BoostReadout.Position.Y.Scale-BoostReadout.Size.Y.Scale
-	self.chip.Position=UDim2.fromScale(0.988,boosts-0.008)
+	chip.Position=UDim2.fromScale(0.988,boosts-0.008)
 end
 
 function Controller:Step()
