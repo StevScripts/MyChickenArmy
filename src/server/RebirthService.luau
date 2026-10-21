@@ -158,12 +158,17 @@ end
 
 -- The unclaimed Time Skip reward: {coins, rank} with coins > 0, or nil. PlayerSession
 -- saves it (additive, lenient); anything else reads as none.
-local function pendingTimeSkip(session): {coins: number, rank: number}?
+local function pendingTimeSkip(session: any): {coins: number, rank: number}?
 	local pending = session.timeSkipPending
 	if type(pending) ~= "table" then return nil end
 	local coins, rank = pending.coins, pending.rank
 	if type(coins) ~= "number" or coins ~= coins or coins < 1 or type(rank) ~= "number" or rank ~= rank then return nil end
 	return {coins = math.min(math.floor(coins), Currency.MaxCoins), rank = clampRank(rank)}
+end
+
+-- The one writer of session.timeSkipPending (nil clears it).
+local function storeTimeSkip(session: any, pending: {coins: number, rank: number}?)
+	session.timeSkipPending = pending
 end
 
 local function armyHome(session): boolean
@@ -402,7 +407,7 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 		-- player's claim (ClaimTimeSkip). An unclaimed one is added to, never lost.
 		local waiting = pendingTimeSkip(session)
 		local total = math.min(Currency.MaxCoins, (if waiting then waiting.coins else 0) + timeSkip)
-		session.timeSkipPending = if total >= 1 then {coins = total, rank = nextRank} else nil
+		storeTimeSkip(session, if total >= 1 then {coins = total, rank = nextRank} else nil)
 	else
 		-- A Skip keeps the run's Coins, so its Time Skip pays at once, as before.
 		timeSkip = math.min(timeSkip, Currency.MaxCoins - session.coins)
@@ -435,10 +440,10 @@ function RebirthService.ClaimTimeSkip(session, server): (boolean, string, any?)
 	end
 	local pending = pendingTimeSkip(session)
 	if not pending then
-		session.timeSkipPending = nil
+		storeTimeSkip(session, nil)
 		return false, ""
 	end
-	session.timeSkipPending = nil
+	storeTimeSkip(session, nil)
 	local coins = math.max(0, math.floor(math.min(pending.coins, Currency.MaxCoins - session.coins)))
 	if coins > 0 then coins = session:Credit(coins, "rebirth") end
 	session:Touch()
