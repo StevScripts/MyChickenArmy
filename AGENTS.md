@@ -149,6 +149,15 @@ Later October 15 owner decision (supersedes the stationing above): a won site
 disappears at once, like before, and the army walks home. No flag, holding,
 contests or hold bonus; Loyalist guards and the 15-minute life remain.
 
+## My Army grid (October 21, owner)
+My Army copies the owner's reference "Pets" window 1:1 (art in our style): one grid,
+Army checked and first, hover tooltip, click detail card, Equip Best / Unequip All,
+lock and sell modes with Confirm, two sorts, compact, search. Its size was measured
+from his recording (960 x 557 units = 55.6% x 51.4% of the screen,
+`MenuLayouts.MyArmyGrid`); keep elements in those units with Scale only. The Flock is
+never picked: it is always the best egg layers and a layer away with the Army is
+filled by the next best at home. See `docs/team/ARMY_GRID.md`.
+
 ## Chicken UI Lab (October 15)
 The owner tweaks UI in the Studio plugin (`tools/ui-lab`, guide `docs/UI_LAB.md`) and
 saves change lists to `ServerStorage.UILab.Tweaks`. "Apply my UI Lab tweaks" means:
