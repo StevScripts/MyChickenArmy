@@ -36,7 +36,7 @@ local function offerLabel(parent, frame)
 		local label = Instance.new("TextLabel")
 		label.Name, label.BackgroundTransparency = name, 1
 		label.Position, label.Size = UDim2.fromOffset(0, top), UDim2.new(1, 0, 0, height)
-		label.Font, label.TextSize, label.TextColor3 = Enum.Font.SourceSansBold, textSize, UIColors.Text
+		label.Font, label.TextSize, label.TextColor3 = Enum.Font.MontserratBold, textSize, UIColors.Text
 		label.Text, label.Parent = "", gui
 		local stroke = Instance.new("UIStroke")
 		stroke.Color, stroke.Thickness, stroke.Transparency = UIColors.Border, 2, 0.05
@@ -95,7 +95,7 @@ local function rollCounters(parent, position)
 		local label = Instance.new("TextLabel")
 		label.Name, label.BackgroundTransparency, label.Text = "Count", 1, ""
 		label.Position, label.Size = UDim2.fromScale(0.1, 0.06), UDim2.fromScale(0.86, 0.88)
-		label.Font, label.TextScaled, label.TextColor3 = Enum.Font.SourceSansBold, true, UIColors.Text
+		label.Font, label.TextScaled, label.TextColor3 = Enum.Font.MontserratBold, true, UIColors.Text
 		label.ZIndex, label.Parent = 2, bar
 		local stroke = Instance.new("UIStroke")
 		stroke.Color, stroke.Thickness, stroke.Transparency, stroke.Parent = UIColors.Border, 2, 0.05, label

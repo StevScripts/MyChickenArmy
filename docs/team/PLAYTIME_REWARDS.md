@@ -70,10 +70,13 @@ unlock times. Its Coins amounts (3,762 … 65,849) give the 1 : 1.5 : 2.5 : 5 : 
 
 ## Boosts readout (`src/client/BoostReadout.luau`)
 
-- The coin "x9.2" and the clover "x4.5" sit in one line under Friend Boost in the
-  bottom-left Coins readout (HudController `BoostSlot`; October 21, Stevin, moved from
-  the top-right under the Settings gear). A running boost's time left shows after its
-  number. The corner notice took the old top-right spot (Y 0.094).
+- The coin "x9.2" and the clover "x4.5" are a very small icon pair in the bottom-right
+  corner (HudController `BoostSlot`, `BoostReadout.Position/Size/Aspect`). Each number
+  is a tilted badge over its icon's top-right corner, like Stevin's reference image
+  (later October 21; before that they sat under Friend Boost, and first top-right under
+  the Settings gear). A running boost's time left shows over the foot of its icon. The
+  Gold Rush chip rests just above them. The corner notice took the old top-right spot
+  (Y 0.094).
 - **Coins ×** is what one egg sells for, compared with no upgrades or boosts: the Egg
   Value tier × 2x Coins × Rebirth × Coin Boost × Gold Rush × Friend Boost × the Playtime
   Coins boost × a held outpost's egg bonus.

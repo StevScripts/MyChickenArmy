@@ -406,7 +406,7 @@ function RollPresentationController:ShowSpecialTag(record, kind: string)
   icon.Name,icon.BackgroundTransparency,icon.ScaleType="MachineIcon",1,Enum.ScaleType.Fit
   icon.Size,icon.Parent=UDim2.fromScale(0.24,1),holder
   local label=Instance.new("TextLabel")
-  label.Name,label.BackgroundTransparency,label.Font="Text",1,Enum.Font.SourceSansBold
+  label.Name,label.BackgroundTransparency,label.Font="Text",1,Enum.Font.MontserratBold
   label.Position,label.Size,label.TextScaled=UDim2.fromScale(0.25,0.08),UDim2.fromScale(0.75,0.84),true
   label.TextXAlignment,label.Parent=Enum.TextXAlignment.Left,holder
   local stroke=Instance.new("UIStroke")
@@ -474,7 +474,7 @@ function RollPresentationController:SetIdleHint(record, visible: boolean)
   hint.Adornee,hint.Parent=record.top,self.folder
   local label=Instance.new("TextLabel")
   label.Name,label.BackgroundTransparency,label.Size="Text",1,UDim2.fromScale(1,1)
-  label.Font,label.TextSize,label.TextColor3=Enum.Font.SourceSansBold,28,UIColors.Text
+  label.Font,label.TextSize,label.TextColor3=Enum.Font.MontserratBold,28,UIColors.Text
   label.Text,label.Parent="Pull the lever to roll",hint
   local stroke=Instance.new("UIStroke")
   stroke.Color,stroke.Thickness,stroke.Transparency=UIColors.Border,2,0.05

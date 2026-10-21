@@ -79,7 +79,7 @@ function Checks.Run()
 			assert(Catalog[id]==nil and not table.find(Catalog.Order,id),id.." is still in the catalog")
 			assert(table.find(Catalog.Order,species) and Catalog[species].weight>0,id.." maps to "..species)
 		end
-		assert(count==Config.Rebirth.MaxRank,"Retired "..count)
+		assert(count==30,"Retired "..count) -- the 30 Veterans of the 30-rank ladder; ranks 31–50 never had one
 		for rank=1,Config.Rebirth.MaxRank do assert(RebirthChickens.Species(rank)==nil,"Species "..rank) end
 		-- Each tier key maps to the chicken that still has that tier's exact stats.
 		for id,key in {Veteran1="Chunky",Veteran3="Bucket",Veteran5="Viking",Veteran7="Knight",Veteran10="Dragon",
@@ -210,13 +210,18 @@ function Checks.Run()
 		refused("Max Rebirth reached",Rebirth.Rebirth(s,Config.Rebirth.MaxRank,NO_SERVER,false))
 		refused("Max Rebirth reached",Rebirth.Rebirth(s,Config.Rebirth.MaxRank,NO_SERVER,true))
 		assert(not Rebirth.Step(s,NO_SERVER) and s.rebirthSkips==1 and s.rebirths==Config.Rebirth.MaxRank,"Step at max rank")
-		return "Rebirth 30 is the end"
+		return "Rebirth "..Config.Rebirth.MaxRank.." is the end"
 	end)
 
 	test("Rank numbers: costs, Gems, egg multiplier, enemy scale and Mission tiers",function()
 		assert(Rebirth.Cost(1)==50000,"Rebirth 1 cost")
 		assert(Rebirth.Cost(0)==nil and Rebirth.Cost(Config.Rebirth.MaxRank+1)==nil and Rebirth.Cost(1.5)==nil,"Cost domain")
 		for rank=2,Config.Rebirth.MaxRank do assert(Rebirth.Cost(rank)>Rebirth.Cost(rank-1),"Cost "..rank) end
+		-- October 21 reshaped tail: R20 kept, 21–30 x1.2 a rank, 31–50 x1.12 a rank (REBIRTH_PACING_20261021.md).
+		assert(Config.Rebirth.MaxRank==50 and #Config.Rebirth.Costs==50,"50 listed ranks")
+		assert(Rebirth.Cost(20)==8.3e12 and Rebirth.Cost(30)==5.14e13 and Rebirth.Cost(50)==4.96e14,"Reshaped costs")
+		for rank=22,30 do local r=Rebirth.Cost(rank)/Rebirth.Cost(rank-1) assert(r>1.17 and r<1.23,"Tail ratio "..rank.." "..r) end
+		for rank=32,50 do local r=Rebirth.Cost(rank)/Rebirth.Cost(rank-1) assert(r>1.09 and r<1.15,"Extension ratio "..rank.." "..r) end
 		local s=fixture(-9305)
 		assert(Rebirth.Gems(s,1)==50 and Rebirth.Gems(s,30)==340,"Gems "..Rebirth.Gems(s,1).." and "..Rebirth.Gems(s,30))
 		s.gemUpgrades={MoreGems=2}
@@ -225,6 +230,7 @@ function Checks.Run()
 		assert(Rebirth.Multiplier(0)==1 and Rebirth.Multiplier(1)==2 and Rebirth.Multiplier(30)==31,"Egg multiplier")
 		assert(Rebirth.EnemyScale(0)==1 and Rebirth.EnemyScale(2)==1 and Rebirth.EnemyScale(3)==1.25
 			and Rebirth.EnemyScale(10)==3 and Rebirth.EnemyScale(30)==8,"Enemy scale")
+		assert(Rebirth.EnemyScale(31)==8 and Rebirth.EnemyScale(50)==8,"Enemy scale capped at rank 30")
 		assert(Rebirth.Title(0)=="No rebirths yet" and Rebirth.Title(7)=="Rebirth 7","Titles")
 		-- Mission tiers: King clear or Rebirth 5, 10, 15, or a converted research tier.
 		local m=fixture(-9306)
@@ -561,7 +567,7 @@ function Checks.Run()
 		data.upgradeTree={EggSpeed="x",EggValue=99,Luck=-3,Bogus=2,Flock=0/0}
 		data.gemUpgrades={CoinBoost=1e9,Nope=3,TimeSkip="y",AutoRoll=-1}
 		data.gems,data.gemsEarned=-5,"lots"
-		data.rebirths,data.rebirthSkips,data.missionTierLegacy=45,2.7,99
+		data.rebirths,data.rebirthSkips,data.missionTierLegacy=77,2.7,99 -- above MaxRank (50 since October 21)
 		data.rebirthChickenCredits={"Veteran1","Duck",5,"Nope"}
 		data.passGemGifts={Bogus=true,AutoCollectEggs="yes"}
 		data.autoRebirth,data.eggVacuum="maybe",1

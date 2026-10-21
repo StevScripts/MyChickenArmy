@@ -46,7 +46,7 @@ end
 
 local function label(parent,name,value,x,y,width,height,parentWidth,parentHeight,z)
  local item=Theme.Label(parent,name,value,24,WHITE)
- item.Font=Enum.Font.SourceSansBold
+ item.Font=Enum.Font.MontserratBold
  item.TextColor3,item.TextScaled,item.TextWrapped=WHITE,true,false
  item.TextXAlignment=Enum.TextXAlignment.Center
  item.TextOutline.Thickness=0.08
@@ -151,7 +151,7 @@ end
 function Shop.PriceButton(parent,name,palette,quantity)
  local button=Instance.new("TextButton")
  button.Name,button.Text,button.BackgroundTransparency=name,"",1
- button.TextTransparency,button.AutoButtonColor,button.BorderSizePixel=1,false,0
+ button.TextTransparency,button.AutoButtonColor,button.BorderSizePixel,button.Font=1,false,0,Theme.Font
  button.Active,button.Selectable,button.ZIndex=false,false,10
  button.Parent=parent
  local visual=layer(button,"Visual",0,0,1,1,1,1,nil,10)

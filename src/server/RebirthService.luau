@@ -50,9 +50,11 @@ end
 
 -- One scale for camp and King health and damage, by the attacker's rank: x1
 -- through EnemyFreeRanks, then +EnemyScalePerRank per rank (x3 at 10, x8 at 30).
+-- October 21: capped at EnemyScaleMaxRank, so the ranks added past 30 keep x8.
 function RebirthService.EnemyScale(rank: number): number
 	local rules = settings()
-	return 1 + rules.EnemyScalePerRank * math.max(0, clampRank(rank) - rules.EnemyFreeRanks)
+	local counted = math.min(clampRank(rank), rules.EnemyScaleMaxRank or rules.MaxRank)
+	return 1 + rules.EnemyScalePerRank * math.max(0, counted - rules.EnemyFreeRanks)
 end
 
 -- October 20 tree v2 (Stevin, S9c): mutations are bought in the Upgrades tree, so no rank

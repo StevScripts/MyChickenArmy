@@ -564,7 +564,7 @@ function Motion:Float(parent,text,position,options)
 	local size=options.size or 26
 	local label=Instance.new("TextLabel")
 	label.Name,label.Text,label.BackgroundTransparency="MotionFloat",text,1
-	label.Font,label.TextSize,label.TextColor3=options.font or Enum.Font.SourceSansBold,size,options.color or Color3.new(1,1,1)
+	label.Font,label.TextSize,label.TextColor3=options.font or Enum.Font.MontserratBold,size,options.color or Color3.new(1,1,1)
 	label.AnchorPoint,label.Position,label.Size=Vector2.new(0.5,0.5),position,UDim2.fromOffset(size,size)
 	label.AutomaticSize,label.TextWrapped,label.ZIndex=Enum.AutomaticSize.XY,false,31
 	local stroke=Instance.new("UIStroke")
@@ -683,9 +683,27 @@ function Motion:Glow(item,color,thickness)
 	if not item or not item.Parent then return end
 	local stroke=item:FindFirstChild("MotionGlow")
 	if not stroke then
-		stroke=Instance.new("UIStroke")
-		stroke.Name,stroke.ApplyStrokeMode,stroke.LineJoinMode="MotionGlow",Enum.ApplyStrokeMode.Border,Enum.LineJoinMode.Round
-		stroke.Parent=item
+		-- An item that already owns a UIStroke keeps it: the glow rides a transparent ring
+		-- child instead, so the two strokes never fight over one edge.
+		local host=item
+		if item:FindFirstChildWhichIsA("UIStroke") then
+			local ring=item:FindFirstChild("MotionGlowRing")
+			if not ring then
+				ring=Instance.new("Frame")
+				ring.Name,ring.Size,ring.BackgroundTransparency,ring.BorderSizePixel="MotionGlowRing",UDim2.fromScale(1,1),1,0
+				ring.ZIndex,ring.Active=item.ZIndex+1,false
+				local corner=item:FindFirstChildWhichIsA("UICorner")
+				if corner then corner:Clone().Parent=ring end
+				ring.Parent=item
+			end
+			host=ring
+		end
+		stroke=host:FindFirstChild("MotionGlow")
+		if not stroke then
+			stroke=Instance.new("UIStroke")
+			stroke.Name,stroke.ApplyStrokeMode,stroke.LineJoinMode="MotionGlow",Enum.ApplyStrokeMode.Border,Enum.LineJoinMode.Round
+			stroke.Parent=host
+		end
 	end
 	stroke.Color,stroke.Enabled=color or Motion.Palette[1],true
 	local thick=thickness or 3
@@ -693,7 +711,12 @@ function Motion:Glow(item,color,thickness)
 end
 
 function Motion:StopGlow(item)
-	local stroke=item and item:FindFirstChild("MotionGlow")
+	if not item then return end
+	local stroke=item:FindFirstChild("MotionGlow")
+	if not stroke then
+		local ring=item:FindFirstChild("MotionGlowRing")
+		stroke=ring and ring:FindFirstChild("MotionGlow")
+	end
 	if not stroke then return end
 	self:StopLoop(stroke,"glow")
 	stroke.Enabled=false

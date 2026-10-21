@@ -57,6 +57,13 @@
 --  8. Auto Roll (Gem Upgrade) lets the lever run at the reveal speed instead of the
 --     player's pull rate. Rolls go through RollService, so Gold/Diamond/Prism rolls,
 --     mutation tiers, Mutation Luck and Rebirth-chicken podium offers all apply.
+--  9. Login model (October 21; playMinutes + awayMinutes, off by default): the player
+--     plays playMinutes, sells, leaves for awayMinutes and comes back to
+--     OfflineCash.Reward (the steady Flock rate at OfflineCashConfig.Efficiency, capped
+--     at the checkpoint's hours) and, with daily=true, the streak reward
+--     (DailyService.Check; its roll credits draw like Free Rolls at lever Luck, not
+--     Hill Luck). Every visit restarts the Playtime tiles. Milestones carry wall-clock
+--     minutes (the "Days" column) and played minutes; `hours` is the wall-clock horizon.
 local Server=game:GetService("ServerStorage").PetRoll
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
@@ -79,6 +86,7 @@ local King=require(Server.KingEncounter)
 local Playtime=require(Server.PlaytimeService)
 local PlaytimeRewards=require(Shared.PlaytimeRewards)
 local DailyService=require(Server.DailyService)
+local OfflineCash=require(Server.OfflineCash)
 local Simulation={}
 
 local PROFILES={
@@ -95,6 +103,10 @@ local DEFAULTS={
 	-- playtime: S16's twelve tiles each visit (visitMinutes, per profile; the clock and
 	-- the claims restart every join). false leaves them out.
 	playtime=true,
+	-- Login model (assumption 9): nil plays continuously. playMinutes per visit and
+	-- awayMinutes between visits (a once-a-day player: 45 and 1395); daily grants the
+	-- streak reward (nil follows the login model).
+	playMinutes=nil,awayMinutes=nil,daily=nil,
 	print=true,
 }
 
@@ -260,7 +272,7 @@ end
 local function mark(state,key,now,coins)
 	if state.milestones[key] then return end
 	local s=state.session
-	state.milestones[key]={minutes=now/60,coins=coins or s.coins,income=cashRate(s),
+	state.milestones[key]={minutes=now/60,played=state.played/60,coins=coins or s.coins,income=cashRate(s),
 		power=armyPower(s),flock=s:Count(),rank=s.rebirths,eggs=flockEggs(s)}
 end
 
@@ -631,7 +643,7 @@ local function tryRebirth(state,now)
 	state.stats.gemsEarned+=receipt.gems
 	state.stats.timeSkip+=receipt.timeSkipCoins
 	spendGems(state,now)
-	state.milestones["Rebirth"..s.rebirths]={minutes=now/60,coins=before,income=cashRate(s),
+	state.milestones["Rebirth"..s.rebirths]={minutes=now/60,played=state.played/60,coins=before,income=cashRate(s),
 		power=armyPower(s),flock=s:Count(),rank=s.rebirths,cost=cost,eggs=state.peakEggs,timeSkip=receipt.timeSkipCoins}
 	state.peakEggs=0
 end
@@ -642,9 +654,14 @@ end
 local function playtime(state,now)
 	local options=state.options
 	if not options.playtime or not PlaytimeRewards.Enabled then return end
-	local visit=options.visitMinutes*60
-	local start=math.floor(now/visit)*visit
-	if state.visitStart~=start then state.visitStart,state.claimed=start,{} end
+	local start
+	if options.playMinutes then
+		start=state.visitStart -- the login model sets it at every join
+	else
+		local visit=options.visitMinutes*60
+		start=math.floor(now/visit)*visit
+		if state.visitStart~=start then state.visitStart,state.claimed=start,{} end
+	end
 	local s=state.session
 	for index,tile in PlaytimeRewards.Tiles do
 		if not state.claimed[index] and now-start>=tile.at*60 then
@@ -677,10 +694,12 @@ local function runOnce(seed,options)
 	local rolls=Rolls.new()
 	rolls.random=random
 	local state={session=s,options=options,rolls=rolls,upgrades=Upgrades.new(nil,rolls),
-		bag=0,deploy=nil,nextRollAt=2,milestones={},flags={},peakEggs=0,now=0,boosts={},
+		bag=0,deploy=nil,nextRollAt=2,milestones={},flags={},peakEggs=0,now=0,played=0,boosts={},
+		visits=1,visitStart=0,claimed={},
 		rushPhase=(seed*277)%options.rushEvery,
 		stats={rolls=0,recruits=0,eggCash=0,battleCash=0,invasionCash=0,invasionFirsts=0,invasionReplays=0,
-			treeBuys=0,treeSpent=0,gemsEarned=0,gemsSpent=0,timeSkip=0,playtimeCash=0,purchases={economy=0,combat=0,utility=0}}}
+			treeBuys=0,treeSpent=0,gemsEarned=0,gemsSpent=0,timeSkip=0,playtimeCash=0,offlineCash=0,dailyCash=0,
+			purchases={economy=0,combat=0,utility=0}}}
 	local realBoost=Playtime.Boost
 	Playtime.Boost=function(_session,kind)
 		local boost=state.boosts[kind]
@@ -688,16 +707,49 @@ local function runOnce(seed,options)
 	end
 	local horizon,dt=options.hours*3600,options.tickSeconds
 	local nextDeposit,now=options.depositSeconds,0
+	-- Login model (assumption 9).
+	local play=options.playMinutes and options.playMinutes*60
+	local away=(options.awayMinutes or 0)*60
+	local daily=if options.daily==nil then play~=nil else options.daily
+	local sessionEnd=play
 	while now<horizon and s.rebirths<options.targetRank do
+		if play and now>=sessionEnd then
+			-- Leave: sell the bag; a marching army finishes its trip while away. Return to
+			-- offline Coins (DataService pays OfflineCash.Reward with source "offline"),
+			-- a fresh Playtime clock and the lever.
+			deposit(state,now);state.bag=0
+			local checkpoint=OfflineCash.Checkpoint(s,now)
+			now+=away;state.now=now
+			if state.deploy and now>=state.deploy.returnAt then resolve(state,now) end
+			local reward=OfflineCash.Reward(checkpoint,now,s.coins)
+			if reward.amount>0 then state.stats.offlineCash+=s:Credit(reward.amount,"offline") end
+			state.visits+=1
+			sessionEnd=now+play
+			state.visitStart,state.claimed=now,{}
+			state.nextRollAt=now+2
+			nextDeposit=now+options.depositSeconds
+		end
+		if daily then
+			-- The sim clock starts at 0 and a fresh profile's lastDay is 0, so day one is
+			-- offset by a day (live clocks are far past day 0). Roll credits draw at once.
+			s.debugRandom=state.rolls.random
+			local grant=DailyService.Check(s,now+DailyService.DaySeconds,nil)
+			if grant then
+				state.stats.dailyCash+=grant.cash
+				if grant.rolls>0 then s.hillRollCredits=0;Playtime.FreeRolls(s,grant.rolls) end
+			end
+			s.debugRandom=nil
+		end
 		local eggs=flockEggs(s)
 		state.peakEggs=math.max(state.peakEggs,eggs)
 		state.bag+=rawRate(s)*dt
 		now+=dt
 		state.now=now
+		state.played+=dt
 		playtime(state,now)
 		if now>=nextDeposit then deposit(state,now);nextDeposit+=options.depositSeconds end
-		for _,minutes in {10,30,60,120,180} do
-			if now>=minutes*60 and not state.milestones["Min"..minutes] then mark(state,"Min"..minutes,now) end
+		for _,minutes in {10,30,60,120,180} do -- minutes played (wall clock when continuous)
+			if state.played>=minutes*60 and not state.milestones["Min"..minutes] then mark(state,"Min"..minutes,now) end
 		end
 		if state.deploy and now>=state.deploy.returnAt then resolve(state,now) end
 		tryRebirth(state,now)
@@ -707,7 +759,7 @@ local function runOnce(seed,options)
 		chooseAttack(state,now)
 	end
 	Playtime.Boost=realBoost
-	return {seed=seed,minutes=now/60,milestones=state.milestones,stats=state.stats,
+	return {seed=seed,minutes=now/60,played=state.played/60,visits=state.visits,milestones=state.milestones,stats=state.stats,
 		final={rank=s.rebirths,coins=s.coins,gems=s.gems,income=cashRate(s),power=armyPower(s),flock=s:Count(),
 			flockSize=s:FlockSize(),capacity=s:Capacity(),tree=table.clone(s.upgradeTree),gemUpgrades=table.clone(s.gemUpgrades)}}
 end
@@ -726,6 +778,7 @@ local ROWS={
 	{"Rebirth5","Rebirth 5","~54 min"},{"Rebirth7","Rebirth 7",nil},{"Rebirth10","Rebirth 10","~2.9 h"},
 	{"Rebirth12","Rebirth 12",nil},{"Rebirth15","Rebirth 15","~6.4 h"},{"Rebirth20","Rebirth 20","~11.6 h"},
 	{"Rebirth25","Rebirth 25",nil},{"Rebirth30","Rebirth 30","~34 h"},
+	{"Rebirth35","Rebirth 35",nil},{"Rebirth40","Rebirth 40",nil},{"Rebirth45","Rebirth 45",nil},{"Rebirth50","Rebirth 50",nil},
 	{"GoldenSeen","First Golden offer",nil},{"MythicSeen","First Mythic offer",nil},{"MythicOwned","First Mythic owned",nil},
 	{"GemBoardDone","Gem Upgrades complete","~R25-28"},
 }
@@ -736,33 +789,41 @@ local function report(results)
 	local o=results.options
 	line(string.format("ProgressionSimulation (Oct 20 economy) · profile %s · %s seed(s) · tick %ss · horizon %sh · %.1fs runtime",
 		o.profile,tostring(o.seeds),tostring(o.tickSeconds),tostring(o.hours),results.seconds))
-	line(string.format("%-20s %8s %6s %10s %10s %9s %7s %10s  %s","Milestone","Minutes","Hours","Coins","Coins/s","Eggs/s","Power","Gap min","Target (plan v2, fast)"))
+	local login=o.playMinutes~=nil
+	if login then
+		line(string.format("Login model: %s min per visit, %s min away, daily %s. Minutes/Hours/Days are wall clock; Play h is time played.",
+			tostring(o.playMinutes),tostring(o.awayMinutes),tostring(if o.daily==nil then true else o.daily)))
+	end
+	line(string.format("%-20s %8s %6s %6s %6s %10s %10s %9s %7s %10s  %s","Milestone","Minutes","Hours","Days","Play h","Coins","Coins/s","Eggs/s","Power","Gap min","Target (plan v2, fast)"))
 	local previous=nil
 	for _,row in ROWS do
-		local minutes,cash,income,eggs,power,reached={}, {}, {}, {}, {},0
+		local minutes,played,cash,income,eggs,power,reached={}, {}, {}, {}, {}, {},0
 		for _,run in results.runs do
 			local m=run.milestones[row[1]]
 			if m then
 				reached+=1
-				table.insert(minutes,m.minutes);table.insert(cash,m.coins);table.insert(income,m.income or 0)
-				table.insert(eggs,m.eggs or 0);table.insert(power,m.power)
+				table.insert(minutes,m.minutes);table.insert(played,m.played or m.minutes);table.insert(cash,m.coins)
+				table.insert(income,m.income or 0);table.insert(eggs,m.eggs or 0);table.insert(power,m.power)
 			end
 		end
 		local mm=median(minutes)
+		local mp=median(played)
 		local gap=""
 		if string.sub(row[1],1,7)=="Rebirth" then
 			if mm and previous then gap=string.format("%.1f",mm-previous) end
 			previous=mm or previous
 		end
-		line(string.format("%-20s %8s %6s %10s %10s %9s %7s %10s  %s%s",row[2],
+		line(string.format("%-20s %8s %6s %6s %6s %10s %10s %9s %7s %10s  %s%s",row[2],
 			if mm then string.format("%.1f",mm) else "never",if mm then string.format("%.2f",mm/60) else "-",
+			if mm then string.format("%.2f",mm/1440) else "-",if mp then string.format("%.2f",mp/60) else "-",
 			money(median(cash)),money(median(income)),money(median(eggs)),tostring(median(power) or "-"),gap,
 			row[3] or "",if #results.runs>1 then string.format(" (%d/%d)",reached,#results.runs) else ""))
 	end
 	for _,run in results.runs do
 		local st,f=run.stats,run.final
-		line(string.format("seed %d: %.0f min, rank %d · eggs %s, kills %s, Missions %s (%d first, %d replays) · rolls %d, recruits %d · tree buys %d (%s) · Gems %d earned, %d spent · Time Skip %s",
-			run.seed,run.minutes,f.rank,money(st.eggCash),money(st.battleCash),money(st.invasionCash),st.invasionFirsts,st.invasionReplays,
+		line(string.format("seed %d: %.0f min (%.0f played, %d visits), rank %d · eggs %s, kills %s, Missions %s (%d first, %d replays) · offline %s, daily %s, playtime %s · rolls %d, recruits %d · tree buys %d (%s) · Gems %d earned, %d spent · Time Skip %s",
+			run.seed,run.minutes,run.played or run.minutes,run.visits or 1,f.rank,money(st.eggCash),money(st.battleCash),money(st.invasionCash),st.invasionFirsts,st.invasionReplays,
+			money(st.offlineCash or 0),money(st.dailyCash or 0),money(st.playtimeCash or 0),
 			st.rolls,st.recruits,st.treeBuys,money(st.treeSpent),st.gemsEarned,st.gemsSpent,money(st.timeSkip)))
 		local gems={}
 		for id,level in f.gemUpgrades do table.insert(gems,id.."="..level) end

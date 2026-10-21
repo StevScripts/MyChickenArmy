@@ -17,17 +17,22 @@ export type Upgrade = {
 -- with +1 Flock Slot and +1 Army Slot at Rebirth 1 (its "+1 Fruit Slot").
 -- Vacuum Capacity adds seconds of the Flock's laying (October 20, Stevin), like the
 -- Tools tiers; S11 converts seconds to eggs.
+-- October 21 (the 50-rank ladder, docs/team/REBIRTH_PACING_20261021.md): the board was
+-- complete by about Rebirth 25, so six cards gained levels as a Gem sink for ranks
+-- 26–50 (about 7,300 more Gems): Roll Speed and Extra Luck to 8, Vacuum Capacity to 5,
+-- Time Skip to 9, Offline Coins to 8, Army Power to 10. Coin Boost and Keep Upgrades
+-- stay as they are because more of them would speed every run and undo the fit.
 Catalog.VacuumCapacityPerLevel = 15
 
 local upgrades: {Upgrade} = {
-	{id = "RollSpeed", name = "Roll Speed", row = 1, column = 1, unlockRank = 0, maxLevel = 5, startLevel = 0,
-		prices = {5, 10, 20, 35, 60}, effect = "rollingSpeed", perLevel = 0.10,
+	{id = "RollSpeed", name = "Roll Speed", row = 1, column = 1, unlockRank = 0, maxLevel = 8, startLevel = 0,
+		prices = {5, 10, 20, 35, 60, 100, 160, 250}, effect = "rollingSpeed", perLevel = 0.10,
 		text = "+10% faster rolls", icon = "gemRollSpeed"},
-	{id = "ExtraLuck", name = "Extra Luck", row = 1, column = 2, unlockRank = 0, maxLevel = 5, startLevel = 0,
-		prices = {5, 10, 20, 35, 60}, effect = "rollingLuck", perLevel = 0.10,
+	{id = "ExtraLuck", name = "Extra Luck", row = 1, column = 2, unlockRank = 0, maxLevel = 8, startLevel = 0,
+		prices = {5, 10, 20, 35, 60, 100, 160, 250}, effect = "rollingLuck", perLevel = 0.10,
 		text = "+10% roll luck", icon = "gemExtraLuck"},
-	{id = "VacuumCapacity", name = "Vacuum Capacity", row = 2, column = 1, unlockRank = 0, maxLevel = 3, startLevel = 0,
-		prices = {10, 25, 50}, effect = "vacuumCapacity", perLevel = Catalog.VacuumCapacityPerLevel,
+	{id = "VacuumCapacity", name = "Vacuum Capacity", row = 2, column = 1, unlockRank = 0, maxLevel = 5, startLevel = 0,
+		prices = {10, 25, 50, 100, 175}, effect = "vacuumCapacity", perLevel = Catalog.VacuumCapacityPerLevel,
 		text = "+" .. Catalog.VacuumCapacityPerLevel .. " s of eggs in your vacuum", icon = "gemVacuumCapacity"},
 	{id = "AutoRoll", name = "Auto Roll", row = 2, column = 2, unlockRank = 0, maxLevel = 1, startLevel = 0,
 		prices = {15}, effect = "autoRoll", perLevel = 1,
@@ -46,8 +51,8 @@ local upgrades: {Upgrade} = {
 		prices = {25}, effect = "autoRebirth", perLevel = 1,
 		text = "Unlocks Auto Rebirth: rebirths for you when you have enough Coins", icon = "gemAutoRebirth"},
 	-- Time Skip starts at level 1 (5 minutes) for everyone.
-	{id = "TimeSkip", name = "Time Skip", row = 5, column = 1, unlockRank = 3, maxLevel = 6, startLevel = 1,
-		prices = {20, 40, 70, 110, 160}, effect = "timeSkipMinutes", perLevel = 5,
+	{id = "TimeSkip", name = "Time Skip", row = 5, column = 1, unlockRank = 3, maxLevel = 9, startLevel = 1,
+		prices = {20, 40, 70, 110, 160, 230, 320, 430}, effect = "timeSkipMinutes", perLevel = 5,
 		text = "+5 min of Coins when you rebirth", icon = "gemTimeSkip"},
 	{id = "MoreGems", name = "More Gems", row = 5, column = 2, unlockRank = 3, maxLevel = 5, startLevel = 0,
 		prices = {25, 50, 90, 140, 200}, effect = "gemBonus", perLevel = 0.10,
@@ -62,11 +67,11 @@ local upgrades: {Upgrade} = {
 	{id = "MutationLuck", name = "Mutation Luck", row = 7, column = 1, unlockRank = 8, maxLevel = 5, startLevel = 0,
 		prices = {40, 80, 130, 190, 260}, effect = "mutationLuck", perLevel = 0.10,
 		text = "+10% mutation chance", icon = "gemMutationLuck"},
-	{id = "OfflineCoins", name = "Offline Coins", row = 7, column = 2, unlockRank = 8, maxLevel = 4, startLevel = 0,
-		prices = {30, 60, 100, 150}, effect = "offlineEfficiency", perLevel = 0.05,
+	{id = "OfflineCoins", name = "Offline Coins", row = 7, column = 2, unlockRank = 8, maxLevel = 8, startLevel = 0,
+		prices = {30, 60, 100, 150, 210, 280, 360, 450}, effect = "offlineEfficiency", perLevel = 0.05,
 		text = "Earn 5% more while away", icon = "gemOfflineCoins"},
-	{id = "ArmyPower", name = "Army Power", row = 8, column = 1, unlockRank = 12, maxLevel = 5, startLevel = 0,
-		prices = {50, 100, 175, 275, 400}, effects = {"damage", "health"}, perLevel = 0.05,
+	{id = "ArmyPower", name = "Army Power", row = 8, column = 1, unlockRank = 12, maxLevel = 10, startLevel = 0,
+		prices = {50, 100, 175, 275, 400, 550, 725, 925, 1150, 1400}, effects = {"damage", "health"}, perLevel = 0.05,
 		text = "+5% army damage and health", icon = "gemArmyPower"},
 }
 

@@ -49,7 +49,7 @@ local function addTag(body: BasePart, displayName: string, offset: number)
 	label.Name = "NameLabel"
 	label.Size = UDim2.new(1, 0, 0, 24)
 	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.SourceSansBold
+	label.Font = Enum.Font.MontserratBold
 	label.TextSize = 16
 	label.TextColor3 = UIColors.Text
 	label.TextStrokeColor3 = UIColors.Border
@@ -64,7 +64,7 @@ local function addTag(body: BasePart, displayName: string, offset: number)
 	cash.BackgroundColor3 = UIColors.Body
 	cash.BackgroundTransparency = 0
 	cash.BorderSizePixel = 0
-	cash.Font = Enum.Font.SourceSansBold
+	cash.Font = Enum.Font.MontserratBold
 	cash.TextSize = 14
 	cash.TextColor3 = UIColors.Rewards
 	cash.TextStrokeTransparency = 1
@@ -106,7 +106,7 @@ local function addTag(body: BasePart, displayName: string, offset: number)
 	local value = Instance.new("TextLabel")
 	value.Name, value.BackgroundTransparency, value.BorderSizePixel = "Value", 1, 0
 	value.Position, value.Size = UDim2.fromOffset(2, 1), UDim2.new(1, -4, 1, -2)
-	value.Font, value.TextSize, value.TextScaled = Enum.Font.SourceSansBold, 14, true
+	value.Font, value.TextSize, value.TextScaled = Enum.Font.MontserratBold, 14, true
 	value.TextColor3, value.TextStrokeColor3, value.TextStrokeTransparency = UIColors.Text, C(0, 0, 0), 0
 	value.Text, value.ZIndex, value.Parent = "", 3, health
 end

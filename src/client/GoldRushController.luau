@@ -11,6 +11,7 @@ local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local RunService=game:GetService("RunService")
 local Config=require(ReplicatedStorage.PetRoll.Shared.Config)
 local Theme=require(script.Parent.UITheme)
+local BoostReadout=require(script.Parent.BoostReadout)
 local Controller={}
 Controller.__index=Controller
 
@@ -77,9 +78,11 @@ function Controller:BuildChip()
 end
 
 -- October 21 (Stevin): the bottom-right corner, where Camps held / Flock were (Auto
--- Roll sits higher on the right edge, so the two never meet).
+-- Roll sits higher on the right edge, so the two never meet). Later that day the
+-- small coin/clover boosts (BoostReadout) took the very corner; the chip rests on them.
 function Controller:Place()
-	self.chip.Position=UDim2.fromScale(0.988,0.98)
+	local boosts=BoostReadout.Position.Y.Scale-BoostReadout.Size.Y.Scale
+	self.chip.Position=UDim2.fromScale(0.988,boosts-0.008)
 end
 
 function Controller:Step()
@@ -133,7 +136,8 @@ function Controller:SetActive(active: boolean, seconds: number)
 			local audio=app.audio
 			local fallback=if type(audio.Has)=="function" and audio:Has("GoldRush") then "GoldRush" else "Victory"
 			app:Cue("GoldRushStart",fallback)
-			if app.screenFeel then app.screenFeel:Flash(Theme.Arcade.gold,0.2,0.5) end
+			-- Oct 21 (Stevin): the start startled him; a faint, slower gold wash now (was 0.2 over 0.5 s).
+			if app.screenFeel then app.screenFeel:Flash(Theme.Arcade.gold,0.08,0.7) end
 			Theme.Motion:Punch(self.chip,1.2,0.35)
 		end
 	else
