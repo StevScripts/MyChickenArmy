@@ -73,8 +73,6 @@ Render.Hud=function(ctx)
 	if hud.Resize then hud:Resize() end
 	local count,limit,capacity,selected,deployed=app:Counts()
 	hud:Update(ctx.state,count,limit,capacity,selected,deployed)
-	-- October 21 (P6): the vacuum pill and prompt row above the hotbar, display only.
-	require(ctx.code.ToolController).Preview(ctx.root,14,25)
 end
 
 Render.MyArmy=function(ctx)
