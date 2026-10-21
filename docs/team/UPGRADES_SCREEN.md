@@ -37,7 +37,7 @@ text come from `UpgradeCatalog`; the client never computes a price.
 
 - Flat-topped hexes (164 x 144) in axial cells, like the reference. October 21
   (Stevin): the three Open hexes touch Start and alternate with green ones: Tools
-  (Open) on top, Army (Open) to the right, Player (Open) to the left. The pointy-top hex art
+  (Open) upper left, Player (Open) upper right, Army (Open) below. The pointy-top hex art
   is turned a quarter, so no new upload was needed. `Browser.Grid = {step=133.4,
   row=154, width=164, height=144, flat=true}`; `Browser.Grid.Offset({q,r})` is a cell's
   centre offset in the same units (S14's guide arrow uses it).
@@ -48,16 +48,20 @@ text come from `UpgradeCatalog`; the client never computes a price.
   Diamond Rate I, Capture Speed I needs March Speed I. Flock, Egg Speed and Roll Slot
   open from Start, Army Size from Army (Open), Egg Value from Tools (Open) and Gold
   Machine from Player (Open); Open hexes count as owned.
-- Main (October 21, Stevin: "not a straight line", "closer together", and the ending
-  "scattered around everywhere"): the Open hexes and every tier-I hex stay where the
-  band layout put them, and the late tiers coil into one round cluster (radius 5 from
-  Start; only Super Luck I and Mega Luck I sit one step further out). No three hexes of
-  a chain run in a straight line. Flock Size upper left, Egg Value above Tools, Egg
-  Speed and Army Size upper right, Roll Slots I–VII down under Start, Roll Speed I–V
-  right of it, Golden → Rainbow → Shadow → Cosmic beside Roll Speed, and Luck I–IV →
-  Super Luck I–IV → Mega Luck I–IV (one family, 12 tiers, each chain numbered 1–4)
-  curling under Roll Speed and up the right edge. Gold, Diamond and Prism Machines with
-  their Rate I–IV coil left of Player and below it.
+- Main (October 21, Stevin: "not a straight line", then "I really hate the
+  crampedness", put things where they make sense; supersedes the tight bands and the
+  round cluster): each topic has its own side, and every chain is a zig-zag lane with
+  an empty row between lanes, so chains only touch where one opens from another.
+  - Eggs, left: Egg Value from Tools, Flock Size I–VIII below it, Egg Speed up from
+    Start.
+  - Army, lower left: Army Size from Army (Open).
+  - Rolls, right: Roll Slots I–VII, then Roll Speed I–V, then Luck I–IV → Super Luck
+    I–IV, with Mega Luck I–IV turning back under Super Luck (one family, 12 tiers,
+    each chain numbered 1–4). Golden → Rainbow → Shadow → Cosmic go down-left from
+    Luck I.
+  - Special rolls, upper right: from Player (Open), three lanes stacked like a ladder:
+    Gold Machine + Gold Rate I–IV, Diamond Machine + Diamond Rate I–IV, Prism Machine
+    + Prism Rate I–IV, each machine at the left end of its lane.
 - Tools: Back in the middle, Egg Vacuum down-left (Vacuum Capacity I–IV, Vacuum Range
   I–III), Chicken Feed down-right (Max Level I–III). Player and Army: chains around
   Back. Every chain in every map zig-zags; none runs in a straight line.
