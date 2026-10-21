@@ -118,14 +118,23 @@ state. A live client never reaches it.
 | Locked further out | Hidden |
 | Start / Open / Back | Cyan / orange with the red count badge / red |
 
-Hex layout (reference t9, t11, t15): the icon fills the hex's upper middle; the name
-("Egg Speed II") runs across the hex over the icon in one white stroked line (it may
-pass the hex's edges; TextScaled shrinks long names); the tier numeral (`node.numeral`,
-the catalog's: Luck's Super/Mega chains restart at 1) sits big in the icon's
-bottom-right corner, as in the reference (this reverses the October 21 morning "no
-number over the icon" note at Stevin's request for the reference 1:1); the coin and
-compact price (1.2K) sit on the hex's bottom edge. Every label carries a black outline
-so it reads over any hex and any world behind the tint. A hovered or focused hex grows
+Hex layout (reference t9, t11, t15; round 2 sized for the phone floor): rows from the
+bottom up, in shares of the hex's height (`HEX` in ResearchBrowser). The coin and
+compact price (1.2K) sit on the hex's bottom edge (row .215). The name ("Egg Speed II")
+sits just above it in white stroked text across the hex's inner width (.96), one or two
+.22 lines: `nameLines` measures the name with Roblox's own font metrics per unit of text
+size and breaks it once, at the split whose wider line is narrowest ("Vacuum /
+Capacity IV"), only when one line would not fit. The answer depends on the name, never
+the screen. The icon fills the space above the name (the name overlaps its lower part,
+like the reference). The tier numeral (`node.numeral`, the catalog's: Luck's
+Super/Mega chains restart at 1) sits on the icon's bottom-right corner right above the
+name; it is smaller (.17) over a two-line name. This reverses the October 21 morning "no
+number over the icon" note at Stevin's request for the reference 1:1. On a phone
+(844 x 390, hex 60 px tall at zoom 1) every name renders 13 px (28 one-line, 76
+two-line) and every price 12 px; the name and price also carry the shared 12 px floor
+(`Theme.ScaleText`), as do the hub and Back words. Desktops get the same proportions,
+larger. Every label carries a black outline so it reads over any hex and any world
+behind the tint. A hovered or focused hex grows
 to 1.12x and draws over its neighbours. Open hexes carry a red count of the upgrades
 inside that can be bought now (`badges[category]`); the HUD Upgrades button shows
 `badges.total`. A "!" that appears while the tree is open (a price turned green as
