@@ -353,7 +353,8 @@ function Browser.new(app,parent)
 
 	-- Lock, Sell and Replace modes: a bar over the bottom row with Confirm / Cancel.
 	local bar=rect(frame(root,"ModeBar"),349,464,332,113,W,H)
-	bar.ZIndex,bar.Visible=body.ZIndex+20,false
+	-- Active: a click on the bar never reaches Unequip All underneath.
+	bar.ZIndex,bar.Visible,bar.Active=body.ZIndex+20,false,true
 	surface(bar,TONES.Blue[1],TONES.Blue[3],INK,3)
 	Theme.Studs(bar,0.14,28,0).ZIndex=bar.ZIndex
 	self.bar=bar
@@ -832,6 +833,9 @@ function Browser:UpdateAction()
 	for key,item in self.sortButtons do setTone(item,if self.sort==key then "Green" else "Dark") end
 	local selecting=self.mode=="Sell" or self.mode=="Lock"
 	self.bar.Visible=self.mode~=nil
+	-- The bar covers Unequip All and the compact toggle, as in the reference; they
+	-- also hide so a click can never land on them by mistake.
+	self.unequip.Visible,self.compactButton.Visible=self.mode==nil,self.mode==nil
 	self.confirm.Visible=selecting
 	self.cancel.Position=if selecting then UDim2.fromScale(170/332,54/113) else UDim2.fromScale(91/332,54/113)
 	enabled(self.confirm,canEdit);enabled(self.cancel,canEdit)

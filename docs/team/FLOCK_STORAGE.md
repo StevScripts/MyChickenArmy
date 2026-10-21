@@ -1,5 +1,9 @@
 # Flock, storage and My Army (October 20 overhaul, S10)
 
+> **October 21 (owner):** the Flock has no picks any more, Flock chickens can be
+> sold, and My Army is the reference Pets grid. The "Manual picks", "Selling" and
+> "My Army" parts below are history; see [ARMY_GRID.md](ARMY_GRID.md).
+
 Decisions: [OVERHAUL_PLAN_20261020.md](OVERHAUL_PLAN_20261020.md) › Flock and storage.
 Shared ids and saved keys: [OVERHAUL_CONTRACT_20261020.md](OVERHAUL_CONTRACT_20261020.md).
 
