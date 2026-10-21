@@ -74,15 +74,18 @@ function Panel.Icon(tile: PlaytimeRewards.Tile): string
 	return Theme.Assets.Coin
 end
 
--- The circle copies Roblox's own buttons: 0.76 of the top bar's height, centred, one
--- slot = 1.19 diameters (S17 agreed the same rule for Quests).
+-- The circle copies Roblox's own buttons: 0.76 of the top bar's height, resting on the
+-- bar's bottom edge like them (centring it sat ~7 px too high), one slot = 1.19
+-- diameters (S17 agreed the same rule for Quests). It keeps the gap Roblox leaves
+-- between its own buttons (~0.2 diameters; the inset already starts 2-3 px past the
+-- Roblox menu), so it no longer touches it.
 function Panel:BuildButton()
 	local app=self.app
 	local bar=Theme.InsetContainer(app.hudLayer,"PlaytimeTopbar",Enum.ScreenInsets.TopbarSafeInsets)
 	bar.ZIndex,bar.Visible=30,false
 	local button=Instance.new("TextButton")
 	button.Name,button.Text,button.AutoButtonColor,button.Selectable="PlaytimeRewards","",false,true
-	button.AnchorPoint,button.Size=Vector2.new(0,0.5),UDim2.fromScale(1,0.76)
+	button.AnchorPoint,button.Size=Vector2.new(0,1),UDim2.fromScale(1,0.76)
 	button.BackgroundColor3,button.BackgroundTransparency,button.BorderSizePixel=TOPBAR,0.1,0
 	button.ZIndex,button.Parent=31,bar
 	Theme.Aspect(button,1)
@@ -102,7 +105,7 @@ function Panel:BuildButton()
 	button.Activated:Connect(function() self:Toggle() end)
 	local function place()
 		local diameter=bar.AbsoluteSize.Y*0.76
-		button.Position=UDim2.new(0,Panel.Slot*diameter*1.19,0.5,0)
+		button.Position=UDim2.new(0,diameter*(0.16+Panel.Slot*1.19),1,0)
 	end
 	table.insert(self.connections,bar:GetPropertyChangedSignal("AbsoluteSize"):Connect(place))
 	place()
