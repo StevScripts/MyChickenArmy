@@ -64,6 +64,7 @@ dropped, and nothing here can fail a load.
 | `goldRolls` | `{count}` lever pulls toward the next special pull, `{count=0}` | **S12** | Yes |
 | `upgradeTreeVersion` | integer, missing = 0; written as `TreeMigrations.Version` | S7c | – |
 | `mutationKeep` | 0–4 mutations kept from the Rebirth rank; `nil` until S9c's `Mutation` family exists | S7c (derivation), S9c (reads it; floors the tree after a Rebirth) | No |
+| `timeSkipPending` | `{coins, rank}` Time Skip Coins waiting for `ClaimTimeSkip`, `nil` (October 21, P4; anything but coins ≥ 1 and a whole rank reads as nil) | P4 (`RebirthService`: every non-Skip Rebirth adds to it; the claim clears it) | No (a Rebirth adds to it) |
 
 **Live since October 20, 22:07: migrate, never bump.** Every change to what a saved
 value means needs a lenient one-time load step. Servers on an older build refuse a
@@ -118,6 +119,7 @@ in `PlayerSession` (one line) and list it in your hand-off. S14 added `vacuumUse
 | `SetAutoRoll` | `enabled`, `stopAt`, `recruitAt`, `mutationStop` | S12 | Extends today's request |
 | `RecruitHeld` | `offerId` | S12 | Recruit an Auto Roll hit from the menu |
 | `Sell` | `petIds`, `expectedTotal` | S13 | Today's bulk endpoint; S13 may extend it |
+| `ClaimTimeSkip` | – | P4 (Oct 21) | Pays `timeSkipPending` once through `Credit(…, "rebirth")` (analytics TimeSkip), capped at the Coins limit; quiet success; a second claim is refused with an empty message |
 
 Call Army is free: `CallArmy` no longer checks research.
 
@@ -280,7 +282,9 @@ Hooks other owners add (one call each):
   with Coin Boost, 2x Coins and 2x Egg Spawn. It is steady (no Gold Rush or Friend
   Boost) and floored at `DailyService.MinIncome`. It is credited after the reset
   through `Credit(..., "rebirth")` (analytics source `TimeSkip`), and
-  `state.rebirth.timeSkipCoins` previews that exact amount. P0 chose this over the
+  `state.rebirth.timeSkipCoins` previews that exact amount. October 21 (P4): a
+  non-Skip Rebirth saves it in `timeSkipPending` instead and `ClaimTimeSkip` credits
+  it, so the balance reads 0 after a Rebirth; a Skip Rebirth credits it at once. P0 chose this over the
   post-reset income, which paid a few millionths of a rank's cost.
 - `BuyUpgrade` counts like `CashUpgrade` in `TutorialService:Action`, `AnalyticsFunnels`
   (Upgrades FirstBuy; a `Flock*` node counts as Plot Expanded) and `AnalyticsPlayer`.
@@ -380,7 +384,8 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
   - Mutation unlocks: Rainbow at Rebirth 1, Shadow at 5, Cosmic at 10.
 - **Resets:**
   - Coins go to 0 (October 20, Stevin: "When you rebirth your money resets to
-    zero"), then Time Skip pays.
+    zero") and stay 0: Time Skip waits as a claim (`timeSkipPending`,
+    `ClaimTimeSkip`; October 21, P4).
   - The whole `upgradeTree` resets, so derived fields return to base: 3 slots,
     1 podium, Flock 3. Keep Upgrades keeps up to N tiers of Egg Speed, Egg Value
     and Luck.
@@ -431,6 +436,7 @@ rebirth = {
 	multiplierNow, multiplierNext,        -- egg Coins multipliers
 	gemsNext,                             -- Gems the next Rebirth pays
 	timeSkipMinutes, timeSkipCoins,       -- Time Skip tile
+	timeSkipPending = {coins, rank} | nil, -- Oct 21 (P4): the claim waiting for ClaimTimeSkip
 	nextChicken = {species, name, rarity} | nil,
 	unlockNext = {name, multiplier} | nil,  -- mutation unlocked at the next rank
 	enemyScaleNext,
