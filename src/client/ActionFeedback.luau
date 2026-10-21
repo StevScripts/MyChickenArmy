@@ -207,8 +207,13 @@ function Feedback:SaleCoins(receipt)
 		self:ReleaseCoins(share)
 		if quiet or not self.alive then return end
 		local tick = Feel.CoinBurst
-		if index == 1 then self.app.audio:Play("CashTick",1,{volume=Feel.Cash.Volume,voiceKey="CashPayoff",maxVoices=3,cooldown=0.08}) end
-		self.app.audio:Play("Collect",math.min(tick.PitchMax,1+(index-1)*tick.PitchStep),{volume=tick.TickVolume,maxDuration=0.5,voiceKey="SaleCoin",maxVoices=4,cooldown=0.03})
+		local audio = self.app.audio
+		-- The bright shimmer under the bubble flash, then a quick ting per coin.
+		if index == 1 then audio:Play("CashTick",1,{volume=Feel.Cash.Volume,voiceKey="CashPayoff",maxVoices=3,cooldown=0.08}) end
+		local pitch = math.min(tick.PitchMax,1+(index-1)*tick.PitchStep)+(math.random()*2-1)*tick.PitchJitter
+		-- "CoinPickup" is authored in SoundService.MyChickenArmyAudio; older places lack it.
+		audio:Play(if audio.templates.CoinPickup then "CoinPickup" else "Collect",pitch,
+			{volume=tick.TickVolume,maxDuration=0.5,voiceKey="SaleCoin",maxVoices=4,cooldown=0.03})
 	end)
 	if played then self.holdUntil = math.max(self.holdUntil, os.clock() + Feel.CoinBurst.HoldTimeout) end
 	return played
