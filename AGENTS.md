@@ -63,7 +63,7 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   ladder steeper again without re-running the login-model simulation:
   `docs/team/REBIRTH_PACING_20261021.md`. Later Oct 21 (P5, reference parity, fitted on
   the rarity retune): Rebirth 2 costs 1M like the reference (50K, 1M, 20M, 400M, 8B … 4.7T
-  at 10, 480T at 30, 4.84e15 at 50) because in-run growth is tamed instead (Feed x1.6 eggs
+  at 10, 384T at 30, 3.13e15 at 50) because in-run growth is tamed instead (Feed x1.6 eggs
   a level with x4 quotes, Egg Speed/Value III–IV and Flock 7–15 priced 25K–2B) and the egg
   multiplier gains x1.7 a rank on ranks 5–10 and x1.06 a rank after (x266 at 10, never
   below the old 1 + rank), see "reference-shaped ladder" in that doc.

@@ -77,14 +77,14 @@ local Config = {
  -- ladder"; fitted on the rarity pacing retune 41ee725): Rebirth 2 costs 1M like the
  -- reference (was 62M). In-run growth is tamed (Feed x1.6 eggs a level, pricier Egg
  -- Speed/Egg Value III-IV and Flock 7-15) and the ranks step up instead: x20 to Rebirth 5,
- -- x3-4.3 to 10, x1.5-2 to 13, x1.1-1.25 to 30, x1.41 at 31, then x1.1 to 4.84e15 at 50,
+ -- x3-4.3 to 10, x1.5-2 to 13, x1.1-1.25 to 31, then x1.1-1.14 to 3.13e15 at 50,
  -- with the egg multiplier x1.7 more on ranks 5-10 and x1.06 a rank after.
  Rebirth={Enabled=true,Version=2,MaxRank=50,
   Costs={5e4,1e6,2e7,4e8,8e9,2.4e10,7.2e10,2.55e11,1.09e12,4.7e12,
-   9.6e12,1.5e13,2.2e13,3.18e13,3.9e13,4.58e13,5.35e13,6.26e13,7.83e13,9.12e13,
-   1.08e14,1.26e14,1.43e14,1.59e14,1.9e14,2.21e14,2.76e14,3.28e14,4.05e14,4.8e14,
-   5.69e14,8.03e14,9.12e14,1.01e15,1.12e15,1.24e15,1.37e15,1.51e15,1.67e15,1.84e15,
-   2.03e15,2.24e15,2.47e15,2.72e15,3e15,3.3e15,3.63e15,4e15,4.4e15,4.84e15},
+   9.6e12,1.5e13,2.2e13,3.18e13,3.9e13,4.29e13,4.72e13,5.2e13,6.11e13,7.12e13,
+   8.64e13,1.01e14,1.15e14,1.28e14,1.52e14,1.77e14,2.21e14,2.63e14,3.24e14,3.84e14,
+   4.56e14,5.1e14,5.8e14,6.42e14,7.12e14,7.88e14,8.7e14,9.59e14,1.07e15,1.18e15,
+   1.3e15,1.43e15,1.58e15,1.74e15,1.92e15,2.12e15,2.34e15,2.58e15,2.84e15,3.13e15},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EggBoostPerRank=1.7,EggBoostFromRank=5,EggBoostToRank=10,EggLateGrowthPerRank=1.06,
   EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,
