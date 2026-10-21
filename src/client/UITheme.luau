@@ -820,20 +820,22 @@ function Theme.LayoutHeader(header)
 		local visual=close.Visual
 		visual.AnchorPoint,visual.Position,visual.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1,1)
 		Theme.Aspect(visual,nil)
-		-- Phone hit area (HitPad, set by HeaderClose): the X grows into the header and
-		-- the body's top without moving. A CanvasGroup popup clips above and right of
-		-- itself, so there the extra room goes left and down; elsewhere it is centred.
+		-- Phone hit area (HitPad, set by HeaderClose): the X grows without moving. The
+		-- extra room sits HitAlignX/HitAlignY before the art (left of / above it; by
+		-- default centred and mostly above, over the popup's edge, not the body). A
+		-- CanvasGroup popup clips above and right of itself, so there it stays inside.
 		local pad=close:GetAttribute("HitPad") or 1
 		if pad>1 then
 			local clipped=header.Parent:IsA("CanvasGroup") or header.Parent.ClipsDescendants
 			local w,h=92*pad,88*pad
-			local right=if clipped then math.min(1474,1414+w/2) else 1414+w/2
-			local top=if clipped then math.max(0,58-h/2) else 58-h/2
-			close.Position,close.Size=UDim2.fromScale(right/1474,top/116),UDim2.fromScale(w/1474,h/116)
+			local hitLeft=1368-(w-92)*(close:GetAttribute("HitAlignX") or 0.5)
+			local hitTop=14-(h-88)*(close:GetAttribute("HitAlignY") or 0.65)
+			if clipped then hitLeft,hitTop=math.min(hitLeft,1474-w),math.max(hitTop,0) end
+			close.Position,close.Size=UDim2.fromScale((hitLeft+w)/1474,hitTop/116),UDim2.fromScale(w/1474,h/116)
 			close:SetAttribute("HitPadded",true)
 			close.UIAspectRatioConstraint.Parent=visual
 			-- The art's centre (1414, 58 in header units) stays put inside the hit area.
-			visual.Position,visual.Size=UDim2.fromScale((1414-(right-w))/w,(58-top)/h),UDim2.fromScale(1/pad,1/pad)
+			visual.Position,visual.Size=UDim2.fromScale((1414-hitLeft)/w,(58-hitTop)/h),UDim2.fromScale(1/pad,1/pad)
 			Theme.Motion.restingSizes[visual]=visual.Size
 		end
 		visual.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
@@ -849,11 +851,14 @@ function Theme.LayoutHeader(header)
 end
 
 -- `pad` grows the X's hit area (not its art) by that factor; each menu passes the
--- factor that lifts its phone-sized X to 48 px (DESIGN.md §6). LayoutHeader keeps it.
-function Theme.HeaderClose(header,callback,pad)
+-- factor that lifts its phone-sized X to 48 px (DESIGN.md §6), and may say where the
+-- extra room goes (alignX/alignY, see LayoutHeader). LayoutHeader keeps them.
+function Theme.HeaderClose(header,callback,pad,alignX,alignY)
 	local close=Theme.ActionButton(header,"Close","X",callback,Theme.ActionColors.danger)
 	Theme.ApplyReferenceAccent(close,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
 	if pad and pad>1 then close:SetAttribute("HitPad",pad) end
+	if alignX then close:SetAttribute("HitAlignX",alignX) end
+	if alignY then close:SetAttribute("HitAlignY",alignY) end
 	Theme.LayoutHeader(header)
 	return close
 end

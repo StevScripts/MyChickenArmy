@@ -117,16 +117,20 @@ function Browser:BuildCards()
 		local name=Theme.Label(caption,"Name","",24,C.white)
 		name.Position,name.Size=UDim2.fromScale(0.025,0.042),UDim2.fromScale(0.95,0.916)
 		name.TextXAlignment,name.TextYAlignment=Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
-		name.TextScaled=true
+		-- One line: at the readable floor (ScaleText below) a long name may run a little
+		-- past the caption into the card gap instead of stacking over the portrait.
+		name.TextWrapped,name.TextScaled=false,true
 		caption.Visible=false
 		-- October 15: every rollable chicken shows its zero-Luck odds in the corner;
 		-- a Rebirth chicken shows its rank there instead (plan v2).
+		-- Compact odds ("1 in 19K", Theme.Number) so the readable floor fits a phone card.
 		local rebirthRank=Catalog[species].rebirthRank
-		local oneIn=if rebirthRank then "Rebirth "..rebirthRank else Catalog.OneInText(species)
+		local oneInValue=Catalog[species].oneIn
+		local oneIn=if rebirthRank then "Rebirth "..rebirthRank elseif oneInValue then "1 in "..Theme.Number(oneInValue) else nil
 		if oneIn then
 			local odds=Theme.Label(visual,"OneIn",oneIn,20,if rebirthRank then Theme.ReferenceColors.Army else Theme.Rarities[Catalog[species].rarity] or C.white)
-			odds.AnchorPoint,odds.Position,odds.Size=Vector2.new(1,0),UDim2.fromScale(0.96,0.035),UDim2.fromScale(0.8,0.13)
-			odds.TextXAlignment,odds.TextScaled,odds.ZIndex=Enum.TextXAlignment.Right,true,5
+			odds.AnchorPoint,odds.Position,odds.Size=Vector2.new(1,0),UDim2.fromScale(0.96,0.035),UDim2.fromScale(0.9,0.13)
+			odds.TextXAlignment,odds.TextWrapped,odds.TextScaled,odds.ZIndex=Enum.TextXAlignment.Right,false,true,5
 		end
 		local view={root=slot,visual=visual,preview=preview,caption=caption,
 			name=name,rim=rim,studs=studs,collected=nil}
@@ -144,6 +148,8 @@ function Browser:BuildCards()
 		table.insert(self.connections,visual.MouseEnter:Connect(function() hover(true) end))
 		table.insert(self.connections,visual.MouseLeave:Connect(function() hover(false) end))
 	end
+	-- Names and odds keep the shared readable floor (UITheme.MinTextSize) on phones.
+	Theme.ScaleText(self.cardHolder)
 end
 
 function Browser:Resize()

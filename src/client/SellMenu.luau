@@ -172,7 +172,7 @@ function Menu.new(app,parent)
 	Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
 	header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
 	self.header,self.title=header,title
-	self.closeButton=Theme.HeaderClose(header,function() app.audio:Play("Click");app:ClosePanel() end)
+	self.closeButton=Theme.HeaderClose(header,function() app.audio:Play("Click");app:ClosePanel() end,1.72) -- phone hit area: 48 px
 	self.storage=label(header,"StorageCount","",WHITE,true)
 	self.storage.TextXAlignment,self.storage.ZIndex=Enum.TextXAlignment.Right,header.ZIndex+4
 	Theme.RelativeRect(self.storage,1040,20,300,76,1474,116)
@@ -253,6 +253,9 @@ function Menu.new(app,parent)
 	Theme.RelativeRect(self.sell,1122,barY,338,82,W,BH)
 	for item,width in {[self.back]=234,[self.sortButton]=338,[self.sell]=338} do
 		item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",W/width)
+		-- Phone hit area: 157 units (48 px) tall; 28 of the extra 75 go up to the grid's
+		-- clipped edge, the rest past the window's foot.
+		Theme.PadHit(item,1,157/82,0.5,28/75)
 	end
 	self:BuildConfirm()
 	self:BuildTooltip()
@@ -312,6 +315,7 @@ function Menu:BuildConfirm()
 	Theme.RelativeRect(self.confirmCancel,372,466,296,92,708,610)
 	for _,item in {self.confirmSell,self.confirmCancel} do
 		item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",W/296)
+		Theme.PadHit(item,1,157/92) -- phone hit area: 48 px tall
 	end
 	self.confirmNote=label(card,"Note","",MUTED)
 	self.confirmNote.TextXAlignment=Enum.TextXAlignment.Center

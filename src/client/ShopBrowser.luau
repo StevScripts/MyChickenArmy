@@ -137,7 +137,7 @@ function Browser.new(app,parent)
  self.header=header
  self.closeButton=Theme.HeaderClose(header,function()
   self.app.audio:Play("Click");self.app:ClosePanel()
- end)
+ end,1.55) -- phone hit area: 48 px
  local body=frame(window,"Main",UDim2.fromScale(0.9983333,0.825),UDim2.fromScale(0.50025,0.585))
  body.AnchorPoint=Vector2.new(0.5,0.5)
  Theme.BelowHeader(header,body)
@@ -216,11 +216,15 @@ end
 function Browser:SectionTab(parent,key,index)
  local button=Instance.new("TextButton")
  button.Name,button.Text,button.BackgroundTransparency,button.AutoButtonColor=key,"",1,false
- button.Size,button.LayoutOrder,button.ZIndex,button.Selectable=UDim2.fromScale(1,0.3),index,6,true
+ -- The rail is narrower than 0.3 of its height, so a 0.86 tab is width-limited: its
+ -- height is the rail width / 0.86, written out so the list stacks the same once
+ -- PadHit widens the hit area (phone: 42 -> 52 px) and moves the aspect to the art.
+ button.Size,button.LayoutOrder,button.ZIndex,button.Selectable=UDim2.fromScale(1,(0.085/0.7*SHOP_ASPECT)/0.86),index,6,true
  button.Parent=parent
  Theme.Aspect(button,0.86)
  local visual=Theme.Container(button,"Visual")
  visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+ Theme.PadHit(button,1.25,1)
  -- Transparent: just the art and its caption (owner, October 15).
  local icon=Theme.Image(visual,"Icon","",UDim2.fromScale(0.92,0.74),UDim2.fromScale(0.04,0.02))
  icon.ZIndex=8

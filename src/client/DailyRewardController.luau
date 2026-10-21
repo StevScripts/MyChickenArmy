@@ -217,6 +217,7 @@ function Controller:Card(parent,index,today,granted,x,y,w,h)
 		holder.Position,holder.Size,holder.ZIndex = UDim2.fromScale(0.1,statusY),UDim2.fromScale(0.8,statusH),8
 		local collect = Theme.ActionButton(holder,"Collect","Collect!",function() self:Collect(granted) end,GREEN)
 		collect.Position,collect.Size = UDim2.fromScale(0,0),UDim2.fromScale(1,1)
+		Theme.PadHit(collect,1,1.1) -- phone hit area: 48 px tall
 		collect.Visual.Caption.Position,collect.Visual.Caption.Size = UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8)
 		collect.Visual.Caption.TextScaled = true
 		collect.Visual.Caption.TextShadow.Visible = false
@@ -314,7 +315,7 @@ function Controller:Show(granted)
 	local seventh = self:Card(main,7,today,granted,0.72,0.035,0.255,0.93)
 	if today==7 then todayCard = seventh end
 	table.insert(cards,seventh)
-	Theme.HeaderClose(header,function() self:Collect(granted) end)
+	Theme.HeaderClose(header,function() self:Collect(granted) end,1.34) -- phone hit area: 48 px
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
 	-- Tomorrow's countdown (a plain once-a-second text update, not an animation).

@@ -540,8 +540,12 @@ function AppController:BuildUI()
 	syncNavigation()
 end
 
+-- Phone hit area for the shared X: each page's window gives it a different size, so
+-- the pad that lifts it to 48 px is per page (Settings 20 px, Index 22 px).
+local CLOSE_PADS={Settings=2.4,Index=2.2}
 function AppController:FitPanel()
 	MenuLayout.Apply(self.gui,self.page,self.panel)
+	self.closeButton:SetAttribute("HitPad",CLOSE_PADS[self.page] or 2.4)
 	Theme.BelowHeader(self.panelHeader,self.panelBody)
 	self.content.Position,self.content.Size=UDim2.fromScale(0.02,0.02),UDim2.fromScale(0.96,0.96)
 	self.indexBrowser.root.Position,self.indexBrowser.root.Size=UDim2.fromScale(0.02,0.02),UDim2.fromScale(0.96,0.96)
