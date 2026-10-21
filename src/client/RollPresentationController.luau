@@ -277,21 +277,6 @@ function RollPresentationController:HideSpecialTag(record)
  tag.gui.Enabled=false
 end
 
--- The machine's Gold counter breathes while the next pull is special (reduced motion
--- keeps it still). The size change is local to this client.
-function RollPresentationController:PulseGold(record, ready: boolean)
- if record.goldPulse==ready then return end
- local anchor=record.station:FindFirstChild("GoldCounterAnchor")
- local gui=anchor and anchor:FindFirstChild("GoldCounter")
- if not gui then return end
- record.goldPulse=ready
- if ready then
-  Theme.Motion:Loop(gui,"goldReady",{Size=UDim2.fromScale(7.8,1.67)},{Size=UDim2.fromScale(7,1.5)},0.45)
- else
-  Theme.Motion:StopLoop(gui,"goldReady")
- end
-end
-
 -- A special pull on your own lever podium while you are too far away to see it
 -- (Auto Roll from anywhere): one notice per pull.
 function RollPresentationController:NoteSpecial(record, now)
@@ -354,7 +339,6 @@ function RollPresentationController:Reset(record)
  if record.preview then record.preview.Parent=nil;record.preview=nil end
  self:HideBadge(record)
  self:HideSpecialTag(record)
- self:PulseGold(record,false)
  for part, value in record.hidden do if part.Parent then part.LocalTransparencyModifier=value end end
  table.clear(record.hidden)
  record.serverPet=nil
@@ -413,7 +397,6 @@ function RollPresentationController:StepRecord(record, now)
   if record.special and elapsed<duration+SPECIAL_TAG_HOLD then self:ShowSpecialTag(record,record.special)
   else self:HideSpecialTag(record) end
  end
- if (station:GetAttribute("RollSlot") or 1)==1 then self:PulseGold(record,station:GetAttribute("GoldReady")==true) end
 
  -- Hide only the static server offer. Cosmetics never hide inventory or army pets.
  local serverPet=station:FindFirstChild("DisplayedPet")

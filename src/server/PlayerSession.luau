@@ -1279,7 +1279,9 @@ function PlayerSession:LoadData(data)
 	self.missionTierLegacy=missionTierLegacy
 	self.flockSelection,self.eggVacuum=flockSelection,false
 	self.vacuumCargo={count=cargoCount,value=cargoValue}
-	self.goldRolls={count=if type(data.goldRolls)=="table" then readCount(data.goldRolls.count,1e6) else 0}
+	-- S12b: one pull count per machine (count = Gold, diamond, prism); missing means 0.
+	local goldRolls:any=if type(data.goldRolls)=="table" then data.goldRolls else {}
+	self.goldRolls={count=readCount(goldRolls.count,1e6),diamond=readCount(goldRolls.diamond,1e6),prism=readCount(goldRolls.prism,1e6)}
 	self.plotBuild=nil
 	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills;self.robuxSpent=robuxSpent
 	self.eggProcessor=processor

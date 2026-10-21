@@ -1,5 +1,5 @@
--- October 20 Auto Roll and Gold rolls (S12, docs/team/AUTO_ROLL.md). Isolated
--- sessions; never opens saved player profiles. Run in a Run-mode playtest:
+-- October 20 Auto Roll panel and Gold rolls (S12, S12b; docs/team/AUTO_ROLL.md).
+-- Isolated sessions; never opens saved player profiles. Run in a Run-mode playtest:
 -- require(game.ServerStorage.PetRollTests.AutoRollChecks).Run()
 local Shared=game.ReplicatedStorage.PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
@@ -10,7 +10,7 @@ local Session=require(game.ServerStorage.PetRoll.PlayerSession)
 local Rolls=require(game.ServerStorage.PetRoll.RollService)
 local Checks={}
 
-local RAREST=1-1e-8 -- Rules.Draw's top band; no mutation draw passes this either.
+local RAREST=1-1e-8 -- The last chicken Rules.Draw can reach; no mutation draw passes this either.
 
 -- A finished-guide session with the Auto Roll Gem Upgrade, three podiums and a fixed draw.
 local function fixture(userId, draw, tree)
@@ -28,17 +28,25 @@ local function fixture(userId, draw, tree)
 	return session,rolls
 end
 
--- What the fixed draw rolls on this session's podiums, and its "1 in X".
+-- Settings with only these rows ON (nothing else stops it).
+local function only(rows)
+	return AutoRollRules.Read({enabled=true,rarities=rows.rarities or {},mutations=rows.mutations or {},
+		newChicken=rows.newChicken==true,newMutation=rows.newMutation==true})
+end
+
+-- What the fixed draw rolls on this session's podiums.
 local function drawn(session)
-	local species=Rules.Draw(session.luck,RAREST,session.recruitTier,session:PaidLuckMultiplier(),
-		session.researchEffects.rollingLuck or 0)
-	return species,AutoRollRules.OneIn(species) or 1
+	return Rules.Draw(session.luck,RAREST,session.recruitTier,session:PaidLuckMultiplier(),session.researchEffects.rollingLuck or 0)
 end
 
 local function offerCount(session)
 	local count=0
 	for _ in session.offers or {} do count+=1 end
 	return count
+end
+
+local function discoverAll(session)
+	for _,id in Catalog.Order do session.discovered[id]=true end
 end
 
 function Checks.Run()
@@ -48,142 +56,132 @@ function Checks.Run()
 		table.insert(results,{name=name,passed=ok,detail=tostring(detail)})
 	end
 
-	test("Old Auto Roll saves convert to 1-in-X settings",function()
+	test("Old Auto Roll saves convert to the panel's rows",function()
 		local default=AutoRollRules.Read(nil)
-		assert(default.enabled==false and default.stopAt==1000 and default.recruitAt==nil)
-		assert(default.mutationStop and default.upgradeStop)
-		local upgrade=AutoRollRules.Read({enabled=true,stopAt="Upgrade"})
-		assert(upgrade.enabled and upgrade.upgradeStop and upgrade.stopAt==1000)
-		local mythic=AutoRollRules.Read({stopAt="Mythic",recruitAt="Rare",mutationStop=false})
-		assert(not mythic.upgradeStop and not mythic.mutationStop)
-		local floor=math.huge
-		for _,id in Catalog.Order do
-			local d=Catalog[id]
-			if d.rarity=="Mythic" and d.oneIn and d.weight>0 and not d.crateExclusive then floor=math.min(floor,d.oneIn) end
-		end
-		assert(mythic.stopAt==math.floor(floor),"Mythic converts to its most common member")
-		assert(mythic.recruitAt and mythic.recruitAt<mythic.stopAt)
-		local odd=AutoRollRules.Read({enabled="yes",stopAt="junk",recruitAt={},upgradeStop=1})
-		assert(odd.enabled==false and odd.stopAt==1000 and odd.recruitAt==nil)
-		assert(AutoRollRules.Read({stopAt=1e12}).stopAt==AutoRollRules.Max)
-		assert(AutoRollRules.Read({stopAt=-5}).stopAt==AutoRollRules.Min)
-		local saved=AutoRollRules.Read(AutoRollRules.Save({enabled=true,stopAt=20000,recruitAt=500,mutationStop=false,upgradeStop=false}))
-		assert(saved.enabled and saved.stopAt==20000 and saved.recruitAt==500 and not saved.mutationStop and not saved.upgradeStop)
-		return "Upgrade, rarity names, odd values and the new shape all read leniently"
+		assert(not default.enabled and default.rarities.Legendary and default.rarities.Mythic and default.rarities.Secret)
+		assert(not default.rarities.Epic and default.mutations.Golden and default.mutations.Cosmic and not default.mutations.Normal)
+		assert(default.newChicken and not default.newMutation)
+		local mythic=AutoRollRules.Read({enabled=true,stopAt="Mythic",mutationStop=false})
+		assert(mythic.enabled and mythic.rarities.Mythic and mythic.rarities.Secret and not mythic.rarities.Legendary)
+		assert(next(mythic.mutations)==nil,"Stop on mutations off keeps every mutation row off")
+		local rare=AutoRollRules.Read({stopAt="Rare"})
+		assert(rare.rarities.Rare and rare.rarities.Epic and not rare.rarities.Uncommon and rare.mutations.Golden)
+		local typed=AutoRollRules.Read({stopAt=1e9})
+		assert(typed.rarities.Secret and not typed.rarities.Common,"a huge 1 in X keeps the rarest rows")
+		local common=AutoRollRules.Read({stopAt=2})
+		assert(common.rarities.Common and common.rarities.Secret,"1 in 2 turns on every rarity")
+		local odd=AutoRollRules.Read({enabled="yes",rarities={Rare="yes",Fake=true,Epic=true},mutations=5})
+		assert(not odd.enabled and odd.rarities.Epic and not odd.rarities.Rare and not odd.rarities.Fake)
+		assert(next(odd.mutations)==nil)
+		local saved=AutoRollRules.Save(only({rarities={Rare=true},mutations={Normal=true},newMutation=true}))
+		local back=AutoRollRules.Read(saved)
+		assert(back.rarities.Rare and back.mutations.Normal and back.newMutation and not back.newChicken)
+		assert(type(saved.stopAt)=="number" and saved.mutationStop==false,"old servers get close fields")
+		return "October 15 names, S12 numbers, odd values and the new rows all read leniently"
 	end)
 
-	test("Stop values step through the presets and read as 1 in X",function()
-		assert(AutoRollRules.Step(1000,1)==5000 and AutoRollRules.Step(1000,-1)==500)
-		assert(AutoRollRules.Step(1500,-1)==1000 and AutoRollRules.Step(1500,1)==5000)
-		assert(AutoRollRules.Step(1000000,1)==1000000 and AutoRollRules.Step(100,-1)==100)
-		assert(AutoRollRules.Text(20000)=="1 in 20,000" and AutoRollRules.Text(2)=="1 in 2")
-		assert(string.find(AutoRollRules.Describe(2),"Common and up",1,true))
-		return AutoRollRules.Describe(20000)
+	test("Any ON row stops it, and the banner names why",function()
+		local value=only({rarities={Rare=true},mutations={Golden=true}})
+		assert(AutoRollRules.Reason(value,"Rare",nil,false,false)=="rarity")
+		assert(AutoRollRules.Reason(value,"Common","Golden",false,false)=="mutation")
+		assert(AutoRollRules.Reason(value,"Common",nil,true,false)==nil,"New Chicken off")
+		assert(AutoRollRules.Reason(only({mutations={Normal=true}}),"Common",nil,false,false)=="normal")
+		assert(AutoRollRules.Reason(only({newChicken=true}),"Common",nil,true,false)=="newChicken")
+		assert(AutoRollRules.Reason(only({newMutation=true}),"Common","Rainbow",false,true)=="newMutation")
+		assert(AutoRollRules.Banner("rarity","Rare",nil)=="Auto Roll found a Rare chicken!")
+		assert(AutoRollRules.Banner("rarity","Epic",nil)=="Auto Roll found an Epic chicken!")
+		assert(AutoRollRules.Banner("mutation","Common","Golden")=="Auto Roll found a Golden chicken!")
+		assert(AutoRollRules.Banner("newChicken","Common",nil)=="Auto Roll found a new chicken!")
+		assert(AutoRollRules.Banner("rebirth","Legendary",nil)=="Auto Roll found a Rebirth chicken!")
+		return "OR rules and banner lines"
 	end)
 
-	test("Gold rolls count lever pulls",function()
+	test("Gold, Diamond and Prism count on their own",function()
 		local saved={count=0}
-		local gold={goldMachine=1,goldRate=0}
-		for pull=1,9 do assert(GoldRolls.Advance(saved,gold)==nil,"pull "..pull) end
-		assert(GoldRolls.State(saved.count,gold).ready and GoldRolls.Text(GoldRolls.State(saved.count,gold))=="Next roll is Gold!")
-		assert(GoldRolls.Advance(saved,gold)=="Gold" and saved.count==0)
-		assert(GoldRolls.Text(GoldRolls.State(saved.count,gold))=="10 Rolls Left")
-		local fast={goldMachine=3,goldRate=2}
-		for _=1,5 do assert(GoldRolls.Advance(saved,fast)==nil) end
-		assert(GoldRolls.Advance(saved,fast)=="Prism" and GoldRolls.Luck("Prism")==10)
-		saved.count=4
-		assert(GoldRolls.Advance(saved,{goldMachine=0,goldRate=2})==nil and saved.count==4,"no machine counts nothing")
-		assert(GoldRolls.State(99,gold).left==1,"a lower Gold Rate never shows zero")
-		return "Every 10th (Gold Rate 0) and 6th (Gold Rate II) pull is special"
+		local all={goldMachine=3,goldRate=0}
+		local kinds={}
+		for pull=1,500 do
+			local kind=GoldRolls.Advance(saved,all)
+			if kind then kinds[kind]=(kinds[kind] or 0)+1 end
+			if pull==100 then assert(kind=="Diamond","Diamond beats Gold on pull 100") end
+			if pull==500 then assert(kind=="Prism","Prism beats Diamond on pull 500") end
+			if pull==10 then assert(kind=="Gold") end
+		end
+		-- 50 tens, 5 of them hundreds (Diamond wins), and pull 500 goes to Prism.
+		assert(kinds.Gold==45 and kinds.Diamond==4 and kinds.Prism==1)
+		local counters=GoldRolls.Counters({count=4,diamond=2},{goldMachine=2,goldRate=0})
+		assert(#counters==2 and counters[1].kind=="Gold" and counters[1].left==6 and counters[2].left==98)
+		assert(GoldRolls.Text(counters[1])=="6 Rolls Left" and GoldRolls.Text({kind="Gold",every=10,count=9,left=1,luck=2})=="1 Roll Left")
+		local fast={count=0}
+		for _=1,5 do assert(GoldRolls.Advance(fast,{goldMachine=1,goldRate=2})==nil) end
+		assert(GoldRolls.Advance(fast,{goldMachine=1,goldRate=2})=="Gold","Gold Rate II: every 6th")
+		local none={count=3}
+		assert(GoldRolls.Advance(none,{goldMachine=0})==nil and none.count==3,"no machine counts nothing")
+		return "Three counters; the bigger boost wins a shared pull"
 	end)
 
-	test("A Gold pull boosts every podium's Luck",function()
-		local session,rolls=fixture(-9101,0.5,{GoldMachine=1})
-		assert(session.researchEffects.goldMachine==1,"GoldMachine node sets goldMachine")
-		session.goldRolls.count=9
+	test("A Diamond pull boosts every podium's Luck",function()
+		local session,rolls=fixture(-9201,0.5,{GoldMachine=1,GoldRate=2,DiamondMachine=1})
+		assert(session.researchEffects.goldMachine==2,"Diamond Machine sets goldMachine 2")
+		session.goldRolls.count,session.goldRolls.diamond=2,99
 		local normalLuck=session.researchEffects.rollingLuck or 0
 		assert(rolls:Roll(session,0))
-		assert(offerCount(session)==3)
 		local top=Catalog.LuckBands[#Catalog.LuckBands].species
 		for _,offer in session.offers do
-			assert(offer.special=="Gold" and math.abs(offer.researchLuck-((1+normalLuck)*2-1))<1e-9)
+			assert(offer.special=="Diamond" and math.abs(offer.researchLuck-((1+normalLuck)*5-1))<1e-9)
 			local boosted=Rules.Odds(session.luck,session.recruitTier,offer.paidLuck,offer.researchLuck)[top]
-			local plain=Rules.Odds(session.luck,session.recruitTier,offer.paidLuck,normalLuck)[top]
-			assert(boosted>plain,"the rarest band is likelier on a Gold pull")
+			assert(boosted>Rules.Odds(session.luck,session.recruitTier,offer.paidLuck,normalLuck)[top])
 		end
-		assert(session.goldRolls.count==0)
-		assert(rolls:Roll(session,100))
-		for _,offer in session.offers do assert(offer.special==nil) end
-		assert(session.goldRolls.count==1)
-		return "Special pull marks all podiums and doubles the Luck term"
+		assert(session.goldRolls.diamond==0 and session.goldRolls.count==3,"each counter moves on its own")
+		return "Diamond pull: 5x Luck on all podiums"
 	end)
 
-	test("Auto Roll holds a chicken at the stop value; the alert recruits it from anywhere",function()
-		local session,rolls=fixture(-9102,RAREST)
-		local _,oneIn=drawn(session)
-		session.autoRoll=AutoRollRules.Read({enabled=true,stopAt=math.floor(oneIn),upgradeStop=false})
+	test("Auto Roll holds a chicken for its rarity until recruited, rolled on or toggled",function()
+		local session,rolls=fixture(-9202,RAREST)
+		discoverAll(session)
+		local rarity=Catalog[drawn(session)].rarity
+		session.autoRoll=only({rarities={[rarity]=true}})
 		assert(rolls:StepAuto(session,0)=="rolled")
 		assert(rolls:StepAuto(session,1)==nil,"waits for the reveal")
 		assert(rolls:StepAuto(session,100)=="held")
 		local snapshot=Rolls.AutoSnapshot(session)
-		assert(snapshot.holding and snapshot.held.reason=="rarity" and snapshot.held.oneIn>=math.floor(oneIn))
-		assert(not snapshot.held.canAfford)
+		assert(snapshot.holding and snapshot.held.reason=="rarity" and snapshot.held.banner==AutoRollRules.Banner("rarity",rarity,nil))
 		assert(rolls:StepAuto(session,101)==nil,"still holding")
-		session.coins=snapshot.held.price
-		local ok,message=rolls:RecruitHeld(session,snapshot.held.offerId,102)
-		assert(ok,message)
-		assert(offerCount(session)==2)
-		assert(rolls:StepAuto(session,103)=="held","the next rare podium holds")
-		assert(rolls:SetAutoRoll(session,{skip=true}))
-		assert(rolls:StepAuto(session,104)=="rolled","Skip rolls on")
-		assert(not Rolls.AutoSnapshot(session).holding)
-		return "Hold, remote recruit and Skip"
+		session.coins=1e12
+		assert(rolls:Buy(session,snapshot.held.offerId,102),"recruited at the podium")
+		assert(offerCount(session)==2 and rolls:StepAuto(session,103)=="held","the next one holds")
+		assert(rolls:SetAutoRoll(session,{enabled=false}) and rolls:SetAutoRoll(session,{enabled=true}))
+		assert(rolls:StepAuto(session,104)=="rolled","turning it back on rolls on")
+		return "Hold, recruit at the podium, and off/on"
 	end)
 
-	test("Auto-recruit buys at the recruit value only when affordable",function()
-		local session,rolls=fixture(-9103,RAREST)
-		local _,oneIn=drawn(session)
-		assert(oneIn<AutoRollRules.Max,"the drawn chicken must not meet the stop value")
-		session.autoRoll=AutoRollRules.Read({enabled=true,stopAt=AutoRollRules.Max,recruitAt=2,mutationStop=false,upgradeStop=false})
-		assert(rolls:StepAuto(session,0)=="rolled")
-		assert(rolls:StepAuto(session,100)=="rolled","no Coins: rolls on")
-		local price=0
-		for _,offer in session.offers do price+=offer.price end
-		session.coins=price
-		local count=session:Count()
-		local result,receipts=rolls:StepAuto(session,200)
-		assert(result=="recruited" and receipts and #receipts==3)
-		assert(session.coins==0 and session:Count()==count+3)
-		for _,item in receipts do assert(session.pets[item.petId] and item.before-item.after>0) end
-		return "Three podiums recruited for exactly their prices"
-	end)
-
-	test("Army upgrade stop compares with the Army you picked",function()
-		local session=fixture(-9104,RAREST)
-		session.autoRoll=AutoRollRules.Read({enabled=true,stopAt=AutoRollRules.Max,mutationStop=false,upgradeStop=true})
-		-- A mid band (stronger than Duck, nowhere near the stop value).
-		local strong=Catalog.LuckBands[5].species
-		assert(Rules.PetPower(strong,1,1)>Rules.PetPower("Duck",1,1))
-		assert(Rolls.Keeper(session,{species=strong,level=1})=="upgrade")
-		local duck
-		for id,pet in session.pets do if pet.species=="Duck" then duck=id end end
-		assert(duck,"starter Ducks")
-		session.armySelection={duck}
-		assert(Rolls.Keeper(session,{species="Duck",level=1})==nil,"an empty manual slot is not an upgrade")
-		assert(Rolls.Keeper(session,{species=strong,level=1})=="upgrade")
-		return "Manual Army: only a stronger chicken stops it"
+	test("New Chicken and New Mutation rows",function()
+		local session,rolls=fixture(-9203,RAREST)
+		session.autoRoll=only({newChicken=true})
+		session.discovered={}
+		assert(rolls:StepAuto(session,0)=="rolled" and rolls:StepAuto(session,100)=="held")
+		assert(Rolls.AutoSnapshot(session).held.reason=="newChicken")
+		discoverAll(session)
+		assert(Rolls.Keeper(session,{species="Duck",level=1})==nil,"known chickens roll on")
+		session.autoRoll=only({newMutation=true})
+		assert(Rolls.Keeper(session,{species="Duck",level=1,mutation="Golden"})=="newMutation")
+		local id=next(session.pets)
+		session.pets[id].species,session.pets[id].mutation="Duck","Golden"
+		assert(Rolls.Keeper(session,{species="Duck",level=1,mutation="Golden"})==nil,"already owned")
+		return "Index and owned mutations decide what is new"
 	end)
 
 	test("Rebirth chickens always stop it; SetAutoRoll validates",function()
-		local session,rolls=fixture(-9105,RAREST)
-		session.autoRoll=AutoRollRules.Read({enabled=true,stopAt=AutoRollRules.Max,mutationStop=false,upgradeStop=false})
-		local veteran=Catalog.RebirthOrder[1]
-		assert(Rolls.Keeper(session,{species=veteran,level=1,rebirthChicken=true})=="rebirth")
-		assert(rolls:SetAutoRoll(session,{stopAt=20000}) and session.autoRoll.stopAt==20000)
-		assert(not rolls:SetAutoRoll(session,{stopAt="abc"}) and session.autoRoll.stopAt==20000)
+		local session,rolls=fixture(-9204,RAREST)
+		session.autoRoll=only({})
+		assert(Rolls.Keeper(session,{species=Catalog.RebirthOrder[1],level=1,rebirthChicken=true})=="rebirth")
+		assert(rolls:SetAutoRoll(session,{rarity="Rare",on=true}) and session.autoRoll.rarities.Rare)
+		assert(rolls:SetAutoRoll(session,{rarity="Rare",on=false}) and not session.autoRoll.rarities.Rare)
+		assert(rolls:SetAutoRoll(session,{mutation="Normal",on=true}) and session.autoRoll.mutations.Normal)
+		assert(rolls:SetAutoRoll(session,{newMutation=true}) and session.autoRoll.newMutation)
+		assert(not rolls:SetAutoRoll(session,{rarity="Fake",on=true}))
+		assert(not rolls:SetAutoRoll(session,{rarity="Rare"}),"a row needs on")
 		assert(not rolls:SetAutoRoll(session,{enabled="yes"}))
-		assert(rolls:SetAutoRoll(session,{recruitAt=5000}) and session.autoRoll.recruitAt==5000)
-		assert(rolls:SetAutoRoll(session,{recruitAt=false}) and session.autoRoll.recruitAt==nil)
 		session.gemUpgrades={}
 		session:RefreshEffects()
 		local ok,message=rolls:SetAutoRoll(session,{enabled=true})
@@ -192,16 +190,17 @@ function Checks.Run()
 		return "Rebirth chickens hold; requests checked"
 	end)
 
-	test("Auto Roll settings and the Gold count survive a save",function()
-		local session=fixture(-9106,RAREST,{GoldMachine=1})
-		session.autoRoll=AutoRollRules.Read({enabled=true,stopAt=20000,recruitAt=1000,mutationStop=false,upgradeStop=false})
-		session.goldRolls.count=7
-		local restored=Session.new(-9107,"Restore fixture",1)
+	test("Auto Roll rows and the three counts survive a save",function()
+		local session=fixture(-9205,RAREST,{GoldMachine=1})
+		session.autoRoll=only({rarities={Epic=true},mutations={Shadow=true},newMutation=true})
+		session.goldRolls={count=7,diamond=42,prism=301}
+		local restored=Session.new(-9206,"Restore fixture",1)
 		assert(restored:LoadData(session:ToData()))
 		local auto=restored.autoRoll
-		assert(auto.enabled and auto.stopAt==20000 and auto.recruitAt==1000 and not auto.mutationStop and not auto.upgradeStop)
-		assert(restored.goldRolls.count==7)
-		return "Settings and counter reload exactly"
+		assert(auto.enabled and auto.rarities.Epic and not auto.rarities.Legendary and auto.mutations.Shadow)
+		assert(auto.newMutation and not auto.newChicken)
+		assert(restored.goldRolls.count==7 and restored.goldRolls.diamond==42 and restored.goldRolls.prism==301)
+		return "Rows and counters reload exactly"
 	end)
 
 	local passed=0

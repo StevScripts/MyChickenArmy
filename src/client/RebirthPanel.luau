@@ -243,7 +243,7 @@ function Panel:BuildRewards(main)
 	self.costText=label(track,"Label","",33)
 	self.costText.Position,self.costText.Size=UDim2.fromScale(0.08,0.05),UDim2.fromScale(0.84,0.9)
 	-- The coin overlaps the bar's left end, as in the reference.
-	local coin=rect(Theme.Image(rankBox,"CostIcon",Theme.Assets.Coin,UDim2.new()),40,508,86,86,RANK)
+	local coin=rect(Theme.Image(rankBox,"CostIcon",Theme.Assets.Coin,UDim2.new()),33,503,100,100,RANK)
 	coin.ZIndex=4
 	Theme.Aspect(coin,1)
 	self:BuildChicken(rankBox)
@@ -258,8 +258,9 @@ function Panel:Tile(parent,name: string,caption: string,box,gemKey: string?)
 	Theme.Stroke(frame,BLACK,3)
 	local own={0,0,box[3],box[4]}
 	rect(label(frame,"Label",caption,20),4,6,box[3]-8,24,own)
+	-- Big icons (owner, October 20); the value overlaps the icon's lower edge, as in the reference.
 	local icon=if gemKey then Theme.GemIcon(frame,"Icon",gemKey,UDim2.new()) else Theme.Image(frame,"Icon",Assets.cashEggValue,UDim2.new())
-	rect(icon,(box[3]-62)/2,32,62,62,own)
+	rect(icon,(box[3]-96)/2,22,96,96,own)
 	icon.ZIndex=5
 	Theme.Aspect(icon,1)
 	return rect(label(frame,"Value","",32),4,96,box[3]-8,38,own)
@@ -280,7 +281,7 @@ function Panel:BuildChicken(rankBox)
 		table.insert(self.glow,disk)
 	end
 	self.chickenName=rect(label(tile,"Name","",23),4,4,CHICKEN[3]-8,26,own)
-	local art=rect(Theme.Container(tile,"Art"),54,30,86,86,own)
+	local art=rect(Theme.Container(tile,"Art"),47.5,26,100,100,own)
 	art.ZIndex=4
 	Theme.Aspect(art,1)
 	self.chickenRarity=rect(label(tile,"Rarity","",21),4,115,CHICKEN[3]-8,24,own)

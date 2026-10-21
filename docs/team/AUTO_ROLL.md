@@ -1,129 +1,123 @@
-# Auto Roll and Gold rolls (October 20 overhaul, S12)
+# Auto Roll and Gold rolls (October 20 overhaul, S12 + S12b)
 
-Owner decisions, October 20 (Stevin, session S12). Stevin had no HUD reference, so
-the HUD follows the common Roblox RNG-game pattern he approved: Sol's RNG's Roll
-button with an Auto Roll toggle and typed "rarer than" values, and Slime RNG's
-Golden and Diamond rolls. He picked "stop at a value, like 1 in 20,000". This
-replaces the October 15 research version (history at the end).
+Owner decisions, October 20 (Stevin):
+
+- **S12b, later the same evening:** copy Drop a Fruit's Auto Roll board 1:1 in My
+  Chicken Army's art style, from his second recording
+  (`~/Downloads/ScreenRecording_10-20-2026 20-54-22_1.MP4`: the board at 98–126 s,
+  the banner at 124 s, the two machine counters at 6 s and 110 s).
+- That replaces the typed "1 in X" stop (S12). Auto-recruit is dropped.
+- When Auto Roll finds a chicken there is only the banner, exactly like theirs (no
+  Recruit/Skip card).
+- Diamond rolls come every 100 pulls and Prism rolls every 500.
 
 ## Auto Roll
 
 - **Unlock:** the Auto Roll Gem Upgrade (`GemUpgradeCatalog.AutoRoll`, effect
-  `autoRoll`). Locked requests reply "Unlock Auto Roll in Gem Upgrades." Old
-  research owners got the Gem Upgrade in S7's save conversion.
-- **Runs on the server, from anywhere.** `RollService:StepAuto` runs every 0.25 s
-  from `GameServer:Step` once the lever is ready. It does these in order:
-  1. **Auto-recruit:** buy each podium offer whose zero-Luck odds are `recruitAt`
-     or rarer, if the player can afford it (`CanSpendCash`, starter reserve,
-     storage cap). Each recruit gets the normal Buy analytics, walks home and
-     shows the usual recruit notice.
-  2. **Hold:** if an offer is worth keeping, stop rolling and keep it on its
-     podium. A hold lasts until the player recruits it, skips, changes a setting
-     or pulls the lever.
-  3. **Roll:** otherwise pull the lever (it counts toward Gold rolls).
-- **Worth keeping** (`RollService.Keeper`):
-  - Rebirth chickens, always (plan v2).
-  - Any mutation, with **Stop on mutations** on (default on).
-  - Odds of 1 in `stopAt` or rarer (default 1 in 1,000).
-  - With **Stop on Army upgrades** on (default on), a chicken stronger than the
-    weakest chicken in the Army the player picked. October 20 fix: the old rule
-    read the automatic best list, so after a hand-picked Army it stopped for
-    chickens that would not join. An empty slot counts only while the Army is
-    automatic.
-- The alert shows the best keeper: Rebirth chickens first, then the rarest.
-- **Settings** (saved `autoRoll`, read by `AutoRollRules.Read`, lenient):
-  `{enabled, stopAt, recruitAt?, mutationStop, upgradeStop}`.
-  - Values are whole "1 in N" numbers from 2 to 10,000,000. `recruitAt = nil`
-    means auto-recruit is off.
-  - Old saves convert: "Upgrade" turns on Stop on Army upgrades with 1 in 1,000;
-    a rarity name becomes that rarity's most common member's odds.
-  - Limited (event) chickens have no catalog odds, so they compare by their
-    offer chance.
-- **Requests:**
-  - `SetAutoRoll {enabled?, stopAt?, recruitAt? (number, or false for off), mutationStop?, upgradeStop?, skip?}`.
-    `skip=true` rolls on past the current podiums.
-  - `RecruitHeld {offerId}` recruits from the alert without walking over; it is
-    reported as a Buy.
+  `autoRoll`). Locked requests reply "Unlock Auto Roll in Gem Upgrades."
+- **Panel** (`AutoRollMenu`, a Frame under `PetRollGui`):
+  - Opened from the HUD Auto Roll button (and "Auto Roll settings" in Settings).
+  - It is their board in our style: square shell, studded Army-green header with the
+    Auto Roll icon (rbxassetid://83070773137079), a dark see-through body, Source
+    Sans Bold.
+  - The header holds the red OFF / green ON pill.
+  - "Stop When Appear" is a scrolling list (four rows at a time) of rows with the
+    name in its color and a red OFF / green ON pill.
+  - A bottom "< Rarity >" switcher with blue arrows pages through:
+    - **Rarity:** Secret, Mythic, Legendary, Epic, Rare, Uncommon, Common (rarest
+      first, like theirs).
+    - **Mutation:** Golden, Rainbow, Shadow, Cosmic, Normal (no mutation).
+    - **New:** New Chicken (not in the Index yet), New Mutation (a mutation that
+      chicken doesn't have among the chickens you own).
+- **Rule:** any ON row stops Auto Roll. The recording stopped for a Rare with every
+  mutation row OFF. Rebirth chickens always stop it.
+- **Defaults** for a fresh save: Legendary, Mythic and Secret on, the four mutations
+  on, New Chicken on.
+- **Server** (`RollService:StepAuto`, every 0.25 s from `GameServer:Step`, from
+  anywhere):
+  - With the lever ready, it holds while a chicken worth keeping waits on a podium
+    (the best one: Rebirth chickens first, then the rarest), else it pulls the lever.
+  - The player ends a hold by recruiting the chicken at its podium, pulling the lever,
+    or turning Auto Roll off and back on in the panel. Turning it back on rolls on
+    past the chickens already on the podiums.
+- **Hit banner:** "Auto Roll found a Rare chicken!" in big outlined blue across the
+  top, with confetti, for 3 s, once per find.
+  - Other lines: "…an Epic chicken!", "…a Golden chicken!", "…a new chicken!",
+    "…a Rebirth chicken!".
+  - Reduced motion keeps it still and skips the confetti.
+  - The HUD button turns gold (PAUSED) while it holds.
+- **HUD button** (`HudController`): "Auto Roll" over ON / OFF / PAUSED (green / red /
+  gold), on the right edge under Rebirth, clear of the phone jump button.
+- **Saved `autoRoll`** (`AutoRollRules.Read`, lenient):
+  - Shape: `{enabled, rarities={[rarity]=true}, mutations={[id or "Normal"]=true},
+    newChicken, newMutation}`.
+  - The save also writes the old `stopAt`/`mutationStop` fields so an older server
+    reads something close.
+  - Old saves convert: a "1 in X" (S12) or a rarity name (October 15) turns on the
+    nearest rarity and every rarer one; Stop on mutations turns on the four mutation
+    rows.
+- **Request:** `SetAutoRoll {enabled?}`, `{rarity, on}`, `{mutation, on}`,
+  `{newChicken}` or `{newMutation}`.
 - **Snapshot** `state.autoRoll`:
-  - `{enabled, unlocked, stopAt, recruitAt, mutationStop, upgradeStop, holding, held}`.
-  - `held = {offerId, slot, species, level, price, mutation, oneIn, reason,
-    rebirthChicken, canAfford, storageFull, special}`.
+  - `{enabled, unlocked, rarities, mutations, newChicken, newMutation, holding, held}`.
+  - `held = {offerId, slot, species, mutation, reason, rarity, banner}`.
   - The roll camera's lighter Auto Roll mode still reads `enabled` and `unlocked`.
-
-### HUD
-
-- **Button** (`HudController`): the October 16 text toggle (green ON, red OFF,
-  gold PAUSED).
-  - It moved up the right edge, under Rebirth, so it clears the phone jump button.
-  - A gear on its left opens the settings, and "Stops at 1 in 1,000" sits
-    underneath.
-  - While Auto Roll holds a chicken, pressing it brings back the alert.
-  - The Gold Rush chip still sits above it.
-- **Settings popup** (`AutoRollMenu`, also "Auto Roll settings" in Settings):
-  - Auto Roll ON/OFF.
-  - Stop at: −, "1 in [typed value]", +. The −/+ step through
-    `Config.AutoRoll.Presets`. A line says what the value covers, like
-    "Stops for 9 chickens (Mythic and up)".
-  - Auto-recruit ON/OFF with its own value.
-  - Stop on mutations, Stop on Army upgrades.
-  - A footer with the Rebirth-chicken rule and the Gold Machine count.
-  - The header icon is the uploaded Auto Roll icon (rbxassetid://83070773137079).
-- **Hit alert:** a top-center card.
-  - It shows "1 in 23,400!" (or "Rebirth chicken!") in the rarity color, the
-    chicken portrait, name, rarity, any mutation, the reason, and the price with
-    the gold coin.
-  - Recruit works from anywhere ("Need N Coins" when short); Skip rolls on.
-  - The X hides it and keeps the hold.
-  - It waits while a menu, popup, dialogue or the intro film is up.
-- UI Lab stories: "Auto Roll settings" and "Auto Roll hit alert".
 
 ## Gold rolls
 
 - **Tree nodes:** Gold Machine → Gold Rate I–II → Diamond Machine → Prism Machine
-  (effects `goldMachine` 1/2/3 and `goldRate`; S7's tree; the name "Prism Machine"
-  was confirmed by Stevin).
+  (`goldMachine` 1/2/3 owns Gold, then also Diamond, then also Prism; `goldRate`).
 - **Rule** (`GoldRolls.luau`, numbers in `Config.GoldRolls`):
-  - With the Gold Machine, every Nth lever pull (manual or Auto Roll) is special:
-    N = 10 / 8 / 6 for Gold Rate 0 / I / II.
-  - On a special pull every podium rolls with ×2 (Gold), ×5 (Diamond) or ×10
-    (Prism) Luck. That multiplies the Luck term, so every rarer chicken becomes
-    likelier.
+  - Each machine counts lever pulls on its own (manual or Auto Roll): Gold every
+    10th pull (8th / 6th with Gold Rate I / II), Diamond every 100th, Prism every
+    500th.
+  - A special pull rolls every podium with ×2 / ×5 / ×10 Luck. If two land on one
+    pull, the bigger boost wins.
   - Mutation odds are unchanged.
-  - The count is saved in `goldRolls.count`, resets on Rebirth, and is not counted
-    without the machine.
-- **Machine counter** (`RollStation`): the machine icon and "N Rolls Left" over the
-  roll machine, then "Next roll is Gold!" in the kind's color.
-  - The client pulses it while ready.
-  - Icons: GoldMachine 75354767460656, DiamondMachine 113120386630417, Prism
-    (the RainbowMachine art) 90010215769789.
+  - Saved `goldRolls = {count (Gold), diamond, prism}`, reset by a Rebirth.
+- **Machine counters** (`RollStation`):
+  - One row per owned machine over the lever machine, Gold above Diamond above
+    Prism, as in the recording: "6 Rolls Left", "98 Rolls Left", "1 Roll Left".
+  - Dice icons are still to come (the image API had no credits on October 20). The
+    rows show the S6 machine icons until then: Gold 75354767460656, Diamond
+    113120386630417, Prism (RainbowMachine art) 90010215769789.
 - **Special pull** (`RollPresentationController`):
   - Every podium glows in the kind's color (Prism cycles the rainbow).
   - A "Gold roll · 2x Luck" tag shows until just after the reveal.
   - A notice appears when the player is too far away to see it.
-- **Snapshot** `state.goldRolls = {machine, kind, every, count, left, luck, ready}`.
+- **Snapshot** `state.goldRolls = {counters={{kind, every, count, left, luck}, ...}}`.
+- **Tooltips:** S9's tree tooltips read `Config.GoldRolls`. The Diamond and Prism
+  nodes should read `KindEvery` ("Every 100 rolls: x5 Luck"), not "x2 → x5".
 
 ## Analytics (observation only)
 
-- `autoroll.stop` (detail: rebirth, mutation, rarity or upgrade).
+- `autoroll.stop` (detail: rebirth, rarity, mutation, normal, newChicken,
+  newMutation).
+- `goldRoll.pull.<Kind>`.
 - `rebirthChicken.offered` and `.bought`.
-- The new LaunchCount names below are ignored until S7 appends them to
-  `AnalyticsSchema.LaunchCounters`: `goldRoll.pull.<Kind>`, `autoRoll.recruit`,
-  `autoRoll.recruitHeld`, `autoRoll.skip`.
+- S7's `autoRoll.recruit`, `.recruitHeld` and `.skip` counters stay registered but
+  are no longer sent.
 
 ## Checks
 
-`tests/AutoRollChecks.luau` (isolated sessions; run in a Run-mode playtest:
+`tests/AutoRollChecks.luau` (run in a Run-mode playtest:
 `require(game.ServerStorage.PetRollTests.AutoRollChecks).Run()`). It covers:
 
-- save conversion and the save round trip;
-- −/+ steps and the "1 in X" text;
-- Gold roll cadence and the Luck boost;
-- hold, remote recruit and Skip;
-- auto-recruit affordability;
-- the Army upgrade fix, Rebirth-chicken stops and request validation.
+- save conversion and the save round trip (rows and the three counts);
+- the OR rules and banner lines;
+- the three cadences, and the bigger boost winning a shared pull;
+- the Diamond Luck boost;
+- hold → recruit at the podium → off/on rolls on;
+- New Chicken / New Mutation;
+- Rebirth-chicken stops and request validation.
+
+UI Lab stories: "Auto Roll panel" and "Auto Roll banner".
 
 ## History
 
-October 15 (superseded): a free research unlock with stop-on-good only. The stop
-setting cycled "Army upgrade", Rare+ … Secret in Settings; the button sat at the
-bottom right; holds showed only a banner.
+- **October 20, S12 (superseded by S12b):**
+  - A typed "1 in X" stop with −/+ presets, auto-recruit, Stop on mutations and
+    Stop on Army upgrades.
+  - A hit alert with Recruit (from anywhere) and Skip.
+  - One Gold counter that Diamond and Prism upgraded.
+- **October 15:** a research unlock; the stop cycled "Army upgrade", Rare+ … Secret.

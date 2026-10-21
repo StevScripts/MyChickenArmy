@@ -71,8 +71,9 @@ gold coin, and "Resets on Rebirth". Luck shows the server's Epic+ (or strongest
 band) odds now → next from `upgradeTree.luck` (docs/team/LUCK_WINDOW.md), "All
 normal chickens remain possible." and any limited event's podium chance. The Gold
 Machine, Gold Rate, Diamond Machine and Prism Machine read S12's `Config.GoldRolls`
-("Every 10 rolls: x2 Luck", "Every 10 → 8 rolls", "x2 → x5 Luck"); without it they
-show only their description.
+("Every 10 rolls: x2 Luck", "Every 10 → 8 rolls"; since S12b, Diamond and Prism count
+on their own from `KindEvery`: "Every 100 rolls: x5 Luck", "Every 500 rolls: x10
+Luck", owned "Owned: Every 100 rolls"); without it they show only their description.
 
 ## Icons
 

@@ -56,7 +56,7 @@ local Config = {
   ChampionWins=10,ChampionSpecies="HillChampion"},
  -- October 20 overhaul, Rebirth v2 (docs/team/OVERHAUL_CONTRACT_20261020.md §7; plan v2
  -- with Stevin's changes). Coins on hand are the only requirement (no camps, no King);
- -- Coins reset to StartingCoins, then Time Skip pays. Each rank adds +100% egg Coins
+ -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins
  -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
  -- then +EnemyScalePerRank per rank of the attacker. Mission tiers open at King clear
  -- or MissionTierRanks (Veteran, Elite, Royal). Costs are the P0 fit with
@@ -89,15 +89,17 @@ local Config = {
  RollRevealSeconds=4,RollInteractDistance=14,
  -- Pre-October 20 Auto Roll stop names, kept only so AutoRollRules.Read converts old saves.
  AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic","Secret"},
- -- October 20 Auto Roll (S12, Stevin approved; AutoRollRules.luau): stop at "1 in X or
- -- rarer" (zero-Luck odds, as on the podium). Presets are the menu's -/+ steps; players
- -- may also type any whole number from MinOneIn to MaxOneIn.
- AutoRoll={DefaultStop=1000,MinOneIn=2,MaxOneIn=10000000,
-  Presets={100,500,1000,5000,20000,100000,200000,1000000}},
- -- October 20 Gold rolls (S12, Stevin approved; GoldRolls.luau). With the Gold Machine,
- -- every Every[goldRate+1]th lever pull is special and every podium rolls with
- -- Luck[goldMachine]x Luck. Kinds name it for goldMachine 1/2/3 (Gold, Diamond, Prism).
- GoldRolls={Every={10,8,6},Luck={2,5,10},Kinds={"Gold","Diamond","Prism"}},
+ -- October 20 Auto Roll panel (S12b, Stevin: Drop a Fruit's board 1:1; AutoRollRules.luau).
+ -- "Stop When Appear" rows: rarities (rarest first), mutations plus Normal, and new
+ -- chickens/mutations. Any row that is ON stops it. Defaults for a fresh save:
+ AutoRoll={Rarities={"Secret","Mythic","Legendary","Epic","Rare","Uncommon","Common"},
+  DefaultRarities={"Legendary","Mythic","Secret"},DefaultMutations={"Golden","Rainbow","Shadow","Cosmic"},
+  DefaultNewChicken=true,DefaultNewMutation=false},
+ -- October 20 Gold rolls (S12, S12b; GoldRolls.luau). Each machine counts lever pulls on its
+ -- own: Gold every Every[goldRate+1]th pull, Diamond and Prism every KindEvery pulls.
+ -- A special pull rolls every podium with Luck[n]x Luck (Kinds[n]); if two land on one
+ -- pull, the bigger boost wins. goldMachine 1/2/3 owns Gold, +Diamond, +Prism.
+ GoldRolls={Every={10,8,6},Luck={2,5,10},Kinds={"Gold","Diamond","Prism"},KindEvery={Diamond=100,Prism=500}},
  SlotLevels={3,4,5,6,7,8,9,10},
  SlotUnlocks={
   [3]={capacity=4,price=1200},

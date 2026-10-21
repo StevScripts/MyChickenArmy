@@ -82,10 +82,10 @@ function Grid:Build(order: {string},items)
 	Theme.Aspect(content,PANEL_W/height)
 	self.content=content
 	rect(text(content,"Title","Gem Upgrades",52,WHITE,Enum.TextXAlignment.Center),0,10,PANEL_W,62,PANEL_W,height)
-	local balance=rect(Theme.Container(content,"Balance"),737,14,190,56,PANEL_W,height)
+	local balance=rect(Theme.Container(content,"Balance"),707,8,220,66,PANEL_W,height)
 	self.balance=text(balance,"Amount","0",46,C.Number,Enum.TextXAlignment.Right)
-	self.balance.Size=UDim2.fromScale(0.72,1)
-	Theme.Aspect(Theme.GemIcon(balance,"Gem","Gems",UDim2.fromScale(0.25,1),UDim2.fromScale(0.75,0)),1)
+	self.balance.Size=UDim2.fromScale(0.68,1)
+	Theme.Aspect(Theme.GemIcon(balance,"Gem","Gems",UDim2.fromScale(0.3,1),UDim2.fromScale(0.7,0)),1)
 	local divider=rect(Theme.Frame(content,"Divider",UDim2.new(),WHITE),27,78,886,4,PANEL_W,height)
 	divider.BackgroundTransparency=0.8
 	for _,id in order do
@@ -113,23 +113,24 @@ function Grid:Card(parent,id: string,x: number,y: number,height: number)
 	rim.Transparency=0.46
 	local title=rect(text(visual,"Title","",31,WHITE),16,8,402,38,CARD_W,CARD_H)
 	title.TextWrapped=false
-	local effect=rect(text(visual,"Effect","",23,C.Effect),16,48,280,50,CARD_W,CARD_H)
+	local effect=rect(text(visual,"Effect","",23,C.Effect),16,48,262,50,CARD_W,CARD_H)
 	effect.TextYAlignment=Enum.TextYAlignment.Top
-	local price=rect(Theme.Container(visual,"Price"),16,104,220,40,CARD_W,CARD_H)
+	local price=rect(Theme.Container(visual,"Price"),16,100,220,48,CARD_W,CARD_H)
 	price.ZIndex=6
-	local gem=Theme.GemIcon(price,"Gem","Gems",UDim2.fromScale(0.2,1))
+	local gem=Theme.GemIcon(price,"Gem","Gems",UDim2.fromScale(0.24,1))
 	Theme.Aspect(gem,1)
 	local amount=text(price,"Amount","",33,WHITE)
-	local toggle=rect(Theme.Frame(visual,"Toggle",UDim2.new(),WHITE),16,104,150,40,CARD_W,CARD_H)
+	local toggle=rect(Theme.Frame(visual,"Toggle",UDim2.new(),WHITE),16,100,150,48,CARD_W,CARD_H)
 	toggle.ZIndex,toggle.Visible=6,false
 	Theme.Stroke(toggle,BLACK,2)
 	local toggleText=text(toggle,"State","ON",28,WHITE,Enum.TextXAlignment.Center)
 	toggleText.Size=UDim2.fromScale(1,1)
 	local definition=Catalog and Catalog.Upgrades[id]
-	local icon=rect(Theme.GemIcon(visual,"Icon",if definition then definition.icon else id,UDim2.new()),306,20,112,112,CARD_W,CARD_H)
+	-- Big icons (owner, October 20): nearly the card's full height at its right edge.
+	local icon=rect(Theme.GemIcon(visual,"Icon",if definition then definition.icon else id,UDim2.new()),279,3,148,148,CARD_W,CARD_H)
 	icon.ZIndex=5
 	Theme.Aspect(icon,1)
-	local lock=rect(Theme.Image(visual,"Lock",Theme.Assets.Padlock,UDim2.new()),306,20,112,112,CARD_W,CARD_H)
+	local lock=rect(Theme.Image(visual,"Lock",Theme.Assets.Padlock,UDim2.new()),279,3,148,148,CARD_W,CARD_H)
 	lock.ZIndex,lock.Visible=5,false
 	Theme.Aspect(lock,1)
 	local view={id=id,button=button,visual=visual,outline=outline,studs=studs,title=title,effect=effect,
@@ -156,9 +157,9 @@ function Grid:Paint(view,item,rank: number,auto)
 		Theme.Gradient(view.visual,LOCKED_TOP,LOCKED_BOTTOM)
 		view.studs.ImageTransparency,view.outline.Color=0.91,BLACK
 		view.title.RichText,view.title.Text=false,"Locked!"
-		rect(view.title,16,26,280,44,CARD_W,CARD_H)
+		rect(view.title,16,26,262,44,CARD_W,CARD_H)
 		view.effect.Text,view.effect.TextColor3="Rebirth "..unlockRank.." needed",C.LockedText
-		rect(view.effect,16,74,280,52,CARD_W,CARD_H)
+		rect(view.effect,16,74,262,52,CARD_W,CARD_H)
 		view.price.Visible,view.toggle.Visible,view.icon.Visible,view.lock.Visible=false,false,false,true
 		return
 	end
@@ -170,7 +171,7 @@ function Grid:Paint(view,item,rank: number,auto)
 	view.effect.TextColor3=C.Effect
 	view.effect.Text=if toggle then "Rebirths for you when you have enough Coins"
 		else (item and item.text) or (Catalog and Catalog.Text and Catalog.Text(id,level)) or ""
-	rect(view.effect,16,48,280,50,CARD_W,CARD_H)
+	rect(view.effect,16,48,262,50,CARD_W,CARD_H)
 	view.icon.Visible,view.lock.Visible=true,false
 	local maxed=status=="Maxed" and not toggle
 	view.outline.Color=if maxed then GOLD else BLACK
@@ -185,7 +186,7 @@ function Grid:Paint(view,item,rank: number,auto)
 		view.amount.Text,view.amount.TextColor3="MAX",GOLD
 	else
 		view.gem.Visible=true
-		view.amount.Position,view.amount.Size=UDim2.fromScale(0.23,0),UDim2.fromScale(0.77,1)
+		view.amount.Position,view.amount.Size=UDim2.fromScale(0.26,0),UDim2.fromScale(0.74,1)
 		local price=tonumber(item and item.price)
 		view.amount.Text=if price then Theme.Money(price) else "…"
 		-- Short on Gems: the price turns red (a tap says how many are missing).

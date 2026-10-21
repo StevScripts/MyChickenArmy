@@ -54,7 +54,7 @@ References:
   at 49/99/199 R$ by rank band and hidden where paid random items are restricted,
   30 Veteran Corps Rebirth chickens (granted at the rank, plus a 1% podium
   chance), the reference screen copied 1:1 in the game's style (Army-green
-  header, right panel titled "Gem Upgrades"), Coins reset to 2,400 plus Time Skip,
+  header, right panel titled "Gem Upgrades"), Coins reset to 0 plus Time Skip (2,400 until a later Oct 20 change),
   camp/King progress kept with flags released, enemy scaling ×1 through Rebirth 2
   then +0.25 per rank by the attacker's rank, mutation unlocks Rainbow 1 /
   Shadow 5 / Cosmic 10, Veteran Missions at King clear or Rebirth 5, existing
@@ -230,6 +230,8 @@ Draft node list (S7 finalizes it in P0):
 - **Old Giants and Colossals** (S13): become ordinary chickens with no size, name or
   stat perks, and no Colossal limit. The saved size is kept unused so it can be
   undone. This replaces "shrink but keep perks". See `FUSE_REMOVAL_AND_SELL.md`.
+- **Rebirth Coins** (S8, Stevin): a Rebirth resets Coins to 0, not 2,400. Time Skip
+  still pays its minutes on top.
 - **Rebirth screen** (S8): one tap, no hold. The screen stays open with confetti, and
   the reward chicken shows in colour once the Rebirth is affordable. See
   `REBIRTH_SCREEN.md`.
