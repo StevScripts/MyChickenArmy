@@ -60,9 +60,12 @@ local TONES={
 -- game view, i.e. 55.6% of the width and 51.4% of the height (MenuLayout's Army
 -- default). Everything below is placed in these units with Scale only.
 local W,H=960,557
-local BODY={x=100,y=27,w=830,h=502}
-local GRID={x=10,y=46,w=812,h=431} -- inside BODY
-local DETAIL={x=537,y=40,w=275,h=425} -- inside BODY
+-- October 21 (owner): a shared studded top bar (title + close, like every other menu)
+-- sits on the body; the lock, sell and counts controls ride in it.
+local TOPBAR={x=100,y=0,w=830,h=65}
+local BODY={x=100,y=65,w=830,h=464}
+local GRID={x=10,y=10,w=812,h=420} -- inside BODY
+local DETAIL={x=537,y=8,w=275,h=422} -- inside BODY
 -- Seven 108-unit tiles (8 apart) normally; ten 75-unit tiles (6 apart) compact.
 local LAYOUTS={Normal={columns=7,cell=108,gap=8},Compact={columns=10,cell=75,gap=6}}
 local PAGE=70 -- cards are built a page at a time; storage can hold 1,000 chickens
@@ -207,23 +210,27 @@ function Browser.new(app,parent)
 	Theme.Aspect(root,W/H)
 	self.root=root
 
-	-- The window: one black studded body; the rail, title and buttons overhang it.
+	-- The window: the shared top bar over one black studded body; the rail and the
+	-- bottom buttons overhang it.
 	local body=rect(frame(root,"ArmyBody"),BODY.x,BODY.y,BODY.w,BODY.h,W,H)
 	blackPanel(body,INK,3)
 	self.body=body
-	local title=label(root,"Title","My Army",WHITE,true)
-	rect(title,95,-4,250,62,W,H)
-	title.TextXAlignment,title.ZIndex=Enum.TextXAlignment.Left,body.ZIndex+8
-	self.title=title
-	self.lock,self.lockIcon=iconButton(root,"LockMode",Art.Padlock,function() self:SetMode("Lock") end,"Red")
-	rect(self.lock,310,0,58,58,W,H)
-	self.trash,self.trashIcon=iconButton(root,"SellMode",Art.Trash,function() self:SetMode("Sell") end,"Red")
-	rect(self.trash,380,0,58,58,W,H)
+	local topBar=rect(frame(root,"TopBar",UDim2.new(),UDim2.new()),TOPBAR.x,TOPBAR.y,TOPBAR.w,TOPBAR.h,W,H)
+	topBar.ZIndex=body.ZIndex+1
+	local header=Theme.Header(topBar,"Header","My Army",Theme.HeaderColors.Army)
+	self.closeButton=Theme.HeaderClose(header,function() self.app.audio:Play("Click");self.app:ClosePanel() end)
+	-- Full-window layer so the bar's controls draw above the header's studs and rim.
+	local controls=frame(root,"TopBarControls",UDim2.fromScale(1,1),UDim2.new())
+	controls.ZIndex=header.ZIndex+4
+	self.lock,self.lockIcon=iconButton(controls,"LockMode",Art.Padlock,function() self:SetMode("Lock") end,"Red")
+	rect(self.lock,360,7,50,50,W,H)
+	self.trash,self.trashIcon=iconButton(controls,"SellMode",Art.Trash,function() self:SetMode("Sell") end,"Red")
+	rect(self.trash,418,7,50,50,W,H)
 	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1) end
 
 	-- Army and Flock counts, each with a "+" to its next Upgrades tier.
-	local pill=rect(frame(root,"Counts"),449,2,440,56,W,H)
-	pill.ZIndex=body.ZIndex+6
+	local pill=rect(frame(root,"Counts"),478,7,380,50,W,H)
+	pill.ZIndex=header.ZIndex+4
 	surface(pill,Color3.fromRGB(20,38,47),Color3.fromRGB(10,20,26),INK,3)
 	Theme.Studs(pill,0.14,28,0).ZIndex=pill.ZIndex
 	self.counts=pill
@@ -242,9 +249,6 @@ function Browser.new(app,parent)
 	end,"Green")
 	rect(self.flockPlus,388,5,46,46,440,56)
 	for _,item in {self.capacityPlus,self.flockPlus} do Theme.Aspect(item,1) end
-	self.closeButton=button(root,"Close","X",function() self.app.audio:Play("Click");self.app:ClosePanel() end,"Red")
-	rect(self.closeButton,900,0,60,60,W,H)
-	Theme.Aspect(self.closeButton,1)
 
 	-- Side rail: My Army and the Chicken Index, then the two sorts.
 	local rail=rect(frame(root,"Tabs"),0,140,89,190,W,H)

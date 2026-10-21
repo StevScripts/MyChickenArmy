@@ -8,7 +8,9 @@ Layout.Defaults={
 	-- October 21 (owner): My Army copies the reference Pets window, measured from his
 	-- recording: 960 x 557 of a 1728 x 1084 view, its body centred on screen. The
 	-- new "MyArmyGrid" control keeps the old saved MyArmy frame for the Sell screen.
-	Army={size=Vector2.new(0.5556,0.5138),position=Vector2.new(0.479,0.4875),aspect=960/557},
+	-- Later October 21 (owner): "make the my army menu bigger" and give it the shared
+	-- top bar; about 26% larger, same proportions.
+	Army={size=Vector2.new(0.70,0.66),position=Vector2.new(0.479,0.4875),aspect=960/557},
 	Sell={size=Vector2.new(0.629404,0.82),aspect=1274/876},
 	-- October 15 (owner): wider shop; section tabs sit outside its left edge.
 	-- October 16 (owner): a tiny bit less wide (1.78 -> 1.62), same height.

@@ -25,14 +25,13 @@ the file):
 
 | Element | Units (x, y, w, h) |
 | --- | --- |
-| Body | 100, 27, 830, 502 |
-| Title "My Army" | 95, −4, 250, 62 |
-| Lock / Sell buttons | 310 and 380, 0, 58, 58 |
-| Counts pill (Army n/size +, Flock n/size +) | 449, 2, 440, 56 |
-| Close | 900, 0, 60, 60 |
+| Top bar (shared `Theme.Header` "My Army" + red X close) | 100, 0, 830, 65 |
+| Body | 100, 65, 830, 464 |
+| Lock / Sell buttons (in the top bar) | 360 and 418, 7, 50, 50 |
+| Counts pill (Army n/size +, Flock n/size +, in the top bar) | 478, 7, 380, 50 |
 | Side rail (Army, Index) / Sort box | 0, 140, 89, 190 / 0, 454, 89, 78 |
-| Grid (inside body) | 10, 46, 812, 431: 7 × 108 tiles 8 apart; compact 10 × 75, 6 apart |
-| Detail card (inside body) | 537, 40, 275, 425 |
+| Grid (inside body) | 10, 10, 812, 420: 7 × 108 tiles 8 apart; compact 10 × 75, 6 apart |
+| Detail card (inside body) | 537, 8, 275, 422 |
 | Equip Best / Unequip All / Compact / Search | y 504, h 53: x 122 w 190 / 325 w 195 / 632 w 55 / 697 w 215 |
 | Mode bar (Confirm / Cancel) | 349, 464, 332, 113 |
 | Result line under the window | 180, 566, 600, 38 |
@@ -41,6 +40,11 @@ the file):
 Grid cells take their width from Scale and stay square through a
 `UIAspectRatioConstraint` on the `UIGridLayout` (Scale heights in a ScrollingFrame
 follow the canvas). The row gap is the column gap in pixels, refreshed on resize.
+
+Later October 21 (owner): "Make the my army menu bigger and add a topbar to it like
+how the rest of the game UIs are." The window default grew about 26% to
+`size (0.70, 0.66)` (same 960/557 aspect), and the floating title and close became the
+shared studded top bar that Shop, Sell, Rebirth and the rest use.
 
 ## Behaviour (as in the reference)
 
