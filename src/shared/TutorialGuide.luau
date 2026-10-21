@@ -191,7 +191,7 @@ local function recruit(state, growing)
 	local free = (state.starterRecruitPrice or 0) <= 0 and (state.tutorial or {}).starterArmy == true
 	if not offer then
 		return step(if growing then id else "Roll", if growing then "Roll a chicken ("..count.."/4)"
-			elseif free then "Pull the lever for a FREE chicken!" else "Pull the lever to roll", "RollStation")
+			elseif free then "Pull the lever for a chicken!" else "Pull the lever to roll", "RollStation")
 	end
 	if (offer.price or 0) > (state.coins or 0) then
 		if count==0 then
@@ -200,7 +200,7 @@ local function recruit(state, growing)
 		return earn(state, offer.price)
 	end
 	return step(id, if growing then "Buy a chicken ("..count.."/4)"
-		elseif (offer.price or 0) <= 0 then "Grab your FREE chicken!" else "Buy the chicken", "RollStation")
+		elseif (offer.price or 0) <= 0 then "Grab your chicken!" else "Buy the chicken", "RollStation")
 end
 
 -- One Upgrades purchase in the opening (Flock Size I, Army Size I): the hex, or a

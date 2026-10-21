@@ -79,10 +79,10 @@ function Checks.Run()
 		assert(flock.outside=="Spend your Coins in Upgrades!","Open-menu words first")
 		assert(flock.target=="Upgrades" and flock.node=="Flock1" and flock.index==3,"Flock hex "..tostring(flock.node))
 		state.flock.size=4
-		expect(Guide.Resolve(state),"Roll","Pull the lever for a FREE chicken!")
+		expect(Guide.Resolve(state),"Roll","Pull the lever for a chicken!")
 		state.tutorial.rolled,state.offer=true,{price=0}
 		local recruit=Guide.Resolve(state)
-		expect(recruit,"Recruit","Grab your FREE chicken!")
+		expect(recruit,"Recruit","Grab your chicken!")
 		assert(recruit.index==5 and recruit.total==5,"Recruit is 5/5")
 		state.tutorial.bought,state.offer=true,nil
 		state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
@@ -366,7 +366,7 @@ function Checks.Run()
 		assert(state.starterCashReserve==1200 and state.upgradeTree.nodes.Flock1.status=="Available","Reserve and quote")
 		local ok,message=service:BuyNode(s,"Flock1",300)
 		assert(ok,message)
-		expect((route()),"Roll","Pull the lever for a FREE chicken!")
+		expect((route()),"Roll","Pull the lever for a chicken!")
 		s.tutorial.rolled=true
 		s:AddPet("Duck",1)
 		s.tutorial.bought=true

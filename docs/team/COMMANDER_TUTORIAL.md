@@ -7,6 +7,11 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## No "FREE" on the chicken lines: later October 21
+
+Stevin: "I dont like the term free, just say chicken." The roll lessons read "Pull the
+lever for a chicken!" and "Grab your chicken!" (the starter chicken still costs 0).
+
 ## Vacuum tip fills 20, then sells: later October 21
 
 Stevin: "For the vacuum step I want them to sell the egg after collecting 20 of them."
