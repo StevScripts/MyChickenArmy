@@ -7,6 +7,41 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Short core + numbered tips, like Drop a Fruit: October 21
+
+Stevin, from his Drop a Fruit tutorial recording: "implement these into the
+tutorial and add the funnels" (he waived the saved rules below where they clash).
+Supersedes the S14 egg count, the step order, the 600-Coin recruit, the paid
+vacuum during the guide and the October 6 "no highlighting" rule for menu lessons.
+
+**Core: "TUTORIAL • n/5"** (`TutorialGuide.Core`)
+1. Click/Tap eggs (0/5) (`EggGoal = 5`; saved counts clamp to 5).
+2. Step on the green sell pad.
+3. Buy Flock Size I in Upgrades (300; the 1,200 Army Size I reserve still holds).
+4. "Pull the lever for a FREE chicken!" (`StarterRecruitPrice = 0`; the podium says FREE).
+5. "Grab your FREE chicken!" It joins the automatic Flock and lays at once.
+Then the card shows "TUTORIAL COMPLETE! Your Flock is laying!" for 4 s with
+confetti, My Army appears (hidden until now), `tutorial.coreDone` saves and Daily
+Rewards Day 1 opens (`DailyService.TutorialDone` accepts `coreDone`).
+
+**Tips: "TIP • n/6"** (`TutorialGuide.Tips`)
+1. Claim the FREE Egg Vacuum in Upgrades → Tools (`UpgradeService.Quote`: 0 Coins
+   while a starter guide is neither completed nor skipped; 500 after).
+2. Equip it and walk near eggs (0/3) (`tutorial.vacuumEggCount`, EggService).
+3. Buy Army Size I. 4. My Army → Select Best. 5. Cluck Camp → Send Army.
+6. The fight; the camp win completes the guide as before.
+
+**Presentation.** The step tag sits over the instruction. Menu lessons (Upgrades
+hexes, Select Best, the tree Exit) dim the screen around their control with a gold
+ring (`GuideFocus`, never intercepts input); Next goals never dim. The guide pauses
+its pointer while the Daily popup is open.
+
+**Funnels.** Analytics schema 9 adds the Tutorial funnel (`Schema.Tutorial`, the
+same ids as `TutorialGuide.FunnelSteps`): ledger `tut.reach/t/gap/exit.NN`, cohort
+`tut.NN`, and the Roblox funnel "Tutorial" (session `tut-<userId>`), which takes the
+retired Fuse dashboard slot. `AnalyticsReport.Summary().tutorialFunnel` and
+`tools/analytics/pull_ledger.py` show it. FTUE events carry `cluck-7-quick-core`.
+
 ## Click eggs, Flock Size I and a bought Egg Vacuum: October 20 overhaul (S14)
 
 Stevin's decisions in session S14 (October 20, 2026). They supersede the egg count,

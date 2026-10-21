@@ -13,7 +13,7 @@ truth for every name: `src/server/AnalyticsSchema.luau`.
    "Enable Studio Access to API Services" on. Use the studio-flow MCP:
    `get_connected_instances`, then `execute_luau` with the snippet in section 3.
 2. Pull `Report.Summary({days = 7, env = "live"})`. Read `flags` first, then
-   `onboardingFunnel`, `onboardingExits`, `cohorts`, `guideDwell`, `rolls`, `health`.
+   `onboardingFunnel`, `tutorialFunnel` (schema 9, the Oct 21 core + tips guide: `tut.reach/t/gap/exit.NN`), `onboardingExits`, `cohorts`, `guideDwell`, `rolls`, `health`.
    Feature drop-offs: `featureFunnels`; menus/buttons/prompts: `ui`; money:
    `robuxActual` and `devices`; who plays: `segments`; stalls: `stateSnapshots`,
    `exits`; save/battle health: `serverEvents` (section 11).
