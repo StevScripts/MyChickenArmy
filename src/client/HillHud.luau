@@ -74,7 +74,6 @@ function HillHud.new(app,shell: Instance,slot: Instance)
 	Theme.Aspect(icon,1)
 	self.waitClock=scaled(Theme.Display(waiting,"Clock","",26,A.gold),Enum.TextXAlignment.Left)
 	self.waitClock.Position,self.waitClock.Size=UDim2.fromScale(0.085,0.04),UDim2.fromScale(0.9,0.92)
-	self.waitClock.TextFace.TextOutline.Thickness=0.08
 	self.waiting=waiting
 
 	local tint=Instance.new("ColorCorrectionEffect")

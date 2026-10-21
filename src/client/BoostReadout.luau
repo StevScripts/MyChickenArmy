@@ -31,8 +31,8 @@ Readout.Icons={Coins=Theme.Assets.Coin,Luck="rbxassetid://136683191941433"}
 local KEYS={Coins="coins",Luck="luck"}
 local GREEN=Theme.ReferenceColors.Army
 local WHITE=Color3.new(1,1,1)
-local ACTIVE=Theme.Colors.coins -- the reference's gold "Upgrades: x6"
-local IDLE=Color3.fromRGB(196,203,210) -- its grey "+0" rows
+local ACTIVE=Theme.Tones.Coins -- the reference's gold "Upgrades: x6"
+local IDLE=Theme.Tones.Secondary -- its grey "+0" rows
 -- October 21 game feel: a running boost's column glows in its own colour.
 local GLOW={Coins=Theme.Colors.coins,Luck=GREEN}
 -- The bottom-right corner, very small: two square icons with a gap between them.
@@ -133,7 +133,7 @@ function Readout.new(app)
 		value.AnchorPoint,value.Position,value.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,1.1),UDim2.fromScale(1.3,0.44)
 		value.ZIndex=5
 		value.TextXAlignment,value.TextWrapped=Enum.TextXAlignment.Center,false
-		value.TextFace.TextOutline.Thickness=0.1
+		Theme.Outline(value,0.1)
 		-- A running Playtime boost's time left sits over the icon.
 		local timer=Theme.Display(column,"Timer","",20,GREEN)
 		timer.AnchorPoint,timer.Position,timer.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.02),UDim2.fromScale(1.3,0.38)
@@ -226,7 +226,7 @@ function Readout:FillBreakdown(kind: string)
 			label=Theme.Label(self.panel,"Row"..index,"",22,WHITE)
 			label.TextWrapped,label.ZIndex=false,16
 			label.TextScaled=true
-			label.TextOutline.Thickness=0.1
+			Theme.Outline(label,0.1)
 			self.rows[index]=label
 			Theme.ScaleText(label)
 		end

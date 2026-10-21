@@ -42,7 +42,6 @@ function FriendBoost:Mount(slot)
 	local text=Theme.Display(pill,"Label","Friend Boost: +0%",20,WHITE)
 	text.Position,text.Size=UDim2.fromScale(0.05,0.1),UDim2.fromScale(0.9,0.8)
 	text.TextScaled,text.TextWrapped=true,false
-	text.TextFace.TextOutline.Thickness=0.08
 	Theme.Motion:Center(text) -- pops grow from the middle; same place at rest
 	local button=Theme.ActionButton(row,"Invite","+",function()
 		self.app.audio:Play("Click")

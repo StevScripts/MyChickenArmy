@@ -23,8 +23,8 @@ local GEAR_PEEK_SECONDS=4
 -- The Settings gear's hit area grows this much past its circle (phone 28 -> 48 px).
 local GEAR_PAD=1.72
 local BLACK,WHITE=Color3.new(0,0,0),Color3.new(1,1,1)
-local GAIN=Color3.fromRGB(76,250,32) -- UIColors.Money: the reference's green "+61,722"
-local SPEND=A.red
+-- The shell's text tones (P2): green gains (the reference's "+61,722"), red spends.
+local GAIN,SPEND=Theme.Tones.Gain,Theme.Tones.Short
 local ROBUX=utf8.char(0xE002)
 local Hud={}
 Hud.__index=Hud
@@ -81,10 +81,16 @@ local function wallet(value: number): string
 	return Theme.Number(whole)
 end
 
-local function outline(label,thickness)
-	local stroke=label:FindFirstChild("TextOutline")
-	if stroke and stroke:IsA("UIStroke") then stroke.Color,stroke.Thickness,stroke.Enabled=BLACK,thickness or 0.08,true end
+-- The shell's black text stroke (Theme.Outline, 8% of the text height by default).
+local function outline<T>(label: T, thickness: number?): T
+	Theme.Outline(label :: any,thickness)
 	return label
+end
+
+-- The shell's button feel: hover grows to 105%, a press shrinks to 95% (BindButton).
+local function shellFeel(button)
+	button:SetAttribute("HoverScale",Theme.Shell.ButtonHover)
+	button:SetAttribute("PressScale",Theme.Shell.ButtonPress)
 end
 
 -- TextWrapped first: turning it off after TextScaled switches TextScaled back off.
@@ -153,10 +159,10 @@ function Hud.Plate(parent,name,text,asset,color,callback,spec)
 		tag.AnchorPoint,tag.Position,tag.Size,tag.ZIndex=Vector2.new(0,0.5),UDim2.fromScale(-0.04,0.02),UDim2.fromScale(0.8,0.3),7
 		tag.TextXAlignment,tag.TextWrapped=Enum.TextXAlignment.Left,false
 		tag.TextScaled=true
-		tag.TextFace.TextOutline.Thickness=0.08
 	end
 	if spec.pad then Theme.PadHit(button,1,spec.pad[1],0.5,spec.pad[2]) end
 	-- After PadHit: BindButton reads the padded art's resting size.
+	shellFeel(button)
 	Theme.Motion:BindButton(button,visual,face,rimStroke)
 	button.Activated:Connect(function() if button.Active then callback() end end)
 	return button
@@ -269,7 +275,6 @@ function Hud:BuildCash(shell)
 	moneyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,247,57)),
 		ColorSequenceKeypoint.new(0.4744,Color3.fromRGB(255,214,48)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,153,0))})
 	moneyGradient.Parent=self.money.TextFace
-	self.money.TextFace.TextOutline.Thickness=0.08
 	-- The reference's "+61,722" right of the pill (green gains, red spends): one label in
 	-- a CanvasGroup so a single tween fades text, shadow and stroke together.
 	local delta=Instance.new("CanvasGroup")
@@ -279,7 +284,7 @@ function Hud:BuildCash(shell)
 	local amount=Theme.Display(delta,"Amount","",28,GAIN)
 	amount.Position,amount.Size=UDim2.fromScale(0.02,0.06),UDim2.fromScale(0.96,0.84)
 	amount.TextXAlignment,amount.TextWrapped=Enum.TextXAlignment.Left,false
-	amount.TextFace.TextOutline.Thickness=0.1
+	Theme.Outline(amount,0.1)
 	self.deltaGroup,self.deltaLabel=delta,amount
 	-- Friend Boost row (FriendBoost.luau mounts its pill and + into it).
 	self.friendBoostSlot=Theme.Container(cash,"FriendBoostSlot")
@@ -298,7 +303,6 @@ function Hud:BuildCash(shell)
 		local label=Theme.Display(lines,name,text,size,color)
 		label.Size,label.LayoutOrder=UDim2.fromScale(1,1/3),order
 		label.TextXAlignment,label.TextWrapped=Enum.TextXAlignment.Left,false
-		label.TextFace.TextOutline.Thickness=0.08
 		return label
 	end
 	self.territory=line("TerritoryIncome","",18,A.gold,1)
@@ -695,6 +699,7 @@ function Hud:RailCard(name,title,asset,rect,callback)
 	titleLabel.Position,titleLabel.Size,titleLabel.ZIndex=UDim2.fromScale(-0.05,0),UDim2.fromScale(1.1,20/95),5
 	local line=outline(centred(Theme.Label(visual,"Price","",22,WHITE)))
 	line.Position,line.Size,line.ZIndex=UDim2.fromScale(0,76/95),UDim2.fromScale(1,19/95),5
+	shellFeel(button)
 	Theme.Motion:BindButton(button,visual)
 	button.Activated:Connect(function() if button.Active then callback() end end)
 	return button
@@ -729,7 +734,7 @@ function Hud:BuildRail(shell)
 	local giftRays=gift.Visual.Sunburst
 	giftRays.ImageColor3,giftRays.ImageTransparency=Color3.fromRGB(255,184,0),0
 	spin(giftRays,10)
-	gift.Visual.Price.Text,gift.Visual.Price.TextColor3="Claim!",Theme.ReferenceColors.Army
+	gift.Visual.Price.Text,gift.Visual.Price.TextColor3="Claim!",Theme.Tones.Gain
 	self.freeGift=gift
 	self:BuildChickenOffer()
 	-- The 2x Luck pass card in the same slot (reference "x2 Luck! ONLY 64").
@@ -754,6 +759,7 @@ function Hud:BuildRail(shell)
 	arrow.Size,arrow.ZIndex=UDim2.fromScale(1,1),5
 	-- Phone: 14 x 16 px art; the hit area grows to 48 px, mostly away from the card.
 	Theme.PadHit(nextButton,3.5,3,0.75,0.5)
+	shellFeel(nextButton)
 	Theme.Motion:BindButton(nextButton,arrowArt)
 	nextButton.Activated:Connect(function()
 		app:Cue("TabSwitch","Click",nil,{voiceKey="HudCarousel",cooldown=0.15})
@@ -824,6 +830,7 @@ function Hud:BuildCoinsOffer()
 	green.Rotation,green.Color,green.Parent=90,ROBUX_GREEN,price
 	-- Phone: 71 x 28 px; the hit area grows to 48 px, mostly upward into the rail's gap.
 	Theme.PadHit(button,1,1.7,0.5,0.8)
+	shellFeel(button)
 	Theme.Motion:BindButton(button,visual,face)
 	button.Activated:Connect(function()
 		if not button.Active then return end
