@@ -7,11 +7,11 @@ Edit mode so it persists. No script edit is needed.
 | Folder | Sounds |
 | --- | --- |
 | Music | BackgroundMusic |
-| VFX / UI | Hover, Click, Pop, Purchase, Error |
-| VFX / SkillTree | Hover, Purchase, Error, NodeAdded, NodePop, ResearchStarted, ResearchCompleted, ResearchSlotAdded, Open, Close |
-| Collection | Collect, EggPickup, EggDeposit, Money |
-| Rolling | RollLever, RollTick, RollLand, RollReveal, RollRare |
-| Combat | Impact, Victory, plus fight feedback `CombatHit`, `CombatSwing`, `CombatKnockout`, `CombatKnockoutCluck` (recipe: `assets/audio/add_combat_sounds.luau`; played by `client/CombatEffects.luau`, positioned at the fight). Kills no longer play `Collect`. |
+| VFX / UI | Hover, Click, Pop, Purchase, Error; October 21 game-feel cues MenuOpen, MenuClose, TabSwitch, Toggle, Locked, Select, Equip, Unequip, Lock, Unlock, Confirm, Claim, Jingle, CountTick, Badge, Shimmer, Whoosh, Fanfare, Rebirth, GemGain, GoldRushStart, GoldRushEnd, NoticeIn |
+| VFX / SkillTree | Hover, Purchase, Error, NodeAdded, NodePop, ResearchStarted, ResearchCompleted, ResearchSlotAdded, Open, Close; October 21 UpgradeMax, TierUp |
+| Collection | Collect, EggPickup, EggDeposit, Money; October 21 EggLay, VacuumLoop (Looped), VacuumFull, FeedChicken, LevelUp, Cluck1, Cluck2, Cluck3, ChickenHappy |
+| Rolling | RollLever, RollTick, RollLand, RollReveal, RollRare; October 21 RollEpic, RollLegendary, RollMythic, RollSecret, MutationHit, AutoRollHit, PodiumThump |
+| Combat | Impact, Victory, plus fight feedback `CombatHit`, `CombatSwing`, `CombatKnockout`, `CombatKnockoutCluck` (recipe: `assets/audio/add_combat_sounds.luau`; played by `client/CombatEffects.luau`, positioned at the fight). Kills no longer play `Collect`. October 21 MarchStart, CaptureTick, MissionAppear, MissionWin, MissionLose, FlagRaise. |
 | MyChickenArmyAudio root | CallArmyWhistle |
 | Intro / 1_Island … 8_CampPayoff | First-visit cutscene: one Sound per moment, grouped by scene (AudioCue `Intro_<Name>`). Volume and PlaybackSpeed are read from each Sound. Recipe: `assets/audio/add_intro_sounds.luau`. |
 | VFX | Named chicken effect loops (Galaxy, Rainbow, Glitch, Magma, etc.) and GlitchBurst |
@@ -82,6 +82,45 @@ reuse, hiding, mute, eight-loop capacity and destruction, plus the actual
 SpecialChickenVFX named-cue call. Four changed modules compiled and matched their
 Studio copies by byte length/hash. No new audio asset was uploaded.
 All existing gameplay triggers and spatial audio parents remain unchanged.
+
+## October 21 game-feel cues
+
+The October 21 game-feel pass (`docs/team/GAME_FEEL_20261021.md` §3) adds 48 cues;
+`assets/audio/add_feel_sounds_20261021.luau` authors them. Paste the file into the
+Command Bar in canonical Edit mode and run it once (loadstring is disabled in Studio).
+It creates each missing Sound under VFX/UI, VFX/SkillTree, Collection, Rolling or
+Combat with Name = cue, attributes `AudioCue` = cue and `Usage`, a free Creator Store
+`SoundId` that passed a preload check (IsLoaded, TimeLength) on October 21, a starting
+`Volume`, `PlaybackSpeed` 1, the Mix.Effects group, and `Looped` only on VacuumLoop.
+It also fills the blank `VFX/UI/Hover` (`UIHover`). Reruns fill blank or missing
+cues only; a customised SoundId is skipped and the summary says so. Each Sound also
+carries an `Alternate` attribute naming a second verified id to try by hand.
+
+Families, by the recipe's design note: UI ticks, swipes and pops come from Roblox's
+own free "Roblox GUI" / "RBLX UI" set; locks, toggles, thumps, flags and the Rebirth
+boom are ProSoundEffects foley; stingers, fanfares, bugles and the loser sting are
+APM; clucks are real-ish Creator Store chicken clips (play with `pitchVariance`).
+
+| Cue | Plays for | Volume |
+| --- | --- | --- |
+| UIHover, CountTick | Hover/focus tick; count-up ticks (0.05 s, pitchVariance) | 0.20-0.22 |
+| MenuOpen, MenuClose, TabSwitch, Toggle | Menu/panel open and close, tab change, switches | 0.30-0.40 |
+| Locked | A locked or unaffordable control: soft nope, not Error | 0.35 |
+| Select, Equip, Unequip, Lock, Unlock | Card marking, Army join/leave, chicken lock toggles | 0.35-0.45 |
+| Confirm, Claim, Jingle | Confirm bars, reward claims, short success jingle | 0.45 |
+| Badge, NoticeIn, Shimmer, Whoosh | Badge appears, corner notice, sparkle sweep, flyers/slides | 0.30-0.35 |
+| Fanfare, Rebirth, GemGain, GoldRushStart, GoldRushEnd | Big win, Rebirth boom, Gems, Gold Rush start/end | 0.45-0.60 |
+| EggLay, VacuumLoop, VacuumFull, FeedChicken, LevelUp | Lay plop, vacuum hum loop (0.20), bar-full ding, feed crunch, level-up | 0.20-0.50 |
+| Cluck1-3, ChickenHappy | Ambient and happy clucks, spatial via `PlayAt`, pitchVariance | 0.25 |
+| RollEpic, RollLegendary, RollMythic, RollSecret | Tiered reveal stingers; RollReveal/RollRare are unchanged | 0.50-0.60 |
+| MutationHit, AutoRollHit, PodiumThump | Mutation tag, Auto Roll stop banner, podium landing | 0.40-0.50 |
+| UpgradeMax, TierUp | A track reaches MAX; a tier bought | 0.45-0.50 |
+| MarchStart, CaptureTick, MissionAppear, MissionWin, MissionLose, FlagRaise | Army sets off (bugle), conquest ticks, Mission appear/win/lose, flag up | 0.30-0.50 |
+
+To retune, change `Volume`, `PlaybackSpeed` or `SoundId` on the Sound in Explorer
+and save the place; the controller reads templates live. To try the alternate, paste
+the id from the `Alternate` attribute into `SoundId`. A cue no code calls yet just
+sits in the library; clearing a `SoundId` silences that cue (`audio:Has` goes false).
 
 The library is Studio-owned; the scripts-only Rojo project intentionally does
 not overwrite it. `assets/audio/organize_sounds.luau` is the initial migration
