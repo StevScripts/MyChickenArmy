@@ -290,6 +290,12 @@ function Browser:BuildNode(id,layer)
 		-- Upgrade hexes never move these again, so their punches grow from the middle.
 		Theme.Motion:Center(title);Theme.Motion:Center(cost)
 	end
+	if kind=="start" or kind=="open" then
+		-- The Main hubs: their short words keep the readable floor, and the hit area is
+		-- 48 px on a phone (hex art untouched; the hubs' boxes already meet at the corners).
+		Theme.ScaleText(title);Theme.ScaleText(caption)
+		Theme.PadHit(button,1.1,1.27,0.5,0.5,true)
+	end
 	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,glow=glow,flashFill=flash,
 		title=title,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
 	-- A click or tap acts on the hex at once: buy, open a subtree or go back.
@@ -349,8 +355,10 @@ end
 
 function Browser:SizeNode(view,scale,seconds,delay,complete)
 	cancelSize(view)
-	if self.app.reducedMotion then view.visual.Size=UDim2.fromScale(1,1);view.pulsing=false;return end
-	local tween=TweenService:Create(view.visual,TweenInfo.new(seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,0,false,delay or 0),{Size=UDim2.fromScale(scale,scale)})
+	-- A padded hub's art rests smaller than its hit area (Theme.PadHit); scale from there.
+	local rest=Theme.Motion.restingSizes[view.visual] or UDim2.fromScale(1,1)
+	if self.app.reducedMotion then view.visual.Size=rest;view.pulsing=false;return end
+	local tween=TweenService:Create(view.visual,TweenInfo.new(seconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,0,false,delay or 0),{Size=UDim2.fromScale(rest.X.Scale*scale,rest.Y.Scale*scale)})
 	view.sizeTween=tween
 	if complete then
 		view.sizeConnection=tween.Completed:Connect(function(state)

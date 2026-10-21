@@ -239,9 +239,9 @@ function Browser.new(app,parent)
 	topBar.ZIndex=body.ZIndex+1
 	local header=Theme.Header(topBar,"Header","My Army",Theme.HeaderColors.Army)
 	-- Phone hit areas (DESIGN.md §6), in the reference units, art untouched: the X grows
-	-- 2.1x (48 px), its extra room mostly up past the window and right past its edge so
+	-- 2.25x (48 px), its extra room mostly up past the window and right past its edge so
 	-- it never meets the Flock "+" (art ends at 853 units; the X's hit starts at 856).
-	self.closeButton=Theme.HeaderClose(header,function() self.app.audio:Play("Click");self.app:ClosePanel() end,2.1,0.26,0.65)
+	self.closeButton=Theme.HeaderClose(header,function() self.app.audio:Play("Click");self.app:ClosePanel() end,2.25,0.22,0.7)
 	-- Full-window layer so the bar's controls draw above the header's studs and rim.
 	local controls=frame(root,"TopBarControls",UDim2.fromScale(1,1),UDim2.new())
 	controls.ZIndex=header.ZIndex+4
@@ -249,9 +249,12 @@ function Browser.new(app,parent)
 	rect(self.lock,360,7,50,50,W,H)
 	self.trash,self.trashIcon=iconButton(controls,"SellMode",Art.Trash,function() self:SetMode("Sell") end,"Red")
 	rect(self.trash,418,7,50,50,W,H)
-	-- 58 x 104 units (27 x 48 px): the two meet without overlapping; most of the
+	-- 104 x 104 units (48 px) each: Lock's hit grows left over the title, Sell's grows
+	-- right over the Counts pill's icon and label (its "+" hit starts at 596); most of the
 	-- height goes up past the window, the rest ends above the grid's first row (75).
-	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1);Theme.PadHit(item,1.16,2.08,0.5,0.73) end
+	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1) end
+	Theme.PadHit(self.lock,104/50,2.08,1,0.73,true)
+	Theme.PadHit(self.trash,104/50,2.08,0,0.73,true)
 
 	-- Army and Flock counts, each with a "+" to its next Upgrades tier.
 	local pill=rect(frame(root,"Counts"),478,7,380,50,W,H)
@@ -274,30 +277,32 @@ function Browser.new(app,parent)
 	end,"Green")
 	rect(self.flockPlus,388,5,46,46,440,56)
 	for _,item in {self.capacityPlus,self.flockPlus} do Theme.Aspect(item,1) end
-	-- Each "+" answers across its count label (the Flock one only leftward, clear of the X).
-	Theme.PadHit(self.capacityPlus,2.5,2.54,0.5,0.73)
-	Theme.PadHit(self.flockPlus,2.5,2.54,1,0.73)
+	-- Each "+" answers across its count label, 107 units (49 px) wide (the Flock one only
+	-- leftward, clear of the X).
+	Theme.PadHit(self.capacityPlus,2.7,2.54,0.5,0.73,true)
+	Theme.PadHit(self.flockPlus,2.7,2.54,1,0.73,true)
 
 	-- Side rail: My Army and the Chicken Index, then the two sorts.
 	local rail=rect(frame(root,"Tabs"),0,140,89,190,W,H)
 	blackPanel(rail,INK,3)
-	local function tab(name,text,asset,y,callback)
+	local function tab(name,text,asset,y,callback,alignY)
 		local item=Instance.new("TextButton")
 		item.Name,item.Text,item.AutoButtonColor,item.BackgroundTransparency=name,"",false,1
 		item.ZIndex,item.Parent=rail.ZIndex+2,rail
 		rect(item,4,y,81,88,89,190)
-		-- The art lives in a Visual so the hit area can reach 104 units (48 px) wide,
-		-- out past the rail's left edge; the two tabs are 2 apart, so no taller.
+		-- The art lives in a Visual so the hit area can reach 104 units (48 px) each way:
+		-- out past the rail's left edge, and (the tabs being 2 apart) Army's up past the
+		-- rail's top, Index's down past its foot, into the window's empty margin.
 		local visual=frame(item,"Visual",UDim2.fromScale(1,1),UDim2.new())
 		rect(image(visual,"Icon",asset),10,2,61,61,81,88)
 		rect(label(visual,"Caption",text,WHITE,true),0,58,81,28,81,88)
 		item.Activated:Connect(callback)
 		Theme.Motion:BindButton(item,Theme.Motion:ScaleOf(visual),visual)
-		Theme.PadHit(item,104/81,1,1,0.5)
+		Theme.PadHit(item,104/81,104/88,1,alignY)
 		return item
 	end
-	tab("ArmyTab","Army",Art.Helmet,6,function() self.app.audio:Play("Click") end)
-	tab("IndexTab","Index",Art.Index,96,function() self.app.audio:Play("Click");self.app:OpenPage("Index") end)
+	tab("ArmyTab","Army",Art.Helmet,6,function() self.app.audio:Play("Click") end,1)
+	tab("IndexTab","Index",Art.Index,96,function() self.app.audio:Play("Click");self.app:OpenPage("Index") end,0)
 	local sortBox=rect(frame(root,"Sort"),0,454,89,78,W,H)
 	blackPanel(sortBox,INK,3)
 	rect(label(sortBox,"Caption","Sort",WHITE,true),4,4,81,26,89,78)
@@ -312,9 +317,10 @@ function Browser.new(app,parent)
 		item:SetAttribute("ClickSound",false)
 		rect(item,6+(index-1)*40,34,37,37,89,78)
 		Theme.Aspect(item,1)
-		-- 104 units (48 px) tall, mostly up into the empty strip above the Sort box;
-		-- the two sorts are 3 apart, so no wider.
-		Theme.PadHit(item,1,104/37,0.5,0.8)
+		-- 104 units (48 px) tall, mostly up into the empty strip above the Sort box. The
+		-- two sorts are 3 apart: Power's hit grows left past the window's edge to 104
+		-- wide; Eggs' grows right only as far as the grid's cards allow (60, 28 px).
+		Theme.PadHit(item,if index==1 then 104/37 else 60/37,104/37,if index==1 then 1 else 0,0.8,true)
 		self.sortButtons[key]=item
 	end
 
@@ -368,9 +374,11 @@ function Browser.new(app,parent)
 	self.compactButton:SetAttribute("ClickSound",false)
 	rect(self.compactButton,632,504,55,53,W,H)
 	Theme.Aspect(self.compactButton,55/53)
-	-- Bottom row: 78 units (36 px) tall, from the grid's clipped edge (495) down to the
-	-- mode bar's foot (577); lower would answer under the bar's Cancel.
-	for _,item in {self.best,self.unequip,self.compactButton} do Theme.PadHit(item,1,78/53,0.5,0.2) end
+	-- Bottom row: 104 units (48 px) tall, from the grid's clipped edge (499) down past
+	-- the window's foot (Unequip All and Compact hide while the mode bar covers them);
+	-- Compact also grows left to 104 wide, short of the search box.
+	for _,item in {self.best,self.unequip} do Theme.PadHit(item,1,104/53,0.5,5/51,true) end
+	Theme.PadHit(self.compactButton,104/55,104/53,1,5/51,true)
 	-- A small tile grid on the button: 2 x 2 normally, 3 x 3 when compact is on.
 	self.compactIcon=frame(self.compactButton.Visual,"Icon",UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.25,0.21))
 	self.compactIcon.ZIndex=self.compactButton.Visual.ZIndex+6
@@ -456,6 +464,10 @@ function Browser:BuildDetail()
 		self.app.audio:Play("Click");self.inspecting,self.app.selected=false,nil;self:Render()
 	end,"Red")
 	rect(close,9,7,53,53,DETAIL.w,DETAIL.h)
+	-- Phone hit areas in the detail card (48 px = 104 units): the X grows right and down
+	-- (the Counts "+" hits sit above it); Equip grows up over the rarity lines; Lock
+	-- takes what is left down to the bottom row's hits (78 units, 36 px).
+	Theme.PadHit(close,104/53,104/53,0,0)
 	Theme.Aspect(close,1)
 	self.detailName=rect(label(detail,"Name","",WHITE,true),8,64,259,38,DETAIL.w,DETAIL.h)
 	self.detailCard=rect(frame(detail,"Portrait"),83,106,109,109,DETAIL.w,DETAIL.h)
@@ -465,8 +477,10 @@ function Browser:BuildDetail()
 	self.detailVariant=rect(label(detail,"Variant","",WHITE,true),8,254,259,30,DETAIL.w,DETAIL.h)
 	self.equip=button(detail,"AssignChicken","Equip",function() self:EquipSelected() end,"Green")
 	rect(self.equip,11,296,253,56,DETAIL.w,DETAIL.h)
+	Theme.PadHit(self.equip,1,104/56,0.5,1)
 	self.lockOne=button(detail,"LockChicken","Lock",function() self:LockSelected() end,"Gold")
 	rect(self.lockOne,11,360,253,54,DETAIL.w,DETAIL.h)
+	Theme.PadHit(self.lockOne,1,78/54,0.5,8/24)
 end
 
 -- Hover / gamepad tooltip: name, rarity and odds, a divider, then power and eggs.
@@ -954,7 +968,8 @@ function Browser:UpdateAction()
 	-- also hide so a click can never land on them by mistake.
 	self.unequip.Visible,self.compactButton.Visible=self.mode==nil,self.mode==nil
 	self.confirm.Visible=selecting
-	self.cancel.Position=if selecting then UDim2.fromScale(170/332,54/113) else UDim2.fromScale(91/332,54/113)
+	-- y 6: the padded hit area's top (PadHit above lifted it 48 units over the art at 54).
+	self.cancel.Position=if selecting then UDim2.fromScale(170/332,6/113) else UDim2.fromScale(91/332,6/113)
 	enabled(self.confirm,canEdit);enabled(self.cancel,canEdit)
 	self.confirm.Text=if action=="Sell" then "Selling..." elseif action=="Favorite" then "Saving..." else "Confirm"
 	if self.mode=="Replace" then self.barTitle.Text="Replace which chicken?" end

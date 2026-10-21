@@ -165,8 +165,8 @@ function Panel:BuildShell()
 	Theme.Surface(main,Theme.PageSurfaces.Upgrades or Theme.Colors.panel)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	self.main=main
-	-- Phone hit area: twice the X (the tier tabs sit just under the header, so no more).
-	Theme.HeaderClose(header,function() app.audio:Play("Click");self:Close() end,2)
+	-- Phone hit area: the X reaches 48 px; the tier tabs end at .815 so its column is free.
+	Theme.HeaderClose(header,function() app.audio:Play("Click");self:Close() end,2.95)
 	Theme.ApplyPopupStyle(panel)
 	local restingSize,restingPosition=self.panelSize,self.panelPosition
 	if not app.reducedMotion then
@@ -223,19 +223,20 @@ function Panel:BuildTabs(content,data)
 		local color=Operations.Colors[index]
 		local locked=open<index
 		local selected=self.tier==index
-		local tab=card(content,"Tab"..name,.04+(index-1)*.32,.03,.28,.12,
+		-- October 21 responsiveness: tabs .235 wide on a .27 pitch (the X's hit column at
+		-- the right stays free) and .14 tall, hits down to .216 (48 px on a phone).
+		local tab=card(content,"Tab"..name,.04+(index-1)*.27,.03,.235,.14,
 			if selected then color:Lerp(CARD,.45) else CARD,if selected then color:Lerp(WHITE,.35) else Color3.new(0,0,0))
 		if selected then tab.UIStroke.Thickness=4;Theme.Gradient(tab,color:Lerp(WHITE,.1),color:Lerp(Color3.new(0,0,0),.45)) end
 		local emblem=Theme.Image(tab,"Emblem",if locked then Theme.Assets.Padlock else EMBLEMS[index],UDim2.fromScale(.3,.8),UDim2.fromScale(.04,.1))
 		Theme.Aspect(emblem,1);emblem.ZIndex=6
 		label(tab,"Name",name,.36,.15,.6,.7,if locked then MUTED else WHITE)
-		-- Phone hit area: a tab answers 0.19 lower too (the X is above, missions below).
 		Theme.PadHit(hitArea(tab,"Select",function()
 			cue("TabSwitch","Click")
 			self.tier,self.selected=index,self:DefaultMission(data,index)
 			self.pop="Tab"..name
 			self:Refresh()
-		end),1,1.19,0.5,0)
+		end),1,.186/.14,0.5,0)
 	end
 end
 
@@ -248,7 +249,8 @@ function Panel:BuildMissions(content,data)
 		local definition=Operations.Encounters[id]
 		local cleared=(data.wins or {})[id]==true
 		local selected=self.selected==index
-		local row=card(content,"Mission"..index,.04,.19+(index-1)*.14,.92,.12,
+		-- October 21 responsiveness: .15 tall on a .17 pitch; each hit fills its pitch.
+		local row=card(content,"Mission"..index,.04,.226+(index-1)*.17,.92,.15,
 			if selected then color:Lerp(CARD,.5) else CARD,if selected then color:Lerp(WHITE,.35) else Color3.new(0,0,0))
 		if selected then row.UIStroke.Thickness=4 end
 		label(row,"Name",definition.name,.04,.14,.6,.72,if locked then MUTED else WHITE)
@@ -261,13 +263,12 @@ function Panel:BuildMissions(content,data)
 		else
 			label(chip,"Text",if cleared then "CLEAR!" else money(definition.firstCash),.06,.08,.88,.84,WHITE,Enum.TextXAlignment.Center)
 		end
-		-- Phone hit area: each row answers across its whole 0.14 pitch.
 		Theme.PadHit(hitArea(row,"Select",function()
 			cue("Select","Click")
 			self.selected=index
 			self.pop="Mission"..index
 			self:Refresh()
-		end),1,.14/.12)
+		end),1,.17/.15)
 	end
 end
 
@@ -280,7 +281,7 @@ function Panel:BuildDetail(content,data,state)
 	local cleared=(data.wins or {})[id]==true
 	self.deploy=nil
 	-- Status row (the mockup's "CURRENT INVASION [NONE]"): power on the left, verdict chip right.
-	local status=card(content,"Status",.04,.63,.92,.11,Color3.fromRGB(16,20,24))
+	local status=card(content,"Status",.04,.735,.92,.09,Color3.fromRGB(16,20,24))
 	local enemy=Operations.Power(id)
 	local mine=tonumber(state.power) or 0
 	local node=Research.Nodes[UNLOCK_NODES[tier]]
@@ -319,8 +320,8 @@ function Panel:BuildDetail(content,data,state)
 			if not button.Active then cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2}) end
 		end)
 	end
-	button.Position,button.Size=UDim2.fromScale(.15,.79),UDim2.fromScale(.7,.17)
-	Theme.PadHit(button,1,1.12) -- phone hit area: 48 px tall
+	button.Position,button.Size=UDim2.fromScale(.15,.83),UDim2.fromScale(.7,.17)
+	Theme.PadHit(button,1,.186/.17,0.5,1) -- 48 px tall on a phone, up over the status row
 	self.deploy=button
 end
 

@@ -217,7 +217,7 @@ function Menu:BuildRows()
 		place(pill,0.96,0.5,0.3,0.72);Theme.Aspect(pill,2.5)
 		-- Phone hit area: the pill answers across its whole row pitch (0.86 row + 0.14 gap
 		-- per slot) so neighbouring pills meet without overlapping.
-		Theme.PadHit(pill,1,1/(0.72*0.86))
+		Theme.PadHit(pill,1,1/(0.72*0.86),0.5,0,true)
 		self.pills[row.id]={button=pill,row=row}
 	end
 	Theme.ScaleText(list)
@@ -286,8 +286,9 @@ function Menu:Open()
 		app.audio:Play("Click")
 		self:Dismiss()
 	end
-	-- The X's hit area doubles (the first row's pill sits just under the title).
-	Theme.HeaderClose(header,close,2)
+	-- The X's hit area reaches 48 px; the pills' hits start at their own top edge, so
+	-- the first row stays clear of it.
+	Theme.HeaderClose(header,close,3.75)
 	-- Stop When Appear: the title, the list and the page switcher.
 	local title=Theme.Display(main,"StopWhenAppear","Stop When Appear",34,WHITE)
 	title.TextXAlignment,title.TextScaled=Enum.TextXAlignment.Center,true
@@ -310,11 +311,11 @@ function Menu:Open()
 	switcher:SetAttribute("OwnsPopupStyle",true)
 	local previous=Theme.Button(switcher,"Previous","<",function() app.audio:Play(cue(app,"TabSwitch","Click"),nil,{noFallback=true});self:Turn(-1) end,BLUE)
 	place(previous,0.03,0.12,0.18,0.76);Theme.Aspect(previous,1)
-	Theme.PadHit(previous,1.5)
+	Theme.PadHit(previous,1.5,1.5,0.5,0.1) -- 48 px, growing down, clear of the last row's pill
 	local nextPage=Theme.Button(switcher,"Next",">",function() app.audio:Play(cue(app,"TabSwitch","Click"),nil,{noFallback=true});self:Turn(1) end,BLUE)
 	nextPage.AnchorPoint=Vector2.new(1,0)
 	place(nextPage,0.97,0.12,0.18,0.76);Theme.Aspect(nextPage,1)
-	Theme.PadHit(nextPage,1.5)
+	Theme.PadHit(nextPage,1.5,1.5,0.5,0.1)
 	local pageLabel=Theme.Display(switcher,"Page","Rarity",44,WHITE)
 	pageLabel.TextXAlignment,pageLabel.TextScaled=Enum.TextXAlignment.Center,true
 	place(pageLabel,0.24,0.1,0.52,0.8)

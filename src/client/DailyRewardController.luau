@@ -315,7 +315,7 @@ function Controller:Show(granted)
 	local seventh = self:Card(main,7,today,granted,0.72,0.035,0.255,0.93)
 	if today==7 then todayCard = seventh end
 	table.insert(cards,seventh)
-	Theme.HeaderClose(header,function() self:Collect(granted) end,1.34) -- phone hit area: 48 px
+	Theme.HeaderClose(header,function() self:Collect(granted) end,1.42) -- phone hit area: 48 px
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
 	-- Tomorrow's countdown (a plain once-a-second text update, not an animation).

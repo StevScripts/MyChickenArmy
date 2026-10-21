@@ -137,7 +137,7 @@ function Browser.new(app,parent)
  self.header=header
  self.closeButton=Theme.HeaderClose(header,function()
   self.app.audio:Play("Click");self.app:ClosePanel()
- end,1.55) -- phone hit area: 48 px
+ end,1.65) -- phone hit area: 48 px
  local body=frame(window,"Main",UDim2.fromScale(0.9983333,0.825),UDim2.fromScale(0.50025,0.585))
  body.AnchorPoint=Vector2.new(0.5,0.5)
  Theme.BelowHeader(header,body)
@@ -224,7 +224,7 @@ function Browser:SectionTab(parent,key,index)
  Theme.Aspect(button,0.86)
  local visual=Theme.Container(button,"Visual")
  visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
- Theme.PadHit(button,1.25,1)
+ Theme.PadHit(button,1.25,1,0.5,0.5,true)
  -- Transparent: just the art and its caption (owner, October 15).
  local icon=Theme.Image(visual,"Icon","",UDim2.fromScale(0.92,0.74),UDim2.fromScale(0.04,0.02))
  icon.ZIndex=8

@@ -51,7 +51,8 @@ local function standardPage(ctx,app,page,title)
 	local header,titleLabel=Theme.Header(frame,"Header",title,Theme.HeaderColors[page] or Theme.ActionColors.navigation)
 	header.PageIcon.Visible=page=="Index"
 	header.PageIcon.Image=if page=="Index" then Theme.Assets.Index else Theme.Assets.Luck
-	Theme.HeaderClose(header,noop)
+	-- The game's shared X carries a per-page phone hit pad (AppController.FitPanel).
+	Theme.HeaderClose(header,noop,app.ClosePads[page] or app.ClosePads.default)
 	Theme.BelowHeader(header,body)
 	app.panel,app.panelHeader,app.panelTitle,app.panelBody=frame,header,titleLabel,body
 	return frame,body

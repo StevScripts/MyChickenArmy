@@ -541,11 +541,13 @@ function AppController:BuildUI()
 end
 
 -- Phone hit area for the shared X: each page's window gives it a different size, so
--- the pad that lifts it to 48 px is per page (Settings 20 px, Index 22 px).
-local CLOSE_PADS={Settings=2.4,Index=2.2}
+-- the pad that lifts it to 48 px is per page (Settings 20 px, Index 22 px). The UI Lab's
+-- page stories read the same table.
+local CLOSE_PADS={Settings=2.55,Index=2.35,default=2.55}
+AppController.ClosePads=CLOSE_PADS
 function AppController:FitPanel()
 	MenuLayout.Apply(self.gui,self.page,self.panel)
-	self.closeButton:SetAttribute("HitPad",CLOSE_PADS[self.page] or 2.4)
+	self.closeButton:SetAttribute("HitPad",CLOSE_PADS[self.page] or CLOSE_PADS.default)
 	Theme.BelowHeader(self.panelHeader,self.panelBody)
 	self.content.Position,self.content.Size=UDim2.fromScale(0.02,0.02),UDim2.fromScale(0.96,0.96)
 	self.indexBrowser.root.Position,self.indexBrowser.root.Size=UDim2.fromScale(0.02,0.02),UDim2.fromScale(0.96,0.96)
@@ -593,8 +595,11 @@ function AppController:Button(name, text, callback, color)
 	self.order += 1
 	local item = Theme.Button(self.content, name, text, function() self.audio:Play("Click");callback() end, color)
 	item.LayoutOrder, item.Size = self.order, UDim2.fromScale(0.96,0.14161)
-	Theme.Aspect(item,12.265)
+	-- October 21 responsiveness: rows twice as tall (12.265:1 -> 6.1:1) so a phone row is
+	-- 48 px; the caption keeps its old box height, so the lettering does not grow with it.
+	Theme.Aspect(item,6.1)
 	item.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+	item.Visual.Caption.Position,item.Visual.Caption.Size=UDim2.fromScale(0.025,0.3),UDim2.fromScale(0.95,0.4)
 	item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",1.12)
 	Theme.ScaleText(item)
 	return item
