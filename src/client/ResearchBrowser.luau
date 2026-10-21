@@ -57,12 +57,32 @@ local TOOLTIP_WIDTH=.218
 -- October 20 tree v2 (S9c): flat-topped hexes like the reference, 164 wide x 144 tall.
 local NODE_SIZE=UDim2.fromScale(164/1440,144/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): LinkSeconds is the spark
+-- that runs from a bought hex to the hex it opens before that one pulses; GlowLimit
+-- caps the affordable glow at the hexes nearest the map's centre hex; LaneLimit and
+-- LaneWindow are the short reveal when Back returns to the main map.
 local MOTION={
 	OpenScale=0,OpenSeconds=.24,OpenStaggerSeconds=.045,OpenWaveSeconds=.80,
 	FrontierEntryScale=.88,FrontierSeconds=.18,FrontierWaveSeconds=.08,FrontierScale=1.025,
 	HoverScale=1.025,PressScale=.96,PressSeconds=.055,SettleSeconds=.13,
 	ConfirmScale=1.045,ConfirmRiseSeconds=.10,ConfirmSettleSeconds=.18,FlashSeconds=.35,
+	LinkSeconds=.3,GlowLimit=8,GlowSeconds=.9,ReadyScale=1.06,LaneLimit=24,LaneWindow=.3,
+	TipSeconds=.16,TipLeaveSeconds=.1,TipScale=.92,TipSlide=.05,MaxFlashSeconds=.6,SparkSize=.022,
 }
+local GOLD=Theme.Motion.Palette[1]
+-- Lane colours for the affordable glow, purchase flash, link spark and confetti:
+-- eggs and Gold rolls gold, Army lime, rolls and Player sky, mutations and Prism
+-- violet, Diamond paper, Tools orange. Presentation only; the hex art is unchanged.
+local LANE_FAMILY={
+	EggSpeed=GOLD,EggValue=GOLD,Flock=GOLD,GoldMachine=GOLD,GoldRate=GOLD,ArmySize=Theme.Motion.Palette[2],
+	RollSlot=Theme.Motion.Palette[3],RollSpeed=Theme.Motion.Palette[3],Luck=Theme.Motion.Palette[3],
+	Mutation=Theme.Motion.Palette[5],PrismMachine=Theme.Motion.Palette[5],PrismRate=Theme.Motion.Palette[5],
+	DiamondMachine=Theme.Motion.Palette[6],DiamondRate=Theme.Motion.Palette[6],
+}
+local LANE_CATEGORY={Main=GOLD,Tools=Theme.ReferenceColors.Base,Player=Theme.Motion.Palette[3],Army=Theme.Motion.Palette[2]}
+local function laneColor(node)
+	return (node.family and LANE_FAMILY[node.family]) or LANE_CATEGORY[node.category] or GOLD
+end
 local function cancelTween(owner,key)
 	local tween=owner[key]
 	if tween then owner[key]=nil;tween:Cancel();tween:Destroy() end
@@ -187,6 +207,12 @@ function Browser.new(app,parent)
 	Theme.Aspect(self.exit,120/115)
 	self.message=label(root,"Feedback","",.15,.17,.70,.055,GREEN)
 	self.message.ZIndex,self.message.Visible=12,false
+	-- Centre-anchored once so its pop grows from the middle; the rendered spot is the same.
+	Theme.Motion:Center(self.message)
+	-- Link sparks fly above every map layer; the holder never takes input.
+	local sparks=Theme.Container(map,"Sparks")
+	sparks.ZIndex,sparks.Active=2,false
+	self.sparks=sparks
 
 	self:BuildTooltip()
 	-- Tapping empty map closes a gamepad card (nodes sink their own input).
@@ -213,8 +239,15 @@ function Browser:BuildNode(id,layer)
 		image.AnchorPoint,image.Rotation=Vector2.new(.5,.5),90
 		return image
 	end
+	-- A thin lane-coloured hex behind the rim: the affordable glow (hex-shaped, so no
+	-- rectangular stroke boxes the hex). Hidden until RefreshGlow lights it.
+	local glow=flat("Glow",Assets.hexMask,1.07);glow.ZIndex,glow.ImageTransparency,glow.Visible=1,1,false
 	local outline=flat("Outline",Assets.hexMask,1);outline.ZIndex=2
 	local fill=flat("Fill",Assets.hexFill,.92);fill.ZIndex=3
+	-- The purchase flash: a lane-coloured copy of the fill that sits above the fill and
+	-- under the icon (a child renders between its parent and the next sibling).
+	local flash=Theme.Image(fill,"Flash",Assets.hexMask,UDim2.fromScale(1,1))
+	flash.ImageTransparency,flash.Visible=1,false
 	-- Rotation 0 on the turned art reads top to bottom on screen.
 	local gradient=Instance.new("UIGradient")
 	gradient.Rotation,gradient.Enabled,gradient.Parent=0,false,fill
@@ -251,8 +284,11 @@ function Browser:BuildNode(id,layer)
 			title.Position,title.Size=UDim2.fromScale(.1,.2),UDim2.fromScale(.8,.24)
 			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.22)
 		end
+	else
+		-- Upgrade hexes never move these again, so their punches grow from the middle.
+		Theme.Motion:Center(title);Theme.Motion:Center(cost)
 	end
-	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,
+	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,glow=glow,flashFill=flash,
 		title=title,caption=caption,cost=cost,cashIcon=cashIcon,price=price,hidden=hidden,badge=badge,badgeText=badgeText}
 	-- A click or tap acts on the hex at once: buy, open a subtree or go back.
 	button.Activated:Connect(function()
@@ -351,10 +387,14 @@ function Browser:RevealNodes(reveals)
 	end)
 	local far=(point(View.Nodes[reveals[#reveals].id])-origin).Magnitude
 	local stagger=math.min(MOTION.OpenStaggerSeconds,MOTION.OpenWaveSeconds/math.max(1,#reveals-1))
+	-- After a purchase, a spark runs from the bought hex to each hex it opens; those
+	-- hexes pulse once it lands (LinkSeconds), the rest follow the frontier wave.
+	local linked=not opening and self.revealOrigin
 	for index,entry in reveals do
 		local view=self.nodes[entry.id]
 		local distance=(point(View.Nodes[entry.id])-origin).Magnitude
-		local delay=if opening then (index-1)*stagger else (if self.revealOrigin then MOTION.ConfirmRiseSeconds else 0)+(if far>0 then distance/far else 0)*MOTION.FrontierWaveSeconds
+		local delay=if opening then (index-1)*stagger else (if linked then MOTION.LinkSeconds else 0)+(if far>0 then distance/far else 0)*MOTION.FrontierWaveSeconds
+		if linked and View.Nodes[entry.id].prerequisite==linked then self:Spark(linked,entry.id,laneColor(View.Nodes[entry.id])) end
 		if self.app.reducedMotion then cancelSize(view);view.visual.Size=UDim2.fromScale(1,1)
 		elseif entry.new then
 			-- Only newly visible nodes receive an entry scale. Visible questions
@@ -402,6 +442,136 @@ function Browser:ResetNodeMotion(view)
 	view.pulsing,view.hovered,view.focused,view.pressed=false,false,false,false
 	view.pressInput=nil;view.visual.Size=UDim2.fromScale(1,1)
 	if view.rimColor then view.outline.ImageColor3=view.rimColor end
+	self:StopGlow(view)
+	Theme.Motion:Cancel(view.flashFill,"flash");view.flashFill.Visible,view.flashFill.ImageTransparency=false,1
+end
+
+-- ===== October 21 game feel helpers (docs/team/GAME_FEEL_20261021.md) =====
+-- Plays the first authored cue of a list (a missing cue is silent, never an error).
+function Browser:Cue(names,options)
+	local audio=self.app.audio
+	for _,name in names do
+		if audio:Has(name) then audio:Play(name,nil,options);return end
+	end
+end
+
+-- The affordable glow: a slow lane-coloured pulse behind the rim (steady under reduced motion).
+function Browser:GlowNode(view,color)
+	if view.glowing and view.glowColor==color then return end
+	view.glowing,view.glowColor=true,color
+	view.glow.ImageColor3,view.glow.Visible=color,true
+	Theme.Motion:Loop(view.glow,"glow",{ImageTransparency=.85},{ImageTransparency=.3},MOTION.GlowSeconds)
+end
+
+function Browser:StopGlow(view)
+	if not view.glowing then return end
+	view.glowing,view.glowColor=false,nil
+	Theme.Motion:Cancel(view.glow,"glow")
+	view.glow.Visible,view.glow.ImageTransparency=false,1
+end
+
+-- Lights the GlowLimit affordable hexes nearest the open map's centre hex and puts
+-- every other glow out. Unchanged hexes are left alone, so snapshots do not restart it.
+function Browser:RefreshGlow()
+	local keep={}
+	if self.root.Visible then
+		local ready={}
+		local origin=point(View.Nodes[View.Roots[self.category]])
+		for _,id in View.Order[self.category] or {} do
+			local view=self.nodes[id]
+			if view.look=="available" and view.button.Visible and not self.pending[id] then
+				table.insert(ready,{view=view,distance=(point(View.Nodes[id])-origin).Magnitude})
+			end
+		end
+		table.sort(ready,function(a,b) return if a.distance==b.distance then a.view.id<b.view.id else a.distance<b.distance end)
+		for index,entry in ready do
+			if index>MOTION.GlowLimit then break end
+			keep[entry.view]=entry.view
+		end
+	end
+	for _,view in self.nodes do
+		if keep[view] then self:GlowNode(view,laneColor(View.Nodes[view.id])) else self:StopGlow(view) end
+	end
+end
+
+-- A hex-shaped colour wash over the fill that fades out (purchase, MAX).
+function Browser:FlashNode(view,color,seconds)
+	local flash=view.flashFill
+	Theme.Motion:Cancel(flash,"flash")
+	if self.app.reducedMotion then flash.Visible=false;return end
+	flash.ImageColor3,flash.ImageTransparency,flash.Visible=color,.25,true
+	Theme.Motion:Tween(flash,"flash",{ImageTransparency=1},seconds or MOTION.FlashSeconds,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function() flash.Visible=false end)
+end
+
+-- A hex that grows out of the bought one and fades: the ripple (Motion:Ripple is a
+-- rectangle, which would box the hex). Transient, above the hex, never takes input.
+function Browser:RippleNode(view,color)
+	if self.app.reducedMotion then return end
+	local ring=Theme.Image(view.button,"Ripple",Assets.hexMask,UDim2.fromScale(144/164,164/144),UDim2.fromScale(.5,.5))
+	ring.AnchorPoint,ring.Rotation,ring.ZIndex=Vector2.new(.5,.5),90,2
+	ring.ImageColor3,ring.ImageTransparency=color,.55
+	Theme.Motion:Tween(ring,"ripple",{Size=UDim2.fromScale(1.45*144/164,1.45*164/144),ImageTransparency=1},.45,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function() ring:Destroy() end)
+end
+
+-- A lane-coloured spark that runs from a bought hex to the hex it opens (LinkSeconds,
+-- Quart Out), then fades. Nothing travels under reduced motion.
+function Browser:Spark(fromId,toId,color)
+	if self.app.reducedMotion or not self.root.Visible then return end
+	local a,b=point(View.Nodes[fromId]),point(View.Nodes[toId])
+	local size=MOTION.SparkSize
+	local spark=Theme.Frame(self.sparks,"Spark",UDim2.fromScale(size*930/1440,size),color)
+	spark.AnchorPoint,spark.Position,spark.BackgroundTransparency=Vector2.new(.5,.5),UDim2.fromScale(a.X,a.Y),.1
+	round(spark,.5)
+	Theme.Motion:Tween(spark,"spark",{Position=UDim2.fromScale(b.X,b.Y),Size=UDim2.fromScale(size*.6*930/1440,size*.6)},MOTION.LinkSeconds,Enum.EasingStyle.Quart,Enum.EasingDirection.Out,function()
+		Theme.Motion:Tween(spark,"spark",{BackgroundTransparency=1,Size=UDim2.fromScale(size*1.6*930/1440,size*1.6)},.15,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function() spark:Destroy() end)
+	end)
+end
+
+function Browser:ClearSparks()
+	self.sparks:ClearAllChildren()
+end
+
+-- Dragging or pinching mutes the hover tick (the shared UI hover binding reads this
+-- attribute), so sweeping across hexes does not machine-gun it.
+function Browser:MuteHover(muted)
+	self.root:SetAttribute("HoverAudioCue",if muted then "" else "SkillTreeHover")
+end
+
+-- Back to the main map: a short grow-in of the hexes nearest the middle of the view
+-- (LaneLimit within LaneWindow) through each hex's own size owner, so it never fights
+-- hover or press. The opening wave (Open, subtrees) is untouched.
+function Browser:RevealLane()
+	if self.app.reducedMotion or not self.root.Visible then return end
+	local root=self.root.AbsoluteSize
+	local sx,sy=root.Y/math.max(1,root.X)*1440/930*self.zoom,math.max(self.zoom,.01)
+	local centre=Vector2.new(.5-self.pan.X/math.max(sx,.01),.5-self.pan.Y/sy)
+	local items={}
+	for _,id in View.Order[self.category] or {} do
+		local view=self.nodes[id]
+		if view.button.Visible and not view.pressed then table.insert(items,{view=view,distance=(point(View.Nodes[id])-centre).Magnitude}) end
+	end
+	table.sort(items,function(a,b) return if a.distance==b.distance then a.view.id<b.view.id else a.distance<b.distance end)
+	local count=math.min(#items,MOTION.LaneLimit)
+	local step=math.min(MOTION.OpenStaggerSeconds,MOTION.LaneWindow/math.max(1,count-1))
+	for index=1,count do
+		local view=items[index].view
+		cancelSize(view)
+		view.visual.Size=UDim2.fromScale(MOTION.FrontierEntryScale,MOTION.FrontierEntryScale)
+		self:SizeNode(view,self:RestScale(view),MOTION.FrontierSeconds,(index-1)*step,function() view.revealing=false;self:RestNode(view) end)
+		view.revealing=true
+	end
+end
+
+-- The card grows in from the pointer corner with a small upward slide (Enter ease).
+function Browser:EnterTooltip()
+	local tip=self.tip
+	local scale=Theme.Motion:ScaleOf(tip)
+	Theme.Motion:Cancel(scale,"pop");Theme.Motion:Cancel(tip,"slide")
+	if self.app.reducedMotion then scale.Scale,tip.AnchorPoint=1,Vector2.zero;return end
+	scale.Scale,tip.AnchorPoint=MOTION.TipScale,Vector2.new(0,-MOTION.TipSlide)
+	local ease=Theme.Motion.Ease.Enter
+	Theme.Motion:Tween(scale,"pop",{Scale=1},MOTION.TipSeconds,ease.style,ease.direction)
+	Theme.Motion:Tween(tip,"slide",{AnchorPoint=Vector2.zero},MOTION.TipSeconds,ease.style,ease.direction)
 end
 
 -- Server clock for older callers (ResearchExtras' Rally countdown).
@@ -412,6 +582,7 @@ end
 function Browser:Feedback(text,color,id)
 	self.message.Text,self.message.TextColor3,self.message.Visible=text,color,true
 	self.message.TextTransparency=0
+	Theme.Motion:PopScale(self.message,.9,.2)
 	self.feedbackVersion=(self.feedbackVersion or 0)+1
 	local version=self.feedbackVersion
 	if color==RED then self.app.audio:Play("SkillTreeError",nil,{noFallback=true,voiceKey="ErrorNotification",cooldown=.25}) end
@@ -475,7 +646,20 @@ function Browser:Receive(state,result)
 		self:Feedback(request.text,GREEN,id)
 		local view=self.nodes[id]
 		self:PulseNode(view)
-		local p=point(node);Theme.Motion:Burst(self.map,UDim2.fromScale(p.X,p.Y),GREEN)
+		-- The last tier of a track: gold instead of the lane colour, a longer wash, the
+		-- name punches (the tier lives in the name) and the MAX cue with fallbacks.
+		local family=View.Family(node.family)
+		local maxed=family~=nil and View.Tier(node.family,self.tree and self.tree.families)>=#family.tiers
+		local color=if maxed then GOLD else laneColor(node)
+		if maxed then
+			self:Cue({"UpgradeMax","Shimmer","SkillTreeResearchCompleted"},{noFallback=true,voiceKey="UpgradeTier"})
+			Theme.Motion:Punch(view.title,1.2,.35)
+		else self:Cue({"TierUp"},{noFallback=true,voiceKey="UpgradeTier"}) end
+		self:FlashNode(view,color,if maxed then MOTION.MaxFlashSeconds else MOTION.FlashSeconds)
+		self:RippleNode(view,color)
+		local p=point(node)
+		Theme.Motion:Confetti(self.map,{count=12,origin=UDim2.fromScale(p.X,p.Y),spread=.15,seconds=1,
+			colors=if maxed then {GOLD,WHITE,Theme.ReferenceColors.Base} else {color,WHITE,GOLD}})
 		-- Keep gamepad focus on the family: its next tier is now the one to buy.
 		local nextId=View.NextId(node.family,self.tree)
 		local nextView=nextId and nextId~=id and self.nodes[nextId]
@@ -495,7 +679,14 @@ function Browser:Render()
 		end
 	end
 	self:RevealNodes(reveals)
-	Theme.Motion:Count(self.cash,self.coins or 0,function(v) return Theme.Money(v) end)
+	self:RefreshGlow()
+	-- The Coins readout counts up with ticks and a small punch on gains; a spend drops
+	-- at once. Opening snaps to the balance instead of counting from the last visit.
+	local snap=self.snapCoins;self.snapCoins=nil
+	Theme.Motion:CountTo(self.cash,self.coins or 0,Theme.Money,if snap then 0 else .45,if snap then {punch=false} else {
+		punch=1.08,punchTarget=self.cash.Parent,tickGap=.06,
+		tick=function() self.app.audio:Play("CountTick",nil,{noFallback=true,voiceKey="UpgradesCountTick",cooldown=.05,pitchVariance=.05}) end,
+	})
 	if self.selected then self:RenderTooltip() end
 end
 
@@ -525,6 +716,11 @@ function Browser:RenderNode(id)
 	view.title.Visible,view.hidden.Visible=not hidden,hidden
 	-- Prices only on hexes you can still buy: green when affordable, red when not.
 	local buyable=look=="available" or look=="unaffordable"
+	-- Live state changes (not the first styling after Open): a red price turning green
+	-- pulses the hex once (the HUD's badge cue is F1's); a price that appears punches.
+	local live=view.look~=nil and view.button.Visible and self.root.Visible and not self.opening
+	if live and view.look=="unaffordable" and look=="available" then self:PulseNode(view,MOTION.ReadyScale) end
+	if live and buyable and not view.cost.Visible then Theme.Motion:Punch(view.cost,1.15,.3) end
 	view.cost.Visible=buyable
 	view.cashIcon.Visible=not waiting
 	view.price.Position=UDim2.fromScale(if waiting then 0 else .29,0)
@@ -550,15 +746,28 @@ function Browser:Select(id,persistent)
 	-- October 20 (owner): no card on phones, even when a shortcut opens a node.
 	if not view or not view.button.Visible or touching() then self:DismissTooltip();return end
 	local changed=self.selected~=id
+	local shown=self.tip.Visible and not self.tipHiding
 	self.selected,self.persistent=id,persistent
+	self.tipHiding=nil
 	self.tip.Visible=true
 	self:RenderTooltip()
-	if changed then Theme.Motion:PopScale(self.tip,.94,.14) end
+	if changed or not shown then self:EnterTooltip() end
 end
 
+-- The card leaves quickly (a small shrink); re-selecting during the shrink cancels it.
 function Browser:DismissTooltip()
 	self.selected,self.persistent=nil,false
-	self.tip.Visible=false
+	local tip=self.tip
+	if not tip.Visible or self.tipHiding then return end
+	Theme.Motion:Cancel(tip,"slide");tip.AnchorPoint=Vector2.zero
+	local scale=Theme.Motion:ScaleOf(tip)
+	if self.app.reducedMotion then Theme.Motion:Cancel(scale,"pop");scale.Scale,tip.Visible=1,false;return end
+	self.tipHiding=true
+	local ease=Theme.Motion.Ease.Leave
+	Theme.Motion:Tween(scale,"pop",{Scale=.94},MOTION.TipLeaveSeconds,ease.style,ease.direction,function()
+		if not self.tipHiding then return end
+		self.tipHiding=nil;tip.Visible,scale.Scale=false,1
+	end)
 end
 
 function Browser:PlaceTooltip()
@@ -637,11 +846,18 @@ function Browser:RenderTooltip()
 	self.tipTitle.Position,self.tipTitle.Size=UDim2.fromScale(.055,10/height),UDim2.fromScale(.89,30*titleRows/height)
 	self.tipDivider.Position,self.tipDivider.Size=UDim2.fromScale(.085,dividerY/height),UDim2.fromScale(.83,1/height)
 	self.tipEffect.Text=bodyText;self.tipEffect.Position,self.tipEffect.Size=UDim2.fromScale(.06,bodyY/height),UDim2.fromScale(.88,bodyRows*24/height)
+	-- The same card re-rendered with a new value (a purchase under the pointer): the
+	-- changed line punches. Switching hexes only animates the card itself.
+	local same=self.tipId==id
+	self.tipId=id
+	if same and self.tipChange.Visible and change~=nil and self.tipChange.Text~=changeText then Theme.Motion:Punch(self.tipChange,1.1,.3) end
 	self.tipChange.Visible=change~=nil
 	self.tipChange.Text=changeText;self.tipChange.Position,self.tipChange.Size=UDim2.fromScale(.06,changeY/height),UDim2.fromScale(.88,changeRows*27/height)
+	local priceText=if price then Theme.Money(price) else ""
+	if same and self.tipCost.Visible and price~=nil and self.tipPrice.Text~=priceText then Theme.Motion:Punch(self.tipCost,1.1,.3) end
 	self.tipCost.Visible=price~=nil
 	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(costY+4)/height),UDim2.fromScale(.62,34/height)
-	self.tipPrice.Text=if price then Theme.Money(price) else ""
+	self.tipPrice.Text=priceText
 	self.tipPrice.TextColor3=if self.nodes[id].look=="unaffordable" then RED else GREEN
 	self.tipFooter.Visible=footer~=nil
 	self.tipFooter.Position,self.tipFooter.Size=UDim2.fromScale(.06,footerY/height),UDim2.fromScale(.88,20/height)
@@ -667,9 +883,10 @@ end
 
 function Browser:Activate(id)
 	local node=View.Nodes[id];if not node then return end
-	self.app.audio:Play("Click")
+	-- Open and Back hexes answer with the map-change cues in ShowCategory, not a Click.
 	if node.kind=="open" then self:ShowCategory(node.opens);return end
 	if node.kind=="back" then self:ShowCategory("Main");return end
+	self.app.audio:Play("Click")
 	if node.kind~="upgrade" or self.pending[id] then return end
 	local info=self:Info(id)
 	if not info then self:Feedback("Upgrades are loading…",WHITE,id);return end
@@ -716,6 +933,11 @@ end
 function Browser:ShowCategory(category)
 	if not self.layers[category] or category==self.category then return end
 	self:DismissTooltip()
+	self:ClearSparks()
+	-- A hidden map gets no MouseLeave, so its hexes forget the pointer here.
+	for _,id in View.Order[self.category] or {} do
+		local view=self.nodes[id];view.hovered,view.focused,view.pressed,view.pressInput=false,false,false,nil
+	end
 	self.saved[self.category]={zoom=self.zoom,pan=self.pan}
 	self:SetCategory(category)
 	local saved=self.saved[category]
@@ -726,10 +948,10 @@ function Browser:ShowCategory(category)
 		end
 		self.opening=true
 		self.app.audio:Play("SkillTreeOpen",nil,{noFallback=true})
-	end
+	else self:Cue({"TabSwitch","Click"},{voiceKey="Click"}) end
 	self:Render()
 	self.opening=false
-	if saved then self.zoom,self.pan=saved.zoom,saved.pan;self:Transform() else self.zoom=1;self:Center(View.Roots[category]) end
+	if saved then self.zoom,self.pan=saved.zoom,saved.pan;self:Transform();self:RevealLane() else self.zoom=1;self:Center(View.Roots[category]) end
 	if UserInputService.GamepadEnabled then
 		local root=self.nodes[View.Roots[category]]
 		if root then GuiService.SelectedObject=root.button end
@@ -808,7 +1030,7 @@ function Browser:BindInput()
 	local function moveDrag(input)
 		local drag=self.drag;if not drag then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y);local delta=p-drag.at
-		if delta.Magnitude>8 and not drag.moved then drag.moved=true;self:ReleasePress(nil,true);self:DismissTooltip() end
+		if delta.Magnitude>8 and not drag.moved then drag.moved=true;self:MuteHover(true);self:ReleasePress(nil,true);self:DismissTooltip() end
 		if drag.moved then
 			local size=self.root.AbsoluteSize
 			self.pan=drag.pan+Vector2.new(delta.X/math.max(1,size.X),delta.Y/math.max(1,size.Y))
@@ -821,7 +1043,7 @@ function Browser:BindInput()
 		if not mouse and input.UserInputType~=Enum.UserInputType.Touch then return end
 		local p=Vector2.new(input.Position.X,input.Position.Y)
 		if not inside(self.root,p) or inside(self.exit,p) then return end
-		if self.drag then self.drag=nil;self.suppressUntil=os.clock()+.4;return end
+		if self.drag then self.drag=nil;self:MuteHover(false);self.suppressUntil=os.clock()+.4;return end
 		self.drag={input=input,at=p,pan=self.pan,moved=false,mouse=mouse}
 	end)
 	connect(UserInputService.InputChanged,function(input)
@@ -842,11 +1064,13 @@ function Browser:BindInput()
 			moveDrag(input)
 			if self.drag.moved then self.suppressUntil=os.clock()+.3 end
 			self.drag=nil
+			self:MuteHover(false)
 		end
 	end)
 	connect(UserInputService.TouchPinch,function(positions,scale,_,state)
 		if not self.root.Visible or #positions<2 then return end
 		self.drag=nil;self:ReleasePress(nil,true);self.suppressUntil=os.clock()+.4
+		self:MuteHover(state~=Enum.UserInputState.End)
 		if state==Enum.UserInputState.Begin then self.pinchScale=scale;return end
 		if self.pinchScale and self.pinchScale>0 then self:Zoom(scale/self.pinchScale,(positions[1]+positions[2])/2) end
 		self.pinchScale=if state==Enum.UserInputState.End then nil else scale
@@ -900,6 +1124,7 @@ function Browser:Open()
 	for _,view in self.nodes do view.button.Visible=false end
 	self.opening=true
 	self.root.Visible=true;self.app.hudLayer.Visible=false
+	self.snapCoins=true
 	self:Receive(self.app.state)
 	self.opening=false
 	self:Focus()
@@ -930,10 +1155,15 @@ function Browser:Close()
 	if not self.root.Visible then return end
 	self.app.audio:Play("SkillTreeClose",nil,{noFallback=true})
 	self.root.Visible=false;self.app.hudLayer.Visible=true;self.drag=nil
+	self:MuteHover(false)
 	self.message.Visible=false;self.feedbackVersion=(self.feedbackVersion or 0)+1
 	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil
+	self:ClearSparks()
+	local confetti=self.map:FindFirstChild("MotionConfetti")
+	if confetti then confetti:Destroy() end
 	for _,view in self.nodes do
 		self:ResetNodeMotion(view)
+		for _,child in view.button:GetChildren() do if child.Name=="Ripple" then child:Destroy() end end
 		-- Re-style the stable saved state on the next visit even if a flash was cut.
 		view.look=nil
 	end
