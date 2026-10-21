@@ -4,6 +4,8 @@
 -- badges only ever come from the server snapshot (state.upgradeTree).
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
+local Currency=require(Shared.CurrencyLimits)
+local Mutations=require(Shared.MutationCatalog)
 local Tree=require(Shared.UpgradeCatalog)
 local View={Categories={},Roots={},Nodes={},Order={},Families={}}
 
@@ -42,10 +44,10 @@ function View.NextId(key:string,tree:any?):string?
 	return Tree.NodeId(family.id,math.min(#family.tiers,View.Tier(family.id,families)+1))
 end
 
--- The big tier number on a hex: only for families with more than one tier.
+-- The big tier number on a hex, from the catalog: none for single hexes or mutations,
+-- and restarting at 1 for each Luck chain (Super Luck I shows 1).
 function View.Numeral(node:any):string?
-	local family=node.family and Tree.Families[node.family]
-	return if family and #family.tiers>1 and node.tier then tostring(node.tier) else nil
+	return if type(node.numeral)=="number" then tostring(node.numeral) else nil
 end
 
 -- "x1.25", "x1.5": the value before and after this node's tier.
@@ -60,27 +62,56 @@ function View.Plain(node:any):boolean
 	return family~=nil and (family.format=="unlock" or family.format=="level")
 end
 
--- Gold rolls (S12's Config.GoldRolls): the machine and rate hexes say what they
--- change, "Every 10 → 8 rolls" or "Every 100 rolls: x5 Luck". Returns the card's
--- change line and the owned line, or nil.
-function View.GoldText(node:any,effects:any):(string?,string?)
+-- Each Gold roll kind's count list (S12's Config.GoldRolls; tree v2 makes Diamond and
+-- Prism per-tier too) and the tree effect that picks its tier.
+local RATES={goldRate="Gold",diamondRate="Diamond",prismRate="Prism"}
+local RATE_EFFECT={Gold="goldRate",Diamond="diamondRate",Prism="prismRate"}
+local function counts(kind:string):{number}?
 	local gold=Config.GoldRolls
+	local list=if type(gold)~="table" then nil elseif kind=="Gold" then gold.Every else type(gold.KindEvery)=="table" and gold.KindEvery[kind]
+	return if type(list)=="number" then {list} elseif type(list)=="table" then list else nil
+end
+
+-- Cards that read better as what they change than as tier values. Returns the card's
+-- change line and its owned line, or nil:
+--   Gold/Diamond/Prism Rate "Every 10 → 8 rolls", their machines "Every 100 rolls: x5 Luck",
+--   Roll Speed the real roll time "4.0 s → 3.3 s" (Stevin), mutations "1 in 250 rolls · x1.5 eggs".
+function View.Lines(node:any,effects:any):(string?,string?)
 	local family=node.family and Tree.Families[node.family]
 	local entry=family and family.tiers[node.tier]
-	if type(gold)~="table" or type(gold.Every)~="table" or type(gold.Luck)~="table" or not entry then return nil,nil end
+	if not entry then return nil,nil end
 	local value=entry.value
-	if family.effect=="goldRate" and gold.Every[value] and gold.Every[value+1] then
-		return "Every "..gold.Every[value].." → "..gold.Every[value+1].." rolls","Every "..gold.Every[value+1].." rolls"
-	elseif family.effect=="goldMachine" and gold.Luck[value] then
-		local boost="x"..gold.Luck[value].." Luck"
-		-- S12b: Diamond and Prism count their own pulls (KindEvery); Gold follows Gold Rate.
-		local kind=type(gold.Kinds)=="table" and gold.Kinds[value] or nil
-		local own=kind and type(gold.KindEvery)=="table" and gold.KindEvery[kind] or nil
-		if own then return "Every "..own.." rolls: "..boost,"Every "..own.." rolls" end
-		if gold.Luck[value-1] then return "x"..gold.Luck[value-1].." → "..boost,boost end
-		local rate=type(effects)=="table" and tonumber(effects.goldRate) or 0
-		local every=gold.Every[math.clamp(math.floor(rate),0,#gold.Every-1)+1]
-		return "Every "..every.." rolls: "..boost,boost.." every "..every.." rolls"
+	effects=if type(effects)=="table" then effects else {}
+	local kind=RATES[family.effect]
+	local list=kind and counts(kind)
+	if list and list[value] and list[value+1] then
+		return "Every "..list[value].." → "..list[value+1].." rolls","Every "..list[value+1].." rolls"
+	end
+	local gold=Config.GoldRolls
+	if family.effect=="goldMachine" and type(gold)=="table" and type(gold.Luck)=="table" and type(gold.Kinds)=="table" then
+		kind=gold.Kinds[value]
+		list=kind and counts(kind)
+		if list and gold.Luck[value] then
+			local rate=tonumber(effects[RATE_EFFECT[kind]]) or 0
+			local every=list[math.clamp(math.floor(rate),0,#list-1)+1]
+			return "Every "..every.." rolls: x"..gold.Luck[value].." Luck","Every "..every.." rolls"
+		end
+	end
+	if family.effect=="rollingSpeed" then
+		-- Today's speed minus this family's own tier is what Gem Roll Speed adds.
+		local owned=View.Tier(family.id)
+		local extra=math.max(0,(tonumber(effects.rollingSpeed) or 0)-(if owned>0 then family.tiers[owned].value else 0))
+		local before=if node.tier>1 then family.tiers[node.tier-1].value else 0
+		local seconds=Config.RollRevealSeconds
+		local now,after=seconds/(1+extra+before),seconds/(1+extra+value)
+		return string.format("%.1f s → %.1f s",now,after),string.format("%.1f s per roll",after)
+	end
+	if family.effect=="mutations" then
+		local def=Mutations.Defs[Mutations.Order[value]]
+		if not def then return nil,nil end
+		local chance=def.chance*(1+math.max(0,tonumber(effects.mutationLuck) or 0))
+		local line=string.format("1 in %s rolls · x%s eggs",Currency.Grouped(math.floor(1/chance+.5)),tostring(def.multiplier))
+		return line,line
 	end
 	return nil,nil
 end

@@ -234,31 +234,59 @@ function Checks.Run()
 		return "Receipt and cargo; flag saves"
 	end)
 
-	test("The tree arrow rests in an empty neighbour cell, never on another hex",function()
+	test("The tree arrow rests in an empty neighbour cell, or else on a \"?\" hex",function()
+		-- Layout-proof (Upgrades tree v2 moves hexes): checks the rules, not today's sides.
 		local function all() return true end
-		local function side(id,shown,fits)
-			local found=Guide.PointerSide(id,shown or all,fits)
-			return if found then found[1]..","..found[2] else "none"
-		end
-		-- Right, left, below right, below left, above right, above left; first empty wins.
-		local expected={Flock1="0,1",OpenTools="1,0",VacuumCapacity1="-1,1",EggVacuum="0,1",ChickenFeed="1,0",
-			ArmySize2="-1,1",ToolsBack="0,1",PlayerBack="-1,1",ArmySize1="none",ArmyBack="none"}
-		for id,wanted in expected do
-			assert(side(id)==wanted,id.." points from "..side(id).." (wanted "..wanted..")")
-		end
-		-- A hidden hex (locked further out) leaves its cell free.
-		assert(side("ArmySize1",function(other) return other~="ArmySize2" end)=="-1,0","Hidden Army Size II")
-		-- A cell off the screen is skipped.
-		assert(side("OpenTools",all,function(cell) return cell[1]~=1 or cell[2]~=0 end)=="0,1","Off-screen right")
-		-- Every guided hex: the side found is really empty in its own map.
-		for _,id in {"Flock1","OpenTools","VacuumCapacity1","EggVacuum","ChickenFeed","ArmySize2"} do
-			local node,found=Tree.Nodes[id],Guide.PointerSide(id,all)
+		local function occupant(node,side)
 			for other,neighbour in Tree.Nodes do
-				assert(not (neighbour.category==node.category and neighbour.q==node.q+found[1] and neighbour.r==node.r+found[2]),
-					id.."'s arrow lands on "..other)
+				if neighbour.category==node.category and neighbour.q==node.q+side[1] and neighbour.r==node.r+side[2] then
+					return other
+				end
+			end
+			return nil
+		end
+		local function firstEmpty(node,order)
+			for _,side in order do if not occupant(node,side) then return side end end
+			return nil
+		end
+		local reversed={}
+		for index=#Guide.PointerSides,1,-1 do table.insert(reversed,Guide.PointerSides[index]) end
+		local empty,boxed,hidden=0,0,0
+		for _,id in {"Flock1","ArmySize1","ArmySize2","OpenTools","EggVacuum","ChickenFeed","VacuumCapacity1",
+			"ToolsBack","PlayerBack","ArmyBack"} do
+			local node=Tree.Nodes[id]
+			assert(node,id.." is missing")
+			-- The first empty cell in whatever order the client sorts the sides.
+			for _,order in {Guide.PointerSides,reversed} do
+				local wanted,found=firstEmpty(node,order),Guide.PointerSide(id,all,nil,order)
+				assert(found==wanted,id.." took "..(if found then found[1]..","..found[2] else "none"))
+			end
+			local first=firstEmpty(node,Guide.PointerSides)
+			if first then
+				empty+=1
+				-- A cell that doesn't fit on screen is skipped.
+				local skipped=Guide.PointerSide(id,all,function(side) return side~=first end)
+				assert(skipped~=first and (skipped==nil or occupant(node,skipped)==nil),id.." used the off-screen cell")
+			else
+				boxed+=1
+				local side=Guide.PointerSides[3]
+				local unknown=occupant(node,side)
+				assert(Guide.PointerSide(id,all)==nil,id.." found a cell with all six taken")
+				assert(Guide.PointerSide(id,all,nil,nil,function(other) return other==unknown end)==side,id.." skipped its ? hex")
+			end
+			-- A hidden hex (locked further out) leaves its cell free.
+			for _,side in Guide.PointerSides do
+				if side==first then break end
+				local other=occupant(node,side)
+				if other then
+					assert(Guide.PointerSide(id,function(name) return name~=other end)==side,id.." kept hidden "..other)
+					hidden+=1
+					break
+				end
 			end
 		end
-		return "8 hexes from an empty cell; Army Size I and Army's Back use the gap below"
+		assert(empty>0 and hidden>0,"Nothing exercised")
+		return empty.." from an empty cell, "..boxed.." boxed in (? fallback), "..hidden.." hidden-hex cases"
 	end)
 
 	test("A real starter session walks Flock Size I and Army Size I with its reserve",function()

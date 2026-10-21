@@ -1,409 +1,549 @@
 {
-  "method": "Studio Flow, edit context, AssetService:CreateEditableImage + CreateAssetAsync (raw RGBA decoded from upload/<Key>.png, served from 127.0.0.1)",
-  "placeId": 96683186622050,
-  "creatorType": "Group",
-  "creatorId": 778575811,
-  "uploadedAt": "2026-10-20",
-  "approval": "Stevin approved the v2 sheet in S6's session and confirmed the upload in the lead session",
-  "assets": [
-    {
-      "key": "Armor",
-      "file": "upload/Armor.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 100107542181359,
-      "content": "rbxassetid://100107542181359"
-    },
-    {
-      "key": "ArmyPower",
-      "file": "upload/ArmyPower.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 103869254129016,
-      "content": "rbxassetid://103869254129016"
-    },
-    {
-      "key": "AutoRebirth",
-      "file": "upload/AutoRebirth.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 114580276298082,
-      "content": "rbxassetid://114580276298082"
-    },
-    {
-      "key": "AutoRoll",
-      "file": "upload/AutoRoll.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 83070773137079,
-      "content": "rbxassetid://83070773137079",
-      "approval": "Stevin approved the updated sheet in S6's session; uploaded by the lead"
-    },
-    {
-      "key": "Back",
-      "file": "upload/Back.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 74062628727086,
-      "content": "rbxassetid://74062628727086"
-    },
-    {
-      "key": "BossDamage",
-      "file": "upload/BossDamage.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 102931726698589,
-      "content": "rbxassetid://102931726698589"
-    },
-    {
-      "key": "Bounty",
-      "file": "upload/Bounty.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 111140823257162,
-      "content": "rbxassetid://111140823257162"
-    },
-    {
-      "key": "CaptureSpeed",
-      "file": "upload/CaptureSpeed.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 112004220419400,
-      "content": "rbxassetid://112004220419400"
-    },
-    {
-      "key": "ClickRange",
-      "file": "upload/ClickRange.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 76024349131743,
-      "content": "rbxassetid://76024349131743"
-    },
-    {
-      "key": "CoinBoost",
-      "file": "upload/CoinBoost.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 135324018337151,
-      "content": "rbxassetid://135324018337151"
-    },
-    {
-      "key": "Damage",
-      "file": "upload/Damage.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 95203381451260,
-      "content": "rbxassetid://95203381451260"
-    },
-    {
-      "key": "DiamondMachine",
-      "file": "upload/DiamondMachine.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 113120386630417,
-      "content": "rbxassetid://113120386630417"
-    },
-    {
-      "key": "EggVacuum",
-      "file": "upload/EggVacuum.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 130089766443010,
-      "content": "rbxassetid://130089766443010"
-    },
-    {
-      "key": "FriendBoost",
-      "file": "upload/FriendBoost.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 139941088198975,
-      "content": "rbxassetid://139941088198975"
-    },
-    {
-      "key": "Gems",
-      "file": "upload/Gems.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 73702372942908,
-      "content": "rbxassetid://73702372942908"
-    },
-    {
-      "key": "GoldMachine",
-      "file": "upload/GoldMachine.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 75354767460656,
-      "content": "rbxassetid://75354767460656"
-    },
-    {
-      "key": "GoldRate",
-      "file": "upload/GoldRate.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 117354946749376,
-      "content": "rbxassetid://117354946749376"
-    },
-    {
-      "key": "GoldRush",
-      "file": "upload/GoldRush.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 113845730035820,
-      "content": "rbxassetid://113845730035820"
-    },
-    {
-      "key": "KeepUpgrades",
-      "file": "upload/KeepUpgrades.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 112863599177649,
-      "content": "rbxassetid://112863599177649"
-    },
-    {
-      "key": "MoreGems",
-      "file": "upload/MoreGems.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 100810362507044,
-      "content": "rbxassetid://100810362507044"
-    },
-    {
-      "key": "MutationLuck",
-      "file": "upload/MutationLuck.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 131360952198245,
-      "content": "rbxassetid://131360952198245"
-    },
-    {
-      "key": "OfflineCoins",
-      "file": "upload/OfflineCoins.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 139396997085549,
-      "content": "rbxassetid://139396997085549"
-    },
-    {
-      "key": "OfflineTime",
-      "file": "upload/OfflineTime.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 112666918598506,
-      "content": "rbxassetid://112666918598506"
-    },
-    {
-      "key": "OpenArmy",
-      "file": "upload/OpenArmy.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 131832119562907,
-      "content": "rbxassetid://131832119562907"
-    },
-    {
-      "key": "OpenPlayer",
-      "file": "upload/OpenPlayer.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 100646125537844,
-      "content": "rbxassetid://100646125537844"
-    },
-    {
-      "key": "OpenTools",
-      "file": "upload/OpenTools.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 135859626721110,
-      "content": "rbxassetid://135859626721110"
-    },
-    {
-      "key": "RainbowMachine",
-      "file": "upload/RainbowMachine.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 90010215769789,
-      "content": "rbxassetid://90010215769789"
-    },
-    {
-      "key": "RebirthChickenOdds",
-      "file": "upload/RebirthChickenOdds.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 114829354407655,
-      "content": "rbxassetid://114829354407655"
-    },
-    {
-      "key": "RollSpeed",
-      "file": "upload/RollSpeed.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 70386312720480,
-      "content": "rbxassetid://70386312720480"
-    },
-    {
-      "key": "SellTrash",
-      "file": "upload/SellTrash.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 111469244237912,
-      "content": "rbxassetid://111469244237912",
-      "approval": "Stevin approved in S13's session; uploaded by the lead"
-    },
-    {
-      "key": "TimeSkip",
-      "file": "upload/TimeSkip.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 74175802298844,
-      "content": "rbxassetid://74175802298844"
-    },
-    {
-      "key": "VacuumCapacity",
-      "file": "upload/VacuumCapacity.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 72175945483273,
-      "content": "rbxassetid://72175945483273"
-    },
-    {
-      "key": "VacuumRange",
-      "file": "upload/VacuumRange.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 82362785406642,
-      "content": "rbxassetid://82362785406642"
-    },
-    {
-      "key": "WalkSpeed",
-      "file": "upload/WalkSpeed.png",
-      "size": [
-        512,
-        512
-      ],
-      "assetId": 85985460964540,
-      "content": "rbxassetid://85985460964540"
-    }
-  ],
-  "reusedInGame": [
-    {
-      "key": "ArmySize",
-      "assetId": 92487563557623,
-      "content": "rbxassetid://92487563557623"
-    },
-    {
-      "key": "ChickenFeed",
-      "assetId": 122007287446526,
-      "content": "rbxassetid://122007287446526"
-    },
-    {
-      "key": "EggSpeed",
-      "assetId": 71023601644268,
-      "content": "rbxassetid://71023601644268"
-    },
-    {
-      "key": "EggValue",
-      "assetId": 131663330897554,
-      "content": "rbxassetid://131663330897554"
-    },
-    {
-      "key": "FlockSize",
-      "assetId": 137569434618832,
-      "content": "rbxassetid://137569434618832"
-    },
-    {
-      "key": "Health",
-      "assetId": 80368789706410,
-      "content": "rbxassetid://80368789706410"
-    },
-    {
-      "key": "Luck",
-      "assetId": 136683191941433,
-      "content": "rbxassetid://136683191941433"
-    },
-    {
-      "key": "MarchSpeed",
-      "assetId": 137818969643923,
-      "content": "rbxassetid://137818969643923"
-    },
-    {
-      "key": "Rally",
-      "assetId": 103846085793265,
-      "content": "rbxassetid://103846085793265"
-    },
-    {
-      "key": "Recovery",
-      "assetId": 120779534623977,
-      "content": "rbxassetid://120779534623977"
-    },
-    {
-      "key": "RollSlot",
-      "assetId": 91702817085017,
-      "content": "rbxassetid://91702817085017"
-    }
-  ]
+ "method": "Studio Flow, edit context, AssetService:CreateEditableImage + CreateAssetAsync (raw RGBA decoded from upload/<Key>.png, served from 127.0.0.1)",
+ "placeId": 96683186622050,
+ "creatorType": "Group",
+ "creatorId": 778575811,
+ "uploadedAt": "2026-10-20",
+ "approval": "Stevin approved the v2 sheet in S6's session and confirmed the upload in the lead session",
+ "assets": [
+  {
+   "key": "Armor",
+   "file": "upload/Armor.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 100107542181359,
+   "content": "rbxassetid://100107542181359"
+  },
+  {
+   "key": "ArmyPower",
+   "file": "upload/ArmyPower.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 103869254129016,
+   "content": "rbxassetid://103869254129016"
+  },
+  {
+   "key": "AutoRebirth",
+   "file": "upload/AutoRebirth.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 114580276298082,
+   "content": "rbxassetid://114580276298082"
+  },
+  {
+   "key": "AutoRoll",
+   "file": "upload/AutoRoll.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 83070773137079,
+   "content": "rbxassetid://83070773137079",
+   "approval": "Stevin approved the updated sheet in S6's session; uploaded by the lead"
+  },
+  {
+   "key": "Back",
+   "file": "upload/Back.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 74062628727086,
+   "content": "rbxassetid://74062628727086"
+  },
+  {
+   "key": "BossDamage",
+   "file": "upload/BossDamage.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 102931726698589,
+   "content": "rbxassetid://102931726698589"
+  },
+  {
+   "key": "Bounty",
+   "file": "upload/Bounty.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 111140823257162,
+   "content": "rbxassetid://111140823257162"
+  },
+  {
+   "key": "CaptureSpeed",
+   "file": "upload/CaptureSpeed.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 112004220419400,
+   "content": "rbxassetid://112004220419400"
+  },
+  {
+   "key": "ClickRange",
+   "file": "upload/ClickRange.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 76024349131743,
+   "content": "rbxassetid://76024349131743"
+  },
+  {
+   "key": "CoinBoost",
+   "file": "upload/CoinBoost.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 135324018337151,
+   "content": "rbxassetid://135324018337151"
+  },
+  {
+   "key": "Damage",
+   "file": "upload/Damage.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 95203381451260,
+   "content": "rbxassetid://95203381451260"
+  },
+  {
+   "key": "DiamondMachine",
+   "file": "upload/DiamondMachine.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 113120386630417,
+   "content": "rbxassetid://113120386630417"
+  },
+  {
+   "key": "EggVacuum",
+   "file": "upload/EggVacuum.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 130089766443010,
+   "content": "rbxassetid://130089766443010"
+  },
+  {
+   "key": "FriendBoost",
+   "file": "upload/FriendBoost.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 139941088198975,
+   "content": "rbxassetid://139941088198975"
+  },
+  {
+   "key": "Gems",
+   "file": "upload/Gems.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 73702372942908,
+   "content": "rbxassetid://73702372942908"
+  },
+  {
+   "key": "GoldMachine",
+   "file": "upload/GoldMachine.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 75354767460656,
+   "content": "rbxassetid://75354767460656"
+  },
+  {
+   "key": "GoldRate",
+   "file": "upload/GoldRate.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 117354946749376,
+   "content": "rbxassetid://117354946749376"
+  },
+  {
+   "key": "GoldRush",
+   "file": "upload/GoldRush.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 113845730035820,
+   "content": "rbxassetid://113845730035820"
+  },
+  {
+   "key": "KeepUpgrades",
+   "file": "upload/KeepUpgrades.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 112863599177649,
+   "content": "rbxassetid://112863599177649"
+  },
+  {
+   "key": "MoreGems",
+   "file": "upload/MoreGems.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 100810362507044,
+   "content": "rbxassetid://100810362507044"
+  },
+  {
+   "key": "MutationLuck",
+   "file": "upload/MutationLuck.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 131360952198245,
+   "content": "rbxassetid://131360952198245"
+  },
+  {
+   "key": "OfflineCoins",
+   "file": "upload/OfflineCoins.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 139396997085549,
+   "content": "rbxassetid://139396997085549"
+  },
+  {
+   "key": "OfflineTime",
+   "file": "upload/OfflineTime.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 112666918598506,
+   "content": "rbxassetid://112666918598506"
+  },
+  {
+   "key": "OpenArmy",
+   "file": "upload/OpenArmy.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 131832119562907,
+   "content": "rbxassetid://131832119562907"
+  },
+  {
+   "key": "OpenPlayer",
+   "file": "upload/OpenPlayer.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 100646125537844,
+   "content": "rbxassetid://100646125537844"
+  },
+  {
+   "key": "OpenTools",
+   "file": "upload/OpenTools.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 135859626721110,
+   "content": "rbxassetid://135859626721110"
+  },
+  {
+   "key": "RainbowMachine",
+   "file": "upload/RainbowMachine.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 90010215769789,
+   "content": "rbxassetid://90010215769789"
+  },
+  {
+   "key": "RebirthChickenOdds",
+   "file": "upload/RebirthChickenOdds.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 114829354407655,
+   "content": "rbxassetid://114829354407655"
+  },
+  {
+   "key": "RollSpeed",
+   "file": "upload/RollSpeed.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 70386312720480,
+   "content": "rbxassetid://70386312720480"
+  },
+  {
+   "key": "SellTrash",
+   "file": "upload/SellTrash.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 111469244237912,
+   "content": "rbxassetid://111469244237912",
+   "approval": "Stevin approved in S13's session; uploaded by the lead"
+  },
+  {
+   "key": "TimeSkip",
+   "file": "upload/TimeSkip.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 74175802298844,
+   "content": "rbxassetid://74175802298844"
+  },
+  {
+   "key": "VacuumCapacity",
+   "file": "upload/VacuumCapacity.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 72175945483273,
+   "content": "rbxassetid://72175945483273"
+  },
+  {
+   "key": "VacuumRange",
+   "file": "upload/VacuumRange.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 82362785406642,
+   "content": "rbxassetid://82362785406642"
+  },
+  {
+   "key": "WalkSpeed",
+   "file": "upload/WalkSpeed.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 85985460964540,
+   "content": "rbxassetid://85985460964540"
+  },
+  {
+   "key": "GoldDice",
+   "file": "upload/GoldDice.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 134479804954469,
+   "content": "rbxassetid://134479804954469",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "DiamondDice",
+   "file": "upload/DiamondDice.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 96923790490502,
+   "content": "rbxassetid://96923790490502",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "PrismDice",
+   "file": "upload/PrismDice.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 75988321934625,
+   "content": "rbxassetid://75988321934625",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "SuperLuck",
+   "file": "upload/SuperLuck.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 106398620255480,
+   "content": "rbxassetid://106398620255480",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "MegaLuck",
+   "file": "upload/MegaLuck.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 130839637754661,
+   "content": "rbxassetid://130839637754661",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "DiamondRate",
+   "file": "upload/DiamondRate.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 87592801828456,
+   "content": "rbxassetid://87592801828456",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "PrismRate",
+   "file": "upload/PrismRate.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 94923187253083,
+   "content": "rbxassetid://94923187253083",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "FeedMaxLevel",
+   "file": "upload/FeedMaxLevel.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 108213051661738,
+   "content": "rbxassetid://108213051661738",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "MutationGolden",
+   "file": "upload/MutationGolden.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 80129578684601,
+   "content": "rbxassetid://80129578684601",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "MutationRainbow",
+   "file": "upload/MutationRainbow.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 95442316893461,
+   "content": "rbxassetid://95442316893461",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "MutationShadow",
+   "file": "upload/MutationShadow.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 92726160751769,
+   "content": "rbxassetid://92726160751769",
+   "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "MutationCosmic",
+   "file": "upload/MutationCosmic.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 133241731715561,
+   "content": "rbxassetid://133241731715561",
+   "batch": "2026-10-20 S6b+S6c"
+  }
+ ],
+ "reusedInGame": [
+  {
+   "key": "ArmySize",
+   "assetId": 92487563557623,
+   "content": "rbxassetid://92487563557623"
+  },
+  {
+   "key": "ChickenFeed",
+   "assetId": 122007287446526,
+   "content": "rbxassetid://122007287446526"
+  },
+  {
+   "key": "EggSpeed",
+   "assetId": 71023601644268,
+   "content": "rbxassetid://71023601644268"
+  },
+  {
+   "key": "EggValue",
+   "assetId": 131663330897554,
+   "content": "rbxassetid://131663330897554"
+  },
+  {
+   "key": "FlockSize",
+   "assetId": 137569434618832,
+   "content": "rbxassetid://137569434618832"
+  },
+  {
+   "key": "Health",
+   "assetId": 80368789706410,
+   "content": "rbxassetid://80368789706410"
+  },
+  {
+   "key": "Luck",
+   "assetId": 136683191941433,
+   "content": "rbxassetid://136683191941433"
+  },
+  {
+   "key": "MarchSpeed",
+   "assetId": 137818969643923,
+   "content": "rbxassetid://137818969643923"
+  },
+  {
+   "key": "Rally",
+   "assetId": 103846085793265,
+   "content": "rbxassetid://103846085793265"
+  },
+  {
+   "key": "Recovery",
+   "assetId": 120779534623977,
+   "content": "rbxassetid://120779534623977"
+  },
+  {
+   "key": "RollSlot",
+   "assetId": 91702817085017,
+   "content": "rbxassetid://91702817085017"
+  }
+ ],
+ "batches": [
+  {
+   "batch": "2026-10-20 S6b+S6c",
+   "count": 12,
+   "approval": "Stevin waived review: \"dont ask me for permission no more just do it\" (Oct 20 ~22:55)",
+   "note": "A first 6-icon call timed out and may have created up to 6 unused duplicate images in the group; the ids above are the ones to use."
+  }
+ ]
 }

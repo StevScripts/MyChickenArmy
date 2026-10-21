@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the DiamondDice icon for the Roblox game My Chicken Army, one of three dice beside "N Rolls Left" counters over the roll machine. Image 1 is the approved Gold dice icon and is the edit target. Images 3 and 4 (boots, first-aid kit) show the in-game style: chunky voxel blocks, bright clean colors, simple face shading and a heavy near-black outline.
+
+Edit image 1 using it as the actual image input: keep exactly the same die shape, angle, pip layout, outline weight, size and framing, and rebuild its material in pale icy diamond: light cyan and white top face, deeper icy blue side faces, faceted crystal glints, dark navy square pips and two small white four-point sparkles on its upper corners, like the material of the attached Diamond Machine (image 2).
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/DiamondDice-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

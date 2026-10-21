@@ -53,5 +53,15 @@ Assets.upgrades={
 	bounty="rbxassetid://111140823257162",
 	captureSpeed="rbxassetid://112004220419400",
 }
+-- Tree v2 (S9c): S6c's icons, uploaded October 20 (same receipts file): the Super Luck
+-- (cyan) and Mega Luck (purple) clovers, the Rate dice, Max Level and the mutations.
+local treeV2={
+	superLuck="rbxassetid://106398620255480", megaLuck="rbxassetid://130839637754661",
+	diamondRate="rbxassetid://87592801828456", prismRate="rbxassetid://94923187253083",
+	feedMaxLevel="rbxassetid://108213051661738",
+	mutationGolden="rbxassetid://80129578684601", mutationRainbow="rbxassetid://95442316893461",
+	mutationShadow="rbxassetid://92726160751769", mutationCosmic="rbxassetid://133241731715561",
+}
+for key,image in treeV2 do Assets.upgrades[key]=image end
 return Assets
 --stevin

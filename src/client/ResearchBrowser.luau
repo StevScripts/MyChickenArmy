@@ -40,7 +40,6 @@ local COIN=Theme.Colors.coins
 -- October 20 overhaul: bought and maxed hexes use the bright Army green.
 local GREEN=Color3.fromRGB(163,255,0)
 local ALERT=Color3.fromRGB(235,45,45)
-local LINK=Color3.fromRGB(70,76,72)
 -- Each hex look: the art, its tint or vertical gradient, and the rim around it.
 -- Unbought hexes are dark like the reference, with a grey rim so they read on the
 -- black backdrop; "?" hexes are a lighter grey.
@@ -55,7 +54,8 @@ local LOOKS={
 -- Price color alone marks unaffordable.
 LOOKS.unaffordable=LOOKS.available
 local TOOLTIP_WIDTH=.218
-local NODE_SIZE=UDim2.fromScale(144/1440,164/930)
+-- October 20 tree v2 (S9c): flat-topped hexes like the reference, 164 wide x 144 tall.
+local NODE_SIZE=UDim2.fromScale(164/1440,144/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
 local MOTION={
 	OpenScale=0,OpenSeconds=.24,OpenStaggerSeconds=.045,OpenWaveSeconds=.80,
@@ -73,11 +73,16 @@ local function cancelSize(view)
 	if view.sizeConnection then view.sizeConnection:Disconnect();view.sizeConnection=nil end
 	cancelTween(view,"sizeTween")
 end
--- Hex grid in canvas pixels: a q step is 154 right, an r step 133.4 down (and 77 right),
--- each hex 144 x 164. CommanderGuide reads it to rest its arrow in an empty cell.
-Browser.Grid={step=154,row=133.4,width=144,height=164}
+-- Hex grid in canvas pixels, flat-topped (S9c): a q step is 133.4 right and 77 down, an
+-- r step 154 down; each hex is 164 x 144. Offset(side) is a neighbour cell's centre
+-- offset in the same units. CommanderGuide reads it to rest its arrow in an empty cell.
+Browser.Grid={step=133.4,row=154,width=164,height=144,flat=true}
+function Browser.Grid.Offset(side:{number}):Vector2
+	return Vector2.new(Browser.Grid.step*side[1],Browser.Grid.row*(side[2]+side[1]/2))
+end
 local function point(node)
-	return Vector2.new((690+Browser.Grid.step*(node.q+node.r/2))/1440,(450+Browser.Grid.row*node.r)/930)
+	local offset=Browser.Grid.Offset({node.q,node.r})
+	return Vector2.new((690+offset.X)/1440,(450+offset.Y)/930)
 end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
@@ -128,7 +133,7 @@ local function luckText(luck,withNext)
 end
 
 function Browser.new(app,parent)
-	local self=setmetatable({app=app,nodes={},links={},layers={},connections={},zoom=1,pan=Vector2.zero,alive=true,
+	local self=setmetatable({app=app,nodes={},layers={},connections={},zoom=1,pan=Vector2.zero,alive=true,
 		category="Main",saved={},coins=0,pending={},requests={}},Browser)
 	local root=Instance.new("TextButton")
 	root.Name,root.Text,root.Size="Research","",UDim2.fromScale(1,1)
@@ -151,7 +156,6 @@ function Browser.new(app,parent)
 		local layer=Theme.Container(map,category)
 		layer.Visible=category=="Main"
 		self.layers[category]=layer
-		self:BuildLinks(category,layer)
 		for _,id in View.Order[category] do self:BuildNode(id,layer) end
 	end
 	-- Soft dark bands so the title, balance and Exit never sit on top of nodes.
@@ -193,27 +197,6 @@ function Browser.new(app,parent)
 	return self
 end
 
--- Adjacent hexes already read as a path. Bridge only longer prerequisite gaps,
--- using the same map coordinates so native aspect/pan/zoom owns sizing.
-function Browser:BuildLinks(category,layer)
-	for _,id in View.Order[category] do
-		local node=View.Nodes[id]
-		local parentNode=node.prerequisite and View.Nodes[node.prerequisite]
-		if parentNode and parentNode.category==category then
-			local dq,dr=node.q-parentNode.q,node.r-parentNode.r
-			if math.max(math.abs(dq),math.abs(dr),math.abs(dq+dr))>1 then
-				local from,to=point(parentNode),point(node)
-				local delta=Vector2.new((to.X-from.X)*1440,(to.Y-from.Y)*930)
-				local line=Theme.Frame(layer,"Link_"..id,UDim2.fromScale(delta.Magnitude/1440,4/930),LINK)
-				line.AnchorPoint,line.Position=Vector2.new(.5,.5),UDim2.fromScale((from.X+to.X)/2,(from.Y+to.Y)/2)
-				line.Rotation=math.deg(math.atan2(delta.Y,delta.X))
-				line.BackgroundTransparency,line.Visible,line.ZIndex=.35,false,1
-				self.links[id]={line=line,parentId=node.prerequisite}
-			end
-		end
-	end
-end
-
 function Browser:BuildNode(id,layer)
 	local node=View.Nodes[id];local p=point(node)
 	local kind=node.kind
@@ -221,48 +204,54 @@ function Browser:BuildNode(id,layer)
 	button.Name,button.Image,button.BackgroundTransparency=id,"",1
 	button.Size,button.AnchorPoint,button.Position=NODE_SIZE,Vector2.new(.5,.5),UDim2.fromScale(p.X,p.Y)
 	button.AutoButtonColor,button.Visible,button.Parent=false,false,layer
-	Theme.Aspect(button,144/164)
+	Theme.Aspect(button,164/144)
 	local visual=Theme.Container(button,"Visual")
 	visual.AnchorPoint,visual.Position=Vector2.new(.5,.5),UDim2.fromScale(.5,.5)
-	local outline=Theme.Image(visual,"Outline",Assets.hexMask,UDim2.fromScale(1,1));outline.ZIndex=2
-	local fill=Theme.Image(visual,"Fill",Assets.hexFill,UDim2.fromScale(.92,.92),UDim2.fromScale(.04,.04));fill.ZIndex=3
+	-- The pointy-top hex art turned a quarter: sized 144 x 164 so it lies 164 x 144.
+	local function flat(name,asset,inset)
+		local image=Theme.Image(visual,name,asset,UDim2.fromScale(inset*144/164,inset*164/144),UDim2.fromScale(.5,.5))
+		image.AnchorPoint,image.Rotation=Vector2.new(.5,.5),90
+		return image
+	end
+	local outline=flat("Outline",Assets.hexMask,1);outline.ZIndex=2
+	local fill=flat("Fill",Assets.hexFill,.92);fill.ZIndex=3
+	-- Rotation 0 on the turned art reads top to bottom on screen.
 	local gradient=Instance.new("UIGradient")
-	gradient.Rotation,gradient.Enabled,gradient.Parent=90,false,fill
-	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.62,.5),UDim2.fromScale(.19,.1));icon.ZIndex=4
+	gradient.Rotation,gradient.Enabled,gradient.Parent=0,false,fill
+	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.56,.56),UDim2.fromScale(.22,.04));icon.ZIndex=4
 	-- The tier is live text over the icon's lower right, never part of the art.
-	local numeral=label(visual,"Tier",View.Numeral(node) or "",.5,.36,.34,.26)
+	local numeral=label(visual,"Tier",View.Numeral(node) or "",.55,.34,.3,.27)
 	numeral.TextXAlignment,numeral.ZIndex=Enum.TextXAlignment.Right,6
 	numeral.TextOutline.Thickness=.09
-	-- Hexes sit 1.07 widths apart, so a name no wider than 1.04 never meets its neighbour's.
-	local title=label(visual,"Title",node.name,-.02,.585,1.04,.13)
+	local title=label(visual,"Title",node.name,-.06,.585,1.12,.135)
 	title.ZIndex=6
 	-- "Open" under an Open hex's name; the category's name under Back.
-	local caption=label(visual,"Caption","",.1,.69,.8,.16,if kind=="open" then Color3.fromRGB(255,240,90) else WHITE)
+	local caption=label(visual,"Caption","",.1,.68,.8,.17,if kind=="open" then Color3.fromRGB(255,240,90) else WHITE)
 	caption.ZIndex,caption.Visible=6,kind=="open" or kind=="back"
-	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.17,.725),UDim2.fromScale(.66,.13),5
+	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.18,.735),UDim2.fromScale(.64,.14),5
 	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
 	local price=label(cost,"Price","",.29,0,.71,1,COIN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
 	-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
-	local hidden=label(visual,"Hidden","?",.22,.22,.56,.5,Color3.fromRGB(150,152,156));hidden.ZIndex=5
+	local hidden=label(visual,"Hidden","?",.25,.15,.5,.7,Color3.fromRGB(150,152,156));hidden.ZIndex=5
 	-- Red circle at the top right: "!" on a hex you can buy now, a count on Open hexes.
-	local badge=Theme.Frame(visual,"Alert",UDim2.fromScale(.3,.3),ALERT)
-	badge.AnchorPoint,badge.Position,badge.ZIndex,badge.Visible=Vector2.new(.5,.5),UDim2.fromScale(.82,.17),7,false
+	local badge=Theme.Frame(visual,"Alert",UDim2.fromScale(.26,.26),ALERT)
+	badge.AnchorPoint,badge.Position,badge.ZIndex,badge.Visible=Vector2.new(.5,.5),UDim2.fromScale(.8,.12),7,false
 	Theme.Aspect(badge,1);round(badge,.5)
 	-- Round joins: a Miter stroke draws a square box around a circle.
 	Theme.Stroke(badge,Color3.new(0,0,0),2).LineJoinMode=Enum.LineJoinMode.Round
 	local badgeText=label(badge,"Text","!",.1,.1,.8,.8);badgeText.ZIndex=8
 	if kind=="start" then
-		icon.Position,icon.Size=UDim2.fromScale(.17,.08),UDim2.fromScale(.66,.54)
-		title.Position,title.Size=UDim2.fromScale(.02,.62),UDim2.fromScale(.96,.16)
+		icon.Position,icon.Size=UDim2.fromScale(.2,.04),UDim2.fromScale(.6,.6)
+		title.Position,title.Size=UDim2.fromScale(.02,.64),UDim2.fromScale(.96,.18)
 	elseif kind=="open" or kind=="back" then
-		icon.Position,icon.Size=UDim2.fromScale(.2,.07),UDim2.fromScale(.6,.44)
+		icon.Position,icon.Size=UDim2.fromScale(.24,.03),UDim2.fromScale(.52,.5)
 		title.Position,title.Size=UDim2.fromScale(.02,.5),UDim2.fromScale(.96,.16)
 		local category=if kind=="back" then View.OpenNode(node.category) else nil
 		caption.Text=if kind=="open" then "Open" elseif category then category.name else ""
 		-- Without its arrow icon, Back's words fill the hex instead.
 		if icon.Image=="" then
-			title.Position,title.Size=UDim2.fromScale(.1,.24),UDim2.fromScale(.8,.22)
-			caption.Position,caption.Size=UDim2.fromScale(.1,.5),UDim2.fromScale(.8,.2)
+			title.Position,title.Size=UDim2.fromScale(.1,.2),UDim2.fromScale(.8,.24)
+			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.22)
 		end
 	end
 	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,numeral=numeral,
@@ -508,13 +497,6 @@ function Browser:Render()
 		end
 	end
 	self:RevealNodes(reveals)
-	for id,link in self.links do
-		local view=self.nodes[id]
-		link.line.Visible=view.button.Visible and self.nodes[link.parentId].button.Visible
-		local owned=view.look=="owned"
-		link.line.BackgroundColor3=if owned then GREEN else LINK
-		link.line.BackgroundTransparency=if owned then .45 else .35
-	end
 	Theme.Motion:Count(self.cash,self.coins or 0,function(v) return Theme.Money(v) end)
 	if self.selected then self:RenderTooltip() end
 end
@@ -618,8 +600,8 @@ function Browser:TooltipText(id)
 	local info=self:Info(id) or {}
 	local body=View.Description(node)
 	local before,after=View.Change(node)
-	local gold,goldOwned=View.GoldText(node,self.app.state and self.app.state.effects)
-	local change=if gold then (if look=="owned" then "Owned: "..goldOwned else gold)
+	local special,specialOwned=View.Lines(node,self.app.state and self.app.state.effects)
+	local change=if special then (if look=="owned" then "Owned: "..specialOwned else special)
 		elseif View.Plain(node) then (if look=="owned" then "Owned" else nil)
 		elseif look=="owned" then "Owned: "..after else before.." → "..after
 	if node.family=="Luck" then
@@ -708,8 +690,8 @@ function Browser:Purchase(id,price)
 	-- The success line, worded from the card's state before the purchase.
 	local node=View.Nodes[id]
 	local before,after=View.Change(node)
-	local gold=View.GoldText(node,self.app.state and self.app.state.effects)
-	local text=if gold then node.name..": "..gold elseif View.Plain(node) then node.name.." bought!" else node.name..": "..before.." → "..after
+	local special=View.Lines(node,self.app.state and self.app.state.effects)
+	local text=if special then node.name..": "..special elseif View.Plain(node) then node.name.." bought!" else node.name..": "..before.." → "..after
 	local requestId=self.app:Request("BuyUpgrade",{nodeId=id,expectedPrice=price})
 	if not requestId then return end
 	self.pending[id]=requestId
