@@ -60,9 +60,9 @@ function View.Plain(node:any):boolean
 	return family~=nil and (family.format=="unlock" or family.format=="level")
 end
 
--- Gold rolls (S12's Config.GoldRolls; absent before it merges): the machine and rate
--- hexes say what they change, "Every 10 → 8 rolls" or "x2 → x5 Luck". Returns the
--- card's change line and the owned line, or nil.
+-- Gold rolls (S12's Config.GoldRolls): the machine and rate hexes say what they
+-- change, "Every 10 → 8 rolls" or "Every 100 rolls: x5 Luck". Returns the card's
+-- change line and the owned line, or nil.
 function View.GoldText(node:any,effects:any):(string?,string?)
 	local gold=Config.GoldRolls
 	local family=node.family and Tree.Families[node.family]
@@ -73,6 +73,10 @@ function View.GoldText(node:any,effects:any):(string?,string?)
 		return "Every "..gold.Every[value].." → "..gold.Every[value+1].." rolls","Every "..gold.Every[value+1].." rolls"
 	elseif family.effect=="goldMachine" and gold.Luck[value] then
 		local boost="x"..gold.Luck[value].." Luck"
+		-- S12b: Diamond and Prism count their own pulls (KindEvery); Gold follows Gold Rate.
+		local kind=type(gold.Kinds)=="table" and gold.Kinds[value] or nil
+		local own=kind and type(gold.KindEvery)=="table" and gold.KindEvery[kind] or nil
+		if own then return "Every "..own.." rolls: "..boost,"Every "..own.." rolls" end
 		if gold.Luck[value-1] then return "x"..gold.Luck[value-1].." → "..boost,boost end
 		local rate=type(effects)=="table" and tonumber(effects.goldRate) or 0
 		local every=gold.Every[math.clamp(math.floor(rate),0,#gold.Every-1)+1]
