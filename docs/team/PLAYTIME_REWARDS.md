@@ -57,9 +57,13 @@ unlock times. Its Coins amounts (3,762 … 65,849) give the 1 : 1.5 : 2.5 : 5 : 
     paid. It never applies offline, to daily Coins, to playtime Coins or to Robux packs.
   - **Boost stacking:** claiming a boost of the same kind while one runs adds its
     minutes; the bonus never drops.
-  - **Free Rolls:** `hillRollCredits += 3`, then `HillService:Deliver` grants them now,
-    one chicken each with Hill-roll Luck. If storage is full, the credits wait and the
-    Hill step delivers them later.
+  - **Free Rolls** (Stevin, later October 20, S16b): three chickens drawn at once, like
+    a lever pull. They use the Luck tier, 2x Luck, Extra Luck and a running Playtime
+    Luck boost (`RollLuckBonus`). There is no Hill-roll bonus (Daily's Free Rolls keep
+    theirs) and no Gold-roll count. Each chicken is level 1 with no refund value.
+    All or nothing: without room for all three, the tile stays ready ("Sell a few, then
+    claim your 3 Free Rolls."). In the first build they used Hill-roll Luck and gave
+    Legendaries and Mythics every play-hour.
 - **Snapshot:** `state.playtime = {enabled, startedAt, tiles = {{index, kind, at, unlockAt,
   claimed, coins?}}}`. `coins` is what a Coins tile pays right now.
 - **Snapshot:** `state.boosts = {coins, luck, running = {[kind] = {bonus, endsAt}}}`.

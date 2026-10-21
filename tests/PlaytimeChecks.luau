@@ -4,6 +4,7 @@
 -- Run in Studio: require(game.ServerStorage.PetRollTests.PlaytimeChecks).Run()
 local Server=game:GetService("ServerStorage").PetRoll
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
+local Config=require(Shared.Config)
 local Rewards=require(Shared.PlaytimeRewards)
 local Rules=require(Shared.Rules)
 local Tree=require(Shared.UpgradeCatalog)
@@ -11,7 +12,6 @@ local Currency=require(Shared.CurrencyLimits)
 local Session=require(Server.PlayerSession)
 local Playtime=require(Server.PlaytimeService)
 local DailyService=require(Server.DailyService)
-local HillService=require(Server.HillService)
 local Checks={}
 
 local function near(a,b,why)
@@ -31,10 +31,6 @@ local function played(session,minutes)
 	local visit=Playtime.Begin(session)
 	visit.startedAt-=minutes*60
 	return visit
-end
-
-local function serverStub(session)
-	return {hill=HillService.new({}::any,nil,{[session.userId]=session},0)}
 end
 
 function Checks.Run()
@@ -85,17 +81,17 @@ function Checks.Run()
 	test("A locked tile waits; a ready Coins tile pays minutes of steady income once",function()
 		local s=fixture(-9602)
 		Playtime.Begin(s)
-		local ok,message=Playtime.Claim(s,1,nil)
+		local ok,message=Playtime.Claim(s,1)
 		assert(not ok and string.find(message,"^Keep playing!")~=nil,"Locked: "..tostring(message))
 		played(s,1.02)
 		local before=s.coins
 		local expected=math.floor(math.min(DailyService.Income(s)*60,Currency.MaxCoins-s.coins))
 		local receipt
-		ok,message,receipt=Playtime.Claim(s,1,nil)
+		ok,message,receipt=Playtime.Claim(s,1)
 		assert(ok,message)
 		assert(receipt.kind=="Coins" and receipt.coins==expected and s.coins==before+expected,
 			"Paid "..tostring(receipt.coins).." of "..expected)
-		ok,message=Playtime.Claim(s,1,nil)
+		ok,message=Playtime.Claim(s,1)
 		assert(not ok and message=="You already claimed this reward.",tostring(message))
 		assert(Playtime.Snapshot(s).tiles[1].claimed==true,"Snapshot claimed")
 		return "Paid "..expected.." Coins"
@@ -105,10 +101,10 @@ function Checks.Run()
 		local s=fixture(-9603)
 		played(s,90)
 		for _,index in {0,13,1.5,"1",0/0,-1} do
-			local ok,message=Playtime.Claim(s,index,nil)
+			local ok,message=Playtime.Claim(s,index)
 			assert(not ok and message=="Choose a Playtime reward.",tostring(index)..": "..tostring(message))
 		end
-		local ok,message=Playtime.Claim(s,nil,nil)
+		local ok,message=Playtime.Claim(s,nil)
 		assert(not ok and message=="Choose a Playtime reward.","nil: "..tostring(message))
 		return "Refused"
 	end)
@@ -121,12 +117,12 @@ function Checks.Run()
 		local research=s.researchEffects.rollingLuck
 		local base=Rules.LuckWindow(s.luck,s:PaidLuckMultiplier(),research).multiplier
 		played(s,41)
-		local ok,message=Playtime.Claim(s,4,nil)
+		local ok,message=Playtime.Claim(s,4)
 		assert(ok and message=="+100% Luck for 5 minutes!",tostring(message))
 		near(s:RollLuckBonus(),(1+research)*2-1,"Roll Luck bonus")
 		near(Playtime.Boosts(s).luck,base*2,"Clover")
 		local first=s.playtimeBoosts.Luck.endsAt
-		ok=Playtime.Claim(s,10,nil)
+		ok=Playtime.Claim(s,10)
 		assert(ok,"Second boost")
 		near(s.playtimeBoosts.Luck.endsAt,first+600,"Second boost did not add its 10 minutes")
 		assert(Playtime.Boost(s,"Luck",first+601)==0,"Boost outlived its time")
@@ -138,7 +134,7 @@ function Checks.Run()
 		local s=fixture(-9605)
 		played(s,26)
 		local live,steady=s:EarnedAmount(100,"eggs"),s:EarnedAmount(100,"eggs",true)
-		local ok,message=Playtime.Claim(s,8,nil)
+		local ok,message=Playtime.Claim(s,8)
 		assert(ok and message=="+50% Coins for 10 minutes!",tostring(message))
 		near(s:EarnedAmount(100,"eggs"),live*1.5,"Live eggs")
 		near(s:EarnedAmount(100,"battle"),s:EarnedAmount(100,"battle",true)*1.5,"Battle")
@@ -162,20 +158,47 @@ function Checks.Run()
 		return ("Coins x%.2f"):format(expected*1.2)
 	end)
 
-	test("Free Rolls arrive as chickens through the Hill-roll path",function()
+	test("Free Rolls draw at lever Luck (no Hill bonus) and wait for storage room",function()
 		local s=fixture(-9607)
+		s.gemUpgrades={ExtraLuck=1}
+		s:RefreshEffects()
 		played(s,61)
-		local before=s:Count()
-		local ok,message,receipt=Playtime.Claim(s,12,serverStub(s))
+		assert(Playtime.Claim(s,4),"Luck boost")
+		-- The lever's Luck input, Luck boost included; a Hill roll would add RollLuckBonus.
+		local paid,bonus=s:PaidLuckMultiplier(),s:RollLuckBonus()
+		local function draws(seed,extra)
+			local rng,list=Random.new(seed),{}
+			for index=1,3 do list[index]=Rules.Draw(s.luck,rng:NextNumber(),s.promotion,paid,bonus+extra) end
+			return table.concat(list,",")
+		end
+		-- A seed whose lever and Hill draws differ, so the check can tell them apart.
+		local seed
+		for candidate=1,500 do
+			if draws(candidate,0)~=draws(candidate,Config.Hill.RollLuckBonus) then seed=candidate;break end
+		end
+		assert(seed,"No seed tells lever Luck from Hill Luck")
+		s.debugRandom=Random.new(seed)
+		local owned,credits={},s.hillRollCredits or 0
+		for id in s.pets do owned[id]=true end
+		local ok,message,receipt=Playtime.Claim(s,12)
 		assert(ok,message)
-		assert(#receipt.species==3 and s:Count()==before+3 and (s.hillRollCredits or 0)==0,
-			"Delivered "..#receipt.species)
+		assert(table.concat(receipt.species,",")==draws(seed,0),"Draws "..table.concat(receipt.species,",").." ~= lever "..draws(seed,0))
+		local added=0
+		for id,pet in s.pets do
+			if not owned[id] then added+=1;assert(pet.level==1 and pet.investment==0,"New chicken level or refund") end
+		end
+		assert(added==3 and (s.hillRollCredits or 0)==credits,"Hill credits used or chickens missing")
 		assert(string.find(message,"^3 Free Rolls: ")~=nil,message)
+		-- Storage full: refused, the tile stays ready, then pays once there is room.
 		local t=fixture(-9608)
 		played(t,61)
-		ok,message=Playtime.Claim(t,12,nil)
-		assert(ok and t.hillRollCredits==3,"Waiting credits "..tostring(t.hillRollCredits))
-		return message
+		t.CollectionLimit=function() return t:Count()+2 end
+		local refused,why=Playtime.Claim(t,12)
+		assert(not refused and string.find(why,"most chickens you can keep")~=nil,tostring(why))
+		assert(Playtime.Snapshot(t).tiles[12].claimed==false and (t.hillRollCredits or 0)==0,"Tile spent while full")
+		t.CollectionLimit=function() return t:Count()+3 end
+		assert(Playtime.Claim(t,12),"Claim after making room")
+		return message.." (seed "..seed..")"
 	end)
 
 	test("The snapshot lists every tile with its server-time unlock and current Coins",function()
@@ -198,7 +221,7 @@ function Checks.Run()
 	test("A reset starts a new visit with no boosts",function()
 		local s=fixture(-9610)
 		played(s,9)
-		assert(Playtime.Claim(s,4,nil),"Claim")
+		assert(Playtime.Claim(s,4),"Claim")
 		s:Reset()
 		s.loaded=true
 		assert(s.playtime==nil and s.playtimeBoosts==nil and Playtime.Boost(s,"Luck")==0,"Visit kept")

@@ -9,8 +9,8 @@
 -- Coins, Rebirth and Coin Boost included; Gold Rush and Friend Boost never), credited
 -- as source "playtime". A Luck boost multiplies roll Luck the way a Gold roll does
 -- (PlayerSession:RollLuckBonus); a Coins boost is a live factor on earned Coins next
--- to Gold Rush (PlayerSession:EarnedAmount), never offline. Free Rolls are Hill-roll
--- credits that HillService delivers as chickens.
+-- to Gold Rush (PlayerSession:EarnedAmount), never offline. Free Rolls draw their
+-- chickens at once, at lever Luck (Stevin, S16b).
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local PlaytimeRewards = require(Shared.PlaytimeRewards)
 local UpgradeCatalog = require(Shared.UpgradeCatalog)
@@ -19,6 +19,7 @@ local Currency = require(Shared.CurrencyLimits)
 local Catalog = require(Shared.PetCatalog)
 local DailyService = require(script.Parent.DailyService)
 local PlaytimeService = {}
+local random = Random.new()
 
 type Visit = {startedAt: number?, claimed: {[number]: boolean}}
 type Boost = {bonus: number, endsAt: number}
@@ -81,9 +82,26 @@ local function tileAt(index: any): PlaytimeRewards.Tile?
 	return PlaytimeRewards.Tiles[index]
 end
 
+-- Stevin, October 20 (S16b): Free Rolls draw like a lever pull, with the Luck tier,
+-- 2x Luck, Extra Luck and a running Playtime Luck boost (RollLuckBonus). There is no
+-- Hill-roll bonus (Daily's rolls keep theirs) and no Gold-roll count.
+function PlaytimeService.FreeRolls(session, rolls: number): {string}
+	local rng = session.debugRandom or random
+	local granted = {}
+	for _ = 1, rolls do
+		local species = Rules.Draw(session.luck, rng:NextNumber(), session.promotion, session:PaidLuckMultiplier(),
+			session:RollLuckBonus())
+		local pet = session:AddPet(species, 1)
+		pet.investment = 0 -- A reward never fabricates a refundable cash purchase.
+		table.insert(granted, species)
+	end
+	if #granted > 0 then session:RefreshArmy() end
+	return granted
+end
+
 -- Pays one ready tile. Returns ok, the player's message and a receipt for the client
--- ({index, kind, coins?, boost?, species?}). `server` supplies HillService for rolls.
-function PlaytimeService.Claim(session, index: any, server: any?): (boolean, string, any)
+-- ({index, kind, coins?, boost?, species?}).
+function PlaytimeService.Claim(session, index: any): (boolean, string, any)
 	if not PlaytimeRewards.Enabled then return false, "Playtime Rewards are resting right now.", nil end
 	local tile = tileAt(index)
 	if not tile then return false, "Choose a Playtime reward.", nil end
@@ -108,20 +126,20 @@ function PlaytimeService.Claim(session, index: any, server: any?): (boolean, str
 		message = PlaytimeRewards.BoostMessage(tile)
 	else
 		local rolls = tile.rolls or 0
-		session.hillRollCredits = (session.hillRollCredits or 0) + rolls
-		local hill = if server then server.hill else nil
-		local granted: {string} = if hill then hill:Deliver(session) else {}
-		receipt.species = granted
-		if #granted == 0 then
-			message = PlaytimeRewards.RollsText(rolls) .. "! They arrive when you have room for more chickens."
-		else
-			local names = {}
-			for _, species in granted do
-				local definition = Catalog[species]
-				table.insert(names, if definition then definition.name else species)
-			end
-			message = PlaytimeRewards.RollsText(rolls) .. ": " .. table.concat(names, ", ") .. "!"
+		-- All or nothing: without room for every chicken the tile stays ready.
+		local count: number, limit: number = session:Count(), session:CollectionLimit()
+		if count + rolls > limit then
+			return false, "You have the most chickens you can keep (" .. limit .. "). Sell a few, then claim your "
+				.. PlaytimeRewards.RollsText(rolls) .. ".", nil
 		end
+		local granted = PlaytimeService.FreeRolls(session, rolls)
+		receipt.species = granted
+		local names = {}
+		for _, species in granted do
+			local definition = Catalog[species]
+			table.insert(names, if definition then definition.name else species)
+		end
+		message = PlaytimeRewards.RollsText(rolls) .. ": " .. table.concat(names, ", ") .. "!"
 	end
 	playtime.claimed[index] = true
 	session:Touch()
