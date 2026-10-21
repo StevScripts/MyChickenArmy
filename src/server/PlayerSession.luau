@@ -1264,10 +1264,9 @@ function PlayerSession:LoadData(data)
 		then math.clamp(math.floor(data.mutationKeep),0,#MutationCatalog.Order) else nil
 	local mutationFamily=UpgradeCatalog.Families.Mutation
 	if mutationFamily then
-		if mutationKeep==nil then
-			mutationKeep=if rebirths>=10 then 4 elseif rebirths>=5 then 3 elseif rebirths>=1 then 2 else 1
-		end
-		if mutationKeep>UpgradeCatalog.Tier(tree,"Mutation") then tree.Mutation=math.min(mutationKeep,#mutationFamily.tiers) end
+		local keep: number=mutationKeep or (if rebirths>=10 then 4 elseif rebirths>=5 then 3 elseif rebirths>=1 then 2 else 1)
+		mutationKeep=keep
+		if keep>UpgradeCatalog.Tier(tree,"Mutation") then tree.Mutation=math.min(keep,#mutationFamily.tiers) end
 	end
 	local passGemGifts={}
 	if type(data.passGemGifts)=="table" then
