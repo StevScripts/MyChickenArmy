@@ -5,7 +5,7 @@
 -- PlayerSession drops any saved mutation IsValid rejects and keeps the chicken.
 local MutationCatalog = {}
 
-export type Def = {name: string, multiplier: number, chance: number, unlockRank: number, color: Color3}
+export type Def = {name: string, multiplier: number, chance: number, color: Color3}
 
 -- Common to rare. Roll checks this list from the end (rarest first).
 MutationCatalog.Order = {"Golden", "Rainbow", "Shadow", "Cosmic"} :: {string}
@@ -13,12 +13,15 @@ MutationCatalog.Order = {"Golden", "Rainbow", "Shadow", "Cosmic"} :: {string}
 -- `color` is presentation only (badges and VFX); the other fields are the economy.
 -- October 14 owner retune: Golden is "pretty rare, but not the rarest" (was 1/40);
 -- the rarer mutations move down with it so the ladder keeps its order.
--- October 20 overhaul (plan v2): Rainbow unlocks at Rebirth 1, Shadow at 5, Cosmic at 10.
+-- October 20 tree v2 (Stevin, S9c): mutations are bought in the Upgrades tree in this
+-- order (UpgradeCatalog's Mutation family) and reset on Rebirth like the tree. This
+-- replaces plan v2's Rebirth-rank unlocks; saves that had one by rank keep it
+-- (PlayerSession's mutationKeep floors the tree tier).
 MutationCatalog.Defs = {
-	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/250,   unlockRank = 0, color = Color3.fromRGB(255, 206, 54)},
-	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/800,   unlockRank = 1, color = Color3.fromRGB(255, 118, 214)},
-	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/3000,  unlockRank = 5, color = Color3.fromRGB(178, 104, 255)},
-	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/12000, unlockRank = 10, color = Color3.fromRGB(96, 196, 255)},
+	Golden  = {name = "Golden",  multiplier = 1.5, chance = 1/250,   color = Color3.fromRGB(255, 206, 54)},
+	Rainbow = {name = "Rainbow", multiplier = 2,   chance = 1/800,   color = Color3.fromRGB(255, 118, 214)},
+	Shadow  = {name = "Shadow",  multiplier = 3,   chance = 1/3000,  color = Color3.fromRGB(178, 104, 255)},
+	Cosmic  = {name = "Cosmic",  multiplier = 5,   chance = 1/12000, color = Color3.fromRGB(96, 196, 255)},
 } :: {[string]: Def}
 
 function MutationCatalog.IsValid(id: any): boolean
@@ -40,19 +43,19 @@ function MutationCatalog.Rank(id: any): number
 	return table.find(MutationCatalog.Order, id) or 0
 end
 
--- One offer's mutation. Rarest unlocked first, one rng:NextNumber() per unlocked
+-- One offer's mutation. `unlocked` is how many of Order can roll (the tree's
+-- `mutations` effect, 0-4). Rarest unlocked first, one rng:NextNumber() per unlocked
 -- check, so a fixed seed always gives the same result. Locked ones draw nothing.
 -- chanceMultiplier (optional, October 20): 1 + the Mutation Luck Gem Upgrade
 -- (researchEffects.mutationLuck). It scales every chance; the draws stay the same.
-function MutationCatalog.Roll(rng, rebirths: number, chanceMultiplier: number?): string?
-	local rank = if type(rebirths) == "number" and rebirths == rebirths then rebirths else 0
+function MutationCatalog.Roll(rng, unlocked: number, chanceMultiplier: number?): string?
+	local count = if type(unlocked) == "number" and unlocked == unlocked then math.floor(unlocked) else 0
 	local scale = if type(chanceMultiplier) == "number" and chanceMultiplier == chanceMultiplier
 		then math.clamp(chanceMultiplier, 1, 10) else 1
 	local order = MutationCatalog.Order
-	for index = #order, 1, -1 do
+	for index = math.min(count, #order), 1, -1 do
 		local id = order[index]
-		local def = MutationCatalog.Defs[id]
-		if rank >= def.unlockRank and rng:NextNumber() < def.chance * scale then return id end
+		if rng:NextNumber() < MutationCatalog.Defs[id].chance * scale then return id end
 	end
 	return nil
 end

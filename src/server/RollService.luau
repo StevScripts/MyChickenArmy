@@ -61,7 +61,8 @@ function RollService:Roll(session, now: number)
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
 			chance=if starter or (slot==1 and guaranteed) then 1 elseif event then Config.Event.OfferChance else odds[species],
 			event=event or nil,rebirthChicken=rebirthChicken or nil,special=special}
-		if not starter then offers[slot].mutation=MutationCatalog.Roll(rng,session.rebirths or 0,mutationChance) end
+		-- October 20 tree v2 (S9c): mutations open in the Upgrades tree; mutationKeep keeps rank unlocks.
+		if not starter then offers[slot].mutation=MutationCatalog.Roll(rng,math.max(session.researchEffects.mutations or 0,session.mutationKeep or 0),mutationChance) end
 	end
 	session.offers,session.offer=offers,offers[1]
 	session.debugNext=nil
