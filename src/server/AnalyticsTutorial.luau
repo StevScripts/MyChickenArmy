@@ -155,21 +155,18 @@ function Tutorial:State(st, session, state)
 	local vacuumed = Guide.VacuumEggCount(t)
 	local wins = session.firstWins or {}
 	local daily = session.daily
+	local taken = facts.Recruit == true
 	local checks = {
 		Egg1 = eggs >= 1, Egg2 = eggs >= 2, Egg3 = eggs >= Guide.EggGoal,
 		Sold = t.soldEggs == true,
-		FlockBought = facts.Flock == true and facts.Collect == true,
 		LeverPulled = t.rolled == true,
-		ChickenTaken = facts.Recruit == true,
-		CoreDone = facts.Core == true,
-		DailyDay1 = facts.Core == true and type(daily) == "table" and (daily.lastDay or 0) > 0,
-		VacuumClaimed = facts.Core == true and facts.Vacuum == true,
-		Vacuum10 = facts.Core == true and vacuumed >= math.min(10, Guide.VacuumGoal),
-		Vacuum20 = facts.Core == true and vacuumed >= Guide.VacuumGoal,
-		VacuumSold = facts.Core == true and facts.VacuumSell == true,
-		ArmySizeBought = facts.Core == true and facts.Expand == true,
-		ArmyPicked = facts.Core == true and facts.Expand == true and facts.Select == true,
-		ArmySent = t.guideDeployed == true,
+		ChickenTaken = taken,
+		VacuumClaimed = taken and facts.Vacuum == true,
+		Vacuum10 = taken and vacuumed >= math.min(10, Guide.VacuumGoal),
+		Vacuum20 = taken and vacuumed >= Guide.VacuumGoal,
+		VacuumSold = taken and t.vacuumSold == true,
+		TutorialComplete = t.guideCompleted == true,
+		DailyDay1 = t.guideCompleted == true and type(daily) == "table" and (daily.lastDay or 0) > 0,
 		CluckCampWon = facts.Win == true,
 		FortRoostWon = wins[2] == true,
 		IronbeakWon = wins[3] == true,
@@ -197,16 +194,14 @@ function Tutorial:Signal(st, signal: string)
 		return
 	end
 	if not facts then return end
+	-- Each menu or tool action counts for the lesson that asks for it.
+	local vacuumLesson = facts.Recruit and not facts.Vacuum
 	if signal == "TreeOpen" then
-		if not facts.Flock then self:Reach(st, Index.UpgradesOpen)
-		elseif facts.Core and not facts.Vacuum then self:Reach(st, Index.VacUpgradesOpen)
-		elseif facts.Core and facts.VacuumSell and not facts.Expand then self:Reach(st, Index.ArmyUpgradesOpen) end
+		if vacuumLesson then self:Reach(st, Index.UpgradesOpen) end
 	elseif signal == "ToolsOpen" then
-		if facts.Core and not facts.Vacuum then self:Reach(st, Index.ToolsOpen) end
+		if vacuumLesson then self:Reach(st, Index.ToolsOpen) end
 	elseif signal == "VacuumEquip" then
-		if facts.Core and facts.Vacuum and not facts.VacuumUse then self:Reach(st, Index.VacuumEquipped) end
-	elseif signal == "ArmyOpen" then
-		if facts.Core and facts.Expand and not facts.Select then self:Reach(st, Index.MyArmyOpen) end
+		if facts.Recruit and facts.Vacuum and not facts.VacuumUse then self:Reach(st, Index.VacuumEquipped) end
 	end
 end
 
@@ -216,7 +211,7 @@ function Tutorial:Leave(st, _session)
 	if not tf or not tf.ready or not tf.tracked then return end
 	local furthest = 0
 	for index in Steps do if self:Reached(st, index) then furthest = index end end
-	if furthest >= Index.CluckCampWon then return end
+	if furthest >= Index.TutorialComplete then return end
 	local ledger = self.host.ledger
 	ledger:Count("tf.exit." .. code(furthest))
 	local record = self.host.tutorial and self.host.tutorial.records and self.host.tutorial.records[st.userId]

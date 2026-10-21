@@ -14,13 +14,9 @@ local CARD_POSITION = UDim2.fromScale(.5,.005)
 local ENTER_SECONDS = .18
 local TYPE_SECONDS_PER_GRAPHEME = .02
 local TYPE_MAX_SECONDS = .65
--- October 21 (Stevin, like the Drop a Fruit tutorial): the core's payoff line holds
--- this long, with confetti, before the tips start and Daily Rewards may open.
+-- October 21 (Stevin, like the Drop a Fruit tutorial): the tutorial's payoff line holds
+-- this long, with confetti, before Daily Rewards may open.
 local CORE_SECONDS = 4
-local CORE_TEXT = "Your Flock is laying! Keep collecting eggs!"
--- Like the reference's "TIP • COMPLETE! Vacuum learned!".
-local VACUUM_SECONDS = 3
-local VACUUM_TEXT = "Egg Vacuum learned! Fill it up, then sell on the pad."
 local TAP_WORD = {Touch="TAP!", Gamepad="R2!", Keyboard="CLICK!"}
 local Commander = {}
 Commander.__index = Commander
@@ -258,7 +254,7 @@ function Commander:Celebrate()
 	end)
 end
 
--- The core's payoff: CORE_TEXT on the card for CORE_SECONDS and confetti across the
+-- The tutorial's payoff: Guide.CompleteText on the card for CORE_SECONDS and confetti across the
 -- screen. Daily Rewards waits for it (DailyRewardController:Blocked). Presentation only.
 function Commander:Celebrating(): boolean
 	local payoff=self.payoff
@@ -272,7 +268,7 @@ function Commander:Payoff(text:string,tag:string,seconds:number)
 end
 
 function Commander:CelebrateCore()
-	self:Payoff(CORE_TEXT,"TUTORIAL COMPLETE!",CORE_SECONDS)
+	self:Payoff(Guide.CompleteText,"TUTORIAL COMPLETE!",CORE_SECONDS)
 	self.app.audio:Play("SkillTreeResearchCompleted",nil,{noFallback=true,cooldown=.3})
 	if self.app.reducedMotion then return end
 	local holder=Theme.Container(self.root,"CoreConfetti")
@@ -450,10 +446,10 @@ function Commander:Update()
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
 	if self.facts and not self.completedBeforeVisit then
-		if facts.Core and not self.facts.Core then self:CelebrateCore()
-		elseif facts.VacuumSell and not self.facts.VacuumSell and facts.Core then self:Payoff(VACUUM_TEXT,"TIP • COMPLETE!",VACUUM_SECONDS) end
+		if facts.Core and not self.facts.Core then self:CelebrateCore() end
 	end
-	if self:Celebrating() then current={id="Payoff:"..self.payoff.tag,text=self.payoff.text,tag=self.payoff.tag} end
+	-- The payoff shares the Complete card's id, so the line types once and its 8 s count on.
+	if self:Celebrating() then current={id="Complete",text=self.payoff.text,tag=self.payoff.tag} end
 	self:SetArmyHidden(current~=nil and not current.goal and not facts.Core
 		and (state.tutorial or {}).starterArmy==true and not self.completedBeforeVisit)
 	if self.facts and current and not current.goal then
@@ -513,7 +509,7 @@ function Commander:Update()
 	self:SetQuiet(quiet)
 	self:SetInstruction(if quiet then "Next: "..current.text else text,visible and self.pendingType and not quiet)
 	self.tag.Text=if current.tag and current.index then current.tag.." • "..current.index.."/"..current.total
-		elseif current.tag then current.tag elseif id=="Complete" then "GUIDE COMPLETE!" else ""
+		elseif current.tag then current.tag elseif id=="Complete" then "TUTORIAL COMPLETE!" else ""
 	if visible then self.pendingType=false end
 	self:Present(visible,changed)
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end

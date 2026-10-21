@@ -72,10 +72,11 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Saves:** tier-meaning changes go through `TreeMigrations` (`upgradeTreeVersion`).
   Never bump `DataRevision`: older live servers reject newer revisions. Every publish
   uses "Migrate To Latest Update" (restart servers).
-- **Tutorial (Oct 21, Stevin: copy Drop a Fruit's tutorial one-to-one, keep it short):**
-  "TUTORIAL • n/5" core (3 eggs, sell, Flock Size I, FREE roll and chicken), then
-  "TIP • n/7" (FREE Egg Vacuum, vacuum 20 eggs then sell them on the pad, Army Size I,
-  Equip Best, Cluck Camp). Menu lessons
+- **Tutorial (Oct 21, Stevin: Drop a Fruit style, "as SHORT as possible"):** seven
+  lessons "TUTORIAL • n/7", only the essentials: click 3 eggs, sell, pull the lever,
+  take the chicken (0 Coins), claim the Egg Vacuum (0 Coins), vacuum 20 eggs, sell them.
+  The guide completes there; Flock Size I, Army Size I and Cluck Camp are not lessons
+  (quiet Next goals lead to fights). No "FREE" wording anywhere. Menu lessons
   darken the screen around their control with a gold ring, and the egg lesson lights
   one egg with a tapping hand. This overrides the Oct 6 no-dimming/no-highlight rule
   for the guide; don't remove them. Contract: `docs/team/COMMANDER_TUTORIAL.md`.

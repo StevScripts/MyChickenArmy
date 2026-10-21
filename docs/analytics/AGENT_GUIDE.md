@@ -13,7 +13,7 @@ truth for every name: `src/server/AnalyticsSchema.luau`.
    "Enable Studio Access to API Services" on. Use the studio-flow MCP:
    `get_connected_instances`, then `execute_luau` with the snippet in section 3.
 2. Pull `Report.Summary({days = 7, env = "live"})`. Read `flags` first, then
-   `onboardingFunnel`, `tutorialFunnel` + `tutorialExitLessons` (schema 11: the 31-step tutorial funnel, ledger `tf.*`, on Roblox's Onboarding dashboard; every step explained in `docs/analytics/TUTORIAL_FUNNEL.md`; schema 9/10 `tut.*` and the old 20 onboarding steps `onb.*` are history), `onboardingExits`, `cohorts`, `guideDwell`, `rolls`, `health`.
+   `onboardingFunnel`, `tutorialFunnel` + `tutorialExitLessons` (schema 11: the 24-step tutorial funnel, ledger `tf.*`, on Roblox's Onboarding dashboard; every step explained in `docs/analytics/TUTORIAL_FUNNEL.md`; schema 9/10 `tut.*` and the old 20 onboarding steps `onb.*` are history), `onboardingExits`, `cohorts`, `guideDwell`, `rolls`, `health`.
    Feature drop-offs: `featureFunnels`; menus/buttons/prompts: `ui`; money:
    `robuxActual` and `devices`; who plays: `segments`; stalls: `stateSnapshots`,
    `exits`; save/battle health: `serverEvents` (section 11).

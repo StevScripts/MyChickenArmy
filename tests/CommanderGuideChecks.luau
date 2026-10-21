@@ -54,11 +54,11 @@ function Checks.Run()
 		table.insert(results,{name=name,passed=ok,detail=tostring(detail)})
 	end
 
-	test("The opening teaches clicking 5 eggs in the player's own input",function()
+	test("The opening teaches clicking 3 eggs in the player's own input",function()
 		local state=opening()
 		local first=Guide.Resolve(state)
 		expect(first,"Collect","Click your eggs to collect them! (0/3)")
-		assert(first.tag=="TUTORIAL" and first.index==1 and first.total==5,"Tag "..tostring(first.tag))
+		assert(first.tag=="TUTORIAL" and first.index==1 and first.total==7,"Tag "..tostring(first.tag))
 		expect(Guide.Resolve(state,"Touch"),"Collect","Tap your eggs to collect them! (0/3)")
 		expect(Guide.Resolve(state,"Gamepad"),"Collect","Press R2 to collect your eggs! (0/3)")
 		assert(Guide.EggGoal==3 and Guide.CollectedEggCount({collectedEggCount=37})==3,"Saved counts clamp to 3")
@@ -67,34 +67,30 @@ function Checks.Run()
 		state.eggs.carriedValue=80
 		local sell=Guide.Resolve(state)
 		expect(sell,"Sell","Sell your eggs on the green pad!")
-		assert(sell.index==2,"Sell is 2/5")
+		assert(sell.index==2,"Sell is 2/7")
 		return "Click, Tap and R2 wording; 37 clamps to 3"
 	end)
 
-	test("Core: Flock Size I, a FREE roll; tips: FREE vacuum, Army Size I, Cluck Camp",function()
+	test("Seven lessons: eggs, sell, roll, chicken, vacuum claim, vacuum 20, sell; then complete",function()
 		local state=opening()
 		state.tutorial.collectedEggCount,state.tutorial.soldEggs=3,true
-		local flock=Guide.Resolve(state)
-		expect(flock,"Flock","Buy Flock Size I!")
-		assert(flock.outside=="Spend your Coins in Upgrades!","Open-menu words first")
-		assert(flock.target=="Upgrades" and flock.node=="Flock1" and flock.index==3,"Flock hex "..tostring(flock.node))
-		state.flock.size=4
-		expect(Guide.Resolve(state),"Roll","Pull the lever for a chicken!")
+		local roll=Guide.Resolve(state)
+		expect(roll,"Roll","Pull the lever for a chicken!")
+		assert(roll.index==3 and roll.total==7,"Roll is 3/7")
 		state.tutorial.rolled,state.offer=true,{price=0}
 		local recruit=Guide.Resolve(state)
 		expect(recruit,"Recruit","Grab your chicken!")
-		assert(recruit.index==5 and recruit.total==5,"Recruit is 5/5")
+		assert(recruit.index==4,"Recruit is 4/7")
 		state.tutorial.bought,state.offer=true,nil
 		state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
-		assert(Guide.Facts(state).Core,"Core done")
 		local vacuum=Guide.Resolve(state)
 		expect(vacuum,"Vacuum","Claim your Egg Vacuum!")
-		assert(vacuum.tag=="TIP" and vacuum.index==1 and vacuum.total==7 and vacuum.node=="EggVacuum","Vacuum tip")
+		assert(vacuum.index==5 and vacuum.node=="EggVacuum" and vacuum.outside=="Open Upgrades for an Egg Vacuum!"
+			and vacuum.wrongTab=="Open the Tools category!","Vacuum lesson")
 		state.tools.eggVacuum=true
 		local use=Guide.Resolve(state)
 		expect(use,"VacuumUse","Walk near eggs to vacuum them up! (0/20)")
-		assert(use.target=="VacuumTool","Hotbar slot")
-		assert(use.outside=="Equip your Egg Vacuum!" and vacuum.wrongTab=="Open the Tools category!","Equip and Tools words")
+		assert(use.target=="VacuumTool" and use.outside=="Equip your Egg Vacuum!" and use.index==6,"Equip words")
 		state.tools.vacuum={count=40,capacity=40}
 		local full=Guide.Resolve(state)
 		expect(full,"VacuumUse","Vacuum full! Sell your eggs on the green pad!")
@@ -103,31 +99,14 @@ function Checks.Run()
 		state.tutorial.vacuumEggCount=20
 		local sell=Guide.Resolve(state)
 		expect(sell,"VacuumSell","Sell your vacuumed eggs on the green pad!")
-		assert(sell.target=="EggDeposit" and sell.index==3 and sell.total==7,"Sell is TIP 3/7")
+		assert(sell.target=="EggDeposit" and sell.index==7 and sell.total==7,"Sell is 7/7")
+		assert(not Guide.Facts(state).Core,"Not done before the sale")
 		state.tutorial.vacuumSold=true
-		local expand=Guide.Resolve(state)
-		expect(expand,"Expand","Buy Army Size I!")
-		assert(expand.node=="ArmySize1" and expand.index==4,"Army Size hex "..tostring(expand.node))
-		state.capacity=4
-		expect(Guide.Resolve(state),"Select","Press Equip Best!")
-		state.selectedCount=4
-		local deploy=Guide.Resolve(state)
-		expect(deploy,"Deploy","Send your Army to Cluck Camp!")
-		assert(deploy.index==6,"Deploy is TIP 6/7")
-		local order=table.concat(Guide.Tips,",")
-		assert(order=="Vacuum,VacuumUse,VacuumSell,Expand,Select,Deploy,Win",order)
-		return "Flock before the roll, tips after the core"
-	end)
-
-	test("Flock Size I never spends the Coins held for Army Size I",function()
-		local state=opening()
-		state.tutorial.collectedEggCount,state.tutorial.soldEggs=3,true
-		state.coins,state.starterCashReserve=1400,1200
-		state.upgradeTree.nodes.Flock1={status="Unaffordable",price=300}
-		expect(Guide.Resolve(state),"RecoverCollect","Collect eggs worth 100 more Coins")
-		state.eggs.carriedValue=150
-		expect(Guide.Resolve(state),"RecoverSell","Sell your eggs on the green pad!")
-		return "Short by 100 Coins"
+		assert(Guide.Facts(state).Core,"Done after the sale")
+		expect(Guide.Resolve(state),"Complete",Guide.CompleteText)
+		local order=table.concat(Guide.Core,",")
+		assert(order=="Collect,Sell,Roll,Recruit,Vacuum,VacuumUse,VacuumSell",order)
+		return "No Flock or Army lessons"
 	end)
 
 	test("An army walking home shows Return, not the fight",function()
@@ -347,7 +326,7 @@ function Checks.Run()
 		return empty.." from an empty cell, "..boxed.." boxed in (? fallback), "..hidden.." hidden-hex cases"
 	end)
 
-	test("A real starter session walks Flock Size I and Army Size I with its reserve",function()
+	test("A real starter session walks the seven lessons and the guide completes",function()
 		local s=Session.new(-9403,"Starter route",1)
 		-- DataService marks a loaded profile; the guide stays hidden while it is "loading".
 		s.loaded,s.saveStatus=true,"saved"
@@ -361,32 +340,27 @@ function Checks.Run()
 		end
 		expect((route()),"Collect","Click your eggs to collect them! (0/3)")
 		s.tutorial.collectedEggCount,s.tutorial.soldEggs=3,true
-		local flock,state=route()
-		expect(flock,"Flock","Buy Flock Size I!")
-		assert(state.starterCashReserve==1200 and state.upgradeTree.nodes.Flock1.status=="Available","Reserve and quote")
-		local ok,message=service:BuyNode(s,"Flock1",300)
-		assert(ok,message)
 		expect((route()),"Roll","Pull the lever for a chicken!")
 		s.tutorial.rolled=true
 		s:AddPet("Duck",1)
 		s.tutorial.bought=true
+		local _,state=route()
+		assert(state.upgradeTree.nodes.EggVacuum.price==0,"The vacuum costs 0 during the guide")
 		expect((route()),"Vacuum","Claim your Egg Vacuum!")
-		ok,message=service:BuyNode(s,"EggVacuum",0)
+		local ok,message=service:BuyNode(s,"EggVacuum",0)
 		assert(ok,message)
 		s.tutorial.vacuumEggCount=20
 		expect((route()),"VacuumSell","Sell your vacuumed eggs on the green pad!")
 		s.tutorial.vacuumSold=true
-		expect((route()),"Expand","Buy Army Size I!")
-		ok,message=s:CanSpendCash(1000)
-		assert(not ok and message=="Keep 1,200 Coins for Army Size I in Upgrades.",message)
-		ok,message=service:BuyNode(s,"ArmySize1",1200)
-		assert(ok,message)
-		expect((route()),"Deploy","Send your Army to Cluck Camp!")
-		assert(s.coins==900 and s:FlockSize()==4 and s:Capacity()==4,"Coins "..s.coins)
-		local fresh=Session.new(-9404,"Before recruit",1)
-		ok,message=fresh:CanSpendCash(1300)
-		assert(not ok and message=="Keep 1,200 Coins for Army Size I in Upgrades.",message)
-		return "900 Coins left after Flock and Army Size"
+		local done,final=route()
+		expect(done,"Complete",Guide.CompleteText)
+		assert(Guide.Facts(final).Core and s.coins==2400,"Nothing was spent: "..s.coins)
+		-- TutorialService completes the guide with the lessons (no camp win needed).
+		local service2=Tutorial.new(function() end)
+		service2:Begin(nil,s)
+		service2:Observe(s,final)
+		assert(s.tutorial.guideCompleted and s.tutorial.coreDone,"Guide completed")
+		return "2,400 Coins kept; complete after the vacuum sale"
 	end)
 
 	local passed=0

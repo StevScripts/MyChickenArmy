@@ -166,15 +166,16 @@ function Tutorial:Observe(session, state)
 			if id=="Sell" or id=="Win" then self:Emit(r, "FTUEFirstPayoffSeconds", now-r.at, id, "Confirmed") end
 		end
 	end
-	-- October 21: the short core is saved once; Daily Rewards and the tips follow it.
+	-- Latest October 21: the guide is the seven essential lessons and completes with
+	-- them (coreDone and guideCompleted together); a camp win also completes it.
 	if facts.Core and not session.tutorial.coreDone then
 		session.tutorial.coreDone=true;session:Touch();state.tutorial.coreDone=true
 	end
-	if facts.Win and not session.tutorial.guideCompleted then
+	if (facts.Core or facts.Win) and not session.tutorial.guideCompleted then
 		session.tutorial.guideCompleted=true; session:Touch();state.tutorial.guideCompleted=true
 		r.completedAt=now
 		self:Emit(r, "FTUEOutcome", now-r.at, "Complete", if session.tutorial.guideSkipped then "SkippedVictory"
-			elseif facts.Sell and facts.Expand then "Completed" else "EarlyVictory")
+			elseif facts.Core then "Completed" else "EarlyVictory")
 	end
 	local current = Guide.Resolve(state)
 	local step = if current then current.id else "Skipped"

@@ -3,11 +3,12 @@
 local Currency = require(script.Parent.CurrencyLimits)
 local Tree = require(script.Parent.UpgradeCatalog)
 local Guide = {}
--- October 21 (Stevin, from the Drop a Fruit recording): a short numbered core
--- (TUTORIAL 1/5: 5 eggs, sell, Flock Size I, a FREE roll and recruit), then numbered
--- tips (TIP 1/6: a FREE Egg Vacuum, Army Size I, Select Best, Cluck Camp). The guide
--- still completes on the first camp win. docs/team/COMMANDER_TUTORIAL.md has the contract.
-Guide.Version = "cluck-7-quick-core"
+-- Latest October 21 (Stevin: "keep the tutorial as SHORT as possible"): only the three
+-- systems a new player needs, as one numbered list "TUTORIAL • n/7": click eggs and
+-- sell them, roll a chicken, then claim, use and sell with the Egg Vacuum. The guide
+-- completes there (no Flock Size I, no Army or Cluck Camp lessons; quiet Next goals
+-- lead to the first fight). docs/team/COMMANDER_TUTORIAL.md has the contract.
+Guide.Version = "cluck-8-essentials"
 -- Later October 21 (Stevin: "one-to-one" with the recording, keep it short): 3 eggs,
 -- like its "Tap your fruits (0/3)". Each menu lesson also carries the words for the
 -- step before it (`outside`: the menu or tool isn't open yet; `wrongTab`: the
@@ -16,11 +17,12 @@ Guide.EggGoal = 3
 -- Eggs the Egg Vacuum tip asks for (tutorial.vacuumEggCount, EggService). Later
 -- October 21 (Stevin): vacuum 20, then sell them on the pad (tutorial.vacuumSold).
 Guide.VacuumGoal = 20
-Guide.Core = {"Collect", "Sell", "Flock", "Roll", "Recruit"}
-Guide.Tips = {"Vacuum", "VacuumUse", "VacuumSell", "Expand", "Select", "Deploy", "Win"}
+Guide.Core = {"Collect", "Sell", "Roll", "Recruit", "Vacuum", "VacuumUse", "VacuumSell"}
 Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Flock", "Core", "Vacuum", "VacuumUse",
 	"VacuumSell", "Expand", "Select", "Deploy", "Win"}
 -- The analytics funnel for this guide is Schema.TutorialFunnel (server, version 11).
+-- The last card, also the payoff line with the confetti (CommanderGuide).
+Guide.CompleteText = "Keep collecting eggs and rolling chickens!"
 
 function Guide.VacuumEggCount(tutorial): number
 	local count = tutorial.vacuumEggCount
@@ -74,19 +76,22 @@ function Guide.Facts(state)
 		Deploy = t.guideDeployed == true,
 		Win = won,
 	}
-	-- The short core is done once (saved as tutorial.coreDone by TutorialService).
-	facts.Core = t.coreDone == true or (facts.Collect and facts.Sell and facts.Flock and facts.Roll and facts.Recruit)
+	-- The whole tutorial is done once (saved as tutorial.coreDone by TutorialService).
+	local core = t.coreDone == true
+	if not core then
+		core = true
+		for _, id in Guide.Core do if not facts[id] then core = false end end
+	end
+	facts.Core = core
 	return facts
 end
 
--- "TUTORIAL 2/5" or "TIP 4/6" for the guide card: the lesson's place in its list,
--- counted from the lessons already done (lessons may finish out of order).
+-- "TUTORIAL 2/7" for the guide card: the lesson's place in the list, counted from
+-- the lessons already done (lessons may finish out of order).
 function Guide.Progress(facts): (string, number, number)
-	local list, label = Guide.Core, "TUTORIAL"
-	if facts.Core then list, label = Guide.Tips, "TIP" end
 	local done = 0
-	for _, id in list do if facts[id] then done += 1 end end
-	return label, math.min(done + 1, #list), #list
+	for _, id in Guide.Core do if facts[id] then done += 1 end end
+	return "TUTORIAL", math.min(done + 1, #Guide.Core), #Guide.Core
 end
 
 local function step(id: string, text: string, target: string?, node: string?, outside: string?, wrongTab: string?)
@@ -191,20 +196,6 @@ local function recruit(state, growing)
 	end
 	return step(id, if growing then "Buy a chicken ("..count.."/4)"
 		elseif (offer.price or 0) <= 0 then "Grab your chicken!" else "Buy the chicken", "RollStation")
-end
-
--- One Upgrades purchase in the opening (Flock Size I, Army Size I): the hex, or a
--- trip to the eggs first when the server says it can't be afforded yet.
-local OPEN_UPGRADES = {Flock = "Spend your Coins in Upgrades!", ArmySize = "Open Upgrades for more Army slots!"}
-local function purchase(state, id: string, familyId: string, reserve: number?)
-	local quote = treeNode(state, Guide.NextNode(state, familyId))
-	if quote and quote.status == "Unaffordable" and type(quote.price) == "number"
-		and quote.price + (reserve or 0) > (state.coins or 0) then
-		return earn(state, quote.price, reserve)
-	end
-	local node = Guide.NextNode(state, familyId) or Tree.NodeId(familyId, 1)
-	return step(id, "Buy " .. Tree.Nodes[node].name .. "!", "Upgrades", node,
-		OPEN_UPGRADES[familyId] or "Open Upgrades!", "Go back to the main Upgrades!")
 end
 
 -- Army power vs a garrison's power (Rules.PetPower sums). Defenders respawn every
@@ -381,9 +372,9 @@ local COLLECT = {Touch = "Tap your eggs to collect them!", Gamepad = "Press R2 t
 
 local function resolve(state, input: string?, t, f)
 	if t.guideSkipped then return nil end
-	if f.Win or t.guideCompleted then
+	if f.Core or f.Win or t.guideCompleted then
 		if not t.guideStarted then return nil end -- Established players are not forced through a new tutorial.
-		return step("Complete", "Cluck Camp captured!", nil)
+		return step("Complete", Guide.CompleteText, nil)
 	end
 	if state.incoming then
 		return step("Defend", "Your army is defending", nil)
@@ -410,21 +401,14 @@ local function resolve(state, input: string?, t, f)
 		if ((state.eggs or {}).carriedValue or 0) <= 0 then return earn(state) end
 		return step("Sell", "Sell your eggs on the green pad!", "EggDeposit")
 	end
-	-- October 21: like the reference's Fruit Slot, Flock Size I opens a laying spot
-	-- before the FREE roll fills it. It may not spend the Coins held for Army Size I
-	-- (PlayerSession:CanSpendCash).
-	if not f.Flock then return purchase(state, "Flock", "Flock", state.starterCashReserve) end
 	if not f.Recruit then return recruit(state, false) end
 	-- The new squad already has four birds after Recruit. Older empty-yard saves
 	-- can still grow their flock without resetting or granting them extra birds.
 	if not f.Grow then return recruit(state, true) end
-	-- Tips. The Egg Vacuum is FREE while the guide runs (UpgradeService.Quote).
+	-- The Egg Vacuum costs 0 while the guide runs (UpgradeService.Quote).
 	if not f.Vacuum then
-		local node = treeNode(state, "EggVacuum")
-		if node == nil or node.status ~= "Locked" then
-			return step("Vacuum", "Claim your Egg Vacuum!", "Upgrades", "EggVacuum",
-				"Open Upgrades for an Egg Vacuum!", "Open the Tools category!")
-		end
+		return step("Vacuum", "Claim your Egg Vacuum!", "Upgrades", "EggVacuum",
+			"Open Upgrades for an Egg Vacuum!", "Open the Tools category!")
 	elseif not f.VacuumUse then
 		-- A full vacuum stops pulling eggs in: sell, then keep going.
 		local vacuum = type(state.tools) == "table" and state.tools.vacuum or nil
@@ -435,22 +419,11 @@ local function resolve(state, input: string?, t, f)
 			.. Guide.VacuumEggCount(state.tutorial or {}) .. "/" .. Guide.VacuumGoal .. ")", "VacuumTool", nil,
 			"Equip your Egg Vacuum!")
 	end
-	if f.Vacuum and f.VacuumUse and not f.VacuumSell then
-		return step("VacuumSell", "Sell your vacuumed eggs on the green pad!", "EggDeposit")
-	end
-	if not f.Expand then
-		local offer = state.nextSlot
-		if offer and (state.coins or 0) < offer.price then return earn(state, offer.price) end
-		return purchase(state, "Expand", "ArmySize")
-	end
-	if not f.Select then
-		return step("Select", "Press Equip Best!", "Army", nil, "Open My Army!")
-	end
-	return step("Deploy", "Send your Army to Cluck Camp!", "Camp1")
+	return step("VacuumSell", "Sell your vacuumed eggs on the green pad!", "EggDeposit")
 end
 
 -- input: "Touch", "Gamepad" or anything else for mouse and keyboard (CommanderGuide).
--- Each lesson carries its place: tag "TUTORIAL" or "TIP", index and total.
+-- Each lesson carries its place: tag "TUTORIAL", index and total.
 function Guide.Resolve(state, input: string?)
 	if not state or state.saveStatus=="loading" or state.saveStatus=="error" then return nil end
 	local t, f = state.tutorial or {}, Guide.Facts(state)

@@ -7,12 +7,37 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Essentials only: latest October 21
+
+Stevin: "I feel like the tutorial is too long … egg collection, rolling and the vacuum
+tool, those are the main … keep the tutorial as SHORT as possible." The guide is now one
+list, "TUTORIAL • n/7", and completes after it (`guideCompleted` + `coreDone` together,
+`TutorialService`):
+
+1. Click your eggs to collect them! (0/3)  (glowing egg, tapping hand)
+2. Sell your eggs on the green pad!
+3. Pull the lever for a chicken!
+4. Grab your chicken!  (costs 0 Coins)
+5. Open Upgrades for an Egg Vacuum! → Open the Tools category! → Claim your Egg Vacuum!  (0 Coins)
+6. Equip your Egg Vacuum! → Walk near eggs to vacuum them up! (0/20)
+7. Sell your vacuumed eggs on the green pad!
+
+Then "TUTORIAL COMPLETE! Keep collecting eggs and rolling chickens!" with confetti, My Army
+appears and Daily Rewards Day 1 opens.
+
+Removed from the tutorial: Flock Size I (the vacuum lesson already teaches Upgrades; the
+fourth Duck sits in storage until a Flock upgrade), the "TIP" list, the vacuum's
+"TIP • COMPLETE" card, and the Army Size I / Equip Best / Cluck Camp lessons. Fighting is
+led by the quiet Next goals ("Attack Cluck Camp", with the power gap and the cheapest step
+when it is Very tough). The 1,200 Army Size reserve is released when the guide completes.
+Nothing in the tutorial costs Coins, so the player still has 2,400 at the end.
+
 ## Funnels reworked: later October 21 (analytics schema 11)
 
 Stevin: "Add a complete rework of the funnels to the tutorial. Be VERY detailed." The
-tutorial is now measured by one 31-step funnel, from join to the first Rebirth, with every
-guide action as a step (each egg, each menu opened, the Tools tab, equipping the vacuum,
-10 and 20 vacuumed eggs, the payoff, Daily Day 1, …). It owns Roblox's Onboarding dashboard
+tutorial is now measured by one 24-step funnel, from join to the first Rebirth, with every
+tutorial action as a step (each egg, opening Upgrades, the Tools tab, equipping the vacuum,
+10 and 20 vacuumed eggs, the completion screen, Daily Day 1, …). It owns Roblox's Onboarding dashboard
 and replaces the schema 9/10 "Tutorial" funnel below. The client now also reports
 `ToolsOpen` and `VacuumEquip` (CommanderGuide). Full step-by-step descriptions:
 `docs/analytics/TUTORIAL_FUNNEL.md`; schema `Schema.TutorialFunnel`; code
