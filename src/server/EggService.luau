@@ -371,6 +371,8 @@ function EggService:Deposit(session,position,now)
  session.vacuumCargo={count=0,value=0}
  session:Touch()
  if not queued then session.tutorial.soldEggs=true end
+ -- October 21 guide tip: the 20 vacuumed eggs reach the pad (TutorialGuide.VacuumSell).
+ if vacuumed and TutorialGuide.VacuumEggCount(session.tutorial)>=TutorialGuide.VacuumGoal then session.tutorial.vacuumSold=true end
  yard.lastPlayerDepositAt=now
  self:RecordDeposit(yard,count,credited,now,if vacuumed then "vacuum" else "player",pad.Position,queued)
  return true,credited

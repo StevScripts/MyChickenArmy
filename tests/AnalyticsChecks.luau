@@ -191,13 +191,13 @@ function Checks.Run()
 		assert(bucket.c["tut.reach.07"] == 1 and bucket.c["tut.reach.10"] == 1 and bucket.c["tut.gap.10"] == 1, "Expand reached out of order")
 		t.wonCamp = true
 		observe()
-		assert(sent() == "Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win", sent())
+		assert(sent() == "Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win,VacuumSell", sent())
 		assert(bucket.c["tut.reach.13"] == 1 and bucket.c["tut.reach.08"] == nil, "Win counted; the passed Vacuum tip is not")
 		observe()
-		assert(#string.split(sent(), ",") == 13, "re-sent")
+		assert(#string.split(sent(), ",") == 14, "re-sent")
 		analytics:Leave(session); task.wait()
 		local saved = players.data[Schema.PlayerKey(77)]
-		assert(saved and saved.tut and saved.tut["13"] and saved.tutRbx == 13, "profile keeps the funnel")
+		assert(saved and saved.tut and saved.tut["13"] and saved.tutRbx == 14, "profile keeps the funnel")
 		assert(#Schema.Tutorial == #Guide.FunnelSteps, "Schema.Tutorial matches TutorialGuide.FunnelSteps")
 		for index, step in Schema.Tutorial do assert(Guide.FunnelSteps[index] == step.id, step.id) end
 	end)

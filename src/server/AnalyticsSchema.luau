@@ -21,7 +21,9 @@ local Schema = {}
 -- playtimeReward.claim.<1..12>).
 -- 9 (October 21): the Tutorial funnel for the short core + tips guide
 -- (TutorialGuide.FunnelSteps; ledger tut.*; Roblox funnel "Tutorial").
-Schema.Version = 9
+-- 10 (later October 21): Tutorial step 14 VacuumSell (the vacuum tip now fills 20
+-- eggs and sells them; played third among the tips, appended after Win).
+Schema.Version = 10
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -138,17 +140,25 @@ Schema.Tutorial = {
 	{id = "Roll",      about = "TUTORIAL 4/5: pulled the lever (FREE starter roll)."},
 	{id = "Recruit",   about = "TUTORIAL 5/5: took the FREE chicken."},
 	{id = "CoreDone",  about = "Core payoff shown; Daily Rewards unlocks (tutorial.coreDone)."},
-	{id = "Vacuum",    about = "TIP 1/6: claimed the FREE Egg Vacuum."},
-	{id = "VacuumUse", about = "TIP 2/6: vacuumed TutorialGuide.VacuumGoal eggs."},
-	{id = "Expand",    about = "TIP 3/6: bought Army Size I."},
-	{id = "Select",    about = "TIP 4/6: picked four chickens for the Army."},
-	{id = "Deploy",    about = "TIP 5/6: sent the Army to Cluck Camp."},
-	{id = "Win",       about = "TIP 6/6: captured Cluck Camp (guide complete)."},
+	{id = "Vacuum",    about = "TIP 1/7: claimed the FREE Egg Vacuum."},
+	{id = "VacuumUse", about = "TIP 2/7: vacuumed TutorialGuide.VacuumGoal (20) eggs."},
+	{id = "Expand",    about = "TIP 4/7: bought Army Size I."},
+	{id = "Select",    about = "TIP 5/7: picked four chickens for the Army."},
+	{id = "Deploy",    about = "TIP 6/7: sent the Army to Cluck Camp."},
+	{id = "Win",       about = "TIP 7/7: captured Cluck Camp (guide complete)."},
+	-- Version 10: played as TIP 3/7, between VacuumUse and Expand.
+	{id = "VacuumSell", about = "TIP 3/7: sold the vacuumed eggs on the pad (tutorial.vacuumSold)."},
 }
 for index, step in Schema.Tutorial do Schema.Funnels.Tutorial[index] = step.id end
+-- The order the guide plays them in (VacuumSell was appended); tut.gap compares a
+-- step with the one played before it.
+Schema.TutorialPlayOrder = {"Started", "Collect", "Sell", "Flock", "Roll", "Recruit", "CoreDone",
+	"Vacuum", "VacuumUse", "VacuumSell", "Expand", "Select", "Deploy", "Win"}
+Schema.TutorialIndex = {} :: {[string]: number}
+for index, step in Schema.Tutorial do Schema.TutorialIndex[step.id] = index end
 -- Which part each step belongs to; gaps only fill inside a part.
 Schema.TutorialPart = {Started = 0, Collect = 1, Sell = 1, Flock = 1, Roll = 1, Recruit = 1, CoreDone = 2,
-	Vacuum = 3, VacuumUse = 3, Expand = 3, Select = 3, Deploy = 3, Win = 3}
+	Vacuum = 3, VacuumUse = 3, Expand = 3, Select = 3, Deploy = 3, Win = 3, VacuumSell = 3}
 
 -- Roblox progression path for the main route.
 Schema.MainRoute = {path = "MainRoute", levels = {"Cluck Camp", "Fort Roost", "Ironbeak HQ", "Chicken King"}}

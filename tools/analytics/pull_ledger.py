@@ -37,7 +37,7 @@ ONBOARDING = ["Joined", "ProfileLoaded", "IntroStarted", "IntroEnded", "ControlR
               "Camp2", "Camp3", "King", "Rebirth1"]
 # Schema.Tutorial (version 9, October 21): the short core + tips guide.
 TUTORIAL = ["Started", "Collect", "Sell", "Flock", "Roll", "Recruit", "CoreDone",
-            "Vacuum", "VacuumUse", "Expand", "Select", "Deploy", "Win"]  # must match Schema.Onboarding
+            "Vacuum", "VacuumUse", "Expand", "Select", "Deploy", "Win", "VacuumSell"]  # must match Schema.Onboarding
 PLAYERS = "PetRollAnalyticsPlayers_v1"
 # Schema.FeatureFunnels step ids, in order (NN = index). Must match the schema; funnels
 # found in the data but missing here still appear with numbered steps.

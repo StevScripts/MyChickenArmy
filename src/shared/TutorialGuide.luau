@@ -13,19 +13,24 @@ Guide.Version = "cluck-7-quick-core"
 -- step before it (`outside`: the menu or tool isn't open yet; `wrongTab`: the
 -- Upgrades map shows another category), so the card reads one action at a time.
 Guide.EggGoal = 3
--- Eggs the Egg Vacuum tip asks for (tutorial.vacuumEggCount, EggService).
-Guide.VacuumGoal = 3
+-- Eggs the Egg Vacuum tip asks for (tutorial.vacuumEggCount, EggService). Later
+-- October 21 (Stevin): vacuum 20, then sell them on the pad (tutorial.vacuumSold).
+Guide.VacuumGoal = 20
 Guide.Core = {"Collect", "Sell", "Flock", "Roll", "Recruit"}
-Guide.Tips = {"Vacuum", "VacuumUse", "Expand", "Select", "Deploy", "Win"}
+Guide.Tips = {"Vacuum", "VacuumUse", "VacuumSell", "Expand", "Select", "Deploy", "Win"}
 Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Flock", "Core", "Vacuum", "VacuumUse",
-	"Expand", "Select", "Deploy", "Win"}
+	"VacuumSell", "Expand", "Select", "Deploy", "Win"}
 
 -- The Tutorial analytics funnel (Analytics, Schema.Funnels.Tutorial): entry, the
 -- core lessons, the core payoff, then the tips. Append only; never reorder.
 Guide.FunnelSteps = {"Started"}
 for _, id in Guide.Core do table.insert(Guide.FunnelSteps, id) end
 table.insert(Guide.FunnelSteps, "CoreDone")
-for _, id in Guide.Tips do table.insert(Guide.FunnelSteps, id) end
+for _, id in Guide.Tips do
+	if id ~= "VacuumSell" then table.insert(Guide.FunnelSteps, id) end
+end
+-- Appended after Win (analytics names are append-only), though it is played third.
+table.insert(Guide.FunnelSteps, "VacuumSell")
 
 function Guide.VacuumEggCount(tutorial): number
 	local count = tutorial.vacuumEggCount
@@ -72,6 +77,8 @@ function Guide.Facts(state)
 		-- Owned now, or already used once (it resets on Rebirth). No tools snapshot never blocks.
 		Vacuum = type(tools) ~= "table" or tools.eggVacuum == true or t.vacuumUsed == true,
 		VacuumUse = type(tools) ~= "table" or Guide.VacuumEggCount(t) >= Guide.VacuumGoal,
+		-- A pad sale carrying vacuum eggs once the 20 are in (EggService).
+		VacuumSell = type(tools) ~= "table" or t.vacuumSold == true,
 		Expand = (state.capacity or 3) >= 4,
 		Select = (state.selectedCount or #(state.selectedIds or {})) >= 4,
 		Deploy = t.guideDeployed == true,
@@ -429,9 +436,17 @@ local function resolve(state, input: string?, t, f)
 				"Open Upgrades for a FREE Egg Vacuum!", "Open the Tools category!")
 		end
 	elseif not f.VacuumUse then
+		-- A full vacuum stops pulling eggs in: sell, then keep going.
+		local vacuum = type(state.tools) == "table" and state.tools.vacuum or nil
+		if type(vacuum) == "table" and (vacuum.capacity or 0) > 0 and (vacuum.count or 0) >= vacuum.capacity then
+			return step("VacuumUse", "Vacuum full! Sell your eggs on the green pad!", "EggDeposit")
+		end
 		return step("VacuumUse", "Walk near eggs to vacuum them up! ("
 			.. Guide.VacuumEggCount(state.tutorial or {}) .. "/" .. Guide.VacuumGoal .. ")", "VacuumTool", nil,
 			"Equip your Egg Vacuum!")
+	end
+	if f.Vacuum and f.VacuumUse and not f.VacuumSell then
+		return step("VacuumSell", "Sell your vacuumed eggs on the green pad!", "EggDeposit")
 	end
 	if not f.Expand then
 		local offer = state.nextSlot

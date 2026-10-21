@@ -89,24 +89,33 @@ function Checks.Run()
 		assert(Guide.Facts(state).Core,"Core done")
 		local vacuum=Guide.Resolve(state)
 		expect(vacuum,"Vacuum","Claim your FREE Egg Vacuum!")
-		assert(vacuum.tag=="TIP" and vacuum.index==1 and vacuum.total==6 and vacuum.node=="EggVacuum","Vacuum tip")
+		assert(vacuum.tag=="TIP" and vacuum.index==1 and vacuum.total==7 and vacuum.node=="EggVacuum","Vacuum tip")
 		state.tools.eggVacuum=true
 		local use=Guide.Resolve(state)
-		expect(use,"VacuumUse","Walk near eggs to vacuum them up! (0/3)")
+		expect(use,"VacuumUse","Walk near eggs to vacuum them up! (0/20)")
 		assert(use.target=="VacuumTool","Hotbar slot")
 		assert(use.outside=="Equip your Egg Vacuum!" and vacuum.wrongTab=="Open the Tools category!","Equip and Tools words")
-		state.tutorial.vacuumEggCount=3
+		state.tools.vacuum={count=40,capacity=40}
+		local full=Guide.Resolve(state)
+		expect(full,"VacuumUse","Vacuum full! Sell your eggs on the green pad!")
+		assert(full.target=="EggDeposit","Full vacuum goes to the pad")
+		state.tools.vacuum={count=20,capacity=40}
+		state.tutorial.vacuumEggCount=20
+		local sell=Guide.Resolve(state)
+		expect(sell,"VacuumSell","Sell your vacuumed eggs on the green pad!")
+		assert(sell.target=="EggDeposit" and sell.index==3 and sell.total==7,"Sell is TIP 3/7")
+		state.tutorial.vacuumSold=true
 		local expand=Guide.Resolve(state)
 		expect(expand,"Expand","Buy Army Size I!")
-		assert(expand.node=="ArmySize1" and expand.index==3,"Army Size hex "..tostring(expand.node))
+		assert(expand.node=="ArmySize1" and expand.index==4,"Army Size hex "..tostring(expand.node))
 		state.capacity=4
 		expect(Guide.Resolve(state),"Select","Press Equip Best!")
 		state.selectedCount=4
 		local deploy=Guide.Resolve(state)
 		expect(deploy,"Deploy","Send your Army to Cluck Camp!")
-		assert(deploy.index==5,"Deploy is TIP 5/6")
+		assert(deploy.index==6,"Deploy is TIP 6/7")
 		local order=table.concat(Guide.FunnelSteps,",")
-		assert(order=="Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win",order)
+		assert(order=="Started,Collect,Sell,Flock,Roll,Recruit,CoreDone,Vacuum,VacuumUse,Expand,Select,Deploy,Win,VacuumSell",order)
 		return "Flock before the roll, tips after the core"
 	end)
 
@@ -364,7 +373,9 @@ function Checks.Run()
 		expect((route()),"Vacuum","Claim your FREE Egg Vacuum!")
 		ok,message=service:BuyNode(s,"EggVacuum",0)
 		assert(ok,message)
-		s.tutorial.vacuumEggCount=3
+		s.tutorial.vacuumEggCount=20
+		expect((route()),"VacuumSell","Sell your vacuumed eggs on the green pad!")
+		s.tutorial.vacuumSold=true
 		expect((route()),"Expand","Buy Army Size I!")
 		ok,message=s:CanSpendCash(1000)
 		assert(not ok and message=="Keep 1,200 Coins for Army Size I in Upgrades.",message)

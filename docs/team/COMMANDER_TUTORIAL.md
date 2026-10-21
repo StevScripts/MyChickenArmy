@@ -7,6 +7,18 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Vacuum tip fills 20, then sells: later October 21
+
+Stevin: "For the vacuum step I want them to sell the egg after collecting 20 of them."
+- `VacuumGoal = 20`: "Walk near eggs to vacuum them up! (0/20)". The starter vacuum
+  holds about 40 (30 s of 4 chickens laying every 3 s), so 20 fits; if it is ever full
+  first, the line reads "Vacuum full! Sell your eggs on the green pad!".
+- New tip **VacuumSell** (TIP 3/7): "Sell your vacuumed eggs on the green pad!" A pad
+  sale carrying vacuum eggs once the 20 are in saves `tutorial.vacuumSold` (EggService).
+  "TIP • COMPLETE! Egg Vacuum learned!" now follows the sale. Tips are 7 in all.
+- Analytics schema 10 appends Tutorial step 14 `VacuumSell` (played third among the
+  tips; `Schema.TutorialPlayOrder` keeps `tut.gap` in play order).
+
 ## One-to-one pass: later October 21
 
 Stevin: "make sure it's one-to-one … the black screen … a clicking animation and

@@ -31,7 +31,7 @@ PlayerSession.CarryLimit = 1e12
 -- your hand-off (docs/team/OVERHAUL_CONTRACT_20261020.md §2).
 local TUTORIAL_KEYS = {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp",
 	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen",
-	"vacuumUsed","coreDone"}
+	"vacuumUsed","coreDone","vacuumSold"}
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)

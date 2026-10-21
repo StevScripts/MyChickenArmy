@@ -477,7 +477,9 @@ function Analytics:_Tutorial(st, session, state)
 			self.ledger:Count("tut.reach." .. code)
 			self.ledger:Hist("tut.t." .. code, "seconds", play)
 			if profile and profile.firstDay then self.ledger:Cohort(profile.firstDay, "tut." .. code) end
-			if index > 1 and not self:_TutorialReached(st, index - 1) then self.ledger:Count("tut.gap." .. code) end
+			local played = table.find(Schema.TutorialPlayOrder, step.id)
+			local before = played and played > 1 and Schema.TutorialIndex[Schema.TutorialPlayOrder[played - 1]]
+			if before and not self:_TutorialReached(st, before) then self.ledger:Count("tut.gap." .. code) end
 			self:_Trail(st, "tut:" .. step.id)
 		end
 	end

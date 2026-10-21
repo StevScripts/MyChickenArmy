@@ -20,7 +20,7 @@ local CORE_SECONDS = 4
 local CORE_TEXT = "Your Flock is laying! Keep collecting eggs!"
 -- Like the reference's "TIP • COMPLETE! Vacuum learned!".
 local VACUUM_SECONDS = 3
-local VACUUM_TEXT = "Egg Vacuum learned! Sell what it collects on the pad."
+local VACUUM_TEXT = "Egg Vacuum learned! Fill it up, then sell on the pad."
 local TAP_WORD = {Touch="TAP!", Gamepad="R2!", Keyboard="CLICK!"}
 local Commander = {}
 Commander.__index = Commander
@@ -451,7 +451,7 @@ function Commander:Update()
 	local facts=Guide.Facts(state)
 	if self.facts and not self.completedBeforeVisit then
 		if facts.Core and not self.facts.Core then self:CelebrateCore()
-		elseif facts.VacuumUse and not self.facts.VacuumUse and facts.Core then self:Payoff(VACUUM_TEXT,"TIP • COMPLETE!",VACUUM_SECONDS) end
+		elseif facts.VacuumSell and not self.facts.VacuumSell and facts.Core then self:Payoff(VACUUM_TEXT,"TIP • COMPLETE!",VACUUM_SECONDS) end
 	end
 	if self:Celebrating() then current={id="Payoff:"..self.payoff.tag,text=self.payoff.text,tag=self.payoff.tag} end
 	self:SetArmyHidden(current~=nil and not current.goal and not facts.Core
