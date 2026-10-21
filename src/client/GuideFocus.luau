@@ -80,8 +80,13 @@ function Focus:Shade(hole: {number}?)
 	for _, part in self.shade do part.Visible = show end
 	if not hole or not show then self.shaded = false; return end
 	local size = self.root.AbsoluteSize
-	local x1, y1 = math.max(0, hole[1]-HOLE_PADDING), math.max(0, hole[2]-HOLE_PADDING)
-	local x2, y2 = math.min(size.X, hole[3]+HOLE_PADDING), math.min(size.Y, hole[4]+HOLE_PADDING)
+	-- Edges snap to whole screen pixels (the root may sit at a fractional position), so
+	-- neighbouring panels share one exact edge: no 1 px seam across the screen.
+	local origin: Vector2 = self.root.AbsolutePosition
+	local function snapX(x: number): number return math.round(origin.X + x) - origin.X end
+	local function snapY(y: number): number return math.round(origin.Y + y) - origin.Y end
+	local x1, y1 = snapX(math.max(0, hole[1]-HOLE_PADDING)), snapY(math.max(0, hole[2]-HOLE_PADDING))
+	local x2, y2 = snapX(math.min(size.X, hole[3]+HOLE_PADDING)), snapY(math.min(size.Y, hole[4]+HOLE_PADDING))
 	local top, bottom, left, right = self.shade[1], self.shade[2], self.shade[3], self.shade[4]
 	top.Position, top.Size = UDim2.fromOffset(0,0), UDim2.new(1,0,0,y1)
 	bottom.Position, bottom.Size = UDim2.fromOffset(0,y2), UDim2.new(1,0,0,math.max(0,size.Y-y2))
