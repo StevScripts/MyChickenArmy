@@ -344,7 +344,7 @@ function GameServer:Handle(player,request)
 		ok,message=GemUpgradeService.SetAutoRebirth(session,request.enabled)
 	elseif action=="ClaimPlaytime" then
 		-- October 20 Playtime Rewards (S16): one ready tile, paid by the server.
-		ok,message,receipt=PlaytimeService.Claim(session,request.index,self)
+		ok,message,receipt=PlaytimeService.Claim(session,request.index)
 		if ok then self.analytics:LaunchCount(session,"playtimeReward.claim."..tostring(request.index)) end
 	elseif action=="CashUpgrade" or action=="BoardUpgrade" then
 		-- Pre-tree board keys (old cash hexes) map to the family's next node.
