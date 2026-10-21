@@ -10,25 +10,52 @@ AudioController.__index = AudioController
 local LIBRARY_NAME = "MyChickenArmyAudio"
 
 function AudioController.new()
-	return setmetatable({musicEnabled = true, sfxEnabled = true, templates = {}, last = {}, voices = {}, pools = {}, fallbackCounts = {}, active = {}, activeCount = 0, alive = true, connections = {}, revisions = {}}, AudioController)
+	return setmetatable({musicEnabled = true, sfxEnabled = true, templates = {}, last = {}, voices = {}, pools = {}, fallbackCounts = {}, active = {}, activeCount = 0, alive = true, connections = {}, playlist = {}}, AudioController)
+end
+
+-- October 21 (Stevin): the music plays every song in MyChickenArmyAudio.Music in
+-- turn and starts over after the last. One playback copy at a time; a song that
+-- fails to load is skipped.
+function AudioController:LoadTrack(index: number)
+	local template = self.playlist[index]
+	if not template then return end
+	self.trackIndex = index
+	self.trackRevision = (self.trackRevision or 0) + 1
+	local revision = self.trackRevision
+	if self.music then self.music:Destroy() end
+	local music = template:Clone()
+	music:Stop()
+	music.Looped = #self.playlist == 1
+	music.SoundGroup, music.Parent = self.musicGroup, self.folder
+	self.music = music
+	music.Ended:Connect(function()
+		if self.alive and self.music == music then self:LoadTrack(index % #self.playlist + 1) end
+	end)
+	task.spawn(function()
+		pcall(function() ContentProvider:PreloadAsync({music}) end)
+		local deadline = os.clock() + 8
+		while not music.IsLoaded and music.Parent and os.clock() < deadline do task.wait(0.25) end
+		if not self.alive or self.trackRevision ~= revision then return end
+		if music.IsLoaded then
+			self.trackFailures = 0
+			self:SetMusic(self.musicEnabled)
+		elseif (self.trackFailures or 0) < #self.playlist then
+			self.trackFailures = (self.trackFailures or 0) + 1
+			self:LoadTrack(index % #self.playlist + 1)
+		end
+	end)
 end
 
 function AudioController:Prepare(name, template)
-	local revision = (self.revisions[name] or 0) + 1
-	self.revisions[name] = revision
-	if name == "Music" then
-		if self.music then self.music:Destroy() end
-		local music = template:Clone()
-		music:Stop()
-		music.SoundGroup, music.Parent = self.musicGroup, self.folder
-		self.music = music
+	local track = table.find(self.playlist, template)
+	if track then
+		-- A new SoundId on the song that is playing restarts it; others load in turn.
+		if track == self.trackIndex then self.trackFailures = 0;self:LoadTrack(track) end
+		return
 	end
 	if template.SoundId == "" then return end
-	-- Each cue loads independently. Late completion cannot restart an older track.
 	task.spawn(function()
 		pcall(function() ContentProvider:PreloadAsync({template}) end)
-		if not self.alive or self.revisions[name] ~= revision then return end
-		if name == "Music" then self:SetMusic(self.musicEnabled) end
 	end)
 end
 
@@ -50,6 +77,19 @@ function AudioController:BindLibrary(library)
 	applyMix()
 	table.insert(self.connections, musicGroup:GetPropertyChangedSignal("Volume"):Connect(applyMix))
 	table.insert(self.connections, effectsGroup:GetPropertyChangedSignal("Volume"):Connect(applyMix))
+	-- The playlist: every Sound in the Music folder with an id, the "Music" cue first,
+	-- then the rest by name.
+	local songs = library:FindFirstChild("Music")
+	if songs then
+		for _,song in songs:GetChildren() do
+			if song:IsA("Sound") and song.SoundId ~= "" then table.insert(self.playlist, song) end
+		end
+	end
+	table.sort(self.playlist, function(a, b)
+		local aLead, bLead = a:GetAttribute("AudioCue") == "Music", b:GetAttribute("AudioCue") == "Music"
+		if aLead ~= bLead then return aLead end
+		return a.Name < b.Name
+	end)
 	for _,template in library:GetDescendants() do
 		if not template:IsA("Sound") then continue end
 		local name = template:GetAttribute("AudioCue") or template.Name
@@ -61,15 +101,16 @@ function AudioController:BindLibrary(library)
 		table.insert(self.connections, template:GetPropertyChangedSignal("SoundId"):Connect(function()
 			self:Prepare(name, template)
 		end))
-		if name == "Music" then
-			for _,property in {"Volume", "PlaybackSpeed", "Looped"} do
+		if table.find(self.playlist, template) then
+			for _,property in {"Volume", "PlaybackSpeed"} do
 				table.insert(self.connections, template:GetPropertyChangedSignal(property):Connect(function()
-					if self.music then self.music[property] = template[property] end
+					if self.music and self.playlist[self.trackIndex] == template then self.music[property] = template[property] end
 				end))
 			end
 		end
 		self:Prepare(name, template)
 	end
+	self:LoadTrack(1)
 end
 
 function AudioController:Start()
