@@ -75,7 +75,7 @@ No chrome-only text (no unstroked small grey text on dark). No per-device branch
 **Reversed (Stevin, October 21, 13:45): "NO NO NO THIS IS TOO MUCH DONT CHANGE THE HUD FROM
 BEFORE, RESET TO BEFORE PLEASE." The P1 merge was reverted on main (b296ac9): My Army stays
 above the hotbar, the Coins readout, Hill chip, right-rail gift/offer and boosts keep their
-previous places, and the vacuum meter sits right of the hotbar slots as before (the P6 pill
+previous places, and the vacuum egg bar sits between My Army and the hotbar as before (the P6 pill
 placement commit was reverted too, 2f4daf1; the per-egg chimes, floats, swirl and pad sounds
 stay). The section below is kept as history only. P1 is closed.**
 
