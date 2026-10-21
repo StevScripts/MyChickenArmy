@@ -3,8 +3,12 @@
 -- Decorative reel entries never choose, grant, or change the real reward.
 local Theme=require(script.Parent.UITheme)
 local Motion=require(script.Parent.UIMotion)
+local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
 local Presentation={}
 Presentation.__index=Presentation
+
+-- Oct 21 game feel: Legendary and up (by the reward's species) add confetti and a fanfare.
+local RARITY={Common=1,Uncommon=2,Rare=3,Epic=4,Legendary=5,Mythic=6,Secret=7}
 
 local GOLD=Color3.fromRGB(255,235,55)
 local ORANGE=Color3.fromRGB(239,153,28)
@@ -112,6 +116,19 @@ function Presentation:_Sound(name,pitch,volume,duration)
 	if sound then self.sounds[sound]=true end
 end
 
+-- The first authored cue among `names` (audio:Has), else the last one (an existing
+-- cue) so a new cue falls back until the sound session adds it.
+function Presentation:_Cue(...: string): string?
+	local audio=self.audio
+	if not audio then return nil end
+	local names={...}
+	if audio.Has then
+		for _,name in names do if audio:Has(name) then return name end end
+		return nil
+	end
+	return names[#names]
+end
+
 function Presentation:_Card(entry,index)
 	local color=entry.color or Theme.Arcade.purple
 	local card=Theme.Frame(self.strip,"Card"..index,CARD_SIZE,color)
@@ -211,6 +228,21 @@ function Presentation:_Reveal()
 	self.motion:Burst(self.root,CENTER,GOLD)
 	local sparkles=self.root:FindFirstChild("RewardSparkles")
 	if sparkles then sparkles.ZIndex=109 end
+	-- Oct 21 game feel: a white flash over the winning card; Legendary and up throw
+	-- confetti over the reel with a fanfare (Victory until Fanfare is authored).
+	if winner then self.motion:Flash(winner,Color3.new(1,1,1),0.4,0.6) end
+	local def=Catalog[self.reward.species or self.reward.id]
+	local rank=if def then RARITY[def.rarity] or 1 else 1
+	if rank>=5 then
+		local confetti=self.motion:Confetti(self.root,{origin=UDim2.fromScale(0.5,0.42),spread=0.45,
+			colors={GOLD,ORANGE,Color3.new(1,1,1),self.reward.color or GOLD}})
+		if confetti then
+			confetti.ZIndex=109
+			for _,piece in confetti:GetChildren() do if piece:IsA("GuiObject") then piece.ZIndex=110 end end
+		end
+		local fanfare=self:_Cue("Fanfare","Victory")
+		if fanfare then self:_Sound(fanfare,1,0.35,nil) end
+	end
 	self:_Later(if self.reduced then self.timing.reducedHold else self.timing.hold,function() self:_Exit() end)
 end
 
