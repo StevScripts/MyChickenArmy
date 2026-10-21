@@ -224,6 +224,29 @@ Draft node list (S7 finalizes it in P0):
 - **Sell menu:** a separate menu for selling chickens (bulk select). **Stevin
   designs it: ask for his reference image first.**
 
+### Later decisions (Oct 20, in the sessions; the contract docs have details)
+- **Egg Vacuum** (S14): bought in Upgrades > Tools (about 500 Coins) and reset on
+  Rebirth like Chicken Feed. This replaces "given free when the guide ends".
+- **Old Giants and Colossals** (S13): become ordinary chickens with no size, name or
+  stat perks, and no Colossal limit. The saved size is kept unused so it can be
+  undone. This replaces "shrink but keep perks". See `FUSE_REMOVAL_AND_SELL.md`.
+- **Rebirth screen** (S8): one tap, no hold. The screen stays open with confetti, and
+  the reward chicken shows in colour once the Rebirth is affordable. See
+  `REBIRTH_SCREEN.md`.
+- **Upgrades screen** (S9): phones buy on tap with no card, every affordable hex gets
+  a red "!", and the backdrop is solid black. See `UPGRADES_SCREEN.md`.
+- **Gold rolls** (S12): Luck boosts ×2/×5/×10 for Gold/Diamond/Prism, every
+  10/8/6 pulls with Gold Rate 0/I/II. Auto Roll stops at a typed "1 in X", and
+  Rebirth chickens always stop it. See `AUTO_ROLL.md`.
+- **Roll length** (S2 v2): `RollRevealSeconds` is 4. The reveal snaps out with a
+  flash and speed lines; there is no orbit.
+- **Economy** (S7): Time Skip pays minutes of the pre-Rebirth income. RecruitLevel
+  ignores Feed levels. Rebirth chickens 25–30 stay stronger than the Cosmic Dragon.
+  The Skip products are live (49/99/199 R$), and the four retired passes are off sale.
+- **Friend Boost** (S4): the + button opens Roblox's invite list directly.
+- **Guide** (S14): the first Collect goal is 20 eggs, a Flock Size I step comes before
+  Army Size I, and the Rebirth Next goal shows only when it's ready.
+
 ### Existing players
 - Old tree levels and research convert to the closest new tiers. This is the
   lead's default (Stevin said "idk"); S7 shows him the mapping when it confirms.
