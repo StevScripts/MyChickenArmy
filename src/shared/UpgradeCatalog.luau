@@ -74,10 +74,10 @@ local families: {Family} = {
 		format = "level", description = "Gold rolls come around sooner.",
 		tiers = tiers({{1, 60000}, {2, 150000}}), positions = {{1, -3}, {1, -4}}, prerequisite = "GoldMachine"},
 	{id = "DiamondMachine", name = "Diamond Machine", category = "Main", icon = "diamondMachine", effect = "goldMachine", base = 0,
-		format = "unlock", description = "Special rolls become Diamond rolls.",
+		format = "unlock", description = "Adds Diamond rolls on their own counter, separate from Gold rolls.",
 		tiers = tiers({{2, 300000}}), positions = {{1, -5}}, prerequisite = "GoldRate2"},
 	{id = "PrismMachine", name = "Prism Machine", category = "Main", icon = "prismMachine", effect = "goldMachine", base = 0,
-		format = "unlock", description = "Special rolls reach the highest tier.",
+		format = "unlock", description = "Adds Prism rolls on their own counter, separate from Gold and Diamond rolls.",
 		tiers = tiers({{3, 1000000}}), positions = {{1, -6}}, prerequisite = "DiamondMachine"},
 	-- Tools ----------------------------------------------------------------------
 	-- October 20 (Stevin, S14): the hand vacuum is bought here and resets on Rebirth,
@@ -257,6 +257,9 @@ Catalog.DefaultEffects = table.freeze({
 	flockSize = 3, eggVacuum = 0, vacuumCapacity = 0, vacuumRange = 0, chickenFeed = 0, goldMachine = 0, goldRate = 0,
 	coinBoost = 0, gemBonus = 0, timeSkipMinutes = 0, keepTiers = 0, mutationLuck = 0,
 	offlineEfficiency = 0, rebirthChickenChance = 0.01, autoRebirth = 0,
+	-- S7b: Army slots from Gem Upgrades (on top of Army Size), and Chicken Feed levels
+	-- above Config.MaxPetLevel from any source (S9c's Feed Max Level tiers).
+	armySlots = 0, feedMaxLevel = 0,
 })
 
 -- Pure effect table for a saved tree and Gem Upgrade levels. The highest owned

@@ -153,9 +153,15 @@ function PlayerSession:RefreshEffects()
 	self.eggSpeedLevel=UpgradeCatalog.Tier(tree,"EggSpeed")
 	self.incomeLevel=UpgradeCatalog.Tier(tree,"EggValue")
 	self.luck=UpgradeCatalog.Tier(tree,"Luck")
-	self.capacity=UpgradeCatalog.Value(tree,"ArmySize")
+	-- The tree's Army Size plus +1 Army Slot Gem Upgrades (S7b).
+	self.capacity=UpgradeCatalog.Value(tree,"ArmySize")+math.max(0,math.floor(self.researchEffects.armySlots or 0))
 	self.rollSlotsUnlocked=UpgradeCatalog.Value(tree,"RollSlot")
 	self.plotSizeLevel=UpgradeCatalog.YardStage(tree)
+end
+
+-- The highest level Chicken Feed reaches: Config.MaxPetLevel plus feedMaxLevel (S7b).
+function PlayerSession:LevelCap(): number
+	return Rules.LevelCap(self.researchEffects)
 end
 
 -- Chickens out in the yard laying (Flock Size; S10 owns who they are).
@@ -519,7 +525,7 @@ end
 function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
 	local pet=if type(id)=="string" and #id<=64 then self.pets[id] else nil
 	if not pet then return false,"Choose a chicken from your own flock." end
-	if (pet.level or 1)>=Config.MaxPetLevel then return false,"Max level reached." end
+	if (pet.level or 1)>=self:LevelCap() then return false,"Max level reached." end
 	if not Config.Features.ChickenCashUpgrades then return false,"Fuse 3 matching chickens to level up." end
 	-- October 20: levels are bought with Chicken Feed (Upgrades > Tools), reset on Rebirth.
 	if (self.researchEffects.chickenFeed or 0)<1 then return false,"Buy Chicken Feed in Upgrades > Tools first." end
@@ -642,7 +648,8 @@ function PlayerSession:NextSlot()
  local tier=UpgradeCatalog.Tier(self.upgradeTree,"ArmySize")+1
  local entry=UpgradeCatalog.Families.ArmySize.tiers[tier]
  if not entry then return nil end
- return {capacity=entry.value,displayCapacity=entry.value+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
+ local capacity=entry.value+math.max(0,math.floor(self.researchEffects.armySlots or 0))
+ return {capacity=capacity,displayCapacity=capacity+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
   price=UpgradeCatalog.Price("ArmySize",tier,self.rebirths),unlocked=true,requirement="Buy one more Army slot",tier=tier}
 end
 
@@ -704,8 +711,10 @@ function PlayerSession:PetEntries(best: {string}, deployedIds: {string}, flock: 
 		shown.flock,shown.laying,shown.canSell,shown.saleReason=context.flock[id]==true,layers[id]==true,canSell,saleReason
 		shown.income=Rules.Income(pet.species,pet.stars,level,self.incomeLevel)*mutation*value
 		shown.eggsPerSecond=Rules.EggRate(pet.species,pet.stars,level)*production*mutation
-		shown.upgradePrice,shown.canUpgrade,shown.upgradeReason=Rules.ChickenUpgradePrice(pet.species,level),canUpgrade,upgradeReason
-		shown.levelCap,shown.investment=Config.MaxPetLevel,pet.investment
+		local levelCap=self:LevelCap()
+		shown.upgradePrice=if level<levelCap then Rules.ChickenUpgradePrice(pet.species,level) else nil
+		shown.canUpgrade,shown.upgradeReason=canUpgrade,upgradeReason
+		shown.levelCap,shown.investment=levelCap,pet.investment
 		shown.refund=Rules.SellValue(pet.investment or Rules.Investment(pet.species,pet.level))
 		local entry=previous[id]
 		if entry then
@@ -764,7 +773,7 @@ function PlayerSession:Snapshot(now: number)
 	local income=self:EarnedAmount(layingIncome*eggProduction,"eggs")*(1+(self.territoryBonus or 0))
 	return {research=ResearchService.Snapshot(self,os.time()),nextSlot=self:NextSlot(),
 		progression={rank=self.promotion,name=rank.name,total=Progression.Count(),capacityCap=Config.MaxSlots+(if self.entitlements.BiggerArmy then ShopCatalog.ArmyBonus else 0),
-			levelCap=Config.MaxPetLevel,ready=false,
+			levelCap=self:LevelCap(),ready=false,
             goal=Progression.NextGoal(self.firstWins,self.frontierWins,self.kingCleared),
             requirement=Progression.Requirement(math.min(self.promotion+1,4)),
 			nextName=if self.promotion<Progression.Count() then Progression.Get(self.promotion+1).name else nil,
@@ -1095,13 +1104,16 @@ function PlayerSession:LoadData(data)
 				or not numberIn(pet.eggTimer or 0,0,Config.LegacyEggLaySeconds) then return false,"Invalid saved egg value." end
 			converted+=pet.cash or 0
 		end
-		local level=if revision<3 then 1 else pet.level
-		if not numberIn(level,1,Config.MaxPetLevel,true) then return false,"Invalid saved chicken level." end
+		-- October 20 (S7b): Feed Max Level allows levels up to Config.PetLevelLimit; a
+		-- higher saved level reads as the limit instead of failing the load.
+		local level=clampHigh(if revision<3 then 1 else pet.level,1,Config.PetLevelLimit,true)
+		if not level then return false,"Invalid saved chicken level." end
 		-- October 20: Giants are retired. A saved size is kept for the next save but never
 		-- loaded as giantSize, so old Giants are ordinary chickens. Bad values are dropped.
 		local retiredGiantSize=if Giant.IsValidSize(pet.giantSize) then pet.giantSize else nil
 		local investment=if revision<5 then Rules.Investment(pet.species,level,true) else pet.investment
-		investment=clampHigh(investment,0,1e12)
+		-- Feed levels can cost more than 1e12 (S7b); the limit is the Coins cap.
+		investment=clampHigh(investment,0,Currency.MaxCoins)
 		if not investment then return false,"Invalid saved chicken investment." end
 		-- Additive launch field: an unknown or malformed mutation is dropped, never the chicken.
 		pets[pet.id]={id=pet.id,species=pet.species,stars=1,level=level,retiredGiantSize=retiredGiantSize,favorite=pet.favorite,collected=math.ceil(collected),investment=math.ceil(investment),

@@ -58,7 +58,7 @@ local PASSES={
  {key="DoubleCash",name="2x Coins",description="Earn twice as many coins.",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),rim=Color3.fromRGB(233,255,160),title=Color3.fromRGB(242,255,216),icon="Cash",background="cash",double=true},
  {key="DoubleEggSpawn",name="2x Egg Spawn",description="Chickens lay eggs twice as often.",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),rim=Color3.fromRGB(188,239,255),title=Color3.fromRGB(227,250,255),icon="Eggs",background="eggs",double=true},
  {key="AutoMerge",name="Auto Fuse",description="Fuse matching chickens for you.",color=Color3.fromRGB(8,207,243),top=Color3.fromRGB(0,110,228),rim=Color3.fromRGB(179,240,255),title=Color3.fromRGB(222,248,255),icon="AutoMerge",background="cyan"},
- {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 15 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
+ {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 17 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army"},
  {key="DoubleLuck",name="2x Luck",description="2x Luck strength. Favor stronger chickens.",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),rim=Color3.fromRGB(255,236,173),title=Color3.fromRGB(255,242,205),icon="DoubleLuck",background="gold",double=true},
 }
 local EXISTING_STYLES={

@@ -200,7 +200,9 @@ Upgrade levels. Where a key has both, they add.
 | `autoRoll` | 0 | – | Auto Roll = 1 | RollService, `SetAutoRoll` (S12) |
 | `rallySeconds` | 0 | – | Rally: 8 s, then 12 s | ArmyAbilities (unchanged) |
 | `callArmy` | 1 | – | – | Always 1 (free) |
-| `flockSize` | 3 | Flock | – | S10 (`session:FlockSize()`) |
+| `flockSize` | 3 | Flock | +1 Flock Slot +1/level (S7b) | S10 (`session:FlockSize()`); the yard follows the tree's Flock tier only |
+| `armySlots` | 0 | – | +1 Army Slot +1/level (S7b) | `PlayerSession:RefreshEffects`: `capacity` = Army Size value + this |
+| `feedMaxLevel` | 0 | S9c: Feed Max Level I–III (extra levels) | – | `Rules.LevelCap`: Chicken Feed cap = `Config.MaxPetLevel` (10) + this, at most `Config.PetLevelLimit` (20) |
 | `eggVacuum` | 0 | Egg Vacuum = 1 (S14) | – | ToolService (the held tool), EggService (pulls eggs) |
 | `vacuumCapacity` | 0 | Vacuum Capacity (bonus seconds) | Vacuum Capacity +15 s/level | S11: seconds = 30 s base (`VacuumConfig`) + this; capacity in eggs = seconds × the Flock's current eggs/s (Stevin, Oct 20) |
 | `vacuumRange` | 0 | Vacuum Range | – | S11 |
@@ -221,7 +223,7 @@ Legacy keys stay at neutral values so old readers never break: `production=0`,
 
 Session helpers (S7): `session:RefreshEffects()` after any change to
 `upgradeTree`/`gemUpgrades`; `session:FlockSize()`; `session:TreeTier(family)`;
-`session:GemLevel(upgradeId)`.
+`session:GemLevel(upgradeId)`; `session:LevelCap()` (S7b).
 
 Hooks other owners add (one call each):
 - **S12, `RollService:Roll`:** `species = RebirthChickens.MaybeReplace(session, species, rng, slot)`
@@ -267,10 +269,37 @@ Hooks other owners add (one call each):
   (tree sizes 3/4/6/8/10), `gems`, `setrebirth`, `gemupgrade <all|id> [level]`,
   `skip [count]`.
 
+### Chicken levels 11–20 and Gem slots (S7b, Stevin Oct 20)
+
+- **One effect sets the Feed cap.** `researchEffects.feedMaxLevel` = extra Chicken Feed
+  levels above `Config.MaxPetLevel` (10), summed from any source. S9c's Feed Max Level
+  I–III tree family sets it (`effect = "feedMaxLevel"`, values = extra levels). The cap
+  is `Rules.LevelCap(effects)` = 10 + that, at most `Config.PetLevelLimit` (20); with
+  no source it stays 10.
+- **Server checks the cap.** `ChickenUpgradeEligibility` says "Max level reached." at
+  the player's cap. Each chicken in `state.pets` carries `levelCap` (the player's cap)
+  and no `upgradePrice` at it. `progression.levelCap` is the same number. Clients show
+  "Max level" from `pet.levelCap` (ChickenBrowser, ToolController, ChickenLabel).
+- **Levels past 10:** +25% eggs each, compounding (`Rules.EggGrowthPastCap`), instead
+  of 2x; Lv 20 lays about 9.3x a Lv 10. HP and damage keep +25% of base per level.
+  Feed quotes (`Rules.ChickenUpgradePrice`) run to Lv 20: Lv 10→11 costs 1.25x the
+  Lv 9→10 quote, then 3.125x per level (each level 2.5x slower to pay back, as in 1–10).
+  Draft until the post-S9c re-fit.
+- **Unchanged:** roll offers stay at most Lv 9 (`Rules.RecruitLevel`); the historical
+  refund curve (`Rules.UpgradePrice`) still stops at 10. Levels past 10 are Feed
+  levels (`cashLevels`), so a Rebirth takes them back.
+- **Saves:** levels 1–20 load; a higher saved level reads as 20. A chicken's saved
+  investment and a Feed purchase may reach `CurrencyLimits.MaxCoins` (was 1e12, which
+  already stopped Galaxy Overlord at Lv 7→8).
+- **Gem slots:** `capacity` (and `NextSlot`) add `armySlots`; `Config.MaxSlots` is 12
+  (the tree's 10 + 2), 17 with Bigger Army. Time Skip counts Gem Flock slots.
+- **Admin:** `chicken <target> <species> [level]` accepts up to Lv 20; levels past 10
+  count as Feed levels.
+
 ## 6. Gem Upgrades (`GemUpgradeCatalog`)
 
 ```lua
-GemUpgradeCatalog.Order = {14 ids, row by row}
+GemUpgradeCatalog.Order = {16 ids, row by row}
 GemUpgradeCatalog.Upgrades[id] = {
 	id, name, row, column,  -- column 1 or 2 in the two-column grid
 	unlockRank,             -- 0 = open from the start
@@ -282,22 +311,30 @@ GemUpgradeCatalog.Upgrades[id] = {
 }
 ```
 
+Order (S7b, Stevin Oct 20): Drop a Fruit's shop order in rows of two, with +1 Flock
+Slot and +1 Army Slot at Rebirth 1 (its "+1 Fruit Slot"). Ranks and prices are drafts
+until the post-S9c re-fit.
+
 | Row | Opens at | Id | Name | Max | Card text (next level) | Gem prices (draft) |
 |---|---|---|---|---|---|---|
 | 1 | start | `RollSpeed` | Roll Speed | 5 | +10% faster rolls | 5, 10, 20, 35, 60 |
 | 1 | start | `ExtraLuck` | Extra Luck | 5 | +10% roll luck | 5, 10, 20, 35, 60 |
 | 2 | start | `VacuumCapacity` | Vacuum Capacity | 3 | +15 s of eggs in your vacuum | 10, 25, 50 |
 | 2 | start | `AutoRoll` | Auto Roll | 1 | Unlocks Auto Roll | 15 |
-| 3 | start | `CoinBoost` | Coin Boost | 10 | +10% Coins from eggs | 10, 15, 25, 40, 60, 90, 135, 200, 300, 450 |
-| 3 | start | `AutoRebirth` | Auto Rebirth | 1 | Rebirths for you when you have enough Coins | 25 |
-| 4 | Rebirth 2 | `TimeSkip` | Time Skip | 6 (starts at 1) | +5 min of Coins when you rebirth | 20, 40, 70, 110, 160 |
-| 4 | Rebirth 2 | `MoreGems` | More Gems | 5 | +10% Gems from every rebirth | 25, 50, 90, 140, 200 |
-| 5 | Rebirth 5 | `KeepUpgrades` | Keep Upgrades | 3 | Keep 1 tier of Egg Speed, Egg Value and Luck | 40, 90, 160 |
-| 5 | Rebirth 5 | `Rally` | Rally | 2 | Rally: +20% army damage for 8 s, then 12 s | 30, 80 |
-| 6 | Rebirth 10 | `MutationLuck` | Mutation Luck | 5 | +10% mutation chance | 40, 80, 130, 190, 260 |
-| 6 | Rebirth 10 | `OfflineCoins` | Offline Coins | 4 | Earn 5% more while away | 30, 60, 100, 150 |
-| 7 | Rebirth 15 | `ArmyPower` | Army Power | 5 | +5% army damage and health | 50, 100, 175, 275, 400 |
-| 7 | Rebirth 15 | `RebirthChickenOdds` | Rebirth Chicken Odds | 5 | Rebirth chickens show up 20% more | 30, 60, 100, 150, 220 |
+| 3 | Rebirth 1 | `FlockSlot` | +1 Flock Slot | 2 | +1 chicken laying eggs in your Flock | 20, 60 |
+| 3 | Rebirth 1 | `ArmySlot` | +1 Army Slot | 2 | +1 chicken in your Army | 25, 75 |
+| 4 | Rebirth 2 | `CoinBoost` | Coin Boost | 10 | +10% Coins from eggs | 10, 15, 25, 40, 60, 90, 135, 200, 300, 450 |
+| 4 | Rebirth 2 | `AutoRebirth` | Auto Rebirth | 1 | Rebirths for you when you have enough Coins | 25 |
+| 5 | Rebirth 3 | `TimeSkip` | Time Skip | 6 (starts at 1) | +5 min of Coins when you rebirth | 20, 40, 70, 110, 160 |
+| 5 | Rebirth 3 | `MoreGems` | More Gems | 5 | +10% Gems from every rebirth | 25, 50, 90, 140, 200 |
+| 6 | Rebirth 5 | `KeepUpgrades` | Keep Upgrades | 3 | Keep 1 tier of Egg Speed, Egg Value and Luck | 40, 90, 160 |
+| 6 | Rebirth 5 | `Rally` | Rally | 2 | Rally: +20% army damage for 8 s, then 12 s | 30, 80 |
+| 7 | Rebirth 8 | `MutationLuck` | Mutation Luck | 5 | +10% mutation chance | 40, 80, 130, 190, 260 |
+| 7 | Rebirth 8 | `OfflineCoins` | Offline Coins | 4 | Earn 5% more while away | 30, 60, 100, 150 |
+| 8 | Rebirth 12 | `ArmyPower` | Army Power | 5 | +5% army damage and health | 50, 100, 175, 275, 400 |
+| 8 | Rebirth 12 | `RebirthChickenOdds` | Rebirth Chicken Odds | 5 | Rebirth chickens show up 20% more | 30, 60, 100, 150, 220 |
+
+Saved levels never change with a row move: a level bought before keeps its effect.
 
 Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 "no rank gates on Coins upgrades" rule does not apply to their row locks.
@@ -385,6 +422,7 @@ rebirth = {
 | `gemUpgrades` | S7 | `{order, items={[id]={id, level, maxLevel, price?, status, row, column, unlockRank, text}}, autoRebirth={owned, enabled}}`; status `Locked` / `Available` / `Unaffordable` / `Maxed` |
 | `upgradeTree` | S7 | `{families={[family]=tier}, nodes={[nodeId]={status, price?, spendReason?}}, badges={Main, Tools, Player, Army, total}}`; status `Owned` / `Available` / `Unaffordable` / `Locked` (prerequisite missing); special nodes report their kind. `Available` respects the starter reserve; badges count `Available` per category and in total |
 | `effects` | S7 | copy of `researchEffects` |
+| `pets[i].levelCap`, `progression.levelCap` | S7b | the player's Chicken Feed cap (`Rules.LevelCap`, 10–20); a chicken at it has no `upgradePrice` |
 | `upgradeTree.luck` | S7 | Luck tooltip (S9): `{multiplier, windowText, rarePlusChance, epicPlusChance, topBandChance, nextMultiplier?, nextWindowText?, nextRarePlusChance?, nextEpicPlusChance?, nextTopBandChance?}`; bonuses included, next = the next Luck tier |
 | `rally` | S7 | `{readyAt, activeUntil}` in server epoch seconds (S9's Rally button); `rallySeconds` is in `effects` |
 | `rebirth` | S7 | section 7 |

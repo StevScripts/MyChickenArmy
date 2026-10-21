@@ -16,6 +16,7 @@ local Rebirth=require(Server.RebirthService)
 local Upgrades=require(Server.UpgradeService)
 local GemUpgrades=require(Server.GemUpgradeService)
 local RebirthChickens=require(Server.RebirthChickens)
+local Army=require(Server.ArmyService)
 local Operations=require(Server.OperationService)
 local Checks={}
 
@@ -93,6 +94,7 @@ function Checks.Run()
 		local effects=Tree.Effects({},{})
 		assert(effects.flockSize==3 and effects.timeSkipMinutes==5 and effects.callArmy==1,"Flock, Time Skip, Call Army")
 		assert(effects.keepTiers==0 and effects.autoRebirth==0 and effects.rebirthChickenChance==0.01,"Gem defaults")
+		assert(effects.armySlots==0 and effects.feedMaxLevel==0,"Army slot and Feed level defaults")
 		assert(GemCatalog.Level({},"TimeSkip")==1 and GemCatalog.Level({},"CoinBoost")==0,"Gem start levels")
 		assert(Tree.ValueText("VacuumCapacity",1)=="+15 s of eggs",Tree.ValueText("VacuumCapacity",1))
 		return "Defaults match the contract"
@@ -236,38 +238,54 @@ function Checks.Run()
 		return "Formulas match the contract"
 	end)
 
-	test("Gem Upgrades: rows open by rank and buys use the exact quote",function()
+	test("Gem shop: the reference order in rows of two, rows open by rank, buys use the exact quote",function()
+		-- Stevin's order (October 20, S7b), as in Drop a Fruit's shop: two cards per row.
+		local order={"RollSpeed","ExtraLuck","VacuumCapacity","AutoRoll","FlockSlot","ArmySlot","CoinBoost","AutoRebirth",
+			"TimeSkip","MoreGems","KeepUpgrades","Rally","MutationLuck","OfflineCoins","ArmyPower","RebirthChickenOdds"}
+		assert(table.concat(GemCatalog.Order,",")==table.concat(order,","),table.concat(GemCatalog.Order,","))
+		local previousRank=0
+		for index,id in order do
+			local upgrade=GemCatalog.Upgrades[id]
+			assert(upgrade.row==math.ceil(index/2) and upgrade.column==(index-1)%2+1,
+				id.." at row "..upgrade.row..", column "..upgrade.column)
+			assert(upgrade.unlockRank>=previousRank,id.." opens before the row above it")
+			previousRank=upgrade.unlockRank
+		end
+		assert(GemCatalog.Upgrades.FlockSlot.unlockRank==1 and GemCatalog.Upgrades.ArmySlot.unlockRank==1
+			and GemCatalog.Upgrades.CoinBoost.unlockRank==2,"Slot and Coin Boost rows")
 		local s=fixture(-9307)
 		s.rebirths,s.gems=1,50
 		local snapshot=GemUpgrades.Snapshot(s)
 		assert(#snapshot.order==#GemCatalog.Order and not snapshot.autoRebirth.owned,"Snapshot")
 		assert(snapshot.items.TimeSkip.status=="Locked" and snapshot.items.TimeSkip.level==1
-			and snapshot.items.RollSpeed.status=="Available","Row status")
-		refused("Reach Rebirth 2 to unlock Time Skip.",GemUpgrades.Buy(s,"TimeSkip",1,20))
+			and snapshot.items.FlockSlot.status=="Available" and snapshot.items.CoinBoost.status=="Locked","Row status")
+		refused("Reach Rebirth 2 to unlock Coin Boost.",GemUpgrades.Buy(s,"CoinBoost",0,10))
+		refused("Reach Rebirth 3 to unlock Time Skip.",GemUpgrades.Buy(s,"TimeSkip",1,20))
 		refused("This upgrade changed. Try again.",GemUpgrades.Buy(s,"AutoRoll",0,99))
 		refused("Choose a Gem Upgrade.",GemUpgrades.Buy(s,"Nope",0,1))
 		local ok,message=GemUpgrades.Buy(s,"AutoRoll",0,15)
 		assert(ok and message=="Auto Roll unlocked!" and s.researchEffects.autoRoll==1 and s.gems==35,message)
 		refused("Auto Roll is at its maximum.",GemUpgrades.Buy(s,"AutoRoll",1,nil))
+		s.rebirths=2
 		ok,message=GemUpgrades.Buy(s,"AutoRebirth",0,25)
 		assert(ok and s.autoRebirth==true and s.researchEffects.autoRebirth==1,message)
 		ok,message=GemUpgrades.Buy(s,"CoinBoost",0,10)
 		assert(ok and message=="Coin Boost is now level 1!" and s.gems==0,message)
 		near(s.researchEffects.coinBoost,0.1,"Coin Boost")
 		refused("Need 15 more Gems.",GemUpgrades.Buy(s,"CoinBoost",1,15))
-		-- Coin Boost multiplies egg Coins only, on top of the Rebirth 1 multiplier.
-		near(s:EarnedAmount(100,"eggs",true),220,"Egg Coins")
+		-- Coin Boost multiplies egg Coins only, on top of the Rebirth 2 multiplier (x3).
+		near(s:EarnedAmount(100,"eggs",true),330,"Egg Coins")
 		near(s:EarnedAmount(100,"battle",true),100,"Battle Coins")
 		refused("Invalid Auto Rebirth setting.",GemUpgrades.SetAutoRebirth(s,"yes"))
 		ok,message=GemUpgrades.SetAutoRebirth(s,false)
 		assert(ok and message=="Auto Rebirth off." and s.autoRebirth==false,message)
 		refused("Unlock Auto Rebirth in Gem Upgrades first.",GemUpgrades.SetAutoRebirth(fixture(-9308),true))
-		return "Locks, quotes, prices and effects hold"
+		return "Order, locks, quotes, prices and effects hold"
 	end)
 
 	test("Time Skip and More Gems raise the next Rebirth's rewards",function()
 		local s=fixture(-9309)
-		s.rebirths,s.gems=2,200
+		s.rebirths,s.gems=3,200
 		local fiveMinutes=Rebirth.TimeSkipCoins(s)
 		local ok,message=GemUpgrades.Buy(s,"TimeSkip",1,20)
 		assert(ok and s.researchEffects.timeSkipMinutes==10,message)
@@ -276,10 +294,106 @@ function Checks.Run()
 		ok,message=GemUpgrades.Buy(s,"MoreGems",0,25)
 		assert(ok,message)
 		local quote=Rebirth.Quote(s)
-		-- floor((40 + 30) x 1.1) Gems for Rebirth 3.
-		assert(quote.gemsNext==77 and quote.timeSkipCoins==tenMinutes,
+		-- floor((40 + 40) x 1.1) Gems for Rebirth 4.
+		assert(quote.gemsNext==88 and quote.timeSkipCoins==tenMinutes,
 			tostring(quote.gemsNext).." Gems, Time Skip "..tostring(quote.timeSkipCoins))
 		return "Time Skip "..fiveMinutes.." -> "..tenMinutes.." Coins"
+	end)
+
+	test("+1 Flock Slot and +1 Army Slot add to the tree's sizes and stay through Rebirths and saves",function()
+		local s=fixture(-9320)
+		s.rebirths,s.gems=1,100
+		for _=1,3 do s:AddPet("Chunky",1) end -- six chickens, so a fourth layer counts
+		local before=Rebirth.TimeSkipCoins(s)
+		local ok,message=GemUpgrades.Buy(s,"FlockSlot",0,20)
+		assert(ok and s:FlockSize()==4,message)
+		ok,message=GemUpgrades.Buy(s,"ArmySlot",0,25)
+		assert(ok and s.capacity==4 and s:Capacity()==4,message)
+		assert(Rebirth.TimeSkipCoins(s)>before,"Time Skip ignored the Gem Flock slot")
+		setTree(s,{ArmySize=1,Flock=2})
+		assert(s.capacity==5 and s:FlockSize()==6,"On top of the tree: "..s.capacity.." and "..s:FlockSize())
+		local nextSlot=s:NextSlot()
+		assert(nextSlot and nextSlot.tier==2 and nextSlot.capacity==7,"Next Army Size tier")
+		s.entitlements.BiggerArmy=true
+		assert(s:Capacity()==5+Shop.ArmyBonus and s:NextSlot().displayCapacity==7+Shop.ArmyBonus,"Bigger Army")
+		s.entitlements.BiggerArmy=nil
+		s.coins=Rebirth.Cost(2)
+		ok,message=Rebirth.Rebirth(s,1,NO_SERVER,false)
+		assert(ok and s.capacity==4 and s:FlockSize()==4,"After Rebirth: "..s.capacity.." and "..s:FlockSize())
+		local t=Session.new(-9320,"Restore fixture",1)
+		ok,message=t:LoadData(s:ToData())
+		assert(ok and t.capacity==4 and t:FlockSize()==4 and t.gemUpgrades.FlockSlot==1 and t.gemUpgrades.ArmySlot==1,
+			tostring(message))
+		return "Flock 4 and Army 4 after a Rebirth"
+	end)
+
+	test("Chicken Feed past Lv 10 follows feedMaxLevel (set by hand): cap, +25% eggs, quotes, Rebirth",function()
+		local s=fixture(-9321)
+		setTree(s,{ChickenFeed=1})
+		local pet=s:AddPet("Knight",1)
+		pet.level,pet.cashLevels=10,9
+		local function entry()
+			for _,shown in s:Snapshot(0).pets do if shown.id==pet.id then return shown end end
+			return nil
+		end
+		assert(s:LevelCap()==Config.MaxPetLevel and Rules.LevelCap(nil)==Config.MaxPetLevel,"Base cap")
+		refused("Max level reached.",s:ChickenUpgradeEligibility(pet.id))
+		local shown=entry()
+		assert(shown and shown.levelCap==10 and shown.upgradePrice==nil,"Snapshot at the cap")
+		-- What S9c's Feed Max Level tiers will set; any source adds up.
+		s.researchEffects=table.clone(s.researchEffects)
+		s.researchEffects.feedMaxLevel=4
+		assert(s:LevelCap()==14 and s:ChickenUpgradeEligibility(pet.id),"Cap 14")
+		local nine=Rules.ChickenUpgradePrice("Knight",9) :: number
+		local ten=Rules.ChickenUpgradePrice("Knight",10)
+		assert(ten==math.ceil(nine*1.25) and Rules.ChickenUpgradePrice("Knight",11)==math.ceil(nine*1.25*3.125),"Quotes")
+		assert(Rules.ChickenUpgradePrice("Knight",19)~=nil and Rules.ChickenUpgradePrice("Knight",20)==nil,"Quote range")
+		shown=entry()
+		assert(shown and shown.levelCap==14 and shown.upgradePrice==ten,"Snapshot under the cap")
+		s.coins=ten :: number
+		local ok,message=Army.UpgradeChicken(s,pet.id,10,ten)
+		assert(ok and pet.level==11 and pet.cashLevels==10 and s.coins==0,message)
+		near(Rules.EggRate("Knight",1,11),Rules.EggRate("Knight",1,10)*1.25,"Lv 11 eggs")
+		near(Rules.EggRate("Knight",1,20),Rules.EggRate("Knight",1,10)*1.25^10,"Lv 20 eggs")
+		near(Rules.EggRate("Knight",1,10),Rules.EggRate("Knight",1,9)*2,"Lv 10 still doubles")
+		near(Rules.Stats("Knight",1,20).hp/Rules.Stats("Knight",1,1).hp,1+19*Config.PetCombatPerLevel,"Lv 20 health")
+		s.researchEffects.feedMaxLevel=99
+		assert(s:LevelCap()==Config.PetLevelLimit,"Limit")
+		s.researchEffects.feedMaxLevel=-3
+		assert(s:LevelCap()==Config.MaxPetLevel,"Negative extra")
+		-- Levels past 10 are Feed levels, so a Rebirth takes them back like the rest.
+		s.coins=Rebirth.Cost(1)
+		ok,message=Rebirth.Rebirth(s,0,NO_SERVER,false)
+		assert(ok and pet.level==1 and pet.cashLevels==nil,"After Rebirth: Lv "..pet.level)
+		return "Cap 10 -> 14 -> 20; Lv 11 bought for "..ten.." Coins"
+	end)
+
+	test("Saves keep levels up to 20 and big Feed investments; a higher level reads as 20",function()
+		local s=fixture(-9322)
+		local fed=s:AddPet("Knight",1)
+		fed.level,fed.cashLevels,fed.investment=15,5,5e12
+		local over=s:AddPet("Duck",1)
+		over.level,over.cashLevels=25,15
+		local t=Session.new(-9322,"Restore fixture",1)
+		local ok,message=t:LoadData(s:ToData())
+		assert(ok,message)
+		local a,b=t.pets[fed.id],t.pets[over.id]
+		assert(a.level==15 and a.cashLevels==5 and a.investment==5e12,"Lv 15 chicken")
+		assert(b.level==Config.PetLevelLimit and b.cashLevels==15,"Lv 25 chicken read as "..b.level)
+		return "Lv 15 kept, Lv 25 read as 20"
+	end)
+
+	test("Feed is limited by the Coins cap, not 1e12 (Galaxy Overlord past Lv 7)",function()
+		local s=fixture(-9323)
+		setTree(s,{ChickenFeed=1})
+		local pet=s:AddPet("StormDuck",1)
+		pet.level,pet.cashLevels=7,6
+		pet.investment=Rules.Investment("StormDuck",7)
+		local price=Rules.ChickenUpgradePrice("StormDuck",7) :: number
+		s.coins=price
+		local ok,message=Army.UpgradeChicken(s,pet.id,7,price)
+		assert(ok and pet.level==8 and pet.investment>1e12,message)
+		return "Lv 8 for "..price.." Coins"
 	end)
 
 	test("A Skip credit rebirths without Coins, keeps the run and waits for the army",function()

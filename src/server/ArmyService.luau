@@ -157,8 +157,9 @@ function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
 	if not price or session.coins<price then return false,"Not enough coins to upgrade this chicken." end
 	local canSpend,spendReason=session:CanSpendCash(price)
 	if not canSpend then return false,spendReason end
+	-- Feed levels past 10 can cost more than 1e12 (S7b); the limit is the Coins cap.
 	local investment=(pet.investment or Rules.Investment(pet.species,level))+price
-	if investment~=investment or investment<0 or investment>1e12 then
+	if investment~=investment or investment<0 or investment>Currency.MaxCoins then
 		return false,"This upgrade exceeds the saved investment limit."
 	end
 	-- Quote, ownership and eligibility are checked before this non-yielding purchase.

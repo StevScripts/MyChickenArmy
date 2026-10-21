@@ -143,7 +143,7 @@ end
 
 -- The first Rebirth before it is affordable (the reference's 3,019 / 50,000 screen):
 -- a silhouette reward, no Gems, and the Rebirth 2+ rows locked.
-local FIRST_PRICES={RollSpeed=5,ExtraLuck=5,VacuumCapacity=10,AutoRoll=15,CoinBoost=10,AutoRebirth=25,
+local FIRST_PRICES={RollSpeed=5,ExtraLuck=5,VacuumCapacity=10,AutoRoll=15,FlockSlot=20,ArmySlot=25,CoinBoost=10,AutoRebirth=25,
 	TimeSkip=20,MoreGems=25,KeepUpgrades=40,Rally=30,MutationLuck=40,OfflineCoins=30,ArmyPower=50,RebirthChickenOdds=30}
 Render.RebirthFirst=function(ctx)
 	local state=ctx.state

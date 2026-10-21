@@ -331,7 +331,7 @@ handlers.chicken=function(self,actor,args)
 	local species=findSpecies(args[2])
 	if not species then return false,"Unknown chicken. Try a name from the Chicken Index." end
 	local level=if args[3] then tonumber(args[3]) else 1
-	if not level or level<1 or level>Config.MaxPetLevel or level%1~=0 then return false,"Level must be 1 to "..Config.MaxPetLevel.."." end
+	if not level or level<1 or level>Config.PetLevelLimit or level%1~=0 then return false,"Level must be 1 to "..Config.PetLevelLimit.."." end
 	local count=if args[4] then tonumber(args[4]) else 1
 	if not count or count<1 or count>25 or count%1~=0 then return false,"Count must be 1 to 25." end
 	local given=0
@@ -341,6 +341,8 @@ handlers.chicken=function(self,actor,args)
 			if session:Count()>=session:CollectionLimit() then break end
 			local pet=session:AddPet(species,1)
 			pet.level=level;pet.investment=Rules.Investment(species,level)
+			-- Levels past MaxPetLevel only come from Chicken Feed, so they reset on Rebirth (S7b).
+			if level>Config.MaxPetLevel then pet.cashLevels=level-Config.MaxPetLevel end
 			added+=1
 		end
 		if added==0 then return false,"They have the most chickens they can keep." end

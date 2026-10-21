@@ -86,10 +86,11 @@ local DEFAULTS={
 	print=true,
 }
 
--- Gem Upgrades in buying order (the first affordable unlocked one each time).
-local GEM_PRIORITY={"CoinBoost","AutoRoll","ExtraLuck","RollSpeed","TimeSkip","MoreGems","KeepUpgrades",
-	"CoinBoost","ExtraLuck","RollSpeed","CoinBoost","AutoRebirth","VacuumCapacity","MutationLuck","ArmyPower",
-	"OfflineCoins","RebirthChickenOdds","Rally"}
+-- Gem Upgrades in buying order (the first affordable unlocked one each time). S7b's
+-- +1 Flock Slot and +1 Army Slot open at Rebirth 1, Coin Boost at Rebirth 2.
+local GEM_PRIORITY={"FlockSlot","CoinBoost","AutoRoll","ArmySlot","ExtraLuck","RollSpeed","TimeSkip","MoreGems",
+	"KeepUpgrades","CoinBoost","ExtraLuck","RollSpeed","CoinBoost","AutoRebirth","VacuumCapacity","MutationLuck",
+	"ArmyPower","OfflineCoins","RebirthChickenOdds","Rally"}
 
 -- Same Park-Miller generator as the old simulation; Random-compatible NextNumber.
 local function lcg(seed)
@@ -358,7 +359,8 @@ local function economyCandidates(state,failed)
 	end
 	local flock=nextTier(s,"Flock")
 	if flock then
-		local newSize=Tree.Families.Flock.tiers[flock].value
+		-- Gem Flock slots (S7b) stay on top of the tree's value.
+		local newSize=Tree.Families.Flock.tiers[flock].value+(size-Tree.Value(s.upgradeTree,"Flock"))
 		local gain=0
 		for i=size+1,math.min(newSize,#layers) do gain+=layerCash(s,layers[i]) end
 		add("Flock",nodePrice(s,"Flock",flock),gain,function() return buyNode(state,"Flock",flock) end)
@@ -369,7 +371,8 @@ local function economyCandidates(state,failed)
 	for i=1,math.min(size,#layers) do
 		local pet=layers[i]
 		local level=pet.level or 1
-		local price=Rules.ChickenUpgradePrice(pet.species,level)
+		-- The quote runs to Lv 20; the player's cap (feedMaxLevel, S7b) decides what Feed can buy.
+		local price=if level<s:LevelCap() then Rules.ChickenUpgradePrice(pet.species,level) else nil
 		if price and s:IsPetHome(pet.id) then
 			local gain=layerCash(s,pet,level+1)-layerCash(s,pet,level)
 			if feedOwned then
@@ -410,7 +413,7 @@ local function combatCandidates(state,failed)
 		for _,entry in lineup do
 			local pet=s.pets[entry.id]
 			local level=pet.level or 1
-			local price=Rules.ChickenUpgradePrice(pet.species,level)
+			local price=if level<s:LevelCap() then Rules.ChickenUpgradePrice(pet.species,level) else nil
 			if price then
 				add("feed:"..pet.id,price,petPower(pet,level+1)-petPower(pet,level),
 					function() return Army.UpgradeChicken(s,pet.id,level,price) end)
@@ -419,7 +422,8 @@ local function combatCandidates(state,failed)
 	end
 	local army=nextTier(s,"ArmySize")
 	if army then
-		local slots=Tree.Families.ArmySize.tiers[army].value-s.capacity
+		-- Tree tiers only: Gem Army slots sit on top of the tree's value (S7b).
+		local slots=Tree.Families.ArmySize.tiers[army].value-Tree.Value(s.upgradeTree,"ArmySize")
 		local reserves={}
 		for id,pet in s.pets do if not inLineup[id] then table.insert(reserves,petPower(pet)) end end
 		table.sort(reserves,function(a,b) return a>b end)
