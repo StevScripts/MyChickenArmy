@@ -11,7 +11,6 @@ local RebirthPanel=require(script.Parent.RebirthPanel)
 local FreeGiftController=require(script.Parent.FreeGiftController)
 local ToolController=require(script.Parent.ToolController)
 local ShopCatalog=require(game.ReplicatedStorage.PetRoll.Shared.ShopCatalog)
-local Progression=require(game.ReplicatedStorage.PetRoll.Shared.Progression)
 local A=Theme.Arcade
 local GEAR_PEEK_SECONDS=4
 local ARMY_HOME_SCALE=0.82
@@ -98,16 +97,8 @@ function Hud.new(app,shell)
 	self.rank.Visible=false
 	-- October 20 (S19, Stevin): no Gems counter with the Coins; Gems show only in the
 	-- Rebirth screen (GemUpgradeGrid's balance).
-	local totals=Theme.Container(shell,"ArmyTotals")
-	self.totals=totals
-	totals.AnchorPoint,totals.Position,totals.Size=Vector2.new(1,1),UDim2.fromScale(0.988,0.98),UDim2.fromScale(0.3,0.09)
-	Theme.Aspect(totals,4.2)
-	self.conquered=Theme.Display(totals,"Conquered","Camps held 0/8",27,A.gold)
-	self.conquered.Position,self.conquered.Size,self.conquered.TextXAlignment=UDim2.fromScale(0,0),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
-	self.flock=Theme.Display(totals,"Flock","Flock 0/40",25,A.gold)
-	self.flock.Position,self.flock.Size,self.flock.TextXAlignment=UDim2.fromScale(0,0.55),UDim2.fromScale(1,0.45),Enum.TextXAlignment.Right
-	-- Pops grow from the middle of the line, not its corner (same place at rest).
-	Theme.Motion:Center(self.conquered);Theme.Motion:Center(self.flock)
+	-- October 21 (Stevin): no "Camps held" / "Flock" lines in the bottom-right corner;
+	-- the Gold Rush chip (GoldRushController) takes the corner.
 	self.hill=HillHud.new(app,shell,cash)
 	self:BuildSettingsTopbar()
 	-- The list centers whatever is visible.
@@ -402,7 +393,7 @@ function Hud:Layout()
 	self.reenlist.Visual.Label.Position=UDim2.fromScale(0,0.64)
 	self.freeGift.Visual.Label.TextScaled=true
 	self.freeGift.Visual.Label.Position=UDim2.fromScale(0,0.64)
-	for _,label in {self.objective,self.money,self.income,self.territory,self.rank,self.conquered,self.flock,self.save,self.armyCount} do
+	for _,label in {self.objective,self.money,self.income,self.territory,self.rank,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
 	Theme.Aspect(self.objective,19)
@@ -430,10 +421,9 @@ function Hud:ApplyInputLayout()
 	if self.hill then self.hill:Place() end
 end
 
--- Middle of the right edge; the totals keep the bottom-right corner (all devices).
+-- Middle of the right edge (all devices).
 function Hud:PlaceRebirth()
 	self.rebirthCorner.Position=UDim2.fromScale(0.988,0.5)
-	self.totals.Position=UDim2.fromScale(0.988,0.98)
 end
 
 function Hud:Resize(_width, _height, _scale)
@@ -746,10 +736,6 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
 	self.lastCoins=shown
 	self:UpdateEggLine(state.eggs or {})
-	-- October 20: the Flock is the chickens laying (Flock Size); storage has no visible cap.
-	local flock=state.flock
-	self.flock.Text=if type(flock)=="table" and type(flock.size)=="number"
-		then "Flock "..#(flock.ids or {}).."/"..flock.size else "Flock "..count.."/"..limit
 	local atHome=state.armyState=="Home"
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
@@ -757,15 +743,6 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	local callUnlocked=callArmyUnlocked(state)
 	if callUnlocked~=self.callUnlocked then self.callUnlocked=callUnlocked;self:UpdateArmyCommands(false) end
 	self.callArmy.TextColor3=if state.armyState=="Following" then Theme.PageColors.Army else Theme.Colors.ink
-	local explored=0
- for _,won in state.frontierWins or {} do if won then explored+=1 end end
- local outpostCount=#Progression.Outposts()
- -- Territories held now (limit from research) and the live egg-value bonus they pay.
- local held=state.holdCount or 0
- local bonus=math.floor((state.territoryBonus or 0)*100+0.5)
- self.conquered.Text="Camps held "..held.."/"..(state.holdLimit or 8)..(if bonus>0 then " · +"..bonus.."% eggs" else "")
-  ..(if outpostCount>0 then " · Outposts "..explored.."/"..outpostCount else "")
-	self.conquered.TextColor3=if held>0 then A.green else A.gold
 	self.save.Text=if state.saveStatus=="error" then "Save unavailable · Settings" elseif state.saveStatus=="loading" then "Loading…" else ""
 	self.save.TextColor3=if state.saveStatus=="error" then A.red else Theme.Colors.muted
 	if state.saveStatus=="error" and self.lastSaveStatus~="error" then
@@ -773,13 +750,7 @@ function Hud:Update(state,count,limit,capacity,selected,deployed)
 	end
 	self.lastSaveStatus=state.saveStatus
 	if self.lastCount and (count~=self.lastCount or capacity~=self.lastCapacity) then Theme.Motion:Pop(self.army.Visual,1.1) end
-	if self.lastCount and count>self.lastCount then Theme.Motion:PopScale(self.flock,1.1) end
-	if self.lastConquered and held>self.lastConquered then
-		Theme.Motion:PopScale(self.conquered,1.13)
-		self:PopCash()
-		Theme.Motion:Burst(self.app.gui.Shell,UDim2.fromScale(0.92,0.94),A.gold)
-	end
-	self.lastCount,self.lastCapacity,self.lastConquered=count,capacity,held
+	self.lastCount,self.lastCapacity=count,capacity
 end
 
 return Hud
