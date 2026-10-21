@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Gold dice icon for the Roblox game My Chicken Army. It sits beside an "N Rolls Left" counter over the roll machine. It belongs to the same approved set as the attached images: images 1 and 2 (boots, first-aid kit) show the in-game style: chunky voxel blocks and beveled edges, bright clean colors, simple face shading with lightest top faces and darker right faces, a few small crisp highlights and a heavy continuous near-black outer outline. Image 3 (the Gold Machine) shows the exact gold material to use.
+
+Subject: one chunky gold die (a dice cube) seen from slightly above at a three-quarter angle, showing its top face and two side faces. Bright gold-yellow top face, warm orange-gold side faces, beveled block edges, chunky dark brown square pips (one pip on top, more pips on each side face), a few small crisp highlights.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow. It must read clearly at about 48 pixels next to a text label.
+
+When the image exists, copy that PNG to raw/GoldDice-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

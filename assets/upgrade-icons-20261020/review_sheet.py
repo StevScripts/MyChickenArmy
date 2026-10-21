@@ -99,6 +99,11 @@ GROUPS = [
     ("Sell menu (S13)", [
         ("SellTrash", "Sell marker", "over a picked card", "", None),
     ]),
+    ("Gold rolls (S12)", [
+        ("GoldDice", "Gold dice", "Rolls Left counter", "", None),
+        ("DiamondDice", "Diamond dice", "Rolls Left counter", "", None),
+        ("PrismDice", "Prism dice", "Rolls Left counter", "", None),
+    ]),
 ]
 
 ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"]
@@ -211,7 +216,7 @@ def main():
     sheet = Image.new("RGBA", (W, height), BG + (255,))
     draw = ImageDraw.Draw(sheet)
     outlined(draw, (MARGIN, 64), "My Chicken Army · upgrade icons v2 · Oct 20 overhaul (S6 review)", 46, anchor="lm")
-    draw.text((MARGIN, 120), "v2 in the in-game icon style: 34 new icons and 11 nodes kept on their approved in-game icon "
+    draw.text((MARGIN, 120), "v2 in the in-game icon style: 37 new icons and 11 nodes kept on their approved in-game icon "
               "(\"in game\"). Hex colours, names and tier numbers are mock-ups of S9's live UI.",
               font=font(22), fill=MUTED, anchor="lm")
     y = 170
