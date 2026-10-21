@@ -1,11 +1,13 @@
 --!strict
--- Roll camera for the local player's own podiums (Oct 20 overhaul, S2), matched to
+-- Roll camera for the local player's own podiums (Oct 20 overhaul, S2), based on
 -- Drop a Fruit's roll (Stevin's Oct 20 recording, measured frame by frame): the view
--- zooms in through the shuffle; on the reveal it snaps far out, the world flashes,
--- speed lines burst from the centre (in place of the reference's ring) and it eases
--- back. Epic and up add a short shake; Legendary and up a bigger snap, a longer
--- ease back and a brighter flash. The camera always stays with the player (Stevin
--- removed the Legendary orbit). Auto Roll gets a lighter push-in, snap and flash.
+-- zooms in through the shuffle; on the reveal it pops out past the normal view, the
+-- world flashes, speed lines burst from the centre (in place of the reference's ring)
+-- and it glides back. S20 calmed the reference's snap-back for Stevin: a smaller,
+-- slower pop and a smooth glide with no lingering, hard stop or overshoot. Rarer
+-- rolls pop wider, glide longer and flash brighter; Legendary and up add a small
+-- shake. The camera always stays with the player (Stevin removed the Legendary
+-- orbit). Auto Roll gets a lighter push-in, pop and flash.
 -- RollPresentationController decides when a roll counts (own lever podium, nearby,
 -- no menu, normal camera, motion on); this module only presents it.
 --
@@ -27,20 +29,27 @@ local PUSH_DEGREES = 11.5
 local PUSH_EASING = Enum.EasingStyle.Sine
 local PUSH_DIRECTION = Enum.EasingDirection.Out
 local REVEAL_WAIT_SECONDS = 1 -- no reveal this long past the shuffle: just ease back
-local RELEASE_SECONDS = 0.35 -- that ease back (Back Out)
+local RELEASE_SECONDS = 0.5 -- that ease back (RETURN_EASING, no overshoot)
 -- Reveal by rank: snap = degrees wider than normal (reached in SNAP_SECONDS), back =
--- seconds to ease back (Quart In, so it lingers wide first), flash = world brightness,
--- lines = speed lines, shake = studs (0 = none).
+-- seconds to glide back to normal, flash = world brightness, lines = speed lines,
+-- shake = studs (0 = none). S20 calmed the reference's numbers (Common was 28° in
+-- 0.05 s, then a 0.42 s Quart In ease back).
 local REVEAL = {
-	{snap = 28, back = 0.42, flash = 0.35, lines = 18, shake = 0}, -- Common (the reference)
-	{snap = 28, back = 0.42, flash = 0.35, lines = 18, shake = 0}, -- Uncommon
-	{snap = 28, back = 0.42, flash = 0.35, lines = 18, shake = 0}, -- Rare
-	{snap = 30, back = 0.48, flash = 0.4, lines = 22, shake = 0.18}, -- Epic
-	{snap = 34, back = 0.6, flash = 0.5, lines = 28, shake = 0.26}, -- Legendary
-	{snap = 36, back = 0.68, flash = 0.55, lines = 30, shake = 0.34}, -- Mythic
-	{snap = 38, back = 0.75, flash = 0.6, lines = 34, shake = 0.42}, -- Secret
+	{snap = 10, back = 0.55, flash = 0.35, lines = 18, shake = 0}, -- Common
+	{snap = 10, back = 0.55, flash = 0.35, lines = 18, shake = 0}, -- Uncommon
+	{snap = 10, back = 0.55, flash = 0.35, lines = 18, shake = 0}, -- Rare
+	{snap = 12, back = 0.6, flash = 0.4, lines = 22, shake = 0}, -- Epic
+	{snap = 14, back = 0.7, flash = 0.5, lines = 28, shake = 0.14}, -- Legendary
+	{snap = 15, back = 0.75, flash = 0.55, lines = 30, shake = 0.18}, -- Mythic
+	{snap = 16, back = 0.8, flash = 0.6, lines = 34, shake = 0.22}, -- Secret
 }
-local SNAP_SECONDS = 0.05
+local SNAP_SECONDS = 0.15
+-- The pop slows into its widest point; the glide back (and the no-reveal release)
+-- starts and ends gently.
+local SNAP_EASING = Enum.EasingStyle.Sine
+local SNAP_DIRECTION = Enum.EasingDirection.Out
+local RETURN_EASING = Enum.EasingStyle.Sine
+local RETURN_DIRECTION = Enum.EasingDirection.InOut
 local FLASH_TINT = Color3.fromRGB(205, 240, 255) -- the reference's cyan-white wash
 local FLASH_RARITY_MIX = 0.35 -- Epic and up lean the wash toward their rarity color
 local FLASH_HOLD_SECONDS = 0.08
@@ -124,15 +133,15 @@ function RollCamera:StartPush(camera: Camera, roll, now: number, strength: numbe
 	self:TweenFov(zoom, base - degrees, remaining, PUSH_EASING, PUSH_DIRECTION)
 end
 
--- The chicken appears: snap far out, then ease back while the flash fades.
+-- The chicken appears: pop out, then glide back while the flash fades.
 function RollCamera:Reveal(zoom, reveal, auto: boolean)
 	zoom.landed = true
 	local rank = math.clamp(math.floor(reveal.rank or 1), 1, #REVEAL)
 	local feel = REVEAL[rank]
 	local back = if auto then feel.back * 0.75 else feel.back
 	self:TweenFov(zoom, math.min(119, zoom.base + feel.snap * zoom.strength), SNAP_SECONDS,
-		Enum.EasingStyle.Quad, Enum.EasingDirection.Out, function()
-			self:TweenFov(zoom, zoom.base, back, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function() self:DropZoom(zoom) end)
+		SNAP_EASING, SNAP_DIRECTION, function()
+			self:TweenFov(zoom, zoom.base, back, RETURN_EASING, RETURN_DIRECTION, function() self:DropZoom(zoom) end)
 		end)
 	self:Flash(zoom.camera, feel.flash * zoom.strength, if rank >= 4 then reveal.color else nil, SNAP_SECONDS + back)
 	if auto then return end
@@ -144,7 +153,7 @@ function RollCamera:Release()
 	local zoom = self.zoom
 	if not zoom then return end
 	zoom.landed = true
-	self:TweenFov(zoom, zoom.base, RELEASE_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out, function() self:DropZoom(zoom) end)
+	self:TweenFov(zoom, zoom.base, RELEASE_SECONDS, RETURN_EASING, RETURN_DIRECTION, function() self:DropZoom(zoom) end)
 end
 
 function RollCamera:DropZoom(zoom)
