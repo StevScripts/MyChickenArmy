@@ -124,4 +124,45 @@ function View.OpenNode(category:string):any
 	return nil
 end
 
+-- UI Lab only (app.editPreview, never a live game): a display fixture shaped like
+-- state.upgradeTree so the Edit-mode "Upgrades" story shows every hex state at once
+-- (owned, ready with "!", too expensive, "?" ghosts, hub counts). About half of each
+-- family is owned; every third family's next tier is shown as too expensive. Prices
+-- are the catalog's base quotes; a live client only ever shows the server's.
+function View.PreviewTree():any
+	if not ready then return nil end
+	local families,index={},{}
+	for position,id in Tree.FamilyOrder do
+		local family=Tree.Families[id]
+		index[id]=position
+		families[id]=if #family.tiers==1 then position%2 else math.floor(#family.tiers/2)
+	end
+	local function owned(id:string?):boolean
+		local node=id and Tree.Nodes[id]
+		if not node then return false end
+		return node.kind~="upgrade" or (families[node.family :: string] or 0)>=(node.tier :: number)
+	end
+	local nodes,badges={},{Main=0,Tools=0,Player=0,Army=0,total=0}
+	for id,node in Tree.Nodes do
+		if node.kind~="upgrade" then
+			nodes[id]={status=node.kind}
+		elseif owned(id) then
+			nodes[id]={status="Owned"}
+		else
+			local familyId,tier=node.family :: string,node.tier :: number
+			local price=Tree.Price(familyId,tier)
+			local status="Locked"
+			if owned(node.prerequisite) then
+				status=if index[familyId]%3==0 then "Unaffordable" else "Available"
+			end
+			nodes[id]={status=status,price=price}
+			if status=="Available" then
+				badges[node.category]+=1
+				badges.total+=1
+			end
+		end
+	end
+	return {families=families,nodes=nodes,badges=badges}
+end
+
 return View
