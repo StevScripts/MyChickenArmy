@@ -77,7 +77,10 @@ Render.MyArmy=function(ctx)
 	local app=makeApp(ctx)
 	local frame=menuFrame(ctx,"Army","MyArmy")
 	local browser=require(ctx.code.ChickenBrowser).new(app,frame)
-	app.chickenBrowser,app.panelTitle,app.page=browser,browser.title,"Army"
+	-- October 21: the grid rewrite has no title label of its own; Render writes "My Army" to app.panelTitle.
+	local title=browser.title
+	if not title then title=Instance.new("TextLabel");title.Name,title.Visible,title.Parent="Title",false,frame end
+	app.chickenBrowser,app.panelTitle,app.page=browser,title,"Army"
 	app.selected=ctx.state.pets and ctx.state.pets[1] and ctx.state.pets[1].id
 	browser.root.Visible=true
 	browser:Render(true)
