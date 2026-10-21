@@ -1,551 +1,661 @@
 --!strict
--- Simulator-style inventory from the approved Figma Army frames.
+-- October 21 My Army (docs/team/ARMY_GRID.md). Stevin's reference is a simulator
+-- "Pets" window, copied 1:1 in the game's art: one grid of every chicken (Army
+-- chickens checked and first), a hover tooltip, a detail card on click, Equip Best /
+-- Unequip All, lock and sell modes with a Confirm bar, two sorts, a compact grid and
+-- search. The Flock is never picked here: it is always the best egg layers, and a
+-- layer away with the Army leaves its slot to the next best one at home.
 -- The server still owns selection, capacity, stats and every transaction.
+local GuiService=game:GetService("GuiService")
 local UserInputService=game:GetService("UserInputService")
 local Theme=require(script.Parent.UITheme)
 local Preview=require(script.Parent.ChickenPreview)
+local MutationVFX=require(script.Parent.SpecialChickenVFX)
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
-local Config=require(Shared.Config)
 local Rules=require(Shared.Rules)
 local Catalog=require(Shared.PetCatalog)
 local Giant=require(Shared.GiantChicken)
 local Mutations=require(Shared.MutationCatalog)
 local Upgrades=require(Shared.UpgradeCatalog)
 local EggArt=require(Shared.EggArt)
-local MutationVFX=require(script.Parent.SpecialChickenVFX)
--- Approved Figma 456:3625, 1536 x 1024. Only this browser owns these local tokens.
 local WHITE=Color3.fromRGB(249,251,242)
 local MUTED=Color3.fromRGB(181,205,223)
-local GREEN=Theme.ReferenceColors.Army
-local CYAN=Theme.ReferenceColors.Upgrades
-local RED=Color3.fromRGB(255,82,66)
-local EDGE=Color3.fromRGB(66,119,149)
 local INK=Color3.fromRGB(3,11,14)
+local EDGE=Color3.fromRGB(66,119,149)
 local EQUIPPED=Color3.fromRGB(127,255,0)
 local SELECTED=Color3.fromRGB(0,223,255)
+local POWER=Color3.fromRGB(255,72,72)
 local GOLD=Color3.fromRGB(255,221,96)
 local Art={
-	Helmet = "rbxassetid://80504375672119",
-	Damage = "rbxassetid://127164621014549",
-	Heart = "rbxassetid://137324953369813",
-	Check = "rbxassetid://102978514196695",
-	Search = "rbxassetid://111902627409710",
-	Chevron = "rbxassetid://86650290654013",
-	Card = {
-		Common = "rbxassetid://122916116818277",
-		Uncommon = "rbxassetid://125764068767248",
-		Rare = "rbxassetid://99342664851264",
-		Epic = "rbxassetid://81561273552383",
-		Legendary = "rbxassetid://92160625350901",
-		Mythic = "rbxassetid://89442120797640",
-	},
-	Glow = {
-		Common = "rbxassetid://126574986960523",
-		Uncommon = "rbxassetid://127046919144571",
-		Rare = "rbxassetid://137602570995182",
-		Epic = "rbxassetid://123023358078379",
-		Legendary = "rbxassetid://79234091120170",
-		Mythic = "rbxassetid://126020639842111",
+	Helmet="rbxassetid://80504375672119",
+	Damage="rbxassetid://127164621014549",
+	Check="rbxassetid://102978514196695",
+	Search="rbxassetid://111902627409710",
+	Trash="rbxassetid://111469244237912", -- S6's SellTrash icon
+	Padlock=Theme.Assets.Padlock,
+	ArmySlot=Theme.GemArt.ArmySlot,
+	FlockSlot=Theme.GemArt.FlockSlot,
+	Index=Theme.Assets.Index,
+	Card={
+		Common="rbxassetid://122916116818277",Uncommon="rbxassetid://125764068767248",
+		Rare="rbxassetid://99342664851264",Epic="rbxassetid://81561273552383",
+		Legendary="rbxassetid://92160625350901",Mythic="rbxassetid://89442120797640",
 	},
 }
 local RARITIES={
- Common=Color3.fromRGB(211,228,207),Uncommon=Color3.fromRGB(53,255,23),
- Rare=Color3.fromRGB(0,212,255),Epic=Color3.fromRGB(198,75,255),
- Legendary=Color3.fromRGB(255,213,0),Mythic=Color3.fromRGB(255,54,114),Secret=Color3.fromRGB(64,255,233),
+	Common=Color3.fromRGB(211,228,207),Uncommon=Color3.fromRGB(53,255,23),
+	Rare=Color3.fromRGB(0,212,255),Epic=Color3.fromRGB(198,75,255),
+	Legendary=Color3.fromRGB(255,213,0),Mythic=Color3.fromRGB(255,54,114),Secret=Color3.fromRGB(64,255,233),
 }
 local TONES={
- Green={Color3.fromRGB(165,255,0),Color3.fromRGB(38,227,0),Color3.fromRGB(40,125,6),Color3.fromRGB(217,255,154)},
- Blue={Color3.fromRGB(0,231,255),Color3.fromRGB(0,154,255),Color3.fromRGB(0,91,157),Color3.fromRGB(179,233,255)},
- Red={Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59),Color3.fromRGB(142,16,40),Color3.fromRGB(255,180,186)},
- Off={Color3.fromRGB(122,132,138),Color3.fromRGB(86,95,101),Color3.fromRGB(48,54,58),Color3.fromRGB(160,170,176)},
- Gold={Color3.fromRGB(255,214,48),Color3.fromRGB(255,153,0),Color3.fromRGB(140,82,0),Color3.fromRGB(255,240,170)},
+	Green={Color3.fromRGB(165,255,0),Color3.fromRGB(38,227,0),Color3.fromRGB(40,125,6),Color3.fromRGB(217,255,154)},
+	Blue={Color3.fromRGB(0,231,255),Color3.fromRGB(0,154,255),Color3.fromRGB(0,91,157),Color3.fromRGB(179,233,255)},
+	Red={Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59),Color3.fromRGB(142,16,40),Color3.fromRGB(255,180,186)},
+	Gold={Color3.fromRGB(255,214,48),Color3.fromRGB(255,153,0),Color3.fromRGB(140,82,0),Color3.fromRGB(255,240,170)},
+	Dark={Color3.fromRGB(58,72,81),Color3.fromRGB(30,41,48),Color3.fromRGB(14,20,24),Color3.fromRGB(120,138,150)},
+	Off={Color3.fromRGB(122,132,138),Color3.fromRGB(86,95,101),Color3.fromRGB(48,54,58),Color3.fromRGB(160,170,176)},
 }
--- October 20 (owner): the Stats button and Army Info's Formations button stay
--- hidden for now; their code is kept. Set true to show both again.
-local SHOW_ARMY_INFO=false
--- October 20 storage holds up to Config.StorageLimit chickens: cards are built a page at a time.
-local STORAGE_PAGE=48
-local FLOCK_ACTIONS={FlockEquip=true,FlockUnequip=true,FlockBest=true}
+-- Design units measured from the reference recording (half of 3456 x 2234): the
+-- window with its side rail and overhanging buttons is 960 x 557 on a 1728 x 1084
+-- game view, i.e. 55.6% of the width and 51.4% of the height (MenuLayout's Army
+-- default). Everything below is placed in these units with Scale only.
+local W,H=960,557
+local BODY={x=100,y=27,w=830,h=502}
+local GRID={x=10,y=46,w=812,h=431} -- inside BODY
+local DETAIL={x=537,y=40,w=275,h=425} -- inside BODY
+-- Seven 108-unit tiles (8 apart) normally; ten 75-unit tiles (6 apart) compact.
+local LAYOUTS={Normal={columns=7,cell=108,gap=8},Compact={columns=10,cell=75,gap=6}}
+local PAGE=70 -- cards are built a page at a time; storage can hold 1,000 chickens
+local SORTS={"Power","Eggs"}
 local Browser={}
 Browser.__index=Browser
 
 local function frame(parent,name,size,position)
- local item=Instance.new("Frame")
- item.Name,item.Size,item.Position=name,size,position or UDim2.new()
- item.BorderSizePixel,item.BackgroundTransparency=0,1
- item.ZIndex=parent.ZIndex+1;item.Parent=parent
- return item
+	local item=Instance.new("Frame")
+	item.Name,item.Size,item.Position=name,size or UDim2.new(),position or UDim2.new()
+	item.BorderSizePixel,item.BackgroundTransparency=0,1
+	item.ZIndex=parent.ZIndex+1;item.Parent=parent
+	return item
 end
 
-local function label(parent,name,text,size,position,bounds,color,prominent)
- local item=Theme.Label(parent,name,text,size,color or WHITE)
- item.Position,item.Size=position,bounds
- item.TextColor3,item.TextSize=color or WHITE,size
- item.TextWrapped,item.TextScaled=false,true
- item.TextTruncate=Enum.TextTruncate.None
- item.ZIndex=parent.ZIndex+4
- item.TextOutline.Color=INK
- item.TextOutline.Thickness=if prominent then 0.055 else 0.045
- return item
+local function rect(item,x,y,width,height,parentWidth,parentHeight)
+	Theme.RelativeRect(item,x,y,width,height,parentWidth,parentHeight)
+	return item
 end
 
--- Native text sizing follows the same scale-only boxes as the restored GUI.
-local function fitInspectorLine(item)
- Theme.ScaleText(item)
+local function label(parent,name,text,color,prominent)
+	local item=Theme.Label(parent,name,text,24,color or WHITE)
+	item.TextWrapped,item.TextScaled,item.TextTruncate=false,true,Enum.TextTruncate.None
+	item.TextXAlignment=Enum.TextXAlignment.Center
+	item.ZIndex=parent.ZIndex+4
+	item.TextOutline.Color=INK
+	item.TextOutline.Thickness=if prominent then 0.07 else 0.05
+	return item
 end
 
 local function surface(item,top,bottom,border,thickness)
- item.BackgroundColor3,item.BackgroundTransparency=Color3.new(1,1,1),0
- Theme.Round(item)
- local gradient=Theme.Gradient(item,top,bottom)
- gradient.Transparency=NumberSequence.new(0)
- local stroke=Theme.Stroke(item,border or EDGE,thickness or 1.5)
- stroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
- return stroke
+	item.BackgroundColor3,item.BackgroundTransparency=Color3.new(1,1,1),0
+	Theme.Round(item)
+	Theme.Gradient(item,top,bottom).Transparency=NumberSequence.new(0)
+	local stroke=Theme.Stroke(item,border or EDGE,thickness or 1.5)
+	stroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	return stroke
 end
 
 -- October 20 (owner): every My Army panel is black at 10% transparency; strokes stay.
 local function blackPanel(item,border,thickness)
- local stroke=surface(item,Color3.new(0,0,0),Color3.new(0,0,0),border,thickness)
- item.BackgroundTransparency=0.1
- return stroke
+	local stroke=surface(item,Color3.new(0,0,0),Color3.new(0,0,0),border or INK,thickness or 3)
+	item.BackgroundTransparency=0.1
+	Theme.Studs(item,0.14,28,0).ZIndex=item.ZIndex
+	return stroke
 end
 
-local function dark(item,color,profile)
- local top,bottom=Color3.fromRGB(27,40,47),Color3.fromRGB(23,39,48)
- if profile=="Inspector" then top,bottom=Color3.fromRGB(20,38,47),Color3.fromRGB(33,52,61) end
- return surface(item,top,bottom,color or EDGE,1.5)
+local function image(parent,name,asset)
+	local item=Theme.Image(parent,name,asset,UDim2.new(),UDim2.new())
+	item.ZIndex=parent.ZIndex+1
+	return item
 end
 
-local function art(parent,name,asset,size,position)
- local image=Theme.Image(parent,name,asset,size,position)
- image.ZIndex=parent.ZIndex+1
- return image
+local function tone(item)
+	local colors=if not item.Active then TONES.Off else TONES[item:GetAttribute("Tone") or "Green"] or TONES.Green
+	Theme.ApplyReferenceAccent(item,ColorSequence.new(colors[1],colors[2]))
+	local visual=item.Visual
+	visual.LowerLip.BackgroundColor3=colors[3]
+	visual.UIStroke.Color=INK
+	visual.Face.InsetHighlight.UIStroke.Color=colors[4]
+	visual.Face.InsetHighlight.UIStroke.Transparency=0.2
 end
 
-local function figmaStuds(parent)
- local pattern=Theme.Studs(parent,0.07,24,0)
- pattern.ZIndex=parent.ZIndex+1
- return pattern
+-- The chunky studded button used across My Army; `key` names a TONES entry.
+local function button(parent,name,text,callback,key)
+	local item
+	item=Theme.ActionButton(parent,name,text,function() if item.Active then callback() end end,Theme.ReferenceColors.Army)
+	item:SetAttribute("Tone",key or "Green")
+	item.TextColor3,item.ZIndex=WHITE,parent.ZIndex+5
+	local visual=item.Visual
+	visual.ZIndex,visual.BackgroundTransparency=item.ZIndex,1
+	visual.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	visual.UIStroke.Thickness=Theme.Border.Shell
+	visual.Face.Position,visual.Face.Size=UDim2.fromScale(0.006,0),UDim2.fromScale(0.988,0.92)
+	visual.Face.ZIndex,visual.Face.ClipsDescendants=visual.ZIndex+2,true
+	visual.LowerLip.Position,visual.LowerLip.Size=UDim2.fromScale(0.006,0.88),UDim2.fromScale(0.988,0.11)
+	visual.LowerLip.ZIndex=visual.ZIndex+1
+	local rim=visual.Face.InsetHighlight
+	rim.Position,rim.Size,rim.ZIndex=UDim2.fromScale(0.03,0.08),UDim2.fromScale(0.94,0.84),visual.Face.ZIndex+2
+	local caption=visual.Caption
+	caption.Position,caption.Size=UDim2.fromScale(0.05,0.1),UDim2.fromScale(0.9,0.72)
+	caption.ZIndex=visual.ZIndex+5
+	caption.TextShadow.TextTransparency=0.35;caption.TextShadow.TextOutline.Enabled=false
+	caption.TextFace.TextOutline.Thickness,caption.TextFace.TextOutline.Color=0.07,INK
+	Theme.Studs(visual.Face,0.07,24,0).ZIndex=visual.Face.ZIndex+1
+	Theme.ScaleText(item)
+	tone(item)
+	return item
 end
 
-local function applyButtonColor(item)
- local color=item:GetAttribute("ArmyAccent")
- -- Unavailable actions turn gray so they never look pressable.
- local tone=if not item.Active then TONES.Off elseif color==RED then TONES.Red elseif color==CYAN then TONES.Blue
-  elseif color==GOLD then TONES.Gold else TONES.Green
- Theme.ApplyReferenceAccent(item,ColorSequence.new(tone[1],tone[2]))
- local visual=item.Visual
- visual.Face.UIGradient.Transparency=NumberSequence.new(if item.Active then 0 else 0.35)
- visual.LowerLip.BackgroundColor3=tone[3]
- visual.UIStroke.Color=INK
- visual.Face.InsetHighlight.UIStroke.Color=tone[4]
- visual.Face.InsetHighlight.UIStroke.Transparency=0.2
+-- A square button showing only art (lock, trash, sort, compact).
+local function iconButton(parent,name,asset,callback,key)
+	local item=button(parent,name,"",callback,key)
+	local icon=image(item.Visual,"Icon",asset)
+	icon.AnchorPoint,icon.Position,icon.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.47),UDim2.fromScale(0.72,0.72)
+	icon.ZIndex=item.Visual.ZIndex+6
+	Theme.Aspect(icon,1)
+	return item,icon
 end
 
-local function figmaButton(item)
- local visual=item.Visual
- visual.ZIndex=item.ZIndex
- visual.BackgroundColor3,visual.BackgroundTransparency=INK,1
- visual.UIStroke.Color,visual.UIStroke.BorderStrokePosition=INK,Enum.BorderStrokePosition.Inner
- Theme.Round(visual)
- local face=visual.Face
- face.Position,face.Size=UDim2.fromScale(0.006,0),UDim2.fromScale(0.988,0.94)
- face.ZIndex,face.ClipsDescendants=visual.ZIndex+2,true
- Theme.Round(face)
- local lip=visual.LowerLip
- lip.Position,lip.Size=UDim2.fromScale(0.006,0.90),UDim2.fromScale(0.988,0.085)
- lip.ZIndex=visual.ZIndex+1
- Theme.Round(lip)
- local rim=face.InsetHighlight
- rim.Position,rim.Size,rim.ZIndex=UDim2.fromScale(0.025,0.06),UDim2.fromScale(0.95,0.88),face.ZIndex+2
- rim.UIStroke.Thickness=Theme.Border.Detail
- Theme.Round(rim)
- local caption=visual.Caption
- caption.Position,caption.Size=UDim2.fromScale(0.045,0.06),UDim2.fromScale(0.91,0.75)
- Theme.ScaleText(item)
- caption.TextColor3,caption.ZIndex=WHITE,visual.ZIndex+5
- caption.TextShadow.TextTransparency=0.35;caption.TextShadow.TextOutline.Enabled=false
- caption.TextFace.TextOutline.Thickness=0.055
- caption.TextFace.TextOutline.Color=INK
- figmaStuds(face)
- applyButtonColor(item)
-end
-
-local function button(parent,name,text,callback,color)
- local item
- item=Theme.ActionButton(parent,name,text,function() if item.Active then callback() end end,color)
- item:SetAttribute("ArmyAccent",color)
- item.TextSize,item.TextColor3=32,WHITE
- item.ZIndex=parent.ZIndex+5
- figmaButton(item)
- return item
+local function setTone(item,key)
+	if item:GetAttribute("Tone")~=key then item:SetAttribute("Tone",key);tone(item) end
 end
 
 local function enabled(item,value)
- item.Active,item.Selectable=value,value
- applyButtonColor(item)
+	if item.Active~=value then item.Active,item.Selectable=value,value;tone(item) end
 end
 
 local function clear(parent)
 	for _,item in parent:GetChildren() do if item:IsA("GuiObject") then item:Destroy() end end
 end
 
-local function inside(item,point)
-	local p,s=item.AbsolutePosition,item.AbsoluteSize
-	return item.Visible and point.X>=p.X and point.Y>=p.Y and point.X<=p.X+s.X and point.Y<=p.Y+s.Y
+local function power(pet): number
+	return Rules.PetPower(pet.species,pet.stars or 1,pet.level or 1,pet.giantSize)
 end
 
-local function pointOf(input)
-	return Vector2.new(input.Position.X,input.Position.Y)
+local function displayName(pet): string
+	local definition=Catalog[pet.species]
+	return (if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..(definition and definition.name or "Chicken")
 end
 
--- AutomaticCanvasSize undercounts aspect-constrained Scale rows: the canvas stays
--- one window tall and nothing scrolls. The canvas follows the layout's measured
--- content instead (same workaround as ShopBrowser).
-local function fitCanvas(scroll,layout)
- scroll.AutomaticCanvasSize=Enum.AutomaticSize.None
- local function fit() scroll.CanvasSize=UDim2.fromOffset(0,math.ceil(layout.AbsoluteContentSize.Y)) end
- layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
- fit()
- -- A list rebuilt while hidden misses that signal; renders re-fit on the next frame.
- return function() task.defer(fit) end
-end
-
--- The same for the sideways Flock strip.
-local function fitCanvasX(scroll,layout)
- scroll.AutomaticCanvasSize=Enum.AutomaticSize.None
- local function fit() scroll.CanvasSize=UDim2.fromOffset(math.ceil(layout.AbsoluteContentSize.X),0) end
- layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
- fit()
- return function() task.defer(fit) end
-end
-
-local function scrollingPanel(parent,name)
- local item=Instance.new("ScrollingFrame")
- item.Name,item.BackgroundTransparency,item.BorderSizePixel=name,1,0
- item.CanvasSize,item.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.None
- item.ScrollBarThickness,item.ScrollingDirection=0,Enum.ScrollingDirection.Y
- item.VerticalScrollBarInset=Enum.ScrollBarInset.Always
- item.ZIndex,item.Parent=parent.ZIndex+1,parent
- return item
+-- The server's sale rule, read from the snapshot; the reason says why not.
+local function sellable(pet): (boolean,string)
+	if pet.favorite then return false,"Locked chickens can't be sold." end
+	if pet.deployed or pet.home==false then return false,"Sell this chicken once it's back home." end
+	if pet.selected then return false,"Remove it from your Army first." end
+	if pet.canSell==false then return false,if type(pet.saleReason)=="string" then pet.saleReason else "This chicken can't be sold." end
+	if type(pet.refund)~="number" or pet.refund<0 or pet.refund==math.huge then return false,"This chicken can't be sold." end
+	return true,""
 end
 
 function Browser.new(app,parent)
-	local self=setmetatable({app=app,parent=parent,key="",pending=nil,connections={},slots={},cards={},stripSlots={},
-		suppressUntil=0,placing=nil,flockPlacing=nil,notice=nil,inspecting=false,showInfo=false,showCapacity=false,
-		query="",sort="Best",storage={},storageShown=0,storageWanted=STORAGE_PAGE},Browser)
+	local self=setmetatable({app=app,parent=parent,key="",gridKey="",pending=nil,connections={},cards={},
+		mode=nil,marked={},markOrder={},placing=nil,inspecting=false,query="",sort="Power",compact=false,
+		visible={},shown=0,wanted=PAGE,flashToken=0},Browser)
 	local root=Instance.new("Frame")
 	root.Name,root.BackgroundTransparency,root.BorderSizePixel="ChickenBrowser",1,0
 	root.Visible,root.ClipsDescendants=false,false
+	root.AnchorPoint,root.Position,root.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1,1)
 	root.ZIndex,root.Parent=parent.ZIndex+1,parent
 	root:SetAttribute("OwnsPopupStyle",true)
+	Theme.Aspect(root,W/H)
 	self.root=root
- Theme.Aspect(root,1274/876)
- local background=frame(root,"ArmyBackground",UDim2.new(),UDim2.new())
- -- The shared header's window contour also frames this full-height background.
- -- October 20 (owner): black at 10% transparency.
- surface(background,Color3.new(0,0,0),Color3.new(0,0,0),INK,3).Enabled=false
- background.BackgroundTransparency=0.1
- local header,title=Theme.Header(root,"Header","My Army",GREEN)
- Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
- header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
- self.header,self.title=header,title
- self.closeButton=Theme.HeaderClose(header,function() app.audio:Play("Click");app:ClosePanel() end)
- self.body=frame(root,"ArmyContent",UDim2.new(),UDim2.new())
- self.inventory=frame(self.body,"Inventory",UDim2.fromScale(1,1))
- local inventory=self.inventory
- self.toolbar=frame(inventory,"CapacityToolbar",UDim2.new())
- blackPanel(self.toolbar,Color3.fromRGB(3,11,16),2)
- self.flockLabel=label(self.toolbar,"FlockLabel","FLOCK",33,UDim2.new(),UDim2.new(),WHITE)
- self.summary=label(self.toolbar,"FlockCount","",36,UDim2.new(),UDim2.new(),WHITE,true)
- self.summary.RichText=true
- -- Both "+" buttons lead to their upgrade in Upgrades; the Robux pass is
- -- the fallback only once Army Size is maxed.
- self.flockPlus=button(self.toolbar,"FlockCapacity","+",function()
-  self.app.audio:Play("Click");self:CancelPointer(true)
-  if not self:OpenUpgrade("Flock","PlotSize") then
-   self.notice,self.noticeUntil="Your Flock is at its biggest size.",os.clock()+4
-   self:UpdateAction();self:Refuse()
-  end
- end,GREEN)
- self.flockPlus.Position,self.flockPlus.Size,self.flockPlus.TextSize=UDim2.new(),UDim2.new(),44
- local divider=frame(self.toolbar,"Divider",UDim2.new(),UDim2.new())
- divider.BackgroundColor3,divider.BackgroundTransparency=Color3.fromRGB(132,154,167),0.1
- self.capacityLabel=label(self.toolbar,"CapacityLabel","ARMY",33,UDim2.new(),UDim2.new(),WHITE)
- self.capacity=label(self.toolbar,"ArmyCapacity","",36,UDim2.new(),UDim2.new(),WHITE,true)
- self.capacity.RichText=true
- self.capacityPlus=button(self.toolbar,"MoreArmySlots","+",function()
-  self.app.audio:Play("Click");self:CancelPointer(true)
-  if self:OpenUpgrade("ArmySize","ArmySize") then return end
-  self.showCapacity,self.showInfo,self.inspecting=true,false,false;self.placing,self.flockPlacing=nil,nil;self:Render(true)
- end,GREEN)
- self.capacityPlus.Position,self.capacityPlus.Size,self.capacityPlus.TextSize=UDim2.new(),UDim2.new(),44
- for _,plus in {self.flockPlus,self.capacityPlus} do
-  plus.Visual.Caption.Position,plus.Visual.Caption.Size=UDim2.fromScale(0.025,-0.04),UDim2.fromScale(0.95,1)
- end
- self.best=button(self.toolbar,"SelectBest","Select Best",function()
-  if not self:CanEdit() then return end
-  self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-  self.search.Text="";self.grid.CanvasPosition=Vector2.zero;self:Send("SelectBest")
- end,GREEN)
- self.best.Position,self.best.Size=UDim2.new(),UDim2.new()
- self.infoButton=button(self.toolbar,"ArmyInfo","Stats",function()
-  self.app.audio:Play("Click");self:CancelPointer(true)
-  self.showInfo,self.showCapacity,self.inspecting=true,false,false;self.placing=nil;self:Render(true)
- end,CYAN)
- self.infoButton.Position,self.infoButton.Size=UDim2.new(),UDim2.new()
- self.infoButton.Visible=SHOW_ARMY_INFO
- self.inventoryPanel=frame(inventory,"InventoryPanel",UDim2.new(),UDim2.new())
- blackPanel(self.inventoryPanel,EDGE,2)
- -- October 20 Flock strip: the chickens laying eggs, above storage. It scrolls
- -- sideways once Flock Size outgrows the panel.
- self.flockHeader=frame(self.inventoryPanel,"FlockHeader",UDim2.new(),UDim2.new())
- self.flockTitle=label(self.flockHeader,"Title","LAYING EGGS",30,UDim2.new(),UDim2.new(),WHITE,true)
- self.flockRate=label(self.flockHeader,"Rate","",26,UDim2.new(),UDim2.new(),GOLD)
- self.flockBest=button(self.flockHeader,"EquipBest","Equip Best",function()
-  if not self:CanEdit() then return end
-  self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-  self:Send("FlockBest")
- end,GOLD)
- local strip=Instance.new("ScrollingFrame")
- strip.Name,strip.BackgroundTransparency,strip.BorderSizePixel="FlockStrip",1,0
- strip.ScrollBarThickness,strip.ScrollingDirection=0,Enum.ScrollingDirection.X
- strip.HorizontalScrollBarInset=Enum.ScrollBarInset.Always
- strip.CanvasSize,strip.ClipsDescendants=UDim2.new(),true
- strip.ZIndex,strip.Parent=inventory.ZIndex+2,self.inventoryPanel
- local stripLayout=Instance.new("UIListLayout")
- stripLayout.FillDirection,stripLayout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
- stripLayout.Padding,stripLayout.Parent=UDim.new(0,0),strip
- self.strip=strip
- self.fitStrip=fitCanvasX(strip,stripLayout)
- self.storageDivider=frame(self.inventoryPanel,"StorageDivider",UDim2.new(),UDim2.new())
- self.storageDivider.BackgroundColor3,self.storageDivider.BackgroundTransparency=Color3.fromRGB(132,154,167),0.35
- local searchShell=frame(self.inventoryPanel,"Search",UDim2.new(),UDim2.new())
- surface(searchShell,Color3.fromRGB(28,42,49),Color3.fromRGB(24,38,45),Color3.fromRGB(142,175,193),Theme.Border.Card)
- art(searchShell,"SearchIcon",Art.Search,UDim2.new(),UDim2.new())
- local search=Instance.new("TextBox")
- search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search…"
- search.BackgroundTransparency,search.BorderSizePixel,search.ClearTextOnFocus=1,0,false
- search.Font,search.TextSize,search.TextColor3=Theme.Font,27,WHITE
- search.PlaceholderColor3,search.TextXAlignment=Color3.fromRGB(129,156,170),Enum.TextXAlignment.Left
- search.Position,search.Size=UDim2.new(),UDim2.new()
- search.ZIndex,search.Parent=searchShell.ZIndex+3,searchShell
- self.searchShell,self.search=searchShell,search
- local sort=Instance.new("TextButton")
- sort.Name,sort.Text,sort.AutoButtonColor="InventorySort","Best first",false
- sort.BorderSizePixel,sort.TextTransparency=0,1
- sort.Font,sort.TextSize,sort.TextColor3=Theme.Font,27,WHITE
- sort.Position,sort.Size=UDim2.new(),UDim2.new()
- sort.ZIndex,sort.Parent=inventory.ZIndex+3,self.inventoryPanel
- surface(sort,Color3.fromRGB(34,49,58),Color3.fromRGB(21,32,40),Color3.fromRGB(140,167,184),Theme.Border.Card)
- self.sortButton=sort
- local sortCaption=label(sort,"Caption",sort.Text,27,UDim2.new(),UDim2.new(),WHITE)
- local function syncSort() sortCaption.Text=sort.Text end
- sort:GetPropertyChangedSignal("Text"):Connect(syncSort)
- art(sort,"Chevron",Art.Chevron,UDim2.new(),UDim2.new())
- sort.Activated:Connect(function()
-  self.app.audio:Play("Click")
-  self.sort=if self.sort=="Best" then "Eggs" elseif self.sort=="Eggs" then "Name" else "Best"
-  self.storageWanted=STORAGE_PAGE
-  self.grid.CanvasPosition=Vector2.zero;self:Render(true)
-  Theme.Motion:PopScale(sortCaption,1.1)
- end)
- Theme.Motion:BindButton(sort,Theme.Motion:ScaleOf(sort),sort)
- -- Opens the Sell screen for picking many chickens at once.
- self.sellMany=button(self.inventoryPanel,"SellChickens","Sell",function() self:OpenSell(nil) end,RED)
- -- Replace mode gets its own Cancel in Sell's place; the sort control stays.
- self.placeCancel=button(self.inventoryPanel,"CancelReplace","Cancel",function()
-  self.app.audio:Play("Click")
-  self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-  self:Render(true)
- end,RED)
- self.placeCancel.Visible=false
- local grid=Instance.new("ScrollingFrame")
- grid.Name,grid.BackgroundTransparency,grid.BorderSizePixel="ChickenInventory",1,0
- grid.Position,grid.Size=UDim2.new(),UDim2.new()
- grid.ScrollBarThickness,grid.ScrollBarImageColor3=0,Color3.fromRGB(181,205,223)
- grid.VerticalScrollBarInset=Enum.ScrollBarInset.Always
- grid.ScrollingDirection,grid.CanvasSize=Enum.ScrollingDirection.Y,UDim2.new()
- grid.AutomaticCanvasSize,grid.ClipsDescendants=Enum.AutomaticSize.Y,true
- grid.ZIndex,grid.Parent=inventory.ZIndex+2,self.inventoryPanel
- self.grid=grid
- local padding=Instance.new("UIPadding")
- padding.PaddingLeft,padding.PaddingRight=UDim.new(0,0),UDim.new(0,0)
- padding.PaddingTop,padding.PaddingBottom=UDim.new(0,0),UDim.new(0,0);padding.Parent=grid
- local layout=Instance.new("UIListLayout")
- layout.SortOrder,layout.FillDirection=Enum.SortOrder.LayoutOrder,Enum.FillDirection.Vertical
- layout.Padding,layout.Parent=UDim.new(0,0),grid
- self.fitGrid=fitCanvas(grid,layout)
- self.hint=label(inventory,"InteractionHint","",23,UDim2.new(),UDim2.new(),MUTED)
- self.hint.BackgroundColor3,self.hint.BackgroundTransparency=Color3.fromRGB(20,32,41),0.05
- self.hint.ZIndex,self.hint.Visible=inventory.ZIndex+20,false
- table.insert(self.connections,search:GetPropertyChangedSignal("Text"):Connect(function()
-  self.query=string.lower(search.Text):match("^%s*(.-)%s*$") or ""
-  self.storageWanted=STORAGE_PAGE
-  self.grid.CanvasPosition=Vector2.zero;self:Render(true)
- end))
- -- The next page of storage loads as the grid nears its end.
- table.insert(self.connections,grid:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-  if not self.moreRow then return end
-  local window=grid.AbsoluteWindowSize.Y
-  if grid.CanvasPosition.Y+window>=grid.AbsoluteCanvasSize.Y-window*0.5 then self:ShowMoreStorage() end
- end))
 
-	self.armyInfo=scrollingPanel(self.body,"ArmyInfo")
-	self.infoTitle=label(self.armyInfo,"Title","Your Army at a glance",30,UDim2.new(),UDim2.new(),WHITE,true)
-	self.infoMode=label(self.armyInfo,"Mode","",17,UDim2.new(),UDim2.new(),MUTED)
-	local function back()
-		self.app.audio:Play("Click");self:CancelPointer(true)
-		self.showInfo,self.showCapacity,self.inspecting=false,false,false
-		self.app.selected,self.lastSelected,self.placing,self.placingExpected=nil,nil,nil,nil
+	-- The window: one black studded body; the rail, title and buttons overhang it.
+	local body=rect(frame(root,"ArmyBody"),BODY.x,BODY.y,BODY.w,BODY.h,W,H)
+	blackPanel(body,INK,3)
+	self.body=body
+	local title=label(root,"Title","My Army",WHITE,true)
+	rect(title,95,-4,250,62,W,H)
+	title.TextXAlignment,title.ZIndex=Enum.TextXAlignment.Left,body.ZIndex+8
+	self.title=title
+	self.lock,self.lockIcon=iconButton(root,"LockMode",Art.Padlock,function() self:SetMode("Lock") end,"Red")
+	rect(self.lock,310,0,58,58,W,H)
+	self.trash,self.trashIcon=iconButton(root,"SellMode",Art.Trash,function() self:SetMode("Sell") end,"Red")
+	rect(self.trash,380,0,58,58,W,H)
+	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1) end
+
+	-- Army and Flock counts, each with a "+" to its next Upgrades tier.
+	local pill=rect(frame(root,"Counts"),449,2,440,56,W,H)
+	pill.ZIndex=body.ZIndex+6
+	surface(pill,Color3.fromRGB(20,38,47),Color3.fromRGB(10,20,26),INK,3)
+	Theme.Studs(pill,0.14,28,0).ZIndex=pill.ZIndex
+	self.counts=pill
+	rect(image(pill,"ArmyIcon",Art.ArmySlot),10,4,48,48,440,56)
+	self.capacity=rect(label(pill,"ArmyCount","",WHITE,true),62,6,110,44,440,56)
+	self.capacityPlus=button(pill,"MoreArmySlots","+",function()
+		self.app.audio:Play("Click")
+		if not self:OpenUpgrade("ArmySize") then self.app:OpenPage("Shop") end
+	end,"Green")
+	rect(self.capacityPlus,176,5,46,46,440,56)
+	rect(image(pill,"FlockIcon",Art.FlockSlot),232,4,48,48,440,56)
+	self.summary=rect(label(pill,"FlockCount","",GOLD,true),284,6,100,44,440,56)
+	self.flockPlus=button(pill,"FlockCapacity","+",function()
+		self.app.audio:Play("Click")
+		if not self:OpenUpgrade("Flock") then self:Flash("Your Flock is at its biggest size.") end
+	end,"Green")
+	rect(self.flockPlus,388,5,46,46,440,56)
+	for _,item in {self.capacityPlus,self.flockPlus} do Theme.Aspect(item,1) end
+	self.closeButton=button(root,"Close","X",function() self.app.audio:Play("Click");self.app:ClosePanel() end,"Red")
+	rect(self.closeButton,900,0,60,60,W,H)
+	Theme.Aspect(self.closeButton,1)
+
+	-- Side rail: My Army and the Chicken Index, then the two sorts.
+	local rail=rect(frame(root,"Tabs"),0,140,89,190,W,H)
+	blackPanel(rail,INK,3)
+	local function tab(name,text,asset,y,callback)
+		local item=Instance.new("TextButton")
+		item.Name,item.Text,item.AutoButtonColor,item.BackgroundTransparency=name,"",false,1
+		item.ZIndex,item.Parent=rail.ZIndex+2,rail
+		rect(item,4,y,81,88,89,190)
+		rect(image(item,"Icon",asset),10,2,61,61,81,88)
+		rect(label(item,"Caption",text,WHITE,true),0,58,81,28,81,88)
+		item.Activated:Connect(callback)
+		Theme.Motion:BindButton(item,Theme.Motion:ScaleOf(item),item)
+		return item
+	end
+	tab("ArmyTab","Army",Art.Helmet,6,function() self.app.audio:Play("Click") end)
+	tab("IndexTab","Index",Art.Index,96,function() self.app.audio:Play("Click");self.app:OpenPage("Index") end)
+	local sortBox=rect(frame(root,"Sort"),0,454,89,78,W,H)
+	blackPanel(sortBox,INK,3)
+	rect(label(sortBox,"Caption","Sort",WHITE,true),4,4,81,26,89,78)
+	self.sortButtons={}
+	for index,key in SORTS do
+		local item=iconButton(sortBox,"Sort"..key,if key=="Power" then Art.Damage else EggArt.Image("Duck"),function()
+			if self.sort==key then return end
+			self.app.audio:Play("Click")
+			self.sort,self.wanted=key,PAGE
+			self.grid.CanvasPosition=Vector2.zero;self:Render(true)
+		end,"Dark")
+		rect(item,6+(index-1)*40,34,37,37,89,78)
+		Theme.Aspect(item,1)
+		self.sortButtons[key]=item
+	end
+
+	-- The grid: every chicken, Army first.
+	local grid=Instance.new("ScrollingFrame")
+	grid.Name,grid.BackgroundTransparency,grid.BorderSizePixel="ChickenInventory",1,0
+	grid.ScrollBarThickness,grid.ScrollBarImageColor3=6,MUTED
+	grid.VerticalScrollBarInset,grid.ScrollingDirection=Enum.ScrollBarInset.None,Enum.ScrollingDirection.Y
+	grid.CanvasSize,grid.AutomaticCanvasSize,grid.ClipsDescendants=UDim2.new(),Enum.AutomaticSize.None,true
+	grid.ZIndex,grid.Parent=body.ZIndex+2,body
+	rect(grid,GRID.x,GRID.y,GRID.w,GRID.h,BODY.w,BODY.h)
+	local layout=Instance.new("UIGridLayout")
+	layout.SortOrder,layout.FillDirection=Enum.SortOrder.LayoutOrder,Enum.FillDirection.Horizontal
+	layout.Parent=grid
+	-- Scale heights inside a ScrollingFrame follow the canvas, so cells take their
+	-- width from Scale and stay square through this constraint; the row gap is the
+	-- column gap converted to pixels whenever the grid resizes.
+	Theme.Aspect(layout,1)
+	self.grid,self.gridLayout=grid,layout
+	table.insert(self.connections,grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() self:FitCells() end))
+	-- AutomaticCanvasSize undercounts Scale cells; the canvas follows the layout instead.
+	local function fit() grid.CanvasSize=UDim2.fromOffset(0,math.ceil(layout.AbsoluteContentSize.Y)+4) end
+	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
+	self.fitGrid=function() task.defer(fit) end
+	table.insert(self.connections,grid:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		local window=grid.AbsoluteWindowSize.Y
+		if self.shown<#self.visible and grid.CanvasPosition.Y+window>=grid.AbsoluteCanvasSize.Y-window*0.5 then
+			self.wanted=self.shown+PAGE;self:ShowCards()
+		end
+	end))
+	self.empty=label(body,"Empty","",MUTED)
+	rect(self.empty,GRID.x+40,GRID.y+150,GRID.w-80,60,BODY.w,BODY.h)
+	self.empty.TextWrapped,self.empty.Visible=true,false
+
+	self:BuildDetail()
+
+	-- Bottom row, overhanging the body like the reference.
+	self.best=button(root,"SelectBest","Equip Best",function()
+		if not self:CanEdit() then return end
+		self:ExitModes();self:Send("SelectBest")
+	end,"Green")
+	rect(self.best,122,504,190,53,W,H)
+	self.unequip=button(root,"UnequipAll","Unequip All",function() self:UnequipAll() end,"Red")
+	rect(self.unequip,325,504,195,53,W,H)
+	self.compactButton=button(root,"Compact","",function()
+		self.app.audio:Play("Click")
+		self.compact=not self.compact
 		self:Render(true)
-	end
-	self.infoBack=button(self.armyInfo,"BackToChickens","Back to Chickens",back,Theme.ReferenceColors.Upgrades)
-	self.infoFormations=button(self.armyInfo,"Formations","Formations",function() self.app:OpenPage("Formations") end,Theme.ActionColors.navigation)
-	self.infoFormations.Visible=SHOW_ARMY_INFO
-	self.statTiles={}
-	for _,definition in {{"Damage","COMBINED DAMAGE",GREEN},{"Health","COMBINED HEALTH",Theme.ReferenceColors.Upgrades},
-		{"Deployed","ARMY SELECTED",WHITE},{"Flock","CHICKENS",WHITE}} do
-		local tile=frame(self.armyInfo,definition[1],UDim2.new());blackPanel(tile,EDGE,1.5)
-		self.statTiles[definition[1]]={
-			frame=tile,title=label(tile,"Title",definition[2],14,UDim2.new(),UDim2.new(),MUTED),
-			value=label(tile,"Value","",40,UDim2.new(),UDim2.new(),definition[3],true),
-			note=label(tile,"Note","",15,UDim2.new(),UDim2.new(),MUTED)}
-	end
-	self.rosterTitle=label(self.armyInfo,"RosterTitle","Current Army",27,UDim2.new(),UDim2.new(),WHITE,true)
-	local roster=Instance.new("ScrollingFrame")
-	roster.Name,roster.BackgroundTransparency,roster.BorderSizePixel="EquippedRoster",1,0
-	roster.ScrollBarThickness,roster.ScrollBarImageColor3=0,GREEN
-	roster.VerticalScrollBarInset=Enum.ScrollBarInset.Always
-	roster.CanvasSize,roster.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.Y
-	roster.ScrollingDirection,roster.ZIndex,roster.Parent=Enum.ScrollingDirection.Y,self.armyInfo.ZIndex+1,self.armyInfo
-	local list=Instance.new("UIListLayout")
-	list.SortOrder,list.Padding,list.Parent=Enum.SortOrder.LayoutOrder,UDim.new(0,0),roster
-	self.fitRoster=fitCanvas(roster,list)
-	self.infoRoster=roster
-	self.infoFooter=label(self.armyInfo,"StatsScope","",16,UDim2.new(),UDim2.new(),MUTED)
-	self.infoFooter.TextWrapped,self.infoFooter.TextTruncate=true,Enum.TextTruncate.None
+	end,"Blue")
+	rect(self.compactButton,632,504,55,53,W,H)
+	Theme.Aspect(self.compactButton,55/53)
+	-- A small tile grid on the button: 2 x 2 normally, 3 x 3 when compact is on.
+	self.compactIcon=frame(self.compactButton.Visual,"Icon",UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.25,0.21))
+	self.compactIcon.ZIndex=self.compactButton.Visual.ZIndex+6
+	Theme.Aspect(self.compactIcon,1)
+	local searchShell=rect(frame(root,"Search"),697,504,215,53,W,H)
+	searchShell.ZIndex=body.ZIndex+6
+	surface(searchShell,TONES.Blue[1],TONES.Blue[3],INK,3)
+	Theme.Studs(searchShell,0.07,24,0).ZIndex=searchShell.ZIndex
+	rect(image(searchShell,"SearchIcon",Art.Search),10,9,34,34,215,53)
+	local search=Instance.new("TextBox")
+	search.Name,search.Text,search.PlaceholderText="SearchChickens","","Search..."
+	search.BackgroundTransparency,search.BorderSizePixel,search.ClearTextOnFocus=1,0,false
+	search.Font,search.TextColor3,search.PlaceholderColor3=Theme.Font,WHITE,Color3.fromRGB(220,240,255)
+	search.TextXAlignment,search.ZIndex,search.Parent=Enum.TextXAlignment.Left,searchShell.ZIndex+3,searchShell
+	rect(search,50,6,158,40,215,53)
+	Theme.ScaleText(search)
+	local outline=Instance.new("UIStroke")
+	outline.Name,outline.Color,outline.StrokeSizingMode,outline.Thickness="TextOutline",INK,Enum.StrokeSizingMode.ScaledSize,0.07
+	outline.Parent=search
+	self.search=search
+	table.insert(self.connections,search:GetPropertyChangedSignal("Text"):Connect(function()
+		self.query=string.lower(search.Text):match("^%s*(.-)%s*$") or ""
+		self.wanted=PAGE;self.grid.CanvasPosition=Vector2.zero;self:Render(true)
+	end))
 
-	self.capacityPage=scrollingPanel(self.body,"MoreArmySlots")
-	self.passTitle=label(self.capacityPage,"Title","Bigger Army",32,UDim2.new(),UDim2.new(),WHITE,true)
-	self.passBadge=label(self.capacityPage,"Type","Army Size upgrades maxed · Robux pass",17,UDim2.new(),UDim2.new(),GREEN)
-	self.passArt=Theme.Image(self.capacityPage,"BiggerArmy",Theme.Assets.Army,UDim2.new(),UDim2.new())
-	self.passArt.ZIndex=self.capacityPage.ZIndex+1
-	self.passCopy=label(self.capacityPage,"Description","Bring more chickens into battle.",24,UDim2.new(),UDim2.new(),WHITE)
-	self.passCopy.TextWrapped,self.passCopy.TextTruncate=true,Enum.TextTruncate.None
-	self.passNote=label(self.capacityPage,"Availability",
-		"The Bigger Army pass adds five more Army slots on top of your Army Size upgrades. See the price in Shop.",18,
-		UDim2.new(),UDim2.new(),MUTED)
-	self.passNote.TextWrapped,self.passNote.TextTruncate=true,Enum.TextTruncate.None
-	self.passShop=button(self.capacityPage,"ViewInShop","View in Shop",function()
-		self.app.audio:Play("Click");self.app:OpenPage("Shop")
-	end,GREEN)
-	self.passBack=button(self.capacityPage,"BackToChickens","Back",back,Theme.ReferenceColors.Upgrades)
+	-- Lock, Sell and Replace modes: a bar over the bottom row with Confirm / Cancel.
+	local bar=rect(frame(root,"ModeBar"),349,464,332,113,W,H)
+	bar.ZIndex,bar.Visible=body.ZIndex+20,false
+	surface(bar,TONES.Blue[1],TONES.Blue[3],INK,3)
+	Theme.Studs(bar,0.14,28,0).ZIndex=bar.ZIndex
+	self.bar=bar
+	self.barTitle=rect(label(bar,"Title","Select Chickens",WHITE,true),10,6,312,44,332,113)
+	self.confirm=button(bar,"Confirm","Confirm",function() self:ConfirmMode() end,"Green")
+	rect(self.confirm,12,54,150,50,332,113)
+	self.cancel=button(bar,"Cancel","Cancel",function() self.app.audio:Play("Click");self:ExitModes();self:Render(true) end,"Red")
+	rect(self.cancel,170,54,150,50,332,113)
 
- -- Fixed inline inspector. Equipment is represented by checks, never a Reserve badge.
- self.detail=scrollingPanel(self.body,"SelectedChicken")
- self.detailBorder=blackPanel(self.detail,CYAN,2)
- self.name=label(self.detail,"Name","Choose a chicken",49,UDim2.new(),UDim2.new(),WHITE,true)
- self.name.TextXAlignment=Enum.TextXAlignment.Center
- fitInspectorLine(self.name,49,16)
- self.metadata=label(self.detail,"LevelRarity","",29,UDim2.new(),UDim2.new(),WHITE)
- self.metadata.TextXAlignment,self.metadata.RichText=Enum.TextXAlignment.Center,true
- self.metadata.TextScaled,self.metadata.TextWrapped=true,false
- Theme.ScaleText(self.metadata)
- self.detailNotice=label(self.detail,"Status","",19,UDim2.new(),UDim2.new(),MUTED)
- self.detailNotice.TextXAlignment=Enum.TextXAlignment.Center
- self.detailHalo=art(self.detail,"RarityGlow",Art.Glow.Rare,UDim2.new(),UDim2.new())
- self.detailHalo.ZIndex=self.detail.ZIndex+2
- self.stats=label(self.detail,"ChickenStats","",37,UDim2.new(),UDim2.new(),WHITE,true)
- self.stats.RichText,self.stats.TextXAlignment=true,Enum.TextXAlignment.Center
- fitInspectorLine(self.stats,37,14)
- self.upgrade=button(self.detail,"UpgradeChicken","Upgrade",function() self:UpgradeSelected() end,CYAN)
- for _,text in {self.upgrade,self.upgrade.Visual.Caption,self.upgrade.Visual.Caption.TextFace,self.upgrade.Visual.Caption.TextShadow} do
-  text.RichText=true
- end
- fitInspectorLine(self.upgrade,43,14)
- self.actions=frame(self.detail,"Actions",UDim2.new())
- self.actionLayout=Instance.new("UIListLayout")
- self.actionLayout.FillDirection,self.actionLayout.SortOrder=Enum.FillDirection.Horizontal,Enum.SortOrder.LayoutOrder
- self.actionLayout.Parent=self.actions
- self.assign=button(self.actions,"AssignChicken","Add to Army",function() self:AssignSelected() end,GREEN)
- fitInspectorLine(self.assign,42,14)
- self.sell=button(self.actions,"SellChicken","Sell",function() self:OpenSell(self.app.selected) end,RED)
- self.assign.LayoutOrder,self.sell.LayoutOrder=1,2
- fitInspectorLine(self.sell,38,14)
- -- October 20 Flock: whether this chicken lays, and the button that moves it.
- self.flockStatus=label(self.detail,"FlockStatus","",23,UDim2.new(),UDim2.new(),MUTED)
- self.flockStatus.TextXAlignment,self.flockStatus.TextWrapped=Enum.TextXAlignment.Center,true
- fitInspectorLine(self.flockStatus)
- self.flockAction=button(self.detail,"FlockChicken","Add to Flock",function() self:FlockSelected() end,GOLD)
- fitInspectorLine(self.flockAction)
- self.detailBack=button(self.body,"BackToFlock","Back",function()
-  self.app.audio:Play("Click");self.inspecting=false;self.app.selected=nil
-  self:Render(true)
- end,CYAN)
- self.detailBack.Visible=false
-	table.insert(self.connections,UserInputService.InputChanged:Connect(function(input) self:PointerChanged(input) end))
-	table.insert(self.connections,UserInputService.InputEnded:Connect(function(input) self:PointerEnded(input) end))
-	table.insert(self.connections,UserInputService.WindowFocusReleased:Connect(function() self:CancelPointer(true) end))
+	-- Results and refusals under the window ("9 Chickens Sold!").
+	self.flash=label(root,"Result","",POWER,true)
+	rect(self.flash,180,566,600,38,W,H)
+	self.flash.Visible,self.flash.ZIndex=false,body.ZIndex+20
+
+	Theme.ScaleText(root)
+	-- After ScaleText: the tooltip's rows use measured TextSize, not TextScaled.
+	self:BuildTooltip()
 	local function visibilityChanged()
 		if not root.Visible or not parent.Visible then
-			self:CancelPointer(true);self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-			self.storageWanted=STORAGE_PAGE
-			self.showInfo,self.showCapacity,self.inspecting=false,false,false
-			self.app.selected,self.lastSelected=nil,nil
+			self:ExitModes();self:HideTooltip()
+			self.inspecting,self.app.selected=false,nil
 			search:ReleaseFocus()
 		end
 	end
 	table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(visibilityChanged))
 	table.insert(self.connections,parent:GetPropertyChangedSignal("Visible"):Connect(visibilityChanged))
 	root.Destroying:Once(function()
-		self:CancelPointer(true)
 		for _,connection in self.connections do connection:Disconnect() end
 	end)
- self:Resize()
 	return self
 end
 
-function Browser:CashOffer(key)
-	local offers=self.app.state and self.app.state.boardUpgrades
-	return offers and offers[key]
+function Browser:BuildDetail()
+	local detail=rect(frame(self.body,"SelectedChicken"),DETAIL.x,DETAIL.y,DETAIL.w,DETAIL.h,BODY.w,BODY.h)
+	detail.ZIndex,detail.Visible,detail.Active=self.grid.ZIndex+10,false,true
+	surface(detail,Color3.fromRGB(0,196,255),Color3.fromRGB(0,105,190),INK,3)
+	Theme.Studs(detail,0.14,28,0).ZIndex=detail.ZIndex
+	self.detail=detail
+	local close=button(detail,"CloseDetail","X",function()
+		self.app.audio:Play("Click");self.inspecting,self.app.selected=false,nil;self:Render()
+	end,"Red")
+	rect(close,9,7,53,53,DETAIL.w,DETAIL.h)
+	Theme.Aspect(close,1)
+	self.detailName=rect(label(detail,"Name","",WHITE,true),8,64,259,38,DETAIL.w,DETAIL.h)
+	self.detailCard=rect(frame(detail,"Portrait"),83,106,109,109,DETAIL.w,DETAIL.h)
+	Theme.Aspect(self.detailCard,1)
+	self.detailRarity=rect(label(detail,"Rarity","",WHITE,true),8,222,259,30,DETAIL.w,DETAIL.h)
+	self.detailRarity.RichText=true
+	self.detailVariant=rect(label(detail,"Variant","",WHITE,true),8,254,259,30,DETAIL.w,DETAIL.h)
+	self.equip=button(detail,"AssignChicken","Equip",function() self:EquipSelected() end,"Green")
+	rect(self.equip,11,296,253,56,DETAIL.w,DETAIL.h)
+	self.lockOne=button(detail,"LockChicken","Lock",function() self:LockSelected() end,"Gold")
+	rect(self.lockOne,11,360,253,54,DETAIL.w,DETAIL.h)
+end
+
+-- Hover / gamepad tooltip: name, rarity and odds, a divider, then power and eggs.
+-- Rows are sized from the window's current scale so the text matches the grid.
+function Browser:BuildTooltip()
+	local tip=Instance.new("Frame")
+	tip.Name,tip.BorderSizePixel,tip.Visible="ChickenTooltip",0,false
+	tip.AutomaticSize,tip.ZIndex,tip.Parent=Enum.AutomaticSize.Y,self.root.ZIndex+40,self.root
+	surface(tip,Color3.fromRGB(33,49,58),Color3.fromRGB(16,26,33),SELECTED,3)
+	local list=Instance.new("UIListLayout")
+	list.SortOrder,list.HorizontalAlignment,list.Parent=Enum.SortOrder.LayoutOrder,Enum.HorizontalAlignment.Center,tip
+	local padding=Instance.new("UIPadding");padding.Parent=tip
+	local rows={}
+	local function row(name,order,color)
+		local item=Theme.Label(tip,name,"",20,color or WHITE)
+		item.LayoutOrder,item.AutomaticSize,item.TextWrapped=order,Enum.AutomaticSize.Y,true
+		item.TextXAlignment,item.ZIndex=Enum.TextXAlignment.Center,tip.ZIndex+2
+		item.TextOutline.Color,item.TextOutline.Thickness=INK,0.07
+		rows[name]=item
+		return item
+	end
+	row("Name",1)
+	row("Rarity",2).RichText=true
+	local divider=frame(tip,"Divider");divider.LayoutOrder=3
+	divider.BackgroundColor3,divider.BackgroundTransparency=Color3.fromRGB(132,154,167),0.4
+	local function stat(name,order,asset,color)
+		local line=frame(tip,name);line.LayoutOrder=order
+		local layout=Instance.new("UIListLayout")
+		layout.FillDirection,layout.HorizontalAlignment=Enum.FillDirection.Horizontal,Enum.HorizontalAlignment.Center
+		layout.VerticalAlignment,layout.SortOrder,layout.Parent=Enum.VerticalAlignment.Center,Enum.SortOrder.LayoutOrder,line
+		local icon=Theme.Image(line,"Icon",asset,UDim2.new());icon.ZIndex=tip.ZIndex+2
+		local text=Theme.Label(line,"Value","",20,color)
+		text.LayoutOrder,text.AutomaticSize,text.TextWrapped,text.ZIndex=2,Enum.AutomaticSize.X,false,tip.ZIndex+2
+		text.TextOutline.Color,text.TextOutline.Thickness=INK,0.07
+		rows[name]={line=line,icon=icon,text=text,layout=layout}
+	end
+	stat("Power",4,Art.Damage,POWER)
+	stat("Eggs",5,EggArt.Image("Duck"),GOLD)
+	row("Extra",6,SELECTED)
+	self.tooltip,self.tipRows,self.tipDivider,self.tipPadding,self.tipList=tip,rows,divider,padding,list
+end
+
+function Browser:ShowTooltip(card,pet,point)
+	if not self.root.Visible or self.app.state==nil then return end
+	local definition=Catalog[pet.species]
+	if not definition then return end
+	local u=self.root.AbsoluteSize.Y/H
+	if u<=0 then return end
+	local tip,rows=self.tooltip,self.tipRows
+	local width=310*u
+	tip.Size=UDim2.fromOffset(width,0)
+	local inner=width-24*u
+	local pad=self.tipPadding
+	pad.PaddingTop,pad.PaddingBottom=UDim.new(0,10*u),UDim.new(0,12*u)
+	pad.PaddingLeft,pad.PaddingRight=UDim.new(0,12*u),UDim.new(0,12*u)
+	self.tipList.Padding=UDim.new(0,4*u)
+	for _,name in {"Name","Rarity","Extra"} do rows[name].Size=UDim2.fromOffset(inner,0) end
+	rows.Name.Text,rows.Name.TextSize=displayName(pet),34*u
+	local rarity=RARITIES[definition.rarity] or RARITIES.Common
+	local oneIn=Catalog.OneInText(pet.species)
+	rows.Rarity.TextSize=26*u
+	rows.Rarity.Text=string.format('<font color="#%s">%s</font>%s',rarity:ToHex(),definition.rarity,if oneIn then " · "..oneIn else "")
+	self.tipDivider.Size=UDim2.fromOffset(inner*0.92,2*u)
+	for key,text in {Power=Theme.Number(power(pet)).." Power",
+		-- October 21 one egg = one egg: stronger chickens lay more valuable eggs, not more.
+		Eggs=Theme.CompactCoins(pet.eggValue or 0).."/egg"} do
+		local stat=rows[key]
+		stat.line.Size=UDim2.fromOffset(inner,40*u)
+		stat.layout.Padding=UDim.new(0,6*u)
+		stat.icon.Size=UDim2.fromOffset(34*u,34*u)
+		stat.text.Size,stat.text.TextSize,stat.text.Text=UDim2.fromOffset(0,40*u),32*u,text
+	end
+	local mutation=Mutations.Get(pet.mutation)
+	local extra={}
+	table.insert(extra,"Lv. "..(pet.level or 1))
+	if mutation then table.insert(extra,mutation.name.." · Eggs ×"..mutation.multiplier) end
+	if Giant.IsColossal(pet.giantSize) then table.insert(extra,"Colossal · Army +"..math.floor(Giant.ColossalArmyDamage*100+0.5).."% damage") end
+	if pet.laying then table.insert(extra,"Laying eggs in your Flock") end
+	if pet.favorite then table.insert(extra,"Locked") end
+	rows.Extra.TextSize,rows.Extra.Text=24*u,table.concat(extra,"\n")
+	rows.Extra.TextColor3=if mutation then mutation.color else SELECTED
+	-- The tooltip's corner sits at the pointer, as in the reference (the card's
+	-- centre for gamepads), kept inside the game view.
+	local origin=self.root.AbsolutePosition
+	local at=point or (card.AbsolutePosition+card.AbsoluteSize/2)
+	tip.Visible=true
+	local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1e4,1e4)
+	local height=tip.AbsoluteSize.Y
+	local x=math.min(at.X+6*u,viewport.X-width-4)
+	local y=math.min(at.Y+6*u,viewport.Y-GuiService:GetGuiInset().Y-height-4)
+	tip.Position=UDim2.fromOffset(x-origin.X,y-origin.Y)
+	self.tipFor=card
+end
+
+function Browser:HideTooltip(card)
+	if card==nil or self.tipFor==card then self.tooltip.Visible,self.tipFor=false,nil end
 end
 
 -- Opens Upgrades at the family's next tier; false once the family is maxed.
-function Browser:OpenUpgrade(family,legacyKey): boolean
+function Browser:OpenUpgrade(family): boolean
 	local tree=self.app.state and self.app.state.upgradeTree
 	local definition=Upgrades.Families and Upgrades.Families[family]
-	if type(tree)=="table" and definition then
-		local tier=tree.families and tree.families[family] or 0
-		if tier>=#definition.tiers then return false end
-		self.app.research:OpenNode(Upgrades.NodeId(family,tier+1))
-		return true
+	if type(tree)~="table" or not definition then return false end
+	local tier=tree.families and tree.families[family] or 0
+	if tier>=#definition.tiers then return false end
+	self.app.research:OpenNode(Upgrades.NodeId(family,tier+1))
+	return true
+end
+
+function Browser:CanEdit(): boolean
+	return self.app.state~=nil and self.pending==nil
+end
+
+-- Opening My Army never selects or equips anything; the detail card waits for a click.
+function Browser:OpenInventory()
+	if self.pending then return end
+	self:ExitModes();self:HideTooltip()
+	self.inspecting,self.app.selected=false,nil
+	self.wanted=PAGE
+	if self.grid then self.grid.CanvasPosition=Vector2.zero end
+end
+
+function Browser:Send(action,payload,extra)
+	if self.pending then return end
+	self.app.audio:Play("Click")
+	local id=self.app:Request(action,payload)
+	self.pending={id=id,at=os.clock(),action=action,extra=extra,before=table.clone(self.app.state.selectedIds or {})}
+	self:UpdateAction()
+end
+
+function Browser:Receive(result)
+	-- Every snapshot passes through here: keep the world mutation looks current.
+	MutationVFX.SetOwnedMutations(self.app.state and self.app.state.pets)
+	local pending=self.pending
+	if not pending or not result or result.id~=pending.id then return end
+	self.pending=nil
+	if not result.ok then self:Flash(result.message or "That didn't work. Try again.");return end
+	if pending.action=="Sell" then
+		local count,total=pending.extra.count,pending.extra.total
+		self:ExitModes()
+		self:Flash(count.." "..(if count==1 then "Chicken" else "Chickens").." Sold! +"..Theme.CompactCoins(total))
+	elseif pending.action=="Favorite" then
+		self:ExitModes()
+		self:Flash(result.message or "Done.",WHITE)
+	elseif pending.action=="SetArmy" or pending.action=="SelectBest" then
+		self.armyPop={before=pending.before,at=os.clock()}
 	end
-	-- Snapshots without the Upgrades tree still carry the old cash offers.
-	local offer=self:CashOffer(legacyKey)
-	if offer and offer.ready and offer.price==nil then return false end
-	if self.app.research.OpenCash then self.app.research:OpenCash(legacyKey) else self.app.research:Open() end
-	return true
 end
 
--- The Sell screen picks many chickens at once; `petId` starts selected when it can be sold.
-function Browser:OpenSell(petId)
-	if self.pending or not self.app.OpenSell then return end
-	self.app.audio:Play("Click");self:CancelPointer(true)
-	self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-	self.app:OpenSell(petId)
+-- A short line under the window; refusals shake it.
+function Browser:Flash(text,color)
+	self.flashToken+=1
+	local token=self.flashToken
+	self.flash.Text,self.flash.TextColor3,self.flash.Visible=text,color or POWER,true
+	Theme.Motion:PopScale(self.flash,1.12)
+	task.delay(2.5,function() if self.flashToken==token then self.flash.Visible=false end end)
 end
 
--- The Coins level-up button stays until Chicken Feed arrives (the snapshot gains `tools`).
-function Browser:UpgradeShown(): boolean
-	return Config.Features.ChickenCashUpgrades and self.app.state~=nil and self.app.state.tools==nil
+function Browser:ExitModes()
+	self.mode,self.placing,self.placingExpected=nil,nil,nil
+	self.marked,self.markOrder={},{}
 end
 
-function Browser:CanEdit()
-	local state=self.app.state
-	if not state or self.pending then return false end
-	return true
+function Browser:SetMode(mode)
+	if not self:CanEdit() then return end
+	self.app.audio:Play("Click")
+	local leaving=self.mode==mode
+	self:ExitModes()
+	if not leaving then self.mode=mode;self.inspecting,self.app.selected=false,nil end
+	self:Render(true)
+end
+
+function Browser:Mark(pet)
+	local id=pet.id
+	if self.marked[id] then
+		self.marked[id]=nil
+		local index=table.find(self.markOrder,id)
+		if index then table.remove(self.markOrder,index) end
+	else
+		if self.mode=="Sell" then
+			local ok,reason=sellable(pet)
+			if not ok then self.app.audio:Play("Click");self:Flash(reason);return end
+		end
+		self.marked[id]=true;table.insert(self.markOrder,id)
+	end
+	self.app.audio:Play("Click")
+	self:UpdateMarks()
+	local entry=self.cards[id]
+	if entry then Theme.Motion:PopScale(entry.card,if self.marked[id] then 1.08 else 0.94) end
+end
+
+-- Marked chickens still owned (and, for Sell, still sellable) with the sale total.
+function Browser:MarkedIds(): ({string},number,boolean)
+	local ids,total,anyUnlocked={},0,false
+	for index=#self.markOrder,1,-1 do
+		local id=self.markOrder[index]
+		local pet=self.app:Pet(id)
+		if not pet or (self.mode=="Sell" and not sellable(pet)) then
+			self.marked[id]=nil;table.remove(self.markOrder,index)
+		end
+	end
+	for _,id in self.markOrder do
+		local pet=self.app:Pet(id)
+		table.insert(ids,id)
+		total+=pet.refund or 0
+		if not pet.favorite then anyUnlocked=true end
+	end
+	return ids,total,anyUnlocked
+end
+
+function Browser:ConfirmMode()
+	if not self:CanEdit() then return end
+	if self.mode=="Sell" or self.mode=="Lock" then
+		local ids,total,anyUnlocked=self:MarkedIds()
+		if #ids==0 then Theme.Motion:Shake(self.confirm.Visual,6);return end
+		if self.mode=="Sell" then
+			-- The server rechecks ownership, protection and the exact total atomically.
+			self:Send("Sell",{petIds=ids,expectedTotal=total,sparesOnly=true},{count=#ids,total=total})
+		else
+			self:Send("Favorite",{petIds=ids,locked=anyUnlocked})
+		end
+	end
+end
+
+function Browser:UnequipAll()
+	if not self:CanEdit() then return end
+	self:ExitModes()
+	local current=self.app.state.selectedIds or {}
+	if #current==0 then self:Flash("Your Army is already empty.");return end
+	self:Send("SetArmy",{petIds={},expectedIds=table.clone(current)})
+end
+
+function Browser:Inspect(id)
+	self.app.audio:Play("Click")
+	self.app.selected,self.inspecting=id,true
+	self:Render()
+	local entry=self.cards[id]
+	if entry then local card=entry.card;task.defer(function() Theme.Motion:PopScale(card,1.05) end) end
+	Theme.Motion:PopScale(self.detail,1.03)
+end
+
+function Browser:Tapped(pet)
+	if self.mode=="Sell" or self.mode=="Lock" then self:Mark(pet)
+	elseif self.mode=="Replace" then
+		local ids=self.placingExpected or {}
+		local slot=table.find(ids,pet.id)
+		if not slot then self.app.audio:Play("Click");self:Flash("Choose a checked Army chicken to replace.");return end
+		self:Drop(self.placing,slot,false,ids)
+	else self:Inspect(pet.id) end
 end
 
 function Browser:ColossalSlot(id)
@@ -558,412 +668,35 @@ function Browser:ColossalSlot(id)
 	return nil
 end
 
-
-function Browser:OpenInventory()
-	-- This is an explicit navigation action, never a state-refresh side effect.
-	-- Inspection selection is local UI state; it does not equip or sell a chicken.
-	if self.pending then return end
-	local state=self.app.state
-	if not state then return end
-	self:CancelPointer(true)
+-- The detail card's Equip / Unequip. A full Army asks which chicken to replace.
+function Browser:EquipSelected()
 	local pet=self.app:Pet(self.app.selected)
-	if not pet then
-		local equipped={}
-		for _,id in state.selectedIds or {} do equipped[id]=true end
-		local bestEquipped,bestPower=false,-math.huge
-		for _,candidate in state.pets or {} do
-			local isEquipped=equipped[candidate.id]==true or candidate.selected==true
-			local power=Rules.PetPower(candidate.species,candidate.stars,candidate.level,candidate.giantSize)
-			if not pet or (isEquipped and not bestEquipped)
-				or (isEquipped==bestEquipped and (power>bestPower or (power==bestPower and candidate.id<pet.id))) then
-				pet,bestEquipped,bestPower=candidate,isEquipped,power
-			end
-		end
-	end
-	local id=if pet then pet.id else nil
-	self.app.selected,self.lastSelected=id,id
-	self.inspecting,self.showInfo,self.showCapacity=pet~=nil,false,false
-	self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-	self.storageWanted=STORAGE_PAGE
-end
-
-function Browser:Resize()
- -- Native Scale rectangles preserve the approved four-column/inspector composition.
- local width,height=1474,1474*876/1274
- local bodyHeight=height-93
- local inventoryHeight,detailHeight=bodyHeight-92,bodyHeight-95
- local rect=Theme.RelativeRect
- self.root.AnchorPoint,self.root.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
- self.root.Size=UDim2.fromScale(1,1)
- self.narrow,self.hideDetailPreview=false,false
- self.root.ArmyBackground.Position,self.root.ArmyBackground.Size=UDim2.new(),UDim2.fromScale(1,1)
- rect(self.body,0,88,width,bodyHeight,width,height)
- Theme.BelowHeader(self.header,self.body,1-5/height)
- local inventoryVisible=not self.showInfo and not self.showCapacity
- self.inventory.Visible,self.detail.Visible=inventoryVisible,inventoryVisible
- self.detailBack.Visible=false
- self.armyInfo.Visible,self.capacityPage.Visible=self.showInfo,self.showCapacity
- rect(self.toolbar,0,0,width,85,width,bodyHeight)
- rect(self.flockLabel,27,10,110,64,width,85)
- rect(self.summary,143,10,137,64,width,85)
- rect(self.flockPlus,278,13,66,62,width,85)
- Theme.Aspect(self.flockPlus,66/62)
- self.toolbar.Divider.Visible=true
- rect(self.toolbar.Divider,406,21,2,43,width,85)
- rect(self.capacityLabel,454,10,108,64,width,85)
- -- Centre-left anchor (same resting rect) so the count pops in place.
- self.capacity.AnchorPoint=Vector2.new(0,0.5)
- rect(self.capacity,569,10+32,102,64,width,85)
- rect(self.capacityPlus,676,13,66,62,width,85)
- Theme.Aspect(self.capacityPlus,66/62)
- -- With Stats hidden, Select Best takes its place at the toolbar's right edge.
- rect(self.best,if SHOW_ARMY_INFO then 975 else 1166,13,294,64,width,85)
- rect(self.infoButton,1280,13,180,64,width,85)
- rect(self.inventoryPanel,6,92,903,inventoryHeight,width,bodyHeight)
- -- October 20: the Flock strip sits above storage; its cards are 146 x 150 slots.
- rect(self.flockHeader,16,10,871,46,903,inventoryHeight)
- rect(self.flockTitle,0,0,250,46,871,46)
- rect(self.flockRate,262,0,377,46,871,46)
- self.flockTitle.TextXAlignment,self.flockRate.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
- rect(self.flockBest,651,1,220,44,871,46)
- rect(self.strip,13,62,877,150,903,inventoryHeight)
- rect(self.storageDivider,16,222,871,2,903,inventoryHeight)
- rect(self.searchShell,16,234,430,56,903,inventoryHeight)
- rect(self.searchShell.SearchIcon,16,10,36,36,430,56)
- Theme.Aspect(self.searchShell.SearchIcon,1)
- rect(self.search,66,0,340,56,430,56)
- Theme.ScaleText(self.search)
- -- While replacing, Cancel takes Sell's place.
- local placing=self.placing~=nil or self.flockPlacing~=nil
- self.placeCancel.Visible,self.sellMany.Visible=placing,not placing
- rect(self.placeCancel,458,234,146,56,903,inventoryHeight)
- rect(self.sellMany,458,234,146,56,903,inventoryHeight)
- self.sortButton.AnchorPoint=Vector2.new(0.5,0.5)
- rect(self.sortButton,614+135,234+28,270,56,903,inventoryHeight)
- rect(self.sortButton.Caption,18,0,195,56,270,56)
- rect(self.sortButton.Chevron,221,16,34,24,270,56)
- rect(self.grid,13,300,877,inventoryHeight-312,903,inventoryHeight)
- self.grid.ScrollBarThickness=0
- rect(self.hint,19,bodyHeight-48,887,44,width,bodyHeight)
- self.hint.TextWrapped=true
- rect(self.detail,931,95,535,detailHeight,width,bodyHeight)
- self.detail.CanvasSize=UDim2.new()
- self.detail.ScrollBarThickness=0
- self.name.AnchorPoint=Vector2.new(0.5,0.5)
- rect(self.name,14+253.5,16+27,507,54,535,detailHeight)
- rect(self.metadata,14,78,507,28,535,detailHeight)
- -- Two inspector layouts: with the Coins level-up button (until Chicken Feed), and without.
- if self:UpgradeShown() then
-  self.previewSize=UDim2.fromScale(330/535,330/detailHeight)
-  self.previewPosition=UDim2.fromScale(102.5/535,100/detailHeight)
-  rect(self.detailHalo,112.5,110,310,310,535,detailHeight)
-  rect(self.stats,14,436,507,40,535,detailHeight)
-  rect(self.flockStatus,14,478,507,32,535,detailHeight)
-  rect(self.upgrade,14,514,507,72,535,detailHeight)
-  rect(self.flockAction,14,594,507,72,535,detailHeight)
-  rect(self.actions,14,674,507,72,535,detailHeight)
-  rect(self.detailNotice,14,754,507,44,535,detailHeight)
- else
-  self.previewSize=UDim2.fromScale(380/535,380/detailHeight)
-  self.previewPosition=UDim2.fromScale(77.5/535,100/detailHeight)
-  rect(self.detailHalo,89.5,112,356,356,535,detailHeight)
-  rect(self.stats,14,484,507,42,535,detailHeight)
-  rect(self.flockStatus,14,528,507,40,535,detailHeight)
-  rect(self.flockAction,14,576,507,76,535,detailHeight)
-  rect(self.actions,14,660,507,76,535,detailHeight)
-  rect(self.detailNotice,14,744,507,44,535,detailHeight)
- end
- Theme.Aspect(self.detailHalo,1)
- self.actionLayout.Padding=UDim.new(12/507,0)
- self.assign.Size,self.sell.Size=UDim2.fromScale(331/507,1),UDim2.fromScale(164/507,1)
- self.detailNotice.TextWrapped=true
- self.armyInfo.Position,self.capacityPage.Position=UDim2.fromScale(0.012,0.015),UDim2.fromScale(0.012,0.015)
- self.armyInfo.Size,self.capacityPage.Size=UDim2.fromScale(0.976,0.97),UDim2.fromScale(0.976,0.97)
- self.armyInfo.CanvasSize,self.capacityPage.CanvasSize=UDim2.new(),UDim2.new()
- rect(self.infoTitle,0,0,1030,42,width,bodyHeight)
- rect(self.infoFormations,1048,0,276,48,width,bodyHeight)
- rect(self.infoBack,1342,0,120,48,width,bodyHeight)
- self.infoBack.Text="Back"
- rect(self.infoMode,0,52,1462,28,width,bodyHeight)
- local tileWidth=(1462-36)/4
- for index,name in {"Damage","Health","Deployed","Flock"} do
-  local tile=self.statTiles[name]
-  rect(tile.frame,(index-1)*(tileWidth+12),88,tileWidth,100,width,bodyHeight)
-  rect(tile.title,14,10,tileWidth-28,19,tileWidth,100)
-  rect(tile.value,8,30,tileWidth-16,40,tileWidth,100)
-  rect(tile.note,8,72,tileWidth-16,24,tileWidth,100)
- end
- rect(self.rosterTitle,0,200,1462,36,width,bodyHeight)
- rect(self.infoRoster,0,244,1462,bodyHeight-304,width,bodyHeight)
- rect(self.infoFooter,0,bodyHeight-52,1462,48,width,bodyHeight)
- rect(self.passTitle,8,0,1446,70,width,bodyHeight)
- rect(self.passBadge,8,76,1446,45,width,bodyHeight)
- rect(self.passArt,50,155,250,250,width,bodyHeight)
- Theme.Aspect(self.passArt,1)
- rect(self.passCopy,350,155,1090,200,width,bodyHeight)
- rect(self.passNote,50,445,1374,135,width,bodyHeight)
- rect(self.passShop,50,620,1374,90,width,bodyHeight)
- rect(self.passBack,50,735,1374,80,width,bodyHeight)
- for _,item in {self.passShop,self.passBack} do
-  item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",width/(1374*0.976*0.988))
- end
- return tostring(self.showInfo)..":"..tostring(self.showCapacity)
-end
-
-function Browser:Send(action,payload)
-	if self.pending then return end
-	self.app.audio:Play("Click")
-	local id=self.app:Request(action,payload)
-	local flock=self.app.state.flock
-	self.pending={id=id,at=os.clock(),action=action,petId=payload and payload.petId,
-		before=table.clone(self.app.state.selectedIds or {}),flockBefore=table.clone(flock and flock.ids or {})}
-	self.notice=nil
-	self:UpdateAction()
-end
-
-function Browser:Receive(result)
-	-- Every snapshot passes through here: keep the world mutation looks current.
-	MutationVFX.SetOwnedMutations(self.app.state and self.app.state.pets)
-	if self.pending and result and result.id==self.pending.id then
-		local pending=self.pending
-		self.pending=nil
-		if pending.action=="UpgradeChicken" and result.ok then self.app.feedback:Action("Income") end
-		-- Confirmed Army and Flock edits pop the changed cards on the next render only.
-		if result.ok and (pending.action=="SetArmy" or pending.action=="SelectBest") then self.armyPop={before=pending.before,at=os.clock()} end
-		if result.ok and FLOCK_ACTIONS[pending.action] then self.flockPop={before=pending.flockBefore,at=os.clock()} end
-		self.notice=if result.ok then nil else result.message
-		self.noticeUntil=os.clock()+4
-		if not result.ok then self:Refuse() end
-	end
-end
-
--- A small "no" on the visible notice lines; only for failed player actions.
-function Browser:Refuse()
-	Theme.Motion:Shake(self.hint,5);Theme.Motion:Shake(self.detailNotice,5)
-end
-
-function Browser:PopArmyChanges(before,ids)
-	local was,now,changed={},{},false
-	for _,id in before do was[id]=true end
-	for _,id in ids do now[id]=true end
-	for id,entry in self.cards do
-		if (was[id]==true)~=(now[id]==true) then
-			changed=true
-			Theme.Motion:PopScale(entry.card,1.06)
-			local badge=entry.card:FindFirstChild("EquippedCheck")
-			if badge then Theme.Motion:PopScale(badge,0.5,0.3) end
-		end
-	end
-	if changed then Theme.Motion:PopScale(self.capacity,1.12) end
-end
-
--- Chickens new to the Flock pop in the strip after a confirmed Flock change.
-function Browser:PopFlockChanges(before)
-	local was={}
-	for _,id in before do was[id]=true end
-	for id,entry in self.cards do
-		if entry.strip and not was[id] then Theme.Motion:PopScale(entry.card,1.06) end
-	end
-	Theme.Motion:PopScale(self.summary,1.12)
-end
-
--- What this chicken does for eggs, plus how to level it once Chicken Feed replaces the Coins button.
-function Browser:FlockStatus(pet,upgradeShown): string
-	if not pet then return "" end
-	local text=if pet.flock and pet.laying then "Laying eggs in your Flock"
-		elseif pet.flock then "In your Flock · away with your Army"
-		elseif pet.laying then "Laying in place of a Flock chicken that's away"
-		else "In storage · not laying eggs"
-	if upgradeShown or (pet.level or 1)>=(pet.levelCap or Config.MaxPetLevel) then return text end
-	local tools=self.app.state.tools
-	return text.."\n"..(if type(tools)=="table" and tools.chickenFeed then "Level it up: equip Chicken Feed and walk up to it"
-		else "Level it up with Chicken Feed (Upgrades > Tools)")
-end
-
-function Browser:UpdateAction()
-	local state=self.app.state
-	if not state then return end
-	if self.pending and os.clock()-self.pending.at>5 then
-		self.pending=nil
-		self.notice="No response yet. Try again.";self.noticeUntil=os.clock()+4
-	end
-	if self.notice and os.clock()>(self.noticeUntil or 0) then self.notice=nil end
-	local pet=self.app:Pet(self.app.selected)
-	local canEdit=self:CanEdit()
-	local flock=state.flock
-	local members=if flock then flock.ids or {} else {}
-	enabled(self.best,canEdit)
-	self.best.Text=if self.pending and self.pending.action=="SelectBest" then "Selecting…" else "Select Best"
-	enabled(self.flockBest,canEdit and flock~=nil)
-	self.flockBest.Text=if self.pending and self.pending.action=="FlockBest" then "Equipping…" else "Equip Best"
-	self.hint.Text=if self.notice then self.notice
-		elseif self.pending then (if self.pending.action=="UpgradeChicken" then "Upgrading chicken…"
-			elseif FLOCK_ACTIONS[self.pending.action] then "Updating Flock…" else "Updating Army…")
-		elseif self.placing then "Choose a green-checked chicken to replace, or choose Cancel."
-		elseif self.flockPlacing then "Choose a Flock chicken to swap out, or choose Cancel."
-		elseif not canEdit then "Updating Army…"
-		else ""
-	self.hint.Visible=self.hint.Text~=""
-	self.hint.TextColor3=if self.notice then Color3.fromRGB(255,120,132) else MUTED
-	-- A home chicken in storage can be sold even while the rest of the Army is away.
-	local canSell=self.pending==nil and self.app.OpenSell~=nil and self:SaleEligible(pet)
-	self.detailNotice.Text=if self.notice then self.notice
-		elseif self.pending then "Updating…"
-		elseif pet and self:ColossalSlot(pet.id) then "Only 1 Colossal per Army."
-		elseif pet and not self:SaleEligible(pet) then self:SaleBlockedReason(pet)
-		else ""
-	self.detailNotice.TextColor3=self.hint.TextColor3
-	local upgradeShown=self:UpgradeShown()
-	local price=pet and pet.upgradePrice
-	local affordable=type(price)=="number" and state.coins>=price
-	enabled(self.upgrade,canEdit and pet~=nil and pet.canUpgrade==true and affordable)
-	self.upgrade.Text=if self.pending and self.pending.action=="UpgradeChicken" then "Upgrading…"
-		elseif pet and pet.level>=(pet.levelCap or Config.MaxPetLevel) then "Max Level"
-		elseif type(price)=="number" then 'Upgrade  <font color="#FFDE29">'..Theme.Coins(price)..'</font>' else "Upgrade"
-	enabled(self.assign,canEdit and pet~=nil)
-	self.assign.Text=if pet and pet.selected then "Remove from Army"
-		elseif pet and self:ColossalSlot(pet.id) then "Replace Colossal"
-		elseif #(state.selectedIds or {})>=state.capacity then "Replace…" else "Add to Army"
-	enabled(self.sell,canSell)
-	enabled(self.sellMany,self.pending==nil and self.app.OpenSell~=nil)
-	-- The last Flock chicken stays: an empty Flock would lay nothing.
-	enabled(self.flockAction,canEdit and pet~=nil and flock~=nil and not (pet.flock and #members<=1))
-	self.flockAction.Text=if self.pending and FLOCK_ACTIONS[self.pending.action] then "Updating…"
-		elseif pet and self.flockPlacing==pet.id then "Pick one to swap…"
-		elseif pet and pet.flock then "Remove from Flock"
-		elseif flock and #members>=flock.size then "Swap into Flock…" else "Add to Flock"
-	self.flockStatus.Text=self:FlockStatus(pet,upgradeShown)
-	self.flockStatus.TextColor3=if pet and pet.laying then GOLD else MUTED
-	self.upgrade.Visible=upgradeShown
-	self.flockStatus.Visible,self.flockAction.Visible=pet~=nil,pet~=nil
-	self.detailNotice.Visible=self.detailNotice.Text~=""
-end
-
-function Browser:UpgradeSelected()
-	local pet=self.app:Pet(self.app.selected)
-	if not self:CanEdit() or not pet or pet.canUpgrade~=true or type(pet.upgradePrice)~="number"
-		or self.app.state.coins<pet.upgradePrice then return end
-	self:CancelPointer(true);self.placing,self.placingExpected,self.flockPlacing=nil,nil,nil
-	self:Send("UpgradeChicken",{petId=pet.id,expectedLevel=pet.level,expectedPrice=pet.upgradePrice})
-end
-
-function Browser:SaleEligible(pet)
-	return pet~=nil and pet.canSell==true and not pet.selected and not pet.flock and not pet.favorite
-		and not pet.deployed and pet.home~=false and type(pet.refund)=="number"
-		and pet.refund>=0 and pet.refund<math.huge
-end
-
--- Why Sell is disabled, short and in glossary words; the server's saleReason
--- covers anything else (e.g. the starter-flock minimum).
-function Browser:SaleBlockedReason(pet): string
-	if pet.favorite then return "Favorited chickens can't be sold." end
-	if pet.deployed or pet.home==false then return "Sell this chicken once it's back home." end
-	if pet.selected then return "Remove this chicken from your Army to sell it." end
-	if pet.flock then return "Remove this chicken from your Flock to sell it." end
-	if pet.canSell==false and type(pet.saleReason)=="string" then return pet.saleReason end
-	return ""
-end
-
--- The inspector's Flock button: add, remove, or (when full) pick a Flock chicken to swap out.
-function Browser:FlockSelected()
-	local pet=self.app:Pet(self.app.selected)
-	local flock=self.app.state and self.app.state.flock
-	if not pet or not flock or not self:CanEdit() then return end
-	self:CancelPointer(true);self.placing,self.placingExpected=nil,nil
-	if pet.flock then self:Send("FlockUnequip",{petId=pet.id});return end
-	if #(flock.ids or {})<flock.size then self:Send("FlockEquip",{petId=pet.id});return end
-	self.app.audio:Play("Click")
-	self.flockPlacing=if self.flockPlacing==pet.id then nil else pet.id
-	self:Render(true)
-end
-
-function Browser:SwapIntoFlock(targetId)
-	local id=self.flockPlacing
-	self.flockPlacing=nil
-	if id and self:CanEdit() then self:Send("FlockEquip",{petId=id,replaceId=targetId}) end
-	self:Render(true)
-end
-
--- An empty strip slot takes the chicken being inspected.
-function Browser:FillFlockSlot()
-	local pet=self.app:Pet(self.app.selected)
-	if pet and not pet.flock and self:CanEdit() then self:Send("FlockEquip",{petId=pet.id});return end
-	self.app.audio:Play("Click")
-	self.notice,self.noticeUntil="Choose a chicken in storage, then Add to Flock.",os.clock()+4
-	self:UpdateAction()
-end
-
--- A drag dropped on the strip (slot index, 0 for an open spot) or out of it (-1).
-function Browser:FlockDrop(id,target)
-	local pet=self.app:Pet(id)
-	local flock=self.app.state and self.app.state.flock
-	if not pet or not flock or not self:CanEdit() then return end
-	local members=flock.ids or {}
-	if target==-1 then
-		if pet.flock then self:Send("FlockUnequip",{petId=id}) end
-		return
-	end
-	if pet.flock then return end
-	local replaceId=if target>0 then members[target] else nil
-	if replaceId then self:Send("FlockEquip",{petId=id,replaceId=replaceId})
-	elseif #members<flock.size then self:Send("FlockEquip",{petId=id})
-	else
-		self.notice,self.noticeUntil="Your Flock is full. Drop it on a Flock chicken to swap.",os.clock()+4
-		self:UpdateAction();self:Refuse()
-	end
-end
-
-
-function Browser:Inspect(id)
-	if os.clock()<self.suppressUntil then return end
-	self.app.audio:Play("Click")
-	self.app.selected,self.placing,self.inspecting=id,nil,true
-	self.placingExpected,self.flockPlacing=nil,nil
-	self.showInfo,self.showCapacity=false,false
-	-- Not forced: a selection change keeps the grid, so the clicked card can animate.
-	self:Render()
-	local entry=self.cards[id]
-	-- Deferred past the card's own press settle so the selection bounce shows.
-	if entry then local card=entry.card;task.defer(function() Theme.Motion:PopScale(card,1.05) end) end
-	Theme.Motion:PopScale(self.name,1.06)
-end
-
-function Browser:AssignSelected()
-	local pet=self.app:Pet(self.app.selected)
-	if not pet then return end
-	self:TogglePet(pet.id)
-end
-
-function Browser:TogglePet(id)
-	if self.pending then return end
-	if not self:CanEdit() then
-		self.notice,self.noticeUntil="Wait for the current change.",os.clock()+4
-		self:UpdateAction();self:Refuse();return
-	end
-	local pet=self.app:Pet(id)
-	if not pet then return end
-	self.flockPlacing=nil
+	if not pet or not self:CanEdit() then return end
 	local ids=self.app.state.selectedIds or {}
-	local slot=table.find(ids,id)
-	if self.placing then
-		if slot then self:Drop(self.placing,slot,false,self.placingExpected or ids) end
-	elseif slot then self:Drop(id,nil,true,ids)
-	elseif self:ColossalSlot(id) then self:Drop(id,self:ColossalSlot(id),false,ids)
-	elseif #ids<self.app.state.capacity then self:Drop(id,#ids+1,false,ids)
+	local slot=table.find(ids,pet.id)
+	if slot then self:Drop(pet.id,nil,true,ids)
+	elseif self:ColossalSlot(pet.id) then self:Drop(pet.id,self:ColossalSlot(pet.id),false,ids)
+	elseif #ids<self.app.state.capacity then self:Drop(pet.id,#ids+1,false,ids)
 	else
 		self.app.audio:Play("Click")
-		self.placing,self.placingExpected=id,table.clone(ids)
-		self.inspecting,self.showInfo=false,false
+		self:ExitModes()
+		self.mode,self.placing,self.placingExpected="Replace",pet.id,table.clone(ids)
+		self.inspecting=false
 		self.search.Text="";self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 	end
+end
+
+function Browser:LockSelected()
+	local pet=self.app:Pet(self.app.selected)
+	if not pet or not self:CanEdit() then return end
+	self:Send("Favorite",{petIds={pet.id},locked=not pet.favorite})
 end
 
 function Browser:Drop(id,slot,leaveArmy,expected)
 	if not self:CanEdit() then return end
 	local current=self.app.state.selectedIds or {}
 	if table.concat(current,"|")~=table.concat(expected,"|") then
-		self.notice,self.noticeUntil="Army changed. Choose again.",os.clock()+4
-		self:Render(true);self:Refuse();return
+		self:ExitModes();self:Flash("Your Army changed. Choose again.");self:Render(true);return
 	end
 	local ids=table.clone(expected)
 	local old=table.find(ids,id)
@@ -977,590 +710,261 @@ function Browser:Drop(id,slot,leaveArmy,expected)
 	else return end
 	local colossals=0
 	for _,petId in ids do local pet=self.app:Pet(petId);if pet and Giant.IsColossal(pet.giantSize) then colossals+=1 end end
-	if colossals>Giant.MaxArmyColossals then
-		self.notice,self.noticeUntil="Only 1 Colossal per Army. Replace the Colossal in your Army.",os.clock()+4
-		self:UpdateAction();self:Refuse();return
-	end
-	self.placing,self.placingExpected=nil,nil
+	if colossals>Giant.MaxArmyColossals then self:Flash("Only 1 Colossal per Army.");return end
+	self:ExitModes()
 	self:Send("SetArmy",{petIds=ids,expectedIds=table.clone(expected)})
 end
 
-
--- `target`: an Army slot being dragged onto; `flockTarget`: a Flock strip slot (0 = any open one).
-function Browser:Highlight(target,flockTarget)
-	for _,entry in self.cards do
-		local targetSlot=(entry.slot~=nil and entry.slot==target)
-			or (flockTarget~=nil and flockTarget>0 and entry.flockIndex==flockTarget)
-		local viewing=self.inspecting and self.app.selected==entry.id
-		-- While swapping into the Flock, the strip's chickens are the choices.
-		local swapping=self.flockPlacing~=nil and entry.strip==true
-		local color=if targetSlot then WHITE elseif viewing then SELECTED elseif swapping then GOLD
-			elseif entry.equipped then EQUIPPED else entry.color
-		local thickness=if targetSlot or viewing or swapping then 2.5 elseif entry.equipped then 2 else Theme.Border.Card
-		-- Fresh cards snap; later changes (selection, drag target) ease. Drag moves repeat values.
-		if entry.shownColor==nil then entry.border.Color,entry.border.Thickness=color,thickness
-		elseif entry.shownColor~=color or entry.shownThickness~=thickness then
-			Theme.Motion:Tween(entry.border,"state",{Color=color,Thickness=thickness},0.12)
+function Browser:Card(pet,order,inArmy)
+	local card=Instance.new("TextButton")
+	card.Name,card.Text,card.AutoButtonColor="Chicken_"..pet.id,"",false
+	card.BorderSizePixel,card.BackgroundTransparency,card.ClipsDescendants=0,1,true
+	card.LayoutOrder,card.Selectable=order,true
+	card.ZIndex,card.Parent=self.grid.ZIndex+1,self.grid
+	local definition=Catalog[pet.species]
+	local rarity=definition.rarity
+	local color=RARITIES[rarity] or RARITIES.Common
+	local background=Theme.Image(card,"RarityBackground",Art.Card[rarity] or Art.Card.Mythic,UDim2.fromScale(1,1))
+	background.ScaleType,background.ZIndex=Enum.ScaleType.Stretch,card.ZIndex+1
+	local portrait=Preview.Create(card,pet,UDim2.fromScale(1.04,1.04),UDim2.fromScale(-0.02,-0.06))
+	Theme.Aspect(portrait,1)
+	portrait.ZIndex=card.ZIndex+3
+	if portrait:IsA("ViewportFrame") then portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1) end
+	local value=label(card,"Power",Theme.Number(power(pet)),WHITE,true)
+	rect(value,30,70,74,34,108,108)
+	value.TextXAlignment,value.ZIndex=Enum.TextXAlignment.Right,card.ZIndex+6
+	if inArmy then
+		local check=image(card,"EquippedCheck",Art.Check)
+		rect(check,3,3,34,34,108,108)
+		check.ImageColor3,check.ZIndex=EQUIPPED,card.ZIndex+8
+	end
+	if pet.favorite then
+		local lock=image(card,"Locked",Art.Padlock)
+		rect(lock,78,3,27,27,108,108)
+		lock.ZIndex=card.ZIndex+8
+	end
+	-- Laying in the Flock right now: the chicken's own egg in the corner.
+	if pet.laying then
+		local egg=image(card,"Laying",EggArt.Image(pet.species))
+		rect(egg,4,78,24,24,108,108)
+		egg.ZIndex=card.ZIndex+8
+	end
+	local mutation=MutationVFX.Badge(card,pet.mutation)
+	if mutation then rect(mutation,26,4,56,16,108,108) end
+	-- Lock / Sell marks: a dark cell under a padlock or a red X.
+	local mark=frame(card,"Mark",UDim2.fromScale(1,1))
+	mark.BackgroundColor3,mark.BackgroundTransparency,mark.ZIndex,mark.Visible=Color3.new(),0.45,card.ZIndex+9,false
+	local cross=label(mark,"Cross","X",POWER,true)
+	rect(cross,14,8,80,80,108,108)
+	cross.TextOutline.Thickness=0.1
+	local padlock=image(mark,"Padlock",Art.Padlock)
+	rect(padlock,24,18,60,60,108,108)
+	local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
+	outline.ZIndex=card.ZIndex+11
+	local border=Theme.Stroke(outline,if inArmy then EQUIPPED else color,if inArmy then 2.5 else 2)
+	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	self.cards[pet.id]={card=card,border=border,color=color,inArmy=inArmy,mark=mark,cross=cross,padlock=padlock}
+	card:SetAttribute("PetId",pet.id);card:SetAttribute("InArmy",inArmy)
+	card.Activated:Connect(function() self:Tapped(pet) end)
+	card.MouseButton2Click:Connect(function() if not self.mode then self:Inspect(pet.id) end end)
+	card.InputChanged:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseMovement then
+			self:ShowTooltip(card,pet,Vector2.new(input.Position.X,input.Position.Y))
 		end
-		entry.shownColor,entry.shownThickness=color,thickness
-		if entry.viewing then entry.viewing.Visible=viewing end
-		if entry.selectedEdge then entry.selectedEdge.Visible=viewing end
-	end
-	for index,slot in self.stripSlots do
-		if slot.empty then slot.border.Color=if flockTarget==index or flockTarget==0 then WHITE else EDGE end
-	end
+	end)
+	card.MouseLeave:Connect(function() self:HideTooltip(card) end)
+	card.SelectionGained:Connect(function() self:ShowTooltip(card,pet) end)
+	card.SelectionLost:Connect(function() self:HideTooltip(card) end)
+	Theme.Motion:BindButton(card,Theme.Motion:ScaleOf(card),background)
+	return card
 end
 
--- Returns an Army slot (or leaving the Army) for storage drops, and for the Flock
--- strip a slot index (0 for anywhere on it); a Flock chicken dragged out gives -1.
-function Browser:DropTarget(point)
-	if not inside(self.root,point) then return nil,false,nil end
-	local pointer=self.pointer
-	if inside(self.strip,point) then
-		for index,slot in self.stripSlots do
-			if inside(slot.card,point) then return nil,false,index end
-		end
-		return nil,false,0
+-- Cards are added a page at a time as the grid scrolls.
+function Browser:ShowCards()
+	local target=math.min(#self.visible,self.wanted)
+	for index=self.shown+1,target do
+		local pet=self.visible[index]
+		self:Card(pet,index,self.chosen[pet.id]~=nil)
 	end
-	if not inside(self.grid,point) then return nil,false,nil end
-	if pointer and pointer.fromStrip then return nil,false,-1 end
-	for index,entry in self.slots do
-		if inside(entry.card,point) then return index,false,nil end
-	end
-	if pointer then
-		if table.find(pointer.expected,pointer.id) then return nil,true,nil end
-		if #pointer.expected<self.app.state.capacity then return #pointer.expected+1,false,nil end
-	end
-	return nil,false,nil
+	self.shown=math.max(self.shown,target)
+	self:UpdateMarks();self:Highlight();self.fitGrid()
 end
 
-function Browser:CancelPointer(suppress)
-	if suppress and self.pointer then self.suppressUntil=os.clock()+0.3 end
-	self.pointer=nil
-	if self.dragGui then self.dragGui:Destroy();self.dragGui=nil end
-	self.grid.ScrollingEnabled,self.strip.ScrollingEnabled=true,true
-	self:Highlight(nil,nil)
-end
-
-function Browser:StartDrag()
-	local pointer=self.pointer
-	if not pointer or not self:CanEdit() or not self.root.Visible or not self.parent.Visible then return end
-	local pet=self.app:Pet(pointer.id)
-	local playerGui=self.root:FindFirstAncestorOfClass("PlayerGui")
-	if not pet or not playerGui then return end
-	pointer.dragging=true
-	self.grid.ScrollingEnabled,self.strip.ScrollingEnabled=false,false
-	local gui=Theme.InsetContainer(self.app.other,"ArmyDragPreview",Enum.ScreenInsets.None)
-	gui.ZIndex=40
-	self.dragGui=gui
-	local ghost=Instance.new("Frame")
-	ghost.Name,ghost.Size,ghost.BorderSizePixel="Chicken",UDim2.fromScale(0.085,0.14),0
- Theme.Aspect(ghost,112/106)
- ghost.AnchorPoint=Vector2.new(0.5,0.66)
-	ghost.Parent=gui;dark(ghost,GREEN)
-	local portrait=Preview.Create(ghost,pet,UDim2.fromScale(100/112,76/106),UDim2.fromScale(6/112,2/106))
-	portrait.ZIndex=2
-	local name=label(ghost,"Name",Catalog[pet.species].name,13,UDim2.fromScale(4/112,80/106),UDim2.fromScale(104/112,20/106))
-	name.TextXAlignment=Enum.TextXAlignment.Center
-	pointer.ghost=ghost
-	ghost.Position=UDim2.fromOffset(pointer.point.X,pointer.point.Y)
-	local target,_,flockTarget=self:DropTarget(pointer.point);self:Highlight(target,flockTarget)
-end
-
-function Browser:BeginPointer(pet,input,fromStrip)
-	local touch=input.UserInputType==Enum.UserInputType.Touch
-	if not touch and input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
-	if not self:CanEdit() then return end
-	self:CancelPointer(false)
-	local point=pointOf(input)
-	local pointer={id=pet.id,input=input,touch=touch,start=point,point=point,fromStrip=fromStrip==true,
-		expected=table.clone(self.app.state.selectedIds or {}),dragging=false}
-	self.pointer=pointer
-	if touch then
-		task.delay(0.22,function()
-			if self.pointer==pointer and (pointer.point-pointer.start).Magnitude<10 then self:StartDrag() end
-		end)
+function Browser:UpdateMarks()
+	for id,entry in self.cards do
+		local on=self.marked[id]==true
+		entry.mark.Visible=on
+		entry.cross.Visible,entry.padlock.Visible=self.mode=="Sell",self.mode=="Lock"
+	end
+	if self.mode=="Sell" or self.mode=="Lock" then
+		local ids,_,anyUnlocked=self:MarkedIds()
+		local count=#ids
+		local noun=if count==1 then "Chicken" else "Chickens"
+		self.barTitle.Text=if count==0 then "Select Chickens"
+			elseif self.mode=="Sell" then "Sell "..count.." "..noun.."!"
+			elseif anyUnlocked then "Lock "..count.." "..noun.."!" else "Unlock "..count.." "..noun.."!"
 	end
 end
 
-function Browser:PointerChanged(input)
-	local pointer=self.pointer
-	if not pointer then return end
-	if pointer.touch then if input~=pointer.input then return end
-	elseif input.UserInputType~=Enum.UserInputType.MouseMovement then return end
-	pointer.point=pointOf(input)
-	if not pointer.dragging then
-		local distance=(pointer.point-pointer.start).Magnitude
-		if pointer.touch and distance>=10 then self:CancelPointer(true);return
-		elseif not pointer.touch and distance>=6 then self:StartDrag() end
-	end
-	if pointer.dragging and pointer.ghost then
-		pointer.ghost.Position=UDim2.fromOffset(pointer.point.X,pointer.point.Y)
-		local target,_,flockTarget=self:DropTarget(pointer.point);self:Highlight(target,flockTarget)
+function Browser:Highlight()
+	for id,entry in self.cards do
+		local viewing=self.inspecting and self.app.selected==id and not self.mode
+		local replacing=self.mode=="Replace" and entry.inArmy
+		local color=if viewing then SELECTED elseif replacing then WHITE elseif entry.inArmy then EQUIPPED else entry.color
+		entry.border.Color=color
+		entry.border.Thickness=if viewing or replacing then 3.5 elseif entry.inArmy then 2.5 else 2
 	end
 end
 
-function Browser:PointerEnded(input)
-	local pointer=self.pointer
-	if not pointer then return end
-	if pointer.touch then if input~=pointer.input then return end
-	elseif input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
-	local target,leaveArmy,flockTarget=self:DropTarget(pointer.point)
-	local dragged=pointer.dragging
-	self:CancelPointer(dragged)
-	if dragged then
-		if flockTarget then self:FlockDrop(pointer.id,flockTarget)
-		else self:Drop(pointer.id,target,leaveArmy,pointer.expected) end
-		self:Render(true)
-	end
-end
-
-
-function Browser:Card(parent,pet,slot,order)
- local card=Instance.new("TextButton")
- card.Name,card.Text,card.AutoButtonColor="Chicken_"..pet.id,"",false
- local cellWidth=(877-36)/4
- local cellHeight=cellWidth*220/210
- local cellX,cellY=cellWidth/877,cellHeight/(cellHeight+16)
- card.Size,card.LayoutOrder=UDim2.fromScale(cellX,cellY),order
- -- Centre-anchored (same resting rect) so hover/press scale from the middle.
- card.AnchorPoint=Vector2.new(0.5,0.5)
- card.Position=UDim2.fromScale(((order-1)%4)*(cellWidth+12)/877+cellX/2,cellY/2)
- Theme.Aspect(card,210/220)
- card.BorderSizePixel,card.BackgroundTransparency,card.ClipsDescendants=0,1,true
- card.ZIndex,card.Parent=parent.ZIndex+1,parent
- Theme.Round(card)
- local definition=Catalog[pet.species]
- local rarity=definition.rarity
- local color=RARITIES[rarity] or RARITIES.Common
- local background=art(card,"RarityBackground",Art.Card[rarity] or Art.Card.Common,UDim2.fromScale(1,1))
- background.ScaleType=Enum.ScaleType.Stretch
- Theme.Round(background)
- local ribbon=frame(card,"RarityRibbon",UDim2.fromScale(198/210,26/220),UDim2.fromScale(6/210,6/220))
- ribbon.ZIndex=card.ZIndex+2
- surface(ribbon,color,color:Lerp(Color3.new(0,0,0),0.22),Color3.fromRGB(7,16,22),Theme.Border.Detail)
- local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),18,UDim2.new(),UDim2.fromScale(1,1),WHITE)
- rarityLabel.TextXAlignment=Enum.TextXAlignment.Center
- -- Let the actual chicken fill the card; its PNG already includes transparent padding.
- local portrait=Preview.Create(card,pet,UDim2.fromScale(224.4/210,224.4/220),UDim2.fromScale((210-224.4)/420,(32-224.4*0.16)/220))
- Theme.Aspect(portrait,1)
- portrait.ZIndex=card.ZIndex+3
- if portrait:IsA("ViewportFrame") then
-  portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
- end
- local name=label(card,"Name",(if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..definition.name:gsub(" Chicken$",""),27,
-  UDim2.fromScale(5/210,161/220),UDim2.fromScale(200/210,26/220),WHITE)
- name.TextXAlignment=Enum.TextXAlignment.Center
- local stats=self:ResearchStats(pet)
- local strength=label(card,"Damage",Theme.Number(stats.damage/stats.interval).." DPS",25,
-  UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),GOLD,true)
- strength.TextXAlignment=Enum.TextXAlignment.Center
- local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
- outline.ZIndex=card.ZIndex+7
- Theme.Round(outline)
- local equipped=slot~=nil
- local border=Theme.Stroke(outline,if equipped then EQUIPPED else color,if equipped then 2 else Theme.Border.Card)
- border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
- local entry={card=card,border=border,id=pet.id,color=color,equipped=equipped,slot=slot}
- self.cards[pet.id]=entry
- if slot then self.slots[slot]=entry end
- card:SetAttribute("PetId",pet.id);card:SetAttribute("InArmy",equipped)
- if equipped then
-  local badge=frame(card,"EquippedCheck",UDim2.fromScale(0.25,0.27))
-  badge.ZIndex=card.ZIndex+8
-  surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),Theme.Border.Control)
-  art(badge,"Check",Art.Check,UDim2.fromScale(0.75,0.65),UDim2.fromScale(0.1,0.15))
- end
- -- Mutation tag under the rarity ribbon, clear of the equipped check.
- local mutation=MutationVFX.Badge(card,pet.mutation)
- if mutation then
-  mutation.Position,mutation.Size=UDim2.fromScale(92/210,36/220),UDim2.fromScale(112/210,28/220)
- end
- -- Laying in place of a Flock chicken that's away: its own egg in the corner.
- if pet.laying then
-  local egg=art(card,"Laying",EggArt.Image(pet.species),UDim2.fromScale(40/210,40/220),UDim2.fromScale(166/210,2/220))
-  egg.ZIndex=card.ZIndex+8
-  Theme.Aspect(egg,1)
- end
- card.Activated:Connect(function()
-  if os.clock()<self.suppressUntil then return end
-  if self.placing then self:TogglePet(pet.id) else self:Inspect(pet.id) end
- end)
- card.MouseButton2Click:Connect(function() self:Inspect(pet.id) end)
- card.InputBegan:Connect(function(input) self:BeginPointer(pet,input) end)
- Theme.Motion:BindButton(card,Theme.Motion:ScaleOf(card),background)
- return card
-end
-
--- A Flock strip card: compact, with eggs per second instead of DPS. 138 x 150 inside a 146 x 150 slot.
-function Browser:SlotCard(holder,pet,armySlot,index)
- local card=Instance.new("TextButton")
- card.Name,card.Text,card.AutoButtonColor="Chicken_"..pet.id,"",false
- card.AnchorPoint,card.Position,card.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(138/146,1)
- card.BorderSizePixel,card.BackgroundTransparency,card.ClipsDescendants=0,1,true
- card.ZIndex,card.Parent=holder.ZIndex+1,holder
- Theme.Round(card)
- local definition=Catalog[pet.species]
- local rarity=definition.rarity
- local color=RARITIES[rarity] or RARITIES.Common
- local background=art(card,"RarityBackground",Art.Card[rarity] or Art.Card.Common,UDim2.fromScale(1,1))
- background.ScaleType=Enum.ScaleType.Stretch
- Theme.Round(background)
- local portrait=Preview.Create(card,pet,UDim2.fromScale(118/138,118/150),UDim2.fromScale(10/138,2/150))
- Theme.Aspect(portrait,1)
- portrait.ZIndex=card.ZIndex+3
- if portrait:IsA("ViewportFrame") then
-  portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
- end
- local name=label(card,"Name",(if pet.giantSize then Giant.Kind(pet.giantSize).." " else "")..definition.name:gsub(" Chicken$",""),20,
-  UDim2.fromScale(4/138,110/150),UDim2.fromScale(130/138,20/150),WHITE)
- name.TextXAlignment=Enum.TextXAlignment.Center
- -- October 21: stronger chickens lay more valuable eggs, not more of them.
- local eggs=label(card,"Eggs",Theme.CompactCoins(pet.eggValue or 0).."/egg",20,
-  UDim2.fromScale(4/138,130/150),UDim2.fromScale(130/138,18/150),GOLD,true)
- eggs.TextXAlignment=Enum.TextXAlignment.Center
- -- A Flock chicken out with the Army: another chicken lays in its place until it's back.
- if not pet.laying then
-  local away=frame(card,"Away",UDim2.fromScale(1,1))
-  away.BackgroundColor3,away.BackgroundTransparency,away.ZIndex=Color3.new(0,0,0),0.45,card.ZIndex+6
-  local text=label(away,"Text","AWAY",28,UDim2.fromScale(0,0.3),UDim2.fromScale(1,0.28),WHITE,true)
-  text.TextXAlignment=Enum.TextXAlignment.Center
- end
- local outline=frame(card,"StateOutline",UDim2.fromScale(1,1))
- outline.ZIndex=card.ZIndex+7
- Theme.Round(outline)
- local equipped=armySlot~=nil
- local border=Theme.Stroke(outline,if equipped then EQUIPPED else color,if equipped then 2 else Theme.Border.Card)
- border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
- self.cards[pet.id]={card=card,border=border,id=pet.id,color=color,equipped=equipped,flockIndex=index,strip=true}
- self.stripSlots[index]={card=card}
- card:SetAttribute("PetId",pet.id);card:SetAttribute("InArmy",equipped);card:SetAttribute("InFlock",true)
- if equipped then
-  local badge=frame(card,"EquippedCheck",UDim2.fromScale(0.26,0.24))
-  badge.ZIndex=card.ZIndex+8
-  surface(badge,EQUIPPED,EQUIPPED,Color3.fromRGB(23,57,23),Theme.Border.Control)
-  art(badge,"Check",Art.Check,UDim2.fromScale(0.75,0.65),UDim2.fromScale(0.1,0.15))
- end
- card.Activated:Connect(function()
-  if os.clock()<self.suppressUntil then return end
-  if self.placing then self:TogglePet(pet.id)
-  elseif self.flockPlacing then self:SwapIntoFlock(pet.id)
-  else self:Inspect(pet.id) end
- end)
- card.MouseButton2Click:Connect(function() self:Inspect(pet.id) end)
- card.InputBegan:Connect(function(input) self:BeginPointer(pet,input,true) end)
- Theme.Motion:BindButton(card,Theme.Motion:ScaleOf(card),background)
- return card
-end
-
--- An open Flock slot: tapping it adds the chicken being inspected.
-function Browser:EmptySlot(holder,index)
- local slot=Instance.new("TextButton")
- slot.Name,slot.Text,slot.AutoButtonColor="EmptySlot","",false
- slot.AnchorPoint,slot.Position,slot.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(138/146,1)
- slot.BorderSizePixel,slot.ZIndex,slot.Parent=0,holder.ZIndex+1,holder
- local border=dark(slot,EDGE)
- local plus=label(slot,"Plus","+",48,UDim2.fromScale(0,0.18),UDim2.fromScale(1,0.4),MUTED,true)
- plus.TextXAlignment=Enum.TextXAlignment.Center
- local text=label(slot,"Open","Open slot",20,UDim2.fromScale(0.05,0.62),UDim2.fromScale(0.9,0.16),MUTED)
- text.TextXAlignment=Enum.TextXAlignment.Center
- self.stripSlots[index]={card=slot,border=border,empty=true}
- slot.Activated:Connect(function()
-  if os.clock()<self.suppressUntil then return end
-  self:FillFlockSlot()
- end)
- Theme.Motion:BindButton(slot,Theme.Motion:ScaleOf(slot),slot)
- return slot
-end
-
--- The strip shows every Flock slot: its chickens in order, then open slots.
-function Browser:RenderStrip(pets,flock,chosen)
- clear(self.strip)
- self.stripSlots={}
- local members=if flock then flock.ids or {} else {}
- local size=if flock then flock.size or 0 else 0
- for index=1,math.max(size,#members) do
-  local pet=members[index] and pets[members[index]]
-  local holder=frame(self.strip,"Slot"..index,UDim2.fromScale(1,1))
-  holder.LayoutOrder=index
-  Theme.Aspect(holder,146/150)
-  if pet then self:SlotCard(holder,pet,chosen[pet.id],index) else self:EmptySlot(holder,index) end
- end
- self.fitStrip()
-end
-
--- Storage cards are added a page at a time (storage can hold up to Config.StorageLimit chickens).
-function Browser:ShowStorage(count)
- local visible=self.storage
- local target=math.min(#visible,count)
- if self.moreRow then self.moreRow:Destroy();self.moreRow=nil end
- for index=self.storageShown+1,target do
-  if (index-1)%4==0 then
-   local row=frame(self.grid,"Row"..math.ceil(index/4),UDim2.fromScale(1,1))
-   row.LayoutOrder=math.ceil(index/4)
-   Theme.Aspect(row,877/(((877-36)/4)*220/210+16))
-   self.storageRow=row
-  end
-  local pet=visible[index]
-  self:Card(self.storageRow,pet,self.chosen[pet.id],index)
- end
- self.storageShown=math.max(self.storageShown,target)
- if self.storageShown<#visible then
-  local more=Instance.new("TextButton")
-  more.Name,more.Text,more.AutoButtonColor="ShowMore","",false
-  more.Size,more.LayoutOrder,more.BackgroundTransparency=UDim2.fromScale(1,1),100000,1
-  more.ZIndex,more.Parent=self.grid.ZIndex+1,self.grid
-  Theme.Aspect(more,877/80)
-  local text=label(more,"Text","Show more chickens ("..(#visible-self.storageShown).." more)",22,
-   UDim2.fromScale(0,0.15),UDim2.fromScale(1,0.7),MUTED)
-  text.TextXAlignment=Enum.TextXAlignment.Center
-  more.Activated:Connect(function() self:ShowMoreStorage() end)
-  self.moreRow=more
- end
-end
-
-function Browser:ShowMoreStorage()
- if not self.moreRow then return end
- self.storageWanted=self.storageShown+STORAGE_PAGE
- self:ShowStorage(self.storageWanted)
- self:Highlight(nil,nil);self.fitGrid()
-end
-
--- Permanent army research is visible in inventory and combined stats.
-function Browser:ResearchStats(pet)
- local stats=Rules.Stats(pet.species,pet.stars,pet.level,pet.giantSize)
- -- Upgrades effects (state.effects since October 20; research.effects before).
- local state=self.app.state
- local effects=state and (state.effects or (state.research and state.research.effects))
- if effects then
-  stats.damage*=1+(effects.damage or 0)
-  stats.hp*=1+(effects.health or 0)
- end
- return stats
-end
-
-function Browser:RenderArmyInfo(pets,ids)
-	clear(self.infoRoster)
-	local dps,hp=0,0
-	for index,id in ids do
-		local pet=pets[id]
-		if not pet then continue end
-		local stats=self:ResearchStats(pet)
-		dps+=stats.damage/stats.interval;hp+=stats.hp
-		local holder=frame(self.infoRoster,"Equipped_"..id,UDim2.fromScale(1,1))
-  holder.LayoutOrder=index
-  Theme.Aspect(holder,1462/96)
-  local row=frame(holder,"Content",UDim2.fromScale(1,84/96))
-  Theme.Aspect(row,1462/84)
-		dark(row,GREEN)
-		local stripe=frame(row,"EquippedStripe",UDim2.fromScale(4/1462,1))
-		stripe.BackgroundColor3,stripe.BackgroundTransparency=GREEN,0
-		local portrait=Preview.Create(row,pet,UDim2.fromScale(94/1462,76/84),UDim2.fromScale(10/1462,4/84))
-  Theme.Aspect(portrait,1)
-		portrait.ZIndex=row.ZIndex+1
-		label(row,"Name",Catalog[pet.species].name,26,
-			UDim2.fromScale(118/1462,13/84),UDim2.fromScale(990/1462,30/84),WHITE,true)
-		local mutation=Mutations.Get(pet.mutation)
-		label(row,"Status","Lv. "..pet.level.." / "..(if pet.deployed then "Away" else "In Army")
-			..(if mutation then " / "..mutation.name else ""),15,
-			UDim2.fromScale(118/1462,49/84),UDim2.fromScale(990/1462,23/84),GREEN)
-		local damage=label(row,"DPS",Theme.Number(stats.damage/stats.interval).." DPS",25,
-			UDim2.fromScale(1138/1462,27/84),UDim2.fromScale(150/1462,32/84),WHITE,true)
-		damage.TextXAlignment=Enum.TextXAlignment.Center
-		local health=label(row,"HP",Theme.Number(stats.hp).." HP",25,
-			UDim2.fromScale(1300/1462,27/84),UDim2.fromScale(150/1462,32/84),WHITE,true)
-		health.TextXAlignment=Enum.TextXAlignment.Center
-	end
+function Browser:UpdateAction()
 	local state=self.app.state
-	local effects=state.effects or (state.research and state.research.effects) or {}
-	local damage,health=effects.damage or 0,effects.health or 0
-	self.statTiles.Damage.value.Text=Theme.Number(dps)
-	self.statTiles.Damage.note.Text=if damage>0 then "includes +"..math.round(damage*100).."% from Upgrades" else "damage per second"
-	self.statTiles.Health.value.Text=Theme.Number(hp)
-	self.statTiles.Health.note.Text=if health>0 then "includes +"..math.round(health*100).."% from Upgrades" else "maximum hit points"
-	self.statTiles.Deployed.value.Text=#ids.." / "..state.capacity
-	self.statTiles.Deployed.note.Text="Army slots in use"
-	self.statTiles.Flock.value.Text=tostring(#(state.pets or {}))
-	self.statTiles.Flock.note.Text="owned chickens"
-	self.infoMode.Text=if state.selectionMode=="Manual" then "Your manual Army is selected." else "Best chickens selected automatically."
-	local flock=state.flock
-	self.infoFooter.Text="Army stats only. Best uses damage, health and splash.\nFlock: "..(if flock then #(flock.laying or {}) else 0)
-		.." laying · "..Theme.CompactCoins(state.income or 0).."/s"
-	if #ids==0 then
-		label(self.infoRoster,"Empty","No chickens in your Army. Go back and add some.",18,
-			UDim2.fromScale(0.01,0.01),UDim2.fromScale(0.98,0.12),MUTED)
+	if not state then return end
+	if self.pending and os.clock()-self.pending.at>5 then
+		self.pending=nil;self:Flash("No response yet. Try again.")
+	end
+	local canEdit=self:CanEdit()
+	local action=self.pending and self.pending.action
+	enabled(self.best,canEdit);enabled(self.unequip,canEdit)
+	self.best.Text=if action=="SelectBest" then "Equipping..." else "Equip Best"
+	setTone(self.lock,if self.mode=="Lock" then "Green" else "Red")
+	setTone(self.trash,if self.mode=="Sell" then "Green" else "Red")
+	setTone(self.compactButton,if self.compact then "Green" else "Blue")
+	for key,item in self.sortButtons do setTone(item,if self.sort==key then "Green" else "Dark") end
+	local selecting=self.mode=="Sell" or self.mode=="Lock"
+	self.bar.Visible=self.mode~=nil
+	self.confirm.Visible=selecting
+	self.cancel.Position=if selecting then UDim2.fromScale(170/332,54/113) else UDim2.fromScale(91/332,54/113)
+	enabled(self.confirm,canEdit);enabled(self.cancel,canEdit)
+	self.confirm.Text=if action=="Sell" then "Selling..." elseif action=="Favorite" then "Saving..." else "Confirm"
+	if self.mode=="Replace" then self.barTitle.Text="Replace which chicken?" end
+	local pet=self.app:Pet(self.app.selected)
+	if pet then
+		local inArmy=table.find(state.selectedIds or {},pet.id)~=nil
+		local full=#(state.selectedIds or {})>=state.capacity
+		self.equip.Text=if action=="SetArmy" then "Saving..." elseif inArmy then "Unequip"
+			elseif self:ColossalSlot(pet.id) then "Replace Colossal" elseif full then "Replace..." else "Equip"
+		setTone(self.equip,if inArmy then "Red" else "Green")
+		self.lockOne.Text=if action=="Favorite" then "Saving..." elseif pet.favorite then "Unlock" else "Lock"
+		enabled(self.equip,canEdit);enabled(self.lockOne,canEdit)
 	end
 end
 
 function Browser:RenderDetail(pet)
- if self.detailPreview then self.detailPreview:Destroy();self.detailPreview=nil end
- if self.detailMutation then self.detailMutation:Destroy();self.detailMutation=nil end
- if not pet or not self.inspecting or not self.detail.Visible then
-  self.name.Text,self.metadata.Text="Choose a chicken",""
-  self.stats.Text=""
-  self.detailHalo.Visible=false
-  return
- end
- local definition=Catalog[pet.species]
- self.detailBorder.Color=Color3.fromRGB(23,199,238)
- local stats=self:ResearchStats(pet)
- self.name.Text=definition.name
- local rarity=RARITIES[definition.rarity] or RARITIES.Common
- local oneIn=Catalog.OneInText(pet.species)
- self.metadata.Text=string.format('<font color="#%s">%s</font>%s • Lv. %d',rarity:ToHex(),definition.rarity,if oneIn then " · "..oneIn else "",pet.level)
-  ..(if Giant.IsColossal(pet.giantSize) then string.format(' · <font color="#FF6AD5">COLOSSAL</font> · army +%d%% dmg',math.floor(Giant.ColossalArmyDamage*100+0.5))
-   elseif pet.giantSize then string.format(' · <font color="#FFB347">GIANT</font> · ×%g HP ×%g dmg · stomp',Giant.HealthMultiplier,Giant.DamageMultiplier)
-   else "")
- self.detailHalo.Image,self.detailHalo.Visible=Art.Glow[definition.rarity] or (if definition.rarity=="Secret" then Art.Glow.Mythic else nil) or Art.Glow.Common,not self.hideDetailPreview
- self.stats.Text=Theme.Number(stats.damage/stats.interval)..' <font color="#CDD6C7">DPS</font>  •  '
-  ..Theme.CompactCoins(pet.eggValue or 0)..'<font color="#CDD6C7">/egg</font>'
- -- The snapshot's egg worth already includes the mutation; this tag says why.
- local mutation=Mutations.Get(pet.mutation)
- if mutation then
-  self.detailMutation=MutationVFX.Badge(self.detail,pet.mutation,"MutationEggs",
-   string.format("Eggs ×%g (%s)",mutation.multiplier,mutation.name))
-  if self.detailMutation then
-   local preview,at=self.previewSize,self.previewPosition
-   self.detailMutation.Size=UDim2.fromScale(preview.X.Scale*0.62,preview.Y.Scale*40/414)
-   self.detailMutation.Position=UDim2.fromScale(at.X.Scale+preview.X.Scale*0.19,at.Y.Scale+preview.Y.Scale*0.01)
-  end
- end
- if self.hideDetailPreview then return end
- self.detailPreview=Preview.Create(self.detail,pet,self.previewSize,self.previewPosition)
- Theme.Aspect(self.detailPreview,1)
- self.detailPreview.ZIndex=self.detail.ZIndex+3
- if self.detailPreview:IsA("ViewportFrame") then
-  self.detailPreview.Ambient,self.detailPreview.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1)
- end
+	local show=pet~=nil and self.inspecting and not self.mode
+	self.detail.Visible=show
+	if self.detailPortrait then self.detailPortrait:Destroy();self.detailPortrait=nil end
+	if not show then return end
+	local definition=Catalog[pet.species]
+	self.detailName.Text=displayName(pet)
+	local rarity=RARITIES[definition.rarity] or RARITIES.Common
+	local oneIn=Catalog.OneInText(pet.species)
+	self.detailRarity.Text=string.format('<font color="#%s">%s</font>%s',rarity:ToHex(),definition.rarity,if oneIn then " · "..oneIn else "")
+	local mutation=Mutations.Get(pet.mutation)
+	self.detailVariant.Text=(if mutation then mutation.name else "Normal").." · Lv. "..(pet.level or 1)
+	self.detailVariant.TextColor3=if mutation then mutation.color else WHITE
+	-- The same tile as the grid, without the click behaviour.
+	local holder=frame(self.detailCard,"Tile",UDim2.fromScale(1,1))
+	holder.ClipsDescendants=true
+	local background=Theme.Image(holder,"RarityBackground",Art.Card[definition.rarity] or Art.Card.Mythic,UDim2.fromScale(1,1))
+	background.ScaleType,background.ZIndex=Enum.ScaleType.Stretch,holder.ZIndex+1
+	local portrait=Preview.Create(holder,pet,UDim2.fromScale(1.04,1.04),UDim2.fromScale(-0.02,-0.06))
+	Theme.Aspect(portrait,1)
+	portrait.ZIndex=holder.ZIndex+3
+	local value=label(holder,"Power",Theme.Number(power(pet)),WHITE,true)
+	rect(value,30,70,74,34,108,108)
+	value.TextXAlignment,value.ZIndex=Enum.TextXAlignment.Right,holder.ZIndex+6
+	Theme.ScaleText(value)
+	local border=Theme.Stroke(holder,INK,3)
+	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	self.detailPortrait=holder
+end
+
+function Browser:FitCells()
+	local look=if self.compact then LAYOUTS.Compact else LAYOUTS.Normal
+	local gap=self.grid.AbsoluteSize.X*look.gap/GRID.w
+	self.gridLayout.CellSize=UDim2.new(look.cell/GRID.w,0,0,0)
+	self.gridLayout.CellPadding=UDim2.new(look.gap/GRID.w,0,0,math.floor(gap+1.5))
+	self.fitGrid()
 end
 
 function Browser:Render(force)
 	local state=self.app.state
 	if not state then return end
-	if self.pointer then
-		if not self:CanEdit() or not self.app:Pet(self.pointer.id) then self:CancelPointer(true)
-		else self:UpdateAction();return end
-	end
 	local ids=state.selectedIds or {}
-	local flock=state.flock
-	local members=if flock then flock.ids or {} else {}
-	local pets,chosen,inFlock={},{},{}
-	for _,id in members do inFlock[id]=true end
-	local stored=0
-	for _,pet in state.pets or {} do
-		pets[pet.id]=pet
-		if not inFlock[pet.id] then stored+=1 end
-	end
+	local pets,chosen={},{}
+	for _,pet in state.pets or {} do pets[pet.id]=pet end
 	for slot,id in ids do chosen[id]=slot end
-	if self.app.selected and not pets[self.app.selected] then self.app.selected=nil;self.inspecting=false end
-	if self.app.selected and self.app.selected~=self.lastSelected then
-		self.inspecting,self.showInfo,self.showCapacity=true,false,false
+	if self.app.selected and not pets[self.app.selected] then self.app.selected,self.inspecting=nil,false end
+	if self.app.selected and not self.inspecting and not self.mode then self.inspecting=true end
+	if self.mode=="Replace" and (not pets[self.placing] or table.concat(ids,"|")~=table.concat(self.placingExpected or {},"|")) then
+		self:ExitModes()
 	end
-	self.lastSelected=self.app.selected
-	if not self:CanEdit() or (self.placing and not pets[self.placing]) then self.placing,self.placingExpected=nil,nil end
-	if not self:CanEdit() or (self.flockPlacing and (not pets[self.flockPlacing] or inFlock[self.flockPlacing])) then
-		self.flockPlacing=nil
+	self.app.panelTitle.Text="My Army"
+	local flock=state.flock
+	self.capacity.Text=#ids.."/"..state.capacity
+	self.summary.Text=if flock then #(flock.ids or {}).."/"..(flock.size or 0) else "0/0"
+	self:FitCells()
+	local box=self.compactIcon
+	local tiles=if self.compact then 3 else 2
+	if box:GetAttribute("Tiles")~=tiles then
+		box:SetAttribute("Tiles",tiles);clear(box)
+		local size=1/tiles
+		for index=0,tiles*tiles-1 do
+			local tile=frame(box,"Tile",UDim2.fromScale(size*0.78,size*0.78),UDim2.fromScale((index%tiles)*size,math.floor(index/tiles)*size))
+			tile.BackgroundColor3,tile.BackgroundTransparency=WHITE,0
+			Theme.Stroke(tile,INK,1.5)
+		end
 	end
-	local dimensions=self:Resize()
-	self.app.panelTitle.Text=if self.showInfo then "Army Info"
-		elseif self.showCapacity then "More Army Slots" else "My Army"
-	self.title.Text=self.app.panelTitle.Text
-	local mode=if state.selectionMode=="Manual" then "Manual Army" else "Best selected"
-	-- October 20: FLOCK counts the chickens laying against Flock Size; storage shows no cap.
-	self.summary.Text=if flock then string.format('<font color="#F9CE43">%d</font> / %d',#members,flock.size)
-		else string.format('<font color="#F9CE43">%d</font> / %d',#(state.pets or {}),state.collectionLimit or Config.CollectionLimit)
-	self.capacity.Text=string.format('<font color="#F9CE43">%d</font> / %d',#ids,state.capacity)
-	self.flockRate.Text=Theme.CompactCoins(state.income or 0).."/s"
-	self.sortButton.Text=if self.sort=="Name" then "Name A-Z" elseif self.sort=="Eggs" then "Best eggs" else "Best first"
-	self.search.PlaceholderText="Search "..stored.." "..(if stored==1 then "chicken" else "chickens").."…"
-	local effects=state.effects or (state.research and state.research.effects)
-	local keys={dimensions,table.concat(ids,","),tostring(state.capacity),mode,
-		tostring(state.incoming),tostring(state.outgoing),state.armyState,tostring(state.incomeLevel),
-		tostring(state.income),self.query,self.sort,tostring(self.placing~=nil),
-		table.concat(members,","),tostring(flock and flock.size),
-		tostring(effects and effects.damage),tostring(effects and effects.health)}
-	table.insert(keys,tostring(state.research and state.research.revision))
-	-- The server's version number stands for the whole chicken list when it sends one.
+	local keys={table.concat(ids,","),tostring(state.capacity),self.query,self.sort,tostring(self.compact),tostring(self.mode)}
 	if state.petsVersion~=nil then table.insert(keys,"v"..state.petsVersion)
 	else
 		for _,pet in state.pets or {} do
-			table.insert(keys,pet.id..":"..pet.species..":"..pet.stars..":"..pet.level..":"..tostring(pet.giantSize)..":"..tostring(pet.home)
-				..":"..tostring(pet.deployed)..":"..tostring(pet.levelCap)..":"..tostring(pet.mutation)..":"..tostring(pet.laying))
+			table.insert(keys,pet.id..":"..pet.level..":"..tostring(pet.favorite)..":"..tostring(pet.laying)..":"..tostring(pet.mutation))
 		end
 	end
-	-- Cards never read selection/placing; those only re-highlight, so the grid survives a click.
 	local gridKey=table.concat(keys,"|")
-	local key=gridKey.."|"..(self.app.selected or "").."|"..tostring(self.inspecting).."|"..(self.placing or "").."|"..(self.flockPlacing or "")
-	if key==self.key and not force then self:UpdateAction();return end
-	self.key=key
 	if force or gridKey~=self.gridKey then
 		self.gridKey=gridKey
-		self.slots,self.cards={},{}
-		self:RenderStrip(pets,flock,chosen)
+		self:HideTooltip()
 		local scroll=self.grid.CanvasPosition
-		clear(self.grid)
-		-- Storage: every chicken outside the Flock strip.
-		local visible,power={},{}
+		clear(self.grid);self.cards={}
+		local visible,score={},{}
 		for _,pet in state.pets or {} do
-			if inFlock[pet.id] then continue end
+			local definition=Catalog[pet.species]
+			if not definition then continue end
 			-- Player-facing words only: never internal species IDs such as "Duck".
 			local mutation=Mutations.Get(pet.mutation)
-			local searchText=string.lower(Catalog[pet.species].name.." "..Catalog[pet.species].rarity
-				..(if mutation then " "..mutation.name else ""))
-			if self.query=="" or string.find(searchText,self.query,1,true) then
+			local text=string.lower(definition.name.." "..definition.rarity..(if mutation then " "..mutation.name else ""))
+			if self.query=="" or string.find(text,self.query,1,true) then
 				table.insert(visible,pet)
-				power[pet.id]=Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize)
+				score[pet.id]=if self.sort=="Eggs" then pet.eggValue or 0 else power(pet)
 			end
 		end
-		local replacing=self.placing~=nil
 		table.sort(visible,function(a,b)
-			-- While replacing an Army chicken, the Army comes first.
-			if replacing and (chosen[a.id]~=nil)~=(chosen[b.id]~=nil) then return chosen[a.id]~=nil end
-			if self.sort=="Name" then
-				local an,bn=Catalog[a.species].name,Catalog[b.species].name
-				if an~=bn then return an<bn end
-			elseif self.sort=="Eggs" then
-				local ea,eb=a.eggValue or 0,b.eggValue or 0
-				if ea~=eb then return ea>eb end
-			end
-			if power[a.id]~=power[b.id] then return power[a.id]>power[b.id] end
+			-- The Army comes first, as the reference's equipped pets do.
+			local aa,ba=chosen[a.id]~=nil,chosen[b.id]~=nil
+			if aa~=ba then return aa end
+			if score[a.id]~=score[b.id] then return score[a.id]>score[b.id] end
 			return a.id<b.id
 		end)
-		self.storage,self.chosen,self.storageShown,self.storageRow,self.moreRow=visible,chosen,0,nil,nil
-		self:ShowStorage(self.storageWanted)
+		self.visible,self.chosen,self.shown=visible,chosen,0
+		self:ShowCards()
 		self.grid.CanvasPosition=scroll
-		if #visible==0 then
-			local holder=frame(self.grid,"EmptyRow",UDim2.fromScale(1,1))
-	  Theme.Aspect(holder,877/220)
-			local empty=label(holder,"Empty",if self.query~="" then "No matching chickens"
-				elseif #(state.pets or {})>0 then "Every chicken is in your Flock. Roll more at the lever in your yard!"
-				else "No chickens yet. Roll chickens at the lever in your yard!",
-				18,UDim2.new(),UDim2.fromScale(1,1),MUTED)
-			empty.TextWrapped,empty.TextTruncate=true,Enum.TextTruncate.None
-			empty.TextXAlignment=Enum.TextXAlignment.Center
-		elseif #visible<8 and self.query=="" then
-			-- A sparse grid points at where more chickens come from.
-			local holder=frame(self.grid,"RollHint",UDim2.fromScale(1,1))
-			holder.LayoutOrder,holder.BackgroundTransparency=10000,1
-			Theme.Aspect(holder,877/90)
-			local hint=label(holder,"Hint","Roll more chickens at the lever in your yard!",18,UDim2.new(),UDim2.fromScale(1,1),MUTED)
-			hint.TextWrapped,hint.TextTruncate=true,Enum.TextTruncate.None
-			hint.TextXAlignment=Enum.TextXAlignment.Center
-		end
+		self.empty.Visible=#visible==0
+		self.empty.Text=if self.query~="" then "No matching chickens"
+			else "No chickens yet. Roll chickens at the lever in your yard!"
 	end
-	if self.showInfo then self:RenderArmyInfo(pets,ids) end
 	self:RenderDetail(pets[self.app.selected])
-	self:Highlight(nil,nil);self:UpdateAction()
-	self.fitGrid();self.fitRoster();self.fitStrip()
+	self:UpdateMarks();self:Highlight();self:UpdateAction()
 	local pop=self.armyPop
 	if pop then
 		self.armyPop=nil
-		if os.clock()-pop.at<1 then self:PopArmyChanges(pop.before,ids) end
-	end
-	local flockPop=self.flockPop
-	if flockPop then
-		self.flockPop=nil
-		if os.clock()-flockPop.at<1 then self:PopFlockChanges(flockPop.before) end
+		if os.clock()-pop.at<1 then
+			local was={}
+			for _,id in pop.before do was[id]=true end
+			for id,entry in self.cards do if (was[id]==true)~=entry.inArmy then Theme.Motion:PopScale(entry.card,1.06) end end
+			Theme.Motion:PopScale(self.capacity,1.15)
+		end
 	end
 end
 

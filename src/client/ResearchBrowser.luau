@@ -35,7 +35,7 @@ end
 local WHITE=Color3.fromRGB(255,255,255)
 local MUTED=Color3.fromRGB(172,172,172)
 local RED=Color3.fromRGB(255,77,86)
--- October 20: affordable coin prices are gold, like every Coin amount.
+-- October 21 (owner): hex prices are green when you can afford them, red when not.
 local COIN=Theme.Colors.coins
 -- October 20 overhaul: bought and maxed hexes use the bright Army green.
 local GREEN=Color3.fromRGB(163,255,0)
@@ -230,10 +230,10 @@ function Browser:BuildNode(id,layer)
 	caption.ZIndex,caption.Visible=6,kind=="open" or kind=="back"
 	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.18,.735),UDim2.fromScale(.64,.14),5
 	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
-	local price=label(cost,"Price","",.29,0,.71,1,COIN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
+	local price=label(cost,"Price","",.29,0,.71,1,GREEN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
 	-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
 	local hidden=label(visual,"Hidden","?",.25,.15,.5,.7,Color3.fromRGB(150,152,156));hidden.ZIndex=5
-	-- Red circle at the top right: "!" on a hex you can buy now, a count on Open hexes.
+	-- Red circle at the top right of an Open hex: how many upgrades inside you can buy.
 	local badge=Theme.Frame(visual,"Alert",UDim2.fromScale(.26,.26),ALERT)
 	badge.AnchorPoint,badge.Position,badge.ZIndex,badge.Visible=Vector2.new(.5,.5),UDim2.fromScale(.8,.12),7,false
 	Theme.Aspect(badge,1);round(badge,.5)
@@ -526,7 +526,7 @@ function Browser:RenderNode(id)
 	view.icon.Visible=not hidden and view.icon.Image~=""
 	view.title.Visible,view.hidden.Visible=not hidden,hidden
 	view.numeral.Visible=not hidden and view.numeral.Text~=""
-	-- Prices only on hexes you can still buy: gold when affordable, red when not.
+	-- Prices only on hexes you can still buy: green when affordable, red when not.
 	local buyable=look=="available" or look=="unaffordable"
 	view.cost.Visible=buyable
 	view.cashIcon.Visible=not waiting
@@ -534,12 +534,12 @@ function Browser:RenderNode(id)
 	view.price.Size=UDim2.fromScale(if waiting then 1 else .71,1)
 	view.price.TextXAlignment=if waiting then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
 	view.price.Text=if waiting then "…" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
-	view.price.TextColor3=if look=="unaffordable" then RED else COIN
-	-- Red badge (October 20 owner): "!" when you can buy this hex right now; on an
-	-- Open hex, how many upgrades inside you can buy.
+	view.price.TextColor3=if look=="unaffordable" then RED else GREEN
+	-- Red badge only on Open hexes: how many upgrades inside you can buy. October 21
+	-- (owner): no "!" on each affordable hex; the green price already says so.
 	local count=if kind=="open" then self:Badge(node.opens) else 0
-	view.badge.Visible=(look=="available" and not waiting) or count>0
-	view.badgeText.Text=if kind=="open" then (if count>99 then "99+" else tostring(count)) else "!"
+	view.badge.Visible=count>0
+	view.badgeText.Text=if count>99 then "99+" else tostring(count)
 	local entry
 	if visible and (not view.button.Visible or view.lastHidden and not hidden) then entry={id=id,new=not view.button.Visible} end
 	view.button.Visible,view.button.Selectable=visible,visible and not hidden
@@ -645,7 +645,7 @@ function Browser:RenderTooltip()
 	self.tipCost.Visible=price~=nil
 	self.tipCost.Position,self.tipCost.Size=UDim2.fromScale(.22,(costY+4)/height),UDim2.fromScale(.62,34/height)
 	self.tipPrice.Text=if price then Theme.Money(price) else ""
-	self.tipPrice.TextColor3=if self.nodes[id].look=="unaffordable" then RED else COIN
+	self.tipPrice.TextColor3=if self.nodes[id].look=="unaffordable" then RED else GREEN
 	self.tipFooter.Visible=footer~=nil
 	self.tipFooter.Position,self.tipFooter.Size=UDim2.fromScale(.06,footerY/height),UDim2.fromScale(.88,20/height)
 	self:PlaceTooltip()

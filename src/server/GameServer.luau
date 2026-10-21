@@ -313,7 +313,7 @@ function GameServer:Handle(player,request)
 	elseif action=="FlockUnequip" then ok,message=ArmyService.FlockUnequip(session,request.petId)
 	elseif action=="FlockBest" then ok,message=ArmyService.FlockBest(session)
 	elseif action=="Place" or action=="Equip" or action=="Unplace" then message="Choose chickens in the Army menu."
-	elseif action=="Favorite" then ok,message=ArmyService.Favorite(session,request.petId)
+	elseif action=="Favorite" then ok,message=ArmyService.Favorite(session,request.petId,request.petIds,request.locked)
 	elseif action=="FeedChicken" then
 		-- October 20 Chicken Feed: the only way to buy a chicken level (ToolService).
 		ok,message,petId=self.tools:Feed(player,session,request.petId,request.expectedLevel,request.expectedPrice)
