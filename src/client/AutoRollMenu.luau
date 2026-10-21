@@ -33,6 +33,7 @@ local CONFETTI={Color3.fromRGB(255,214,0),Color3.fromRGB(0,221,255),Color3.fromR
 local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.3,0.6),0.74
 local VISIBLE_ROWS=4
 local BANNER_SECONDS=3
+local BANNER_POSITION=UDim2.fromScale(0.5,0.22)
 local PENDING_SECONDS=2
 -- The Auto Roll Gem Upgrade icon (S6, uploaded October 20).
 Menu.Icon="rbxassetid://83070773137079"
@@ -40,11 +41,23 @@ Menu.Pages={"Rarity","Mutation","New"}
 
 function Menu.new(app)
 	return setmetatable({app=app,connections={},pending={},auto=nil::any,page=1,pills={},
-		bannerOffer=nil::string?,banner=nil::any},Menu)
+		bannerOffer=nil::string?,banner=nil::any,powerGlowing=false},Menu)
 end
 
 local function place(item,x,y,w,h)
 	item.Position,item.Size=UDim2.fromScale(x,y),UDim2.fromScale(w,h)
+end
+
+-- Oct 21 game feel (docs/team/GAME_FEEL_20261021.md): the first authored cue among
+-- `names`, else the last one (an existing cue), so new cues fall back until the sound
+-- session adds them. The UI Lab's audio stub has no Has and keeps the fallback.
+local function cue(app,...: string): string
+	local audio=app.audio
+	local names={...}
+	if audio and audio.Has then
+		for _,name in names do if audio:Has(name) then return name end end
+	end
+	return names[#names]
 end
 
 -- One page's rows: {id, kind, key, name, color}.
@@ -133,6 +146,17 @@ function Menu:Render(state, _result)
 		self.bannerOffer=held.offerId
 		self:ShowBanner(if type(held.banner)=="string" then held.banner else "Auto Roll found a chicken!")
 	end
+	-- Oct 21 game feel: the HUD power button glows while Auto Roll runs (a steady ring
+	-- under reduced motion); PAUSED and OFF settle it.
+	local hud=self.app.hud
+	local power=hud and hud.autoRoll
+	if power and power.Parent then
+		local running=self.auto~=nil and self.auto.unlocked==true and self:PowerOn() and self.auto.holding~=true
+		if running~=self.powerGlowing then
+			self.powerGlowing=running
+			if running then Theme.Motion:Glow(power,GREEN,3) else Theme.Motion:StopGlow(power) end
+		end
+	end
 end
 
 -- Panel ------------------------------------------------------------------------
@@ -157,6 +181,7 @@ function Menu:Dismiss(immediate: boolean?)
 		if hud and hud.UpdateAutoRollGear then hud:UpdateAutoRollGear() end
 	end
 	if immediate then finish();return end
+	self.app.audio:Play(cue(self.app,"MenuClose","Click"),nil,{noFallback=true})
 	Theme.Motion:Tween(panel,"autoroll-size",{Size=UDim2.fromScale(PANEL_SIZE.X.Scale*0.97,PANEL_SIZE.Y.Scale*0.97)},0.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
 	Theme.Motion:Tween(panel,"autoroll-fade",{GroupTransparency=1},0.16,nil,nil,finish)
 end
@@ -182,8 +207,10 @@ function Menu:BuildRows()
 		name.TextXAlignment,name.TextScaled,name.TextWrapped=Enum.TextXAlignment.Left,true,false
 		place(name,0.05,0.14,0.58,0.72)
 		name.ZIndex=4
-		local pill=Theme.Button(frame,"Toggle","OFF",function()
-			self.app.audio:Play("Click")
+		local pill
+		pill=Theme.Button(frame,"Toggle","OFF",function()
+			self.app.audio:Play(cue(self.app,"Toggle","Click"),nil,{noFallback=true})
+			Theme.Motion:PopScale(pill,1.14,0.24)
 			self:Set(row,not self:Value(row))
 		end,RED)
 		pill.AnchorPoint=Vector2.new(1,0.5)
@@ -192,11 +219,14 @@ function Menu:BuildRows()
 	end
 	Theme.ScaleText(list)
 	self:Refresh()
+	-- Rows grow in one after another on open and on each page turn.
+	Theme.Motion:Reveal(list,{from=0.8,window=0.3})
 end
 
 function Menu:Turn(direction: number)
 	self.page=(self.page-1+direction)%#Menu.Pages+1
 	self:BuildRows()
+	if self.pageLabel then Theme.Motion:Punch(self.pageLabel,1.16,0.26) end
 end
 
 function Menu:Open()
@@ -274,9 +304,9 @@ function Menu:Open()
 	switcher.Position,switcher.BackgroundTransparency=UDim2.fromScale(0.05,0.815),0.15
 	Theme.Stroke(switcher,Theme.Arcade.border,2)
 	switcher:SetAttribute("OwnsPopupStyle",true)
-	local previous=Theme.Button(switcher,"Previous","<",function() app.audio:Play("Click");self:Turn(-1) end,BLUE)
+	local previous=Theme.Button(switcher,"Previous","<",function() app.audio:Play(cue(app,"TabSwitch","Click"),nil,{noFallback=true});self:Turn(-1) end,BLUE)
 	place(previous,0.03,0.12,0.18,0.76);Theme.Aspect(previous,1)
-	local nextPage=Theme.Button(switcher,"Next",">",function() app.audio:Play("Click");self:Turn(1) end,BLUE)
+	local nextPage=Theme.Button(switcher,"Next",">",function() app.audio:Play(cue(app,"TabSwitch","Click"),nil,{noFallback=true});self:Turn(1) end,BLUE)
 	nextPage.AnchorPoint=Vector2.new(1,0)
 	place(nextPage,0.97,0.12,0.18,0.76);Theme.Aspect(nextPage,1)
 	local pageLabel=Theme.Display(switcher,"Page","Rarity",44,WHITE)
@@ -290,6 +320,7 @@ function Menu:Open()
 	if not app.reducedMotion then panel.Size=UDim2.fromScale(PANEL_SIZE.X.Scale*0.94,PANEL_SIZE.Y.Scale*0.94) end
 	Theme.Motion:Tween(panel,"autoroll-size",{Size=PANEL_SIZE},0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"autoroll-fade",{GroupTransparency=0},0.22)
+	app.audio:Play(cue(app,"MenuOpen","Pop"),nil,{noFallback=true})
 	ContextActionService:BindActionAtPriority("PetRollAutoRollClose",function(_,inputState)
 		if inputState==Enum.UserInputState.Begin then close() end
 		return Enum.ContextActionResult.Sink
@@ -326,7 +357,7 @@ function Menu:ShowBanner(text: string)
 		layer.ZIndex=27
 		local group=Instance.new("CanvasGroup")
 		group.Name,group.BackgroundTransparency,group.BorderSizePixel="Banner",1,0
-		group.AnchorPoint,group.Position,group.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.22),UDim2.fromScale(0.72,0.09)
+		group.AnchorPoint,group.Position,group.Size=Vector2.new(0.5,0.5),BANNER_POSITION,UDim2.fromScale(0.72,0.09)
 		group.GroupTransparency,group.Visible,group.Parent=1,false,layer
 		local label=Theme.Display(group,"Text","",64,BANNER_BLUE)
 		label.TextXAlignment,label.TextScaled,label.TextWrapped=Enum.TextXAlignment.Center,true,false
@@ -340,11 +371,16 @@ function Menu:ShowBanner(text: string)
 	banner.label.Text=text
 	local group=banner.group
 	group.Visible=true
+	-- Oct 21 game feel: the hit stinger (RollRare until AutoRollHit is authored).
+	app.audio:Play(cue(app,"AutoRollHit","RollRare"),1,{noFallback=true,voiceKey="AutoRollHit"})
 	if app.reducedMotion then
 		group.GroupTransparency=0
+		group.Position=BANNER_POSITION
 	else
 		group.GroupTransparency=1
 		Theme.Motion:Tween(group,"banner-fade",{GroupTransparency=0},0.18)
+		-- Slams in from above with a Back overshoot while it pops down to size.
+		Theme.Motion:Slide(group,BANNER_POSITION-UDim2.fromScale(0,0.08),BANNER_POSITION,0.34,Theme.Motion.Ease.Pop)
 		Theme.Motion:PopScale(group,1.25,0.3)
 		self:Confetti(banner.layer)
 	end
