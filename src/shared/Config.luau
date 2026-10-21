@@ -4,7 +4,9 @@ local Economy = {
 	RecruitPaybackSeconds = 600,
 	StarterRecruitPrice = 0, -- October 21 (Stevin): the guide's first roll is FREE, like the reference.
 	FusionRecruitFraction = 0.25, -- Cash fee relative to one normal matching recruit.
-	ChickenUpgradeRecruitFraction = 0.75, -- One paid level; scales with the current recruit level.
+	-- One paid level; scales with the current recruit level. October 21 later (P5): 0.45
+	-- (was 0.75) with x1.6 eggs a level, so the first Feed level pays back as before.
+	ChickenUpgradeRecruitFraction = 0.45,
 	IncomeUpgradeSeconds = 180,
 	LuckUpgradeSeconds = 120,
 	-- Capped board continuation. Preserve the opening four benchmark prices.
@@ -56,8 +58,10 @@ local Config = {
   ChampionWins=10,ChampionSpecies="HillChampion"},
  -- October 20 overhaul, Rebirth v2 (docs/team/OVERHAUL_CONTRACT_20261020.md §7; plan v2
  -- with Stevin's changes). Coins on hand are the only requirement (no camps, no King);
- -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins
- -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
+ -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins (ranks
+ -- EggBoostFromRank–EggBoostToRank also multiply it by EggBoostPerRank and later ranks by
+ -- EggLateGrowthPerRank: RebirthService.Multiplier) and pays GemsBase + GemsPerRank × rank
+ -- Gems. Enemies stay ×1 through EnemyFreeRanks,
  -- then +EnemyScalePerRank per rank of the attacker, capped at EnemyScaleMaxRank (x8:
  -- ranks 31–50 add no enemy strength beyond the old top). Mission tiers open at King
  -- clear or MissionTierRanks (Veteran, Elite, Royal). Saved ranks above MaxRank keep
@@ -69,14 +73,20 @@ local Config = {
  -- longer ends after about a week. Fit and login-model results:
  -- docs/team/REBIRTH_PACING_20261021.md. The Oct 15 $50M…$185T 20-rank ladder is
  -- history (docs/team/REBIRTH_LADDER.md).
+ -- October 21 later (P5, reference parity; REBIRTH_PACING_20261021.md "reference-shaped
+ -- ladder"): Rebirth 2 costs 1M like the reference (was 62M). In-run growth is tamed
+ -- (Feed x1.6 eggs a level, pricier Egg Speed/Egg Value III-IV and Flock 7-15) and the
+ -- ranks step up instead: x20 to Rebirth 5, x3-5 to 10, then x1.3, x1.17 and x1.11 a rank
+ -- to 3.2e15 at 50, with the egg multiplier boosted on ranks 5-10 and +5% a rank after.
  Rebirth={Enabled=true,Version=2,MaxRank=50,
-  Costs={5e4,6.2e7,1e9,8.6e9,3.6e10,5.6e10,1.2e11,2.6e11,6e11,1.1e12,
-   1.2e12,2.2e12,2.9e12,3.8e12,4.5e12,5e12,5.5e12,6.3e12,7.3e12,8.3e12,
-   9.96e12,1.2e13,1.43e13,1.72e13,2.07e13,2.48e13,2.97e13,3.57e13,4.28e13,5.14e13,
-   5.76e13,6.45e13,7.22e13,8.09e13,9.06e13,1.01e14,1.14e14,1.27e14,1.43e14,1.6e14,
-   1.79e14,2e14,2.24e14,2.51e14,2.81e14,3.15e14,3.53e14,3.95e14,4.43e14,4.96e14},
+  Costs={5e4,1e6,2e7,4e8,8e9,3.83e10,1.17e11,3.66e11,1.4e12,5.06e12,
+   7e12,9.17e12,1.21e13,1.58e13,2.07e13,2.71e13,3.54e13,4.64e13,6.08e13,7.96e13,
+   9.29e13,1.09e14,1.27e14,1.49e14,1.73e14,2.02e14,2.36e14,2.76e14,3.22e14,3.76e14,
+   4.19e14,4.66e14,5.19e14,5.77e14,6.42e14,7.15e14,7.96e14,8.85e14,9.85e14,1.1e15,
+   1.23e15,1.36e15,1.52e15,1.69e15,1.88e15,2.09e15,2.32e15,2.59e15,2.88e15,3.2e15},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
-  EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,
+  EggBonusPerRank=1.0,EggBoostPerRank=1.5,EggBoostFromRank=5,EggBoostToRank=10,EggLateGrowthPerRank=1.05,
+  EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,
   GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
   MissionTierRanks={5,10,15}},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).

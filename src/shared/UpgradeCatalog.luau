@@ -5,6 +5,12 @@
 -- gate (September 25 rule). Prices here are the base quotes: the server snapshot is
 -- the only price a client may show (it can scale with Rebirth rank).
 -- Tier values and prices are drafts for the P0 fit in tests/ProgressionSimulation.
+-- October 21 later (P5, docs/team/REBIRTH_PACING_20261021.md "reference-shaped ladder"):
+-- Egg Speed III-IV, Egg Value III-IV and Flock Size 7-15 cost far more (Egg Speed IV
+-- 60M, Egg Value IV 250M, Flock Size 15 2B; were 30K, 45K, 70K), so the run after a
+-- Rebirth climbs the tree over several Rebirths, as in the reference, instead of
+-- rebuying all of it with the Time Skip Coins. Values are unchanged: saved tiers keep
+-- their meaning and need no TreeMigrations step.
 local Config = require(script.Parent.Config)
 local Gems = require(script.Parent.GemUpgradeCatalog)
 local Mutations = require(script.Parent.MutationCatalog)
@@ -68,11 +74,11 @@ local families: {Family} = {
 	-- Every hex touches the hex it needs, so a few chains open from a neighbour.
 	{id = "EggSpeed", name = "Egg Speed", category = "Main", icon = "eggSpeed", field = "eggSpeedLevel", base = 1,
 		format = "multiplier", description = "Chickens in your Flock lay eggs faster.",
-		tiers = tiers({{1.25, 400}, {1.5, 2000}, {2, 8000}, {3, 30000}}),
+		tiers = tiers({{1.25, 400}, {1.5, 2000}, {2, 250000}, {3, 60000000}}),
 		positions = walk(0, -1, {"N", "NE", "N"})},
 	{id = "EggValue", name = "Egg Value", category = "Main", icon = "eggValue", field = "incomeLevel", base = 1,
 		format = "multiplier", description = "Every new egg is worth more Coins.",
-		tiers = tiers({{1.5, 600}, {2, 3000}, {3, 12000}, {5, 45000}}),
+		tiers = tiers({{1.5, 600}, {2, 3000}, {3, 400000}, {5, 250000000}}),
 		positions = walk(-1, -1, {"NW", "SW", "NW"}), prerequisite = "OpenTools"},
 	-- Three chains, each its own clover: Luck I–IV, Super Luck I–IV, Mega Luck I–IV
 	-- (Stevin, October 20). Values are Luck strength; the window math stays bounded.
@@ -88,8 +94,8 @@ local families: {Family} = {
 	-- expansion (PlayerSession.plotSizeLevel, 0-7) that tier opens.
 	{id = "Flock", name = "Flock Size", category = "Main", icon = "flockSize", effect = "flockSize", base = 3,
 		format = "count", unit = "chickens laying", description = "More of your chickens lay eggs in the yard.",
-		tiers = tiers({{4, 300, 0}, {5, 900, 1}, {6, 2000, 2}, {7, 4500, 3}, {8, 9000, 4}, {10, 18000, 5},
-			{12, 35000, 6}, {15, 70000, 7}}),
+		tiers = tiers({{4, 300, 0}, {5, 900, 1}, {6, 2000, 2}, {7, 25000, 3}, {8, 250000, 4}, {10, 3000000, 5},
+			{12, 80000000, 6}, {15, 2000000000, 7}}),
 		positions = walk(-1, 1, {"NW", "SW", "NW", "SW", "NW", "SW", "NW"})},
 	-- Tier 1 is the Commander guide's protected 1,200-Coin Army Size 4 (COMMANDER_TUTORIAL.md).
 	-- It opens from Army (Open), which always counts as owned, so it needs nothing new.

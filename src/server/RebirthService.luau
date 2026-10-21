@@ -43,9 +43,20 @@ function RebirthService.Title(rank: number): string
 	return if r == 0 then "No rebirths yet" else "Rebirth " .. r
 end
 
--- Permanent egg Coins multiplier: x2 at Rebirth 1, x3 at Rebirth 2, …
+-- Permanent egg Coins multiplier, rounded to a whole number: x(1 + rank); each rank from
+-- EggBoostFromRank to EggBoostToRank multiplies it by EggBoostPerRank as well, and each
+-- rank after that by EggLateGrowthPerRank. October 21 later (P5, REBIRTH_PACING_20261021.md
+-- "reference-shaped ladder"): x2, x3, x4, x5 at Rebirth 1-4, then x9, x16, x27, x46, x76,
+-- x125 at 5-10, so Rebirths 5-10 step up like the reference's ladder; the late growth
+-- keeps a late Rebirth near an hour of play.
 function RebirthService.Multiplier(rank: number): number
-	return 1 + settings().EggBonusPerRank * clampRank(rank)
+	local rules = settings()
+	local r = clampRank(rank)
+	local from, to = rules.EggBoostFromRank or 1, rules.EggBoostToRank or 0
+	local boosted = math.clamp(r - from + 1, 0, math.max(0, to - from + 1))
+	local late = math.max(0, r - math.max(to, 0))
+	return math.floor((1 + rules.EggBonusPerRank * r) * (rules.EggBoostPerRank or 1) ^ boosted
+		* (rules.EggLateGrowthPerRank or 1) ^ late + 0.5)
 end
 
 -- One scale for camp and King health and damage, by the attacker's rank: x1

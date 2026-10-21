@@ -217,17 +217,18 @@ function Checks.Run()
 		assert(Rebirth.Cost(1)==50000,"Rebirth 1 cost")
 		assert(Rebirth.Cost(0)==nil and Rebirth.Cost(Config.Rebirth.MaxRank+1)==nil and Rebirth.Cost(1.5)==nil,"Cost domain")
 		for rank=2,Config.Rebirth.MaxRank do assert(Rebirth.Cost(rank)>Rebirth.Cost(rank-1),"Cost "..rank) end
-		-- October 21 reshaped tail: R20 kept, 21–30 x1.2 a rank, 31–50 x1.12 a rank (REBIRTH_PACING_20261021.md).
+		-- The 50 costs and their ratio bands are pinned in "Reference-shaped ladder" below.
 		assert(Config.Rebirth.MaxRank==50 and #Config.Rebirth.Costs==50,"50 listed ranks")
-		assert(Rebirth.Cost(20)==8.3e12 and Rebirth.Cost(30)==5.14e13 and Rebirth.Cost(50)==4.96e14,"Reshaped costs")
-		for rank=22,30 do local r=Rebirth.Cost(rank)/Rebirth.Cost(rank-1) assert(r>1.17 and r<1.23,"Tail ratio "..rank.." "..r) end
-		for rank=32,50 do local r=Rebirth.Cost(rank)/Rebirth.Cost(rank-1) assert(r>1.09 and r<1.15,"Extension ratio "..rank.." "..r) end
 		local s=fixture(-9305)
 		assert(Rebirth.Gems(s,1)==50 and Rebirth.Gems(s,30)==340,"Gems "..Rebirth.Gems(s,1).." and "..Rebirth.Gems(s,30))
 		s.gemUpgrades={MoreGems=2}
 		s:RefreshEffects()
 		assert(Rebirth.Gems(s,10)==168,"More Gems "..Rebirth.Gems(s,10))
-		assert(Rebirth.Multiplier(0)==1 and Rebirth.Multiplier(1)==2 and Rebirth.Multiplier(30)==31,"Egg multiplier")
+		-- October 21 later (P5): x(1 + rank), ranks 5–10 also x1.5 each, later ranks x1.05
+		-- each, whole numbers.
+		local multipliers={[0]=1,2,3,4,5,9,16,27,46,76,125,144,163}
+		for rank=0,12 do assert(Rebirth.Multiplier(rank)==multipliers[rank],"Egg multiplier "..rank.." "..Rebirth.Multiplier(rank)) end
+		assert(Rebirth.Multiplier(20)==390 and Rebirth.Multiplier(30)==937 and Rebirth.Multiplier(50)==4090,"Egg multiplier 20/30/50")
 		assert(Rebirth.EnemyScale(0)==1 and Rebirth.EnemyScale(2)==1 and Rebirth.EnemyScale(3)==1.25
 			and Rebirth.EnemyScale(10)==3 and Rebirth.EnemyScale(30)==8,"Enemy scale")
 		assert(Rebirth.EnemyScale(31)==8 and Rebirth.EnemyScale(50)==8,"Enemy scale capped at rank 30")
@@ -339,6 +340,51 @@ function Checks.Run()
 		return "Flock 4 and Army 4 after a Rebirth"
 	end)
 
+	-- October 21 later (P5, reference parity §2.5; REBIRTH_PACING_20261021.md "reference-shaped
+	-- ladder"): Rebirth 2 costs 1M like the reference, paid for by taming in-run growth.
+	test("Reference-shaped ladder: 50 costs, ratio bands, Feed x1.6 and the tree prices that pace a run",function()
+		local costs={5e4,1e6,2e7,4e8,8e9,3.83e10,1.17e11,3.66e11,1.4e12,5.06e12,
+			7e12,9.17e12,1.21e13,1.58e13,2.07e13,2.71e13,3.54e13,4.64e13,6.08e13,7.96e13,
+			9.29e13,1.09e14,1.27e14,1.49e14,1.73e14,2.02e14,2.36e14,2.76e14,3.22e14,3.76e14,
+			4.19e14,4.66e14,5.19e14,5.77e14,6.42e14,7.15e14,7.96e14,8.85e14,9.85e14,1.1e15,
+			1.23e15,1.36e15,1.52e15,1.69e15,1.88e15,2.09e15,2.32e15,2.59e15,2.88e15,3.2e15}
+		assert(#Config.Rebirth.Costs==#costs,"Cost count")
+		for rank,cost in costs do assert(Rebirth.Cost(rank)==cost,"Cost "..rank.." "..tostring(Rebirth.Cost(rank))) end
+		assert(Rebirth.Cost(1)==5e4 and Rebirth.Cost(2)==1e6,"Rebirth 1 and 2 as in the reference")
+		for rank=2,50 do
+			local ratio=Rebirth.Cost(rank)/Rebirth.Cost(rank-1)
+			local low,high=if rank<=10 then 3 else 1.1,if rank<=10 then 20 else 3
+			assert(ratio>=low-1e-9 and ratio<=high+1e-9,"Ratio "..rank.." "..ratio)
+		end
+		-- Feed: x1.6 eggs a level, quotes x4 a level from 45% of the recruit price, so every
+		-- level pays back in the same time as with the old x2 / x5 curve.
+		assert(Rules.EggLevelGrowth==1.6 and Rules.ChickenUpgradeGrowth==2
+			and Config.Economy.ChickenUpgradeRecruitFraction==0.45,"Feed constants")
+		assert(Rules.ChickenUpgradePrice("Duck",1)==270 and Rules.ChickenUpgradePrice("Duck",2)==1080
+			and Rules.ChickenUpgradePrice("Duck",3)==4320,"Common quotes")
+		near(Rules.EggRate("Duck",1,10)/Rules.EggRate("Duck",1,1),1.6^9,"Lv 10 eggs")
+		for level=1,9 do
+			local gain=Rules.EggRate("Knight",1,level+1)-Rules.EggRate("Knight",1,level)
+			local old=0.75*Catalog.Knight.price*5^(level-1)/(Catalog.Knight.income/Config.EggBaseValue*2^(level-1))
+			local ratio=(Rules.ChickenUpgradePrice("Knight",level) :: number)/gain/old
+			assert(math.abs(ratio-1)<1e-4,"Payback Lv "..level.." "..ratio)
+		end
+		-- The tree: values unchanged (no TreeMigrations step), the run-pacing prices.
+		local function prices(family)
+			local list={}
+			for tier=1,#Tree.Families[family].tiers do list[tier]=Tree.Price(family,tier,0) end
+			return table.concat(list,",")
+		end
+		assert(prices("EggSpeed")=="400,2000,250000,60000000","Egg Speed prices "..prices("EggSpeed"))
+		assert(prices("EggValue")=="600,3000,400000,250000000","Egg Value prices "..prices("EggValue"))
+		assert(prices("Flock")=="300,900,2000,25000,250000,3000000,80000000,2000000000","Flock prices "..prices("Flock"))
+		assert(Tree.Families.EggSpeed.tiers[4].value==3 and Tree.Families.EggValue.tiers[4].value==5
+			and Tree.Families.Flock.tiers[8].value==15,"Tier values unchanged")
+		assert(Config.Rebirth.EggBoostPerRank==1.5 and Config.Rebirth.EggBoostFromRank==5 and Config.Rebirth.EggBoostToRank==10
+			and Config.Rebirth.EggLateGrowthPerRank==1.05,"Multiplier knobs")
+		return "50K, 1M, 20M ... "..costs[10].." at 10, "..costs[50].." at 50"
+	end)
+
 	test("Chicken Feed past Lv 10 follows feedMaxLevel (set by hand): cap, +25% eggs, quotes, Rebirth",function()
 		local s=fixture(-9321)
 		setTree(s,{ChickenFeed=1})
@@ -358,7 +404,7 @@ function Checks.Run()
 		assert(s:LevelCap()==14 and s:ChickenUpgradeEligibility(pet.id),"Cap 14")
 		local nine=Rules.ChickenUpgradePrice("Knight",9) :: number
 		local ten=Rules.ChickenUpgradePrice("Knight",10)
-		assert(ten==math.ceil(nine*1.25) and Rules.ChickenUpgradePrice("Knight",11)==math.ceil(nine*1.25*3.125),"Quotes")
+		assert(ten==math.ceil(nine*Rules.FeedPastCapFirst) and Rules.ChickenUpgradePrice("Knight",11)==math.ceil(nine*Rules.FeedPastCapFirst*3.125),"Quotes")
 		assert(Rules.ChickenUpgradePrice("Knight",19)~=nil and Rules.ChickenUpgradePrice("Knight",20)==nil,"Quote range")
 		shown=entry()
 		assert(shown and shown.levelCap==14 and shown.upgradePrice==ten,"Snapshot under the cap")
@@ -367,7 +413,7 @@ function Checks.Run()
 		assert(ok and pet.level==11 and pet.cashLevels==10 and s.coins==0,message)
 		near(Rules.EggRate("Knight",1,11),Rules.EggRate("Knight",1,10)*1.25,"Lv 11 eggs")
 		near(Rules.EggRate("Knight",1,20),Rules.EggRate("Knight",1,10)*1.25^10,"Lv 20 eggs")
-		near(Rules.EggRate("Knight",1,10),Rules.EggRate("Knight",1,9)*2,"Lv 10 still doubles")
+		near(Rules.EggRate("Knight",1,10),Rules.EggRate("Knight",1,9)*Rules.EggLevelGrowth,"Lv 10 still x1.6")
 		near(Rules.Stats("Knight",1,20).hp/Rules.Stats("Knight",1,1).hp,1+19*Config.PetCombatPerLevel,"Lv 20 health")
 		s.researchEffects.feedMaxLevel=99
 		assert(s:LevelCap()==Config.PetLevelLimit,"Limit")
@@ -395,17 +441,19 @@ function Checks.Run()
 		return "Lv 15 kept, Lv 25 read as 20"
 	end)
 
-	test("Feed is limited by the Coins cap, not 1e12 (Galaxy Overlord past Lv 7)",function()
+	-- October 21 later (P5): Feed quotes grow x4 a level (were x5), so the first quote
+	-- above 1e12 is Lv 9 -> 10 (was Lv 7 -> 8).
+	test("Feed is limited by the Coins cap, not 1e12 (Galaxy Overlord past Lv 9)",function()
 		local s=fixture(-9323)
 		setTree(s,{ChickenFeed=1})
 		local pet=s:AddPet("StormDuck",1)
-		pet.level,pet.cashLevels=7,6
-		pet.investment=Rules.Investment("StormDuck",7)
-		local price=Rules.ChickenUpgradePrice("StormDuck",7) :: number
+		pet.level,pet.cashLevels=9,8
+		pet.investment=Rules.Investment("StormDuck",9)
+		local price=Rules.ChickenUpgradePrice("StormDuck",9) :: number
 		s.coins=price
-		local ok,message=Army.UpgradeChicken(s,pet.id,7,price)
-		assert(ok and pet.level==8 and pet.investment>1e12,message)
-		return "Lv 8 for "..price.." Coins"
+		local ok,message=Army.UpgradeChicken(s,pet.id,9,price)
+		assert(ok and pet.level==10 and price>1e12 and pet.investment>1e12,message)
+		return "Lv 10 for "..price.." Coins"
 	end)
 
 	test("A Skip credit rebirths without Coins, keeps the run and waits for the army",function()

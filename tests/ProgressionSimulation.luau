@@ -97,7 +97,8 @@ local DEFAULTS={
 	seeds=1,hours=40,tickSeconds=15,profile="fast",firstSeed=1, -- firstSeed: run seeds firstSeed.. (parallel fits)
 	campSeconds=90,kingSeconds=150,invasionSeconds=150,
 	savingPaybackFraction=0.5,utilityFraction=0.10,savingUtilityFraction=0.04,savingCombatFraction=0.25,
-	targetRank=30,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=60,
+	-- targetRank: nil plays to Config.Rebirth.MaxRank (50 since October 21; was 30).
+	targetRank=nil,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=60,
 	-- rushSaver: sell only during Gold Rush (S4: up to 2x egg Coins for savers).
 	goldRush=true,rushEvery=1200,rushSeconds=300,rushSaver=false,
 	-- playtime: S16's twelve tiles each visit (visitMinutes, per profile; the clock and
@@ -107,6 +108,9 @@ local DEFAULTS={
 	-- awayMinutes between visits (a once-a-day player: 45 and 1395); daily grants the
 	-- streak reward (nil follows the login model).
 	playMinutes=nil,awayMinutes=nil,daily=nil,
+	-- traceEvery: seconds between samples of the run (rank, Coins, Coins/s, tree tiers,
+	-- the Flock's Feed levels) in each run's `trace`; nil records none.
+	traceEvery=nil,
 	print=true,
 }
 
@@ -269,11 +273,17 @@ local function killCash(state,roster)
 	return math.floor(total)
 end
 
+-- Every Coin credited so far (eggs, fights, Missions, Time Skip, Playtime, offline, daily).
+local function earnedSoFar(state)
+	local st=state.stats
+	return st.eggCash+st.battleCash+st.invasionCash+st.timeSkip+st.playtimeCash+st.offlineCash+st.dailyCash
+end
+
 local function mark(state,key,now,coins)
 	if state.milestones[key] then return end
 	local s=state.session
 	state.milestones[key]={minutes=now/60,played=state.played/60,coins=coins or s.coins,income=cashRate(s),
-		power=armyPower(s),flock=s:Count(),rank=s.rebirths,eggs=flockEggs(s)}
+		power=armyPower(s),flock=s:Count(),rank=s.rebirths,eggs=flockEggs(s),earned=earnedSoFar(state)}
 end
 
 local function deploy(state,now,kind,data,seconds)
@@ -644,7 +654,8 @@ local function tryRebirth(state,now)
 	state.stats.timeSkip+=receipt.timeSkipCoins
 	spendGems(state,now)
 	state.milestones["Rebirth"..s.rebirths]={minutes=now/60,played=state.played/60,coins=before,income=cashRate(s),
-		power=armyPower(s),flock=s:Count(),rank=s.rebirths,cost=cost,eggs=state.peakEggs,timeSkip=receipt.timeSkipCoins}
+		power=armyPower(s),flock=s:Count(),rank=s.rebirths,cost=cost,eggs=state.peakEggs,timeSkip=receipt.timeSkipCoins,
+		earned=earnedSoFar(state)}
 	state.peakEggs=0
 end
 
@@ -695,7 +706,7 @@ local function runOnce(seed,options)
 	rolls.random=random
 	local state={session=s,options=options,rolls=rolls,upgrades=Upgrades.new(nil,rolls),
 		bag=0,deploy=nil,nextRollAt=2,milestones={},flags={},peakEggs=0,now=0,played=0,boosts={},
-		visits=1,visitStart=0,claimed={},
+		visits=1,visitStart=0,claimed={},trace={},nextTrace=0,
 		rushPhase=(seed*277)%options.rushEvery,
 		stats={rolls=0,recruits=0,eggCash=0,battleCash=0,invasionCash=0,invasionFirsts=0,invasionReplays=0,
 			treeBuys=0,treeSpent=0,gemsEarned=0,gemsSpent=0,timeSkip=0,playtimeCash=0,offlineCash=0,dailyCash=0,
@@ -748,6 +759,15 @@ local function runOnce(seed,options)
 		state.played+=dt
 		playtime(state,now)
 		if now>=nextDeposit then deposit(state,now);nextDeposit+=options.depositSeconds end
+		if options.traceEvery and now>=state.nextTrace then
+			state.nextTrace+=options.traceEvery
+			local _,layers=flockEggs(s)
+			local levels={}
+			for i=1,math.min(s:FlockSize(),#layers) do table.insert(levels,layers[i].level or 1) end
+			table.insert(state.trace,{minutes=now/60,rank=s.rebirths,coins=s.coins,income=cashRate(s),earned=earnedSoFar(state),
+				eggSpeed=Tree.Tier(s.upgradeTree,"EggSpeed"),eggValue=Tree.Tier(s.upgradeTree,"EggValue"),
+				flock=s:FlockSize(),levels=table.concat(levels,",")})
+		end
 		for _,minutes in {10,30,60,120,180} do -- minutes played (wall clock when continuous)
 			if state.played>=minutes*60 and not state.milestones["Min"..minutes] then mark(state,"Min"..minutes,now) end
 		end
@@ -760,6 +780,7 @@ local function runOnce(seed,options)
 	end
 	Playtime.Boost=realBoost
 	return {seed=seed,minutes=now/60,played=state.played/60,visits=state.visits,milestones=state.milestones,stats=state.stats,
+		trace=state.trace,
 		final={rank=s.rebirths,coins=s.coins,gems=s.gems,income=cashRate(s),power=armyPower(s),flock=s:Count(),
 			flockSize=s:FlockSize(),capacity=s:Capacity(),tree=table.clone(s.upgradeTree),gemUpgrades=table.clone(s.gemUpgrades)}}
 end
@@ -774,13 +795,14 @@ local ROWS={
 	{"Min10","At 10 min",nil},{"Min30","At 30 min",nil},{"Min60","At 60 min",nil},{"Min120","At 2 h",nil},
 	{"FirstCamp","First camp",nil},{"AllCamps","All 3 camps",nil},{"King","First King clear",nil},
 	{"Invasion","First Mission",nil},
-	{"Rebirth1","Rebirth 1","~10 min"},{"Rebirth2","Rebirth 2","~18 min"},{"Rebirth3","Rebirth 3",nil},
-	{"Rebirth5","Rebirth 5","~54 min"},{"Rebirth7","Rebirth 7",nil},{"Rebirth10","Rebirth 10","~2.9 h"},
-	{"Rebirth12","Rebirth 12",nil},{"Rebirth15","Rebirth 15","~6.4 h"},{"Rebirth20","Rebirth 20","~11.6 h"},
-	{"Rebirth25","Rebirth 25",nil},{"Rebirth30","Rebirth 30","~34 h"},
-	{"Rebirth35","Rebirth 35",nil},{"Rebirth40","Rebirth 40",nil},{"Rebirth45","Rebirth 45",nil},{"Rebirth50","Rebirth 50",nil},
+	-- Targets: the October 21 fits (REBIRTH_PACING_20261021.md; reference parity §2.5).
+	{"Rebirth1","Rebirth 1","~10 min"},{"Rebirth2","Rebirth 2","~18-20 min"},{"Rebirth3","Rebirth 3",nil},
+	{"Rebirth5","Rebirth 5","~55 min"},{"Rebirth7","Rebirth 7",nil},{"Rebirth10","Rebirth 10","~2.9 h"},
+	{"Rebirth12","Rebirth 12",nil},{"Rebirth15","Rebirth 15",nil},{"Rebirth20","Rebirth 20","~11 h"},
+	{"Rebirth25","Rebirth 25",nil},{"Rebirth30","Rebirth 30","~21 h"},
+	{"Rebirth35","Rebirth 35",nil},{"Rebirth40","Rebirth 40",nil},{"Rebirth45","Rebirth 45",nil},{"Rebirth50","Rebirth 50","~40 h"},
 	{"GoldenSeen","First Golden offer",nil},{"MythicSeen","First Mythic offer",nil},{"MythicOwned","First Mythic owned",nil},
-	{"GemBoardDone","Gem Upgrades complete","~R25-28"},
+	{"GemBoardDone","Gem Upgrades complete","~R41"},
 }
 
 local function report(results)
@@ -831,6 +853,19 @@ local function report(results)
 		line(string.format("  final: %s Coins, %s/s, power %d, owned %d, Flock %d, army %d · Gem Upgrades %s",
 			money(f.coins),money(f.income),f.power,f.flock,f.flockSize,f.capacity,table.concat(gems,",")))
 	end
+	-- Coins earned per minute (every source) over the first hour, medians across seeds.
+	local windows={}
+	for _,pair in {{nil,"Min10","0-10 min"},{"Min10","Min30","10-30 min"},{"Min30","Min60","30-60 min"}} do
+		local values={}
+		for _,run in results.runs do
+			local a,b=pair[1] and run.milestones[pair[1]],run.milestones[pair[2]]
+			if b and b.earned and (a or not pair[1]) then
+				table.insert(values,(b.earned-(if a then a.earned else 0))/(b.minutes-(if a then a.minutes else 0)))
+			end
+		end
+		table.insert(windows,pair[3].." "..money(median(values)))
+	end
+	line("Coins earned per minute: "..table.concat(windows,", "))
 	line("Medians across seeds. Rebirth rows: Coins = balance just before the reset, Coins/s = rate right after it,")
 	line("Eggs/s = the run's peak laying rate (a hand vacuum holding a minute of eggs needs 60x that).")
 	line("Model, not playtime: see the header assumptions in tests/ProgressionSimulation.luau.")
@@ -843,6 +878,7 @@ function Simulation.Run(options)
 	for key,value in PROFILES[merged.profile] or PROFILES.fast do
 		if not (options and options[key]~=nil) then merged[key]=value end
 	end
+	merged.targetRank=merged.targetRank or Config.Rebirth.MaxRank
 	local runs={}
 	local started=os.clock()
 	local realBoost=Playtime.Boost

@@ -110,3 +110,5 @@ without them, income stalls near $2.4M/s and Rebirth 2 is not reached in 12 h; w
 them Rebirth 2/3 come at about 2.9/4.6 h. `ChickenCashUpgrades` is back to `true`.
 The Upgrade button, quotes and rules above apply again. The Fuse progress helpers stay:
 when three matching chickens are ready, the hint line under Upgrade says so.
+
+October 21 later (P5, `docs/team/REBIRTH_PACING_20261021.md` "reference-shaped ladder"; supersedes the doubling and the October 8 quote above): a Feed level multiplies eggs by 1.6 (`Rules.EggLevelGrowth`, was 2) and costs `ceil(RecruitPrice(species, level) * 0.45 * 2^(level-1))`, x4 a level (Chicken: 270 / 1,080 / 4,320 Coins ..., were 450 / 2,250 / 11,250), so every level pays back in the same time as before; past Lv 10 the first quote is 5/3 of the Lv 9 -> 10 quote (`Rules.FeedPastCapFirst`) and +25% eggs a level is unchanged.
