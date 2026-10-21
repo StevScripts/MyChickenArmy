@@ -37,6 +37,10 @@ local WHITE=Color3.new(1,1,1)
 local BADGE=Color3.fromRGB(235,45,45)
 local TOPBAR=Color3.fromRGB(18,19,22) -- like the Settings gear
 local NOTICE_BODY="Open the gift at the top to claim it!"
+-- October 21 reference parity (docs/team/REFERENCE_PARITY_20261021.md §1 t158, §2.7):
+-- the reference's banners on a claim and on a tap of a reward that is still locked.
+local CLAIMED_TEXT="Playtime reward claimed!"
+local LOCKED_TEXT="Keep playing to unlock this reward!"
 -- Studio may author MenuLayouts.PlaytimeRewards; otherwise this native Scale frame.
 local LAYOUT_NAME="PlaytimeRewards"
 local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.46,0.82),1.25
@@ -270,7 +274,8 @@ function Panel:Open()
 	Theme.LayoutHeader(header)
 	local main=Theme.Container(panel,"Main")
 	Theme.BelowHeader(header,main)
-	Theme.Surface(main,Color3.fromRGB(30,24,40))
+	-- The shared shell (§2.1): the page-coloured studded header over a near-black body.
+	Theme.Surface(main,Theme.OverlayColors.Top)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	Theme.HeaderClose(header,function() self:Close() end,1.7) -- phone hit area: 48 px
 	local grid=Theme.Container(main,"Grid")
@@ -332,6 +337,7 @@ function Panel:Tile(grid,index: number,tile: PlaytimeRewards.Tile,x: number,y: n
 	-- The plate stays above the claimed shade so "Claimed!" shows.
 	local plate=Theme.Frame(card,"Plate",UDim2.fromScale(0.88,0.18),Color3.fromRGB(14,16,18))
 	plate.Position,plate.BackgroundTransparency,plate.ZIndex=UDim2.fromScale(0.06,0.77),0.3,11
+	Theme.Stroke(plate,Color3.new(0,0,0),2).Transparency=0.25
 	local status=Theme.Display(plate,"Status","",26,WHITE)
 	status.Position,status.Size,status.ZIndex=UDim2.fromScale(0.04,0.06),UDim2.fromScale(0.92,0.88),12
 	status.TextXAlignment,status.TextWrapped=Enum.TextXAlignment.Center,false
@@ -381,11 +387,18 @@ function Panel:RefreshStatus(view,data,now: number)
 	end
 end
 
--- Locked tiles do nothing, as in the reference; one claim request at a time.
+-- A locked tile answers like the reference: a small shake and the red "Keep playing
+-- to unlock this reward!" banner (its notice plays the refusal sound). Claimed tiles do
+-- nothing; one claim request at a time.
 function Panel:TryClaim(index: number)
 	local data=self.playtime and self.playtime.tiles[index]
 	if not data or data.claimed==true or type(data.unlockAt)~="number" then return end
-	if workspace:GetServerTimeNow()<data.unlockAt then return end
+	if workspace:GetServerTimeNow()<data.unlockAt then
+		local view=self.views and self.views[index]
+		if view then Theme.Motion:Shake(view.card,5) end
+		self.app:Notify(LOCKED_TEXT,false)
+		return
+	end
 	if os.clock()<self.pendingUntil then return end
 	self.pendingUntil=os.clock()+3
 	self.app.audio:Play("Click")
@@ -394,8 +407,9 @@ end
 
 -- The server's answer: a ring ripples out of the tile with the Claim cue and the
 -- reward floats up ("+1,200 Coins", "+100% Luck", "3 Free Rolls"); Coins also fly
--- from the tile into the HUD Coins readout. Boosts and rolls keep the server's
--- message. A refusal is shown by AppController's normal notice.
+-- from the tile into the HUD Coins readout. The reference's green "Playtime reward
+-- claimed!" banner confirms it; Free Rolls keep the server's message, which names the
+-- chickens that arrived. A refusal is shown by AppController's normal notice.
 function Panel:Claimed(result)
 	self.pendingUntil=0
 	if not result.ok then return end
@@ -403,8 +417,8 @@ function Panel:Claimed(result)
 	local app=self.app
 	local coins=type(receipt)=="table" and receipt.kind=="Coins" and (tonumber(receipt.coins) or 0)>0
 	local view=self.views and type(receipt)=="table" and self.views[receipt.index]
-	-- Boosts and rolls keep the server's message; so do Coins once the window has closed.
-	if not coins or not view then app:Notify(result.message,true) end
+	local rolls=type(receipt)=="table" and receipt.kind=="Rolls"
+	app:Notify(if rolls then result.message else CLAIMED_TEXT,true)
 	if not view or not self.grid then return end
 	local motion=Theme.Motion
 	cue("Claim","UIPurchase",nil,{voiceKey="PlaytimeClaim",cooldown=0.3})

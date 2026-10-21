@@ -84,7 +84,10 @@ function HillHud.new(app,shell: Instance,slot: Instance)
 	return self
 end
 
--- The slot's list layout places the chip; kept for HudController's layout pass.
+-- The slot's list layout places the chip: right on top of the Coins pill, its left edge
+-- on the pill's like the coin (later October 21, Stevin: "align the hill text at the
+-- top"). It shares that line with the rank, which hides while this chip shows. Kept for
+-- HudController's layout pass.
 function HillHud:Place()
 end
 

@@ -407,10 +407,9 @@ function Service:StartMission(session,siteId,now)
 	local definition=Catalog.Encounters[id]
 	if site.holder==session.userId then return false,"Your army already holds "..definition.name.."." end
 	if site.busy then return false,"Another army is already fighting at "..definition.name..". Try again soon." end
-	if Service.Tier(session)<definition.tier then return false,Service.LockedMessage(definition.tier) end
+	-- October 21 (Stevin): no locks at any camp, at any time. Any site on the island
+	-- can be attacked (tiers still decide which sites appear) and holding has no cap.
 	if session.research.pendingOperationReward>0 then return false,"Spend some coins to receive your saved mission reward first." end
-	local held,holdLimit=self.battles:HoldCount(session),self.battles:HoldLimit(session)
-	if held>=holdLimit then return false,"Holding "..held.."/"..holdLimit.." territories. Unclaim one first." end
 	-- A held site is fought against its holder's stationed army.
 	local holdBattle=site.holdBattle and self.battles.battles[site.holdBattle]
 	local holder=site.holder and self.sessions[site.holder]
@@ -425,8 +424,8 @@ function Service:StartMission(session,siteId,now)
 	if not moving and (session.outgoing or session.incoming or session:IsArmyLocked() or session.armyState~="Home") then
 		return false,"Your army is recovering or defending. Wait until it is ready."
 	end
+	if not session:FillEmptyArmy() then return false,"You have no chickens to send yet." end
 	local roster=session:Lineup()
-	if #roster==0 then return false,"Select an army first." end
 	local root=self.world.root
 	if not root then return false,"Missions are not ready yet." end
 	for _,other in self.sessions do other:Touch() end
@@ -685,8 +684,6 @@ end
 -- Waiting sites for the HUD, markers and the walk-up prompt (client presentation).
 function Service:MissionList(session)
 	local list={}
-	local tier=Service.Tier(session)
-	if tier<1 then return list end
 	local now=os.clock()
 	for _,site in self.shared.sites do
 		local definition=Catalog.Encounters[site.encounterId]
@@ -704,7 +701,7 @@ function Service:MissionList(session)
 		end
 		local rewarded=site.rewarded[session.userId]==true
 		table.insert(list,{id=site.id,name=definition.name,tier=definition.tier,boss=definition.boss~=nil,
-			locked=definition.tier>tier,power=power,count=count,
+			locked=false,power=power,count=count,
 			-- What a win would pay now, including 2x Cash (same as Resolve); once per site.
 			reward=if rewarded then 0 else session:EarnedAmount(Service.Reward(session,site.encounterId,site.rare),"battle"),
 			rewarded=rewarded,rare=site.rare,

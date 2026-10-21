@@ -347,8 +347,6 @@ function BattleService:Targets(session,now)
  local canMove=self:CanRedirect(session,previous) or ((not session:IsArmyLocked() or session.armyState=="Following") and not session.outgoing)
  local routeCamps,routeOutposts=self:RouteProgress(session)
  local camps=Progression.Camps(session.promotion)
- local started=self:Started(session)
- local held,holdLimit=self:HoldCount(session),self:HoldLimit(session)
  -- The own lane first, then every other commander's lane (open plots have no garrison).
  local lanes={session}
  for _,other in self.sessions do
@@ -417,10 +415,6 @@ function BattleService:Targets(session,now)
     -- Rival-held ground still has its full garrison for each new challenger.
     entry.reason=if entry.kind=="King" then "Defeat the King to take it from "..owner.name
      else "Held by "..owner.name.." · beat it to take it back"
-   end
-   if not entry.owned and entry.kind~="Income" then
-    if not started and entry.id~="camp:1" then entry.available,entry.reason=false,"Take your Cluck Camp first"
-    elseif entry.available and held>=holdLimit then entry.available,entry.reason=false,"Holding "..held.."/"..holdLimit.." · unclaim one first" end
    end
   end
   local kind,index=string.match(entry.id,"^(%a+):([%-]?%d+)$")
@@ -667,7 +661,7 @@ function BattleService:AttackIncome(session,now)
  if not summary.available then return false,summary.reason end
  local previous=self.battles[session.outgoing]
  local moving=self:CanRedirect(session,previous)
- if #session:Lineup()==0 then return false,"Add at least one chicken first." end
+ if not session:FillEmptyArmy() then return false,"You have no chickens to send yet." end
  local owner=self.campOwners["income:1"]
  local owned=owner and owner.userId==session.userId
  local joining=owned and self.battles[self.income.contestId]
@@ -726,11 +720,8 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 	if heldGoal and heldGoal.userId==session.userId then
 		return false,"You already hold "..self:TargetName(session,requestedTarget)..". Unclaim it to fight there again."
 	end
-	if not self:Started(session) and requestedTarget~="camp:1" then return false,"Take your Cluck Camp first." end
-	local nextHolder=self.campOwners[self:TerritoryKey(session,route[1])]
-	if not (nextHolder and nextHolder.userId==session.userId) and self:HoldCount(session)>=self:HoldLimit(session) then
-		return false,"You hold "..self:HoldCount(session).." of "..self:HoldLimit(session).." territories. Unclaim one to take another."
-	end
+	-- October 21 (Stevin): no locks at any camp, at any time. Any camp can be
+	-- attacked first and there is no cap on how many a player holds.
 	targetId=route[1]
 	local previous=self.battles[session.outgoing]
 	local moving=self:CanRedirect(session,previous)
@@ -747,8 +738,8 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		previous.routeGoalName=self:TargetName(session,requestedTarget)
 		return true,"Taking "..previous.name..", then onward to "..previous.routeGoalName.."."
 	end
+	if not session:FillEmptyArmy() then return false,"You have no chickens to send yet." end
 	local roster=session:Lineup()
-	if #roster==0 then return false,"Add at least one chicken to your army first." end
 	local kind,id=string.match(targetId,"^(%a+):([%-]?%d+)$")
 	local index=tonumber(id)
 	local defender,defenders,destination,name,campIndex,routeGoal,targetPower
@@ -1003,17 +994,12 @@ function BattleService:Finish(battle,outcome,now)
  end
  local planted=false
  if outcome=="A" and attacker and battle.campKey and (bossDown or not battle.isKing) then
-  local holder=self.campOwners[battle.campKey]
-  -- The limit is checked when the order is given; a route leg can still meet it.
-  if (holder and holder.userId==attacker.userId) or self:HoldCount(attacker)<self:HoldLimit(attacker) then
-   self:SetTerritoryOwner(battle.campKey,attacker,self.campLocations[battle.campKey])
-   planted=true
-  end
+  -- October 21 (Stevin): no hold cap; every win plants the flag.
+  self:SetTerritoryOwner(battle.campKey,attacker,self.campLocations[battle.campKey])
+  planted=true
  end
  local bonus=if planted and not battle.friendlyTerritory then self:HoldBonus(battle.campKey) else 0
  local bonusText=if bonus>0 then " +"..math.floor(bonus*100+0.5).."% egg value while you hold it." else ""
- local limitText=if outcome=="A" and attacker and battle.campKey and not planted and (bossDown or not battle.isKing)
-  then " You're at your "..self:HoldLimit(attacker).."-territory limit, so no flag. Unclaim one first." else nil
 	battle.paid=true
 	if battle.actors and (outcome == "A" or outcome == "B") then
 		for _, actor in battle.actors.actors do
@@ -1036,7 +1022,6 @@ function BattleService:Finish(battle,outcome,now)
 		attacker.armyState,attacker.returnAt=if hold then "Deployed" else "Returning",if hold then 0 else now+Config.ReturnSeconds
 		attacker.stationedAt=if hold then battle.name else nil
 		attacker.lastResult=if hold and battle.friendlyTerritory then "Army stationed at "..battle.name.."."
-			elseif hold and limitText then "You beat "..battle.name.."!"..limitText
 			elseif hold and battle.routeGoal then "You've conquered "..battle.name.."!"..bonusText.." Marching toward "..battle.routeGoalName.."."
 			elseif hold and battle.autoReturnAt then "You've conquered "..battle.name.."!"..bonusText.." Your army is heading home to lay eggs."
 			elseif hold then "You've conquered "..battle.name.."!"..bonusText

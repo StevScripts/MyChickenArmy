@@ -540,6 +540,18 @@ function PlayerSession:ChickenUpgradeEligibility(id): (boolean,string)
 	return true,""
 end
 
+-- October 21 (Stevin: no locks at any camp, ever): an order with an empty Army
+-- (Unequip All) sends the best chickens instead of refusing. Only an Army at home
+-- changes; returns false when the player owns no chickens at all.
+function PlayerSession:FillEmptyArmy(): boolean
+	if #self:Lineup()>0 then return true end
+	if self.armyState=="Home" and next(self.pets)~=nil then
+		self.armySelection=nil
+		self:RefreshArmy();self:Touch()
+	end
+	return #self:Lineup()>0
+end
+
 function PlayerSession:Lineup()
 	local result,ids = {},{}
 	for slot=1, self:Capacity() do

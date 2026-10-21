@@ -208,3 +208,33 @@ TierUp (0.42) and Pop (0.40).
 leveled cue past its target; unleveled cues keep their contextual overrides. To
 re-level after swapping a clip: measure its peak the same way and set Volume =
 target ÷ peak, or clear `Leveled` to let code overrides apply again.
+
+### Spectral pass (same day)
+
+Each cue's spectrum (`AudioAnalyzer:GetSpectrum()`, 512 bins, 0–24 kHz) was summed
+over its length into four bands: below 2 kHz, 2–6, 6–12 and above 12 kHz. A cue was
+treated as piercing when more than a fifth of its energy sat above 12 kHz or most of
+it above 6 kHz, and it was swapped for a warm clip of the same role (old id kept in
+`Previous`): GoldRushStart → `crystal fx` 79130903404606 (74 % below 2 kHz, Volume
+0.40, effective peak 0.07; the sparkle ding had 68 % above 12 kHz), Confirm → Roblox
+GUI `Send` 17208399163 (Volume 0.55; `Success Correct` had 25 % above 12 kHz), GemGain
+→ `gem collect` 11439707919 (Volume 0.33; `DiamondCollect` had 80 % above 6 kHz).
+Kept bright by design: Shimmer, GoldRushEnd (falling shimmer), MutationHit (arcade
+sparkle), CountTick (a 0.18 s tick at effective peak 0.11). Everything else is
+dominated by energy below 2 kHz. The near-silent Roblox "RBLX UI" / "Roblox GUI"
+hover clips and `UI_Tick` (peak ≤ 0.01) are unusable as cues.
+
+### Reapplying the level pass; two later calls (Oct 21, evening)
+
+Studio was reopened from a save made before the level pass, so the measured Volumes
+and swaps were reapplied in the open session. `assets/audio/level_feel_sounds_20261021.luau`
+is the durable copy: paste it into the Command Bar after the add recipe whenever
+`VFX/UI/MenuOpen` has no `Leveled` attribute. Two later calls from Stevin are baked in:
+
+- **Feed** is a normal chicken upgrade chime, not a munch: `FeedChicken` uses the TierUp
+  clip (`Upgrade` 135996502799215) pitched 1.1 at Volume 0.22.
+- **No whoosh on every UI tween:** `MenuOpen`, `MenuClose`, `SkillTreeOpen` and
+  `SkillTreeClose` are the soft `Roblox GUI - Bubble` pop (17208204604; in at 1.05×, out
+  at 0.85×, effective peaks 0.13 / 0.11), `TabSwitch` is `Roblox_UI_Bright_Click`, and the
+  flyer/teleport `Whoosh` stays but at half its level (0.10). The Roblox UI whoosh ids are
+  kept in each Sound's `Previous` attribute.

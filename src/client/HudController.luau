@@ -164,10 +164,9 @@ end
 
 function Hud.new(app,shell)
 	local self=setmetatable({app=app,commandRest={},commandShown={}},Hud)
-	-- October 21 reference parity: My Army moved into the left stack. This empty,
-	-- input-transparent frame keeps its old place above the hotbar so readers of
-	-- hud.navigation (ToolController's vacuum bar, AppController's menu toggle) still
-	-- work; the vacuum counter owns that spot now (P6).
+	-- October 21 reference parity: My Army moved into the left stack; the vacuum pill
+	-- (ToolController, P6) owns the spot above the hotbar now. This empty, input-
+	-- transparent frame only keeps hud.navigation for AppController's menu toggle.
 	local navigation=Theme.Container(shell,"Navigation")
 	navigation.AnchorPoint,navigation.Position,navigation.Size=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-ToolController.BottomReserve),UDim2.fromScale(0.248,0.204)
 	Theme.Aspect(navigation,558/272)
@@ -285,33 +284,33 @@ function Hud:BuildCash(shell)
 	-- Friend Boost row (FriendBoost.luau mounts its pill and + into it).
 	self.friendBoostSlot=Theme.Container(cash,"FriendBoostSlot")
 	self.friendBoostSlot.Position,self.friendBoostSlot.Size=UDim2.fromScale(0,56/CASH.H),UDim2.fromScale(1,27/CASH.H)
-	-- Lines above the pill, bottom-up: Rebirth N, the Hill chip, the yard line, an outpost.
-	-- A list collapses hidden lines, so whatever shows sits right above the pill.
+	-- Lines above the pill (the reference's event-timer line), bottom-up: Rebirth N or the
+	-- Hill chip (they share one line: the rank hides while the chip shows), then an
+	-- outpost. Left edges on the pill's, so the text lines up with the coin. A list
+	-- collapses hidden lines, so whatever shows sits right above the pill. (Later October
+	-- 21, Stevin: no yard "Carrying: N eggs" line.)
 	local lines=Theme.Container(cash,"Lines")
-	lines.AnchorPoint,lines.Position,lines.Size=Vector2.new(0,1),UDim2.fromScale(0,-0.03),UDim2.fromScale(1.5,4*LINE_UNITS/CASH.H)
+	lines.AnchorPoint,lines.Position,lines.Size=Vector2.new(0,1),UDim2.fromScale(0,-0.03),UDim2.fromScale(1.5,3*LINE_UNITS/CASH.H)
 	local list=Instance.new("UIListLayout")
 	list.SortOrder,list.VerticalAlignment,list.Parent=Enum.SortOrder.LayoutOrder,Enum.VerticalAlignment.Bottom,lines
 	self.lines=lines
 	local function line(name,text,size,color,order)
 		local label=Theme.Display(lines,name,text,size,color)
-		label.Size,label.LayoutOrder=UDim2.fromScale(1,0.25),order
+		label.Size,label.LayoutOrder=UDim2.fromScale(1,1/3),order
 		label.TextXAlignment,label.TextWrapped=Enum.TextXAlignment.Left,false
 		label.TextFace.TextOutline.Thickness=0.08
 		return label
 	end
 	self.territory=line("TerritoryIncome","",18,A.gold,1)
 	self.territory.Visible=false
-	-- The yard's Carrying line (EggController shows it on the deck).
-	self.income=line("Income","",20,nil,2)
-	self.income.Visible=false
 	-- Rebirth rank ("Rebirth 2") just above the money; hidden at rank 0.
 	self.rank=line("RebirthRank","",24,Theme.ReferenceColors.Army,4)
-	self.rank.Size=UDim2.fromScale(0.66,0.25)
+	self.rank.Size=UDim2.fromScale(0.66,1/3)
 	self.rank.Visible=false
 	-- October 20 (S19, Stevin): no Gems counter with the Coins; Gems show only in the
 	-- Rebirth screen (GemUpgradeGrid's balance).
 	self.hill=HillHud.new(self.app,shell,lines)
-	self.hill.waiting.Size,self.hill.waiting.LayoutOrder=UDim2.fromScale(1,0.25),3
+	self.hill.waiting.Size,self.hill.waiting.LayoutOrder=UDim2.fromScale(1,1/3),3
 end
 
 -- October 16 owner request: Auto Roll is a plain text button on the right; green ON,
@@ -508,7 +507,7 @@ end
 -- Like GUI.HUD: scale-only regions, native aspect constraints and scaled text.
 -- The composition is authored once; viewport changes are handled by Roblox.
 function Hud:Layout()
-	for _,label in {self.objective,self.money,self.income,self.territory,self.rank,self.save,self.armyCount} do
+	for _,label in {self.objective,self.money,self.territory,self.rank,self.save,self.armyCount} do
 		label.TextScaled=true
 	end
 	Theme.Aspect(self.objective,19)
@@ -545,15 +544,6 @@ function Hud:Resize(_width, _height, _scale)
 		self.app.panelTitle:GetPropertyChangedSignal("Text"):Connect(function() self:UpdateSettingsTopbar() end)
 	end
 	self:UpdateSettingsTopbar()
-end
-
-function Hud:UpdateEggLine(eggs)
-	if eggs.requiresDeposit then
-		-- Everything the pad will sell: the clicked bag plus the Egg Vacuum's cargo.
-		local count=eggs.carriedCount or 0
-		self.income.Text="Carrying: "..Theme.Money(count)..(if count==1 then " egg" else " eggs")
-			.." · Worth "..Theme.Coins(eggs.carriedValue or 0)
-	else self.income.Text="Yard eggs: "..Theme.Coins(eggs.value or 0) end
 end
 
 function Hud:UpdateOpening(state)
@@ -616,7 +606,8 @@ function Hud:UpdateRebirth(state)
 		if pulse then Theme.Motion:Breathe(self.reenlist.Visual,1.06,0.8) else Theme.Motion:StopBreathe(self.reenlist.Visual) end
 	end
 	self.rank.Text=RebirthPanel.Title(rank)
-	self.rank.Visible=rank>=1
+	-- The Hill countdown chip uses the same line.
+	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waitingShown)
 	-- Rebirths come often now, so each new rank re-arms the "Rebirth ready" toast.
 	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15);self.rebirthToastShown=false end
 	self.lastRank=rank
@@ -1155,7 +1146,6 @@ function Hud:Update(state,count,limit,capacity,selected,deployed,result)
 	end
 	self.lastStateCoins=coins
 	self:FlushFloat()
-	self:UpdateEggLine(state.eggs or {})
 	local atHome=state.armyState=="Home"
 	local away=state.armyState~=nil and not atHome
 	if away~=self.armyAway then self.armyAway=away;self:RefreshCommands(false) end
