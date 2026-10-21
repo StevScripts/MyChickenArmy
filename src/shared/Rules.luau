@@ -24,14 +24,19 @@ end
 -- Catalog income is the existing base cash/sec balance, in units of the base egg
 -- value: income per second is EggRate x EggUnitValue. October 21: this is a Coins
 -- rate, not an egg count; every chicken lays one egg per LaySeconds (below).
--- Retain the approved level curve: a merged bird produces 2x one input bird. Levels
--- past Config.MaxPetLevel (Feed Max Level) add +25% each instead (Stevin, Oct 20).
+-- Each level up to Config.MaxPetLevel multiplies eggs by EggLevelGrowth; levels past it
+-- (Feed Max Level) add +25% each instead (Stevin, Oct 20).
+-- October 21 later (P5, REBIRTH_PACING_20261021.md "reference-shaped ladder"): x1.6 a
+-- level, was x2 (the merge-era "a merged bird lays 2x"). A run no longer multiplies its
+-- Flock's eggs 512x with Feed, which is what forced Rebirth 2 to cost 1,240x Rebirth 1.
+-- Saved levels keep their numbers; a fed chicken lays less than before.
 Rules.EggGrowthPastCap = 1.25
+Rules.EggLevelGrowth = 1.6
 function Rules.EggRate(species: string, stars: number, level: number?): number
 	local rank = math.clamp(level or 1, 1, Config.PetLevelLimit)
 	local doubled = math.min(rank, Config.MaxPetLevel)
 	local base = Catalog[species].income * Config.PassiveIncomeMultiplier
-	return base / Config.EggBaseValue * 2 ^ (stars - 1) * 2 ^ (doubled - 1) * Rules.EggGrowthPastCap ^ (rank - doubled)
+	return base / Config.EggBaseValue * 2 ^ (stars - 1) * Rules.EggLevelGrowth ^ (doubled - 1) * Rules.EggGrowthPastCap ^ (rank - doubled)
 end
 
 -- Seconds between two eggs from one chicken. Egg Speed and Double Egg Spawn
@@ -64,15 +69,20 @@ end
 
 -- Current cash-level quote. Keep the historical UpgradePrice below frozen so
 -- changing today's tuning cannot revalue investments reconstructed from old saves.
--- October 8: each level doubles eggs, so a flat 75% quote paid back in constant
--- time and ran away. The extra 2.5x per level makes each quote 5x the last
--- (Common: $1,800, $9,000, $45,000 ...); level 1→2 is unchanged. Exact in floats.
-Rules.ChickenUpgradeGrowth = 2.5
--- October 20 (S7b): past Config.MaxPetLevel a level adds +25% eggs, not 2x. Its Feed
--- keeps levels 1-10's slope (each level takes 2.5x longer to pay back than the last):
--- 1.25x the Lv 9 -> 10 quote, then 3.125x (1.25 x 2.5) per level. Draft until the re-fit.
+-- October 8: each level doubled eggs, so a flat 75% quote paid back in constant
+-- time and ran away; an extra 2.5x per level made each quote 5x the last.
+-- October 21 later (P5): eggs grow x1.6 a level (EggLevelGrowth), so the quote grows
+-- x4 a level (recruit doubling x ChickenUpgradeGrowth 2) from 45% of the recruit price
+-- (Config.Economy.ChickenUpgradeRecruitFraction): every level still takes 2.5x longer to
+-- pay back than the last and each level's payback is what it was (Chicken: 270, 1,080,
+-- 4,320 Coins ...; was 450, 2,250, 11,250). Exact in floats.
+Rules.ChickenUpgradeGrowth = 2
+-- October 20 (S7b): past Config.MaxPetLevel a level adds +25% eggs. Its Feed keeps
+-- levels 1-10's slope (each level takes 2.5x longer to pay back than the last), then
+-- 3.125x (1.25 x 2.5) per level. October 21 later (P5): the Lv 10 -> 11 quote is 5/3 of
+-- the Lv 9 -> 10 quote (was 1.25 with x2 levels), so its payback is unchanged.
 -- The player's own cap (Rules.LevelCap) is checked by ChickenUpgradeEligibility.
-Rules.FeedPastCapFirst = 1.25
+Rules.FeedPastCapFirst = 5 / 3
 Rules.FeedPastCapGrowth = 3.125
 function Rules.ChickenUpgradePrice(species: string, level: number): number?
 	if level>=Config.PetLevelLimit then return nil end
