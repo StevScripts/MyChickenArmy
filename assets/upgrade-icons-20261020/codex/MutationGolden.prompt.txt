@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Golden mutation icon for the Upgrades tree of the Roblox game My Chicken Army. Image 1 (the approved Army Size icon) shows the game's voxel chicken: cube body and cube head, red block comb, yellow block beak, red block wattle, small black square eyes, orange block feet and a thick black outline. Image 2 (the approved Gold Machine icon) shows the gold material. Images 3 and 4 (boots, first-aid kit) show the in-game style: voxel blocks, bright clean colors, simple face shading, a heavy near-black outline.
+
+Subject: one voxel chicken, the same boxy chicken as in image 1, standing alone in a three-quarter view facing left, made entirely of shiny gold: bright gold-yellow lit faces, warm orange-gold shaded faces and a few small white glints. Its eyes stay black. A thick black outline around the whole chicken. Nothing else in the image.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/MutationGolden-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

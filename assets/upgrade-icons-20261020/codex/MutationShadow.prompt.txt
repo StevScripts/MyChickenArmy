@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Shadow mutation icon for the Upgrades tree of the Roblox game My Chicken Army, one of four matching mutation chickens. Image 1 is the approved Golden mutation icon and is the edit target. Images 2 and 3 (boots, first-aid kit) show the in-game style: voxel blocks, bright clean colors, simple face shading and a heavy near-black outline.
+
+Edit image 1 using it as the actual image input: keep exactly the same voxel chicken shape, pose, block layout, outline weight, size and framing, and rebuild its material as shadow: a very dark purple-black body with deep violet shading, a slightly lighter violet rim along its upper edges so the shape still reads, small glowing purple eyes, and a faint dark purple smoky wisp curling at its feet. Keep a thick black outline around the whole chicken.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/MutationShadow-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

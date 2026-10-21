@@ -32,8 +32,9 @@ in-game icons.
 | `review-sheet.png` | Every node's icon in a mock tree hex or Gem card, with the in-game ones marked, plus a 64 px strip on four backgrounds. |
 | `pilot-v2-vs-ingame.png` | The v2 pilots beside the in-game icons. |
 | `generate.sh`, `prepare.py`, `review_sheet.py` | Prompts and references, upload copies, review sheet. |
-| `codex/<Key>.prompt.txt` | The Codex CLI prompts for `AutoRoll`, `SellTrash` and the three dice. |
+| `codex/<Key>.prompt.txt` | The Codex CLI prompts for `AutoRoll`, `SellTrash`, the dice and the S9c icons. |
 | `dice-review.png` | The three dice large and in a mock of S12's "Rolls Left" rows. |
+| `review-s6b-s6c.png` | The dice and the nine S9c icons, for Stevin's review in one pass. |
 
 ## Decisions
 
@@ -61,7 +62,7 @@ in-game icons.
 
 - **"Rainbow Machine"** is a working name for the tier above Diamond; S12 can rename the node.
 
-## New icons (37)
+## New icons (46)
 
 | Group | Keys |
 | --- | --- |
@@ -74,6 +75,7 @@ in-game icons.
 | Currency and HUD | `Gems`, `FriendBoost` (Friend Boost line), `GoldRush` (countdown chip) |
 | Sell menu (S13) | `SellTrash`: the red trash can over a chicken card picked for sale. It goes in `Art.Trash` in `src/client/SellMenu.luau`. |
 | Gold rolls (S12) | `GoldDice`, `DiamondDice` and `PrismDice`: the dice beside the "N Rolls Left" counters over the roll machine (`GoldRolls.Icons`). One die shape; the diamond and prism dice are edits of the gold one. Branch `oct20/s6b-dice-icons`; `dice-review.png` shows them in a mock of the counter rows. |
+| Upgrades tree v2 (S9c) | `SuperLuck`, `MegaLuck` (the in-game Luck clover recolored cyan and purple), `DiamondRate`, `PrismRate` (the dice with Gold Rate's green arrows), `FeedMaxLevel` (the in-game feed sack with Vacuum Capacity's up arrows), `MutationGolden`, `MutationRainbow`, `MutationShadow`, `MutationCosmic` (one voxel chicken in each mutation's look; the last three are edits of Golden). S9's `ResearchAssets` keys are the same names in lowerCamel (`superLuck` … `mutationCosmic`). Branch `oct20/s6c-tree-icons`, built on the dice branch. |
 
 `AutoRebirth` is the Re-enlist icon (the in-game Rebirth button) with a gear added, so it pairs
 with the Rebirth button.
@@ -165,7 +167,8 @@ API candidate. `SellTrash` attaches the boots, the first-aid kit and `EggVacuum.
 - v1: 58 image calls.
 - v2: 33 image calls (4 model-test calls, 6 pilot calls, 23 for the rest). The gpt-image-2 test
   and the first Auto Roll call returned errors and produced no image.
-- Codex: five generations (`AutoRoll`, `SellTrash` and the three dice) on the ChatGPT plan, not
-  API credits. The dice ran on codex-cli 0.163.0 with the configured model.
+- Codex: 14 generations (`AutoRoll`, `SellTrash`, three dice and nine S9c icons) on the ChatGPT
+  plan, not API credits. Everything after the CLI upgrade ran on 0.163.0 with the configured
+  model.
 
 Check the OpenAI usage page for the exact API cost.
