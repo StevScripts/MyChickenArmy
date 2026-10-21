@@ -87,6 +87,8 @@ end
 local function label(parent,name,text,x,y,w,h,color)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
 	item.Position,item.Size=UDim2.fromScale(x,y),UDim2.fromScale(w,h)
+	-- Setting TextWrapped=false turns TextScaled off in Roblox, leaving fixed 20px text
+	-- that overflows small phone hexes; keep the default wrapping.
 	item.TextScaled,item.TextXAlignment=true,Enum.TextXAlignment.Center
 	item.TextOutline.Thickness=.035
 	return item
@@ -219,16 +221,16 @@ function Browser:BuildNode(id,layer)
 	local icon=Theme.Image(visual,"Icon",Assets.upgrades[node.icon] or Assets.index,UDim2.fromScale(.56,.56),UDim2.fromScale(.22,.04));icon.ZIndex=4
 	-- The tier is live text over the icon's lower right, never part of the art.
 	local numeral=label(visual,"Tier",View.Numeral(node) or "",.55,.34,.3,.27)
-	numeral.TextXAlignment,numeral.TextWrapped,numeral.ZIndex=Enum.TextXAlignment.Right,false,6
+	numeral.TextXAlignment,numeral.ZIndex=Enum.TextXAlignment.Right,6
 	numeral.TextOutline.Thickness=.09
 	local title=label(visual,"Title",node.name,-.06,.585,1.12,.135)
-	title.TextWrapped,title.ZIndex=false,6
+	title.ZIndex=6
 	-- "Open" under an Open hex's name; the category's name under Back.
 	local caption=label(visual,"Caption","",.1,.68,.8,.17,if kind=="open" then Color3.fromRGB(255,240,90) else WHITE)
-	caption.TextWrapped,caption.ZIndex,caption.Visible=false,6,kind=="open" or kind=="back"
+	caption.ZIndex,caption.Visible=6,kind=="open" or kind=="back"
 	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.18,.735),UDim2.fromScale(.64,.14),5
 	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.27,1));cashIcon.ZIndex=5
-	local price=label(cost,"Price","",.29,0,.71,1,COIN);price.TextXAlignment,price.TextWrapped,price.ZIndex=Enum.TextXAlignment.Left,false,5
+	local price=label(cost,"Price","",.29,0,.71,1,COIN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
 	-- Undiscovered tiles stay quiet so the reachable ones lead the eye.
 	local hidden=label(visual,"Hidden","?",.25,.15,.5,.7,Color3.fromRGB(150,152,156));hidden.ZIndex=5
 	-- Red circle at the top right: "!" on a hex you can buy now, a count on Open hexes.
@@ -237,7 +239,7 @@ function Browser:BuildNode(id,layer)
 	Theme.Aspect(badge,1);round(badge,.5)
 	-- Round joins: a Miter stroke draws a square box around a circle.
 	Theme.Stroke(badge,Color3.new(0,0,0),2).LineJoinMode=Enum.LineJoinMode.Round
-	local badgeText=label(badge,"Text","!",.1,.1,.8,.8);badgeText.TextWrapped,badgeText.ZIndex=false,8
+	local badgeText=label(badge,"Text","!",.1,.1,.8,.8);badgeText.ZIndex=8
 	if kind=="start" then
 		icon.Position,icon.Size=UDim2.fromScale(.2,.04),UDim2.fromScale(.6,.6)
 		title.Position,title.Size=UDim2.fromScale(.02,.64),UDim2.fromScale(.96,.18)
