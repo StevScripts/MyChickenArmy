@@ -34,7 +34,10 @@ local Config = {
 	-- archive/fuse-20261020. Both stay false for older readers such as ShopCatalog.
 	-- ChickenCashUpgrades: the Army inspector's Upgrade button. Briefly off on October 15
 	-- (Fuse-only); back on the same day with the restored Rebirth costs, which need it.
-	Features = {Merging = false, AutoMerging = false, IntroCutscene = true, ChickenCashUpgrades = true},
+	-- October 21 (Stevin, from the funnel: ~10% of new players left before the intro
+	-- film ended): IntroCutscene off for now. New players go straight to the tutorial;
+	-- set it back to true to bring the film (and Settings > Replay Intro) back.
+	Features = {Merging = false, AutoMerging = false, IntroCutscene = false, ChickenCashUpgrades = true},
 	Economy = Economy,
  Version="1.21.0-overhaul", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's

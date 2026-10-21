@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local AnalyticsService = game:GetService("AnalyticsService")
 local Guide = require(game.ReplicatedStorage.PetRoll.Shared.TutorialGuide)
+local Config = require(game.ReplicatedStorage.PetRoll.Shared.Config)
 local Tutorial = {}
 Tutorial.__index = Tutorial
 local checkpoints = {30, 60, 180, 300, 600}
@@ -27,6 +28,8 @@ Tutorial.Diagnostics = {}
 -- Mirrors the client's intro eligibility. A mismatch is harmless: a client that
 -- does not play the film reports IntroSkipped, which releases the hold.
 function Tutorial.IntroPending(session)
+	-- With the film switched off (Config.Features.IntroCutscene) eggs never wait for it.
+	if not Config.Features.IntroCutscene then return false end
 	local t = session.tutorial
 	return t.starterArmy == true and not t.introSeen and not t.guideCompleted and not t.guideSkipped
 		and not t.rolled and not t.bought and not t.soldEggs and Guide.CollectedEggCount(t) == 0

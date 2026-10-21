@@ -1,5 +1,12 @@
 # First-visit intro cutscene, October 6, 2026
 
+**Off since October 21** (Stevin: the funnel showed about 10% of new players leaving
+before the film ended). `Config.Features.IntroCutscene = false`: new players go
+straight to the tutorial, the client sends `IntroSkipped` (the funnel's Intro step
+still completes), and `TutorialService.IntroPending` no longer holds their eggs.
+Settings > Replay Intro is hidden while it's off. Set the flag back to `true` to
+restore everything below.
+
 A ~50 second story with five short captions (October 14; `Intro:Caption`), "One Chicken Isn't an Army", plays once for brand-new
 `starterArmy` profiles as the loading veil fades. It sets up every Commander Cluck
 step before the guide appears. Presentation only: no cash, chickens or progress
