@@ -1,5 +1,9 @@
 # Egg quantity and shared value
 
+**October 21 direction:** one egg is one egg. Chickens lay one real egg every few
+seconds and strength raises each egg's worth, not the count. This supersedes the
+quantity and stack sections below. See [ONE_EGG_VALUE.md](team/ONE_EGG_VALUE.md).
+
 **September 29 direction:** egg deposits now pay immediately with the existing Money
 effect. Timed processing, Selling Speed and Finish Now are archived. Saved egg
 balances, seller levels and paid finish credits remain compatible. This supersedes

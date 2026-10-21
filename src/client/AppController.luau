@@ -65,6 +65,8 @@ local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBas
 for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end
 -- October 20 (S18): a Chicken Feed level shows the "leveled up!" banner instead.
 QUIET_SUCCESS.FeedChicken = true
+-- October 21: My Army shows its own sale and lock results under the window.
+QUIET_SUCCESS.Sell, QUIET_SUCCESS.Favorite = true, true
 -- October 20 (S16): PlaytimePanel shows its own claim feedback.
 QUIET_SUCCESS.ClaimPlaytime = true
 
@@ -209,12 +211,12 @@ function AppController:TrackRecruit(result)
 	end
 	-- Per-bird potential, not a promise of net home income or cash paid immediately.
 	local identity=name
-	if pet and type(pet.eggsPerSecond)=="number" then
+	-- October 21: a chicken's strength is the worth of each egg it lays.
+	if pet and type(pet.eggValue)=="number" then
 		local width=math.max(1,self.toast.AbsoluteSize.X)
-		local rate=if math.floor(pet.eggsPerSecond*10+0.5)==10 then " egg/s" else " eggs/s"
-		identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · ",rate.." at home",width,self.toast.TextSize,false,true)
+		identity=EggFeedback.Fit(pet.eggValue,name.." · ","/egg at home",width,self.toast.TextSize,true,false)
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then
-			identity=EggFeedback.Fit(pet.eggsPerSecond,name.." · ",rate,width,self.toast.TextSize,false,true)
+			identity=EggFeedback.Fit(pet.eggValue,name.." · ","/egg",width,self.toast.TextSize,true,false)
 		end
 		-- Preserve identity and assignment if a very narrow viewport cannot fit the optional rate.
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then identity=name end

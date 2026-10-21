@@ -515,10 +515,10 @@ local function saleEligibility(session,id,context): (boolean,string)
 	if minimum>0 and context.count<=minimum then
 		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
 	end
-	if pet.favorite then return false,"Favorite chickens can't be sold." end
+	if pet.favorite then return false,"Locked chickens can't be sold." end
 	if not session:IsPetHome(id) then return false,"Your Army is away with this chicken." end
 	if context.selected[id] then return false,"Remove it from your Army first." end
-	if context.flock[id] then return false,"Remove it from your Flock first." end
+	-- October 21: Flock chickens sell too; the next best layer takes the slot.
 	return true,"Ready to sell."
 end
 
@@ -690,7 +690,7 @@ end
 -- for it changes, and petsVersion moves only then: storage can hold up to
 -- Config.StorageLimit chickens, so GameServer resends the list only on a change.
 local PET_FIELDS={"species","stars","level","favorite","giantSize","mutation","slot","selected","deployed","home",
-	"flock","laying","canSell","saleReason","income","eggsPerSecond","upgradePrice","canUpgrade","upgradeReason",
+	"flock","laying","canSell","saleReason","income","eggValue","upgradePrice","canUpgrade","upgradeReason",
 	"levelCap","investment","refund"}
 local petsSerial=0 -- Server-wide, so two lists never share a version.
 
@@ -704,6 +704,8 @@ function PlayerSession:PetEntries(best: {string}, deployedIds: {string}, flock: 
 	-- Shared factors, once per snapshot instead of once per chicken.
 	local production=self:EggProductionMultiplier()
 	local value=self:EarnedAmount(production*(1+self.researchEffects.eggValue),"eggs")
+	-- October 21: every chicken lays one egg per LaySeconds, worth what it earned meanwhile.
+	local laySeconds=Rules.LaySeconds(production)
 	local previous,entries,changed,shown=self.petEntries or {},{},false,{}
 	for id,pet in self.pets do
 		local level=pet.level or 1
@@ -715,7 +717,7 @@ function PlayerSession:PetEntries(best: {string}, deployedIds: {string}, flock: 
 		shown.selected,shown.deployed,shown.home=context.selected[id]==true,deployed[id]==true,self:IsPetHome(id)
 		shown.flock,shown.laying,shown.canSell,shown.saleReason=context.flock[id]==true,layers[id]==true,canSell,saleReason
 		shown.income=Rules.Income(pet.species,pet.stars,level,self.incomeLevel)*mutation*value
-		shown.eggsPerSecond=Rules.EggRate(pet.species,pet.stars,level)*production*mutation
+		shown.eggValue=shown.income*laySeconds
 		local levelCap=self:LevelCap()
 		shown.upgradePrice=if level<levelCap then Rules.ChickenUpgradePrice(pet.species,level) else nil
 		shown.canUpgrade,shown.upgradeReason=canUpgrade,upgradeReason
@@ -746,10 +748,11 @@ end
 
 -- My Army and the HUD: ids is the Flock in slot order, laying is who lays right now.
 function PlayerSession:FlockSnapshot(flock: {string}, laying: {string}, production: number)
-	local eggs=0
-	for _,id in laying do local pet=self.pets[id];if pet then eggs+=layerRate(pet) end end
+	-- Real eggs: one per laying chicken every LaySeconds (October 21).
+	local layers=0
+	for _,id in laying do if self.pets[id] then layers+=1 end end
 	return {size=flockSize(self),mode=if self.flockSelection==nil then "Auto" else "Manual",
-		ids=flock,laying=laying,eggsPerSecond=eggs*production}
+		ids=flock,laying=laying,eggsPerSecond=layers/Rules.LaySeconds(production)}
 end
 
 function PlayerSession:Snapshot(now: number)
@@ -804,7 +807,7 @@ function PlayerSession:Snapshot(now: number)
 		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
 		starterRecruitPrice=if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0,
 		income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue),
-		homeEggsPerSecond=layingIncome/(Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue))*eggProduction,
+		homeEggsPerSecond=#laying/Rules.LaySeconds(eggProduction),
 		capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
 		petsVersion=self.petsVersion,flock=self:FlockSnapshot(flock,laying,eggProduction),
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
@@ -1287,17 +1290,6 @@ function PlayerSession:LoadData(data)
 			end
 		end
 	end
-	-- S10's manual Flock layers: owned chickens only, in order, no repeats.
-	local flockSelection
-	if type(data.flockSelection)=="table" then
-		flockSelection={}
-		local seen={}
-		for _,id in data.flockSelection do
-			if #flockSelection<50 and type(id)=="string" and pets[id] and not seen[id] then
-				seen[id]=true;table.insert(flockSelection,id)
-			end
-		end
-	end
 	-- S11's hand-vacuum cargo; an unreadable pair is emptied, never refused.
 	local cargo=data.vacuumCargo
 	local cargoCount=if type(cargo)=="table" then clampHigh(cargo.count,0,PlayerSession.CarryLimit,true) else nil
@@ -1315,7 +1307,8 @@ function PlayerSession:LoadData(data)
 	self.rebirthSkips=readCount(data.rebirthSkips,1000)
 	self.passGemGifts,self.rebirthChickenCredits=passGemGifts,chickenCredits
 	self.missionTierLegacy,self.mutationKeep=missionTierLegacy,mutationKeep
-	self.flockSelection,self.eggVacuum=flockSelection,false
+	-- October 21 (owner): the Flock is always automatic; old saved picks are dropped.
+	self.flockSelection,self.eggVacuum=nil,false
 	self.vacuumCargo={count=cargoCount,value=cargoValue}
 	-- S12b: one pull count per machine (count = Gold, diamond, prism); missing means 0.
 	local goldRolls:any=if type(data.goldRolls)=="table" then data.goldRolls else {}

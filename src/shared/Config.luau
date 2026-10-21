@@ -59,15 +59,16 @@ local Config = {
  -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins
  -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
  -- then +EnemyScalePerRank per rank of the attacker. Mission tiers open at King clear
- -- or MissionTierRanks (Veteran, Elite, Royal). Costs are the P0 fit with
- -- tests/ProgressionSimulation (fast player, 4 s rolls; plan v2 times: Rebirth 1 ≈ 10 min,
- -- 5 ≈ 54 min, 10 ≈ 2.9 h, 20 ≈ 11.6 h, 30 ≈ 34 h). Results and method:
- -- docs/team/OVERHAUL_CONTRACT_20261020.md §10. Saved ranks above MaxRank keep the highest rank.
+ -- or MissionTierRanks (Veteran, Elite, Royal). Costs are the October 21 re-fit with
+ -- tests/ProgressionSimulation after tree v2, Gem slots, Coins reset to 0 and Playtime
+ -- Rewards (fast player; plan v2 times: Rebirth 1 ≈ 10 min, 5 ≈ 54 min, 10 ≈ 2.9 h,
+ -- 20 ≈ 11.6 h, 30 ≈ 34 h). Results and method: docs/team/OVERHAUL_CONTRACT_20261020.md
+ -- §10. Saved ranks above MaxRank keep the highest rank.
  -- The Oct 15 $50M…$185T 20-rank ladder is history (docs/team/REBIRTH_LADDER.md).
  Rebirth={Enabled=true,Version=2,MaxRank=30,
-  Costs={5e4,4.2e7,6.8e8,4.8e9,1.9e10,3.3e10,6.9e10,1.3e11,2.7e11,4.6e11,
-   5.8e11,1e12,1.2e12,1.8e12,2.5e12,3.1e12,3.7e12,4.4e12,5.3e12,6.4e12,
-   9.1e12,1.2e13,1.8e13,2.4e13,3.4e13,4.6e13,6.1e13,8.2e13,1.2e14,1.8e14},
+  Costs={5e4,6.2e7,1e9,8.6e9,3.6e10,5.6e10,1.2e11,2.6e11,6e11,1.1e12,
+   1.2e12,2.2e12,2.9e12,3.8e12,4.5e12,5e12,5.5e12,6.3e12,7.3e12,8.3e12,
+   1.1e13,1.7e13,3e13,3.8e13,5.5e13,7.2e13,1.2e14,1.5e14,2.1e14,3.4e14},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EnemyFreeRanks=2,EnemyScalePerRank=0.25,
   GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
@@ -137,8 +138,11 @@ local Config = {
  LuckOpeningLevels=4,LuckContinuationWeightPerLevel=0.10,
  IncomePrices={pacedPrice(1,Economy.IncomeUpgradeSeconds),pacedPrice(2,Economy.IncomeUpgradeSeconds),pacedPrice(3,Economy.IncomeUpgradeSeconds),pacedPrice(4,Economy.IncomeUpgradeSeconds)},IncomeMultiplierPerLevel=0.25,
  MaxStars=1,StarHP={1},StarSize={1},SellFraction=0.5,
- -- All chickens lay the same egg. Species/levels change quantity, not unit value.
- EggBaseValue=4,EggVisualBatchSeconds=0.25,EggsPerChicken=5,EggMaxDrops=80,
+ -- October 21 (docs/team/ONE_EGG_VALUE.md): every egg on the ground is one real egg.
+ -- A chicken lays one every EggLaySeconds (Egg Speed shortens it, never below
+ -- EggMinLaySeconds) and that egg carries all the Coins it earned meanwhile, so
+ -- stronger chickens lay more valuable eggs, not more of them.
+ EggBaseValue=4,EggLaySeconds=3,EggMinLaySeconds=1,EggsPerChicken=5,EggMaxDrops=80,
  LegacyEggLaySeconds=5, -- Older profile egg timers used the original five-second cycle.
  EggSpriteImage="rbxassetid://91011618236242",EggSpriteSize=2,EggSpriteMaxDistance=120,
  EggMagnetRadius=7.5,EggSettleSeconds=0.4,EggFlightSeconds=0.62,EggPickupBatch=4,
