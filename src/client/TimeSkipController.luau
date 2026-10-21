@@ -173,8 +173,11 @@ function Controller:Show(pending: any, minutes: number?)
 	local app = self.app
 	self:Dismiss(true)
 	self.shownCoins = nil
-	-- Our own blur owner: the Rebirth window's stays when it is open underneath.
+	-- Our own blur owner, taken BEFORE CloseOtherMenus so a closing menu cannot clear the
+	-- shared blur; Dismiss releases it. One modal at a time, except the Rebirth window,
+	-- which the reference keeps open underneath ("rebirth" is the menu kept).
 	app:SetMenuBlur("timeSkip", true)
+	if app.CloseOtherMenus then app:CloseOtherMenus("rebirth") end
 	self.previousSelection = GuiService.SelectedObject
 	local gui = if app.editPreview then Theme.Container(app.other, "TimeSkip")
 		else Theme.InsetContainer(app.other, "TimeSkip", Enum.ScreenInsets.CoreUISafeInsets)
