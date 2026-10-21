@@ -5,6 +5,7 @@
 -- constraint; input changes only each map's pan/zoom, never the layout of individual
 -- nodes. The server owns every status, price and badge (state.upgradeTree).
 local UserInputService=game:GetService("UserInputService")
+local TextService=game:GetService("TextService")
 local ContextActionService=game:GetService("ContextActionService")
 local GuiService=game:GetService("GuiService")
 local TweenService=game:GetService("TweenService")
@@ -71,6 +72,16 @@ local COUNTER_KINDS={"Gold","Diamond","Prism"}
 -- UI Lab only: the reference's two counters when the fixture has none.
 local PREVIEW_COUNTERS={{kind="Gold",every=10,count=2,left=8,luck=2},{kind="Diamond",every=100,count=0,left=100,luck=5}}
 local TOOLTIP_WIDTH=.218
+-- Hex text rows in shares of the hex's height (round 2, phone 844 x 390): a hex is
+-- 60 px tall there at zoom 1, so a .22 line renders 13 px (the 12 px readable floor
+-- with room to spare) and a .215 price row 12 px; desktops get the same proportions,
+-- larger. One layout for every device: only the name's line count changes, and that
+-- comes from the name itself (NameLines), never from the screen.
+local HEX={Line=.22,NameWidth=.96,PriceRow=.215,PriceTop=.775,IconTop=.04}
+-- The price row's coin is a square of the row's height: its share of the row's width.
+local COST_WIDTH=.76
+local COST_ICON=HEX.PriceRow*144/(COST_WIDTH*164)
+local COST_TEXT=COST_ICON+.02
 -- October 20 tree v2 (S9c): flat-topped hexes like the reference, 164 wide x 144 tall.
 local NODE_SIZE=UDim2.fromScale(164/1440,144/930)
 -- Presentation tuning only: seconds and relative scales, never purchase timing.
@@ -179,6 +190,27 @@ local function richWrap(segments:{{text:string,green:boolean?}},limit:number):(s
 		table.insert(lines,table.concat(parts))
 	end
 	return table.concat(lines,"\n"),math.max(1,#rows)
+end
+-- A hex name's lines: one when it fits the hex's inner width at the line height, else
+-- the two-line split whose wider line is narrowest ("Vacuum\nCapacity IV"). Widths are
+-- Roblox's own font metrics per unit of text size, so the answer is the same on every
+-- device (the map scales as a whole). Without TextService it estimates from length.
+local function nameWidth(text:string):number
+	local ok,size=pcall(function() return TextService:GetTextSize(text,100,Theme.Font,Vector2.new(1e5,1e5)) end)
+	return if ok and size.Y>0 then size.X/size.Y else #text*.5
+end
+local function nameLines(text:string):(string,number)
+	-- The widest a line may be, in units of its own height (3% kept for the outline).
+	local limit=HEX.NameWidth*(164/144)/HEX.Line*.97
+	if nameWidth(text)<=limit then return text,1 end
+	local words=string.split(text," ")
+	local best,widest=text,math.huge
+	for index=1,#words-1 do
+		local first,second=table.concat(words," ",1,index),table.concat(words," ",index+1)
+		local width=math.max(nameWidth(first),nameWidth(second))
+		if width<widest then best,widest=first.."\n"..second,width end
+	end
+	return best,if widest<math.huge then 2 else 1
 end
 local function round(item,radius)
 	Theme.Round(item).CornerRadius=UDim.new(radius,0)
@@ -405,9 +437,10 @@ function Browser:BuildNode(id,layer)
 	-- "Open" under an Open hex's name; the category's name under Back.
 	local caption=label(visual,"Caption","",.1,.68,.8,.17,if kind=="open" then Color3.fromRGB(255,240,90) else WHITE)
 	caption.ZIndex,caption.Visible=6,kind=="open" or kind=="back"
-	local cost=Theme.Container(visual,"Cost");cost.Position,cost.Size,cost.ZIndex=UDim2.fromScale(.16,.8),UDim2.fromScale(.68,.17),5
-	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(.25,1));cashIcon.ZIndex=5
-	local price=label(cost,"Price","",.27,0,.73,1,GREEN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
+	local cost=Theme.Container(visual,"Cost");cost.ZIndex=5
+	cost.Position,cost.Size=UDim2.fromScale((1-COST_WIDTH)/2,HEX.PriceTop),UDim2.fromScale(COST_WIDTH,HEX.PriceRow)
+	local cashIcon=Theme.Image(cost,"CashIcon",Assets.cash,UDim2.fromScale(COST_ICON,1));cashIcon.ZIndex=5
+	local price=label(cost,"Price","",COST_TEXT,0,1-COST_TEXT,1,GREEN);price.TextXAlignment,price.ZIndex=Enum.TextXAlignment.Left,5
 	-- The "?" ghost: a dark question mark on the see-through grey hex (LOOKS.unknown).
 	local hidden=label(visual,"Hidden","?",.25,.15,.5,.7,Color3.fromRGB(58,58,64));hidden.ZIndex=5
 	hidden.TextOutline.Color=Color3.fromRGB(20,20,24)
@@ -421,25 +454,47 @@ function Browser:BuildNode(id,layer)
 	local badgeText=label(badge,"Text","!",.1,.1,.8,.8);badgeText.ZIndex=8
 	if kind=="start" then
 		icon.Position,icon.Size=UDim2.fromScale(.2,.04),UDim2.fromScale(.6,.6)
-		title.Position,title.Size=UDim2.fromScale(.02,.64),UDim2.fromScale(.96,.18)
+		title.Position,title.Size=UDim2.fromScale(.02,.62),UDim2.fromScale(.96,HEX.Line)
 	elseif kind=="open" or kind=="back" then
 		icon.Position,icon.Size=UDim2.fromScale(.24,.03),UDim2.fromScale(.52,.5)
-		title.Position,title.Size=UDim2.fromScale(.02,.5),UDim2.fromScale(.96,.16)
+		title.Position,title.Size=UDim2.fromScale(.02,.46),UDim2.fromScale(.96,HEX.Line)
+		caption.Position,caption.Size=UDim2.fromScale(.1,.46+HEX.Line),UDim2.fromScale(.8,HEX.Line)
 		local category=if kind=="back" then View.OpenNode(node.category) else nil
 		caption.Text=if kind=="open" then "Open" elseif category then category.name else ""
 		-- Without its arrow icon, Back's words fill the hex instead.
 		if icon.Image=="" then
 			title.Position,title.Size=UDim2.fromScale(.1,.2),UDim2.fromScale(.8,.24)
-			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.22)
+			caption.Position,caption.Size=UDim2.fromScale(.1,.48),UDim2.fromScale(.8,.24)
 		end
 	else
+		-- Round 2 (phone floor): rows from the bottom up. The price row sits on the hex's
+		-- bottom edge; the name (one or two .22 lines across the hex's inner width) sits
+		-- just above it, over the lower part of the icon like the reference; the icon
+		-- fills the space above the name; the numeral sits on the icon's bottom-right
+		-- corner, right above the name (smaller when the name takes two lines).
+		local text,lines=nameLines(node.name)
+		local nameTop=HEX.PriceTop-lines*HEX.Line
+		title.Text=text
+		title.Position,title.Size=UDim2.fromScale((1-HEX.NameWidth)/2,nameTop),UDim2.fromScale(HEX.NameWidth,lines*HEX.Line)
+		local iconSize=nameTop+.06-HEX.IconTop
+		local iconWidth=iconSize*144/164
+		icon.Position,icon.Size=UDim2.fromScale((1-iconWidth)/2,HEX.IconTop),UDim2.fromScale(iconWidth,iconSize)
+		local numeralSize=if lines==1 then HEX.Line else .17
+		local numeralLeft=if lines==1 then .6 else .58
+		numeral.Position,numeral.Size=UDim2.fromScale(numeralLeft,nameTop-numeralSize),UDim2.fromScale(if lines==1 then .24 else .16,numeralSize)
+		-- The name and the price never render under the 12 px floor (their rows are sized
+		-- for it; this only guards a smaller screen). The numeral may shrink.
+		Theme.ScaleText(title);Theme.ScaleText(price)
 		-- Upgrade hexes never move these again, so their punches grow from the middle.
 		Theme.Motion:Center(title);Theme.Motion:Center(cost)
 	end
-	if kind=="start" or kind=="open" then
-		-- The Main hubs: their short words keep the readable floor, and the hit area is
-		-- 48 px on a phone (hex art untouched; the hubs' boxes already meet at the corners).
+	if kind=="start" or kind=="open" or kind=="back" then
+		-- The hubs and Back: their short words keep the readable floor.
 		Theme.ScaleText(title);Theme.ScaleText(caption)
+	end
+	if kind=="start" or kind=="open" then
+		-- The Main hubs' hit area is 48 px on a phone (hex art untouched; the hubs' boxes
+		-- already meet at the corners).
 		Theme.PadHit(button,1.1,1.27,0.5,0.5,true)
 	end
 	self.nodes[id]={id=id,button=button,visual=visual,outline=outline,fill=fill,gradient=gradient,icon=icon,glow=glow,flashFill=flash,
@@ -941,8 +996,8 @@ function Browser:RenderNode(id)
 	if live and buyable and not view.cost.Visible then Theme.Motion:Punch(view.cost,1.15,.3) end
 	view.cost.Visible=buyable
 	view.cashIcon.Visible=not waiting
-	view.price.Position=UDim2.fromScale(if waiting then 0 else .27,0)
-	view.price.Size=UDim2.fromScale(if waiting then 1 else .73,1)
+	view.price.Position=UDim2.fromScale(if waiting then 0 else COST_TEXT,0)
+	view.price.Size=UDim2.fromScale(if waiting then 1 else 1-COST_TEXT,1)
 	view.price.TextXAlignment=if waiting then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
 	view.price.Text=if waiting then "…" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
 	view.price.TextColor3=if look=="unaffordable" then RED else GREEN

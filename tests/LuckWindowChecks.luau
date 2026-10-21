@@ -3,6 +3,7 @@ local Shared = game.ReplicatedStorage.PetRoll.Shared
 local Catalog = require(Shared.PetCatalog)
 local Config = require(Shared.Config)
 local Rules = require(Shared.Rules)
+local ChickenLuck = require(Shared.ChickenLuck)
 local UpgradeCatalog = require(Shared.UpgradeCatalog)
 local Checks = {}
 
@@ -220,10 +221,13 @@ function Checks.Run(catalogOddsFactory)
 	check("Probabilities remain continuous as the moving window crosses every reachable band boundary", function()
 		-- October 20: cash Luck moves in whole tiers, so the research bonus (Extra Luck,
 		-- Gold rolls) carries the window continuously across each boundary.
-		local function checkBoundary(paid, research)
-			local before = oddsAt(0, paid, research - 1e-7)
+		local function checkBoundary(paid, research, step)
+			-- October 21: the shift is logarithmic in strength, so the probe step scales
+			-- with the multiplier (a fixed 1e-7 moves a x1,000 window by only 1e-10 bands).
+			step = step or 1e-7
+			local before = oddsAt(0, paid, research - step)
 			local at = oddsAt(0, paid, research)
-			local after = oddsAt(0, paid, research + 1e-7)
+			local after = oddsAt(0, paid, research + step)
 			local beforeDistance, afterDistance = 0, 0
 			for _, species in Catalog.Order do
 				beforeDistance += math.abs(before[species] - at[species])
@@ -235,9 +239,9 @@ function Checks.Run(catalogOddsFactory)
 		for shift = 1, 7 do
 			-- Invert the documented tuning only to locate edges; the assertion checks
 			-- continuity and ordering, not a duplicate implementation of the odds.
-			local multiplier = (9 + 2 * shift) / (9 - shift)
+			local multiplier = 10 ^ (shift / ChickenLuck.ShiftPerDecade) -- October 21 curve
 			local paid = if multiplier > 3 then 2 else 1
-			checkBoundary(paid, multiplier / paid - 1)
+			checkBoundary(paid, multiplier / paid - 1, 1e-7 * multiplier)
 		end
 		return "Seven transported-band boundaries are continuous"
 	end)
@@ -248,8 +252,8 @@ function Checks.Run(catalogOddsFactory)
 		-- S9c: the cash cap is the tree's top Luck tier (Mega Luck IV); the shift stays bounded.
 		local top = UpgradeCatalog.LuckMultiplier(LuckTiers)
 		local cashCap, stackedCap = Rules.LuckWindow(20, 1, 0), Rules.LuckWindow(20, 2, 1)
-		near(cashCap.multiplier, top); near(cashCap.shift, 9 * (1 - 3 / (top + 2)))
-		near(stackedCap.multiplier, top * 4); near(stackedCap.shift, 9 * (1 - 3 / (top * 4 + 2)))
+		near(cashCap.multiplier, top); near(cashCap.shift, math.min(9, ChickenLuck.ShiftPerDecade * math.log10(top)))
+		near(stackedCap.multiplier, top * 4); near(stackedCap.shift, math.min(9, ChickenLuck.ShiftPerDecade * math.log10(top * 4)))
 		assert(stackedCap.left > cashCap.left and stackedCap.right >= cashCap.right)
 		for _, paid in {1, 2} do
 			for _, research in ResearchBonuses do

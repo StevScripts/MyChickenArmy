@@ -21,8 +21,17 @@ What that means in the build:
 - **The reward chicken is a black silhouette until the Rebirth is affordable**, then
   it shows in colour.
 - **The Coins bar shows the real balance**, even past the cost ("214,880 / 200,000").
-- **Money resets to zero** on a Rebirth (later October 20, Stevin; `RebirthService`).
-  Time Skip then pays its minutes of Coins on top.
+- **Money resets to zero** on a Rebirth (later October 20, Stevin; `RebirthService`),
+  and it reads 0 (October 21 reference parity, P4; the bar shows "0 / 1,000,000" like
+  the reference). Time Skip is no longer credited in the same transaction: the
+  server saves its Coins as a claim (`timeSkipPending = {coins, rank}`) and, once the
+  confetti has played, a **"Time Skip!"** popup in the Welcome Back style opens over
+  the still-open Rebirth window ("TIME SKIP:", coin art, "+N Coins", "N min of egg
+  Coins · Rebirth R", green Claim!). Claim! (or the X, Escape, B) sends
+  `ClaimTimeSkip`; coins fly into the HUD and the readout counts up. An unclaimed
+  reward is added to by the next Rebirth and offered again on join, after the
+  offline receipt and the daily reward. A Skip Rebirth keeps the run, so it still
+  pays its Time Skip at once. The toast says "Time Skip ready: +N Coins".
 - **Big icons** (later October 20, Stevin: "the images are really small"). Card icons
   fill nearly the card height, and the reward tiles, price gems, coin and reward
   chicken are larger than the plan's mock.
@@ -56,7 +65,8 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
 
 - `state.rebirth` (contract §7). Used fields: `version`, `rank`, `nextRank`, `cost`,
   `coins`, `eligible`, `reason`, `armyHome`, `missionRunning`, `multiplierNow/Next`,
-  `gemsNext`, `timeSkipMinutes`, `nextChicken`, `unlockNext`, `skip`.
+  `gemsNext`, `timeSkipMinutes`, `nextChicken`, `unlockNext`, `skip`, and
+  `timeSkipPending` (`{coins, rank}` or nil; the claim popup's amount).
   No price or reward is computed on the client.
 - `state.gems`, `state.gemsEarned` and `state.gemUpgrades` (contract §8). A card
   shows the snapshot's `level`, `maxLevel`, `price`, `status` and `text`. Names and
@@ -65,12 +75,17 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
   - `Rebirth {expectedRank}`, or `{expectedRank, useSkip=true}` to spend a credit.
   - `BuyGemUpgrade {upgradeId, expectedLevel, expectedPrice}`.
   - `SetAutoRebirth {enabled}`.
+  - `ClaimTimeSkip` (no fields; October 21, P4): pays `state.rebirth.timeSkipPending`
+    once. `TimeSkipController` sends it; a second claim is refused with an empty
+    message (no notice).
   - Buying Skip calls `CommerceController:Buy(state.rebirth.skip.productKey)`.
 - The success messages of these requests are quiet (`AppController.QUIET_SUCCESS`);
   the screen shows its own feedback. Refusals still show the server's message.
-- The Rebirth toast reads the result's `receipt` (`gems`, `species`, `skip`; the
-  server also sends one for a spent Skip credit and for Auto Rebirth). Without a
-  receipt it uses the last quote's `gemsNext` and `nextChicken`.
+- The Rebirth toast reads the result's `receipt` (`gems`, `species`, `skip`,
+  `timeSkipCoins`, `timeSkipPending`; the server also sends one for a spent Skip
+  credit and for Auto Rebirth). Without a receipt it uses the last quote's `gemsNext`
+  and `nextChicken`. `RebirthPanel.celebratingUntil` (about 2.2 s after the Rebirth)
+  holds the Time Skip popup until the celebration has played.
 
 ## HUD and Index
 
@@ -99,5 +114,7 @@ UI Lab stories:
 - **Rebirth:** the late-game preset, a Rebirth 10 player who can afford Rebirth 11,
   with Maxed, Available, Unaffordable, Locked and the Auto Rebirth toggle.
 - **Rebirth (first, not ready):** the reference's 3,019 / 50,000 screen.
+- **Time Skip claim (after a Rebirth):** the claim popup, 10 minutes from Rebirth 3,
+  in the Welcome Back window (`MenuLayouts.OfflineEarnings`).
 
 The menu editor previews the same panel.
