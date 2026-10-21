@@ -1,69 +1,73 @@
 --!strict
--- The Shop: one horizontal rail of tall offer cards with server-approved native
--- checkout (October 21 reference parity, P8: docs/team/REFERENCE_PARITY_20261021.md
--- §2.7, docs/team/SHOP_FORMATTING.md). Only the existing catalog is on the rail;
--- prices always come live from the Marketplace through CommerceController.
+-- Approved Chicken Command shop composition with server-approved native checkout.
 local TweenService=game:GetService("TweenService")
-local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Theme=require(script.Parent.UITheme)
 local Art=require(script.Parent.ShopPreviewArt)
 local GalaxyCrateShop=require(script.Parent.GalaxyCrateShop)
-local Catalog=require(ReplicatedStorage.PetRoll.Shared.ShopCatalog)
+local GalaxyPresentation=require(game:GetService("ReplicatedStorage").PetRoll.Shared.GalaxyCratePresentation)
+local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.ShopCatalog)
 local Browser={}
 Browser.__index=Browser
-
-local WHITE=Color3.new(1,1,1)
-local GOLD=Theme.Colors.gold
--- The reference window, measured on the recording (818 x 469 at 1568 px wide).
-local SHOP_ASPECT=818/469
--- The rail's inner card inside the body (Scale of the body), as in the reference:
--- a lighter translucent area 20 px in from the window's sides that clips the rail.
-local RAIL={x=0.024,y=0.044,w=0.952,h=0.903}
--- Inside the rail (share of its height): cards start 10/365 down and are 335/365
--- tall; the thin scrollbar runs in the strip left under them.
-local CARD_TOP,CARD_H=10/365,335/365
--- Widths in card heights (H). Reference: 15 px lead-in, 10 px gaps, tall cards
--- 245 x 335, the small 2x2 cards 178 x 160 (ours a little wider so pack names fit).
-local PAD,GAP=15/335,10/335
-local TALL=245/335
-local SMALL_W,SMALL_H=0.62,(1-GAP)/2
-local COIN_BLOCK=SMALL_W*2+GAP
--- Virtual layouts (card-height 335 units).
-local TALL_V=Vector2.new(245,335)
-local SMALL_V=Vector2.new(SMALL_W*335,SMALL_H*335)
-local BLOCK_V=Vector2.new(COIN_BLOCK*335,335)
-
+local P={
+ ink=Theme.Arcade.border,white=Theme.Colors.white,
+ gold=Theme.Colors.gold,goldTop=Theme.ReferenceGradients.Base.Keypoints[1].Value,
+ green=Theme.Colors.green,greenTop=Theme.ReferenceGradients.Army.Keypoints[1].Value,
+ cyan=Theme.Colors.blue,muted=Theme.Colors.muted,tab=Theme.ActionColors.disabled,
+}
+-- Exact offer tokens from Figma 4lJjZOqNhR8K7rfMbVIjaK / 9:2742.
+-- Shop-only: do not recolor the shared header, HUD or other popup screens.
+local FIGMA={
+ text=Color3.fromRGB(255,251,233),
+ cash=Color3.fromRGB(99,239,0),cashTop=Color3.fromRGB(29,57,13),cashRim=Color3.fromRGB(200,247,151),
+}
 -- Card styles for the passes on sale (Catalog.Order, October 20: four passes).
 local PASSES={
- {key="DoubleCash",name="2x Coins",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),icon="Cash",double=true},
- {key="DoubleEggSpawn",name="2x Egg Spawn",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),icon="Eggs",double=true},
- {key="BiggerArmy",name="Bigger Army",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),icon="BiggerArmy",double=false},
- {key="DoubleLuck",name="2x Luck",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),icon="DoubleLuck",double=true},
+ {key="DoubleCash",name="2x Coins",description="Earn twice as many coins.",color=Color3.fromRGB(167,230,50),top=Color3.fromRGB(42,169,44),rim=Color3.fromRGB(233,255,160),title=Color3.fromRGB(242,255,216),icon="Cash",background="cash",double=true},
+ {key="DoubleEggSpawn",name="2x Egg Spawn",description="Chickens lay eggs twice as often.",color=Color3.fromRGB(9,215,240),top=Color3.fromRGB(1,122,231),rim=Color3.fromRGB(188,239,255),title=Color3.fromRGB(227,250,255),icon="Eggs",background="eggs",double=true},
+ {key="BiggerArmy",name="Bigger Army",description="+5 Army slots. Up to 17 chickens.",color=Color3.fromRGB(109,229,42),top=Color3.fromRGB(36,163,47),rim=Color3.fromRGB(205,255,160),title=Color3.fromRGB(238,255,207),icon="BiggerArmy",background="army",double=false},
+ {key="DoubleLuck",name="2x Luck",description="2x Luck strength. Favor stronger chickens.",color=Color3.fromRGB(255,199,37),top=Color3.fromRGB(240,159,7),rim=Color3.fromRGB(255,236,173),title=Color3.fromRGB(255,242,205),icon="DoubleLuck",background="gold",double=true},
 }
--- One benefit line per pass (the reference's "Gain 2x Luck to get better Fruits!").
+-- October 15 shop redesign (owner reference: StarterGui.GUI.FRAMES.Shop): one short
+-- line per offer; the card itself is the button.
 local PASS_COPY={
  DoubleCash="2x coins from eggs and fights!",DoubleEggSpawn="Chickens lay 2x the eggs!",
- BiggerArmy="+5 Army slots!",DoubleLuck="Gain 2x Luck to get better chickens!",
+ BiggerArmy="+5 army slots!",DoubleLuck="Stronger chickens more often!",
 }
--- Coin packs as the reference's 2x2 block of small cards (its 5m/15m/1h/4h Time
--- Skips pay Coins; ours pay 10 min / 45 min / 3 h / 10 h of income). Placeholder
--- amounts; RenderCashAmounts shows the server's live payout.
-local COIN_PACKS={
- {key="PocketCoins",name="Pocket Coins",tier=1},
- {key="CoopStash",name="Coop Stash",tier=2},
- {key="ArmyChest",name="Coin Chest",tier=3},
- {key="CommandersVault",name="Commander's Vault",tier=4},
+-- Placeholder quantities; RenderCashAmounts shows the live payout. Checkout prices always come from Roblox.
+local CASH_TIERS={
+ {key="ArmyChest",name="Coin Chest",tier=3,amount="1M Coins",art={62.5,46,176}},
+ {key="CoopStash",name="Coop Stash",tier=2,amount="100K Coins",art={62.5,46,176}},
+ {key="PocketCoins",name="Pocket Coins",tier=1,amount="10K Coins",art={62.5,46,176}},
 }
 -- October 20 gold coins: coin packs sit on blue cards so the gold art stands out.
-local COIN_TOP,COIN_BOTTOM=Color3.fromRGB(56,198,255),Color3.fromRGB(0,96,226)
--- Rebirth Skip: the Gem purple of RebirthPanel's Skip! button.
-local SKIP_TOP,SKIP_BOTTOM=Theme.GemColors.SkipTop,Theme.GemColors.SkipBottom
--- The rail, left to right. The reference opens on a tall green card beside the pack
--- column with the next card peeking in; the 2x Luck card sits right before the 2x2.
-local SECTION_ALIASES={Passes="DoubleCash",Cash="CoinPacks",Coins="CoinPacks",Crates="Galaxy"}
-
+local COIN_CARD_TOP,COIN_CARD_BOTTOM=Color3.fromRGB(56,198,255),Color3.fromRGB(0,96,226)
+-- Recording-led spacing, expressed relative to section width on every screen.
+local OFFER_COLUMNS=3
+-- Passes sit two per row (2x2) on wide cards (owner, October 21).
+local PASS_COLUMNS=2
+local OFFER_GAP=0.016
+-- Section title bars follow the reference's 21.9:1 dark bar at 93% width.
+local TITLE_WIDTH=0.93
+local HEADING_HEIGHT=TITLE_WIDTH/21.94
+local SECTION_CONTENT_TOP=HEADING_HEIGHT+0.018
+-- Wider than the old 1.48 GUI.FRAMES proportion; matches MenuLayout.Defaults.Shop.
+local SHOP_ASPECT=1.78
+local PASS_RATIO=1.62
+local CASH_RATIO=1.05
+-- Rounded offer cards (owner, October 21): corner radius as a share of the card's
+-- shorter side, about the same on every card; the wide vault card is shorter.
+local CARD_CORNER,VAULT_CORNER=0.065,0.09
+local SECTION_TITLES={Galaxy="Galaxy Crates",Passes="Passes",Cash="Coin Packs"}
+local TAB_TITLES={Galaxy="Crates",Passes="Passes",Cash="Coins"}
+local TITLE_GRADIENTS={
+ Galaxy={Color3.fromRGB(205,140,255),Color3.fromRGB(110,235,255)},
+ Passes={Color3.fromRGB(21,255,0),Color3.fromRGB(255,255,0)},
+ Cash={Color3.fromRGB(255,166,0),Color3.fromRGB(255,244,120)},
+}
+local SECTION_ICONS={Galaxy=GalaxyPresentation.CrateImage,Passes=Theme.Assets.Army,Cash=Theme.Assets.Coin}
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
 -- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
 local Audio=nil
 local function cue(name,fallback,pitch,options)
  if not Audio then return end
@@ -71,17 +75,32 @@ local function cue(name,fallback,pitch,options)
  elseif fallback then Audio:Play(fallback,pitch,options) end
 end
 
-local function rect(item,x,y,width,height,parentWidth,parentHeight)
- Theme.RelativeRect(item,x,y,width,height,parentWidth,parentHeight)
+local function frame(parent,name,size,position,color)
+ local item=Theme.Frame(parent,name,size,color)
+ item.Position=position or UDim2.new()
+ return item
 end
 
--- White Montserrat Bold with the black stroke at about 8% of the glyph height
--- (contract 2.1). Local until P2's shared label-stroke helper lands in UITheme.
-local function label(parent,name,value,color,z)
- local item=Theme.Label(parent,name,value,24,color or WHITE)
- item.TextScaled,item.TextWrapped,item.ZIndex=true,false,z or 9
- item.TextXAlignment=Enum.TextXAlignment.Center
- item.TextOutline.Thickness=0.08
+local function text(parent,name,value,size,position,bounds,color,center)
+ local label=Theme.Display(parent,name,value,size,color or P.white)
+ label.Position,label.Size,label.ZIndex=position,bounds,7
+ label.TextXAlignment=if center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+ label.TextScaled=true
+ return label
+end
+
+local function plain(parent,name,value,size,position,bounds,color,center)
+ local label=Theme.Label(parent,name,value,size,color or P.muted)
+ label.Position,label.Size,label.ZIndex=position,bounds,7
+ label.TextXAlignment=if center then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+ label.TextScaled=true
+ return label
+end
+
+local function panel(parent,name,accent)
+ local item=frame(parent,name,UDim2.fromScale(1,1))
+ item.ClipsDescendants=true
+ Theme.Surface(item,accent)
  return item
 end
 
@@ -101,148 +120,198 @@ local function guaranteedOffers(shop)
   and shop.restrictedTreatment=="GuaranteedOffers"
 end
 
--- The rail's own width/height. The window keeps SHOP_ASPECT (its constraint), the
--- shared header takes SHOP_ASPECT/HeaderAspect of its height (BelowHeader) and the
--- body spans the full width, so this is the same on every device.
-local function railAspect(): number
- local bodyHeight=1-SHOP_ASPECT/Theme.HeaderAspect
- return RAIL.w*SHOP_ASPECT/(RAIL.h*bodyHeight)
-end
-
--- The Rebirth quote's Skip, when RebirthPanel would show its Skip! button.
-local function rebirthSkip(state)
- local quote=state and state.rebirth
- local skip=type(quote)=="table" and quote.skip
- if type(skip)~="table" or quote.enabled==false or quote.nextRank==nil or skip.restricted==true then return nil end
- local credits=tonumber(skip.credits) or 0
- if credits<=0 and skip.onSale~=true then return nil end
- return skip
-end
-
 function Browser.new(app,parent)
- local self=setmetatable({app=app,alive=true,cards={},cashViews={},columns={} :: {{key:string,width:number,frame:Frame}},columnByKey={},
-  connections={},priceViews={},scrollTween=nil,scrollFinished=nil},Browser)
+ local self=setmetatable({app=app,alive=true,sections={},tabs={},cards={},
+  passCount=0,connections={},priceViews={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy",revealed=false},Browser)
  Audio=app.audio
- local root=Theme.Container(parent,"ShopBrowser")
- root.Visible,root.ZIndex=false,2
+ local root=frame(parent,"ShopBrowser",UDim2.fromScale(1,1))
+ root.BackgroundTransparency,root.Visible,root.ZIndex=1,false,2
  -- The shared popup visitor must also skip this subtree while another page is open.
  root:SetAttribute("OwnsPopupStyle",true)
  self.root=root
  Theme.Aspect(root,SHOP_ASPECT)
  local window=Theme.Container(root,"Window")
  self.window=window
- local header=Theme.Header(window,"Header","Shop",GOLD)
+ local header=Theme.Header(window,"Header","Shop",P.gold)
  header.PageIcon.Visible,header.PageIcon.Image=true,Theme.Assets.Shop
  self.header=header
  self.closeButton=Theme.HeaderClose(header,function()
   self.app.audio:Play("Click");self.app:ClosePanel()
  end,1.65) -- phone hit area: 48 px
- local body=Theme.Frame(window,"Main",UDim2.fromScale(1,0.86))
- body.Position=UDim2.fromScale(0,0.14)
+ local body=frame(window,"Main",UDim2.fromScale(0.9983333,0.825),UDim2.fromScale(0.50025,0.585))
+ body.AnchorPoint=Vector2.new(0.5,0.5)
  Theme.BelowHeader(header,body)
  Theme.Surface(body)
  body.ClipsDescendants=true
  self.body=body
- -- The lighter translucent inner card (ApplyPopupStyle gives it the shared look).
- local rail=Theme.Frame(body,"Rail",UDim2.fromScale(RAIL.w,RAIL.h),Color3.fromRGB(40,44,48))
- rail.Position,rail.BackgroundTransparency,rail.ZIndex=UDim2.fromScale(RAIL.x,RAIL.y),0.55,2
- local railEdge=Theme.Stroke(rail,Color3.fromRGB(6,8,9),2)
- railEdge.Transparency=0.42
- self.rail=rail
+ self.previewStatus=plain(body,"PurchaseStatus","Prices from Roblox · purchases deliver to this account",14,UDim2.fromScale(0.015,0.945),UDim2.fromScale(0.97,0.045),P.muted,true)
+ -- Section shortcuts sit outside the window's left edge so the inside is all offers.
+ local nav=frame(root,"SectionNavigation",UDim2.fromScale(0.085,0.7),UDim2.fromScale(-0.014,0.56))
+ nav.AnchorPoint=Vector2.new(1,0.5)
+ nav.BackgroundTransparency,nav.ZIndex=1,5
+ nav:SetAttribute("OwnsPopupStyle",true)
+ self.navigation=nav
+ local navLayout=Instance.new("UIListLayout")
+ navLayout.FillDirection,navLayout.Padding,navLayout.SortOrder,navLayout.Parent=Enum.FillDirection.Vertical,UDim.new(0.03,0),Enum.SortOrder.LayoutOrder,nav
+ navLayout.VerticalAlignment,navLayout.HorizontalAlignment=Enum.VerticalAlignment.Center,Enum.HorizontalAlignment.Center
+ for index,key in {"Galaxy","Passes","Cash"} do
+  self.tabs[key]=self:SectionTab(nav,key,index)
+ end
  local scroll=Instance.new("ScrollingFrame")
- scroll.Name,scroll.Size,scroll.ZIndex="OfferRail",UDim2.fromScale(1,1),3
- scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ClipsDescendants=1,0,true
- scroll.ScrollingDirection=Enum.ScrollingDirection.X
- -- One thin light bar along the bottom (the reference's); a native px property.
- scroll.ScrollBarThickness,scroll.ScrollBarImageColor3,scroll.ScrollBarImageTransparency=6,Color3.fromRGB(205,210,214),0.15
- scroll.HorizontalScrollBarInset,scroll.VerticalScrollBarInset=Enum.ScrollBarInset.None,Enum.ScrollBarInset.None
- scroll.AutomaticCanvasSize,scroll.ElasticBehavior=Enum.AutomaticSize.None,Enum.ElasticBehavior.WhenScrollable
- scroll.CanvasSize=UDim2.fromScale(1,1)
- scroll.Selectable=false
- scroll.Parent=rail
- self.scroll=scroll
- -- Rail order (reference: Server Luck, pack column, VIP, 2x Luck, Time Skips, 1 Day).
- local passes={}
- for _,definition in PASSES do
-  -- Only passes on sale (Catalog.Order); off-sale passes keep their server benefits.
-  if table.find(Catalog.Order,definition.key) then table.insert(passes,definition) end
+ scroll.Name,scroll.Position,scroll.Size="ShopSections",UDim2.fromScale(0.01,0.015),UDim2.fromScale(0.98,0.915)
+ -- A visible gold scrollbar and a soft fade say "there is more below".
+ scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ScrollBarThickness=1,0,8
+ scroll.ScrollingDirection,scroll.ScrollBarImageColor3,scroll.ClipsDescendants=Enum.ScrollingDirection.Y,P.gold,true
+ scroll.CanvasSize,scroll.AutomaticCanvasSize=UDim2.new(),Enum.AutomaticSize.None
+ scroll.VerticalScrollBarInset,scroll.ElasticBehavior=Enum.ScrollBarInset.Always,Enum.ElasticBehavior.WhenScrollable
+ scroll.ZIndex,scroll.Parent=3,body
+ self.scroll,self.grid=scroll,scroll
+ local fade=frame(body,"ScrollFade",UDim2.fromScale(0.975,0.08),UDim2.fromScale(0.005,0.85),Theme.Colors.panel)
+ fade.ZIndex,fade.Active=6,false
+ Theme.Round(fade).CornerRadius=UDim.new(0,0)
+ local fadeGradient=Instance.new("UIGradient")
+ fadeGradient.Rotation=90
+ fadeGradient.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})
+ fadeGradient.Parent=fade
+ self.scrollFade=fade
+ local footer=frame(body,"PurchaseStatusBacking",UDim2.fromScale(1,0.07),UDim2.fromScale(0,0.93),Theme.Colors.panel)
+ footer.ZIndex,footer.Active=6,false
+ Theme.Round(footer).CornerRadius=UDim.new(0,0)
+ self.previewStatus.ZIndex=8
+ self.previewBacking=footer
+ local padding=Instance.new("UIPadding")
+ padding.PaddingLeft,padding.PaddingRight,padding.PaddingTop,padding.PaddingBottom=UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.01,0),UDim.new(0.02,0)
+ padding.Parent=scroll
+ local layout=Instance.new("UIListLayout")
+ layout.Padding,layout.SortOrder,layout.Parent=UDim.new(0.05,0),Enum.SortOrder.LayoutOrder,scroll
+ layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
+ self.layout=layout
+ local featured=self:Section("Galaxy",SECTION_TITLES.Galaxy,0)
+ self.galaxy=GalaxyCrateShop.new(app,featured)
+ self:CreatePasses();self:CreateCash()
+ for _,property in {"CanvasPosition","AbsoluteCanvasSize","AbsoluteWindowSize"} do
+  table.insert(self.connections,scroll:GetPropertyChangedSignal(property):Connect(function() self:UpdateSection() end))
  end
- for index,definition in passes do
-  self:CreatePass(definition)
-  if index==1 then
-   local column=self:Column("Galaxy",GalaxyCrateShop.Width)
-   self.galaxy=GalaxyCrateShop.new(app,column)
-   for _,pack in {"OuterSpaceCrate1","OuterSpaceCrate3","OuterSpaceCrate10"} do self.columnByKey[pack]=column end
-  end
- end
- if not self.galaxy then
-  local column=self:Column("Galaxy",GalaxyCrateShop.Width)
-  self.galaxy=GalaxyCrateShop.new(app,column)
- end
- self:CreateCoinPacks()
- self:CreateRebirthSkip()
- self:CreateGift()
+ table.insert(self.connections,layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() self:UpdateSection() end))
  table.insert(self.connections,scroll.InputBegan:Connect(function(input)
   if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then self:CancelScroll() end
  end))
  table.insert(self.connections,scroll.InputChanged:Connect(function(input)
   if input.UserInputType==Enum.UserInputType.MouseWheel then self:CancelScroll() end
  end))
- -- The root stays visible while the panel closes and reopens on the Shop page, so
- -- the panel's own visibility counts as opening too.
- local function visibility()
-  if root.Visible and parent.Visible then self:Opened()
-  else self:CancelScroll();self.galaxy:Settle() end
- end
- table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(visibility))
- table.insert(self.connections,parent:GetPropertyChangedSignal("Visible"):Connect(visibility))
- self:Layout()
- Theme.ScaleText(root)
+ table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(function()
+  if root.Visible then self:Resize();self:AnimateSection(self.activeSection);self:RevealCards()
+  else self:CancelScroll();self:CancelArtworkMotion();self.galaxy:Settle() end
+ end))
+ table.insert(self.connections,parent:GetPropertyChangedSignal("Visible"):Connect(function()
+  if parent.Visible and root.Visible then self:AnimateSection(self.activeSection)
+  else self:CancelArtworkMotion() end
+ end))
  self:ApplyPresentation()
+ self:Resize()
  return self
 end
 
--- One rail slot: a transparent column `width` card heights wide (Layout places it).
-function Browser:Column(key,width)
- local column=Theme.Container(self.scroll,key)
- column.ZIndex,column.LayoutOrder=2,#self.columns+1
- column:SetAttribute("OwnsPopupStyle",true)
- table.insert(self.columns,{key=key,width=width,frame=column})
- self.columnByKey[key]=column
- return column
+-- A big icon with a stroked caption; the selected section's caption turns gold.
+function Browser:SectionTab(parent,key,index)
+ local button=Instance.new("TextButton")
+ button.Name,button.Text,button.BackgroundTransparency,button.AutoButtonColor=key,"",1,false
+ -- The rail is narrower than 0.3 of its height, so a 0.86 tab is width-limited: its
+ -- height is the rail width / 0.86, written out so the list stacks the same once
+ -- PadHit widens the hit area (phone: 42 -> 52 px) and moves the aspect to the art.
+ button.Size,button.LayoutOrder,button.ZIndex,button.Selectable=UDim2.fromScale(1,(0.085/0.7*SHOP_ASPECT)/0.86),index,6,true
+ button.Parent=parent
+ Theme.Aspect(button,0.86)
+ local visual=Theme.Container(button,"Visual")
+ visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+ Theme.PadHit(button,1.25,1,0.5,0.5,true)
+ -- Transparent: just the art and its caption (owner, October 15).
+ local icon=Theme.Image(visual,"Icon","",UDim2.fromScale(0.92,0.74),UDim2.fromScale(0.04,0.02))
+ icon.ZIndex=8
+ Theme.Aspect(icon,1)
+ if key=="Galaxy" then icon.Image=GalaxyPresentation.CrateImage
+ elseif key=="Passes" then Art.PassIcon(icon,"BiggerArmy")
+ else Art.CashPile(icon,1) end
+ local caption=Theme.Display(visual,"Caption",TAB_TITLES[key],26,P.white)
+ caption.Position,caption.Size,caption.ZIndex=UDim2.fromScale(-0.1,0.76),UDim2.fromScale(1.2,0.24),9
+ caption.TextXAlignment,caption.TextScaled,caption.TextWrapped=Enum.TextXAlignment.Center,true,false
+ Theme.Motion:BindButton(button,visual)
+ button:SetAttribute("ClickSound",false)
+ table.insert(self.connections,button.Activated:Connect(function()
+  cue("TabSwitch","Click");self:ScrollTo(key)
+ end))
+ return button
 end
 
--- A card button filling `parent`, with the shared face. `size` is the card's own
--- virtual size (its corner radius stays the same as every other card's).
-local function cardButton(parent,name,top,bottom,size)
- local card=Instance.new("TextButton")
- card.Name,card.Text,card.BackgroundTransparency,card.AutoButtonColor=name,"",1,false
- card.Size,card.ZIndex,card.Selectable=UDim2.fromScale(1,1),2,false
- card:SetAttribute("OwnsPopupStyle",true)
- card.Parent=parent
- local visual,face=Art.CardFace(card,top,bottom,Art.CardRadius*335/math.min(size.X,size.Y))
- return card,visual,face
+-- The offer cards grow in the first time the Shop opens; later opens keep the
+-- section's artwork entrance only.
+function Browser:RevealCards()
+ if self.revealed or not self.alive then return end
+ self.revealed=true
+ Theme.Motion:Reveal(self.passGrid,{limit=8,window=0.35,from=0.8})
+ Theme.Motion:Reveal(self.cashShelf,{limit=6,window=0.35,from=0.8})
 end
 
--- Content laid out in the reference tall card (245 x 335): title plate, art on a
--- sunburst, the benefit line and the green price pill.
-local function tallContent(visual,titleText,description)
- local rays=Art.ProductRays(visual,WHITE)
- rays.ImageTransparency,rays.ZIndex=0.25,4
- rect(rays,10,12,225,225,245,335)
- local art=Theme.Container(visual,"Artwork")
- art.ZIndex=5
- rect(art,45,58,155,132,245,335)
- local _,title=GalaxyCrateShop.TitlePlate(visual,titleText,10,10,225,40,245,335,8)
- -- Three lines fit at the phone text floor (the reference's lines wrap the same way).
- local copy=label(visual,"Description",description)
- copy.TextWrapped=true
- rect(copy,12,196,221,70,245,335)
- return art,rays,title,copy
+function Browser:Section(key,title,order)
+ local section=frame(self.scroll,key,UDim2.fromScale(0.98,4))
+ section.LayoutOrder,section.BackgroundTransparency=order,1
+ -- Dark translucent bar with a gradient title and an icon on each side.
+ local bar=frame(section,"TitleBar",UDim2.fromScale(TITLE_WIDTH,0.05),UDim2.fromScale(0.5,0),Color3.new(0,0,0))
+ bar.AnchorPoint,bar.BackgroundTransparency,bar.ZIndex=Vector2.new(0.5,0),0.55,5
+ bar:SetAttribute("OwnsPopupStyle",true)
+ Theme.Stroke(bar,Color3.new(0,0,0),3)
+ local heading=text(bar,"Heading",title,30,UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.3,1),P.white,true)
+ heading.AnchorPoint,heading.TextWrapped,heading.ZIndex=Vector2.new(0.5,0.5),false,8
+ local colors=TITLE_GRADIENTS[key]
+ local shine=Instance.new("UIGradient")
+ shine.Rotation=90
+ shine.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,colors[1]),ColorSequenceKeypoint.new(0.5,colors[2]),ColorSequenceKeypoint.new(1,colors[1])})
+ shine.Parent=heading.TextFace
+ for _,side in {-1,1} do
+  local icon=Theme.Image(bar,if side<0 then "HeadingLeft" else "HeadingRight",SECTION_ICONS[key],UDim2.fromScale(0.09,1.8))
+  icon.AnchorPoint,icon.ZIndex=Vector2.new(0.5,0.5),9
+  icon.Position=UDim2.fromScale(0.5+side*0.2,0.5)
+  Theme.Aspect(icon,1)
+ end
+ self.sections[key]=section
+ return section
+end
+
+local function layoutSection(section,height)
+ Theme.Aspect(section,1/height)
+ section.TitleBar.Size=UDim2.fromScale(TITLE_WIDTH,HEADING_HEIGHT/height)
+end
+
+-- The reference's offer surface: vertical gradient, dark outer edge, light inner
+-- keyline, and a white sunburst behind oversized art. `visual` is what scales on hover.
+local function offerFace(card,top,bottom,corner)
+ local visual=Theme.Container(card,"Visual")
+ visual.AnchorPoint,visual.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+ local face=frame(visual,"Face",UDim2.fromScale(1,1),nil,Color3.new(1,1,1))
+ face.ZIndex=2
+ corner=corner or CARD_CORNER
+ Theme.Round(face).CornerRadius=UDim.new(corner,0)
+ local gradient=Theme.Gradient(face,top,bottom)
+ gradient.Transparency=NumberSequence.new(0)
+ local edge=Theme.Stroke(face,top:Lerp(Color3.new(0,0,0),0.72),3)
+ edge.BorderStrokePosition,edge.LineJoinMode=Enum.BorderStrokePosition.Outer,Enum.LineJoinMode.Round
+ local rim=Theme.Container(face,"InnerRim")
+ rim.Position,rim.Size,rim.ZIndex=UDim2.fromScale(0.012,0.02),UDim2.fromScale(0.976,0.96),3
+ Theme.Round(rim).CornerRadius=UDim.new(math.max(0,corner-0.02)/0.96,0)
+ local keyline=Theme.Stroke(rim,top:Lerp(Color3.new(1,1,1),0.6),2)
+ keyline.Transparency,keyline.LineJoinMode=0.15,Enum.LineJoinMode.Round
+ -- A CanvasGroup clips the stud tile to the rounded corners; a Frame clip stays square.
+ local mask=Instance.new("CanvasGroup")
+ mask.Name,mask.Size,mask.BackgroundTransparency,mask.ZIndex="StudMask",UDim2.fromScale(1,1),1,3
+ mask.Parent=face
+ Theme.Round(mask).CornerRadius=UDim.new(corner,0)
+ local studs=Theme.Studs(mask,0.08,28,0)
+ studs.ZIndex=3
+ return visual,face
 end
 
 function Browser:Activate(key,button,cardVisual)
- -- A tap on an unavailable or owned card answers with a soft "no" instead of silence.
+ -- A tap on an unavailable card answers with a small "no" instead of silence.
  if not button.Active then
   Theme.Motion:Shake(cardVisual or button:FindFirstChild("Visual"))
   cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
@@ -254,197 +323,60 @@ function Browser:Activate(key,button,cardVisual)
  else self.app.commerce:Buy(key) end
 end
 
--- The Galaxy crate's buy pill, 1:1, on every pass and coin pack (owner, October 21).
-function Browser:PurchaseButton(parent,key,palette)
- local view=GalaxyCrateShop.PriceButton(parent,"Buy"..key,palette or GalaxyCrateShop.Palettes.green)
+-- The Galaxy crate's buy pill, 1:1, for every pass and coin pack (owner, October 21).
+function Browser:PurchaseButton(parent,key)
+ local view=GalaxyCrateShop.PriceButton(parent,"Buy"..key,GalaxyCrateShop.Palettes.green)
  local button=view.button
  button:SetAttribute("CatalogKey",key)
- button.ZIndex=12
- table.insert(self.connections,button.Activated:Connect(function() self:Activate(key,button,parent) end))
+ Theme.Aspect(button,GalaxyCrateShop.PriceAspect)
+ table.insert(self.connections,button.Activated:Connect(function() self:Activate(key,button) end))
  self.priceViews[button]=view
  return button
 end
 
--- A pass as a tall colour card; the whole card does what its pill does.
-function Browser:CreatePass(definition)
- local key=definition.key
- local column=self:Column(key,TALL)
- local card,visual,face=cardButton(column,key,definition.color:Lerp(WHITE,0.12),definition.top,TALL_V)
- local art,rays,title,copy=tallContent(visual,definition.name.."!",PASS_COPY[key] or Catalog.Definitions[key].description)
- local multiplier=Art.PassIcon(art,definition.icon,definition.double)
+-- One offer card: the whole card is a button that does what its price pill does.
+function Browser:OfferCard(parent,key,definition,order)
+ local card=Instance.new("TextButton")
+ card.Name,card.Text,card.BackgroundTransparency,card.AutoButtonColor=key,"",1,false
+ card.LayoutOrder,card.ZIndex,card.Selectable=order,2,false
+ card:SetAttribute("OwnsPopupStyle",true)
+ card.Parent=parent
+ local visual,face=offerFace(card,definition.color:Lerp(Color3.new(1,1,1),0.12),definition.top)
+ local rays=Art.ProductRays(visual,Color3.new(1,1,1))
+ rays.AnchorPoint,rays.ImageTransparency,rays.ZIndex=Vector2.new(0.5,0.5),0.25,4
+ local art=frame(visual,"Artwork",UDim2.fromScale(0.46,0.74),UDim2.fromScale(0.25,0.56))
+ art.BackgroundTransparency,art.ZIndex=1,5
+ local title=text(visual,"Title",definition.name,30,UDim2.new(),UDim2.new(),P.white,false)
+ local description=text(visual,"Description",PASS_COPY[key] or Catalog.Definitions[key].description,20,UDim2.new(),UDim2.new(),FIGMA.text,false)
  local buy=self:PurchaseButton(visual,key)
- rect(buy,45,272,155,52,245,335)
+ buy.ZIndex=12
  table.insert(self.connections,card.Activated:Connect(function() self:Activate(key,buy,visual) end))
  Theme.Motion:BindButton(card,visual,face)
  card:SetAttribute("Owned",false)
- self.cards[key]={root=card,visual=visual,face=face,title=title,description=copy,art=art,rays=rays,buy=buy,multiplier=multiplier}
+ return {root=card,visual=visual,face=face,title=title,art=art,rays=rays,description=description,buy=buy,palette=definition}
 end
 
--- Coin packs: one 2x2 block of small blue cards (title, pack art, the Coins it
--- pays in gold beside the coin, an orange-gold R$ pill), top-left smallest.
-function Browser:CreateCoinPacks()
- local column=self:Column("CoinPacks",COIN_BLOCK)
- for _,definition in COIN_PACKS do
-  if not Catalog.ProductOnSale(definition.key) then continue end
-  local slot=#self.cashViews
-  local holder=Theme.Container(column,definition.key)
-  holder.ZIndex=2
-  rect(holder,(slot%2)*(SMALL_V.X+GAP*335),math.floor(slot/2)*(SMALL_V.Y+GAP*335),SMALL_V.X,SMALL_V.Y,BLOCK_V.X,BLOCK_V.Y)
-  local card,visual,face=cardButton(holder,"Card",COIN_TOP,COIN_BOTTOM,SMALL_V)
-  local w,h=SMALL_V.X,SMALL_V.Y
-  local _,title=GalaxyCrateShop.TitlePlate(visual,definition.name.."!",4,5,w-8,28,w,h,8,0.02)
-  local rays=Art.ProductRays(visual,WHITE)
-  rays.ImageTransparency,rays.ZIndex=0.3,4
-  rect(rays,w/2-62,10,124,124,w,h)
-  local art=Theme.Container(visual,"Artwork")
-  art.ZIndex=5
-  rect(art,w/2-46,36,92,60,w,h)
-  Art.CashPile(art,definition.tier)
-  local coin=Theme.CoinIcon(visual,"Coin")
-  coin.ZIndex=10
-  rect(coin,20,96,24,24,w,h)
-  local amount=label(visual,"PreviewAmount","",Theme.Colors.coins,10)
-  rect(amount,46,95,w-66,26,w,h)
-  local tag=label(visual,"ValueTag","",Color3.fromRGB(255,86,86),11)
-  rect(tag,w-108,34,102,22,w,h)
-  tag.TextXAlignment,tag.Visible=Enum.TextXAlignment.Right,definition.key=="CommandersVault"
-  local buy=self:PurchaseButton(visual,definition.key,GalaxyCrateShop.Palettes.gold)
-  rect(buy,w/2-52,h-41,104,35,w,h)
-  holder:SetAttribute("CashAmount",(Catalog.Products[definition.key] :: any).coins)
-  table.insert(self.connections,card.Activated:Connect(function() self:Activate(definition.key,buy,visual) end))
-  Theme.Motion:BindButton(card,visual,face)
-  table.insert(self.cashViews,{root=card,key=definition.key,title=title,art=art,amount=amount,tag=tag,buy=buy,visual=visual})
-  self.columnByKey[definition.key]=column
- end
- if #self.cashViews==0 then column.Visible=false end
-end
-
--- Rebirth Skip ("Skip! KEEP UPGRADES"), the rail's last card, shown exactly when the
--- Rebirth screen shows its Skip! button. A bought Skip waits as a credit: "Ready!"
--- opens the Rebirth screen, where Skip! spends it.
-function Browser:CreateRebirthSkip()
- local column=self:Column("RebirthSkip",TALL)
- column.Visible=false
- local card,visual,face=cardButton(column,"RebirthSkip",SKIP_TOP,SKIP_BOTTOM,TALL_V)
- local art,_,title,copy=tallContent(visual,"Rebirth Skip!","Rebirth now and keep your upgrades!")
- Theme.Image(art,"Icon",Theme.GemArt.KeepUpgrades,UDim2.fromScale(1,1)).ZIndex=6
- local view=GalaxyCrateShop.PriceButton(visual,"BuyRebirthSkip",GalaxyCrateShop.Palettes.green)
- local buy=view.button
- buy.ZIndex=12
- rect(buy,45,272,155,52,245,335)
- self.priceViews[buy]=view
- local function press()
-  if not buy.Active then
-   Theme.Motion:Shake(visual)
-   cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
-   return
-  end
-  self.app.audio:Play("Click")
-  self:PressSkip()
- end
- table.insert(self.connections,buy.Activated:Connect(press))
- table.insert(self.connections,card.Activated:Connect(press))
- Theme.Motion:BindButton(card,visual,face)
- self.skip={root=card,visual=visual,title=title,description=copy,buy=buy,view=view,column=column}
-end
-
-function Browser:PressSkip()
- local skip=rebirthSkip(self.app.state)
- if not skip then return end
- if (tonumber(skip.credits) or 0)>0 then
-  if self.app.rebirthPanel then self.app.rebirthPanel:Open() end
-  return
- end
- local commerce,key=self.app.commerce,skip.productKey
- if type(key)~="string" then return end
- commerce:Load(key)
- local status=commerce:State(key)
- if status=="loading" then self.app:Notify("Getting Skip ready… try again in a moment.","info");return end
- commerce:Buy(key)
- if not (commerce.pending and commerce.pending.key==key) and status~="ready" then
-  self.app:Notify("Skip isn't available right now.",false)
+function Browser:CreatePasses()
+ local section=self:Section("Passes",SECTION_TITLES.Passes,1)
+ local grid=frame(section,"PassCards",UDim2.fromScale(1,0.9),UDim2.fromScale(0,0.1))
+ grid.BackgroundTransparency=1
+ self.passGrid=grid
+ local layout=Instance.new("UIGridLayout")
+ layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(OFFER_GAP,OFFER_GAP),Enum.SortOrder.LayoutOrder,grid
+ layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
+ self.passLayout=layout
+ for _,definition in PASSES do
+  -- Only passes on sale (Catalog.Order); off-sale passes keep their server benefits.
+  if not table.find(Catalog.Order,definition.key) then continue end
+  self.passCount+=1
+  local view=self:OfferCard(grid,definition.key,definition,self.passCount)
+  view.multiplier=Art.PassIcon(view.art,definition.icon,definition.double)
+  self.cards[definition.key]=view
+  self:BindOfferMotion(view,"Passes")
  end
 end
 
--- The reference's red Gift! button under the window's right edge: it opens the Free
--- Gift popup exactly as the HUD gift does (FreeGiftController:Open).
-function Browser:CreateGift()
- local gift=Theme.ActionButton(self.root,"Gift","Gift!",function()
-  self.app.audio:Play("Click")
-  if self.app.freeGift then self.app.freeGift:Open() end
- end,Theme.ActionColors.danger)
- Theme.ApplyReferenceAccent(gift,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
- gift.AnchorPoint,gift.Position,gift.Size=Vector2.new(1,0),UDim2.fromScale(1,1.023),UDim2.fromScale(160/818,44/469)
- gift.ZIndex=6
- Theme.Aspect(gift,160/44)
- local icon=Theme.Image(gift.Visual,"Icon",Art.GiftBox,UDim2.fromScale(0.27,1.2),UDim2.fromScale(0.03,-0.12))
- icon.ZIndex=8
- local caption=gift.Visual.Caption
- caption.Position,caption.Size=UDim2.fromScale(0.3,0.075),UDim2.fromScale(0.66,0.8)
- -- Phone hit area: 48 px tall, mostly downward (the window edge sits just above).
- Theme.PadHit(gift,1,1.78,0.5,0.2,true)
- gift.Visible=false
- self.gift=gift
-end
-
--- Places the visible columns left to right and sizes the canvas. Content count sets
--- the rail's length; the viewport never chooses columns or sizes.
-function Browser:Layout()
- if not self.alive then return end
- local x,places=PAD,{}
- for _,column in self.columns do
-  if column.frame.Visible then
-   table.insert(places,{column=column,x=x})
-   x+=column.width+GAP
-  end
- end
- local total=x-GAP+PAD
- local ratio=railAspect()
- local canvas=math.max(1,total*CARD_H/ratio)
- local unit=CARD_H/(ratio*canvas) -- one card height in canvas widths
- for _,place in places do
-  local frame=place.column.frame
-  frame.Position=UDim2.fromScale(place.x*unit,CARD_TOP)
-  frame.Size=UDim2.fromScale(place.column.width*unit,CARD_H)
- end
- self.scroll.CanvasSize=UDim2.fromScale(canvas,1)
-end
-
--- Shop opening: back to the first cards, then the cards grow in one after another.
-function Browser:Opened()
- self:CancelScroll()
- self.scroll.CanvasPosition=Vector2.zero
- Theme.Motion:Reveal(self.scroll,{limit=12,window=0.35,from=0.8})
- if self.gift.Visible then Theme.Motion:PopScale(self.gift.Visual,0.7,0.3) end
-end
-
-function Browser:CancelScroll()
- if self.scrollFinished then self.scrollFinished:Disconnect();self.scrollFinished=nil end
- if self.scrollTween then self.scrollTween:Cancel();self.scrollTween:Destroy();self.scrollTween=nil end
-end
-
--- Deep link: slide the rail to a card. `key` is a card or catalog key ("Galaxy",
--- "DoubleLuck", "PocketCoins", "RebirthSkip") or an old section name ("Passes",
--- "Cash"/"Coins", "Crates"). Unknown keys leave the rail where it is.
-function Browser:ScrollTo(key)
- local column=self.columnByKey[SECTION_ALIASES[key] or key]
- if not column or not column.Visible or not self.alive then return end
- self:CancelScroll()
- local scroll=self.scroll
- local canvas,window=scroll.AbsoluteCanvasSize.X,scroll.AbsoluteWindowSize.X
- local lead=PAD*CARD_H*scroll.AbsoluteSize.Y
- local target=Vector2.new(math.clamp(column.Position.X.Scale*canvas-lead,0,math.max(0,canvas-window)),0)
- if self.app.reducedMotion then scroll.CanvasPosition=target;return end
- self.scrollTween=TweenService:Create(scroll,TweenInfo.new(0.32,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{CanvasPosition=target})
- self.scrollFinished=self.scrollTween.Completed:Connect(function(state)
-  if state==Enum.PlaybackState.Completed then Theme.Motion:Punch(column,1.04,0.24) end
- end)
- self.scrollTween:Play()
-end
--- The older section API: Show("Passes") scrolls the rail to the passes.
-Browser.Show=Browser.ScrollTo
-
-function Browser:UpdatePurchase(button,key,root,palette)
+function Browser:UpdatePurchase(button,key,root)
  local state,price=self.app.commerce:State(key)
  local shop=self.app.state and self.app.state.shop
  local automatic=state=="owned" and (key=="AutoMerge" or key=="AutoCollectEggs")
@@ -453,8 +385,8 @@ function Browser:UpdatePurchase(button,key,root,palette)
  local view=self.priceViews[button]
  local quoted=state=="ready" and not automatic and type(price)=="number"
  GalaxyCrateShop.ShowPrice(view,if quoted then Theme.Money(price) else button.Text,quoted,state=="restricted" or state=="offsale")
- -- Owned passes turn gold; coin packs keep the reference's orange-gold pills.
- GalaxyCrateShop.SetPalette(view,if state=="owned" then GalaxyCrateShop.Palettes.gold else palette or GalaxyCrateShop.Palettes.green)
+ -- Gold like the crate's 10-pack: owned passes and the biggest coin pack.
+ GalaxyCrateShop.SetPalette(view,if state=="owned" or key=="CommandersVault" then GalaxyCrateShop.Palettes.gold else GalaxyCrateShop.Palettes.green)
  button.Active=(ready(state) or automatic) and self.app.commerce.pending==nil and not toggling
   and (automatic or self.app.commerce.autoCrate==nil)
  button.Selectable=button.Active
@@ -468,112 +400,313 @@ function Browser:UpdatePurchase(button,key,root,palette)
   commerce.justBought[key]=nil
   local visual=button.Parent
   if commerce.clock()-bought<30 and visual and visual.Name=="Visual" then
-   -- One reward emphasis: confetti from the bought card, the purchase chime.
-   Theme.Motion:Punch(visual,1.06,0.3)
+   -- One reward emphasis: a gold wash on the bought card under a confetti burst
+   -- over the window, with the Jingle.
+   Theme.Motion:Flash(visual,P.gold,0.5,0.6)
    Theme.Motion:Confetti(self.body,{origin=Theme.Motion:Point(self.body,Theme.Motion:CenterOf(visual)),spread=0.35,seconds=1.4})
-   cue("UIPurchase","Claim",nil,{voiceKey="ShopPurchase",cooldown=0.5})
+   cue("Jingle","UIPurchase",nil,{voiceKey="ShopJingle",cooldown=0.5})
   end
  end
-end
-
-function Browser:RenderSkip()
- local skip=rebirthSkip(self.app.state)
- local view=self.skip
- local shown=skip~=nil
- if view.column.Visible~=shown then
-  view.column.Visible=shown
-  self:Layout()
- end
- if not skip then self.skipReady=false;return end
- local quote=self.app.state.rebirth
- view.description.Text="Rebirth "..Theme.Money(tonumber(quote.nextRank) or 0).." now and keep your upgrades!"
- local credits=tonumber(skip.credits) or 0
- local button,price=view.buy,nil
- if credits>0 then
-  -- A bought Skip arriving as a credit: the pill punches to "Ready!".
-  if not self.skipReady then Theme.Motion:Punch(view.view.visual,1.2,0.32);cue("Badge","Pop",nil,{voiceKey="SkipReady",cooldown=1}) end
-  self.skipReady=true
-  GalaxyCrateShop.ShowPrice(view.view,"Ready!",false,false)
-  GalaxyCrateShop.SetPalette(view.view,GalaxyCrateShop.Palettes.gold)
-  button.Text,button.Active="Rebirth Skip · Ready",true
- else
-  self.skipReady=false
-  local commerce,key=self.app.commerce,skip.productKey
-  local state="unconfigured"
-  if type(key)=="string" then
-   commerce:Load(key)
-   state,price=commerce:State(key)
-  end
-  local quoted=state=="ready" and type(price)=="number"
-  GalaxyCrateShop.ShowPrice(view.view,if quoted then Theme.Money(price) else statusText(state,price),quoted,state=="restricted" or state=="offsale")
-  GalaxyCrateShop.SetPalette(view.view,GalaxyCrateShop.Palettes.green)
-  button.Text="Rebirth Skip · "..statusText(state,price)
-  button.Active=(ready(state) or state=="loading") and commerce.pending==nil and commerce.autoCrate==nil
- end
- button.Selectable=button.Active
 end
 
 function Browser:RenderExisting()
  self.galaxy:Render()
  for key,view in self.cards do self:UpdatePurchase(view.buy,key,view.root) end
- for _,view in self.cashViews do self:UpdatePurchase(view.buy,view.key,view.root,GalaxyCrateShop.Palettes.gold) end
- self:RenderSkip()
- local state=self.app.state
- local shop=state and state.shop
+ for _,view in self.cashViews do self:UpdatePurchase(view.buy,view.key) end
+ self:UpdatePurchase(self.cashBuy,"CommandersVault")
+ local shop=self.app.state and self.app.state.shop
  local luck=self.cards.DoubleLuck
- if luck then
-  local guaranteed=guaranteedOffers(shop)
-  local normal=shop and shop.policyReady==true and shop.paidRandomAllowed==true
-  luck.title.Text=if guaranteed then "Guaranteed Offers!" elseif normal then "2x Luck!" else "Luck pass"
-  luck.description.Text=if guaranteed then "A Rare+ offer every 10 rolls!"
-   elseif normal then PASS_COPY.DoubleLuck else "Checking your benefit…"
-  if luck.multiplier then luck.multiplier.Visible=normal==true end
- end
+ local guaranteed=guaranteedOffers(shop)
+ local normal=shop and shop.policyReady==true and shop.paidRandomAllowed==true
+ luck.title.Text=if guaranteed then "Guaranteed Offers" elseif normal then "2x Luck" else "Luck pass"
+ luck.description.Text=if guaranteed then "A Rare+ offer every 10 rolls"
+  elseif normal then PASS_COPY.DoubleLuck else "Checking your benefit…"
+ if luck.multiplier then luck.multiplier.Visible=normal==true end
+ local saving=not shop or not shop.productReady
+ self.previewStatus.Text=if shop and shop.testAllowed then "Studio test · Use Test roll above · No Robux charged"
+  elseif saving then "Coin packs wait for a saved profile."
+  elseif self.app.commerce.pending then "Complete or cancel the Roblox purchase prompt."
+  else "Prices from Roblox · purchases deliver to this account"
  -- Regional pricing can change unit value. Compare only verified current prices.
- local products=self.app.commerce.products
- local vault=products.CommandersVault
- local bestVault=vault~=nil and vault.status=="ready" and vault.price~=nil and vault.price>0
+ local vault=self.app.commerce.products.CommandersVault
+ local bestVault=vault and vault.status=="ready" and vault.price and vault.price>0
  if bestVault then
   local unit=vault.price/Catalog.Products.CommandersVault.coins
   for _,view in self.cashViews do
-   local entry=products[view.key]
-   if view.key~="CommandersVault" and (not entry or entry.status~="ready" or not entry.price or entry.price<=0
-    or unit>=entry.price/Catalog.Products[view.key].coins) then bestVault=false;break end
+   local entry=self.app.commerce.products[view.key]
+   if not entry or entry.status~="ready" or not entry.price or entry.price<=0
+    or unit>=entry.price/Catalog.Products[view.key].coins then bestVault=false;break end
   end
  end
- for _,view in self.cashViews do
-  if view.key=="CommandersVault" then view.tag.Text=if bestVault then "BEST VALUE!" else "BIGGEST!" end
- end
- -- Shown until the free chicken is claimed, the HUD gift's own rule.
- local free=state and state.freeGift
- local giftShown=type(free)=="table" and free.enabled==true and free.claimed~=true
- if giftShown and not self.gift.Visible and self.root.Visible then Theme.Motion:PopScale(self.gift.Visual,0.7,0.3) end
- self.gift.Visible=giftShown
+ self.cashSubtitle.Text=if bestVault then "BEST VALUE!" else "Biggest pack!"
 end
 
--- October 14: coin packs pay minutes of income (at least the catalog amount); show
--- the server's live payout as the number beside the coin.
-function Browser:RenderCashAmounts()
- local packs=self.app.state and self.app.state.shop and self.app.state.shop.cashPacks or {}
- for _,view in self.cashViews do
-  local product=Catalog.Products[view.key]
-  view.amount.Text=Theme.Number(packs[view.key] or (product and product.coins) or 0)
+function Browser:CreateCash()
+ local section=self:Section("Cash",SECTION_TITLES.Cash,2)
+ local vaultButton=Instance.new("TextButton")
+ vaultButton.Name,vaultButton.Text,vaultButton.BackgroundTransparency,vaultButton.AutoButtonColor="CommandersVault","",1,false
+ vaultButton.ZIndex,vaultButton.Selectable=2,false
+ vaultButton:SetAttribute("OwnsPopupStyle",true)
+ vaultButton.Parent=section
+ local vault,vaultFace=offerFace(vaultButton,COIN_CARD_TOP,COIN_CARD_BOTTOM,VAULT_CORNER)
+ vault.ClipsDescendants=true
+ self.cashFeatured,self.cashFeaturedButton=vaultButton,vaultButton
+ self.cashRays=Art.ProductRays(vault,Color3.new(1,1,1))
+ self.cashRays.ZIndex=4
+ -- October 16 (owner): the biggest pack's art is the card's full background; the
+ -- text sits on top of it (labels are ZIndex 7). The rays would only cover it.
+ self.cashRays.Visible=false
+ local art=frame(vault,"CashOverflow",UDim2.fromScale(1,1),UDim2.fromScale(0,0))
+ art.BackgroundTransparency,art.ZIndex=1,3
+ self.cashArt=art
+ self.cashOverflow=Art.CashOverflow(art)
+ self.cashOverflow.ScaleType,self.cashOverflow.ZIndex=Enum.ScaleType.Crop,3
+ Theme.Round(self.cashOverflow).CornerRadius=UDim.new(VAULT_CORNER,0)
+ self.cashTitle=text(vault,"Title","Commander's Vault",30,UDim2.fromScale(0.03,0.07),UDim2.fromScale(0.5,0.2))
+ self.cashNote=text(vault,"PreviewAmount","10M Coins",56,UDim2.fromScale(0.03,0.29),UDim2.fromScale(0.5,0.3),FIGMA.text,false)
+ self.cashSubtitle=text(vault,"PackSize","Best value",22,UDim2.fromScale(0.03,0.56),UDim2.fromScale(0.4,0.12),Color3.fromRGB(255,240,90))
+ vaultButton:SetAttribute("CashAmount",Catalog.Products.CommandersVault.coins)
+ self.cashBuy=self:PurchaseButton(vault,"CommandersVault")
+ self.cashBuy.ZIndex=12
+ table.insert(self.connections,vaultButton.Activated:Connect(function() self:Activate("CommandersVault",self.cashBuy,vault) end))
+ Theme.Motion:BindButton(vaultButton,vault,vaultFace)
+ local shelf=frame(section,"CashTiers",UDim2.fromScale(1,0.45),UDim2.fromScale(0,0.55))
+ shelf.BackgroundTransparency=1
+ self.cashShelf=shelf
+ local layout=Instance.new("UIGridLayout")
+ layout.CellPadding,layout.SortOrder,layout.Parent=UDim2.fromScale(OFFER_GAP,0),Enum.SortOrder.LayoutOrder,shelf
+ layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
+ self.cashLayout=layout
+ for i,definition in CASH_TIERS do
+  local card=Instance.new("TextButton")
+  card.Name,card.Text,card.BackgroundTransparency,card.AutoButtonColor=definition.key,"",1,false
+  card.LayoutOrder,card.ZIndex,card.Selectable=i,2,false
+  card:SetAttribute("OwnsPopupStyle",true)
+  card.Parent=shelf
+  local visual,face=offerFace(card,COIN_CARD_TOP,COIN_CARD_BOTTOM)
+  local title=text(visual,"Title",definition.name,26,UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.12),P.white,true)
+  local rays=Art.ProductRays(visual,Color3.new(1,1,1))
+  rays.ZIndex=4
+  local icon=frame(visual,"Artwork",UDim2.fromScale(0.66,0.5),UDim2.fromScale(0.17,0.18))
+  icon.BackgroundTransparency,icon.ZIndex=1,5
+  Art.CashPile(icon,definition.tier)
+  local note=text(visual,"PreviewAmount",definition.amount,40,UDim2.fromScale(0.04,0.69),UDim2.fromScale(0.92,0.13),FIGMA.text,true)
+  note.Font=Theme.Font
+  local buy=self:PurchaseButton(visual,definition.key)
+  buy.ZIndex=12
+  table.insert(self.connections,card.Activated:Connect(function() self:Activate(definition.key,buy,visual) end))
+  Theme.Motion:BindButton(card,visual,face)
+  self.cashViews[i]={root=card,key=definition.key,title=title,art=icon,rays=rays,note=note,buy=buy}
+  self:BindOfferMotion(self.cashViews[i],"Cash")
+ end
+end
+
+function Browser:BindOfferMotion(view,section)
+ view.section=section
+ table.insert(self.motionViews,view)
+ local function pose(hot)
+  if not self.alive then return end
+  local active=hot and self.root.Visible and self.root.Parent.Visible and not self.app.reducedMotion
+  local rest=view.artRestSize or view.art.Size
+  local factor=if active then 1.065 else 1
+  Theme.Motion:Tween(view.art,"shop-art",{Size=UDim2.fromScale(rest.X.Scale*factor,rest.Y.Scale*factor)},0.2,Enum.EasingStyle.Back)
+  -- Keep GUI ancestors upright so scrolling still clips the hover animation.
+  view.art.Rotation=0
+ end
+ table.insert(self.connections,view.root.MouseEnter:Connect(function() pose(true) end))
+ table.insert(self.connections,view.root.MouseLeave:Connect(function() pose(false) end))
+ if view.buy then
+  table.insert(self.connections,view.buy.SelectionGained:Connect(function() pose(true) end))
+  table.insert(self.connections,view.buy.SelectionLost:Connect(function() pose(false) end))
+ end
+end
+
+function Browser:CancelArtworkMotion()
+ self.entranceSerial+=1
+ for _,view in self.motionViews do
+  Theme.Motion:Cancel(view.art,"shop-tilt")
+  Theme.Motion:Cancel(view.art,"shop-art")
+  if view.artRestSize then view.art.Size=view.artRestSize end
+  view.art.Rotation=0
+ end
+end
+
+function Browser:AnimateSection(section)
+ self:CancelArtworkMotion()
+ if self.app.reducedMotion or not self.root.Visible or not self.root.Parent.Visible then return end
+ local serial=self.entranceSerial
+ local index=0
+ for _,view in self.motionViews do
+  if view.section==section then
+   local delay=index*0.035
+   index+=1
+   task.delay(delay,function()
+    if not self.alive or self.entranceSerial~=serial or self.app.reducedMotion or not self.root.Visible or not self.root.Parent.Visible then return end
+    local rest=view.artRestSize or view.art.Size
+    view.art.Size=UDim2.fromScale(rest.X.Scale*0.88,rest.Y.Scale*0.88)
+    Theme.Motion:Tween(view.art,"shop-art",{Size=rest},0.24,Enum.EasingStyle.Back)
+   end)
+  end
+ end
+end
+
+function Browser:CancelScroll()
+ if self.scrollFinished then self.scrollFinished:Disconnect();self.scrollFinished=nil end
+ if self.scrollTween then self.scrollTween:Cancel();self.scrollTween:Destroy();self.scrollTween=nil end
+end
+
+function Browser:RefreshScrollMetrics()
+ if not self.alive then return end
+ local scroll=self.scroll
+ self.sectionStarts={}
+ for key,section in self.sections do
+  self.sectionStarts[key]=section.AbsolutePosition.Y-scroll.AbsolutePosition.Y+scroll.CanvasPosition.Y
+ end
+ self.maxScroll=math.max(0,scroll.AbsoluteCanvasSize.Y-scroll.AbsoluteWindowSize.Y)
+end
+
+function Browser:ScrollTo(key)
+ self:RefreshScrollMetrics()
+ if not self.sectionStarts[key] then return end
+ self:CancelScroll()
+ local target=Vector2.new(0,math.clamp(self.sectionStarts[key]-self.scroll.AbsoluteWindowSize.Y*0.005,0,self.maxScroll))
+ if self.app.reducedMotion then self.scroll.CanvasPosition=target;return end
+ self.scrollTween=TweenService:Create(self.scroll,TweenInfo.new(0.32,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{CanvasPosition=target})
+ self.scrollFinished=self.scrollTween.Completed:Connect(function(state)
+  if state==Enum.PlaybackState.Completed then self:AnimateSection(key) end
+ end)
+ self.scrollTween:Play()
+end
+
+function Browser:UpdateSection()
+ if not self.alive then return end
+ self:RefreshScrollMetrics()
+ local y,active=self.scroll.CanvasPosition.Y,"Galaxy"
+ for _,key in {"Galaxy","Passes","Cash"} do
+  if y>=self.sectionStarts[key]-self.scroll.AbsoluteWindowSize.Y*0.04 then active=key end
+ end
+ if self.maxScroll>0 and y>=self.maxScroll-self.scroll.AbsoluteWindowSize.Y*0.003 then active="Cash" end
+ if active==self.activeSection then return end
+ self.activeSection=active
+ local animate=self.root.Visible
+ for key,button in self.tabs do
+  local selected=key==active
+  local color=if selected then P.gold else P.white
+  if animate then Theme.Motion:Tween(button.Visual.Caption,"tab-color",{TextColor3=color},0.15) else button.Visual.Caption.TextColor3=color end
+  if animate and selected then Theme.Motion:Pop(button.Visual,1.08) end
+  button:SetAttribute("Selected",selected)
  end
 end
 
 function Browser:ApplyPresentation()
- -- Shared neutral shell; the cards own their colours (OwnsPopupStyle).
+ -- Shared neutral shell; offer cards and title bars own their colors (OwnsPopupStyle).
  Theme.ApplyPopupStyle(self.root)
+ for key,button in self.tabs do
+  local selected=key==self.activeSection
+  local caption=button.Visual.Caption
+  caption.TextColor3=if selected then P.gold else P.white
+ end
+end
+
+-- Native proportional layout mirrors GUI.FRAMES.Shop. Content count determines
+-- section length; viewport changes never choose columns, fonts, or arrangements.
+function Browser:Resize()
+ if not self.alive or self.layoutReady then return end
+ self.layoutReady=true
+ self.root.Size,self.root.Position,self.root.AnchorPoint=UDim2.fromScale(1,1),UDim2.new(),Vector2.zero
+ self.window.Position,self.window.Size=UDim2.new(),UDim2.fromScale(1,1)
+ local featuredSectionHeight=SECTION_CONTENT_TOP+GalaxyCrateShop.Height
+ layoutSection(self.sections.Galaxy,featuredSectionHeight)
+ self.galaxy.root.Position,self.galaxy.root.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/featuredSectionHeight),UDim2.fromScale(1,GalaxyCrateShop.Height/featuredSectionHeight)
+ local passRatio=PASS_RATIO
+ local cardWidth=(1-OFFER_GAP*(OFFER_COLUMNS-1))/OFFER_COLUMNS
+ local passCardWidth=(1-OFFER_GAP*(PASS_COLUMNS-1))/PASS_COLUMNS
+ local passRows=math.ceil(self.passCount/PASS_COLUMNS)
+ local passCardHeight=passCardWidth/passRatio
+ local gridHeight=passRows*passCardHeight+math.max(0,passRows-1)*OFFER_GAP
+ local passHeight=SECTION_CONTENT_TOP+gridHeight
+ self.sections.Passes.Size=UDim2.fromScale(0.98,passRows+1)
+ layoutSection(self.sections.Passes,passHeight)
+ self.passGrid.Position,self.passGrid.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/passHeight),UDim2.fromScale(1,gridHeight/passHeight)
+ self.passLayout.CellPadding,self.passLayout.CellSize=UDim2.fromScale(OFFER_GAP,OFFER_GAP/gridHeight),UDim2.fromScale(passCardWidth,passCardHeight/gridHeight)
+ self.passLayout.FillDirectionMaxCells=PASS_COLUMNS
+ for _,view in self.cards do
+  -- Wide card: art and sunburst on the left, name top-right, one line of
+  -- copy, then a big price pill bottom-right.
+  view.rays.AnchorPoint,view.rays.Position,view.rays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.62,1.0)
+  Theme.Aspect(view.rays,1)
+  view.art.AnchorPoint=Vector2.new(0.5,0.5)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.25,0.56),UDim2.fromScale(0.47,0.76)
+  Theme.Aspect(view.art,1)
+  view.artRestSize=view.art.Size
+  view.title.AnchorPoint,view.title.Position,view.title.Size=Vector2.new(1,0),UDim2.fromScale(0.965,0.06),UDim2.fromScale(0.56,0.25)
+  view.title.TextWrapped,view.title.TextXAlignment=false,Enum.TextXAlignment.Right
+  view.description.AnchorPoint,view.description.Position=Vector2.new(1,0),UDim2.fromScale(0.965,0.33)
+  view.description.Size=UDim2.fromScale(0.5,0.27)
+  view.description.TextWrapped,view.description.TextXAlignment=true,Enum.TextXAlignment.Right
+  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(1,1),UDim2.fromScale(0.965,0.93),UDim2.fromScale(0.5,0.25)
+ end
+ local cashCardWidth=cardWidth
+ local cashCardHeight=cashCardWidth/CASH_RATIO
+ local featuredHeight=0.22
+ local cashHeight=SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP+cashCardHeight
+ -- AutomaticCanvasSize undercounts these aspect-constrained sections. Express
+ -- their full height in the body's native Scale coordinates instead. CanvasSize
+ -- uses the scroll parent's height; padding and list gaps use the canvas height.
+ local padding=self.scroll.UIPadding
+ local innerWidth=1-padding.PaddingLeft.Scale-padding.PaddingRight.Scale
+ local innerHeight=1-padding.PaddingTop.Scale-padding.PaddingBottom.Scale
+ local bodyAspect=self.root.UIAspectRatioConstraint.AspectRatio*self.body.Size.X.Scale/self.body.Size.Y.Scale
+ local sectionWidth=self.scroll.Size.X.Scale*innerWidth*self.sections.Passes.Size.X.Scale
+ local gap=0.025*self.scroll.Size.Y.Scale
+ local canvasHeight=(bodyAspect*sectionWidth*(featuredSectionHeight+passHeight+cashHeight)+gap*2)/innerHeight
+ self.scroll.CanvasSize=UDim2.fromScale(0,canvasHeight)
+ self.layout.Padding=UDim.new(gap/(canvasHeight*innerHeight),0)
+ layoutSection(self.sections.Cash,cashHeight)
+ self.cashFeatured.Position,self.cashFeatured.Size=UDim2.fromScale(0,SECTION_CONTENT_TOP/cashHeight),UDim2.fromScale(1,featuredHeight/cashHeight)
+ Theme.Aspect(self.cashFeatured,1/featuredHeight)
+ self.cashRays.AnchorPoint,self.cashRays.Position,self.cashRays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.75,0.5),UDim2.fromScale(0.5,1.6)
+ Theme.Aspect(self.cashRays,1)
+ self.cashBuy.AnchorPoint,self.cashBuy.Position,self.cashBuy.Size=Vector2.new(0,1),UDim2.fromScale(0.03,0.93),UDim2.fromScale(0.3,0.22)
+ self.cashTitle.TextWrapped,self.cashSubtitle.TextWrapped=true,true
+ self.cashTitle.TextXAlignment,self.cashNote.TextXAlignment,self.cashSubtitle.TextXAlignment=Enum.TextXAlignment.Left,Enum.TextXAlignment.Left,Enum.TextXAlignment.Left
+ self.cashShelf.Position,self.cashShelf.Size=UDim2.fromScale(0,(SECTION_CONTENT_TOP+featuredHeight+OFFER_GAP)/cashHeight),UDim2.fromScale(1,cashCardHeight/cashHeight)
+ self.cashLayout.CellSize,self.cashLayout.FillDirectionMaxCells=UDim2.fromScale(cashCardWidth,1),OFFER_COLUMNS
+ for _,view in self.cashViews do
+  Theme.Aspect(view.root,CASH_RATIO)
+  view.rays.AnchorPoint,view.rays.Position,view.rays.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.42),UDim2.fromScale(0.9,0.9)
+  Theme.Aspect(view.rays,1)
+  view.title.Position,view.title.Size=UDim2.fromScale(0.04,0.03),UDim2.fromScale(0.92,0.13)
+  view.art.AnchorPoint=Vector2.new(0.5,0.5)
+  view.art.Position,view.art.Size=UDim2.fromScale(0.5,0.42),UDim2.fromScale(0.62,0.48)
+  view.artRestSize=view.art.Size
+  view.note.Position,view.note.Size=UDim2.fromScale(0.04,0.63),UDim2.fromScale(0.92,0.12)
+  view.buy.AnchorPoint,view.buy.Position,view.buy.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.77),UDim2.fromScale(0.84,0.19)
+ end
+ Theme.ScaleText(self.root)
+ self:UpdateSection()
+end
+
+-- October 14: coin packs pay minutes of income (at least the catalog amount); show the server's live payout.
+function Browser:RenderCashAmounts()
+ local packs=self.app.state and self.app.state.shop and self.app.state.shop.cashPacks or {}
+ local function amount(key)
+  local product=Catalog.Products[key]
+  return Theme.Number(packs[key] or (product and product.coins) or 0).." Coins"
+ end
+ for _,view in self.cashViews do view.note.Text=amount(view.key) end
+ if self.cashNote then self.cashNote.Text=amount("CommandersVault") end
 end
 
 function Browser:Render(_force)
- self:RenderExisting();self:RenderCashAmounts();self:ApplyPresentation()
+ self:RenderExisting();self:RenderCashAmounts();self:ApplyPresentation();self:Resize();self:UpdateSection()
 end
 
 function Browser:Destroy()
  if not self.alive then return end
  self.alive=false
  self:CancelScroll()
+ self:CancelArtworkMotion()
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)
  self.galaxy:Destroy()

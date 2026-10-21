@@ -107,9 +107,6 @@ Render.Sell=function(ctx) sellStory(ctx,false) end
 Render.SellConfirm=function(ctx) sellStory(ctx,true) end
 
 Render.Shop=function(ctx)
-	-- October 21 rail (P8): an unclaimed free gift so the red Gift! button under the
-	-- window shows; the fixtures carry no freeGift.
-	ctx.state.freeGift=ctx.state.freeGift or {enabled=true,claimed=false,species="Duck"}
 	local app=makeApp(ctx)
 	app.page="Shop"
 	local browser=require(ctx.code.ShopBrowser).new(app,menuFrame(ctx,"Shop"))
