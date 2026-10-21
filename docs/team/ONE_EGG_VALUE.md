@@ -23,8 +23,7 @@ how many eggs it lays. This supersedes the September 26 quantity economy in
 
 ## Display
 
-- No caption over eggs (Oct 21, Stevin: "Dont show how much an egg is worth on top of it");
-  the worth shows only in the pickup pop-up and the sale coin counter.
+- Egg captions show the egg's worth ("12 Coins"), not "N eggs".
 - My Army cards and the inspector show Coins per egg (`pet.eggValue`); the Flock
   header and Army Info footer show Coins/s (`state.income`). The sort is "Best eggs".
 - The recruit toast reads "Name · 12 Coins/egg at home".

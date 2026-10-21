@@ -22,6 +22,7 @@ local Theme=require(script.Parent.UITheme)
 local Eggs={}
 Eggs.__index=Eggs
 -- Presentation-only budgets; collection distance and server timing stay in Config.
+local CAPTION_DISTANCE,CAPTION_LIMIT,CAPTION_REFRESH=22,3,0.15
 local POPUP_HOLD,POPUP_FADE,POPUP_LIFT=0.7,0.4,0.5
 local POPUP_OFFSET=Vector3.new(0,3.7,0)
 -- Picking: a direct hit on an egg wins; otherwise the egg drawn nearest the pointer
@@ -271,6 +272,7 @@ function Eggs:StartFlight(view,now)
  self.batchFlights=(self.batchFlights or 0)+1
  view.flightAt=now+stagger;view.flightStart=view.position
  view.lastStep=now;view.trail.Enabled=false
+ view.caption.Enabled=false
 end
 
 -- Menus, dialogue, a focused text box or a cutscene camera keep clicks for themselves.
@@ -489,7 +491,7 @@ function Eggs:Receive(snapshot)
   table.clear(self.views);table.clear(self.feedback);table.clear(self.finishedFlights)
   table.clear(self.optimistic);table.clear(self.queue)
   self.generation=snapshot.generation;self:HidePopup();self.totalCount,self.totalValue=0,0;self.lastPickup=0
-  self.popupDeposit=nil
+  self.nextCaptionAt=nil;self.popupDeposit=nil
   self.seenDeposits={};self.lastCashClaim=nil;self.combo=0;self.lastCue=nil
   self.app.feedback:ResetCollections()
  end
@@ -558,6 +560,34 @@ function Eggs:Receive(snapshot)
  end
 end
 
+function Eggs:StepCaptions(root,camera,now)
+ if root and camera and now<(self.nextCaptionAt or 0) then return end
+ self.nextCaptionAt=now+CAPTION_REFRESH
+ local nearest={}
+ for _,view in self.views do
+  view.caption.Enabled=false
+  if not root or not camera or view.flightAt or now-view.bornAt<Config.EggSettleSeconds then continue end
+  local distance=(root.Position-view.ground).Magnitude
+  if distance>CAPTION_DISTANCE then continue end
+  local point,onScreen=camera:WorldToViewportPoint(view.ground+view.caption.StudsOffset)
+  if onScreen then table.insert(nearest,{view=view,distance=distance,point=point}) end
+ end
+ table.sort(nearest,function(a,b)
+  return if a.distance==b.distance then a.view.seed<b.view.seed else a.distance<b.distance
+ end)
+ local shown={}
+ for _,candidate in nearest do
+  local overlap=false
+  for _,point in shown do
+   if math.abs(point.X-candidate.point.X)<164 and math.abs(point.Y-candidate.point.Y)<34 then overlap=true;break end
+  end
+  if not overlap then
+   candidate.view.caption.Enabled=true;table.insert(shown,candidate.point)
+   if #shown>=CAPTION_LIMIT then break end
+  end
+ end
+end
+
 function Eggs:Step(now)
  local root=self:Root()
  self:StepCollectionRange(root,now)
@@ -569,6 +599,7 @@ function Eggs:Step(now)
   self.tooFar.Enabled=false;self.tooFar.Adornee=nil
  end
  local camera=workspace.CurrentCamera
+ self:StepCaptions(root,camera,now)
  for id,view in self.views do
   local age=now-view.bornAt
   if not view.flightAt and age>=Config.EggSettleSeconds and camera
