@@ -30,6 +30,8 @@ local FreeGiftController = require(script.Parent.FreeGiftController)
 local GoldRushController = require(script.Parent.GoldRushController)
 local FriendBoost = require(script.Parent.FriendBoost)
 local ToolController = require(script.Parent.ToolController)
+local ChickenLabel = require(script.Parent.ChickenLabel)
+local LevelUpBanner = require(script.Parent.LevelUpBanner)
 local RebirthPanel = require(script.Parent.RebirthPanel)
 local DailyRewardController = require(script.Parent.DailyRewardController)
 local OperationsPanel = require(script.Parent.OperationsPanel)
@@ -58,6 +60,8 @@ local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBas
 
 -- October 20 Flock edits confirm themselves in My Army (the strip, counts and card pops).
 for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end
+-- October 20 (S18): a Chicken Feed level shows the "leveled up!" banner instead.
+QUIET_SUCCESS.FeedChicken = true
 
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
@@ -841,6 +845,9 @@ function AppController:Receive(packet)
 	self.eggs:Receive(state.eggs)
 	-- October 20 hand tools: the dock, the Feed prompt and Feed results.
 	if self.tools then self.tools:Receive(state, packet.result) end
+	-- October 20 (S18): the nearest chicken's big label and the Feed level-up banner.
+	if self.chickenLabel then self.chickenLabel:Receive(state, packet.result) end
+	if self.levelUpBanner then self.levelUpBanner:Receive(state, packet.result) end
 	if not old or old.plotIndex ~= state.plotIndex then self.base:RefreshPromptOwnership() end
 	if self.selected and not self:Pet(self.selected) then
 		local previous
@@ -943,6 +950,8 @@ function AppController:Start()
 	self.commerce:Start()
 	self.eggs:Start()
 	self.tools=ToolController.new(self)
+	self.chickenLabel=ChickenLabel.new(self)
+	self.levelUpBanner=LevelUpBanner.new(self)
 	self.animator = DuckAnimator.new(self.audio)
 	self.animator:SetReducedMotion(self.reducedMotion)
 	self.galaxyCrateVisuals = GalaxyCrateVisuals.new()
@@ -1001,6 +1010,8 @@ function AppController:Destroy()
 	if self.menuBlur then self.menuBlur:Destroy();self.menuBlur=nil end
 	table.clear(self.menuBlurOwners)
 	if self.tools then self.tools:Destroy() end
+	if self.chickenLabel then self.chickenLabel:Destroy() end
+	if self.levelUpBanner then self.levelUpBanner:Destroy() end
 	self.eggs:Destroy();self.base:Destroy();self.battle:Destroy();self.feedback:Destroy();self.audio:Destroy()
 	self.recruitIntents,self.recruitReceipts={},{}
 	self.gui:Destroy()
