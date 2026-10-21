@@ -31,7 +31,7 @@ FILL_HOLES = {"Armor", "MutationLuck", "RainbowMachine"}
 # hairline that floats ~20 px outside its ring.
 OUTLINE = 0.022
 STROKE = {"AutoRebirth", "Armor", "ArmyPower", "BossDamage", "Bounty", "CoinBoost", "Damage", "DiamondMachine",
-          "EggVacuum", "FriendBoost", "GoldMachine", "GoldRate", "GoldRush", "KeepUpgrades", "MutationLuck",
+          "EggVacuum", "FriendBoost", "GoldMachine", "GoldRush", "KeepUpgrades", "MutationLuck",
           "OpenArmy", "OpenTools", "RainbowMachine", "RebirthChickenOdds", "RollSpeed", "VacuumCapacity"}
 CLIP_HAIRLINE = {"AutoRebirth"}
 INK = (16, 23, 18)
