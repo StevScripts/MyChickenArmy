@@ -251,7 +251,7 @@ function Browser.new(app,parent)
 	rect(self.trash,418,7,50,50,W,H)
 	-- 58 x 104 units (27 x 48 px): the two meet without overlapping; most of the
 	-- height goes up past the window, the rest ends above the grid's first row (75).
-	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1);Theme.PadHit(item,1.16,2.08,0.5,0.73) end
+	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1);Theme.PadHit(item,1.16,2.08,0.5,0.73,true) end
 
 	-- Army and Flock counts, each with a "+" to its next Upgrades tier.
 	local pill=rect(frame(root,"Counts"),478,7,380,50,W,H)
@@ -275,8 +275,8 @@ function Browser.new(app,parent)
 	rect(self.flockPlus,388,5,46,46,440,56)
 	for _,item in {self.capacityPlus,self.flockPlus} do Theme.Aspect(item,1) end
 	-- Each "+" answers across its count label (the Flock one only leftward, clear of the X).
-	Theme.PadHit(self.capacityPlus,2.5,2.54,0.5,0.73)
-	Theme.PadHit(self.flockPlus,2.5,2.54,1,0.73)
+	Theme.PadHit(self.capacityPlus,2.5,2.54,0.5,0.73,true)
+	Theme.PadHit(self.flockPlus,2.5,2.54,1,0.73,true)
 
 	-- Side rail: My Army and the Chicken Index, then the two sorts.
 	local rail=rect(frame(root,"Tabs"),0,140,89,190,W,H)
@@ -314,7 +314,7 @@ function Browser.new(app,parent)
 		Theme.Aspect(item,1)
 		-- 104 units (48 px) tall, mostly up into the empty strip above the Sort box;
 		-- the two sorts are 3 apart, so no wider.
-		Theme.PadHit(item,1,104/37,0.5,0.8)
+		Theme.PadHit(item,1,104/37,0.5,0.8,true)
 		self.sortButtons[key]=item
 	end
 
@@ -368,9 +368,9 @@ function Browser.new(app,parent)
 	self.compactButton:SetAttribute("ClickSound",false)
 	rect(self.compactButton,632,504,55,53,W,H)
 	Theme.Aspect(self.compactButton,55/53)
-	-- Bottom row: 78 units (36 px) tall, from the grid's clipped edge (495) down to the
-	-- mode bar's foot (577); lower would answer under the bar's Cancel.
-	for _,item in {self.best,self.unequip,self.compactButton} do Theme.PadHit(item,1,78/53,0.5,0.2) end
+	-- Bottom row: 104 units (48 px) tall, from the grid's clipped edge (499) down past
+	-- the window's foot (Unequip All and Compact hide while the mode bar covers them).
+	for _,item in {self.best,self.unequip,self.compactButton} do Theme.PadHit(item,1,104/53,0.5,5/51,true) end
 	-- A small tile grid on the button: 2 x 2 normally, 3 x 3 when compact is on.
 	self.compactIcon=frame(self.compactButton.Visual,"Icon",UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.25,0.21))
 	self.compactIcon.ZIndex=self.compactButton.Visual.ZIndex+6
@@ -954,7 +954,8 @@ function Browser:UpdateAction()
 	-- also hide so a click can never land on them by mistake.
 	self.unequip.Visible,self.compactButton.Visible=self.mode==nil,self.mode==nil
 	self.confirm.Visible=selecting
-	self.cancel.Position=if selecting then UDim2.fromScale(170/332,54/113) else UDim2.fromScale(91/332,54/113)
+	-- y 6: the padded hit area's top (PadHit above lifted it 48 units over the art at 54).
+	self.cancel.Position=if selecting then UDim2.fromScale(170/332,6/113) else UDim2.fromScale(91/332,6/113)
 	enabled(self.confirm,canEdit);enabled(self.cancel,canEdit)
 	self.confirm.Text=if action=="Sell" then "Selling..." elseif action=="Favorite" then "Saving..." else "Confirm"
 	if self.mode=="Replace" then self.barTitle.Text="Replace which chicken?" end

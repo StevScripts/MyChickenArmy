@@ -333,8 +333,9 @@ end
 -- and keeps its exact rectangle: the button's aspect constraint moves onto it so the
 -- hit need not share its shape. A button without a Visual is already an invisible
 -- hit area and simply grows. Call it once, after the button is placed, and keep
--- neighbouring hit areas apart (they must never overlap).
-function Theme.PadHit(button,padX,padY,alignX,alignY)
+-- neighbouring hit areas apart (they must never overlap). `centred` says the art box
+-- already has the constraint's shape, so the art may stay centre-anchored.
+function Theme.PadHit(button,padX,padY,alignX,alignY,centred)
 	padY,alignX,alignY=padY or padX,alignX or 0.5,alignY or 0.5
 	local size,position,anchor=button.Size,button.Position,button.AnchorPoint
 	local dx,dy=(padX-1)*(anchor.X-alignX),(padY-1)*(anchor.Y-alignY)
@@ -353,7 +354,7 @@ function Theme.PadHit(button,padX,padY,alignX,alignY)
 	-- The art box is centred (hover and press still grow from its middle); with an
 	-- aspect constraint it keeps the button's anchor instead, so the fitted Visual
 	-- lands exactly where the button's own fitted rectangle was.
-	local pin=if aspect then anchor else Vector2.new(0.5,0.5)
+	local pin=if aspect and not centred then anchor else Vector2.new(0.5,0.5)
 	visual.AnchorPoint=pin
 	visual.Position=UDim2.fromScale((alignX*(padX-1)+pin.X)/padX,(alignY*(padY-1)+pin.Y)/padY)
 	visual.Size=UDim2.fromScale(1/padX,1/padY)

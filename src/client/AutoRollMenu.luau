@@ -217,7 +217,7 @@ function Menu:BuildRows()
 		place(pill,0.96,0.5,0.3,0.72);Theme.Aspect(pill,2.5)
 		-- Phone hit area: the pill answers across its whole row pitch (0.86 row + 0.14 gap
 		-- per slot) so neighbouring pills meet without overlapping.
-		Theme.PadHit(pill,1,1/(0.72*0.86))
+		Theme.PadHit(pill,1,1/(0.72*0.86),0.5,0.5,true)
 		self.pills[row.id]={button=pill,row=row}
 	end
 	Theme.ScaleText(list)
