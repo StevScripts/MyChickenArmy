@@ -61,9 +61,9 @@ Tuning lives in `src/shared/VacuumConfig.luau`.
 - Cargo is saved as `vacuumCargo`. Claims already in flight finish into it,
   even if the vacuum is put away or the player leaves. Rebirth clears it after
   `EggService:Release` settles it.
-- Pulled eggs fly into the nozzle attachment of the held model. The pill above the
-  hotbar shows `carried / capacity`, which counts eggs still in flight. When it is
-  full it turns red, floats "Full!" and its "Sell on the pad" hint glows.
+- Pulled eggs fly into the nozzle attachment of the held model. The meter shows
+  `carried / capacity`, which counts eggs still in flight. When it is full it
+  turns red and reads "Full! Sell on the pad".
 
 ## Selling
 
@@ -122,13 +122,10 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
   the safe area, clear of the hotbar and that arrow. It is 20% smaller than
   before (Navigation 0.248 × 0.204 of the screen), with one layout for every
   device.
-- While the vacuum is in hand, its pill sits centred right above the hotbar
-  (October 21 reference parity, P6, superseding the October 20 thin egg bar under My
-  Army; P1 moves My Army into the left grid): a dark translucent pill with
-  `carried / capacity` on a gold fill and the prompt row "Collect (Hold)" ("(Tap)" on
-  touch) · "Sell on the pad" under it. `ToolController.BottomReserve` (hotbar + 10 px)
-  is the pixel clearance it sits on and `ToolController.PillHeight` the share of the
-  screen height it takes above that. Details: [COLLECTION_FEEL.md](../COLLECTION_FEEL.md).
+- While the vacuum is in hand, its egg bar sits in the gap between the My Army row
+  and the hotbar (Stevin, October 20, S14). It is thin (a quarter of a slot), about
+  as wide as the My Army row, and fills gold with `carried / capacity` on it. When
+  full it turns red and reads "Full! Sell on the pad".
 - For the Commander guide, `app.tools.hintAnchors.EggVacuum` and
   `.ChickenFeed` are invisible, non-interactive Frames over each owned tool's
   slot. They follow Roblox's slot order and centring, and are nil while a tool

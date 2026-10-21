@@ -73,9 +73,6 @@ return {
 		FloatSize = 26, FloatSeconds = 0.8, FloatRise = 1.8, -- Pixels, seconds, studs (no rise under reduced motion).
 		FloatUp = 2.4, FloatSide = {0.3, 1.5}, -- Studs above the root, then to the camera's right (random in range).
 		MouseHoldRepeat = 0.12, -- Holding the left mouse button grabs the egg under the pointer this often.
-		-- The vacuum pill above the hotbar (ToolController): a full vacuum shakes it and plays
-		-- "Locked" when a new egg comes into reach, at most this often.
-		FullShakeGap = 1.5, FullShakePixels = 7,
 		-- The suction swirl (VacuumController): two yellow ribbons from the player's sides
 		-- into the nozzle while eggs are in reach. Studs, seconds, transparency.
 		SwirlRadius = 4.5, SwirlHeight = -1.2, -- Where each ribbon starts, from the HumanoidRootPart.

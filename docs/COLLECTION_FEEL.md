@@ -77,7 +77,7 @@ flip, the tick sound, `HoldTimeout`, the `Flash` bubble and the `SpillPuff`.
 Missing cues are silent; reduced motion keeps the state changes (fill, text, glow
 ring) and drops loops, particles and the hop.
 
-## Reference parity: collecting and the vacuum pill (October 21, P6)
+## Reference parity: collecting, the swirl and the pad sale (October 21, P6)
 
 Contract: [REFERENCE_PARITY_20261021.md](team/REFERENCE_PARITY_20261021.md) §2.6, from
 Stevin's third Drop a Fruit recording (frames t130–t154 and the 121–131 s vacuum burst).
@@ -103,22 +103,7 @@ the root sparkle.
   up to what was collected. `FloatSize` 26 px, `FloatSeconds` 0.8, `FloatRise` 1.8 studs,
   placed `FloatUp` 2.4 studs above the root and `FloatSide` 0.3–1.5 studs to the camera's
   right. Reduced motion keeps the float without the rise.
-- Mouse hold: holding the left mouse button grabs the egg under the pointer every
-  `MouseHoldRepeat` (0.12 s), like R2's hold, without the "Get closer" tag on repeats. It
-  makes the pill's "Collect (Hold)" hint true; a tap still grabs one egg.
-
-**The vacuum pill** (`ToolController.BuildPill`): the reference's dark translucent pill
-centred above Roblox's hotbar, "14 / 25" on a translucent gold fill, with the prompt row
-under it: hand glyph + "Collect (Hold)" ("Collect (Tap)" on touch, the R2 glyph on a
-gamepad) and coin glyph + "Sell on the pad". One Scale layout for every device: the box
-sits `ToolController.BottomReserve` px (hotbar + 10 px) above the bottom, takes
-`ToolController.PillHeight` (118/1014) of the screen height with a 602:118 aspect, and only
-the words and glyph change with `PreferredInput`. The fill tweens and flashes white on
-gains, red with a red flash as it fills; full, the pill's ring pulses red, "Full!" floats
-off it with `VacuumFull`, and the "Sell on the pad" hint glows gold until it empties. A
-full vacuum that gets a new egg in reach shakes the pill (`FullShakePixels` 7) with a
-soft `Locked`, at most every `FullShakeGap` (1.5 s) and not in the first 1.5 s after it
-filled. `ToolController.Preview(parent, count, capacity)` builds it for a UI Lab story.
+- Mouse hold: holding the left mouse button grabs the egg under the pointer every `MouseHoldRepeat` (0.12 s), like R2's hold (no "Get closer" tag on repeats).
 
 **The suction swirl** (`VacuumController`): while eggs are in reach (or flying in) two
 yellow ribbons sweep in from the player's sides into the nozzle: Beams from attachments
@@ -134,10 +119,12 @@ on and off, so it costs nothing per egg; reduced motion turns it off with the hu
 first coin meets the floor (`ThudCue` "PodiumThump" at `ThudPitch` 0.85, else "Impact" at
 `ThudFallbackPitch` 0.7, `ThudVolume` 0.3 while unleveled), timed `RiseSeconds +
 FallSeconds × ThudShare` (0.36, the Bounce ease's first contact) after the launch. The
-green "+N" beside the Coins readout stays HudController's float: a held sale is queued by
+"+N Coins" float over the Coins readout stays HudController's: a held sale is queued by
 the HUD when its balance rises with coins in flight and shown as the last coin lands; a
 sale that was never held (reduced motion) is queued once by `ActionFeedback:SaleDelta`
-with the receipt's value.
+with the receipt's value. The vacuum's egg bar is unchanged (between My Army and the
+hotbar; [COLLECTION_TOOLS.md](team/COLLECTION_TOOLS.md)): the P6 pill above the hotbar
+was reverted on Stevin's request (2f4daf1).
 
 ## Cash: authored Money particle burst
 
