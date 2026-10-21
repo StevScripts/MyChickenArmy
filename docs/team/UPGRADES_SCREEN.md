@@ -124,7 +124,7 @@ Army Size, Roll Slot, Chicken Feed, March Speed, Health and Recovery. The top
 machine is `prismMachine` in the catalog and `RainbowMachine` in S6's set. Start has
 no S6 icon and keeps the Index art. Tree v2's new keys (`superLuck`, `megaLuck`,
 `diamondRate`, `prismRate`, `feedMaxLevel`, `mutationGolden/Rainbow/Shadow/Cosmic`)
-show placeholders until S6c's uploads land.
+use S6c's icons (uploaded October 20, same receipts).
 
 ## For older callers
 

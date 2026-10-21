@@ -53,16 +53,15 @@ Assets.upgrades={
 	bounty="rbxassetid://111140823257162",
 	captureSpeed="rbxassetid://112004220419400",
 }
--- Tree v2 (S9c): the lead is having S6 draw these (S6c). Until their ids land, each key
--- shows the closest uploaded art.
-local placeholders={
-	superLuck=Assets.cashLuck, megaLuck=Assets.cashLuck, -- cyan and purple clovers
-	diamondRate=Assets.upgrades.diamondMachine, prismRate=Assets.upgrades.prismMachine,
-	feedMaxLevel=Assets.feed,
-	-- The Mutation Luck Gem icon stands in for the four mutation hexes.
-	mutationGolden="rbxassetid://131360952198245", mutationRainbow="rbxassetid://131360952198245",
-	mutationShadow="rbxassetid://131360952198245", mutationCosmic="rbxassetid://131360952198245",
+-- Tree v2 (S9c): S6c's icons, uploaded October 20 (same receipts file): the Super Luck
+-- (cyan) and Mega Luck (purple) clovers, the Rate dice, Max Level and the mutations.
+local treeV2={
+	superLuck="rbxassetid://106398620255480", megaLuck="rbxassetid://130839637754661",
+	diamondRate="rbxassetid://87592801828456", prismRate="rbxassetid://94923187253083",
+	feedMaxLevel="rbxassetid://108213051661738",
+	mutationGolden="rbxassetid://80129578684601", mutationRainbow="rbxassetid://95442316893461",
+	mutationShadow="rbxassetid://92726160751769", mutationCosmic="rbxassetid://133241731715561",
 }
-for key,image in placeholders do Assets.upgrades[key]=image end
+for key,image in treeV2 do Assets.upgrades[key]=image end
 return Assets
 --stevin
