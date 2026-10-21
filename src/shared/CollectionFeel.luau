@@ -8,10 +8,7 @@ return {
 		ArcHeight = 1.65, SideArc = 0.45, -- Short trips automatically use less arc.
 		TargetResponse = 26, -- Higher follows moving player/nozzle more tightly.
 		TeleportDistance = 24, -- Resolve presentation when a target teleports.
-		ComboReset = 0.8, SoundGap = 0.085, MaxVoices = 5,
-		Pitches = {1.00, 1.06, 1.12, 1.19, 1.12, 1.06},
-		Volume = 0.28, RoverVolume = 0.17, SoundTail = 0.48,
-		HudPulse = 1.055, SparkGap = 0.09,
+		HudPulse = 1.055, -- The HUD's "Carrying" line pulses as a clicked egg lands.
 	},
 	Deposit = {
 		GroupWindow = 0.08, GroupGap = 0.38,
@@ -46,6 +43,11 @@ return {
 		TickVolume = 0.35, PitchStep = 0.02, PitchMax = 1.25, PitchJitter = 0.04,
 		HoldTimeout = 4, -- A held sale always reaches the Coins readout within this time.
 		DropVolume = 0.4, DropSeconds = 0.9, -- "CoinDrop" plays as the coins spill out of the pad.
+		-- October 21 reference parity (P6): a "Whoosh" as the sale starts, and one soft thud
+		-- when the first coin meets the floor (ThudShare of the Bounce fall, after the rise).
+		WhooshPitch = 1.1, WhooshSeconds = 0.6,
+		ThudCue = "PodiumThump", ThudPitch = 0.85, -- Else "Impact" at ThudFallbackPitch.
+		ThudFallbackPitch = 0.7, ThudVolume = 0.3, ThudShare = 0.36,
 		SpillPuff = {Sparkles = 16}, -- Gold puff at the pad as the coins burst out.
 		Flash = {Size = {5, 11}, Seconds = 0.38, Transparency = 0.15, GlowTransparency = 0.55, Sparkles = 14}, -- Bubble on stepping in and on the first coin.
 	},
@@ -58,8 +60,28 @@ return {
 		LayPoof = {Count = 4, Size = 0.6}, -- The puff where the egg leaves the chicken.
 		PickBurstGap = 0.12, -- Sparkle burst where an egg was picked (click or vacuum), at most this often.
 		PickBurst = {Count = 5, Size = 0.28},
-		VacuumParticleRate = 12, VacuumParticleRateTouch = 6, -- Suction shimmer at the nozzle while eggs are in reach.
+		VacuumParticleRate = 12, VacuumParticleRateTouch = 6, -- Gold sparkles at the nozzle while eggs are in reach.
 		VacuumFullPitch = 1.3, -- "VacuumFull", else "Collect" at this pitch, when the bar fills.
+		-- October 21 reference parity (P6, docs/team/REFERENCE_PARITY_20261021.md 2.6).
+		-- Each egg that reaches you (click, tap, R2, mouse hold) or the vacuum chimes once and
+		-- floats its own "+N" coin value over you (WorldFeel:Text, budgeted).
+		ChimeCue = "EggPickup", ChimeFallback = "Collect", -- Swap the two if Collect is the brighter tick.
+		ChimePitch = {0.9, 1.3}, ChimeStep = 0.04, -- Rises one step per chime across a streak, capped.
+		ChimeGap = 0.07, StreakReset = 0.6, -- Gap floor between chimes; a streak restarts after this idle time.
+		ChimeVolume = 0.22, ChimeTail = 0.35, ChimeVoices = 4, -- Volume applies while the cue is unleveled.
+		FloatGap = 0.12, FloatGapTouch = 0.2, -- At most one float this often; eggs in between join the next one.
+		FloatSize = 26, FloatSeconds = 0.8, FloatRise = 1.8, -- Pixels, seconds, studs (no rise under reduced motion).
+		FloatUp = 2.4, FloatSide = {0.3, 1.5}, -- Studs above the root, then to the camera's right (random in range).
+		MouseHoldRepeat = 0.12, -- Holding the left mouse button grabs the egg under the pointer this often.
+		-- The vacuum pill above the hotbar (ToolController): a full vacuum shakes it and plays
+		-- "Locked" when a new egg comes into reach, at most this often.
+		FullShakeGap = 1.5, FullShakePixels = 7,
+		-- The suction swirl (VacuumController): two yellow ribbons from the player's sides
+		-- into the nozzle while eggs are in reach. Studs, seconds, transparency.
+		SwirlRadius = 4.5, SwirlHeight = -1.2, -- Where each ribbon starts, from the HumanoidRootPart.
+		SwirlWidth = 2.6, SwirlTransparency = 0.35, -- Ribbon width at its outer end; opacity of its body.
+		SwirlCurve = {3, 6}, SwirlSway = 0.9, -- The outer curve sways between these sizes, each way this long.
+		SwirlSpeed = 1.4, -- Texture scroll toward the nozzle.
 		HopHeight = 1.5, HopSeconds = 0.45, -- A fed chicken's happy hop (joint pose; V3 rigs play their Victory clip).
 		HappyDelay = 0.22, HappyPitch = 1.15, -- "ChickenHappy", else "CombatKnockoutCluck" at this pitch, after the crunch.
 		CluckGap = 2.5, CluckRange = 40, -- One ambient Cluck1/2/3 from a random home chicken in range, at most this often.

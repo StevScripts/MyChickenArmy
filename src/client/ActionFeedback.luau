@@ -216,10 +216,19 @@ function Feedback:SaleCoins(receipt)
 			{volume=tick.TickVolume,maxDuration=0.5,voiceKey="SaleCoin",maxVoices=4,cooldown=0.03})
 	end)
 	if played then
-		self.holdUntil = math.max(self.holdUntil, os.clock() + Feel.CoinBurst.HoldTimeout)
+		local burst = Feel.CoinBurst
+		self.holdUntil = math.max(self.holdUntil, os.clock() + burst.HoldTimeout)
+		-- October 21 reference parity (P6): the sale whooshes out like the reference's throw.
+		self.app:Cue("Whoosh", nil, burst.WhooshPitch, {maxDuration = burst.WhooshSeconds, voiceKey = "SaleWhoosh", cooldown = 0.3})
 		-- Coins spilling out of the pad. "CoinDrop" is authored in SoundService.MyChickenArmyAudio.
-		self.app.audio:Play("CoinDrop",1,{noFallback=true,volume=Feel.CoinBurst.DropVolume,
-			maxDuration=Feel.CoinBurst.DropSeconds,voiceKey="SaleCoinDrop",maxVoices=2,cooldown=0.15})
+		self.app.audio:Play("CoinDrop",1,{noFallback=true,volume=burst.DropVolume,
+			maxDuration=burst.DropSeconds,voiceKey="SaleCoinDrop",maxVoices=2,cooldown=0.15})
+		-- One soft thud as the first coin meets the floor (the Bounce ease's first contact).
+		self:Later(burst.RiseSeconds + burst.FallSeconds * burst.ThudShare, function()
+			local options = {volume = burst.ThudVolume, maxDuration = 0.5, voiceKey = "SaleThud", cooldown = 0.3}
+			if self.app.audio:Has(burst.ThudCue) then self.app:Cue(burst.ThudCue, nil, burst.ThudPitch, options)
+			else self.app:Cue("Impact", nil, burst.ThudFallbackPitch, options) end
+		end)
 	end
 	return played
 end
@@ -280,6 +289,19 @@ function Feedback:ShowDeposit(receipt)
 		self:ReleaseCoins(receipt.held)
 		self:ShowCash(root.Position,receipt.value)
 	end
+	self:SaleDelta(receipt)
+end
+
+-- The green "+N" beside the Coins readout (HudController's float, restyled by the HUD).
+-- A held sale is already queued there: the HUD saw the balance rise while its coins
+-- were in flight and shows it as the last coin lands. A sale that was never held
+-- (reduced motion) queues it here, once, with the receipt's exact value.
+function Feedback:SaleDelta(receipt)
+	local hud = self.app.hud
+	if receipt.queued or receipt.held > 0 or receipt.value <= 0 or not hud or not hud.QueueFloat then return end
+	local state = self.app.state
+	hud:QueueFloat(receipt.value, state and state.coins or 0, {ok = true})
+	if hud.FlushFloat then hud:FlushFloat() end
 end
 
 function Feedback:Action(kind)
