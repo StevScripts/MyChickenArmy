@@ -24,14 +24,27 @@ unload will too. Robot vacuum deliveries stay quiet.
   share; the last one carries the remainder. `HudController:ShownCoins` subtracts
   what is still held. Reset, teardown, reduced motion and a 4-second `HoldTimeout`
   release everything at once, so the readout always catches up.
+- October 21 pickup, matched to Stevin's reference recording (a Pet Simulator–style
+  coin pickup): coins arc up and over into the player in a quick stream. The first
+  landing flashes a white ForceField bubble with a Neon glow and sparkles. A running
+  "N [coin]" counter (white number, black outline, coin image) sits beside the
+  player and pops with each coin. After `Counter.Idle` seconds without a coin it
+  stays where the player stood, lingers and fades; the next sale starts a new one.
+  The counter is not always-on-top: Studio screenshots skip always-on-top
+  billboards. It sits `Counter.Toward` studs toward the camera instead.
 - Sounds: EggDeposit when the coins pop, CashTick (Money) on the first landing,
-  then Collect on each coin with a rising pitch.
+  then CoinPickup on each coin with a slightly rising, jittered pitch. CoinPickup
+  (`SoundService.MyChickenArmyAudio.Collection.CoinPickup`, Studio-owned, asset
+  71556378621665) and Money were the closest Creator Store matches to the
+  reference's bright 8–14 kHz shimmer (spectra measured in Studio with
+  AudioAnalyzer). A place without CoinPickup falls back to Collect. Alternates to
+  try in its SoundId: 73063440685354, 7437419566.
 - Reduced motion: no coins. The existing "+N" amount text and CashTick play, and
   the readout updates at once.
 
 Tune `CollectionFeel.CoinBurst`: coin counts and budgets, `Size`, landing `Radius`
 and `Spill`, pop `Height`, the `Rise/Fall/Rest/Fly` seconds and staggers, the
-flip, the tick sound and `HoldTimeout`.
+flip, the tick sound, `HoldTimeout`, the `Flash` bubble and the `Counter`.
 
 ## Cash: authored Money particle burst
 
