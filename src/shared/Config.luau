@@ -56,7 +56,7 @@ local Config = {
   ChampionWins=10,ChampionSpecies="HillChampion"},
  -- October 20 overhaul, Rebirth v2 (docs/team/OVERHAUL_CONTRACT_20261020.md §7; plan v2
  -- with Stevin's changes). Coins on hand are the only requirement (no camps, no King);
- -- Coins reset to StartingCoins, then Time Skip pays. Each rank adds +100% egg Coins
+ -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins
  -- and pays GemsBase + GemsPerRank × rank Gems. Enemies stay ×1 through EnemyFreeRanks,
  -- then +EnemyScalePerRank per rank of the attacker. Mission tiers open at King clear
  -- or MissionTierRanks (Veteran, Elite, Royal). Costs are the P0 fit with

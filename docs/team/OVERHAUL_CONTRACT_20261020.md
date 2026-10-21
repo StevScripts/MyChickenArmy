@@ -315,7 +315,8 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
     `rebirthChickenCredits`.
   - Mutation unlocks: Rainbow at Rebirth 1, Shadow at 5, Cosmic at 10.
 - **Resets:**
-  - Coins go to `Config.StartingCoins` (2,400), then Time Skip pays.
+  - Coins go to 0 (October 20, Stevin: "When you rebirth your money resets to
+    zero"), then Time Skip pays.
   - The whole `upgradeTree` resets, so derived fields return to base: 3 slots,
     1 podium, Flock 3. Keep Upgrades keeps up to N tiers of Egg Speed, Egg Value
     and Luck.

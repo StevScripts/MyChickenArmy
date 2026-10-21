@@ -161,7 +161,7 @@ end
 -- The reset manifest the Rebirth screen shows (same lists the transaction applies).
 local function manifest(session)
 	local keep = session.researchEffects and session.researchEffects.keepTiers or 0
-	local resets = {"Coins (back to " .. Currency.Grouped(Config.StartingCoins) .. ")", "Every upgrade in the Upgrades tree",
+	local resets = {"All your Coins", "Every upgrade in the Upgrades tree",
 		"Chicken levels bought with Chicken Feed", "Carried eggs"}
 	if keep > 0 then
 		resets[2] = "The Upgrades tree (you keep " .. keep .. (if keep == 1 then " tier" else " tiers")
@@ -351,7 +351,8 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 		session.rebirthSkips -= 1
 	else
 		session.upgradeTree = keptTree(session)
-		session.coins = Config.StartingCoins
+		-- October 20 (Stevin): "When you rebirth your money resets to zero." Time Skip still pays below.
+		session.coins = 0
 		resetFeedLevels(session)
 		session.eggCarry = {count = 0, value = 0}
 		session.vacuumCargo = {count = 0, value = 0}

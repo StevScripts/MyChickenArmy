@@ -21,6 +21,11 @@ What that means in the build:
 - **The reward chicken is a black silhouette until the Rebirth is affordable**, then
   it shows in colour.
 - **The Coins bar shows the real balance**, even past the cost ("214,880 / 200,000").
+- **Money resets to zero** on a Rebirth (later October 20, Stevin; `RebirthService`).
+  Time Skip then pays its minutes of Coins on top.
+- **Big icons** (later October 20, Stevin: "the images are really small"). Card icons
+  fill nearly the card height, and the reward tiles, price gems, coin and reward
+  chicken are larger than the plan's mock.
 - **The Gem Upgrades title and balance scroll away with the cards**, as in the
   reference. Locked cards say "Locked!" and "Rebirth N needed" with a padlock.
   Hovering a card grows it and brightens its rim.
