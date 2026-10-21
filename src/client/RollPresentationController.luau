@@ -31,6 +31,8 @@ local RARITY = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Sec
 local MUTATION_BADGE_DELAY = 0.3
 -- October 20 Gold rolls: the special pull's tag stays this long after the reveal.
 local SPECIAL_TAG_HOLD = 1.2
+-- Oct 21 owner request: every podium roll sound (lever, shuffle ticks, land, reveal) plays this much louder.
+local ROLL_VOLUME = 2
 
 -- A special pull's glow; the Prism glow cycles through the rainbow.
 local function specialColor(kind: string?, now: number): Color3
@@ -332,7 +334,7 @@ function RollPresentationController:Sound(record, name, pitch, volume, duration)
  local character=Players.LocalPlayer.Character
  local root=character and character:FindFirstChild("HumanoidRootPart")
  if not root or (root.Position-record.foot).Magnitude>36 then return end
- self.app.audio:Play(name,pitch,{parent=record.anchor,volume=volume,maxDuration=duration,
+ self.app.audio:Play(name,pitch,{parent=record.anchor,volume=volume*ROLL_VOLUME,maxDuration=duration,
   voiceKey=record.voiceKey..name})
 end
 

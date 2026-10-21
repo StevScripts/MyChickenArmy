@@ -102,9 +102,12 @@ function Presentation:_Later(seconds,callback)
 	self.tasks[pending]=true
 end
 
+-- Oct 21 owner request: crate roll sounds play this much louder.
+local ROLL_VOLUME = 2
+
 function Presentation:_Sound(name,pitch,volume,duration)
 	if not self.audio then return end
-	local sound=self.audio:Play(name,pitch,{volume=volume,maxDuration=duration,voiceKey="GalaxyCrate"..name,
+	local sound=self.audio:Play(name,pitch,{volume=volume*ROLL_VOLUME,maxDuration=duration,voiceKey="GalaxyCrate"..name,
 		maxVoices=if name=="RollTick" then 3 else nil,noFallback=true})
 	if sound then self.sounds[sound]=true end
 end
