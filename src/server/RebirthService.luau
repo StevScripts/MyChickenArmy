@@ -49,9 +49,9 @@ end
 -- Permanent egg Coins multiplier, rounded to a whole number: x(1 + rank); each rank from
 -- EggBoostFromRank to EggBoostToRank multiplies it by EggBoostPerRank as well, and each
 -- rank after that by EggLateGrowthPerRank. October 21 later (P5, REBIRTH_PACING_20261021.md
--- "reference-shaped ladder"): x2, x3, x4, x5 at Rebirth 1-4, then x9, x16, x27, x46, x76,
--- x125 at 5-10, so Rebirths 5-10 step up like the reference's ladder; the late growth
--- keeps a late Rebirth near an hour of play.
+-- "reference-shaped ladder"): x2, x3, x4, x5 at Rebirth 1-4, then x10, x20, x39, x75, x142,
+-- x266 at 5-10, so Rebirths 5-10 step up like the reference's ladder; the late growth
+-- (x908 at 20, x2,400 at 30, x12,662 at 50) keeps a late Rebirth near an hour of play.
 function RebirthService.Multiplier(rank: number): number
 	local rules = settings()
 	local r = clampRank(rank)

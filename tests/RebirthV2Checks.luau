@@ -224,11 +224,11 @@ function Checks.Run()
 		s.gemUpgrades={MoreGems=2}
 		s:RefreshEffects()
 		assert(Rebirth.Gems(s,10)==168,"More Gems "..Rebirth.Gems(s,10))
-		-- October 21 later (P5): x(1 + rank), ranks 5–10 also x1.5 each, later ranks x1.05
+		-- October 21 later (P5): x(1 + rank), ranks 5–10 also x1.7 each, later ranks x1.06
 		-- each, whole numbers.
-		local multipliers={[0]=1,2,3,4,5,9,16,27,46,76,125,144,163}
+		local multipliers={[0]=1,2,3,4,5,10,20,39,75,142,266,307,353}
 		for rank=0,12 do assert(Rebirth.Multiplier(rank)==multipliers[rank],"Egg multiplier "..rank.." "..Rebirth.Multiplier(rank)) end
-		assert(Rebirth.Multiplier(20)==390 and Rebirth.Multiplier(30)==937 and Rebirth.Multiplier(50)==4090,"Egg multiplier 20/30/50")
+		assert(Rebirth.Multiplier(20)==908 and Rebirth.Multiplier(30)==2400 and Rebirth.Multiplier(50)==12662,"Egg multiplier 20/30/50")
 		assert(Rebirth.EnemyScale(0)==1 and Rebirth.EnemyScale(2)==1 and Rebirth.EnemyScale(3)==1.25
 			and Rebirth.EnemyScale(10)==3 and Rebirth.EnemyScale(30)==8,"Enemy scale")
 		assert(Rebirth.EnemyScale(31)==8 and Rebirth.EnemyScale(50)==8,"Enemy scale capped at rank 30")
@@ -343,11 +343,11 @@ function Checks.Run()
 	-- October 21 later (P5, reference parity §2.5; REBIRTH_PACING_20261021.md "reference-shaped
 	-- ladder"): Rebirth 2 costs 1M like the reference, paid for by taming in-run growth.
 	test("Reference-shaped ladder: 50 costs, ratio bands, Feed x1.6 and the tree prices that pace a run",function()
-		local costs={5e4,1e6,2e7,4e8,8e9,3.83e10,1.17e11,3.66e11,1.4e12,4.2e12,
-			6.12e12,8.92e12,1.3e13,1.9e13,2.75e13,3.03e13,3.34e13,3.68e13,4.05e13,4.46e13,
-			4.91e13,5.41e13,5.96e13,6.56e13,7.22e13,7.95e13,8.75e13,9.63e13,1.06e14,1.17e14,
-			1.29e14,1.42e14,1.58e14,1.75e14,1.94e14,2.15e14,2.39e14,2.65e14,2.94e14,3.27e14,
-			3.63e14,4.02e14,4.47e14,4.96e14,5.5e14,6.11e14,6.78e14,7.52e14,8.35e14,9.27e14}
+		local costs={5e4,1e6,2e7,4e8,8e9,2.4e10,7.2e10,2.55e11,1.09e12,4.7e12,
+			9.6e12,1.5e13,2.2e13,3.18e13,3.9e13,4.58e13,5.35e13,6.26e13,7.83e13,9.12e13,
+			1.08e14,1.26e14,1.43e14,1.59e14,1.9e14,2.21e14,2.76e14,3.28e14,4.05e14,4.8e14,
+			5.69e14,8.03e14,9.12e14,1.01e15,1.12e15,1.24e15,1.37e15,1.51e15,1.67e15,1.84e15,
+			2.03e15,2.24e15,2.47e15,2.72e15,3e15,3.3e15,3.63e15,4e15,4.4e15,4.84e15}
 		assert(#Config.Rebirth.Costs==#costs,"Cost count")
 		for rank,cost in costs do assert(Rebirth.Cost(rank)==cost,"Cost "..rank.." "..tostring(Rebirth.Cost(rank))) end
 		assert(Rebirth.Cost(1)==5e4 and Rebirth.Cost(2)==1e6,"Rebirth 1 and 2 as in the reference")
@@ -380,8 +380,8 @@ function Checks.Run()
 		assert(prices("Flock")=="300,900,2000,25000,250000,3000000,80000000,2000000000","Flock prices "..prices("Flock"))
 		assert(Tree.Families.EggSpeed.tiers[4].value==3 and Tree.Families.EggValue.tiers[4].value==5
 			and Tree.Families.Flock.tiers[8].value==15,"Tier values unchanged")
-		assert(Config.Rebirth.EggBoostPerRank==1.5 and Config.Rebirth.EggBoostFromRank==5 and Config.Rebirth.EggBoostToRank==10
-			and Config.Rebirth.EggLateGrowthPerRank==1.05,"Multiplier knobs")
+		assert(Config.Rebirth.EggBoostPerRank==1.7 and Config.Rebirth.EggBoostFromRank==5 and Config.Rebirth.EggBoostToRank==10
+			and Config.Rebirth.EggLateGrowthPerRank==1.06,"Multiplier knobs")
 		return "50K, 1M, 20M ... "..costs[10].." at 10, "..costs[50].." at 50"
 	end)
 
