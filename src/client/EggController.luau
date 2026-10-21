@@ -5,6 +5,7 @@
 -- confirms the claim (CollectEggs); a refused egg drops back. Eggs the held vacuum
 -- pulls fly into its nozzle. Walking over eggs no longer collects them.
 local Players=game:GetService("Players")
+local ContentProvider=game:GetService("ContentProvider")
 local RunService=game:GetService("RunService")
 local TweenService=game:GetService("TweenService")
 local UserInputService=game:GetService("UserInputService")
@@ -28,8 +29,10 @@ local POPUP_OFFSET=Vector3.new(0,3.7,0)
 -- within this share of the screen height (taps get more room than the mouse).
 local PICK_SHARE,PICK_MIN,TOUCH_PICK_SHARE,TOUCH_PICK_MIN=0.065,44,0.08,48
 -- Hovering a clickable egg (the same pick a click uses) shows the hand cursor and
--- pops that egg out a little.
-local HOVER_CURSOR="rbxasset://SystemCursors/PointingHand"
+-- pops that egg out a little. The game can't load rbxasset://SystemCursors, so the hand
+-- is our own image (assets/egg-hover-cursor-20261021); Roblox centres a cursor image on
+-- the pointer, so its fingertip sits at the image centre.
+local HOVER_CURSOR="rbxassetid://74062853444480"
 local HOVER_SCALE,HOVER_LIFT=0.18,0.18
 local HOVER_IN=TweenInfo.new(0.18,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
 local HOVER_OUT=TweenInfo.new(0.12,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
@@ -72,6 +75,11 @@ function Eggs:Start()
  local tooFar=Theme.Label(self.tooFar,"Text","Get closer",22)
  tooFar.Size,tooFar.TextXAlignment,tooFar.TextWrapped=UDim2.fromScale(1,1),Enum.TextXAlignment.Center,false
  self.connection=RunService.RenderStepped:Connect(function() self:Step(os.clock()) end)
+ task.spawn(function() -- Load the hand now so the first hover doesn't flash a blank cursor.
+  local probe=Instance.new("ImageLabel");probe.Image=HOVER_CURSOR
+  pcall(function() ContentProvider:PreloadAsync({probe}) end)
+  probe:Destroy()
+ end)
  self:BindInput()
 end
 

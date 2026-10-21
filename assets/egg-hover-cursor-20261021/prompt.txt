@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE image, then copy the resulting PNG into this working directory as raw/HandCursor-codex.png (keep transparency).
+
+Subject: a mouse cursor for a cartoon Roblox chicken-farm game: a "click here" pointing hand. A chunky white cartoon glove hand (like a classic arcade/cartoon glove) with the index finger pointing straight UP and slightly tilted toward the upper-left (about 15 degrees), other fingers curled, a small cuff at the wrist. 
+
+Style: chunky glossy simulator icon. Heavy continuous near-black outer outline (thick, clean, even), thinner dark interior lines for the curled fingers, soft light-grey/blue shading planes on the white glove, a crisp pale highlight on the upper-left. Saturated, readable at 32-48 px. No text, no background, no shadows on the ground, no sparkles, no click rays, no frame.
+
+Canvas: square, genuine transparent background (real alpha, not a checkerboard). The hand should be large and centered, occupying about 80% of the canvas height, fully inside the canvas with even padding.
