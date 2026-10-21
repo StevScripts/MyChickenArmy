@@ -211,9 +211,17 @@ function Motion:BindButton(button,visual,face,rim)
 		return if scaled then {Scale=amount} else {Size=multiplied(self.restingSizes[visual] or restingSize,amount)}
 	end
 	local hovering,focused,pressed=false,false,false
+	-- October 21 reference parity: shell buttons (UITheme) set HoverScale 1.05 and
+	-- PressScale 0.95; anything else keeps the earlier 1.03 / 0.955.
+	local function pressScale(): number
+		local value=button:GetAttribute("PressScale")
+		return if type(value)=="number" then value else 0.955
+	end
 	local function update()
 		local hot=button.Active and (hovering or focused)
-		local target=if self.reduced then 1 elseif pressed and button.Active then 0.955 elseif hot then 1.03 else 1
+		local hover=button:GetAttribute("HoverScale")
+		local target=if self.reduced then 1 elseif pressed and button.Active then pressScale()
+			elseif hot then (if type(hover)=="number" then hover else 1.03) else 1
 		self:Cancel(visual,"pop")
 		self:Tween(visual,"press",goal(target),if pressed then 0.065 else 0.13)
 		if rim then self:Tween(rim,"highlight",{Transparency=if button.Active then (if hot then 0.05 else 0.46) else 0.66},0.12) end
@@ -268,8 +276,9 @@ function Motion:BindButton(button,visual,face,rim)
 		if not button.Active then return end
 		pressed=false
 		self:Cancel(visual,"press")
-		local amount=if self.reduced then 1 else 0.955
-		if scaled then visual.Scale=amount else visual.Size=multiplied(restingSize,amount) end
+		local amount=if self.reduced then 1 else pressScale()
+		-- The live resting size: Theme.PadHit shrinks the art inside a larger hit area.
+		if scaled then visual.Scale=amount else visual.Size=multiplied(self.restingSizes[visual] or restingSize,amount) end
 		update()
 		-- Same frame and voice key as hand-written Click calls, so it never doubles.
 		if self.sound and button:GetAttribute("ClickSound")~=false then self.sound("Click") end

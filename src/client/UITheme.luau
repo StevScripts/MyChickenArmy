@@ -91,70 +91,48 @@ Theme.GemArt = {
 	FlockSlot="rbxassetid://137569434618832", ArmySlot="rbxassetid://92487563557623", -- S7b: tree icons
 }
 Theme.Rarities = Palette.Rarities
--- Background-free messages in the UI kit's lettering: status-gradient text with a
--- dark outline and a hard drop, led by a matching self-drawing mark.
-local INK=Color3.fromRGB(16,23,16)
+-- October 21 reference parity (docs/team/REFERENCE_PARITY_20261021.md §2.1): every popup
+-- reads on any background through one recipe. Other screens build on these numbers:
+Theme.Shell = {
+	-- Body: near-black at 25% transparency over the blurred world, 3 px black square outline.
+	Body=Theme.OverlayColors.Bottom, BodyTransparency=0.25, BodyStroke=3,
+	-- Inner content cards: slightly lighter and translucent with a 2 px dark stroke.
+	Card=Color3.fromRGB(92,98,106), CardTransparency=0.62, CardStroke=2, CardStrokeTransparency=0.2,
+	-- Header: the page colour under the stud tile at 88% transparency, a 3 px black edge.
+	HeaderStuds=0.88, HeaderStroke=3,
+	-- Every label: a black UIStroke about 8% of its rendered text height.
+	TextStroke=0.08,
+	-- Buttons: solid fill, 3 px black stroke; hover grows to 105%, a press shrinks to 95%.
+	ButtonStroke=3, ButtonHover=1.05, ButtonPress=0.95,
+}
+-- Text tones, every one with the black stroke: white text, light grey secondary lines,
+-- gold Coins, red shortfalls and refusals, green gains and rewards, orange events.
+Theme.Tones = {
+	Text=Color3.fromRGB(255,255,255), Secondary=Color3.fromRGB(200,207,214), Coins=Palette.Coins,
+	Short=Color3.fromRGB(255,88,88), Gain=Color3.fromRGB(120,248,120), Event=Color3.fromRGB(255,170,46),
+}
+-- Top-centre banners (the reference's): coloured text with a black stroke on a dark
+-- see-through strip; green reward, red refusal, orange event. Kinds are the Notify kinds.
+local INK=Color3.new(0,0,0)
 Theme.NotificationStyles = {
-	conquest={symbol="⚔",color=Theme.Conquest.Owned},
-	-- Success and error reuse the kit's header green and close-button red.
-	success={symbol="✓",color=Color3.fromRGB(112,222,98),top=Color3.fromRGB(176,255,1),bottom=Color3.fromRGB(23,223,0)},
-	error={symbol="×",color=Color3.fromRGB(255,120,132),top=Color3.fromRGB(255,107,83),bottom=Color3.fromRGB(233,51,43)},
-	warning={symbol="!",color=Color3.fromRGB(244,194,71)},
-	info={symbol="i",color=Theme.Arcade.blue:Lerp(Palette.Text,0.35)},
-	pending={symbol="…",color=Palette.Muted},
+	conquest={color=Theme.Tones.Gain},
+	success={color=Theme.Tones.Gain},
+	error={color=Theme.Tones.Short},
+	warning={color=Theme.Tones.Event},
+	event={color=Theme.Tones.Event},
+	info={color=Theme.Tones.Text},
+	pending={color=Theme.Tones.Secondary},
 }
--- Pen strokes (polylines) in a 46-unit box, drawn in order. Path2D renders them as
--- smooth vector lines; rotated Frames stair-stepped and jittered when scaled.
-local NOTIFICATION_MARKS={
-	success={{{8,24},{18,34},{38,12}}},
-	error={{{11,11},{35,35}},{{35,11},{11,35}}},
-	conquest={{{11,11},{35,35}},{{35,11},{11,35}}},
-	-- A single point is a square dot. Stacked pieces leave room for the outlines and the
-	-- drop shadow, which would otherwise fill the gap and merge them.
-	warning={{{23,0},{23,21}},{{23,39}}},
-	info={{{23,4}},{{23,21},{23,44}}},
-	pending={{{4,23}},{{23,23}},{{42,23}}},
-}
-
--- The first `progress` share of a polyline, optionally lengthened at both ends
--- (outlines need square ends because Path2D caps are flat).
--- Narrow marks read thin next to the check and X, so they draw heavier.
-local NOTIFICATION_MARK_WEIGHT={info=1.3,warning=1.3,pending=1.3}
-
-local function partialStroke(points,length,progress,extend,shift)
-	local want,walked,out=length*progress,0,{points[1]}
-	for index=2,#points do
-		local a,b=points[index-1],points[index]
-		local piece=(b-a).Magnitude
-		if walked+piece>=want then
-			if piece>0 then table.insert(out,a+(b-a)*((want-walked)/piece)) else table.insert(out,b) end
-			break
-		end
-		table.insert(out,b);walked+=piece
-	end
-	if #out<2 or want<=0 then return nil end
-	if extend>0 then
-		local first,last=out[2]-out[1],out[#out]-out[#out-1]
-		if first.Magnitude>0 then out[1]-=first.Unit*extend end
-		if last.Magnitude>0 then out[#out]+=last.Unit*extend end
-	end
-	local control={}
-	for _,point in out do table.insert(control,Path2DControlPoint.new(UDim2.fromOffset(point.X,point.Y+shift))) end
-	return control
-end
 local notificationMotion=setmetatable({},{__mode="k"})
 
-local function notificationTones(kind)
-	local style=Theme.NotificationStyles[kind] or Theme.NotificationStyles.info
-	local top=style.top or style.color:Lerp(Color3.new(1,1,1),0.35)
-	return ColorSequence.new(top,style.bottom or style.color)
-end
-
--- Rebuilds the row at rest (fully drawn). NotificationFlair animates it from empty.
+-- Rebuilds the banner at rest (fully shown); NotificationFlair animates it in. Pixel
+-- offsets inside are measured from the group's own size (TextService), as before.
 local function layoutNotification(group)
 	local label,row=group:FindFirstChild("Toast"),group:FindFirstChild("Row")
 	if not label or not row then return end
 	local kind,text=group:GetAttribute("Kind") or "info",label:GetAttribute("PlainText") or ""
+	local style=Theme.NotificationStyles[kind] or Theme.NotificationStyles.info
+	local coin=group:GetAttribute("Coin")==true
 	local size=group.AbsoluteSize
 	local width,height=if size.X>1 then size.X else 1000,if size.Y>1 then size.Y else 110
 	local lines=select(2,text:gsub("\n",""))+1
@@ -162,89 +140,63 @@ local function layoutNotification(group)
 	local measure,iconSize,gap
 	repeat
 		measure=TextService:GetTextSize(text,fontSize,Theme.Font,Vector2.new(100000,100000))
-		iconSize=math.floor(fontSize*1.15);gap=math.floor(fontSize*0.3)
-		if measure.X+iconSize+gap<=width*0.96 or fontSize<=14 then break end
+		iconSize=if coin then math.floor(fontSize*1.3) else 0
+		gap=if coin then math.floor(fontSize*0.3) else 0
+		if measure.X+iconSize+gap+fontSize<=width*0.96 or fontSize<=14 then break end
 		fontSize-=1
 	until false
 	label.TextSize=fontSize
-	local outline=math.max(2,math.floor(fontSize*0.08+0.5))
-	local drop=math.max(2,math.floor(fontSize*0.08+0.5))
+	local outline=math.max(2,math.floor(fontSize*0.1+0.5))
 	local pad=outline+2
+	local padX=math.floor(fontSize*0.5)
+	local inner=iconSize+gap+measure.X
 	row:ClearAllChildren()
-	row.Size=UDim2.fromOffset(iconSize+gap+measure.X+pad,math.max(iconSize,measure.Y)+drop)
-	local tones=notificationTones(kind)
-	local icon=Instance.new("Frame")
-	icon.Name,icon.BackgroundTransparency,icon.AnchorPoint="Icon",1,Vector2.new(0,0.5)
-	icon.Position,icon.Size=UDim2.new(0,0,0.5,-drop/2),UDim2.fromOffset(iconSize,iconSize)
-	icon.Parent=row
-	local pop=Instance.new("UIScale");pop.Name,pop.Parent="Pop",icon
-	local scale=iconSize/46
-	local thin=7*scale*(NOTIFICATION_MARK_WEIGHT[kind] or 1)
-	local thick=thin+6*scale
-	local face=tones.Keypoints[1].Value:Lerp(tones.Keypoints[#tones.Keypoints].Value,0.45)
-	local strokes={}
-	for _,mark in NOTIFICATION_MARKS[kind] or NOTIFICATION_MARKS.info do
-		local points,length={},0
-		for index,point in mark do points[index]=Vector2.new(point[1],point[2])*scale end
-		if #points==1 then
-			local half=Vector2.new(0,thin/2)
-			points={points[1]-half,points[1]+half}
-		end
-		for index=2,#points do length+=(points[index]-points[index-1]).Magnitude end
-		local progress=Instance.new("NumberValue");progress.Name,progress.Value,progress.Parent="Progress",1,icon
-		table.insert(strokes,{points=points,length=length,paths={},progress=progress})
-	end
-	-- Shadows, then outlines, then faces: crossing strokes never cut each other.
-	for layer,spec in {{thick,INK,drop,(thick-thin)/2},{thick,INK,0,(thick-thin)/2},{thin,face,0,0}} do
-		for _,stroke in strokes do
-			local path=Instance.new("Path2D")
-			path.Name,path.Thickness,path.Color3,path.ZIndex=("Stroke"..layer),spec[1],spec[2],layer
-			path.Parent=icon
-			table.insert(stroke.paths,{path=path,shift=spec[3],extend=spec[4]})
-		end
-	end
-	for _,stroke in strokes do
-		local function draw()
-			for _,entry in stroke.paths do
-				local control=partialStroke(stroke.points,stroke.length,stroke.progress.Value,entry.extend,entry.shift)
-				entry.path.Visible=control~=nil
-				if control then entry.path:SetControlPoints(control) end
-			end
-		end
-		stroke.progress.Changed:Connect(draw)
-		draw()
+	row.Size=UDim2.fromOffset(inner+padX*2,math.max(iconSize,measure.Y)+pad*2)
+	local pop=Instance.new("UIScale");pop.Name,pop.Parent="Pop",row
+	local strip=Instance.new("Frame")
+	strip.Name,strip.BorderSizePixel,strip.ZIndex="Strip",0,1
+	strip.BackgroundColor3,strip.BackgroundTransparency=INK,0.5
+	strip.AnchorPoint,strip.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
+	strip.Size=UDim2.fromOffset(inner+padX*2,math.floor(measure.Y*(if lines>1 then 0.96 else 0.8)))
+	strip.Parent=row
+	if coin then
+		-- "You earned 3,391,365 coins!" leads with the gold coin, as in the reference.
+		local icon=Instance.new("ImageLabel")
+		icon.Name,icon.Image,icon.BackgroundTransparency,icon.ScaleType="Icon",Theme.Assets.Coin,1,Enum.ScaleType.Fit
+		icon.AnchorPoint,icon.Position,icon.Size=Vector2.new(0,0.5),UDim2.new(0,padX,0.5,0),UDim2.fromOffset(iconSize,iconSize)
+		icon.ZIndex,icon.Parent=3,row
 	end
 	local clip=Instance.new("Frame")
-	clip.Name,clip.BackgroundTransparency,clip.ClipsDescendants="TextClip",1,true
-	-- Padded on every side so the outline and drop are never trimmed at rest.
-	clip.Position=UDim2.fromOffset(iconSize+gap-pad,-pad)
-	clip.Size=UDim2.fromOffset(measure.X+pad*2,row.Size.Y.Offset+pad*2)
+	clip.Name,clip.BackgroundTransparency,clip.ClipsDescendants,clip.ZIndex="TextClip",1,true,2
+	-- Padded on every side so the stroke is never trimmed at rest.
+	clip.Position=UDim2.fromOffset(padX+iconSize+gap-pad,0)
+	clip.Size=UDim2.fromOffset(measure.X+pad*2,row.Size.Y.Offset)
 	clip.Parent=row
-	for _,layer in {{"Shadow",drop,1},{"Face",0,2}} do
-		local face=Instance.new("TextLabel")
-		face.Name,face.BackgroundTransparency,face.Text,face.Font,face.TextSize=layer[1],1,text,Theme.Font,fontSize
-		face.TextColor3=if layer[1]=="Face" then Color3.new(1,1,1) else INK
-		face.TextXAlignment,face.TextYAlignment=Enum.TextXAlignment.Left,Enum.TextYAlignment.Center
-		face.AnchorPoint=Vector2.new(0,0.5)
-		face.Position=UDim2.new(0,pad,0.5,layer[2]-drop/2)
-		face.Size=UDim2.fromOffset(measure.X,measure.Y)
-		face.ZIndex=layer[3]
-		local stroke=Instance.new("UIStroke");stroke.Color,stroke.Thickness,stroke.Parent=INK,outline,face
-		if layer[1]=="Face" then
-			local gradient=Instance.new("UIGradient");gradient.Color,gradient.Rotation,gradient.Parent=tones,90,face
-		end
-		face.Parent=clip
-	end
+	local face=Instance.new("TextLabel")
+	face.Name,face.BackgroundTransparency,face.Text,face.Font,face.TextSize="Face",1,text,Theme.Font,fontSize
+	face.TextColor3=style.color
+	face.TextXAlignment,face.TextYAlignment=Enum.TextXAlignment.Center,Enum.TextYAlignment.Center
+	face.AnchorPoint,face.Position=Vector2.new(0,0.5),UDim2.new(0,pad,0.5,0)
+	face.Size=UDim2.fromOffset(measure.X,measure.Y)
+	face.ZIndex=3
+	local stroke=Instance.new("UIStroke")
+	stroke.Name,stroke.Color,stroke.Thickness,stroke.LineJoinMode="TextOutline",INK,outline,Enum.LineJoinMode.Round
+	stroke.Parent=face
+	face.Parent=clip
 	notificationMotion[group]=notificationMotion[group] or {}
-	notificationMotion[group].strokes=strokes
 	notificationMotion[group].clipWidth=clip.Size.X.Offset
+	notificationMotion[group].stripWidth=strip.Size.X.Offset
 end
 
 function Theme.SetNotification(label, text, kind)
 	label.Text=text
 	label:SetAttribute("PlainText",text)
 	local group=label.Parent
-	if group then group:SetAttribute("Kind",kind);layoutNotification(group) end
+	if group then
+		group:SetAttribute("Kind",kind)
+		group:SetAttribute("Coin",(kind=="success" or kind=="event") and string.find(string.lower(text),"coin",1,true)~=nil)
+		layoutNotification(group)
+	end
 end
 
 function Theme.Round(item, radius)
@@ -503,16 +455,75 @@ local function alignPopupBody(body)
 	if stroke then stroke.Enabled=false end
 end
 
-function Theme.Surface(item, tint)
-	tint = tint or Theme.Colors.panel
+-- The shell body (§2.1 rule 1): near-black at Shell.BodyTransparency over the blurred
+-- world with a 3 px black square outline; no inner rim. Every popup body looks alike,
+-- whatever page tint the caller passes.
+function Theme.ShellBody(item: GuiObject)
 	item.BackgroundColor3, item.BackgroundTransparency = Color3.new(1,1,1), 0
-	Theme.Gradient(item,tint:Lerp(Palette.Text,0.035),tint)
-	Theme.Stroke(item,Theme.Arcade.border,3)
-	local inset=item:FindFirstChild("InnerRim") or Theme.Frame(item,"InnerRim",UDim2.fromScale(0.98,0.98))
-	inset.Position,inset.BackgroundTransparency=UDim2.fromScale(0.01,0.01),1
-	Theme.Stroke(inset,Theme.Colors.line,Theme.Border.Detail)
+	local gradient=item:FindFirstChildWhichIsA("UIGradient") or Instance.new("UIGradient")
+	gradient.Color=ColorSequence.new(Theme.OverlayColors.Top,Theme.OverlayColors.Bottom)
+	gradient.Transparency=NumberSequence.new(Theme.Shell.BodyTransparency-0.03,Theme.Shell.BodyTransparency+0.03)
+	gradient.Rotation,gradient.Offset,gradient.Enabled=90,Vector2.zero,true
+	gradient.Parent=item
+	local outline=Theme.Stroke(item,Color3.new(0,0,0),Theme.Shell.BodyStroke)
+	outline.Transparency=0
+	local rim=item:FindFirstChild("InnerRim")
+	if rim and rim:IsA("GuiObject") then rim.Visible=false end
+	item:SetAttribute("ShellSurface","Body")
+	return item
+end
+
+-- An inner content card on the shell body (§2.1 rule 1): slightly lighter, see-through,
+-- with a 2 px dark stroke. `stroke` may tint the edge (selection, rarity).
+function Theme.ShellCard(item: GuiObject, stroke: Color3?)
+	item.BackgroundColor3, item.BackgroundTransparency = Theme.Shell.Card, Theme.Shell.CardTransparency
+	local gradient=item:FindFirstChildWhichIsA("UIGradient")
+	if gradient then gradient.Enabled=false end
+	local outline=Theme.Stroke(item,stroke or Color3.new(0,0,0),Theme.Shell.CardStroke)
+	outline.Transparency=if stroke then 0 else Theme.Shell.CardStrokeTransparency
+	local rim=item:FindFirstChild("InnerRim")
+	if rim and rim:IsA("GuiObject") then rim.Visible=false end
+	item:SetAttribute("ShellSurface","Card")
+	return item
+end
+
+-- Dark page tints (every popup body) take the shell; a bright accent keeps the older
+-- tinted surface with its inner rim.
+function Theme.Surface(item, tint)
+	local _,_,value=(tint or Theme.Colors.panel):ToHSV()
+	if tint==nil or value<=0.5 or item:GetAttribute("PopupBody")==true then
+		Theme.ShellBody(item)
+	else
+		item.BackgroundColor3, item.BackgroundTransparency = Color3.new(1,1,1), 0
+		Theme.Gradient(item,tint:Lerp(Palette.Text,0.035),tint)
+		Theme.Stroke(item,Theme.Arcade.border,3)
+		local inset=item:FindFirstChild("InnerRim") or Theme.Frame(item,"InnerRim",UDim2.fromScale(0.98,0.98))
+		inset.Position,inset.BackgroundTransparency,inset.Visible=UDim2.fromScale(0.01,0.01),1,true
+		Theme.Stroke(inset,Theme.Colors.line,Theme.Border.Detail)
+	end
 	if item:GetAttribute("PopupBody")==true then alignPopupBody(item) end
 	return item
+end
+
+-- §2.1 rule 3: every label carries a black UIStroke about 8% of its rendered text
+-- height (ScaledSize follows TextScaled). Works on a plain TextLabel/TextButton/TextBox
+-- or a Theme.Display (its visible TextFace). Returns the stroke.
+function Theme.Outline(label, ratio: number?): UIStroke
+	local target: Instance=label
+	local face=label:FindFirstChild("TextFace")
+	if face and face:IsA("TextLabel") then target=face end
+	local existing=target:FindFirstChild("TextOutline")
+	local stroke: UIStroke
+	if existing and existing:IsA("UIStroke") then stroke=existing else
+		stroke=Instance.new("UIStroke")
+		stroke.Name,stroke.Parent="TextOutline",target
+	end
+	stroke.Color,stroke.Transparency=Color3.new(0,0,0),0
+	stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Contextual
+	stroke.StrokeSizingMode,stroke.Thickness=Enum.StrokeSizingMode.ScaledSize,ratio or Theme.Shell.TextStroke
+	stroke.LineJoinMode=Enum.LineJoinMode.Round
+	stroke.Enabled=true
+	return stroke
 end
 
 function Theme.Label(parent, name, text, size, color)
@@ -524,13 +535,10 @@ function Theme.Label(parent, name, text, size, color)
 	label.TextColor3 = color or (if lightSurface then Theme.Colors.cardInk else Theme.Colors.ink)
 	label.TextXAlignment, label.TextYAlignment = Enum.TextXAlignment.Left, Enum.TextYAlignment.Center
 	label.TextWrapped, label.TextStrokeTransparency, label.ZIndex = true, 1, 4
-	local outline=Instance.new("UIStroke")
-	outline.Name,outline.Color="TextOutline",Theme.Arcade.border
 	-- Native scaling follows the rendered glyph size, including TextScaled.
 	-- Using nominal TextSize here made compact labels carry oversized outlines.
-	outline.StrokeSizingMode,outline.Thickness=Enum.StrokeSizingMode.ScaledSize,0.055
+	local outline=Theme.Outline(label)
 	outline.Enabled = not lightSurface
-	outline.Parent=label
 	label.Parent = parent
 	return label
 end
@@ -583,54 +591,45 @@ local function stopNotification(group)
 	return motion
 end
 
--- Smooth, signed-off entrance: the mark draws itself like a pen tick, the message
--- wipes in behind the pen, then the check gives one small pop (errors one nudge).
--- Repeats only pop the mark.
+-- The reference's entrance: the dark strip opens from the middle, the message wipes in
+-- left to right, then one small pop (an error nudges instead). A repeat only bumps the
+-- line, whose "(xN)" counter just changed.
 function Theme.NotificationFlair(group,label,kind,repeated)
 	local row=group:FindFirstChild("Row")
 	local motion=stopNotification(group)
 	if not row or not motion then return end
-	local icon,clip=row:FindFirstChild("Icon"),row:FindFirstChild("TextClip")
-	local pop=icon and icon:FindFirstChild("Pop")
+	local clip,strip,pop=row:FindFirstChild("TextClip"),row:FindFirstChild("Strip"),row:FindFirstChild("Pop")
 	row.Position=UDim2.fromScale(0.5,0.5)
+	if pop then pop.Scale=1 end
 	if Theme.Motion.reduced then return end
 	if repeated then
-		if pop and icon then
-			pop.Scale=1
-			chainNotification(group,pop,0,{{0.11,{Scale=1.15}},{0.15,{Scale=1}}})
-		end
+		if pop then chainNotification(group,pop,0,{{0.1,{Scale=1.14}},{0.16,{Scale=1}}}) end
 		return
 	end
-	-- Draw strokes in order; a check is one continuous pen move, an X two quick ones.
-	local total=0
-	for _,stroke in motion.strokes do total+=stroke.length end
-	local ink,start=0,0
-	for index,stroke in motion.strokes do
-		local seconds=if kind=="success" then 0.3*stroke.length/math.max(total,1) else 0.17
-		local at=if kind=="success" then start else (index-1)*0.15
-		stroke.progress.Value=0
-		trackNotification(group,stroke.progress,math.max(seconds,0.05),{Value=1},Enum.EasingStyle.Quad,Enum.EasingDirection.InOut,at)
-		start+=seconds;ink=math.max(ink,at+seconds)
+	if strip then
+		local width=motion.stripWidth or strip.Size.X.Offset
+		strip.Size=UDim2.fromOffset(0,strip.Size.Y.Offset)
+		trackNotification(group,strip,0.2,{Size=UDim2.fromOffset(width,strip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.Out)
 	end
 	if clip then
 		local width=motion.clipWidth
 		clip.AnchorPoint,clip.Position=Vector2.new(0,0),UDim2.new(0,clip.Position.X.Offset+(if clip.AnchorPoint.X==1 then -width else 0),0,clip.Position.Y.Offset)
 		for _,face in clip:GetChildren() do face.AnchorPoint,face.Position=Vector2.new(0,0.5),UDim2.new(0,face.Position.X.Offset,0.5,face.Position.Y.Offset) end
 		clip.Size=UDim2.fromOffset(0,clip.Size.Y.Offset)
-		trackNotification(group,clip,0.38,{Size=UDim2.fromOffset(width,clip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.Out,ink*0.7)
+		trackNotification(group,clip,0.3,{Size=UDim2.fromOffset(width,clip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.Out,0.08)
 	end
-	local settle=ink*0.7+0.38
+	local settle=0.4
 	if kind=="error" then
 		local sine,inOut=Enum.EasingStyle.Sine,Enum.EasingDirection.InOut
 		chainNotification(group,row,settle,{{0.06,{Position=UDim2.new(0.5,6,0.5,0)},sine,inOut},
 			{0.08,{Position=UDim2.new(0.5,-3,0.5,0)},sine,inOut},{0.08,{Position=UDim2.fromScale(0.5,0.5)},sine,inOut}})
 	elseif pop then
-		pop.Scale=1
-		chainNotification(group,pop,settle,{{0.12,{Scale=1.12}},{0.16,{Scale=1}}})
+		chainNotification(group,pop,settle,{{0.1,{Scale=1.08}},{0.16,{Scale=1}}})
 	end
 end
 
--- Exit mirrors the entrance: the message wipes away to the right as the row fades.
+-- Exit mirrors the entrance: the message wipes away to the right as the strip closes
+-- and the banner fades.
 function Theme.NotificationLeave(group)
 	local motion=stopNotification(group)
 	local row=group:FindFirstChild("Row")
@@ -645,6 +644,8 @@ function Theme.NotificationLeave(group)
 		end
 	end
 	trackNotification(group,clip,0.3,{Size=UDim2.fromOffset(0,clip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.In)
+	local strip=row:FindFirstChild("Strip")
+	if strip then trackNotification(group,strip,0.28,{Size=UDim2.fromOffset(0,strip.Size.Y.Offset)},Enum.EasingStyle.Quart,Enum.EasingDirection.In,0.04) end
 	motion.leaving=task.delay(0.22,function() motion.leaving=nil;Theme.Motion:Toast(group,false) end)
 end
 
@@ -661,7 +662,8 @@ function Theme.Button(parent, name, text, callback, color)
 	-- Layout and hitbox stay fixed while only this visual layer squashes or grows.
 	local visual=Theme.Frame(button,"Visual",UDim2.fromScale(1,1))
 	visual.AnchorPoint,visual.Position,visual.BackgroundTransparency=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),1
-	Theme.Stroke(visual,Theme.Arcade.border,Theme.Border.Control)
+	-- §2.1 rule 3: a solid fill inside a 3 px black stroke.
+	Theme.Stroke(visual,Color3.new(0,0,0),Theme.Shell.ButtonStroke)
 	local lip=Theme.Frame(visual,"LowerLip",UDim2.fromScale(1,1),Theme.Arcade.border)
 	lip.ZIndex=1
 	local face=Theme.Frame(visual,"Face",UDim2.fromScale(1,0.93),Color3.new(1,1,1))
@@ -691,6 +693,9 @@ function Theme.Button(parent, name, text, callback, color)
 	for _,property in {"Text","TextSize","Font","TextColor3","TextXAlignment","TextWrapped","TextScaled","Active"} do
 		button:GetPropertyChangedSignal(property):Connect(syncCaption)
 	end
+	-- Hover grows to 105% and a press shrinks to 95% (BindButton reads these).
+	button:SetAttribute("HoverScale",Theme.Shell.ButtonHover)
+	button:SetAttribute("PressScale",Theme.Shell.ButtonPress)
 	Theme.Motion:BindButton(button,visual,face,rim.UIStroke)
 	button.Activated:Connect(callback)
 	button.Parent=parent
@@ -759,6 +764,8 @@ function Theme.IconButton(parent,name,text,asset,callback)
 		button:GetPropertyChangedSignal(property):Connect(sync)
 	end
 	sync()
+	button:SetAttribute("HoverScale",Theme.Shell.ButtonHover)
+	button:SetAttribute("PressScale",Theme.Shell.ButtonPress)
 	Theme.Motion:BindButton(button,visual)
 	button.Activated:Connect(function() if button.Active then callback() end end)
 	button.Parent=parent
@@ -795,11 +802,14 @@ function Theme.LayoutHeader(header)
 	-- The window owns one continuous contour around the header and content.
 	local stroke=Theme.Stroke(header.Parent,Color3.new(),Theme.Border.Shell)
 	stroke.BorderStrokePosition=Enum.BorderStrokePosition.Outer
-	Theme.Stroke(header,Theme.Arcade.border,Theme.Border.Shell).Enabled=false
-	local studs=Theme.Studs(header,0.14,28,0)
+	-- §2.1 rule 2: the full-width colour bar has its own 3 px black edge (inside it, so
+	-- the line between header and body reads), studs at 88% transparency.
+	local edge=Theme.Stroke(header,Color3.new(0,0,0),Theme.Shell.HeaderStroke)
+	edge.BorderStrokePosition,edge.Transparency,edge.Enabled=Enum.BorderStrokePosition.Inner,0,true
+	local studs=Theme.Studs(header,0.07,28,0)
 	studs.ZIndex=header.ZIndex;studs:SetAttribute("StudScaleWidth",1)
 	local rim=header:FindFirstChild("InsetHighlight") or Theme.Container(header,"InsetHighlight")
-	Theme.RelativeRect(rim,3,3,1468,109,1474,116)
+	Theme.RelativeRect(rim,7,7,1460,102,1474,116)
 	rim.ZIndex=header.ZIndex+1
 	Theme.Stroke(rim,Palette.Text,Theme.Border.Detail).Transparency=0.46
 	local icon=header.PageIcon
@@ -812,7 +822,7 @@ function Theme.LayoutHeader(header)
 	Theme.RelativeRect(title,left,7,1332-left,102,1474,116)
 	title.TextColor3,title.TextXAlignment,title.TextYAlignment=Palette.Text,Enum.TextXAlignment.Left,Enum.TextYAlignment.Center
 	title.TextWrapped,title.ZIndex=false,header.ZIndex+3
-	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Theme.Arcade.border,0.055
+	title.TextFace.TextOutline.Color,title.TextFace.TextOutline.Thickness=Color3.new(0,0,0),Theme.Shell.TextStroke
 	title.TextShadow.Visible,title.TextShadow.TextTransparency,title.TextShadow.TextOutline.Enabled=true,0.35,false
 	local close=header:FindFirstChild("Close")
 	if close then
@@ -899,16 +909,15 @@ function Theme.Header(parent,name,title,color)
 	return header,text
 end
 
+-- October 21 reference parity: an inner content card is the shell's see-through card
+-- (Theme.ShellCard: lighter, translucent, 2 px dark stroke); `color` tints its rays.
+-- Labels on it are white with the black stroke (no light tan surface any more).
 function Theme.Card(parent,name,size,color)
-	local card=Theme.Frame(parent,name,size,Color3.new(1,1,1))
-	card.BackgroundTransparency=0
-	card:SetAttribute("LightSurface",true)
+	local card=Theme.Frame(parent,name,size,Theme.Shell.Card)
 	card.ClipsDescendants=true
-	Theme.Gradient(card,Palette.Card:Lerp(Palette.Text,0.2),Palette.Card)
-	local rim=Theme.Stroke(card,Color3.new(1,1,1),4)
-	Theme.Gradient(rim,color:Lerp(Palette.Text,0.12),color)
+	Theme.ShellCard(card)
 	local rays=Theme.Image(card,"IconRays",Theme.Assets.Rays,UDim2.fromScale(0.96,0.65),UDim2.fromScale(0.02,0.15))
-	rays.ImageColor3,rays.ImageTransparency,rays.ZIndex=color,0.76,1
+	rays.ImageColor3,rays.ImageTransparency,rays.ZIndex=color or Theme.Tones.Text,0.82,1
 	return card
 end
 
@@ -1053,8 +1062,8 @@ function Theme.ApplyPopupStyle(panel)
 	local header=window:FindFirstChild("Header")
 	local body=window:FindFirstChild("Main") or window:FindFirstChild("Body")
 	if header then
-		local studs=Theme.Studs(header,0.14,28,0)
-	studs.ZIndex=header.ZIndex;studs:SetAttribute("StudScaleWidth",1)
+		local studs=Theme.Studs(header,0.07,28,0)
+		studs.ZIndex=header.ZIndex;studs:SetAttribute("StudScaleWidth",1)
 		for _,name in {"Title","PageIcon","Close"} do
 			local foreground=header:FindFirstChild(name)
 			if foreground and foreground:IsA("GuiObject") then
@@ -1062,26 +1071,19 @@ function Theme.ApplyPopupStyle(panel)
 			end
 		end
 	end
-	local function darkSurface(item,isBody)
-		item.BackgroundColor3,item.BackgroundTransparency=Color3.new(1,1,1),0
-		local gradient=item:FindFirstChildWhichIsA("UIGradient") or Instance.new("UIGradient")
-		gradient.Color=ColorSequence.new(Theme.OverlayColors.Top,Theme.OverlayColors.Bottom)
-		gradient.Transparency=NumberSequence.new({
-			-- Near-opaque so the bright world never tints the body olive; every popup matches.
-			NumberSequenceKeypoint.new(0,if isBody then 0.06 else 0.62),
-			NumberSequenceKeypoint.new(1,if isBody then 0.16 else 0.80),
-		})
-		gradient.Rotation,gradient.Parent=90,item
+	-- Any other painted area inside the window becomes a shell inner card. Strokes it
+	-- already has turn dark and at most 2 px; none are added (dividers stay lines).
+	local function contentSurface(item)
+		item.BackgroundColor3=Theme.Shell.Card
+		item.BackgroundTransparency=math.max(item.BackgroundTransparency,Theme.Shell.CardTransparency)
+		local gradient=item:FindFirstChildWhichIsA("UIGradient")
+		if gradient then gradient.Enabled=false end
 		local rim=item:FindFirstChild("InnerRim")
 		if rim and rim:IsA("GuiObject") then rim.Visible=false end
 		local stroke=item:FindFirstChildWhichIsA("UIStroke")
 		if stroke then
-			if isBody then
-				stroke.Color,stroke.Transparency,stroke.Thickness=Color3.fromRGB(6,8,9),0.12,3
-			else
-				stroke.Transparency=math.max(stroke.Transparency,0.42)
-				stroke.Thickness=math.min(stroke.Thickness,2)
-			end
+			stroke.Color,stroke.Transparency=Color3.new(0,0,0),Theme.Shell.CardStrokeTransparency
+			stroke.Thickness=math.min(stroke.Thickness,Theme.Shell.CardStroke)
 		end
 	end
 	local protected={
@@ -1094,15 +1096,16 @@ function Theme.ApplyPopupStyle(panel)
 		-- Action-button visuals and their captions retain their authored colors.
 		if item:IsA("GuiButton") and (item:FindFirstChild("Visual") or item.Name=="Buy") then return end
 		if item:IsA("Frame") or item:IsA("GuiButton") then
-			if item.BackgroundTransparency<1 or item:FindFirstChildWhichIsA("UIGradient") then
-				darkSurface(item,item==body)
-			end
+			-- §2.1 rule 1: the body is the shell; painted areas inside it are inner cards.
+			if item==body then Theme.ShellBody(item)
+			elseif item.BackgroundTransparency<1 or item:FindFirstChildWhichIsA("UIGradient") then contentSurface(item) end
 		elseif item:IsA("TextLabel") and item.Name~="TextShadow" then
+			-- §2.1 rule 3: no dark or unstroked text on the dark shell.
 			local _,_,value=item.TextColor3:ToHSV()
 			if value<0.7 then
-				item.TextColor3=if item.Name=="Title" or item.Name=="Current"
-					then Color3.fromRGB(255,255,255) else Color3.fromRGB(224,230,233)
+				item.TextColor3=if item.Name=="Title" or item.Name=="Current" then Theme.Tones.Text else Theme.Tones.Secondary
 			end
+			if item.TextTransparency<1 and not item:FindFirstChildWhichIsA("UIStroke") then Theme.Outline(item) end
 		elseif item:IsA("TextBox") then
 			item.BackgroundColor3,item.BackgroundTransparency=Color3.fromRGB(8,10,12),0.28
 			item.TextColor3,item.PlaceholderColor3=Color3.fromRGB(245,248,250),Color3.fromRGB(172,185,192)
@@ -1181,8 +1184,11 @@ for name,color in Theme.ReferenceColors do
 	Theme.PageColors[name]=color
 	Theme.HeaderColors[name]=color
 end
--- DESIGN.md: Settings is neutral, not an Upgrades-cyan page.
-Theme.HeaderColors.Settings=Color3.fromRGB(82,102,90)
+-- DESIGN.md: Settings is neutral, not an Upgrades-cyan page. October 21 reference
+-- parity: the reference's grey-blue Settings bar and its teal-green Index bar.
+Theme.HeaderColors.Settings=Color3.fromRGB(104,120,146)
+Theme.PageColors.Index,Theme.HeaderColors.Index=Color3.fromRGB(38,192,134),Color3.fromRGB(38,192,134)
+Theme.Assets.Settings="rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab@2x.png"
 Theme.NavigationColors.HotPink=Theme.ReferenceColors.Base
 Theme.NavigationColors.Orange=Theme.ReferenceColors.Base
 Theme.NavigationColors.Cyan=Theme.ReferenceColors.Upgrades
@@ -1192,11 +1198,32 @@ Theme.Arcade.blue=Theme.ReferenceColors.Upgrades
 Theme.ActionColors.purchase,Theme.ActionColors.navigation=Theme.ReferenceColors.Army,Theme.ReferenceColors.Upgrades
 Theme.ActionColors.selected,Theme.ActionColors.sell=Theme.ReferenceColors.Base,Theme.ReferenceColors.Base
 Theme.Colors.gold,Theme.Colors.green,Theme.Colors.blue=Theme.ReferenceColors.Base,Theme.ReferenceColors.Army,Theme.ReferenceColors.Upgrades
-Theme.AccentPaletteVersion=4
+Theme.AccentPaletteVersion=5
+
+-- §2.1 rule 3 button fills (every one with the 3 px black stroke): purchase green,
+-- action blue, danger red, sort purple, claim white (white lettering, black stroke).
+Theme.ButtonColors={
+	purchase=Theme.ReferenceColors.Army, action=Theme.ReferenceColors.Upgrades,
+	danger=Theme.ActionColors.danger, sort=Theme.Arcade.purple, claim=Color3.fromRGB(242,246,250),
+}
+-- Colour -> reference gradient for fills that are not ReferenceColors (sampled from the
+-- recording: Sell red, Sort purple, Claim white, Settings and Index bars).
+local EXTRA_GRADIENTS={
+	{Theme.ButtonColors.danger,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59))},
+	{Theme.ButtonColors.sort,ColorSequence.new(Color3.fromRGB(214,113,240),Color3.fromRGB(118,62,182))},
+	{Theme.ButtonColors.claim,ColorSequence.new(Color3.fromRGB(255,255,255),Color3.fromRGB(204,212,222))},
+	{Theme.HeaderColors.Settings,ColorSequence.new(Color3.fromRGB(152,166,180),Color3.fromRGB(82,99,130))},
+	{Theme.HeaderColors.Index,ColorSequence.new(Color3.fromRGB(58,234,134),Color3.fromRGB(18,140,137))},
+}
+Theme.ReferenceGradients.Index=EXTRA_GRADIENTS[5][2]
+Theme.ReferenceGradients.Settings=EXTRA_GRADIENTS[4][2]
 
 local function referenceGradient(color)
 	for name,reference in Theme.ReferenceColors do
 		if color==reference then return Theme.ReferenceGradients[name] end
+	end
+	for _,entry in EXTRA_GRADIENTS do
+		if color==entry[1] then return entry[2] end
 	end
 	return nil
 end

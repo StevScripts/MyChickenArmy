@@ -15,7 +15,7 @@ local Rules=require(Shared.Rules)
 local Catalog=require(Shared.PetCatalog)
 local Mutations=require(Shared.MutationCatalog)
 local WHITE=Color3.fromRGB(249,251,242)
-local MUTED=Color3.fromRGB(181,205,223)
+local MUTED=Theme.Tones.Secondary
 local GREEN=Theme.ReferenceColors.Army
 local EDGE=Color3.fromRGB(66,119,149)
 local INK=Color3.fromRGB(3,11,14)
@@ -64,7 +64,12 @@ local SORTS={"Value","Name"}
 -- Design units: the shared My Army panel (1274/876) drawn 1474 wide.
 local W=1474
 local H=1474*876/1274
-local BH=H-121 -- Body below the shared 116-unit header and 5-unit foot.
+-- October 21 reference parity (t39s): the bottom bar (Search, Back, Sort, Sell) sits
+-- under the window, outside it, as in the reference's Fruits window. The painted
+-- window ends BAR_SPACE units above the frame's foot; the bar fills the last BAR_H.
+local BAR_H,BAR_GAP=82,22
+local BAR_SPACE=BAR_H+BAR_GAP
+local BH=H-116-BAR_SPACE -- Body below the shared 116-unit header, above the bar.
 local GRID_W=1414
 local CELL_W=(GRID_W-(COLUMNS-1)*16)/COLUMNS
 local CELL_H=CELL_W*220/210
@@ -165,9 +170,12 @@ function Menu.new(app,parent)
 	self.root=root
 	Theme.Aspect(root,1274/876)
 	root.AnchorPoint,root.Position,root.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1,1)
-	-- My Army's backdrop: black at 10% transparency.
+	-- The shell body (REFERENCE_PARITY_20261021.md 2.1) behind the header and content
+	-- only; it carries the window's 3 px black outline (the bar below has none).
 	local background=frame(root,"SellBackground")
-	background.Size,background.BackgroundColor3,background.BackgroundTransparency=UDim2.fromScale(1,1),Color3.new(),0.1
+	background.Size=UDim2.fromScale(1,(H-BAR_SPACE)/H)
+	Theme.ShellBody(background)
+	background.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Outer
 	local header,title=Theme.Header(root,"Header","Sell Chickens",GREEN)
 	Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
 	header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
@@ -179,7 +187,11 @@ function Menu.new(app,parent)
 	local body=frame(root,"SellContent")
 	body.Size=UDim2.fromScale(1,1)
 	self.body=body
-	Theme.BelowHeader(header,body,1-5/H)
+	Theme.BelowHeader(header,body,(H-BAR_SPACE)/H)
+	-- LayoutHeader outlines the header's parent (the whole frame, bar included); the
+	-- window background carries the outline instead.
+	local frameStroke=root:FindFirstChildWhichIsA("UIStroke")
+	if frameStroke then frameStroke.Enabled=false end
 	-- "N Selected - 🪙 X" between two faint rules.
 	for index,x in {40,1244} do
 		local rule=frame(body,"Rule"..index)
@@ -198,8 +210,10 @@ function Menu.new(app,parent)
 	self.countValue=label(body,"SelectedValue","0",GOLD,true)
 	Theme.RelativeRect(self.countValue,760,12,420,52,W,BH)
 	local panel=frame(body,"SellPanel")
-	surface(panel,Color3.fromRGB(27,40,47),Color3.fromRGB(13,29,38),EDGE,2)
-	local panelHeight=BH-76-110
+	-- The shell's see-through inner card with its 2 px dark stroke.
+	Theme.ShellCard(panel)
+	panel.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	local panelHeight=BH-76-14
 	Theme.RelativeRect(panel,14,76,1446,panelHeight,W,BH)
 	self.panel=panel
 	local grid=Instance.new("ScrollingFrame")
@@ -220,11 +234,15 @@ function Menu.new(app,parent)
 	self.empty=label(panel,"Empty","",MUTED)
 	self.empty.TextWrapped,self.empty.TextXAlignment=true,Enum.TextXAlignment.Center
 	Theme.RelativeRect(self.empty,120,panelHeight/2-60,1206,120,1446,panelHeight)
-	-- Bottom bar, reference order: Search, Back, Sort, Sell (N).
-	local barY=BH-96
-	local searchShell=frame(body,"Search")
-	surface(searchShell,Color3.fromRGB(28,42,49),Color3.fromRGB(24,38,45),Color3.fromRGB(142,175,193),Theme.Border.Card)
-	Theme.RelativeRect(searchShell,14,barY,440,82,W,BH)
+	-- Bottom bar under the window, reference order: Search, Back, Sort, Sell (N).
+	local bar=frame(root,"BottomBar")
+	Theme.RelativeRect(bar,0,H-BAR_H,W,BAR_H,W,H)
+	self.bar=bar
+	local searchShell=frame(bar,"Search")
+	-- On the world itself, so the search box is the shell body (dark, 3 px black).
+	Theme.ShellBody(searchShell)
+	searchShell.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	Theme.RelativeRect(searchShell,14,0,440,BAR_H,W,BAR_H)
 	local searchIcon=Theme.Image(searchShell,"SearchIcon",Art.Search,UDim2.new())
 	searchIcon.ZIndex=searchShell.ZIndex+1
 	Theme.RelativeRect(searchIcon,18,20,42,42,440,82)
@@ -238,24 +256,24 @@ function Menu.new(app,parent)
 	Theme.RelativeRect(search,76,6,348,70,440,82)
 	Theme.ScaleText(search)
 	self.search=search
-	self.back=button(body,"Back","Back",function()
+	self.back=button(bar,"Back","Back",function()
 		app.audio:Play("Click");app:OpenPage("Army")
 	end,"Red")
-	Theme.RelativeRect(self.back,488,barY,234,82,W,BH)
-	self.sortButton=button(body,"Sort","Sort: Value",function()
+	Theme.RelativeRect(self.back,488,0,234,BAR_H,W,BAR_H)
+	self.sortButton=button(bar,"Sort","Sort: Value",function()
 		cue("TabSwitch","Click")
 		self.sort=SORTS[(table.find(SORTS,self.sort) or 1)%#SORTS+1]
 		self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 	end,"Purple")
 	self.sortButton:SetAttribute("ClickSound",false)
-	Theme.RelativeRect(self.sortButton,753,barY,338,82,W,BH)
-	self.sell=button(body,"SellSelected","Sell (0)",function() self:Review() end,"Green")
-	Theme.RelativeRect(self.sell,1122,barY,338,82,W,BH)
+	Theme.RelativeRect(self.sortButton,753,0,338,BAR_H,W,BAR_H)
+	self.sell=button(bar,"SellSelected","Sell (0)",function() self:Review() end,"Green")
+	Theme.RelativeRect(self.sell,1122,0,338,BAR_H,W,BAR_H)
 	for item,width in {[self.back]=234,[self.sortButton]=338,[self.sell]=338} do
 		item.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",W/width)
-		-- Phone hit area: 157 units (48 px) tall; 28 of the extra 75 go up to the grid's
-		-- clipped edge, the rest past the window's foot.
-		Theme.PadHit(item,1,157/82,0.5,28/75)
+		-- Phone hit area: 157 units (48 px) tall; 22 of the extra 75 go up into the gap
+		-- under the window, the rest below the bar.
+		Theme.PadHit(item,1,157/82,0.5,BAR_GAP/75)
 	end
 	self:BuildConfirm()
 	self:BuildTooltip()
@@ -329,7 +347,9 @@ function Menu:BuildTooltip()
 	local tip=frame(self.root,"ChickenTooltip")
 	tip.Size,tip.ZIndex,tip.Visible=UDim2.fromScale(280/W,1),self.root.ZIndex+30,false
 	Theme.Aspect(tip,280/330)
-	surface(tip,Color3.fromRGB(33,49,58),Color3.fromRGB(20,32,40),INK,3)
+	Theme.ShellBody(tip)
+	tip.BackgroundTransparency=0
+	tip.UIGradient.Transparency=NumberSequence.new(0.08,0.12) -- floats over cards: nearly opaque
 	local parts={}
 	local function line(name,y,height,color,prominent)
 		local item=label(tip,name,"",color,prominent)
