@@ -132,9 +132,11 @@ function Checks.Run()
 		local upgrades=Upgrades.new(nil,nil)
 		local ok,message=upgrades:BuyNode(s,"EggSpeed1",Tree.Price("EggSpeed",1,0))
 		assert(ok and s.eggSpeedLevel==1 and s.coins==Config.StartingCoins-400,message)
-		-- 2,000 Coins left, 1,800 kept for the guide's recruit and Army Size 4.
+		-- 2,000 Coins left, 1,200 kept for Army Size 4. October 21: the guide's starter
+		-- chicken is FREE (StarterRecruitPrice 0), so nothing is held for it any more.
+		assert(s:StarterCashReserve()==1200,"Reserve "..s:StarterCashReserve())
 		ok,message=upgrades:BuyNode(s,"EggSpeed2",Tree.Price("EggSpeed",2,0))
-		assert(not ok and string.find(message,"Keep 1,800 Coins",1,true),message)
+		assert(not ok and message=="Keep 1,200 Coins for Army Size I in Upgrades.",message)
 		refused("This upgrade changed. Try again.",upgrades:BuyNode(s,"EggSpeed2",1))
 		refused("Egg Speed I is already yours.",upgrades:BuyNode(s,"EggSpeed1",Tree.Price("EggSpeed",1,0)))
 		ok,message=upgrades:BuyNode(s,"ArmySize1",1200)
