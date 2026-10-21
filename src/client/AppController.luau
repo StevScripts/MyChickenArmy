@@ -76,7 +76,7 @@ QUIET_SUCCESS.ClaimPlaytime = true
 function AppController.new()
 	local self = setmetatable({connections = {}, requestId = 0, page = "Army", selected = nil,
 		confirm = nil, panelKey = "", reducedMotion = false, toastSerial = 0, alive = true,
-		recruitIntents = {}, recruitReceipts = {}, menuBlurOwners = {}}, AppController)
+		recruitIntents = {}, recruitReceipts = {}, menuBlurOwners = {}, notices = {}}, AppController)
 	self.audio = AudioController.new()
 	self.feedback = ActionFeedback.new(self)
 	self.eggs = EggController.new(self)
@@ -137,6 +137,7 @@ function AppController:PlaceNotice()
 	if self.toastFrame and self.toastFrame.Visible and not self.noticeLeaving then
 		Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),true)
 	end
+	if self.toastFrame then self:RestackNotices() end
 end
 
 function AppController:SizeNotice()
@@ -145,53 +146,133 @@ function AppController:SizeNotice()
 	Theme.ScaleText(self.toast)
 end
 
+-- October 21 reference parity (REFERENCE_PARITY_20261021.md §2.2): top-centre banners
+-- stack like the reference's. The newest takes the slot (self.toastFrame, which other
+-- code places itself under); older ones move up a line and keep their own reading
+-- time. The same message again bumps its banner's "(xN)" counter instead of stacking.
+local NOTICE_OLDER=2
+local function noticeText(text: string, count: number): string
+	return if count>1 then text.." (x"..count..")" else text
+end
+local function noticeSeconds(text: string, urgent: boolean): number
+	return math.clamp(#text/24+1,if urgent then 5 else 4,8)
+end
+
+-- Older banners sit one line above the next, each by its own line height.
+function AppController:RestackNotices()
+	local notices=self.notices
+	if not notices or #notices==0 then return end
+	local parent=self.toastFrame.Parent
+	local height=if parent and parent:IsA("GuiObject") then parent.AbsoluteSize.Y else 0
+	local function line(group)
+		local row=group:FindFirstChild("Row")
+		local pixels=if row and row:IsA("GuiObject") then row.AbsoluteSize.Y else 0
+		return if height>0 and pixels>0 then pixels/height else 0.05
+	end
+	local slot=self:NoticePosition()
+	local showing=self.toastFrame.Visible and not self.noticeLeaving
+	local offset,below=0,if showing then line(self.toastFrame) else 0
+	for _,notice in notices do
+		if not notice.leaving then
+			local own=line(notice.group)
+			if below>0 then offset+=(below+own)/2*1.02 end
+			below=own
+			Theme.Motion:Tween(notice.group,"notice-stack",{Position=slot-UDim2.fromScale(0,offset)},0.18)
+		end
+	end
+end
+
+function AppController:DropNotice(notice)
+	if notice.leaving then return end
+	notice.leaving=true
+	if notice.delay then task.cancel(notice.delay);notice.delay=nil end
+	local index=table.find(self.notices,notice)
+	if index then table.remove(self.notices,index) end
+	Theme.NotificationLeave(notice.group)
+	task.delay(0.45,function() notice.group:Destroy() end)
+	self:RestackNotices()
+end
+
+function AppController:ArmOlderNotice(notice, seconds: number)
+	if notice.delay then task.cancel(notice.delay) end
+	notice.delay=task.delay(seconds,function()
+		notice.delay=nil
+		if self.alive then self:DropNotice(notice) end
+	end)
+end
+
+-- The banner in the slot moves up one line (an identical copy takes over at once).
+function AppController:PromoteNotice()
+	local group,label=Theme.Notification(self.toastFrame.Parent)
+	group.Name="OlderNotification"
+	group.ZIndex=self.toastFrame.ZIndex
+	group.Size,group.Position=self.toastFrame.Size,self.toastFrame.Position
+	Theme.Aspect(group,9)
+	Theme.SetNotification(label,noticeText(self.noticeText,self.noticeCount or 1),self.noticeKind)
+	Theme.ScaleText(label)
+	group.GroupTransparency,group.Visible=0,true
+	local notice={group=group,label=label,text=self.noticeText,kind=self.noticeKind,count=self.noticeCount or 1}
+	self.notices=self.notices or {}
+	table.insert(self.notices,1,notice)
+	self:ArmOlderNotice(notice,math.max(1.5,(self.toastExpiresAt or 0)-os.clock()))
+	while #self.notices>NOTICE_OLDER do self:DropNotice(self.notices[#self.notices]) end
+end
+
+function AppController:ArmNotice(text: string, urgent: boolean)
+	if self.toastDelay then task.cancel(self.toastDelay) end
+	local serial=self.toastSerial
+	local duration=noticeSeconds(text,urgent)
+	self.toastExpiresAt=os.clock()+duration
+	self.toastDelay=task.delay(duration, function()
+		self.toastDelay=nil
+		if not self.alive or serial ~= self.toastSerial then return end
+		self.noticeLeaving=true
+		Theme.NotificationLeave(self.toastFrame)
+		self:RestackNotices()
+	end)
+end
+
 function AppController:Notify(text, ok)
 	if not text or text == "" then return end
 	local kind=if type(ok)=="string" and Theme.NotificationStyles[ok] then ok
 		elseif ok==false then "error" elseif ok==true then "success" else "info"
 	local urgent=kind=="error" or kind=="warning"
-	if not urgent and os.clock()<(self.noticeHoldUntil or 0) then
-		-- An error keeps its full reading time; routine notices wait their turn.
-		local queue=self.noticeQueue or {}
-		self.noticeQueue=queue
-		local last=queue[#queue]
-		if not (last and last.text==text and last.kind==kind) then
-			table.insert(queue,{text=text,kind=kind})
-			if #queue>3 then table.remove(queue,1) end
-		end
-		return
-	end
 	if kind=="error" then
 		self.audio:Play("Error",nil,{voiceKey="ErrorNotification",cooldown=0.25})
 	elseif kind=="success" then
 		-- October 21 game feel: good news gets a soft badge chime (the library sets its level).
 		self:Cue("Badge",nil,nil,{voiceKey="Notice",cooldown=0.4})
 	end
-	local repeated=self.toastFrame.Visible and self.noticeText==text and self.noticeKind==kind
-	self.noticeText,self.noticeKind=text,kind
+	self.notices=self.notices or {}
+	-- The same message again: its banner counts "(x2)", "(x3)" and stays up longer.
+	if self.toastFrame.Visible and not self.noticeLeaving and self.noticeText==text and self.noticeKind==kind then
+		self.noticeCount=(self.noticeCount or 1)+1
+		Theme.SetNotification(self.toast,noticeText(text,self.noticeCount),kind)
+		Theme.NotificationFlair(self.toastFrame,self.toast,kind,true)
+		self:ArmNotice(text,urgent)
+		self:RestackNotices()
+		return
+	end
+	for _,notice in self.notices do
+		if not notice.leaving and notice.text==text and notice.kind==kind then
+			notice.count+=1
+			Theme.SetNotification(notice.label,noticeText(text,notice.count),kind)
+			Theme.NotificationFlair(notice.group,notice.label,kind,true)
+			self:ArmOlderNotice(notice,noticeSeconds(text,urgent))
+			self:RestackNotices()
+			return
+		end
+	end
+	if self.toastFrame.Visible and not self.noticeLeaving and self.noticeText then self:PromoteNotice() end
+	self.noticeText,self.noticeKind,self.noticeCount=text,kind,1
 	self.toastSerial += 1
-	local serial = self.toastSerial
 	Theme.SetNotification(self.toast,text,kind)
 	self:SizeNotice()
 	self.noticeLeaving=false
-	Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),repeated)
-	Theme.NotificationFlair(self.toastFrame,self.toast,kind,repeated)
-	if self.toastDelay then task.cancel(self.toastDelay) end
-	local duration=math.clamp(#text/24+1,if urgent then 5 else 4,8)
-	self.noticeHoldUntil=if urgent then os.clock()+duration else 0
-	self.toastDelay=task.delay(duration, function()
-		self.toastDelay=nil
-		if not self.alive or serial ~= self.toastSerial then return end
-		self.noticeHoldUntil=0
-		local queue=self.noticeQueue
-		if queue and #queue>0 then
-			local nextNotice=table.remove(queue,1)
-			self:Notify(nextNotice.text,nextNotice.kind)
-			return
-		end
-		self.noticeLeaving=true
-		Theme.NotificationLeave(self.toastFrame)
-	end)
+	Theme.Motion:Toast(self.toastFrame,true,self:NoticePosition(),false)
+	Theme.NotificationFlair(self.toastFrame,self.toast,kind,false)
+	self:ArmNotice(text,urgent)
+	self:RestackNotices()
 end
 
 function AppController:Pet(id)
@@ -366,9 +447,9 @@ function AppController:OpenPage(page)
 	Theme.Surface(self.panelBody,Theme.PageSurfaces[page] or C.panel)
 	self.content.ScrollBarImageColor3=tint
 	local icon=self.panelHeader.PageIcon
-	icon.Visible=page=="Army" or page=="Upgrades" or page=="Odds" or page=="Shop" or page=="Index"
+	icon.Visible=page=="Army" or page=="Upgrades" or page=="Odds" or page=="Shop" or page=="Index" or page=="Settings"
 	icon.Image=if page=="Shop" then Theme.Assets.Shop elseif page=="Index" then Theme.Assets.Index
-		elseif page=="Army" then Theme.Assets.Army else Theme.Assets.Luck
+		elseif page=="Army" then Theme.Assets.Army elseif page=="Settings" then Theme.Assets.Settings else Theme.Assets.Luck
 	self.panel.Visible, self.backdrop.Visible = true, true
 	self:FitPanel()
 	self:RenderPanel(true)
@@ -527,6 +608,13 @@ function AppController:BuildUI()
 	self.indexBrowser=IndexBrowser.new(self,body)
 	self.progression:Mount(panel)
 	self.research=ResearchBrowser.new(self,frames)
+	-- Reference parity §2.1: every menu and popup takes the shared blur while it is open.
+	-- The Upgrades tree shows and hides its root itself, so its blur follows that root
+	-- (the "research" owner; the tree may also take it directly, the owners are a set).
+	local researchRoot=self.research.root
+	table.insert(self.connections,researchRoot:GetPropertyChangedSignal("Visible"):Connect(function()
+		self:SetMenuBlur("research",researchRoot.Visible)
+	end))
 	self.researchExtras=ResearchExtras.new(self)
 	self.missionTracker=MissionTracker.new(self)
 	self.adminPanel=AdminPanel.new(self)
@@ -672,32 +760,71 @@ function AppController:Groups()
 	return groups, byKey
 end
 
+-- One Settings row, as in the reference (t97s): a studded grey-blue card with the title
+-- and a grey line under it, and a pill at its right end (green ON / red OFF, or a blue
+-- action). Rows are 6.1:1 like the shared buttons, so a phone row is 48 px tall, and
+-- the pill's hit area fills the row's height. The row owns its colours (no popup skin).
+local SETTING_ROW_TOP,SETTING_ROW_BOTTOM=Color3.fromRGB(122,136,160),Color3.fromRGB(74,90,116)
+function AppController:SettingRow(name: string, title: string, subline: string, pillText: string, pillColor: Color3, callback: () -> ())
+	self.order += 1
+	local row=Theme.Frame(self.content,name,UDim2.fromScale(0.96,0.14161),Color3.new(1,1,1))
+	row.LayoutOrder=self.order
+	Theme.Aspect(row,6.1)
+	row.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+	row:SetAttribute("OwnsPopupStyle",true)
+	Theme.Gradient(row,SETTING_ROW_TOP,SETTING_ROW_BOTTOM)
+	Theme.Stroke(row,Color3.new(0,0,0),Theme.Shell.CardStroke)
+	local studs=Theme.Studs(row,0.07,28,0)
+	studs:SetAttribute("StudScaleHeight",4)
+	studs.ZIndex=row.ZIndex+1
+	local heading=Theme.Label(row,"Title",title,26,Theme.Tones.Text)
+	heading.Position,heading.Size,heading.TextWrapped=UDim2.fromScale(0.035,0.08),UDim2.fromScale(0.6,0.5),false
+	heading.ZIndex=row.ZIndex+3
+	local line=Theme.Label(row,"Subline",subline,16,Theme.Tones.Secondary)
+	line.Position,line.Size,line.TextWrapped=UDim2.fromScale(0.035,0.58),UDim2.fromScale(0.6,0.32),false
+	line.ZIndex=row.ZIndex+3
+	local pill
+	pill=Theme.ActionButton(row,"Pill",pillText,function() callback() end,pillColor)
+	pill.AnchorPoint,pill.Position,pill.Size=Vector2.new(1,0.5),UDim2.fromScale(0.97,0.5),UDim2.fromScale(0.3,0.68)
+	pill.ZIndex=row.ZIndex+4
+	-- The callback plays its own cue (Toggle or Click).
+	pill:SetAttribute("ClickSound",false)
+	pill.Visual.Face.StudClip.StudTexture:SetAttribute("StudScaleWidth",1474/300)
+	Theme.PadHit(pill,1.1,1/0.68,1,0.5) -- the whole row height, a little wider to the left
+	Theme.ScaleText(row)
+	return row,pill
+end
+
 function AppController:RenderSettings()
 	local tutorial=(self.state and self.state.tutorial) or {}
+	self.panelTitle.Text = "Settings"
 	-- Only offer to resume the guide after the player actually skipped it.
 	if tutorial.guideSkipped and not tutorial.guideCompleted and not tutorial.wonCamp then
-		local resume=self:Button("ResumeCommander", "Resume Commander Cluck", function() self:Request("TutorialSignal",{signal="Resume"});self:ClosePanel() end)
-		Theme.Aspect(resume,5.6)
-		resume.UIAspectRatioConstraint.AspectType=Enum.AspectType.ScaleWithParentSize
+		self:SettingRow("ResumeCommander","Commander Cluck","Pick the tutorial up where you left it","Resume",Theme.ButtonColors.action,function()
+			self.audio:Play("Click");self:Request("TutorialSignal",{signal="Resume"});self:ClosePanel()
+		end)
 	end
-	self.panelTitle.Text = "Settings"
-	-- Toggles read at a glance: green when ON, gray when OFF.
-	local function toggle(name, label, on, callback)
-		return self:Button(name, label .. "  ·  " .. (if on then "ON" else "OFF"), function()
+	-- Reference rows: what the setting does in a grey line, a green ON / red OFF pill.
+	local function toggle(name, title, subline, on, callback)
+		return self:SettingRow(name,title,subline,if on then "ON" else "OFF",
+			if on then Theme.ButtonColors.purchase else Theme.ButtonColors.danger,function()
 			self:Cue("Toggle","Click")
 			callback()
-			-- The row is rebuilt with its new state; let the fresh switch land with a pop.
+			-- The row is rebuilt with its new state; let the fresh pill land with a pop.
 			local fresh=self.content:FindFirstChild(name)
-			if fresh and fresh:FindFirstChild("Visual") then Theme.Motion:Pop(fresh.Visual,1.06) end
-		end, if on then Theme.Arcade.green else Theme.ActionColors.disabled)
+			local pill=fresh and fresh:FindFirstChild("Pill")
+			if pill and pill:FindFirstChild("Visual") then Theme.Motion:Pop(pill.Visual,1.1) end
+		end)
 	end
-	toggle("ToggleMusic", "Music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
-	toggle("ToggleEffects", "Sound effects", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
-	toggle("ReducedMotion", "Reduced motion", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	toggle("ToggleEffects", "Sound Effects", "Coin, chicken and menu sounds", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
+	toggle("ToggleMusic", "Music", "Background music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
+	toggle("ReducedMotion", "Reduced Motion", "Fewer shakes, flashes and particles", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
 	-- October 20 Auto Roll (Gem Upgrade): its settings live in their own popup (S12).
 	local auto=self.state.autoRoll
 	if auto and auto.unlocked then
-		self:Button("AutoRollSettings", "Auto Roll settings", function() self.autoRollMenu:Open() end, Theme.ActionColors.navigation)
+		self:SettingRow("AutoRollSettings","Auto Roll","Which chickens stop Auto Roll","Open",Theme.ButtonColors.action,function()
+			self.audio:Play("Click");self.autoRollMenu:Open()
+		end)
 	end
 	-- Testers: a disposable brand-new profile; the real save is kept and returns on rejoin.
 	if self.state.newPlayerTestAllowed then
@@ -710,25 +837,32 @@ function AppController:RenderSettings()
 			end, Theme.ActionColors.danger)
 			self:Button("CancelNewPlayerTest", "Cancel", function() self.confirm = nil;self:RenderPanel(true) end)
 		else
-			self:Button("TestNewPlayer", if self.state.newPlayerTest then "Restart new-player test" else "Test as a new player", function()
-				self.confirm = {kind = "NewPlayerTest"};self:RenderPanel(true)
-			end, Theme.ActionColors.navigation)
+			self:SettingRow("TestNewPlayer",if self.state.newPlayerTest then "Restart New-Player Test" else "Test as a New Player",
+				"A fresh profile; your save returns on rejoin","Start",Theme.ButtonColors.action,function()
+				self.audio:Play("Click");self.confirm = {kind = "NewPlayerTest"};self:RenderPanel(true)
+			end)
 		end
 	end
 	if self.intro and self.intro:CanReplay() then
-		self:Button("ReplayIntro", "Replay intro", function() self:ClosePanel();self.intro:Replay() end, Theme.ActionColors.navigation)
+		self:SettingRow("ReplayIntro","Replay Intro","Watch the opening story again","Play",Theme.ButtonColors.action,function()
+			self.audio:Play("Click");self:ClosePanel();self.intro:Replay()
+		end)
+	end
+	if self.state.admin then
+		self:SettingRow("OpenAdmin","Admin Commands","Owner tools · F2","Open",Theme.ButtonColors.action,function() self.audio:Play("Click");self:OpenPage("Admin") end)
+	end
+	if self.state.debugAllowed then
+		self:SettingRow("OpenTest","Studio Test Tools","Test profiles and grants · F8","Open",Theme.ButtonColors.action,function() self.audio:Play("Click");self:OpenPage("Test") end)
 	end
 	-- Mirrors the real bindings: Start (B/U/R/O), ResearchExtras (G), native E prompts.
 	local input=UserInputService.PreferredInput
 	if input==Enum.PreferredInput.KeyboardAndMouse then
-		self:Text("ControlsHeading", "KEYBOARD CONTROLS", 13, 24, C.green)
-		self:Text("Controls", "WASD move · Space jump · E interact\nB My Army · U or R Upgrades · O Settings\nG Rally in battle · Esc close", 16, 72, C.muted)
+		self:Text("ControlsHeading", "KEYBOARD CONTROLS", 13, 24, Theme.Tones.Gain)
+		self:Text("Controls", "WASD move · Space jump · E interact\nB My Army · U or R Upgrades · O Settings\nG Rally in battle · Esc close", 16, 72, Theme.Tones.Secondary)
 	elseif input==Enum.PreferredInput.Touch then
-		self:Text("Controls", "Tap the on-screen buttons and prompts to interact.", 16, 36, C.muted)
+		self:Text("Controls", "Tap the on-screen buttons and prompts to interact.", 16, 36, Theme.Tones.Secondary)
 	end
-	self:Text("SaveInfo", self.state.saveMessage or "Chickens, Coins and upgrades are saved between visits.", 12, 32, C.muted)
-	if self.state.admin then self:Button("OpenAdmin", "Admin commands  ·  F2", function() self:OpenPage("Admin") end, Theme.ActionColors.navigation) end
-	if self.state.debugAllowed then self:Button("OpenTest", "Studio test tools  ·  F8", function() self:OpenPage("Test") end) end
+	self:Text("SaveInfo", self.state.saveMessage or "Chickens, Coins and upgrades are saved between visits.", 12, 32, Theme.Tones.Secondary)
 end
 
 function AppController:RenderTest()
@@ -1042,6 +1176,11 @@ end
 function AppController:Destroy()
 	self.alive = false
 	if self.toastDelay then task.cancel(self.toastDelay);self.toastDelay=nil end
+	for _,notice in self.notices or {} do
+		if notice.delay then task.cancel(notice.delay) end
+		notice.group:Destroy()
+	end
+	self.notices={}
 	Theme.Motion:Reset()
 	ContextActionService:UnbindAction("PetRollClosePanel")
 	for _, connection in self.connections do connection:Disconnect() end

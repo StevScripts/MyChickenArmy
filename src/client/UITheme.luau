@@ -458,7 +458,7 @@ end
 -- The shell body (§2.1 rule 1): near-black at Shell.BodyTransparency over the blurred
 -- world with a 3 px black square outline; no inner rim. Every popup body looks alike,
 -- whatever page tint the caller passes.
-function Theme.ShellBody(item)
+function Theme.ShellBody(item: GuiObject)
 	item.BackgroundColor3, item.BackgroundTransparency = Color3.new(1,1,1), 0
 	local gradient=item:FindFirstChildWhichIsA("UIGradient") or Instance.new("UIGradient")
 	gradient.Color=ColorSequence.new(Theme.OverlayColors.Top,Theme.OverlayColors.Bottom)
@@ -475,7 +475,7 @@ end
 
 -- An inner content card on the shell body (§2.1 rule 1): slightly lighter, see-through,
 -- with a 2 px dark stroke. `stroke` may tint the edge (selection, rarity).
-function Theme.ShellCard(item, stroke: Color3?)
+function Theme.ShellCard(item: GuiObject, stroke: Color3?)
 	item.BackgroundColor3, item.BackgroundTransparency = Theme.Shell.Card, Theme.Shell.CardTransparency
 	local gradient=item:FindFirstChildWhichIsA("UIGradient")
 	if gradient then gradient.Enabled=false end
