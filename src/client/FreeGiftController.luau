@@ -23,11 +23,12 @@ Controller.Assets={
 -- Width/height of the whole window, header included.
 local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.42,0.6),1.5
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
--- fallback until the sound session adds it. Presentation only; one client audio.
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
 local Audio=nil
 local function cue(name,fallback,pitch,options)
 	if not Audio then return end
-	if Audio:Has(name) then Audio:Play(name,pitch,options)
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
 	elseif fallback then Audio:Play(fallback,pitch,options) end
 end
 

@@ -46,11 +46,12 @@ local GRID_ASPECT=(4+3*GAP)/(3+2*GAP)
 local TILE_W,TILE_H=1/(4+3*GAP),1/(3+2*GAP)
 local STEP_X,STEP_Y=(1+GAP)/(4+3*GAP),(1+GAP)/(3+2*GAP)
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
--- fallback until the sound session adds it. Presentation only; one client audio.
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
 local Audio=nil
 local function cue(name,fallback,pitch,options)
 	if not Audio then return end
-	if Audio:Has(name) then Audio:Play(name,pitch,options)
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
 	elseif fallback then Audio:Play(fallback,pitch,options) end
 end
 
@@ -398,8 +399,9 @@ function Panel:Claimed(result)
 	local receipt=result.receipt
 	local app=self.app
 	local coins=type(receipt)=="table" and receipt.kind=="Coins" and (tonumber(receipt.coins) or 0)>0
-	if not coins then app:Notify(result.message,true) end
 	local view=self.views and type(receipt)=="table" and self.views[receipt.index]
+	-- Boosts and rolls keep the server's message; so do Coins once the window has closed.
+	if not coins or not view then app:Notify(result.message,true) end
 	if not view or not self.grid then return end
 	local motion=Theme.Motion
 	cue("Claim","UIPurchase",nil,{voiceKey="PlaytimeClaim",cooldown=0.3})

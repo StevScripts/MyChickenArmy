@@ -22,11 +22,12 @@ local INK=Color3.fromRGB(3,11,14)
 local CYAN=Color3.fromRGB(0,223,255)
 local GOLD=Theme.Colors.coins
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
--- fallback until the sound session adds it. Presentation only; one client audio.
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
 local Audio=nil
 local function cue(name,fallback,pitch,options)
 	if not Audio then return end
-	if Audio:Has(name) then Audio:Play(name,pitch,options)
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
 	elseif fallback then Audio:Play(fallback,pitch,options) end
 end
 local function denied(item)

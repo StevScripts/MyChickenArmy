@@ -43,11 +43,12 @@ local AFTER_RECEIPT_SECONDS = 0.6
 local LAYOUT_NAME = "DailyStreak"
 local DEFAULT_SIZE, DEFAULT_ASPECT = UDim2.fromScale(0.9,0.72), 1.5
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
--- fallback until the sound session adds it. Presentation only; one client audio.
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
 local Audio = nil
 local function cue(name,fallback,pitch,options)
 	if not Audio then return end
-	if Audio:Has(name) then Audio:Play(name,pitch,options)
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
 	elseif fallback then Audio:Play(fallback,pitch,options) end
 end
 
@@ -338,7 +339,8 @@ function Controller:Show(granted)
 	for _,card in cards do Theme.Motion:Center(card) end
 	self.reveal = Theme.Motion:Stagger(cards,function(card) Theme.Motion:PopScale(card,0.75,0.28) end,0.05,0.35)
 	if todayCard then
-		task.delay(0.5,function()
+		-- After the last card's grow-in, so the two never share the UIScale.
+		task.delay(0.75,function()
 			if self.gui==gui and self.todayCard==todayCard and not self.collecting then Theme.Motion:Breathe(todayCard,1.04,0.7) end
 		end)
 	end
