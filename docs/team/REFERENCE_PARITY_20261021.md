@@ -72,6 +72,13 @@ through `UITheme` (P2 owns the helpers; other workers call them, never re-implem
 No chrome-only text (no unstroked small grey text on dark). No per-device branches.
 
 ### 2.2 HUD layout 1:1 (P1)
+**Reversed (Stevin, October 21, 13:45): "NO NO NO THIS IS TOO MUCH DONT CHANGE THE HUD FROM
+BEFORE, RESET TO BEFORE PLEASE." The P1 merge was reverted on main (b296ac9): My Army stays
+above the hotbar, the Coins readout, Hill chip, right-rail gift/offer and boosts keep their
+previous places, and the vacuum meter sits right of the hotbar slots as before (the P6 pill
+placement commit was reverted too, 2f4daf1; the per-egg chimes, floats, swirl and pad sounds
+stay). The section below is kept as history only. P1 is closed.**
+
 Positions are the reference's, in Scale of a 16:9 screen (measured on 1568×1014 frames):
 - Left stack, vertically centred at y ≈ 0.51: **Shop** plate x 0.014–0.133, h ≈ 0.07
   (wide), then a 2×2 of square plates (each ≈ 0.056 wide): row 2 **Rebirth** | **Upgrades**,
@@ -154,6 +161,10 @@ existing `ActionFeedback` path, one call). Unloading on the pad keeps the coin b
 adds the whoosh. The suction swirl (WorldFeel) is yellow and reads from a distance.
 
 ### 2.7 Rewards popups (P7) and Shop (P8)
+**Sell screen (Stevin, October 21, relayed by the balance session): "I dont want to copy their
+sell section just mines how it is rn." P2's Sell rework (buttons under the window, t39s) was
+reverted (00f0c16); the Sell screen stays as Stevin built it.**
+
 **Shop decision reversed (Stevin, October 21, 13:00): "I don't want to copy their side
 scrolling shop though, keep my shop the same format as before." The P8 rail was merged and
 then reverted on main (a9b56d5); the tabbed Shop (Crates / Passes / Coins, crate buy pill on
@@ -178,7 +189,7 @@ new products, server economy outside P4/P5, the tutorial, and the My Army grid.
 
 | Id | Area | Owns (edit only these; small additive hooks elsewhere go in the hand-off) |
 |---|---|---|
-| P1 | HUD 1:1 | `client/HudController.luau`, `client/BoostReadout.luau`, `client/FriendBoost.luau`, `client/HillHud.luau` (chip slot only), `client/FreeGiftController.luau` (HUD button only), `client/CornerNotice.luau` (position only), `client/GoldRushController.luau` (chip position only) |
+| P1 | HUD 1:1 (closed: Stevin keeps the previous HUD; merge reverted) | – |
 | P2 | Popup shell + conformance | `client/UITheme.luau` (ApplyPopupStyle, Header, Button/ActionButton/PriceButton, Notification, Label stroke helper), `client/AppController.luau` (blur for every menu, FitPanel), `client/MenuLayout.luau`, then the style pass on `client/IndexBrowser.luau`, `client/SellMenu.luau`, `client/AutoRollMenu.luau`, `client/OperationsPanel.luau`, the Settings rows (in AppController), `client/GemUpgradeGrid.luau` (shell only) |
 | P3 | Upgrades tree presentation | `client/ResearchBrowser.luau`, `client/CashUpgradeNodes.luau`, `client/ResearchExtras.luau`, `client/ResearchAssets.luau` |
 | P4 | Rebirth zero + Time Skip claim | `server/RebirthService.luau`, `server/PlayerSession.luau` (the new saved key + TUTORIAL-style list entry), `server/GameServer.luau` (`ClaimTimeSkip` request), `server/DataService.luau` only if the key needs it, `client/RebirthPanel.luau`, new `client/TimeSkipController.luau`, new `tests/TimeSkipClaimChecks.luau`, `docs/team/REBIRTH_SCREEN.md` |

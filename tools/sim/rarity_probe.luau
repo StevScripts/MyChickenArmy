@@ -61,6 +61,8 @@ Playtime.FreeRolls = function(session, rolls)
 	return granted
 end
 options.print = options.print == nil and false or options.print
+-- Run the whole ladder unless told otherwise (ProgressionSimulation's own default stops at 30).
+options.targetRank = options.targetRank or Harness.require(Harness.Shared.Config).Rebirth.MaxRank
 local results = Sim.Run(options)
 local function m(x) return if x then string.format("%6.1f", x) else "  -   " end
 print(string.format("=== profile %s · rollEvery %ss · hours %s · seeds %s · play %s/away %s ===", results.options.profile,

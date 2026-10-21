@@ -183,8 +183,20 @@ Luck ladder in that run (the model's conservative buyer, first purchase):
 | Mega Luck III (150B) | 8.4 h (Rebirth 13) | 7.6 h (Rebirth 13) |
 | Mega Luck IV (400B) | not within 30 h | 23.5 h (Rebirth 21) |
 
-So the retune roughly doubles the time to Rebirth 20 under the ladder that was fitted
-with the old Luck curve: the Flock's best layers are Legendaries instead of Mythics for
+Longer runs on the same ladder (the probe stopped at Rebirth 30, its default target;
+pass `targetRank=50` for the full ladder):
+
+| Milestone | Fast nonstop, after | Fast nonstop, before | 45 min a day, after | 45 min a day, before |
+|---|---|---|---|---|
+| Rebirth 10 | 3.9 h | 2.6 h | day 5 | day 4 |
+| Rebirth 15 | 8.8 h | 5.9 h | day 11 | day 6–8 |
+| Rebirth 20 | 25.8 h | 10.6 h | day 22 | day 12 |
+| Rebirth 25 | 42 h | ~15 h | day 36 | – |
+| Rebirth 30 | 62.5 h | 21.1 h | day 51–57 | day 21 |
+| Coins: eggs / Playtime / daily / offline (45 min a day) | 57–58% / 9–10% / 11% / 10% | 52–56% / 21–22% / 10–11% / 2–7% | | |
+
+So the retune roughly doubles the time to Rebirth 20 and triples the time to Rebirth 30
+under the ladder that was fitted with the old Luck curve: the Flock's best layers are Legendaries instead of Mythics for
 hours longer, and Playtime Coins fell from 16% to 7%. The Rebirth ladder (Config.Rebirth
 .Costs) is being re-fitted on top of this by the Rebirth balance session; fit against
 these numbers, not the October 21 morning ones, and keep "more, not harder".
