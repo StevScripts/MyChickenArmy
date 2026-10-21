@@ -79,11 +79,11 @@ local Config = {
  -- ranks step up instead: x20 to Rebirth 5, x3-5 to 10, then x1.3, x1.17 and x1.11 a rank
  -- to 3.2e15 at 50, with the egg multiplier boosted on ranks 5-10 and +5% a rank after.
  Rebirth={Enabled=true,Version=2,MaxRank=50,
-  Costs={5e4,1e6,2e7,4e8,8e9,3.83e10,1.17e11,3.66e11,1.4e12,5.06e12,
-   7e12,9.17e12,1.21e13,1.58e13,2.07e13,2.71e13,3.54e13,4.64e13,6.08e13,7.96e13,
-   9.29e13,1.09e14,1.27e14,1.49e14,1.73e14,2.02e14,2.36e14,2.76e14,3.22e14,3.76e14,
-   4.19e14,4.66e14,5.19e14,5.77e14,6.42e14,7.15e14,7.96e14,8.85e14,9.85e14,1.1e15,
-   1.23e15,1.36e15,1.52e15,1.69e15,1.88e15,2.09e15,2.32e15,2.59e15,2.88e15,3.2e15},
+  Costs={5e4,1e6,2e7,4e8,8e9,3.83e10,1.17e11,3.66e11,1.4e12,4.2e12,
+   6.12e12,8.92e12,1.3e13,1.9e13,2.75e13,3.03e13,3.34e13,3.68e13,4.05e13,4.46e13,
+   4.91e13,5.41e13,5.96e13,6.56e13,7.22e13,7.95e13,8.75e13,9.63e13,1.06e14,1.17e14,
+   1.29e14,1.42e14,1.58e14,1.75e14,1.94e14,2.15e14,2.39e14,2.65e14,2.94e14,3.27e14,
+   3.63e14,4.02e14,4.47e14,4.96e14,5.5e14,6.11e14,6.78e14,7.52e14,8.35e14,9.27e14},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EggBoostPerRank=1.5,EggBoostFromRank=5,EggBoostToRank=10,EggLateGrowthPerRank=1.05,
   EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,
