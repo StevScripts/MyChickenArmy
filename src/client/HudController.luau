@@ -26,12 +26,13 @@ end
 
 function Hud.new(app,shell)
 	local self=setmetatable({app=app},Hud)
-	-- October 20 (Stevin): My Army sits centred just above Roblox's own hotbar (70 px)
-	-- and its backpack arrow (80-110 px up), one layout for every device, 20% smaller
-	-- than before so a phone keeps room above it.
+	-- October 20 (Stevin): My Army sits centred just above Roblox's own hotbar, one
+	-- layout for every device, 20% smaller than before so a phone keeps room above it.
+	-- October 21 (Stevin): it floated too far up; it now sits 84 px up, close over the
+	-- hotbar (65 px) with just room for the vacuum's egg bar in between.
 	local navigation=Theme.Frame(shell,"Navigation",UDim2.fromScale(0.248,0.204))
 	self.navigation=navigation
-	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-116),1
+	navigation.AnchorPoint,navigation.Position,navigation.BackgroundTransparency=Vector2.new(0.5,1),UDim2.new(0.5,0,1,-84),1
 	self.army=Theme.IconButton(navigation,"Army","My Army",Theme.Assets.ArmyHud or Theme.Assets.Army,function() app:TogglePage("Army") end)
 	local function command(action)
 		app.audio:Play("Click")
