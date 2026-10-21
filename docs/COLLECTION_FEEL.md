@@ -32,6 +32,13 @@ unload will too. Robot vacuum deliveries stay quiet.
   stays where the player stood, lingers and fades; the next sale starts a new one.
   The counter is always-on-top and sits `Counter.Toward` studs toward the camera.
   Studio Flow screenshots skip always-on-top billboards, so check it by eye in play.
+- October 21 follow-up (Stevin: "the initial coins falling doesn't have sound and
+  there's no VFX for when you just walk in"): stepping on the pad now flashes the
+  pickup bubble and a gold ring at the player's feet at once. That works without the
+  `ReplicatedStorage.EggDepositEffects` template, which this place doesn't have.
+  A gold sparkle puff (`SpillPuff`) shoots up from the pad as the coins burst out,
+  and the "CoinDrop" sound plays (`SoundService.MyChickenArmyAudio.Collection.CoinDrop`,
+  Studio-owned, asset 134911555436784, alternate 133570405319995).
 - Sounds: EggDeposit when the coins pop, CashTick (Money) on the first landing,
   then CoinPickup on each coin with a slightly rising, jittered pitch. CoinPickup
   (`SoundService.MyChickenArmyAudio.Collection.CoinPickup`, Studio-owned, asset

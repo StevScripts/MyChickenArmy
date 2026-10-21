@@ -215,14 +215,23 @@ function Feedback:SaleCoins(receipt)
 		audio:Play(if audio.templates.CoinPickup then "CoinPickup" else "Collect",pitch,
 			{volume=tick.TickVolume,maxDuration=0.5,voiceKey="SaleCoin",maxVoices=4,cooldown=0.03})
 	end)
-	if played then self.holdUntil = math.max(self.holdUntil, os.clock() + Feel.CoinBurst.HoldTimeout) end
+	if played then
+		self.holdUntil = math.max(self.holdUntil, os.clock() + Feel.CoinBurst.HoldTimeout)
+		-- Coins spilling out of the pad. "CoinDrop" is authored in SoundService.MyChickenArmyAudio.
+		self.app.audio:Play("CoinDrop",1,{noFallback=true,volume=Feel.CoinBurst.DropVolume,
+			maxDuration=Feel.CoinBurst.DropSeconds,voiceKey="SaleCoinDrop",maxVoices=2,cooldown=0.15})
+	end
 	return played
 end
 
-function Feedback:DepositBurst(root)
+function Feedback:DepositBurst(root: BasePart)
 	if not self.alive or self.app.reducedMotion then return end
+	-- Stepping on the pad: the pickup bubble and a gold ring at the feet, at once.
+	self.coinBurst:Flash(root)
+	self:Burst(root.Position - Vector3.new(0, 2.5, 0), GOLD, true)
 	local template = ReplicatedStorage:FindFirstChild("EggDepositEffects")
 	if not template or not template:IsA("Attachment") then
+		-- Optional extra particles; the bubble and ring above play without it.
 		-- Once per session: the place has shipped without this template before.
 		if not self.warnedDeposit then
 			self.warnedDeposit = true
