@@ -220,7 +220,7 @@ function Panel:Build()
 	-- The inset's own width:height on screen sizes the grid's scroll canvas.
 	local frameAspect=(GEM_PANEL[3]/W)/((GEM_PANEL[4]/BODY[4])*(1/ratio-1/Theme.HeaderAspect))
 	self.grid=GemUpgradeGrid.new(app,gemPanel,frameAspect)
-	Theme.HeaderClose(header,function() self:Close() end,1.15) -- phone hit area: 48 px
+	Theme.HeaderClose(header,function() self:Close() end,1.22) -- phone hit area: 48 px
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
 	local restingSize,restingPosition=self.panelSize,self.panelPosition

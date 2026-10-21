@@ -139,8 +139,8 @@ function Shop.new(app,parent)
   else app.commerce:OpenCrate() end
  end,Theme.Colors.green)
  open.Position,open.Size,open.ZIndex=UDim2.fromScale(0.71,0.05),UDim2.fromScale(0.29,0.85),9
- -- Phone hit area: 1.6x tall, mostly downward (the crate's price pills sit just above).
- Theme.PadHit(open,1,1.6,0.5,0.25)
+ -- Phone hit area: 48 px tall, mostly downward (the crate's price pills sit just above).
+ Theme.PadHit(open,1,1.95,0.5,0.25)
  self.openButton=open
  self:Render()
  return self

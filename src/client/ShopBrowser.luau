@@ -137,7 +137,7 @@ function Browser.new(app,parent)
  self.header=header
  self.closeButton=Theme.HeaderClose(header,function()
   self.app.audio:Play("Click");self.app:ClosePanel()
- end,1.55) -- phone hit area: 48 px
+ end,1.65) -- phone hit area: 48 px
  local body=frame(window,"Main",UDim2.fromScale(0.9983333,0.825),UDim2.fromScale(0.50025,0.585))
  body.AnchorPoint=Vector2.new(0.5,0.5)
  Theme.BelowHeader(header,body)

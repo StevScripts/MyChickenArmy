@@ -172,7 +172,7 @@ function Menu.new(app,parent)
 	Theme.ApplyReferenceAccent(header,ColorSequence.new(Color3.fromRGB(178,255,16),Color3.fromRGB(33,224,0)))
 	header.PageIcon.Image,header.PageIcon.Visible=Art.Helmet,true
 	self.header,self.title=header,title
-	self.closeButton=Theme.HeaderClose(header,function() app.audio:Play("Click");app:ClosePanel() end,1.72) -- phone hit area: 48 px
+	self.closeButton=Theme.HeaderClose(header,function() app.audio:Play("Click");app:ClosePanel() end,1.85) -- phone hit area: 48 px
 	self.storage=label(header,"StorageCount","",WHITE,true)
 	self.storage.TextXAlignment,self.storage.ZIndex=Enum.TextXAlignment.Right,header.ZIndex+4
 	Theme.RelativeRect(self.storage,1040,20,300,76,1474,116)
@@ -477,21 +477,25 @@ function Menu:Card(parent,pet,order)
 	local ribbon=frame(card,"RarityRibbon")
 	ribbon.Position,ribbon.Size,ribbon.ZIndex=UDim2.fromScale(6/210,6/220),UDim2.fromScale(198/210,26/220),card.ZIndex+2
 	surface(ribbon,color,color:Lerp(Color3.new(0,0,0),0.22),Color3.fromRGB(7,16,22),Theme.Border.Detail)
-	local rarityLabel=label(ribbon,"Rarity",string.upper(rarity),WHITE)
+	-- Sentence case (DESIGN.md §5): at the readable floor "LEGENDARY" would not fit a
+	-- phone card's 64 px; "Legendary" does.
+	local rarityLabel=label(ribbon,"Rarity",rarity,WHITE)
 	rarityLabel.Size,rarityLabel.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
 	local portrait=Preview.Create(card,pet,UDim2.fromScale(224.4/210,224.4/220),UDim2.fromScale((210-224.4)/420,(32-224.4*0.16)/220))
 	Theme.Aspect(portrait,1)
 	portrait.ZIndex=card.ZIndex+3
 	if portrait:IsA("ViewportFrame") then portrait.Ambient,portrait.LightColor=Color3.fromRGB(202,216,229),Color3.new(1,1,1) end
+	-- Full-width, one-line name and DPS boxes a little apart, so the floor's 12 px lines
+	-- never cross; a long name truncates at the card's edge (the tooltip has it whole).
 	local name=label(card,"Name",(definition.name:gsub(" Chicken$","")),WHITE)
-	name.Position,name.Size,name.TextXAlignment=UDim2.fromScale(5/210,161/220),UDim2.fromScale(200/210,26/220),Enum.TextXAlignment.Center
+	name.Position,name.Size,name.TextXAlignment=UDim2.fromScale(0,148/220),UDim2.fromScale(1,28/220),Enum.TextXAlignment.Center
 	local stats=Rules.Stats(pet.species,pet.stars or 1,pet.level)
 	-- Upgrades effects (state.effects since October 20; research.effects before).
 	local state=self.app.state
 	local effects=state and (state.effects or (state.research and state.research.effects))
 	local damage=stats.damage*(1+(effects and effects.damage or 0))
 	local strength=label(card,"Damage",Theme.Number(damage/stats.interval).." DPS",Color3.fromRGB(255,221,96),true)
-	strength.Position,strength.Size,strength.TextXAlignment=UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),Enum.TextXAlignment.Center
+	strength.Position,strength.Size,strength.TextXAlignment=UDim2.fromScale(0,186/220),UDim2.fromScale(1,24/220),Enum.TextXAlignment.Center
 	local mutation=MutationVFX.Badge(card,pet.mutation)
 	if mutation then mutation.Position,mutation.Size=UDim2.fromScale(92/210,36/220),UDim2.fromScale(112/210,28/220) end
 	-- Selected for sale: a dark cell under the red trash can (or a SELL tag until
@@ -516,6 +520,7 @@ function Menu:Card(parent,pet,order)
 	local border=Theme.Stroke(outline,color,Theme.Border.Card)
 	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	self.cards[pet.id]={card=card,mark=mark}
+	Theme.ScaleText(card) -- the shared readable floor on rarity, name and DPS
 	-- Activated picks the cue itself (Select or Click).
 	card:SetAttribute("ClickSound",false)
 	card.Activated:Connect(function()

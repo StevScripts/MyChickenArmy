@@ -108,9 +108,9 @@ function Controller:Receive(state)
 	local actions=Theme.Container(main,"Actions")
 	actions.AnchorPoint,actions.Position,actions.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,0.965),UDim2.fromScale(0.4,0.1551724076271057)
 	Theme.Aspect(actions,4.329331874847412)
-	-- Phone hit areas (DESIGN.md §6): the X grows 3.4x into the title and the lead-in
+	-- Phone hit areas (DESIGN.md §6): the X grows 3.6x into the title and the lead-in
 	-- line; Collect grows 2.3x, mostly upward over the "Saved" line.
-	Theme.HeaderClose(header,close,3.4)
+	Theme.HeaderClose(header,close,3.6)
 	local continue=Theme.ActionButton(actions,"Continue","Collect",close,GREEN)
 	continue.Position,continue.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,1)
 	Theme.PadHit(continue,1,2.3,0.5,0.72)
