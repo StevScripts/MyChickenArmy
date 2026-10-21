@@ -175,7 +175,6 @@ function Eggs:StepCollectionRange(root,now)
    self.rangeAnchor:SetAttribute("CollectionRadius",radius)
   end
  end
- if self.app.hud then self.app.hud.income.Visible=visible end
  local dt=math.clamp(now-(self.rangeAt or now),0,0.1);self.rangeAt=now
  local target=if visible then 1 else 0
  self.rangeAlpha=if self.app.reducedMotion then target else self.rangeAlpha+(target-self.rangeAlpha)*math.min(1,dt*12)

@@ -82,12 +82,13 @@ function HillHud.new(app,shell: Instance,cash: Instance)
 	return self
 end
 
--- Just above the cash readout, but to the right of the Shop / Upgrades / Index column
--- (HudController.LayoutShortcuts: x 0.009, width 0.096), whose Index label reaches the
--- readout's top on phone and 16:9 shapes; the rank line's short text stays clear of it.
+-- Right on top of the cash readout, left edge on the coin's (later October 21, Stevin:
+-- "align the hill text at the top"). The readout lost its Carrying row that day, so its
+-- top sits below the Shop / Upgrades / Index column. It shares the spot with the rank
+-- line, which hides while this chip shows.
 function HillHud:Place()
 	local cash=self.cash
-	self.waiting.Position=UDim2.fromScale(0.115,cash.Position.Y.Scale-cash.Size.Y.Scale-0.008)
+	self.waiting.Position=UDim2.fromScale(cash.Position.X.Scale,cash.Position.Y.Scale-cash.Size.Y.Scale-0.006)
 end
 
 local function nearHill(): boolean
