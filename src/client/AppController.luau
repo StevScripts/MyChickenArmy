@@ -989,6 +989,7 @@ function AppController:Start()
 	self.cornerNotice=CornerNotice.new(self)
 	self.boostReadout=BoostReadout.new(self)
 	self.playtimePanel=PlaytimePanel.new(self)
+	self.timeSkip=require(script.Parent.TimeSkipController).new(self) -- Oct 21 (P4): the Time Skip claim popup reads its own packets
 	self.commander=CommanderGuide.new(self)
 	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)

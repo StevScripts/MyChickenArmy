@@ -51,6 +51,9 @@ local RANK={18,453,695,282}
 local CHICKEN={268,589,195,143}
 local GEM_PANEL={743,158,945,685}
 local PENDING_SECONDS=10
+-- October 21 (P4): the boom, fanfare and confetti take about this long; the Time Skip
+-- claim popup (TimeSkipController) waits for celebratingUntil before it opens.
+local CELEBRATE_SECONDS=2.2
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
 -- fallback until the sound session adds it (UI Lab previews stub audio without Has).
 -- Presentation only; one client audio.
@@ -139,7 +142,7 @@ end
 
 function Panel.new(app)
 	Audio=app.audio
-	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil,ready=false,skipReady=false},Panel)
+	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil,ready=false,skipReady=false,celebratingUntil=0},Panel)
 end
 
 -- Panel --------------------------------------------------------------------
@@ -165,7 +168,9 @@ function Panel:Open()
 	end,false,3000,Enum.KeyCode.ButtonB)
 	local function connect(signal,callback) table.insert(self.connections,signal:Connect(callback)) end
 	connect(UserInputService.InputBegan,function(input)
-		if input.KeyCode==Enum.KeyCode.Escape then self:Close() end
+		-- Escape over the Time Skip popup claims there; this window stays open beneath it.
+		local timeSkip=self.app.timeSkip
+		if input.KeyCode==Enum.KeyCode.Escape and not (timeSkip and timeSkip.gui) then self:Close() end
 	end)
 	-- Another menu opening replaces this one.
 	if self.app.panel then
@@ -510,6 +515,7 @@ end
 -- what the rank paid.
 function Panel:Celebrate(before,quote,receipt)
 	local rank=tonumber(quote.rank) or 0
+	self.celebratingUntil=os.clock()+CELEBRATE_SECONDS
 	-- The deep Rebirth boom, then the Fanfare a beat later; the world flashes green
 	-- with a quick zoom (ScreenFeel; the camera stays with the player).
 	cue("Rebirth","Victory",nil,{voiceKey="Rebirth",cooldown=1})
@@ -526,6 +532,16 @@ function Panel:Celebrate(before,quote,receipt)
 	local gems=tonumber(receipt and receipt.gems) or tonumber(type(before)=="table" and before.gemsNext)
 	if gems and gems>0 then table.insert(parts,"+"..Theme.Gems(gems)) end
 	table.insert(parts,multiplierText(quote.multiplierNow).." egg Coins")
+	-- October 21 (P4): the Coins stay at 0; Time Skip waits for its claim popup. A Skip
+	-- Rebirth keeps the run, so its Time Skip was paid at once.
+	local skipCoins=tonumber(receipt and receipt.timeSkipCoins) or 0
+	if receipt and receipt.skip==true then
+		if skipCoins>0 then table.insert(parts,"Time Skip: +"..Theme.CompactCoins(skipCoins)) end
+	else
+		local waiting=if type(quote.timeSkipPending)=="table" then tonumber(quote.timeSkipPending.coins) else nil
+		local ready=waiting or skipCoins
+		if ready and ready>0 then table.insert(parts,"Time Skip ready: +"..Theme.CompactCoins(ready)) end
+	end
 	local unlock=if type(before)=="table" then before.unlockNext else nil
 	if type(unlock)=="table" and unlock.name then table.insert(parts,mutationName(unlock.name).." mutations unlocked") end
 	self.app:Notify(table.concat(parts," · "),true)
