@@ -238,7 +238,8 @@ function Checks.Run()
 		{"unknown animal", function(data) data.pets[1].species = "UnreleasedAnimal" end},
 		{"duplicate duck IDs", function(data) data.pets[2].id = data.pets[1].id end},
 		{"invalid cash", function(data) data.pets[1].cash = -25 end},
-		{"invalid upgrade level", function(data) data.incomeLevel = #Config.IncomePrices + 1 end},
+		-- October 20: revision 12 derives levels from upgradeTree; only revision 11 saves validate them.
+		{"invalid legacy upgrade level", function(data) data.dataRevision = 11; data.incomeLevel = #Config.IncomePrices + 1 end},
 	}
 	for _, case in badData do
 		test("Invalid profile with " .. case[1] .. " is preserved and its temporary lease released", function()

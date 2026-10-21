@@ -11,6 +11,8 @@ local function setup()
 	local s=Session.new(-9291,"Cash upgrade fixture",1)
 	s.pets,s.slots,s.armySelection={},{},{}
 	s.loaded=true;s.coins=1e9
+	-- October 20: chicken levels need Chicken Feed (Upgrades > Tools).
+	s.upgradeTree.ChickenFeed=1;s:RefreshEffects()
 	return s,s:AddPet("Duck",1)
 end
 local function buy(s,pet)

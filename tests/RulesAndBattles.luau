@@ -92,7 +92,8 @@ function Tests.Run()
  test("A new player's first physical roll is an affordable disclosed starter",function()
   local s=Session.new(1,"T",1);s.offer=nil;local r=Rolls.new()
   assert(r:Roll(s,100));equal(s.offer.species,"Duck");assert(s.offer.starter)
-  assert(r:Buy(s,s.offer.id,103));assert(r:Roll(s,104));assert(not s.offer.starter)
+  local landed=100+Config.RollRevealSeconds -- October 20: a 4-second reveal.
+  assert(r:Buy(s,s.offer.id,landed));assert(r:Roll(s,landed));assert(not s.offer.starter)
  end)
  test("Eight duck odds normalize and luck increases rare odds",function()
   for level=0,4 do local sum=0;for _,chance in Rules.Odds(level) do sum+=chance end;assert(math.abs(sum-1)<1e-9) end
