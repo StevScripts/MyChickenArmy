@@ -173,7 +173,7 @@ function Checks.Run()
 		-- Time Skip pays today's income, measured before the reset, as the quote showed.
 		assert(receipt.timeSkipCoins==quote.timeSkipCoins and receipt.timeSkipCoins>Rebirth.TimeSkipCoins(s),
 			"Time Skip "..receipt.timeSkipCoins.." vs quote "..quote.timeSkipCoins)
-		assert(s.coins==receipt.timeSkipCoins,"Coins "..s.coins)
+		assert(s.coins==0 and s.timeSkipPending.coins==receipt.timeSkipCoins,"Coins "..s.coins)
 		assert(fed.level==1 and fed.cashLevels==nil,"Chicken Feed levels stay")
 		assert(s.eggCarry.count==0 and s.eggCarry.value==0,"Carried eggs stay")
 		assert(s.firstWins[1] and s.kingCleared and s.research.operationWins.Fixture,"Camp, King or Mission progress lost")
@@ -492,7 +492,7 @@ function Checks.Run()
 		s.autoRebirth=true
 		local ok,message,receipt=Rebirth.Step(s,NO_SERVER)
 		assert(ok and receipt.automatic and not receipt.skip and s.rebirths==2,message)
-		assert(s.coins==receipt.timeSkipCoins,"Coins "..s.coins)
+		assert(s.coins==0 and s.timeSkipPending.coins==receipt.timeSkipCoins,"Coins "..s.coins)
 		local other=fixture(-9312)
 		other.coins=Rebirth.Cost(1)
 		assert(not Rebirth.Step(other,NO_SERVER) and other.rebirths==0,"Rebirthed without Auto Rebirth")

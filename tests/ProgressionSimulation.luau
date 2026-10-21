@@ -646,6 +646,8 @@ local function tryRebirth(state,now)
 	local before=s.coins
 	local ok,_,receipt=Rebirth.Rebirth(s,s.rebirths,nil,false)
 	if not ok then return end
+	-- October 21 (P4): Time Skip waits as a claim; the player claims it at once.
+	Rebirth.ClaimTimeSkip(s,nil)
 	-- No BattleService here: release the flags ourselves; the bag is cleared.
 	table.clear(state.flags)
 	s.territoryBonus=0
