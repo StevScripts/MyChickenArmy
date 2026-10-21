@@ -207,39 +207,19 @@ for _, key in RosterExpansionOrder do
  end
 end
 
--- October 20 overhaul (plan v2, docs/team/OVERHAUL_CONTRACT_20261020.md §7): one
--- "Veteran Corps" chicken per Rebirth rank, granted free at that rank and offered
--- on podiums afterwards (server RebirthChickens). Zero roll weight keeps them out of
--- normal rolls, Luck bands and the guaranteed sequence. Each copies a stat tier's
--- original stats (the economy key); ranks 25-30 lift Galaxy damage toward Cosmic
--- Dragon's 165. Names are placeholders for the art pass; baseSpecies is the
--- fallback look until ChickenAssets has their models.
-Catalog.RebirthOrder = {}
-local Veterans = {
- {"Private Peck","Chunky",{176,168,104}},{"Corporal Cluck","Chunky",{150,160,96}},
- {"Sergeant Scratch","Bucket",{128,140,92}},{"Staff Sergeant Strut","Bucket",{112,126,82}},
- {"Master Sergeant Squawk","Viking",{98,116,74}},{"Sergeant Major Moxie","Viking",{86,104,66}},
- {"Lieutenant Wing","Knight",{196,90,40}},{"Captain Comb","Knight",{210,70,48}},{"Major Molt","Knight",{170,60,40}},
- {"Colonel Crest","Wizard",{60,62,96}},{"Brigadier Beak","Wizard",{52,56,110}},{"General Gizzard","Wizard",{44,50,124}},
- {"Field Marshal Feathers","Dragon",{232,186,52}},{"Commodore Coop","Dragon",{220,170,60}},{"Admiral Eggbert","Dragon",{246,200,70}},
- {"Sky Marshal Talon","IceDuck",{90,200,255}},{"Star Admiral Nova","IceDuck",{150,120,255}},
- {"Storm General Volt","IceDuck",{255,230,70}},{"Iron Commander Rex","IceDuck",{140,146,156}},
- {"Supreme Commander Hen","StormDuck",{255,214,96}},{"Grand Marshal Blaze","StormDuck",{255,110,40}},
- {"Thunder Warden","StormDuck",{80,150,255}},{"Frost Field Marshal","StormDuck",{170,230,255}},
- {"Solar Commander","StormDuck",{255,190,40}},{"Legend of the Coop","StormDuck",{255,236,160},101},
- {"Phoenix General","StormDuck",{255,120,30},110},{"Nebula Commander","StormDuck",{160,90,255},120},
- {"Starfleet Admiral","StormDuck",{70,110,220},135},{"The Undying Rooster","StormDuck",{210,40,60},150},
- {"The Eternal Rooster","StormDuck",{255,250,230},165},
-}
-for rank, entry in Veterans do
- local id, key, stats = "Veteran" .. rank, entry[2], tierStats[entry[2]]
- Catalog[id] = {name=entry[1], rarity=TierRarity[key], weight=0, price=stats.price, income=stats.income,
-  hp=stats.hp, damage=entry[4] or stats.damage, interval=stats.interval, size=stats.size, splash=stats.splash,
-  color=entry[3], economyBase=key, baseSpecies=key, rebirthRank=rank, rebirthExclusive=true}
- Catalog.RebirthOrder[rank] = id
- table.insert(Catalog.Order, id)
+-- October 21 owner decision: the October 20 "Veteran Corps" Rebirth chickens are
+-- retired. They had no voxel model and showed as the old round part chicken; every
+-- chicken in the game is a voxel model. RebirthOrder stays empty, so Rebirth grants
+-- and podium swaps stop. A saved Veteran loads as the chicken whose exact stats it
+-- copied (PlayerSession), e.g. Veteran3 "Sergeant Scratch" becomes a Robo-Cluck.
+Catalog.RebirthOrder = table.freeze({})
+local retired = {}
+for rank, species in {"Chunky","Chunky","Bucket","Bucket","Viking","Viking","Knight","Knight","Knight",
+ "Dragon","Dragon","Dragon","Rainbow","Rainbow","Rainbow","IceDuck","IceDuck","IceDuck","IceDuck"} do
+ retired["Veteran" .. rank] = species
 end
-table.freeze(Catalog.RebirthOrder)
+for rank = 20, 30 do retired["Veteran" .. rank] = "StormDuck" end
+Catalog.RetiredSpecies = table.freeze(retired)
 
 -- October 15 owner request: each mission territory has its own Loyalist guards
 -- (docs/team/LOYALIST_GUARDS.md). They are enemy only: never in Order, so they are

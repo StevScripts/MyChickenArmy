@@ -12,7 +12,15 @@ local previews = {}
 function BlenderPetView.Create(parent, id, species, stars, foot, physical)
 	if species == "CosmicDragon" then return GalaxyDragonPetView.Create(parent,id,species,stars,foot,physical) end
 	local assets = script.Parent.Parent:FindFirstChild("ChickenAssets")
-	local template = assets and assets:FindFirstChild(species)
+	-- October 21 owner rule: every chicken is a voxel model. One without its own
+	-- template (Hill Champion until its mesh is built) wears its base chicken's.
+	local definition = Catalog[species]
+	local look = species
+	local template = assets and assets:FindFirstChild(look)
+	if not template and definition and definition.baseSpecies then
+		look = definition.baseSpecies
+		template = assets and assets:FindFirstChild(look)
+	end
 	if not template then return nil end
 	local stats = Rules.Stats(species, stars)
 	local model = template:Clone()
@@ -20,7 +28,7 @@ function BlenderPetView.Create(parent, id, species, stars, foot, physical)
 	local scale = stats.size / 2.25 * 1.15
 	model:ScaleTo(template:GetScale() * scale)
 	local body = model:FindFirstChild("Body")
-	local art = Appearances.Species[species]
+	local art = Appearances.Species[look]
 	local v3 = body and art and body:FindFirstChild(art.bonePrefix .. "Root") ~= nil
 	local boneRoot = body and body:FindFirstChild(if v3 then art.bonePrefix .. "Root" else "root")
 	if not body or not boneRoot then model:Destroy() return nil end

@@ -89,6 +89,16 @@ and a full yard adds Coins to a waiting egg instead of a new one. Coins/sec are
 unchanged. Never show stacked egg counts in the millions. See
 `docs/team/ONE_EGG_VALUE.md` (supersedes the September 26 quantity economy).
 
+## Voxel chickens only (October 21, owner decision)
+Every chicken in the game is a voxel model from `ChickenAssets`. Never ship a chicken
+that renders as the old round part-built `PetView` recipe (that is only the
+scripts-only fallback). The October 20 "Veteran Corps" Rebirth chickens were
+placeholders without models, so they are retired: no Rebirth grants, podium swaps or
+Index entries, and the Rebirth Chicken Odds Gem Upgrade is refunded. Saved Veterans
+load as the chicken whose stats they copied (`PetCatalog.RetiredSpecies`). A
+chicken without its own template wears its `baseSpecies` voxel model
+(`BlenderPetView`). New chickens need a voxel model before they enter the game.
+
 ## Simple animations — use TweenService
 When a simple animation can be expressed with a normal Roblox TweenService tween, use a tween. Use TweenInfo repeat/reverse settings for looping or back-and-forth motion. Do not build custom frame-by-frame interpolation, timing loops, springs, or animation frameworks for these cases. Keep cancellation and cleanup small. Use a more complex approach only when the requested behavior genuinely cannot be achieved with a tween, and explain why before expanding the implementation.
 

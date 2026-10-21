@@ -1103,6 +1103,9 @@ function PlayerSession:LoadData(data)
 		if not numberIn(index,1,#data.pets,true) or type(pet)~="table" or type(pet.id)~="string" or #pet.id<1 or #pet.id>64
 			or not utf8.len(pet.id) or pets[pet.id] or unknownIds[pet.id] or type(pet.species)~="string" or #pet.species>64
 			then return false,"Invalid saved chicken." end
+		-- October 21: a retired Veteran Corps chicken loads as the chicken it copied.
+		local retiredAs=Catalog.RetiredSpecies[pet.species]
+		if retiredAs then pet=table.clone(pet::any);pet.species=retiredAs end
 		if not table.find(Catalog.Order,pet.species) then
 			-- A species removed by a later build: skip it here, keep its raw entry for the next save.
 			if legacy then return false,"Invalid saved chicken." end
@@ -1255,7 +1258,7 @@ function PlayerSession:LoadData(data)
 		research.jobs,research.skipCredit={},0
 	else
 		gemUpgrades=GemUpgradeCatalog.Read(data.gemUpgrades)
-		gems=readCount(data.gems,1e12)
+		gems=math.min(1e12,readCount(data.gems,1e12)+GemUpgradeCatalog.RetiredRefund(data.gemUpgrades))
 		gemsEarned=math.max(gems,readCount(data.gemsEarned,1e12))
 		missionTierLegacy=readCount(data.missionTierLegacy,3)
 		eggVacuum=data.eggVacuum==true

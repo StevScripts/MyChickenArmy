@@ -144,7 +144,7 @@ end
 -- The first Rebirth before it is affordable (the reference's 3,019 / 50,000 screen):
 -- a silhouette reward, no Gems, and the Rebirth 2+ rows locked.
 local FIRST_PRICES={RollSpeed=5,ExtraLuck=5,VacuumCapacity=10,AutoRoll=15,FlockSlot=20,ArmySlot=25,CoinBoost=10,AutoRebirth=25,
-	TimeSkip=20,MoreGems=25,KeepUpgrades=40,Rally=30,MutationLuck=40,OfflineCoins=30,ArmyPower=50,RebirthChickenOdds=30}
+	TimeSkip=20,MoreGems=25,KeepUpgrades=40,Rally=30,MutationLuck=40,OfflineCoins=30,ArmyPower=50}
 Render.RebirthFirst=function(ctx)
 	local state=ctx.state
 	state.gems,state.gemsEarned=0,0
@@ -152,7 +152,6 @@ Render.RebirthFirst=function(ctx)
 	state.rebirth=quote
 	quote.rank,quote.nextRank,quote.cost,quote.coins,quote.eligible=0,1,50000,3019,false
 	quote.multiplierNow,quote.multiplierNext,quote.gemsNext,quote.timeSkipMinutes=1,2,50,5
-	quote.nextChicken={species="Veteran1",name="Private Peck",rarity="Uncommon"}
 	quote.skip={credits=0,productKey="RebirthSkip1",onSale=true,restricted=false}
 	local upgrades=state.gemUpgrades or {}
 	upgrades.autoRebirth={owned=false,enabled=true}

@@ -68,9 +68,6 @@ local upgrades: {Upgrade} = {
 	{id = "ArmyPower", name = "Army Power", row = 8, column = 1, unlockRank = 12, maxLevel = 5, startLevel = 0,
 		prices = {50, 100, 175, 275, 400}, effects = {"damage", "health"}, perLevel = 0.05,
 		text = "+5% army damage and health", icon = "gemArmyPower"},
-	{id = "RebirthChickenOdds", name = "Rebirth Chicken Odds", row = 8, column = 2, unlockRank = 12, maxLevel = 5, startLevel = 0,
-		prices = {30, 60, 100, 150, 220}, effect = "rebirthChickenChance", perLevel = 0.002,
-		text = "Rebirth chickens show up 20% more", icon = "gemRebirthChickenOdds"},
 }
 
 Catalog.Order = {} :: {string}
@@ -134,6 +131,21 @@ function Catalog.Read(value: any): {[string]: number}
 		end
 	end
 	return result
+end
+
+-- October 21: Rebirth Chicken Odds is retired with the Rebirth chickens. Read drops
+-- its saved level; PlayerSession adds back the Gems those levels cost.
+local retired: {[string]: {number}} = {RebirthChickenOdds = {30, 60, 100, 150, 220}}
+function Catalog.RetiredRefund(value: any): number
+	local gems = 0
+	if type(value) ~= "table" then return gems end
+	for id, prices in retired do
+		local level = value[id]
+		if type(level) == "number" and level == level then
+			for index = 1, math.clamp(math.floor(level), 0, #prices) do gems += prices[index] end
+		end
+	end
+	return gems
 end
 
 for _, upgrade in Catalog.Upgrades do
