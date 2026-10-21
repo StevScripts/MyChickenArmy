@@ -21,6 +21,7 @@ local RebirthService = require(script.Parent.RebirthService)
 local GoldRushService = require(script.Parent.GoldRushService)
 local RebirthChickens = require(script.Parent.RebirthChickens)
 local EconomyMigration = require(script.Parent.EconomyMigration)
+local TreeMigrations = require(script.Parent.TreeMigrations)
 local PlaytimeService = require(script.Parent.PlaytimeService)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
@@ -64,6 +65,10 @@ function PlayerSession:Reset()
 	self.passGemGifts = self.passGemGifts or {}
 	self.rebirthChickenCredits = {}
 	self.missionTierLegacy = 0
+	-- Mutations a save keeps from its Rebirth rank (S9c's Mutation tree family). A new
+	-- profile under that family keeps none; before it exists nil leaves the choice to
+	-- the first load that has it (LoadData).
+	self.mutationKeep = if UpgradeCatalog.Families.Mutation then 0 else nil :: number?
 	-- Saved for S10 (Flock layers), S11 (hand vacuum) and S12 (Gold rolls).
 	self.flockSelection = nil :: {string}?
 	-- Legacy grant flag only: the Egg Vacuum is an Upgrades tree node now (LoadData).
@@ -845,7 +850,8 @@ function PlayerSession:ToData()
 		upgradeTree=table.clone(self.upgradeTree),gems=self.gems,gemsEarned=self.gemsEarned,
 		gemUpgrades=table.clone(self.gemUpgrades),autoRebirth=self.autoRebirth==true,rebirthSkips=self.rebirthSkips,
 		rebirthChickenCredits=table.clone(self.rebirthChickenCredits),passGemGifts=table.clone(self.passGemGifts),
-		missionTierLegacy=self.missionTierLegacy,
+		missionTierLegacy=self.missionTierLegacy,mutationKeep=self.mutationKeep,
+		upgradeTreeVersion=TreeMigrations.Version,
 		flockSelection=if self.flockSelection then table.clone(self.flockSelection) else nil,
 		eggVacuum=self.eggVacuum==true,vacuumCargo=table.clone(self.vacuumCargo),goldRolls=table.clone(self.goldRolls),
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,robuxSpent=self.robuxSpent,
@@ -1052,6 +1058,9 @@ function PlayerSession:LoadData(data)
 	end
 	-- Revision 12: the tree is the source of every run upgrade (lenient read).
 	local tree: {[string]: number}=if legacyEconomy then {} else UpgradeCatalog.ReadTree(data.upgradeTree)
+	-- Live since October 20: a tree saved before a tier changed meaning is moved once
+	-- (TreeMigrations; a missing version is 0). Conversions below are already current.
+	if not legacyEconomy then TreeMigrations.Run(tree,readCount(data.upgradeTreeVersion,1e6)) end
 	local capacity,grant=data.capacity,data.legacyCapacityGrant or 0
 	if legacyEconomy then
 		if legacy then
@@ -1247,6 +1256,19 @@ function PlayerSession:LoadData(data)
 	-- on Rebirth. A legacy grant (a finished or skipped guide, converted above, or an
 	-- earlier revision-12 gift) becomes this run's EggVacuum node, once.
 	if eggVacuum then tree.EggVacuum=1 end
+	-- S9c: mutations are an Upgrades tree family. A save keeps what its Rebirth rank
+	-- allowed on live servers (Golden at any rank, Rainbow 1, Shadow 5, Cosmic 10): set
+	-- once at its first load under that family, never raised, and the tree's Mutation
+	-- tier never loads below it. Before the family exists nothing is derived.
+	local mutationKeep=if type(data.mutationKeep)=="number" and data.mutationKeep==data.mutationKeep
+		then math.clamp(math.floor(data.mutationKeep),0,#MutationCatalog.Order) else nil
+	local mutationFamily=UpgradeCatalog.Families.Mutation
+	if mutationFamily then
+		if mutationKeep==nil then
+			mutationKeep=if rebirths>=10 then 4 elseif rebirths>=5 then 3 elseif rebirths>=1 then 2 else 1
+		end
+		if mutationKeep>UpgradeCatalog.Tier(tree,"Mutation") then tree.Mutation=math.min(mutationKeep,#mutationFamily.tiers) end
+	end
 	local passGemGifts={}
 	if type(data.passGemGifts)=="table" then
 		for key,given in data.passGemGifts do
@@ -1288,7 +1310,7 @@ function PlayerSession:LoadData(data)
 	self.autoRebirth=data.autoRebirth~=false
 	self.rebirthSkips=readCount(data.rebirthSkips,1000)
 	self.passGemGifts,self.rebirthChickenCredits=passGemGifts,chickenCredits
-	self.missionTierLegacy=missionTierLegacy
+	self.missionTierLegacy,self.mutationKeep=missionTierLegacy,mutationKeep
 	self.flockSelection,self.eggVacuum=flockSelection,false
 	self.vacuumCargo={count=cargoCount,value=cargoValue}
 	-- S12b: one pull count per machine (count = Gold, diamond, prism); missing means 0.

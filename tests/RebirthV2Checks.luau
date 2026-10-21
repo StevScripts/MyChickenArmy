@@ -17,6 +17,7 @@ local Upgrades=require(Server.UpgradeService)
 local GemUpgrades=require(Server.GemUpgradeService)
 local RebirthChickens=require(Server.RebirthChickens)
 local Army=require(Server.ArmyService)
+local TreeMigrations=require(Server.TreeMigrations)
 local Operations=require(Server.OperationService)
 local Checks={}
 
@@ -603,6 +604,70 @@ function Checks.Run()
 		assert(levelsText(u.upgradeTree)=="RollSlot=5" and u.rollSlotsUnlocked==6,levelsText(u.upgradeTree))
 		assert(u.gems==0 and u.missionTierLegacy==0 and u.researchEffects.eggVacuum==0 and next(u.gemUpgrades)==nil,"Extras")
 		return "Six podiums kept"
+	end)
+
+	test("Tree versions: saves carry the version, Gold Rate keeps its count, no step runs twice",function()
+		assert(fixture(-9330):ToData().upgradeTreeVersion==TreeMigrations.Version,"Saved version")
+		-- Step 1 against S9c's table (every 10/8/7/6/5): live II (every 6) becomes III.
+		local values={1,2,3,4}
+		assert(TreeMigrations.GoldRateTier(1,{10,8,7,6,5},values)==1
+			and TreeMigrations.GoldRateTier(2,{10,8,7,6,5},values)==3,"S9c table")
+		assert(TreeMigrations.GoldRateTier(0,{10,8,7,6,5},values)==0,"No Gold Rate")
+		assert(TreeMigrations.GoldRateTier(1,{10,8,6},{1,2})==1 and TreeMigrations.GoldRateTier(2,{10,8,6},{1,2})==2,"Live table")
+		-- Tripwire: a new Gold table needs step 1 switched on in the same commit.
+		local every=Config.GoldRolls.Every
+		assert((every[1]==10 and every[2]==8 and every[3]==6) or TreeMigrations.Version>=1,
+			"Config.GoldRolls.Every changed: set TreeMigrations.Version = 1 (step 1 keeps live Gold Rate counts)")
+		local function loaded(version)
+			local s=fixture(-9331)
+			setTree(s,{GoldMachine=1,GoldRate=2})
+			local data=s:ToData()
+			data.upgradeTreeVersion=version
+			local t=Session.new(-9331,"Restore fixture",1)
+			local ok,message=t:LoadData(data)
+			assert(ok,message)
+			return t.upgradeTree.GoldRate
+		end
+		local tiers={}
+		for index,entry in Tree.Families.GoldRate.tiers do tiers[index]=entry.value end
+		local moved=if TreeMigrations.Version>=1 then TreeMigrations.GoldRateTier(2,every,tiers) else 2
+		assert(loaded(nil)==moved and loaded(0)==moved,"An older save: Gold Rate "..tostring(loaded(nil)))
+		assert(loaded(TreeMigrations.Version)==2 and loaded(TreeMigrations.Version+1)==2,"A current or newer save runs no step")
+		return "Version "..TreeMigrations.Version..", live Gold Rate II loads as "..moved
+	end)
+
+	test("mutationKeep: rank unlocks survive S9c's Mutation tree, set once and never raised",function()
+		local function load(rank,keep,tier)
+			local s=fixture(-9332)
+			s.rebirths=rank
+			local data=s:ToData()
+			data.mutationKeep=keep
+			if tier then data.upgradeTree.Mutation=tier end
+			local t=Session.new(-9332,"Restore fixture",1)
+			local ok,message=t:LoadData(data)
+			assert(ok,message)
+			return t
+		end
+		if not Tree.Families.Mutation then
+			-- Before S9c nothing is derived, so later saves keep what they have now.
+			assert(Session.new(-9333,"New profile",1).mutationKeep==nil,"New profile")
+			assert(load(12,nil).mutationKeep==nil and load(12,3).mutationKeep==3 and load(12,"x").mutationKeep==nil,
+				"Before the Mutation family")
+			return "Inactive until S9c's Mutation family"
+		end
+		assert(Session.new(-9333,"New profile",1).mutationKeep==0,"New profiles buy Golden in the tree")
+		for _,case in {{0,1},{1,2},{4,2},{5,3},{9,3},{10,4},{30,4}} do
+			local t=load(case[1],nil)
+			assert(t.mutationKeep==case[2] and t.upgradeTree.Mutation==case[2],
+				"Rebirth "..case[1].." -> "..tostring(t.mutationKeep).." / tier "..tostring(t.upgradeTree.Mutation))
+		end
+		local kept=load(12,2)
+		assert(kept.mutationKeep==2 and kept.upgradeTree.Mutation==2,"A saved value never rises")
+		assert(load(1,2,4).upgradeTree.Mutation==4,"A bought tier above it stays")
+		assert(load(5,"junk").mutationKeep==3 and load(0,9).mutationKeep==#Mutations.Order,"Junk and range")
+		local again=Session.new(-9334,"Round trip",1)
+		assert(again:LoadData(kept:ToData()) and again.mutationKeep==2,"Round trip")
+		return "Rebirth 0/1/5/10 keeps 1/2/3/4 mutations"
 	end)
 
 	test("Upgrades and session snapshots carry the Luck summary, Gems, effects and Rally",function()
