@@ -206,8 +206,9 @@ function Motion:BindButton(button,visual,face,rim)
 	local scaled=visual:IsA("UIScale")
 	local restingSize=if scaled then nil else visual.Size
 	if not scaled then self.restingSizes[visual]=restingSize end
+	-- Read the resting size live: Theme.PadHit shrinks a Visual inside a larger hit area.
 	local function goal(amount)
-		return if scaled then {Scale=amount} else {Size=multiplied(restingSize,amount)}
+		return if scaled then {Scale=amount} else {Size=multiplied(self.restingSizes[visual] or restingSize,amount)}
 	end
 	local hovering,focused,pressed=false,false,false
 	local function update()

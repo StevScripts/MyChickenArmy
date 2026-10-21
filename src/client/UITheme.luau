@@ -327,6 +327,42 @@ function Theme.Aspect(item, ratio)
 	constraint.Parent=item
 end
 
+-- Hit areas (DESIGN.md §6, October 21 responsiveness pass): a control's input
+-- rectangle grows around its art without moving or resizing the art, in Scale only,
+-- so one pad serves every device. padX/padY multiply the button's current Size;
+-- alignX/alignY say how much of the extra room goes before the art (left of / above
+-- it): 0.5 centred, 0 all after, 1 all before. The art is the button's Visual child
+-- and keeps its exact rectangle: the button's aspect constraint moves onto it so the
+-- hit need not share its shape. A button without a Visual is already an invisible
+-- hit area and simply grows. Call it once, after the button is placed, and keep
+-- neighbouring hit areas apart (they must never overlap).
+function Theme.PadHit(button,padX,padY,alignX,alignY)
+	padY,alignX,alignY=padY or padX,alignX or 0.5,alignY or 0.5
+	local size,position,anchor=button.Size,button.Position,button.AnchorPoint
+	local dx,dy=(padX-1)*(anchor.X-alignX),(padY-1)*(anchor.Y-alignY)
+	button.Position=UDim2.new(position.X.Scale+size.X.Scale*dx,position.X.Offset+size.X.Offset*dx,
+		position.Y.Scale+size.Y.Scale*dy,position.Y.Offset+size.Y.Offset*dy)
+	button.Size=UDim2.new(size.X.Scale*padX,size.X.Offset*padX,size.Y.Scale*padY,size.Y.Offset*padY)
+	button:SetAttribute("HitPadded",true)
+	local visual=button:FindFirstChild("Visual")
+	if not visual or not visual:IsA("GuiObject") then return button end
+	local aspect=button:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+	if aspect then
+		local own=visual:FindFirstChildWhichIsA("UIAspectRatioConstraint")
+		if own then own:Destroy() end
+		aspect.Parent=visual
+	end
+	-- The art box is centred (hover and press still grow from its middle); with an
+	-- aspect constraint it keeps the button's anchor instead, so the fitted Visual
+	-- lands exactly where the button's own fitted rectangle was.
+	local pin=if aspect then anchor else Vector2.new(0.5,0.5)
+	visual.AnchorPoint=pin
+	visual.Position=UDim2.fromScale((alignX*(padX-1)+pin.X)/padX,(alignY*(padY-1)+pin.Y)/padY)
+	visual.Size=UDim2.fromScale(1/padX,1/padY)
+	Theme.Motion.restingSizes[visual]=visual.Size
+	return button
+end
+
 -- The restored GUI uses native text fitting inside proportionally sized boxes.
 -- October 8 readability floor: TextScaled may shrink text to fit, but never below
 -- MinTextSize on phones. Only a minimum is added (MaxTextSize stays at Roblox's
@@ -784,6 +820,26 @@ function Theme.LayoutHeader(header)
 		Theme.Aspect(close,120/115)
 		close.ZIndex=header.ZIndex+4
 		local visual=close.Visual
+		visual.AnchorPoint,visual.Position,visual.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1,1)
+		Theme.Aspect(visual,nil)
+		-- Phone hit area (HitPad, set by HeaderClose): the X grows without moving. The
+		-- extra room sits HitAlignX/HitAlignY before the art (left of / above it; by
+		-- default centred and mostly above, over the popup's edge, not the body). A
+		-- CanvasGroup popup clips above and right of itself, so there it stays inside.
+		local pad=close:GetAttribute("HitPad") or 1
+		if pad>1 then
+			local clipped=header.Parent:IsA("CanvasGroup") or header.Parent.ClipsDescendants
+			local w,h=92*pad,88*pad
+			local hitLeft=1368-(w-92)*(close:GetAttribute("HitAlignX") or 0.5)
+			local hitTop=14-(h-88)*(close:GetAttribute("HitAlignY") or 0.65)
+			if clipped then hitLeft,hitTop=math.min(hitLeft,1474-w),math.max(hitTop,0) end
+			close.Position,close.Size=UDim2.fromScale((hitLeft+w)/1474,hitTop/116),UDim2.fromScale(w/1474,h/116)
+			close:SetAttribute("HitPadded",true)
+			close.UIAspectRatioConstraint.Parent=visual
+			-- The art's centre (1414, 58 in header units) stays put inside the hit area.
+			visual.Position,visual.Size=UDim2.fromScale((1414-hitLeft)/w,(58-hitTop)/h),UDim2.fromScale(1/pad,1/pad)
+			Theme.Motion.restingSizes[visual]=visual.Size
+		end
 		visual.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 		-- Crop the same header-width sheet inside the smaller close face. The
 		-- generic button crop made this control's studs much smaller than its header.
@@ -796,9 +852,15 @@ function Theme.LayoutHeader(header)
 	Theme.ScaleText(header)
 end
 
-function Theme.HeaderClose(header,callback)
+-- `pad` grows the X's hit area (not its art) by that factor; each menu passes the
+-- factor that lifts its phone-sized X to 48 px (DESIGN.md §6), and may say where the
+-- extra room goes (alignX/alignY, see LayoutHeader). LayoutHeader keeps them.
+function Theme.HeaderClose(header,callback,pad,alignX,alignY)
 	local close=Theme.ActionButton(header,"Close","X",callback,Theme.ActionColors.danger)
 	Theme.ApplyReferenceAccent(close,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
+	if pad and pad>1 then close:SetAttribute("HitPad",pad) end
+	if alignX then close:SetAttribute("HitAlignX",alignX) end
+	if alignY then close:SetAttribute("HitAlignY",alignY) end
 	Theme.LayoutHeader(header)
 	return close
 end

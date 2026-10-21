@@ -13,6 +13,8 @@ local ToolController=require(script.Parent.ToolController)
 local ShopCatalog=require(game.ReplicatedStorage.PetRoll.Shared.ShopCatalog)
 local A=Theme.Arcade
 local GEAR_PEEK_SECONDS=4
+-- The Settings gear's hit area grows this much past its circle (phone 28 -> 48 px).
+local GEAR_PAD=1.72
 local ARMY_HOME_SCALE=0.82
 local Hud={}
 Hud.__index=Hud
@@ -324,24 +326,30 @@ function Hud:BuildSettingsTopbar()
 	local button=Instance.new("TextButton")
 	button.Name,button.Text,button.AutoButtonColor="Settings","",false
 	button.Size,button.AnchorPoint,button.Position=UDim2.fromScale(0.04,0.072),Vector2.new(1,0),UDim2.fromScale(0.994,0.012)
-	button.BackgroundColor3,button.BackgroundTransparency,button.BorderSizePixel=Color3.fromRGB(18,19,22),0.1,0
+	button.BackgroundTransparency,button.BorderSizePixel=1,0
 	button.Parent=gui
 	Theme.Aspect(button,1)
-	local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(1,0);corner.Parent=button
+	-- The dark circle is the art (Visual); the button round it is the hit area, grown
+	-- GEAR_PAD times left and down (it sits alone in the corner) so a phone gets 48 px.
+	local face=Theme.Frame(button,"Visual",UDim2.fromScale(1,1),Color3.fromRGB(18,19,22))
+	face.BackgroundTransparency=0.1
+	local corner=face:FindFirstChildWhichIsA("UICorner") or Instance.new("UICorner")
+	corner.CornerRadius,corner.Parent=UDim.new(1,0),face
 	local icon=Instance.new("ImageLabel")
 	icon.Name,icon.BackgroundTransparency="Gear",1
 	icon.Image="rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab@2x.png"
 	icon.AnchorPoint,icon.Position,icon.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.64,0.64)
-	icon.Parent=button
+	icon.Parent=face
 	local caption=Instance.new("TextLabel")
 	caption.Name,caption.Text,caption.Font,caption.TextSize="Caption","Settings",Theme.Font,16
 	caption.AnchorPoint,caption.Position,caption.Size=Vector2.new(1,0),UDim2.fromScale(1,1.18),UDim2.fromScale(1.9,0.64)
 	caption.TextScaled=true
 	caption.BackgroundColor3,caption.BackgroundTransparency=Color3.fromRGB(18,19,22),0.06
 	caption.TextColor3,caption.BorderSizePixel,caption.Visible=Color3.new(1,1,1),0,false
-	caption.Parent=button
+	caption.Parent=face
 	local captionCorner=Instance.new("UICorner");captionCorner.CornerRadius=UDim.new(0.03,0);captionCorner.Parent=caption
-	self.settings,self.settingsIcon,self.settingsCaption,self.settingsGui=button,icon,caption,gui
+	Theme.PadHit(button,GEAR_PAD,GEAR_PAD,1,0)
+	self.settings,self.settingsFace,self.settingsIcon,self.settingsCaption,self.settingsGui=button,face,icon,caption,gui
 	-- The button Size is rewritten by ApplyInputLayout; press the centred gear instead.
 	Theme.Motion:BindButton(button,icon)
 	local function hover(value) self.settingsHovered=value;self:UpdateSettingsTopbar() end
@@ -368,7 +376,7 @@ function Hud:UpdateSettingsTopbar()
 	self.settingsCaption.Visible=hot and self.settingsGui.Visible
 	if self.settingsSelected==selected and self.settingsHot==hot then return end
 	self.settingsSelected,self.settingsHot=selected,hot
-	Theme.Motion:Tween(self.settings,"topbarColor",{BackgroundColor3=if selected then Color3.fromRGB(239,241,245)
+	Theme.Motion:Tween(self.settingsFace,"topbarColor",{BackgroundColor3=if selected then Color3.fromRGB(239,241,245)
 		elseif hot then Color3.fromRGB(48,50,55) else Color3.fromRGB(18,19,22)},0.12)
 	Theme.Motion:Tween(self.settingsIcon,"topbarColor",{ImageColor3=if selected then Color3.fromRGB(28,30,34) else Color3.new(1,1,1)},0.12)
 end
@@ -425,8 +433,10 @@ end
 function Hud:ApplyInputLayout()
 	self.cashReadout.AnchorPoint,self.cashReadout.Position=Vector2.new(0,1),UDim2.fromScale(0.012,0.98)
 	self:PlaceRebirth()
-	self.settings.Size=UDim2.fromScale(0.04,0.072)
-	self.settingsBottom=self.settings.Position.Y.Scale+self.settings.Size.Y.Scale
+	-- The hit area (GEAR_PAD times the 0.04 x 0.072 circle, anchored top-right); the
+	-- circle's own foot is what neighbours clear.
+	self.settings.Size=UDim2.fromScale(0.04*GEAR_PAD,0.072*GEAR_PAD)
+	self.settingsBottom=self.settings.Position.Y.Scale+0.072
 	-- The Hill chip rides just above the coin readout wherever it sits.
 	if self.hill then self.hill:Place() end
 end
@@ -618,7 +628,9 @@ function Hud:BuildChickenOffer(shell)
 	Theme.Motion:Tween(rays,"spin",{Rotation=360},10,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
 	Theme.Motion:Tween(rainbow,"hue",{Rotation=360},4,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
 	-- Offer art has padding around the chicken; draw it larger than a menu icon.
-	visual.Icon.AnchorPoint,visual.Icon.Size,visual.Icon.Position=Vector2.new(0.5,0.5),UDim2.fromScale(1.45,1.3),UDim2.fromScale(0.5,0.4)
+	-- Fit scaling draws the square art the same in a 1.3 x 1.3 box as in the old 1.45 x
+	-- 1.3 one, and the narrower box now stays on the screen (the sunburst may not).
+	visual.Icon.AnchorPoint,visual.Icon.Size,visual.Icon.Position=Vector2.new(0.5,0.5),UDim2.fromScale(1.3,1.3),UDim2.fromScale(0.5,0.4)
 	local price=Instance.new("UIGradient")
 	price.Rotation,price.Color,price.Parent=90,ROBUX_GREEN,visual.Label
 	visual.Label.TextScaled=true

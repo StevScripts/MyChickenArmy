@@ -165,7 +165,8 @@ function Panel:BuildShell()
 	Theme.Surface(main,Theme.PageSurfaces.Upgrades or Theme.Colors.panel)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	self.main=main
-	Theme.HeaderClose(header,function() app.audio:Play("Click");self:Close() end)
+	-- Phone hit area: twice the X (the tier tabs sit just under the header, so no more).
+	Theme.HeaderClose(header,function() app.audio:Play("Click");self:Close() end,2)
 	Theme.ApplyPopupStyle(panel)
 	local restingSize,restingPosition=self.panelSize,self.panelPosition
 	if not app.reducedMotion then
@@ -228,12 +229,13 @@ function Panel:BuildTabs(content,data)
 		local emblem=Theme.Image(tab,"Emblem",if locked then Theme.Assets.Padlock else EMBLEMS[index],UDim2.fromScale(.3,.8),UDim2.fromScale(.04,.1))
 		Theme.Aspect(emblem,1);emblem.ZIndex=6
 		label(tab,"Name",name,.36,.15,.6,.7,if locked then MUTED else WHITE)
-		hitArea(tab,"Select",function()
+		-- Phone hit area: a tab answers 0.19 lower too (the X is above, missions below).
+		Theme.PadHit(hitArea(tab,"Select",function()
 			cue("TabSwitch","Click")
 			self.tier,self.selected=index,self:DefaultMission(data,index)
 			self.pop="Tab"..name
 			self:Refresh()
-		end)
+		end),1,1.19,0.5,0)
 	end
 end
 
@@ -259,12 +261,13 @@ function Panel:BuildMissions(content,data)
 		else
 			label(chip,"Text",if cleared then "CLEAR!" else money(definition.firstCash),.06,.08,.88,.84,WHITE,Enum.TextXAlignment.Center)
 		end
-		hitArea(row,"Select",function()
+		-- Phone hit area: each row answers across its whole 0.14 pitch.
+		Theme.PadHit(hitArea(row,"Select",function()
 			cue("Select","Click")
 			self.selected=index
 			self.pop="Mission"..index
 			self:Refresh()
-		end)
+		end),1,.14/.12)
 	end
 end
 
@@ -317,6 +320,7 @@ function Panel:BuildDetail(content,data,state)
 		end)
 	end
 	button.Position,button.Size=UDim2.fromScale(.15,.79),UDim2.fromScale(.7,.17)
+	Theme.PadHit(button,1,1.12) -- phone hit area: 48 px tall
 	self.deploy=button
 end
 

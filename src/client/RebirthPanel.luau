@@ -220,7 +220,7 @@ function Panel:Build()
 	-- The inset's own width:height on screen sizes the grid's scroll canvas.
 	local frameAspect=(GEM_PANEL[3]/W)/((GEM_PANEL[4]/BODY[4])*(1/ratio-1/Theme.HeaderAspect))
 	self.grid=GemUpgradeGrid.new(app,gemPanel,frameAspect)
-	Theme.HeaderClose(header,function() self:Close() end)
+	Theme.HeaderClose(header,function() self:Close() end,1.15) -- phone hit area: 48 px
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
 	local restingSize,restingPosition=self.panelSize,self.panelPosition
@@ -300,21 +300,26 @@ function Panel:BuildChicken(rankBox)
 		table.insert(self.glow,disk)
 	end
 	self.chickenName=rect(label(tile,"Name","",23),4,4,CHICKEN[3]-8,26,own)
+	-- One line each: at the readable floor a long name would stack over the art.
+	self.chickenName.TextWrapped=false
 	local art=rect(Theme.Container(tile,"Art"),47.5,26,100,100,own)
 	art.ZIndex=4
 	Theme.Aspect(art,1)
 	self.chickenRarity=rect(label(tile,"Rarity","",21),4,115,CHICKEN[3]-8,24,own)
+	self.chickenRarity.TextWrapped=false
 	self.chickenTile,self.chickenArt=tile,art
 end
 
 -- Rebirth (one tap, as in the reference) and Skip! KEEP UPGRADES with its Robux tag.
 function Panel:BuildButtons(main)
 	local rebirth=rect(Theme.ActionButton(main,"Rebirth","Rebirth",function() self:PressRebirth() end,GREEN),23,758,335,90)
+	Theme.PadHit(rebirth,1,123/90) -- phone hit area: 48 px tall (123 units)
 	local caption=rebirth.Visual.Caption
 	caption.Position,caption.Size,caption.TextScaled=UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8),true
 	caption.TextShadow.Visible=false
 	self.rebirthButton=rebirth
 	local skip=rect(Theme.ActionButton(main,"Skip","Skip!",function() self:PressSkip() end,Theme.Arcade.purple),378,758,335,90)
+	Theme.PadHit(skip,1,123/90)
 	Theme.ApplyReferenceAccent(skip,ColorSequence.new(Theme.GemColors.SkipTop,Theme.GemColors.SkipBottom))
 	local skipCaption=skip.Visual.Caption
 	skipCaption.Position,skipCaption.Size,skipCaption.TextScaled=UDim2.fromScale(0.04,0.02),UDim2.fromScale(0.92,0.62),true

@@ -107,7 +107,10 @@ function Focus:Layout()
 	local target = self.target
 	local size, origin = self.root.AbsoluteSize, self.root.AbsolutePosition
 	if not target or not target.Parent or size.X<=0 or size.Y<=0 then self:HideGeometry(); return end
-	local p,s=target.AbsolutePosition-origin,target.AbsoluteSize
+	-- A button whose hit area was grown (Theme.PadHit) is ringed around its art.
+	local art=if target:GetAttribute("HitPadded") then target:FindFirstChild("Visual") else nil
+	local box: GuiObject=if art and art:IsA("GuiObject") then art else target
+	local p,s=box.AbsolutePosition-origin,box.AbsoluteSize
 	local x1,y1,x2,y2=math.max(0,p.X),math.max(0,p.Y),math.min(size.X,p.X+s.X),math.min(size.Y,p.Y+s.Y)
 	local ancestor = target
 	while ancestor and not ancestor:IsA("ScreenGui") do

@@ -238,7 +238,10 @@ function Browser.new(app,parent)
 	local topBar=rect(frame(root,"TopBar",UDim2.new(),UDim2.new()),TOPBAR.x,TOPBAR.y,TOPBAR.w,TOPBAR.h,W,H)
 	topBar.ZIndex=body.ZIndex+1
 	local header=Theme.Header(topBar,"Header","My Army",Theme.HeaderColors.Army)
-	self.closeButton=Theme.HeaderClose(header,function() self.app.audio:Play("Click");self.app:ClosePanel() end)
+	-- Phone hit areas (DESIGN.md §6), in the reference units, art untouched: the X grows
+	-- 2.1x (48 px), its extra room mostly up past the window and right past its edge so
+	-- it never meets the Flock "+" (art ends at 853 units; the X's hit starts at 856).
+	self.closeButton=Theme.HeaderClose(header,function() self.app.audio:Play("Click");self.app:ClosePanel() end,2.1,0.26,0.65)
 	-- Full-window layer so the bar's controls draw above the header's studs and rim.
 	local controls=frame(root,"TopBarControls",UDim2.fromScale(1,1),UDim2.new())
 	controls.ZIndex=header.ZIndex+4
@@ -246,7 +249,9 @@ function Browser.new(app,parent)
 	rect(self.lock,360,7,50,50,W,H)
 	self.trash,self.trashIcon=iconButton(controls,"SellMode",Art.Trash,function() self:SetMode("Sell") end,"Red")
 	rect(self.trash,418,7,50,50,W,H)
-	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1) end
+	-- 58 x 104 units (27 x 48 px): the two meet without overlapping; most of the
+	-- height goes up past the window, the rest ends above the grid's first row (75).
+	for _,item in {self.lock,self.trash} do Theme.Aspect(item,1);Theme.PadHit(item,1.16,2.08,0.5,0.73) end
 
 	-- Army and Flock counts, each with a "+" to its next Upgrades tier.
 	local pill=rect(frame(root,"Counts"),478,7,380,50,W,H)
@@ -269,6 +274,9 @@ function Browser.new(app,parent)
 	end,"Green")
 	rect(self.flockPlus,388,5,46,46,440,56)
 	for _,item in {self.capacityPlus,self.flockPlus} do Theme.Aspect(item,1) end
+	-- Each "+" answers across its count label (the Flock one only leftward, clear of the X).
+	Theme.PadHit(self.capacityPlus,2.5,2.54,0.5,0.73)
+	Theme.PadHit(self.flockPlus,2.5,2.54,1,0.73)
 
 	-- Side rail: My Army and the Chicken Index, then the two sorts.
 	local rail=rect(frame(root,"Tabs"),0,140,89,190,W,H)
@@ -278,10 +286,14 @@ function Browser.new(app,parent)
 		item.Name,item.Text,item.AutoButtonColor,item.BackgroundTransparency=name,"",false,1
 		item.ZIndex,item.Parent=rail.ZIndex+2,rail
 		rect(item,4,y,81,88,89,190)
-		rect(image(item,"Icon",asset),10,2,61,61,81,88)
-		rect(label(item,"Caption",text,WHITE,true),0,58,81,28,81,88)
+		-- The art lives in a Visual so the hit area can reach 104 units (48 px) wide,
+		-- out past the rail's left edge; the two tabs are 2 apart, so no taller.
+		local visual=frame(item,"Visual",UDim2.fromScale(1,1),UDim2.new())
+		rect(image(visual,"Icon",asset),10,2,61,61,81,88)
+		rect(label(visual,"Caption",text,WHITE,true),0,58,81,28,81,88)
 		item.Activated:Connect(callback)
-		Theme.Motion:BindButton(item,Theme.Motion:ScaleOf(item),item)
+		Theme.Motion:BindButton(item,Theme.Motion:ScaleOf(visual),visual)
+		Theme.PadHit(item,104/81,1,1,0.5)
 		return item
 	end
 	tab("ArmyTab","Army",Art.Helmet,6,function() self.app.audio:Play("Click") end)
@@ -300,6 +312,9 @@ function Browser.new(app,parent)
 		item:SetAttribute("ClickSound",false)
 		rect(item,6+(index-1)*40,34,37,37,89,78)
 		Theme.Aspect(item,1)
+		-- 104 units (48 px) tall, mostly up into the empty strip above the Sort box;
+		-- the two sorts are 3 apart, so no wider.
+		Theme.PadHit(item,1,104/37,0.5,0.8)
 		self.sortButtons[key]=item
 	end
 
@@ -353,6 +368,9 @@ function Browser.new(app,parent)
 	self.compactButton:SetAttribute("ClickSound",false)
 	rect(self.compactButton,632,504,55,53,W,H)
 	Theme.Aspect(self.compactButton,55/53)
+	-- Bottom row: 78 units (36 px) tall, from the grid's clipped edge (495) down to the
+	-- mode bar's foot (577); lower would answer under the bar's Cancel.
+	for _,item in {self.best,self.unequip,self.compactButton} do Theme.PadHit(item,1,78/53,0.5,0.2) end
 	-- A small tile grid on the button: 2 x 2 normally, 3 x 3 when compact is on.
 	self.compactIcon=frame(self.compactButton.Visual,"Icon",UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.25,0.21))
 	self.compactIcon.ZIndex=self.compactButton.Visual.ZIndex+6
@@ -400,6 +418,8 @@ function Browser.new(app,parent)
 	rect(self.confirm,12,54,150,50,332,113)
 	self.cancel=button(bar,"Cancel","Cancel",function() self.app.audio:Play("Click");self:ExitModes();self:Render(true) end,"Red")
 	rect(self.cancel,170,54,150,50,332,113)
+	-- 104 units (48 px) tall, up over the bar's title and to its foot.
+	for _,item in {self.confirm,self.cancel} do Theme.PadHit(item,1,104/50,0.5,48/54) end
 
 	-- Results and refusals under the window ("9 Chickens Sold!").
 	self.flash=label(root,"Result","",POWER,true)

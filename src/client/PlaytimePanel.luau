@@ -272,7 +272,7 @@ function Panel:Open()
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Color3.fromRGB(30,24,40))
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
-	Theme.HeaderClose(header,function() self:Close() end)
+	Theme.HeaderClose(header,function() self:Close() end,1.6) -- phone hit area: 48 px
 	local grid=Theme.Container(main,"Grid")
 	grid.AnchorPoint,grid.Position,grid.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.94,0.92)
 	Theme.Aspect(grid,GRID_ASPECT)

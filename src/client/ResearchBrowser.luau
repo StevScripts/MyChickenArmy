@@ -205,6 +205,8 @@ function Browser.new(app,parent)
 	Theme.ApplyReferenceAccent(self.exit,ColorSequence.new(Color3.fromRGB(255,102,84),Color3.fromRGB(243,36,59)))
 	self.exit.AnchorPoint,self.exit.Position,self.exit.Size,self.exit.ZIndex=Vector2.new(1,0),UDim2.fromScale(.985,.012),UDim2.fromScale(.14,.105),6
 	Theme.Aspect(self.exit,120/115)
+	-- Phone hit area: 1.2x, growing left and down (the page clips its top-right corner).
+	Theme.PadHit(self.exit,1.2,1.2,1,0)
 	self.message=label(root,"Feedback","",.15,.17,.70,.055,GREEN)
 	self.message.ZIndex,self.message.Visible=12,false
 	-- Centre-anchored once so its pop grows from the middle; the rendered spot is the same.
