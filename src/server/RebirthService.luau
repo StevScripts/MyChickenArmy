@@ -119,7 +119,9 @@ end
 -- Boost (a steady rate, like offline and daily rewards). The daily income floor applies.
 local function eggIncome(session): number
 	local tree = session.upgradeTree
-	local layers = UpgradeCatalog.Value(tree, "Flock")
+	-- Flock Size with +1 Flock Slot Gem Upgrades (S7b), as PlayerSession:FlockSize.
+	local flockSize = session.researchEffects and session.researchEffects.flockSize
+	local layers = if type(flockSize) == "number" then math.floor(flockSize) else UpgradeCatalog.Value(tree, "Flock")
 	local rates = {}
 	for _, pet in session.pets or {} do
 		table.insert(rates, Rules.EggRate(pet.species, pet.stars or 1, pet.level) * MutationCatalog.Multiplier(pet.mutation))

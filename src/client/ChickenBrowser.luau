@@ -774,7 +774,7 @@ function Browser:FlockStatus(pet,upgradeShown): string
 		elseif pet.flock then "In your Flock · away with your Army"
 		elseif pet.laying then "Laying in place of a Flock chicken that's away"
 		else "In storage · not laying eggs"
-	if upgradeShown or (pet.level or 1)>=Config.MaxPetLevel then return text end
+	if upgradeShown or (pet.level or 1)>=(pet.levelCap or Config.MaxPetLevel) then return text end
 	local tools=self.app.state.tools
 	return text.."\n"..(if type(tools)=="table" and tools.chickenFeed then "Level it up: equip Chicken Feed and walk up to it"
 		else "Level it up with Chicken Feed (Upgrades > Tools)")
@@ -818,7 +818,7 @@ function Browser:UpdateAction()
 	local affordable=type(price)=="number" and state.coins>=price
 	enabled(self.upgrade,canEdit and pet~=nil and pet.canUpgrade==true and affordable)
 	self.upgrade.Text=if self.pending and self.pending.action=="UpgradeChicken" then "Upgrading…"
-		elseif pet and pet.level>=Config.MaxPetLevel then "Max Level"
+		elseif pet and pet.level>=(pet.levelCap or Config.MaxPetLevel) then "Max Level"
 		elseif type(price)=="number" then 'Upgrade  <font color="#FFDE29">'..Theme.Coins(price)..'</font>' else "Upgrade"
 	enabled(self.assign,canEdit and pet~=nil)
 	self.assign.Text=if pet and pet.selected then "Remove from Army"

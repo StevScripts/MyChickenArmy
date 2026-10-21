@@ -13,6 +13,8 @@ export type Upgrade = {
 }
 
 -- Draft Gem prices; the P0 cost fit (tests/ProgressionSimulation) owns the numbers.
+-- October 20 (Stevin, S7b): the cards follow Drop a Fruit's shop order in rows of two,
+-- with +1 Flock Slot and +1 Army Slot at Rebirth 1 (its "+1 Fruit Slot").
 -- Vacuum Capacity adds seconds of the Flock's laying (October 20, Stevin), like the
 -- Tools tiers; S11 converts seconds to eggs.
 Catalog.VacuumCapacityPerLevel = 15
@@ -30,36 +32,43 @@ local upgrades: {Upgrade} = {
 	{id = "AutoRoll", name = "Auto Roll", row = 2, column = 2, unlockRank = 0, maxLevel = 1, startLevel = 0,
 		prices = {15}, effect = "autoRoll", perLevel = 1,
 		text = "Unlocks Auto Roll: your podiums keep rolling for you", icon = "gemAutoRoll"},
-	{id = "CoinBoost", name = "Coin Boost", row = 3, column = 1, unlockRank = 0, maxLevel = 10, startLevel = 0,
+	-- On top of the tree's Flock Size and Army Size; the yard still follows the tree.
+	{id = "FlockSlot", name = "+1 Flock Slot", row = 3, column = 1, unlockRank = 1, maxLevel = 2, startLevel = 0,
+		prices = {20, 60}, effect = "flockSize", perLevel = 1,
+		text = "+1 chicken laying eggs in your Flock", icon = "gemFlockSlot"},
+	{id = "ArmySlot", name = "+1 Army Slot", row = 3, column = 2, unlockRank = 1, maxLevel = 2, startLevel = 0,
+		prices = {25, 75}, effect = "armySlots", perLevel = 1,
+		text = "+1 chicken in your Army", icon = "gemArmySlot"},
+	{id = "CoinBoost", name = "Coin Boost", row = 4, column = 1, unlockRank = 2, maxLevel = 10, startLevel = 0,
 		prices = {10, 15, 25, 40, 60, 90, 135, 200, 300, 450}, effect = "coinBoost", perLevel = 0.10,
 		text = "+10% Coins from eggs", icon = "gemCoinBoost"},
-	{id = "AutoRebirth", name = "Auto Rebirth", row = 3, column = 2, unlockRank = 0, maxLevel = 1, startLevel = 0,
+	{id = "AutoRebirth", name = "Auto Rebirth", row = 4, column = 2, unlockRank = 2, maxLevel = 1, startLevel = 0,
 		prices = {25}, effect = "autoRebirth", perLevel = 1,
 		text = "Unlocks Auto Rebirth: rebirths for you when you have enough Coins", icon = "gemAutoRebirth"},
 	-- Time Skip starts at level 1 (5 minutes) for everyone.
-	{id = "TimeSkip", name = "Time Skip", row = 4, column = 1, unlockRank = 2, maxLevel = 6, startLevel = 1,
+	{id = "TimeSkip", name = "Time Skip", row = 5, column = 1, unlockRank = 3, maxLevel = 6, startLevel = 1,
 		prices = {20, 40, 70, 110, 160}, effect = "timeSkipMinutes", perLevel = 5,
 		text = "+5 min of Coins when you rebirth", icon = "gemTimeSkip"},
-	{id = "MoreGems", name = "More Gems", row = 4, column = 2, unlockRank = 2, maxLevel = 5, startLevel = 0,
+	{id = "MoreGems", name = "More Gems", row = 5, column = 2, unlockRank = 3, maxLevel = 5, startLevel = 0,
 		prices = {25, 50, 90, 140, 200}, effect = "gemBonus", perLevel = 0.10,
 		text = "+10% Gems from every rebirth", icon = "gemMoreGems"},
-	{id = "KeepUpgrades", name = "Keep Upgrades", row = 5, column = 1, unlockRank = 5, maxLevel = 3, startLevel = 0,
+	{id = "KeepUpgrades", name = "Keep Upgrades", row = 6, column = 1, unlockRank = 5, maxLevel = 3, startLevel = 0,
 		prices = {40, 90, 160}, effect = "keepTiers", perLevel = 1,
 		text = "Keep 1 more tier of Egg Speed, Egg Value and Luck", icon = "gemKeepUpgrades"},
-	{id = "Rally", name = "Rally", row = 5, column = 2, unlockRank = 5, maxLevel = 2, startLevel = 0,
+	{id = "Rally", name = "Rally", row = 6, column = 2, unlockRank = 5, maxLevel = 2, startLevel = 0,
 		prices = {30, 80}, effect = "rallySeconds", values = {8, 12},
 		text = "Rally: +20% army damage for 8 s", texts = {"Unlocks Rally: +20% army damage for 8 s", "Rally lasts 12 s"},
 		icon = "gemRally"},
-	{id = "MutationLuck", name = "Mutation Luck", row = 6, column = 1, unlockRank = 10, maxLevel = 5, startLevel = 0,
+	{id = "MutationLuck", name = "Mutation Luck", row = 7, column = 1, unlockRank = 8, maxLevel = 5, startLevel = 0,
 		prices = {40, 80, 130, 190, 260}, effect = "mutationLuck", perLevel = 0.10,
 		text = "+10% mutation chance", icon = "gemMutationLuck"},
-	{id = "OfflineCoins", name = "Offline Coins", row = 6, column = 2, unlockRank = 10, maxLevel = 4, startLevel = 0,
+	{id = "OfflineCoins", name = "Offline Coins", row = 7, column = 2, unlockRank = 8, maxLevel = 4, startLevel = 0,
 		prices = {30, 60, 100, 150}, effect = "offlineEfficiency", perLevel = 0.05,
 		text = "Earn 5% more while away", icon = "gemOfflineCoins"},
-	{id = "ArmyPower", name = "Army Power", row = 7, column = 1, unlockRank = 15, maxLevel = 5, startLevel = 0,
+	{id = "ArmyPower", name = "Army Power", row = 8, column = 1, unlockRank = 12, maxLevel = 5, startLevel = 0,
 		prices = {50, 100, 175, 275, 400}, effects = {"damage", "health"}, perLevel = 0.05,
 		text = "+5% army damage and health", icon = "gemArmyPower"},
-	{id = "RebirthChickenOdds", name = "Rebirth Chicken Odds", row = 7, column = 2, unlockRank = 15, maxLevel = 5, startLevel = 0,
+	{id = "RebirthChickenOdds", name = "Rebirth Chicken Odds", row = 8, column = 2, unlockRank = 12, maxLevel = 5, startLevel = 0,
 		prices = {30, 60, 100, 150, 220}, effect = "rebirthChickenChance", perLevel = 0.002,
 		text = "Rebirth chickens show up 20% more", icon = "gemRebirthChickenOdds"},
 }

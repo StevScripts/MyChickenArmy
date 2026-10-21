@@ -75,7 +75,9 @@ local Config = {
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
  Event={Enabled=false,Id="Halloween2026",StartsAt=1791936000,EndsAt=1793491200,Species="Pumpkin",OfferChance=0.02},
- StartingCoins=2400,StartingSlots=3,MaxSlots=10,CollectionLimit=25,LegacyCollectionLimit=100,
+ -- MaxSlots: the most Army slots without Bigger Army, the tree's 10 plus two +1 Army
+ -- Slot Gem Upgrades (October 20, S7b).
+ StartingCoins=2400,StartingSlots=3,MaxSlots=12,CollectionLimit=25,LegacyCollectionLimit=100,
  -- October 20: chicken storage is unlimited; StorageLimit is the hidden safety cap per save.
  -- Revision 12 is the tree/Gems economy: EconomyMigration converts revision ≤ 11 saves once.
  StorageLimit=1000,
@@ -113,7 +115,10 @@ local Config = {
  -- SlotUnlocks, LuckPrices and IncomePrices below are the pre-October 20 cash tracks:
  -- kept for reading old saves and for the old cash hexes until S9 ships. The tree in
  -- UpgradeCatalog sells Army Size, Luck and Egg Value now.
- MaxPetLevel=10,PetCombatPerLevel=0.25,PetUpgradeGrowth=1.75,
+ -- MaxPetLevel is the level cap without Feed Max Level. October 20 (S7b): the effect
+ -- feedMaxLevel adds Chicken Feed levels above it, up to PetLevelLimit; levels past
+ -- MaxPetLevel give +25% eggs each instead of 2x (Rules.EggRate).
+ MaxPetLevel=10,PetLevelLimit=20,PetCombatPerLevel=0.25,PetUpgradeGrowth=1.75,
  PetUpgradePriceFraction=0.75,
  PassiveIncomeMultiplier=1,
  SplashDamageFraction=0.5,

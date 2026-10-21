@@ -12,12 +12,24 @@ local HistoricalPrices = {
 	Knight=26000, Wizard=48000, Dragon=96000, IceDuck=128000, StormDuck=192000,
 }
 
+-- The highest level Chicken Feed reaches for this player: Config.MaxPetLevel plus the
+-- effect feedMaxLevel (S9c's Feed Max Level tiers or any later source), at most
+-- Config.PetLevelLimit (October 20, S7b).
+function Rules.LevelCap(effects: any): number
+	local extra = if type(effects) == "table" then tonumber(effects.feedMaxLevel) else nil
+	if extra == nil or extra ~= extra then extra = 0 end
+	return math.clamp(Config.MaxPetLevel + math.floor(extra :: number), Config.MaxPetLevel, Config.PetLevelLimit)
+end
+
 -- Catalog income is the existing base cash/sec balance. Express it as egg quantity.
--- Retain the approved level curve: a merged bird produces 2x one input bird.
+-- Retain the approved level curve: a merged bird produces 2x one input bird. Levels
+-- past Config.MaxPetLevel (Feed Max Level) add +25% eggs each instead (Stevin, Oct 20).
+Rules.EggGrowthPastCap = 1.25
 function Rules.EggRate(species: string, stars: number, level: number?): number
-	local rank = math.clamp(level or 1, 1, Config.MaxPetLevel)
+	local rank = math.clamp(level or 1, 1, Config.PetLevelLimit)
+	local doubled = math.min(rank, Config.MaxPetLevel)
 	local base = Catalog[species].income * Config.PassiveIncomeMultiplier
-	return base / Config.EggBaseValue * 2 ^ (stars - 1) * 2 ^ (rank - 1)
+	return base / Config.EggBaseValue * 2 ^ (stars - 1) * 2 ^ (doubled - 1) * Rules.EggGrowthPastCap ^ (rank - doubled)
 end
 
 -- October 20: incomeLevel is the Upgrades tree's Egg Value tier (0-4).
@@ -47,8 +59,18 @@ end
 -- time and ran away. The extra 2.5x per level makes each quote 5x the last
 -- (Common: $1,800, $9,000, $45,000 ...); level 1→2 is unchanged. Exact in floats.
 Rules.ChickenUpgradeGrowth = 2.5
+-- October 20 (S7b): past Config.MaxPetLevel a level adds +25% eggs, not 2x. Its Feed
+-- keeps levels 1-10's slope (each level takes 2.5x longer to pay back than the last):
+-- 1.25x the Lv 9 -> 10 quote, then 3.125x (1.25 x 2.5) per level. Draft until the re-fit.
+-- The player's own cap (Rules.LevelCap) is checked by ChickenUpgradeEligibility.
+Rules.FeedPastCapFirst = 1.25
+Rules.FeedPastCapGrowth = 3.125
 function Rules.ChickenUpgradePrice(species: string, level: number): number?
-	if level>=Config.MaxPetLevel then return nil end
+	if level>=Config.PetLevelLimit then return nil end
+	if level>=Config.MaxPetLevel then
+		local last=Rules.ChickenUpgradePrice(species,Config.MaxPetLevel-1) :: number
+		return math.ceil(last*Rules.FeedPastCapFirst*Rules.FeedPastCapGrowth^(level-Config.MaxPetLevel))
+	end
 	return math.max(1,math.ceil(Rules.RecruitPrice(species,level)*Config.Economy.ChickenUpgradeRecruitFraction
 		*Rules.ChickenUpgradeGrowth^(math.max(1,level)-1)))
 end
@@ -99,7 +121,8 @@ end
 -- giantSize (optional): a Giant has more health and damage and stomps (splash).
 function Rules.Stats(species: string, stars: number, level: number?, giantSize: number?)
 	local pet = Catalog[species]
-	local rank = math.clamp(level or 1, 1, Config.MaxPetLevel)
+	-- HP and damage keep +25% of base per level through Feed Max Level's levels.
+	local rank = math.clamp(level or 1, 1, Config.PetLevelLimit)
 	local copies = 2 ^ (stars - 1)
 	local combat = 1 + (rank - 1) * Config.PetCombatPerLevel
 	local investment = pet.price * copies

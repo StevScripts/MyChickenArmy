@@ -121,7 +121,7 @@ local ShopCatalog = {
 		DoubleCash = {passId=1980764263, name="2x Coins", proposedPrice=399, description="2x coins from eggs and combat.", scope="Earned coins only; excludes coin packs and chicken sales."},
 		DoubleEggSpawn = {passId=1979943376, name="2x Egg Spawn", proposedPrice=199, description="Chickens at your base lay twice as many eggs.", scope=if ProcessorConfig.Enabled then "2x egg production and selling speed; stacks with 2x Coins." else "2x egg production; stacks with 2x Coins."},
 		AutoMerge = {enabled=Config.Features.Merging and Config.Features.AutoMerging, passId=1975401932, name="Auto Fuse", proposedPrice=249, automatic=true, description="Fuse matching chickens at your base automatically.", scope="Protects favorites, deployed and manually selected chickens."},
-		BiggerArmy = {passId=1980638268, name="Bigger Army", proposedPrice=499, description="Add 5 army slots.", scope="Stacks with Army Size to field up to 15 chickens."},
+		BiggerArmy = {passId=1980638268, name="Bigger Army", proposedPrice=499, description="Add 5 army slots.", scope="Stacks with Army Size and +1 Army Slot to field up to 17 chickens."},
 		DoubleLuck = {passId=1975521949, name="2x Luck", proposedPrice=399, paidRandom=true, description="Double Luck strength to favor stronger chickens.", scope="Actual chances are shown in Details. Crates unaffected."},
 		EggMagnet = {
 			name = "Egg Magnet", category = "Convenience", proposedPrice = 49, passId = 1980009442,

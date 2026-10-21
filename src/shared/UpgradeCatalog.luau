@@ -121,15 +121,15 @@ local families: {Family} = {
 		tiers = tiers({{1, 60000}, {2, 150000}, {3, 400000}, {4, 1000000}}),
 		positions = walk(-2, 3, {"S", "S", "S"}), prerequisite = "GoldMachine"},
 	{id = "DiamondMachine", name = "Diamond Machine", category = "Main", icon = "diamondMachine", effect = "goldMachine", base = 0,
-		format = "unlock", description = "Your roll machine also counts down to a Diamond roll.",
+		format = "unlock", description = "Adds Diamond rolls on their own counter, separate from Gold rolls.",
 		tiers = tiers({{2, 300000}}), positions = walk(-3, 3), prerequisite = "GoldRate1"},
 	{id = "DiamondRate", name = "Diamond Rate", category = "Main", icon = "diamondRate", effect = "diamondRate", base = 0,
 		format = "level", description = "Diamond rolls come around sooner.",
 		tiers = tiers({{1, 750000}, {2, 2000000}, {3, 5000000}, {4, 12000000}}),
 		positions = walk(-4, 4, {"S", "S", "S"}), prerequisite = "DiamondMachine"},
 	{id = "PrismMachine", name = "Prism Machine", category = "Main", icon = "prismMachine", effect = "goldMachine", base = 0,
-		format = "unlock", description = "Your roll machine also counts down to a Prism roll.",
-		tiers = tiers({{3, 3000000}}), positions = walk(-5, 4), prerequisite = "DiamondRate1"},
+		format = "unlock", description = "Adds Prism rolls on their own counter, separate from Gold and Diamond rolls.",
+		tiers = tiers({{3, 1000000}}), positions = walk(-5, 4), prerequisite = "DiamondRate1"},
 	{id = "PrismRate", name = "Prism Rate", category = "Main", icon = "prismRate", effect = "prismRate", base = 0,
 		format = "level", description = "Prism rolls come around sooner.",
 		tiers = tiers({{1, 8000000}, {2, 20000000}, {3, 50000000}, {4, 120000000}}),
@@ -333,7 +333,11 @@ Catalog.DefaultEffects = table.freeze({
 	flockSize = 3, eggVacuum = 0, vacuumCapacity = 0, vacuumRange = 0, chickenFeed = 0, goldMachine = 0, goldRate = 0,
 	coinBoost = 0, gemBonus = 0, timeSkipMinutes = 0, keepTiers = 0, mutationLuck = 0,
 	offlineEfficiency = 0, rebirthChickenChance = 0.01, autoRebirth = 0,
-	diamondRate = 0, prismRate = 0, mutations = 0, feedMaxLevel = 0,
+	-- S7b: Army slots from Gem Upgrades (on top of Army Size), and Chicken Feed levels
+	-- above Config.MaxPetLevel from any source (S9c's Feed Max Level tiers).
+	armySlots = 0, feedMaxLevel = 0,
+	-- S9c: Diamond/Prism Rate tiers (GoldRolls) and how many mutations can roll.
+	diamondRate = 0, prismRate = 0, mutations = 0,
 })
 
 -- Pure effect table for a saved tree and Gem Upgrade levels. The highest owned

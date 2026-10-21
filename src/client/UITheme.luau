@@ -86,6 +86,7 @@ Theme.GemArt = {
 	Rally=Theme.Assets.Rally, MutationLuck="rbxassetid://131360952198245",
 	OfflineCoins="rbxassetid://139396997085549", ArmyPower="rbxassetid://103869254129016",
 	RebirthChickenOdds="rbxassetid://114829354407655",
+	FlockSlot="rbxassetid://137569434618832", ArmySlot="rbxassetid://92487563557623", -- S7b: tree icons
 }
 Theme.Rarities = Palette.Rarities
 -- Background-free messages in the UI kit's lettering: status-gradient text with a

@@ -103,8 +103,10 @@ function Checks.Run()
  end)
 
  test("Bigger Army adds its bonus and Select Best and saved lineups respect it",function()
-  -- October 20: Army Size comes from the Upgrades tree (top tier = MaxSlots) and survives a save.
-  local s=flock(-976);s.upgradeTree.ArmySize=#require(Shared.UpgradeCatalog).Families.ArmySize.tiers;s:RefreshEffects()
+  -- October 20: Army Size comes from the Upgrades tree; its top tier plus both +1 Army Slot
+  -- Gem Upgrades (S7b) is MaxSlots, and both survive a save.
+  local s=flock(-976);s.upgradeTree.ArmySize=#require(Shared.UpgradeCatalog).Families.ArmySize.tiers
+  s.gemUpgrades.ArmySlot=2;s:RefreshEffects()
   for i=1,Config.MaxSlots+ShopCatalog.ArmyBonus+3 do s:AddPet("Knight",1) end
   s.plotSizeLevel=#require(Shared.UpgradeCatalog).PlotPrices
   assert(s:Capacity()==Config.MaxSlots,"Without the pass")
