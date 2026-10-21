@@ -214,7 +214,9 @@ function LoadingController.new(gui: ScreenGui)
 	local shell = gui:FindFirstChild("Shell")
 	if shell then hideShell(shell) end
 
-	local self = setmetatable({gui = gui, overlay = overlay, blur = blur,
+	-- October 21 game feel: the logo breathes gently while the island loads.
+	Theme.Motion:Breathe(logo, 1.03, 1.4)
+	local self = setmetatable({gui = gui, overlay = overlay, blur = blur, logo = logo,
 		shellConnection = shellConnection,
 		status = status, percentage = percentage, fill = segment, skip = skip,
 		closing = false, profileReady = false, assetsReady = false, skipRequested = false}, LoadingController)
@@ -230,7 +232,8 @@ function LoadingController:SetProgress(completed: number, total: number)
 	if self.closing then return end
 	local progress = if total == 0 then 1 else math.clamp(completed / total, 0, 1)
 	self.percentage.Text = string.format("%d%%", math.floor(progress * 100))
-	Theme.Motion:Tween(self.fill, "progress", {Size = UDim2.fromScale(progress, 1)}, 0.2)
+	-- October 21 game feel: the shared bar tween; each gain flashes the fill.
+	Theme.Motion:Progress(self.fill, progress, 0.25, Color3.new(1, 1, 1))
 	self.status.Text = if progress >= 1 then "Ready!" else string.format("Loading %d/%d items…", completed, total)
 end
 
@@ -284,6 +287,7 @@ function LoadingController:Bind(app)
 	-- AppController may already have received Sync during Start().
 	if app.state then self:ConsiderState(app.state) end
 	if app.reducedMotion and self.orbitTween then self.orbitTween:Pause() end
+	if app.reducedMotion then Theme.Motion:StopBreathe(self.logo) end
 end
 
 function LoadingController:ConsiderState(state)
@@ -323,7 +327,11 @@ function LoadingController:Dismiss()
 	local shell = self.gui:FindFirstChild("Shell")
 	if shell then shell.Visible = not playing end
 	self.app:SetMenuBlur("loading", false)
+	-- October 21 game feel: the veil lifts with a cue and the logo swells as it fades.
+	self.app:Cue("MenuClose")
+	Theme.Motion:StopBreathe(self.logo)
 	if self.app.reducedMotion then self.overlay:Destroy(); return end
+	Theme.Motion:Tween(Theme.Motion:ScaleOf(self.logo), "pop", {Scale = 1.08}, 0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local fade = TweenService:Create(self.overlay,
 		TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{GroupTransparency = 1})

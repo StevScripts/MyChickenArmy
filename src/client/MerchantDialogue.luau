@@ -78,10 +78,14 @@ function Dialogue:Open(counter)
  self.anchor = merchant and merchant:FindFirstChild("Head") or counter
  self.active, self.app.dialogueActive = true, true
  self.app.base:RefreshPromptOwnership()
+ -- October 21 game feel: the speech pops in over the merchant with a menu cue.
+ Theme.Motion:PopScale(self.speech, 0.85, 0.3)
+ self.app:Cue("MenuOpen", "Pop")
  self:Step()
 end
 
 function Dialogue:Close()
+ if self.active then self.app:Cue("MenuClose") end
  self:CancelMotion()
  self.active, self.root.Visible, self.speech.Visible = false, false, false
  self.app.dialogueActive = false
@@ -160,6 +164,10 @@ function Dialogue:Show(text, choices, note)
  end
  self.root.Size = UDim2.fromScale(QUESTION_WIDTH, QUESTION_HEIGHT * totalHeight / ROW)
  Theme.Aspect(self.root, WIDTH / totalHeight)
+ -- October 21 game feel: the choice rows grow in one after another as their text fades up.
+ if #choices > 0 then
+  self:After(entrance, function() Theme.Motion:Reveal(self.root, {from = 0.85, gap = 0.085, window = 0.6, limit = 8}) end)
+ end
  self:Step()
 end
 

@@ -25,6 +25,7 @@ function Controller:Dismiss(immediate)
 	end
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
+	if self.continueButton then Theme.Motion:StopBreathe(self.continueButton.Visual);self.continueButton=nil end
 	self.app:SetMenuBlur("offline",false)
 	if self.app.hud and self.receiptId then
 		local amount=self.amountLabel
@@ -122,13 +123,21 @@ function Controller:Receive(state)
 		panel.Position=UDim2.fromScale(restingPosition.X.Scale,restingPosition.Y.Scale+0.035)
 	end
 	Theme.Motion:Tween(panel,"receipt-size",{Size=restingSize},0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out,function()
-		Theme.Motion:PopScale(icon,1.15,0.3)
+		Theme.Motion:Punch(icon,1.18,0.3)
 		Theme.Motion:Burst(rewardView,UDim2.fromScale(0.5,0.45),GREEN)
 	end)
-	-- Display only: the receipt is already saved; the number rolls up to it.
+	-- Display only: the receipt is already saved; the number rolls up to it with a
+	-- rising tick (October 21). Reduced motion shows the amount at once.
 	local function money(value) return "+"..Theme.Money(math.floor(value)) end
-	Theme.Motion:Count(amount,0,money)
-	Theme.Motion:Count(amount,reward.amount,money,0.7)
+	local total=math.max(1,reward.amount)
+	Theme.Motion:CountTo(amount,0,money)
+	Theme.Motion:CountTo(amount,reward.amount,money,0.8,{tickGap=0.07,punch=1.1,tick=function(value)
+		self.app:Cue("CountTick",nil,0.9+0.25*math.clamp(value/total,0,1),{voiceKey="CountTick",cooldown=0.06})
+	end})
+	self.app:Cue("MenuOpen","Pop")
+	-- Collect breathes until pressed (StopBreathe in Dismiss).
+	self.continueButton=continue
+	Theme.Motion:Breathe(continue.Visual,1.05,0.7)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},0.28)
 	Theme.Motion:Tween(panel,"receipt-fade",{GroupTransparency=0},0.22)
 	if self.app.editPreview then return end
