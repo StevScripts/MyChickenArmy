@@ -67,11 +67,13 @@ function BaseController:CommandFor(part)
 			return {model = target, targetId = id, title = entry.name, locked = not entry.current,
 				reason = entry.reason or "Your Army is busy", color = C.line}
 		end
-		local _, _, _, selectedCount, deployedCount = self.app:Counts()
+		local ownedCount, _, _, selectedCount, deployedCount = self.app:Counts()
 		local armyCount = if state.armyState == "Home" or state.armyState == "Following" then selectedCount else deployedCount
 		local available = if income then income.available else entry.available
-		local allowed = canMove and available and armyCount > 0
-		local reason = if not available then (if income then income.reason else entry.reason) elseif armyCount == 0 then "Buy a chicken at your podium first"
+		-- October 21 (Stevin: no locks at any camp): an empty Army sends the best
+		-- chickens (the server fills it), so only owning none at all stops an order.
+		local allowed = canMove and available and (armyCount > 0 or ownedCount > 0)
+		local reason = if not available then (if income then income.reason else entry.reason) elseif not allowed then "You have no chickens to send yet"
 			else ""
 		-- Shared bands (TutorialGuide.Difficulty): <1.3x Very tough, 1.3-2x Close fight, 2x+ Should win.
 		local strength = Guide.Difficulty(state.power, entry.power)
@@ -109,17 +111,17 @@ function BaseController:MissionCommand(model,missionId)
 	local mission
 	for _,entry in (state.operations or {}).missions or {} do if entry.id==missionId then mission=entry end end
 	if not mission then return nil end
-	local _, _, _, selectedCount = self.app:Counts()
+	local ownedCount, _, _, selectedCount = self.app:Counts()
 	-- October 15: an army already out can be sent straight here (the server
 	-- forfeits a Mission it leaves and keeps a camp's progress draining there).
 	local canMove=state.armyState=="Home" or state.armyState=="Following" or state.armyState=="Deployed"
 		or state.armyState=="Traveling" or state.armyState=="Fighting" or state.armyState=="Returning"
 	-- October 15: a won site stays held by its army; any other Army may take it.
-	local allowed=canMove and selectedCount>0 and not mission.locked and not mission.yours and not mission.busy
+	local allowed=canMove and (selectedCount>0 or ownedCount>0) and not mission.locked and not mission.yours and not mission.busy
 	local reason=if mission.yours then "Your Army holds this territory"
 		elseif mission.busy then "A battle is already going on here"
 		elseif mission.locked then "Unlock this Mission tier in Upgrades"
-		elseif not canMove then "Your Army is busy" elseif selectedCount==0 then "Select an Army first" else ""
+		elseif not canMove then "Your Army is busy" elseif not allowed then "You have no chickens to send yet" else ""
 	local enemies=if mission.holder then mission.count.." chickens of "..mission.holder else mission.count.." loyalists"
 	local payout=if mission.rewarded then "already rewarded" else Theme.CompactCoins(mission.reward)
 	local hint=Guide.Difficulty(state.power,mission.power).." · "..enemies.." · "..payout
