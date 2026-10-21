@@ -76,11 +76,12 @@ end
 Render.MyArmy=function(ctx)
 	local app=makeApp(ctx)
 	local frame=menuFrame(ctx,"Army","MyArmy")
+	-- October 21: the grid rewrite has no title label of its own, and Render (which new()
+	-- may call) writes "My Army" to app.panelTitle, so a hidden stand-in exists first.
+	local title=Instance.new("TextLabel");title.Name,title.Visible,title.Parent="Title",false,frame
+	app.panelTitle=title
 	local browser=require(ctx.code.ChickenBrowser).new(app,frame)
-	-- October 21: the grid rewrite has no title label of its own; Render writes "My Army" to app.panelTitle.
-	local title=browser.title
-	if not title then title=Instance.new("TextLabel");title.Name,title.Visible,title.Parent="Title",false,frame end
-	app.chickenBrowser,app.panelTitle,app.page=browser,title,"Army"
+	app.chickenBrowser,app.panelTitle,app.page=browser,browser.title or title,"Army"
 	app.selected=ctx.state.pets and ctx.state.pets[1] and ctx.state.pets[1].id
 	browser.root.Visible=true
 	browser:Render(true)
