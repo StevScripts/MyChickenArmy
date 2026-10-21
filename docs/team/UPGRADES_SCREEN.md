@@ -48,13 +48,16 @@ text come from `UpgradeCatalog`; the client never computes a price.
   Diamond Rate I, Capture Speed I needs March Speed I. Flock, Egg Speed and Roll Slot
   open from Start, Army Size from Army (Open), Egg Value from Tools (Open) and Gold
   Machine from Player (Open); Open hexes count as owned.
-- Main (October 21, Stevin: "not a straight line", "closer together"): every chain
-  zig-zags in a tight band. Flock Size left, Egg Value up above Tools, Egg Speed right,
-  Army Size right below it, Roll Slots I–VII zig-zagging down under Start, Roll Speed
-  I–V right under Army Size, Golden → Rainbow → Shadow → Cosmic right under Roll
-  Speed, and Luck I–IV → Super Luck I–IV → Mega Luck I–IV as three rows under that
-  (one family, 12 tiers, each chain numbered 1–4). The Gold, Diamond and Prism Machines
-  are three bands left of Player, each machine followed by its Rate I–IV.
+- Main (October 21, Stevin: "not a straight line", "closer together", and the ending
+  "scattered around everywhere"): the Open hexes and every tier-I hex stay where the
+  band layout put them, and the late tiers coil into one round cluster (radius 5 from
+  Start; only Super Luck I and Mega Luck I sit one step further out). No three hexes of
+  a chain run in a straight line. Flock Size upper left, Egg Value above Tools, Egg
+  Speed and Army Size upper right, Roll Slots I–VII down under Start, Roll Speed I–V
+  right of it, Golden → Rainbow → Shadow → Cosmic beside Roll Speed, and Luck I–IV →
+  Super Luck I–IV → Mega Luck I–IV (one family, 12 tiers, each chain numbered 1–4)
+  curling under Roll Speed and up the right edge. Gold, Diamond and Prism Machines with
+  their Rate I–IV coil left of Player and below it.
 - Tools: Back in the middle, Egg Vacuum down-left (Vacuum Capacity I–IV, Vacuum Range
   I–III), Chicken Feed down-right (Max Level I–III). Player and Army: chains around
   Back. Every chain in every map zig-zags; none runs in a straight line.

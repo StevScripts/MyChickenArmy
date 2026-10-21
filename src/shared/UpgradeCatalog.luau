@@ -63,14 +63,16 @@ local families: {Family} = {
 	-- October 21 (Stevin): the three Open hexes touch Start and alternate with green ones
 	-- (Tools on top, Army right, Player left), and every chain zig-zags in a tight band.
 	-- Every hex touches the hex it needs, so a few chains open from a neighbour.
+	-- Later October 21 (Stevin: the ending was "scattered around everywhere"): the late
+	-- tiers coil into one round cluster with no three hexes in a straight line.
 	{id = "EggSpeed", name = "Egg Speed", category = "Main", icon = "eggSpeed", field = "eggSpeedLevel", base = 1,
 		format = "multiplier", description = "Chickens in your Flock lay eggs faster.",
 		tiers = tiers({{1.25, 400}, {1.5, 2000}, {2, 8000}, {3, 30000}}),
-		positions = walk(1, -1, {"NE", "SE", "NE"})},
+		positions = walk(1, -1, {"N", "NE", "NW"})},
 	{id = "EggValue", name = "Egg Value", category = "Main", icon = "eggValue", field = "incomeLevel", base = 1,
 		format = "multiplier", description = "Every new egg is worth more Coins.",
 		tiers = tiers({{1.5, 600}, {2, 3000}, {3, 12000}, {5, 45000}}),
-		positions = walk(0, -2, {"NW", "NE", "NW"}), prerequisite = "OpenTools"},
+		positions = walk(0, -2, {"N", "SW", "S"}), prerequisite = "OpenTools"},
 	-- Three chains, each its own clover: Luck I–IV, Super Luck I–IV, Mega Luck I–IV
 	-- (Stevin, October 20). Values are Luck strength; the window math stays bounded.
 	{id = "Luck", name = "Luck", category = "Main", icon = "luck", field = "luck", base = 1,
@@ -79,31 +81,31 @@ local families: {Family} = {
 			{3.5, 250000}, {4, 600000}, {4.5, 1500000}, {5, 4000000},
 			{6, 10000000}, {7, 25000000}, {8, 60000000}, {10, 150000000}}),
 		labels = chains({{"Luck", "luck"}, {"Super Luck", "superLuck"}, {"Mega Luck", "megaLuck"}}),
-		-- Each chain is a row under Roll Speed: Luck right, Super Luck back, Mega Luck right.
-		positions = walk(1, 2, {"SE", "SE", "NE", "S", "SW", "NW", "SW", "S", "NE", "SE", "NE"}), prerequisite = "RollSpeed1"},
+		-- Luck curls under Roll Speed, Super Luck climbs the right edge, Mega Luck tops it.
+		positions = walk(1, 2, {"SE", "S", "NE", "SE", "N", "NE", "N", "NE", "NW", "N", "NW"}), prerequisite = "RollSpeed1"},
 	-- Flock Size = chickens out in the yard laying. yardStage is the authored yard
 	-- expansion (PlayerSession.plotSizeLevel, 0-7) that tier opens.
 	{id = "Flock", name = "Flock Size", category = "Main", icon = "flockSize", effect = "flockSize", base = 3,
 		format = "count", unit = "chickens laying", description = "More of your chickens lay eggs in the yard.",
 		tiers = tiers({{4, 300, 0}, {5, 900, 1}, {6, 2000, 2}, {7, 4500, 3}, {8, 9000, 4}, {10, 18000, 5},
 			{12, 35000, 6}, {15, 70000, 7}}),
-		positions = walk(-1, 0, {"NW", "SW", "NW", "SW", "NW", "SW", "NW"})},
+		positions = walk(-1, 0, {"NW", "N", "SW", "NW", "N", "SE", "NE"})},
 	-- Tier 1 is the Commander guide's protected 1,200-Coin Army Size 4 (COMMANDER_TUTORIAL.md).
 	-- It opens from Army (Open), which always counts as owned, so it needs nothing new.
 	{id = "ArmySize", name = "Army Size", category = "Main", icon = "armySize", field = "capacity", base = Config.StartingSlots,
 		format = "count", unit = "Army slots", description = "Send more chickens into battle.",
 		tiers = tiers({{4, 1200}, {6, 6000}, {8, 25000}, {10, 90000}}),
-		positions = walk(2, -1, {"SE", "NE", "SE"}), prerequisite = "OpenArmy"},
+		positions = walk(2, -1, {"N", "NE", "S"}), prerequisite = "OpenArmy"},
 	-- Roll Slots zig-zag down under Start (Stevin: "not a straight line").
 	{id = "RollSlot", name = "Roll Slot", category = "Main", icon = "rollSlots", field = "rollSlotsUnlocked", base = 1,
 		format = "count", unit = "podiums", description = "Roll on more of your podiums at once.",
 		tiers = tiers({{2, 1000}, {3, 4000}, {4, 12000}, {5, 30000}, {6, 75000}, {7, 180000}, {8, 400000}}),
-		positions = walk(0, 1, {"SW", "SE", "SW", "SE", "SW", "SE"})},
+		positions = walk(0, 1, {"S", "NW", "S", "SE", "S", "NE"})},
 	-- Each tier shortens the roll (RollService: RollRevealSeconds / (1 + rollingSpeed)).
 	{id = "RollSpeed", name = "Roll Speed", category = "Main", icon = "rollSpeed", effect = "rollingSpeed", base = 0,
 		format = "percent", description = "Every roll takes less time.",
 		tiers = tiers({{0.2, 1500}, {0.4, 7500}, {0.6, 30000}, {0.8, 100000}, {1, 300000}}),
-		positions = walk(1, 1, {"NE", "SE", "NE", "SE"}), prerequisite = "RollSlot1"},
+		positions = walk(1, 1, {"NE", "SE", "N", "NE"}), prerequisite = "RollSlot1"},
 	-- Mutations are bought here (Stevin, October 20), rarest furthest out. The value is
 	-- how many of MutationCatalog.Order can roll; it resets on Rebirth like the tree.
 	{id = "Mutation", name = "Mutations", category = "Main", icon = "mutationGolden", effect = "mutations", base = 0,
@@ -111,30 +113,30 @@ local families: {Family} = {
 		tiers = tiers({{1, 10000}, {2, 100000}, {3, 1000000}, {4, 10000000}}),
 		labels = {{name = "Golden Chickens", icon = "mutationGolden"}, {name = "Rainbow Chickens", icon = "mutationRainbow"},
 			{name = "Shadow Chickens", icon = "mutationShadow"}, {name = "Cosmic Chickens", icon = "mutationCosmic"}},
-		positions = walk(2, 1, {"SE", "NE", "SE"}), prerequisite = "Luck1"},
+		positions = walk(2, 1, {"SE", "NE", "N"}), prerequisite = "Luck1"},
 	-- Gold rolls (S12): each machine counts its own pulls; its Rate tiers shorten that
-	-- count (Config.GoldRolls). Gold, Diamond and Prism are three bands left of Player.
+	-- count (Config.GoldRolls). Gold, Diamond and Prism coil left of Player and below it.
 	{id = "GoldMachine", name = "Gold Machine", category = "Main", icon = "goldMachine", effect = "goldMachine", base = 0,
 		format = "unlock", description = "Your roll machine counts down to a Gold roll.",
 		tiers = tiers({{1, 25000}}), positions = walk(-2, 1), prerequisite = "OpenPlayer"},
 	{id = "GoldRate", name = "Gold Rate", category = "Main", icon = "goldRate", effect = "goldRate", base = 0,
 		format = "level", description = "Gold rolls come around sooner.",
 		tiers = tiers({{1, 60000}, {2, 150000}, {3, 400000}, {4, 1000000}}),
-		positions = walk(-3, 2, {"NW", "SW", "NW"}), prerequisite = "GoldMachine"},
+		positions = walk(-3, 2, {"N", "NW", "S"}), prerequisite = "GoldMachine"},
 	{id = "DiamondMachine", name = "Diamond Machine", category = "Main", icon = "diamondMachine", effect = "goldMachine", base = 0,
 		format = "unlock", description = "Adds Diamond rolls on their own counter, separate from Gold rolls.",
 		tiers = tiers({{2, 300000}}), positions = walk(-2, 2), prerequisite = "GoldRate1"},
 	{id = "DiamondRate", name = "Diamond Rate", category = "Main", icon = "diamondRate", effect = "diamondRate", base = 0,
 		format = "level", description = "Diamond rolls come around sooner.",
 		tiers = tiers({{1, 750000}, {2, 2000000}, {3, 5000000}, {4, 12000000}}),
-		positions = walk(-3, 3, {"NW", "SW", "NW"}), prerequisite = "DiamondMachine"},
+		positions = walk(-3, 3, {"NW", "S", "NW"}), prerequisite = "DiamondMachine"},
 	{id = "PrismMachine", name = "Prism Machine", category = "Main", icon = "prismMachine", effect = "goldMachine", base = 0,
 		format = "unlock", description = "Adds Prism rolls on their own counter, separate from Gold and Diamond rolls.",
 		tiers = tiers({{3, 1000000}}), positions = walk(-2, 3), prerequisite = "DiamondRate1"},
 	{id = "PrismRate", name = "Prism Rate", category = "Main", icon = "prismRate", effect = "prismRate", base = 0,
 		format = "level", description = "Prism rolls come around sooner.",
 		tiers = tiers({{1, 8000000}, {2, 20000000}, {3, 50000000}, {4, 120000000}}),
-		positions = walk(-3, 4, {"NW", "SW", "NW"}), prerequisite = "PrismMachine"},
+		positions = walk(-3, 4, {"SE", "S", "NE"}), prerequisite = "PrismMachine"},
 	-- Tools ----------------------------------------------------------------------
 	-- Like the reference: Back in the middle, each tool a branch with its own chains.
 	-- October 20 (Stevin, S14): the hand vacuum is bought here and resets on Rebirth,
