@@ -62,8 +62,9 @@ local TONES={
 local W,H=960,557
 -- October 21 (owner): a shared studded top bar (title + close, like every other menu)
 -- sits on the body; the lock, sell and counts controls ride in it.
-local TOPBAR={x=100,y=0,w=830,h=65}
-local BODY={x=100,y=65,w=830,h=464}
+-- 65.3 = 830 / Theme.HeaderAspect, so the header fills the bar's full width.
+local TOPBAR={x=100,y=0,w=830,h=65.3}
+local BODY={x=100,y=65.3,w=830,h=463.7}
 local GRID={x=10,y=10,w=812,h=420} -- inside BODY
 local DETAIL={x=537,y=8,w=275,h=422} -- inside BODY
 -- Seven 108-unit tiles (8 apart) normally; ten 75-unit tiles (6 apart) compact.
