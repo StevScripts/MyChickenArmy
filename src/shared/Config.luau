@@ -34,7 +34,7 @@ local Config = {
 	-- (Fuse-only); back on the same day with the restored Rebirth costs, which need it.
 	Features = {Merging = false, AutoMerging = false, IntroCutscene = true, ChickenCashUpgrades = true},
 	Economy = Economy,
- Version="1.20.0-launch", GameTitle="My Chicken Army!",
+ Version="1.21.0-overhaul", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's
  -- arena (Config.Hill). Only one site exists; its internal key stays "income:1".
  -- Rate is unused while the Hill is enabled: HillService pays the holder's boost.
