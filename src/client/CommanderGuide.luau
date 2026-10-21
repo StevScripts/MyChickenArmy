@@ -18,6 +18,10 @@ local TYPE_MAX_SECONDS = .65
 -- this long, with confetti, before the tips start and Daily Rewards may open.
 local CORE_SECONDS = 4
 local CORE_TEXT = "Your Flock is laying! Keep collecting eggs!"
+-- Like the reference's "TIP • COMPLETE! Vacuum learned!".
+local VACUUM_SECONDS = 3
+local VACUUM_TEXT = "Egg Vacuum learned! Sell what it collects on the pad."
+local TAP_WORD = {Touch="TAP!", Gamepad="R2!", Keyboard="CLICK!"}
 local Commander = {}
 Commander.__index = Commander
 
@@ -257,13 +261,19 @@ end
 -- The core's payoff: CORE_TEXT on the card for CORE_SECONDS and confetti across the
 -- screen. Daily Rewards waits for it (DailyRewardController:Blocked). Presentation only.
 function Commander:Celebrating(): boolean
-	return self.coreAt~=nil and os.clock()-self.coreAt<CORE_SECONDS
+	local payoff=self.payoff
+	return payoff~=nil and os.clock()-payoff.at<payoff.seconds
+end
+
+-- A payoff line holds the card for `seconds` (the core's ending, the vacuum tip's).
+function Commander:Payoff(text:string,tag:string,seconds:number)
+	self.payoff={text=text,tag=tag,seconds=seconds,at=os.clock()}
+	task.delay(seconds+.05,function() if self.alive then self:Update() end end)
 end
 
 function Commander:CelebrateCore()
-	self.coreAt=os.clock()
+	self:Payoff(CORE_TEXT,"TUTORIAL COMPLETE!",CORE_SECONDS)
 	self.app.audio:Play("SkillTreeResearchCompleted",nil,{noFallback=true,cooldown=.3})
-	task.delay(CORE_SECONDS+.05,function() if self.alive then self:Update() end end)
 	if self.app.reducedMotion then return end
 	local holder=Theme.Container(self.root,"CoreConfetti")
 	holder.ZIndex=30
@@ -439,8 +449,11 @@ function Commander:Update()
 	if current and current.goal and app.hud and app.hud.hill and app.hud.hill.bannerVisible then current=nil end
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
-	if self.facts and facts.Core and not self.facts.Core and not self.completedBeforeVisit then self:CelebrateCore() end
-	if self:Celebrating() then current={id="CoreDone",text=CORE_TEXT,tag="TUTORIAL COMPLETE!"} end
+	if self.facts and not self.completedBeforeVisit then
+		if facts.Core and not self.facts.Core then self:CelebrateCore()
+		elseif facts.VacuumUse and not self.facts.VacuumUse and facts.Core then self:Payoff(VACUUM_TEXT,"TIP • COMPLETE!",VACUUM_SECONDS) end
+	end
+	if self:Celebrating() then current={id="Payoff:"..self.payoff.tag,text=self.payoff.text,tag=self.payoff.tag} end
 	self:SetArmyHidden(current~=nil and not current.goal and not facts.Core
 		and (state.tutorial or {}).starterArmy==true and not self.completedBeforeVisit)
 	if self.facts and current and not current.goal then
@@ -452,6 +465,7 @@ function Commander:Update()
 	self.current=current
 	if not current then
 		self.pendingType=false;self:CancelTypewriter()
+		if self.eggHint then self.eggHint=false;app.eggs:SetGuideHint(false) end
 		self.root.Visible=false;self:ClearFocus();self:Present(false);return
 	end
 	local id=current.id
@@ -464,6 +478,24 @@ function Commander:Update()
 	self.root.Visible=not blocked
 	local inTree=app.research.root.Visible
 	local inArmy=app.panel.Visible and app.page=="Army"
+	-- October 21 (one action per line, like the reference): the words for opening the
+	-- menu, switching the Upgrades category or equipping the tool come first.
+	local character=Players.LocalPlayer.Character
+	local holdingVacuum=character~=nil and character:FindFirstChild("EggVacuum")~=nil
+	local text=current.text
+	if current.outside then
+		local open=if current.target=="Upgrades" then inTree elseif id=="Select" then inArmy
+			elseif current.target=="VacuumTool" then holdingVacuum else true
+		local node=current.node and CashNodes.Nodes[current.node]
+		if not open then text=current.outside
+		elseif current.wrongTab and inTree and node and (app.research.category or "Main")~=node.category then text=current.wrongTab end
+	end
+	if text~=self.lessonText then self.lessonText=text;self.pendingType=true end
+	-- The egg lesson lights the egg to click and taps it with the hand (EggController).
+	local eggLesson=id=="Collect" or id=="RecoverCollect"
+	if app.eggs and app.eggs.SetGuideHint and eggLesson~=self.eggHint then
+		self.eggHint=eggLesson;app.eggs:SetGuideHint(eggLesson,TAP_WORD[self:InputKind()])
+	end
 	-- Keep menu headers and controls unobstructed; the arrow points beside their relevant control.
 	local atTarget=false
 	for prompt in self.prompts do
@@ -473,10 +505,13 @@ function Commander:Update()
 	end
 	-- Let the game's native action prompt take over when the player reaches it.
 	-- Notices no longer hide the card; AppController:NoticePosition places them below it.
-	local visible=not app.panel.Visible and not inTree and not blocked and not atTarget
+	-- Lessons stay on screen over their menu, above the dimmed screen (the reference);
+	-- quiet Next goals still step aside for menus.
 	local quiet=current.goal==true
+	local menuLesson=not quiet and current.outside~=nil
+	local visible=(menuLesson or (not app.panel.Visible and not inTree)) and not blocked and not atTarget
 	self:SetQuiet(quiet)
-	self:SetInstruction(if quiet then "Next: "..current.text else current.text,visible and self.pendingType and not quiet)
+	self:SetInstruction(if quiet then "Next: "..current.text else text,visible and self.pendingType and not quiet)
 	self.tag.Text=if current.tag and current.index then current.tag.." • "..current.index.."/"..current.total
 		elseif current.tag then current.tag elseif id=="Complete" then "GUIDE COMPLETE!" else ""
 	if visible then self.pendingType=false end
@@ -499,7 +534,7 @@ function Commander:Update()
 	local target,placement
 	local where=current.target
 	-- Menu lessons dim the screen around their control; Next goals never do.
-	local dim=not quiet and (where=="Upgrades" or id=="Select" or id=="Deploy")
+	local dim=not quiet and (where=="Upgrades" or where=="VacuumTool" or id=="Select" or id=="Deploy")
 	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
 	if blocked then
 		target=nil
@@ -514,7 +549,9 @@ function Commander:Update()
 			self.sent.NodeInspect=true;self:Signal("NodeInspect")
 		end
 	elseif where=="VacuumTool" or where=="FeedTool" then
-		target=if app.panel.Visible or inTree then nil else self:ToolSlot(if where=="VacuumTool" then "EggVacuum" else "ChickenFeed")
+		-- Once the vacuum is in hand the lesson is walking, so the slot needs no arrow.
+		target=if app.panel.Visible or inTree or (where=="VacuumTool" and holdingVacuum) then nil
+			else self:ToolSlot(if where=="VacuumTool" then "EggVacuum" else "ChickenFeed")
 		placement=if target then ABOVE else nil
 	elseif where=="Rebirth" then
 		target=if app.panel.Visible or inTree then nil else app.hud.reenlist
@@ -524,6 +561,7 @@ end
 
 function Commander:Destroy()
 	self:CancelTypewriter()
+	if self.eggHint and self.app.eggs then self.app.eggs:SetGuideHint(false) end
 	self:SetArmyHidden(false)
 	self.alive=false;self:ClearFocus();self:Present(false)
 	self.pointerGuide:Destroy()

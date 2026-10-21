@@ -7,6 +7,23 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## One-to-one pass: later October 21
+
+Stevin: "make sure it's one-to-one … the black screen … a clicking animation and
+highlight the egg … keep it short." Changes on top of the section below:
+- **3 eggs** (`EggGoal = 3`), like the recording's "Tap your fruits (0/3)". The egg
+  to click glows (one gold `Highlight`) and the hand cursor taps it from below with a
+  ripple and "CLICK!"/"TAP!"/"R2!" (`EggController:SetGuideHint`, TweenService loops).
+  It stays on one egg until that egg is picked up, then moves to the nearest next one.
+- **One action per line**, with the words for the step before it (`outside` /
+  `wrongTab` on each lesson): "Spend your Coins in Upgrades!" → "Buy Flock Size I!";
+  "Open Upgrades for a FREE Egg Vacuum!" → "Open the Tools category!" → "Claim your
+  FREE Egg Vacuum!"; "Equip your Egg Vacuum!" → "Walk near eggs to vacuum them up!
+  (0/3)"; "Open My Army!" → "Press Equip Best!"; "Send your Army to Cluck Camp!".
+- **Black screen**: the dim is darker (70% black) and also covers the vacuum's hotbar
+  slot. Lessons stay on screen over their open menu, above the dim.
+- "TIP • COMPLETE! Egg Vacuum learned!" holds 3 s after the vacuum tip.
+
 ## Short core + numbered tips, like Drop a Fruit: October 21
 
 Stevin, from his Drop a Fruit tutorial recording: "implement these into the

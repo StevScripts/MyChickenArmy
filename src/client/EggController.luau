@@ -41,6 +41,11 @@ local CONFIRM_SECONDS=1.2 -- An unconfirmed click drops its egg back after this.
 local GAMEPAD_REPEAT=0.2 -- Holding R2 grabs the next nearest egg this often.
 local TOO_FAR_SECONDS=0.9
 local VACUUM_RING=Color3.fromRGB(150,214,255)
+-- October 21 tutorial (Stevin, like Drop a Fruit's "Tap your fruits" step): during the
+-- guide's egg lesson the egg to click glows and the hand cursor taps it.
+local HINT_GOLD=Color3.fromRGB(255,214,64)
+local HINT_TAP=TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,-1,true)
+local HINT_RIPPLE=TweenInfo.new(0.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,-1)
 
 function Eggs.new(app)
  return setmetatable({app=app,views={},feedback={},finishedFlights={},combo=0,lastPickup=0,
@@ -366,6 +371,80 @@ function Eggs:GrabNearest(now: number)
  if best then self:Grab(best,now) end
 end
 
+-- The CommanderGuide turns the egg hint on for its Collect lesson. `word` is the
+-- player's own input ("CLICK!" or "TAP!"); one layout everywhere.
+function Eggs:SetGuideHint(on: boolean, word: string?)
+ self.guideHint=on
+ if word and self.hintWord then self.hintWord.Text=word end
+ if not on then self:HideGuideHint() end
+end
+
+function Eggs:BuildGuideHint()
+ local highlight=Instance.new("Highlight")
+ highlight.Name="GuideEggHighlight";highlight.FillColor,highlight.FillTransparency=HINT_GOLD,0.45
+ highlight.OutlineColor,highlight.OutlineTransparency=Color3.new(1,1,1),0
+ highlight.DepthMode,highlight.Enabled=Enum.HighlightDepthMode.AlwaysOnTop,false
+ highlight.Parent=self.folder
+ local gui=Instance.new("BillboardGui")
+ gui.Name="GuideEggTap";gui.Size=UDim2.fromOffset(120,150);gui.AlwaysOnTop,gui.LightInfluence=true,0
+ gui.Active,gui.Enabled,gui.MaxDistance,gui.Parent=false,false,200,self.app.gui
+ -- A ring spreads from the egg on every tap.
+ local ripple=Instance.new("Frame")
+ ripple.Name,ripple.AnchorPoint,ripple.Position,ripple.BackgroundTransparency=("Ripple"),Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.4),1
+ ripple.Size=UDim2.fromOffset(10,10);ripple.Parent=gui
+ Instance.new("UICorner",ripple).CornerRadius=UDim.new(0.5,0)
+ local ring=Instance.new("UIStroke");ring.Color,ring.Thickness,ring.Parent=Color3.new(1,1,1),3,ripple
+ -- The glove points up with its fingertip at the image centre, so it taps from below.
+ local hand=Instance.new("ImageLabel")
+ hand.Name,hand.Image,hand.BackgroundTransparency=("Hand"),HOVER_CURSOR,1
+ hand.AnchorPoint,hand.Size,hand.Position=Vector2.new(0.5,0.5),UDim2.fromOffset(72,72),UDim2.fromScale(0.5,0.62)
+ hand.Parent=gui
+ local word=Theme.Label(gui,"Word","CLICK!",22,Color3.new(1,1,1))
+ word.AnchorPoint,word.Position,word.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.82),UDim2.fromScale(1,0.18)
+ word.TextXAlignment,word.TextScaled,word.TextWrapped=Enum.TextXAlignment.Center,true,false
+ self.hintHighlight,self.hintGui,self.hintHand,self.hintRipple,self.hintRing,self.hintWord=highlight,gui,hand,ripple,ring,word
+end
+
+function Eggs:HideGuideHint()
+ self.guideView=nil
+ if not self.hintGui then return end
+ self.hintHighlight.Enabled,self.hintHighlight.Adornee=false,nil
+ self.hintGui.Enabled,self.hintGui.Adornee=false,nil
+ for _,tween in self.hintTweens or {} do tween:Cancel() end
+ self.hintTweens=nil
+end
+
+-- Keeps one target until it is clicked, then moves to the next nearest settled egg.
+function Eggs:StepGuideHint(root,now: number)
+ if not self.guideHint then return end
+ if not root or self:Blocked() then self:HideGuideHint();return end
+ local view=self.guideView
+ if not (view and self.views[view.data.id]==view and self:Ready(view,now)) then
+  view=nil
+  local best=math.huge
+  for _,candidate in self.views do
+   if self:Ready(candidate,now) then
+    local distance=(candidate.ground-root.Position).Magnitude
+    if distance<best then view,best=candidate,distance end
+   end
+  end
+ end
+ if not view then self:HideGuideHint();return end
+ if not self.hintGui then self:BuildGuideHint() end
+ if view~=self.guideView or not self.hintGui.Enabled then
+  self.guideView=view
+  self.hintHighlight.Adornee,self.hintHighlight.Enabled=view.shell,true
+  self.hintGui.Adornee,self.hintGui.Enabled=view.shell,true
+ end
+ if self.hintTweens or self.app.reducedMotion then return end
+ self.hintHand.Position=UDim2.fromScale(0.5,0.62)
+ self.hintRipple.Size,self.hintRing.Transparency=UDim2.fromOffset(10,10),0
+ self.hintTweens={TweenService:Create(self.hintHand,HINT_TAP,{Position=UDim2.fromScale(0.5,0.47)}),
+  TweenService:Create(self.hintRipple,HINT_RIPPLE,{Size=UDim2.fromOffset(70,70)}),
+  TweenService:Create(self.hintRing,HINT_RIPPLE,{Transparency=1})}
+ for _,tween in self.hintTweens do tween:Play() end
+end
+
 -- Flies the egg to the player now and asks the server for it with the next batch.
 function Eggs:Grab(view,now: number): boolean
  local root=self:Root()
@@ -515,6 +594,7 @@ function Eggs:Step(now)
  if self.gamepadHeld and now-(self.lastGamepadGrab or 0)>=GAMEPAD_REPEAT then self:GrabNearest(now) end
  self:Flush(now)
  self:StepHover(now)
+ self:StepGuideHint(root,now)
  if self.tooFar.Enabled and (now>=(self.tooFarUntil or 0) or not self.tooFar.Adornee or not self.tooFar.Adornee.Parent) then
   self.tooFar.Enabled=false;self.tooFar.Adornee=nil
  end
@@ -573,6 +653,8 @@ function Eggs:Step(now)
 end
 
 function Eggs:Destroy()
+ self:HideGuideHint()
+ if self.hintGui then self.hintGui:Destroy() end
  if self.connection then self.connection:Disconnect() end
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)

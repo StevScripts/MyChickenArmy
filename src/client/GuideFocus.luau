@@ -8,7 +8,8 @@ Focus.__index = Focus
 local POINTER_SIZE = UDim2.fromScale(.11,.145)
 -- October 21 (Stevin, like the Drop a Fruit tutorial): menu lessons dim the screen
 -- around the control and ring it in gold. Never intercepts input (Active=false).
-local SHADE_TRANSPARENCY, HOLE_PADDING = .45, 6
+-- Later October 21 (Stevin: "the black screen"): as dark as the recording's.
+local SHADE_TRANSPARENCY, HOLE_PADDING = .3, 6
 local RING_COLOR = Color3.fromRGB(255,214,64)
 
 -- An optional fixed spot for the arrow, measured in the target's own size: `offset`
