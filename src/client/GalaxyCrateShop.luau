@@ -227,11 +227,15 @@ function Shop:Render()
  -- Grow in only when crates first become openable, not on every refresh.
  if showOpen and not self.openButton.Visible then Theme.Motion:PopScale(self.openButton.Visual,0.6,0.26) end
  self.openButton.Visible=showOpen
- if self.lastCredits and credits>self.lastCredits then Theme.Motion:PopScale(self.creditLabel,1.12) end
+ if self.lastCredits and credits>self.lastCredits then Theme.Motion:Punch(self.creditLabel,1.14,0.3) end
  self.lastCredits=credits
  self.openButton.Active=(testing or credits>0) and not busy and shop~=nil and (testing or shop.productReady==true)
   and shop.policyReady==true and shop.paidRandomAllowed==true and Catalog.Crate.enabled==true
  self.openButton.Selectable=self.openButton.Active
+ -- A bought crate waiting to be opened breathes (Render only runs while the Shop
+ -- shows); Settle stops it when none is left or the Shop closes.
+ if credits>0 and self.openButton.Active then Theme.Motion:Breathe(self.openButton.Visual,1.05,0.7)
+ else Theme.Motion:StopBreathe(self.openButton.Visual) end
  self.openButton.Text=if commerce.cratePending then "Opening…" elseif testing then "Test roll" else "Open 1"
  self.creditLabel.Text=if testing then "Studio test roll" elseif credits>0 then "Galaxy Crates: "..Theme.Money(credits) else "Five cosmic chickens to collect"
  self.note.Text=if shop and shop.policyReady==true and shop.paidRandomAllowed==false then "Paid random items are unavailable for this account."
@@ -240,7 +244,13 @@ function Shop:Render()
   else "One chicken per crate · Chances shown above"
 end
 
+-- Stops the open button's attention loop (the Shop is closing).
+function Shop:Settle()
+ Theme.Motion:StopBreathe(self.openButton.Visual)
+end
+
 function Shop:Destroy()
+ self:Settle()
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)
  self.root:Destroy()

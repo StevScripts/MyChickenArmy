@@ -376,9 +376,15 @@ function Browser.new(app,parent)
 		self.query=string.lower(search.Text):match("^%s*(.-)%s*$") or ""
 		self.wanted=PAGE;self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 	end))
-	-- Engaging the search answers once; keystrokes stay silent.
-	table.insert(self.connections,search.Focused:Connect(function() cue("TabSwitch","Click");Theme.Motion:Glow(searchShell,SELECTED,2.5) end))
-	table.insert(self.connections,search.FocusLost:Connect(function() Theme.Motion:StopGlow(searchShell) end))
+	-- Engaging the search answers once (its rim lights up); keystrokes stay silent.
+	local searchRim=searchShell:FindFirstChild("UIStroke")
+	table.insert(self.connections,search.Focused:Connect(function()
+		cue("TabSwitch","Click")
+		if searchRim then Theme.Motion:Tween(searchRim,"focus",{Color=SELECTED},0.15) end
+	end))
+	table.insert(self.connections,search.FocusLost:Connect(function()
+		if searchRim then Theme.Motion:Tween(searchRim,"focus",{Color=INK},0.2) end
+	end))
 
 	-- Lock, Sell and Replace modes: a bar over the bottom row with Confirm / Cancel.
 	local bar=rect(frame(root,"ModeBar"),349,464,332,113,W,H)
