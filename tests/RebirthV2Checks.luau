@@ -45,7 +45,7 @@ end
 
 local function veterans(session): number
 	local count=0
-	for _,pet in session.pets do if Catalog[pet.species].rebirthRank then count+=1 end end
+	for _,pet in session.pets do if Catalog.RetiredSpecies[pet.species] or not Catalog[pet.species] then count+=1 end end
 	return count
 end
 
@@ -69,23 +69,25 @@ function Checks.Run()
 		table.insert(results,{name=name,passed=ok,detail=tostring(detail)})
 	end
 
-	test("Thirty Rebirth chickens: never rolled, never weaker by rank, Cosmic Dragon's damage at most",function()
-		assert(#Catalog.RebirthOrder==Config.Rebirth.MaxRank,"Rebirth chickens "..#Catalog.RebirthOrder)
-		local previous=0
-		for rank,id in Catalog.RebirthOrder do
-			local definition=Catalog[id]
-			assert(definition.weight==0 and definition.rebirthRank==rank and definition.rebirthExclusive,id)
-			assert(RebirthChickens.Species(rank)==id,"Species "..rank)
-			local power=Rules.PetPower(id,1,1)
-			assert(power>=previous,id.." is weaker than the rank before")
-			assert(definition.damage<=Catalog.CosmicDragon.damage,id.." passes Cosmic Dragon's damage")
-			previous=power
+	-- October 21 owner decision: the round Veteran Corps placeholders are retired;
+	-- every chicken is a voxel model. Each maps to the chicken whose stats it copied.
+	test("Rebirth chickens are retired: none in the catalog, each Veteran maps to an equal voxel chicken",function()
+		assert(#Catalog.RebirthOrder==0,"Rebirth chickens "..#Catalog.RebirthOrder)
+		local count=0
+		for id,species in Catalog.RetiredSpecies do
+			count+=1
+			assert(Catalog[id]==nil and not table.find(Catalog.Order,id),id.." is still in the catalog")
+			assert(table.find(Catalog.Order,species) and Catalog[species].weight>0,id.." maps to "..species)
 		end
-		-- As built and kept by Stevin: ranks 25-30 climb to 165 on the faster Galaxy interval.
-		assert(Catalog.Veteran25.damage==101 and Catalog.Veteran30.damage==165,"Top damage")
-		assert(Catalog.Veteran30.damage/Catalog.Veteran30.interval
-			>Catalog.CosmicDragon.damage/Catalog.CosmicDragon.interval,"Veteran30 attack rate")
-		return "30 Veterans, damage 101-165 at the top"
+		assert(count==Config.Rebirth.MaxRank,"Retired "..count)
+		for rank=1,Config.Rebirth.MaxRank do assert(RebirthChickens.Species(rank)==nil,"Species "..rank) end
+		-- Each tier key maps to the chicken that still has that tier's exact stats.
+		for id,key in {Veteran1="Chunky",Veteran3="Bucket",Veteran5="Viking",Veteran7="Knight",Veteran10="Dragon",
+			Veteran13="Rainbow",Veteran16="IceDuck",Veteran20="StormDuck",Veteran30="StormDuck"} do
+			assert(Catalog.RetiredSpecies[id]==key,id.." -> "..tostring(Catalog.RetiredSpecies[id]))
+		end
+		assert(Catalog.Dragon.income==160 and Catalog.Rainbow.income==268,"Legendary tier targets")
+		return "30 Veterans retired, Sergeant Scratch -> "..Catalog[Catalog.RetiredSpecies.Veteran3].name
 	end)
 
 	test("Tree values, mutation unlocks and default effects",function()
@@ -144,7 +146,7 @@ function Checks.Run()
 		return "Reserve, quotes and order hold"
 	end)
 
-	test("Rebirth 1 resets the run and pays Gems, Time Skip Coins and Veteran1; progress stays",function()
+	test("Rebirth 1 resets the run and pays Gems and Time Skip Coins (no chicken); progress stays",function()
 		local s=fixture(-9302)
 		setTree(s,{EggSpeed=4,EggValue=4,Luck=2,Flock=1,ArmySize=2,ChickenFeed=1})
 		local fed=s:AddPet("Duck",1)
@@ -156,7 +158,7 @@ function Checks.Run()
 		local quote=Rebirth.Quote(s)
 		assert(quote.eligible and quote.nextRank==1 and quote.cost==50000 and quote.gemsNext==50,
 			"Quote: "..tostring(quote.reason)..", "..tostring(quote.gemsNext).." Gems")
-		assert(quote.nextChicken.species=="Veteran1" and quote.multiplierNext==2 and quote.enemyScaleNext==1,"Quote rewards")
+		assert(quote.nextChicken==nil and quote.multiplierNext==2 and quote.enemyScaleNext==1,"Quote rewards")
 		assert(quote.timeSkipMinutes==5 and quote.cashLevels==2 and quote.kingRequired==false,"Quote details")
 		local count=s:Count()
 		local ok,message,receipt=Rebirth.Rebirth(s,0,NO_SERVER,false)
@@ -165,8 +167,7 @@ function Checks.Run()
 		assert(next(s.upgradeTree)==nil and s.capacity==3 and s.luck==0 and s.eggSpeedLevel==0 and s:FlockSize()==3,
 			"Tree left: "..levelsText(s.upgradeTree))
 		assert(s.gems==50 and s.gemsEarned==50,"Gems "..s.gems)
-		local granted=s.pets[receipt.petId]
-		assert(s:Count()==count+1 and granted.species=="Veteran1" and granted.level==1 and granted.investment==0,"Veteran1")
+		assert(s:Count()==count and receipt.petId==nil and receipt.species==nil,"A Rebirth chicken was granted")
 		-- Time Skip pays today's income, measured before the reset, as the quote showed.
 		assert(receipt.timeSkipCoins==quote.timeSkipCoins and receipt.timeSkipCoins>Rebirth.TimeSkipCoins(s),
 			"Time Skip "..receipt.timeSkipCoins.." vs quote "..quote.timeSkipCoins)
@@ -244,7 +245,7 @@ function Checks.Run()
 	test("Gem shop: the reference order in rows of two, rows open by rank, buys use the exact quote",function()
 		-- Stevin's order (October 20, S7b), as in Drop a Fruit's shop: two cards per row.
 		local order={"RollSpeed","ExtraLuck","VacuumCapacity","AutoRoll","FlockSlot","ArmySlot","CoinBoost","AutoRebirth",
-			"TimeSkip","MoreGems","KeepUpgrades","Rally","MutationLuck","OfflineCoins","ArmyPower","RebirthChickenOdds"}
+			"TimeSkip","MoreGems","KeepUpgrades","Rally","MutationLuck","OfflineCoins","ArmyPower"}
 		assert(table.concat(GemCatalog.Order,",")==table.concat(order,","),table.concat(GemCatalog.Order,","))
 		local previousRank=0
 		for index,id in order do
@@ -415,7 +416,7 @@ function Checks.Run()
 		assert(ok and receipt.skip and not receipt.automatic and s.rebirths==2 and s.rebirthSkips==0,message)
 		assert(s.upgradeTree.EggSpeed==1 and fed.level==2 and fed.cashLevels==1,"The run was reset")
 		assert(s.coins==123+receipt.timeSkipCoins and s.gems==60,"Coins "..s.coins.." Gems "..s.gems)
-		assert(s.pets[receipt.petId].species=="Veteran2","Veteran2")
+		assert(receipt.petId==nil,"A Rebirth chicken was granted")
 		return "Credit spent once the army was home"
 	end)
 
@@ -460,29 +461,49 @@ function Checks.Run()
 		return levelsText(s.upgradeTree)
 	end)
 
-	test("Rebirth chickens: a credit while storage is full; podium offers replace only weaker chickens",function()
+	test("Retired Rebirth chickens: no grant, no credit, no podium swap",function()
 		local s=fixture(-9314)
 		local count=s:Count()
 		s.CollectionLimit=function(self) return self:Count() end
-		assert(RebirthChickens.Grant(s,3)==nil and s:Count()==count and s.rebirthChickenCredits[1]=="Veteran3",
-			"Credit at the cap")
+		assert(RebirthChickens.Grant(s,3)==nil and #s.rebirthChickenCredits==0,"Credit at the cap")
 		s.CollectionLimit=nil
-		local delivered=RebirthChickens.Deliver(s)
-		assert(#delivered==1 and s.pets[delivered[1]].species=="Veteran3" and #s.rebirthChickenCredits==0,"Delivered")
+		assert(RebirthChickens.Grant(s,3)==nil and s:Count()==count,"Granted with room")
+		s.rebirthChickenCredits={"Veteran3"}
+		assert(#RebirthChickens.Deliver(s)==0 and s:Count()==count,"Delivered a retired credit")
 		local rng=Random.new(7)
 		s.researchEffects=table.clone(s.researchEffects)
 		s.researchEffects.rebirthChickenChance=1
-		assert(RebirthChickens.MaybeReplace(s,"Duck",rng,1)=="Duck","Rebirth 0 was offered one")
-		s.rebirths=3
-		for _=1,50 do
-			local species=RebirthChickens.MaybeReplace(s,"Duck",rng,1)
-			local rank=Catalog[species].rebirthRank
-			assert(rank and rank<=3,"Offer "..species)
+		s.rebirths=30
+		for _=1,50 do assert(RebirthChickens.MaybeReplace(s,"Duck",rng,1)=="Duck","A podium offer was replaced") end
+		return "Nothing granted, credited or offered"
+	end)
+
+	test("Saved Veterans load as their voxel chicken; Rebirth Chicken Odds is refunded in Gems",function()
+		local s=fixture(-9340)
+		local scratch=s:AddPet("Duck",1)
+		local data=s:ToData()
+		for _,pet in data.pets do
+			if pet.id==scratch.id then pet.species,pet.level,pet.investment="Veteran3",4,0 end
 		end
-		assert(RebirthChickens.MaybeReplace(s,"StormDuck",rng,1)=="StormDuck","A stronger offer was replaced")
-		s.researchEffects.rebirthChickenChance=0
-		for _=1,20 do assert(RebirthChickens.MaybeReplace(s,"Duck",rng,1)=="Duck","Chance 0 replaced") end
-		return "Credit, delivery and podium rule hold"
+		data.armySelection={scratch.id}
+		data.gems,data.gemsEarned=10,500
+		data.gemUpgrades={RebirthChickenOdds=3,AutoRoll=1}
+		data.rebirthChickenCredits={"Veteran4"}
+		data.discovered={Veteran3=true,Duck=true}
+		local t=Session.new(-9340,"Veteran fixture",1)
+		local ok,message=t:LoadData(data)
+		assert(ok,message)
+		local pet=t.pets[scratch.id]
+		assert(pet and pet.species=="Bucket" and pet.level==4 and pet.investment==0,"Sergeant Scratch -> "..tostring(pet and pet.species))
+		assert(veterans(t)==0 and #t.unrecognizedPets==0,"A Veteran stayed")
+		-- 30 + 60 + 100 Gems for three levels; the level itself is gone.
+		assert(t.gems==200 and t.gemsEarned==500,"Gems "..t.gems)
+		assert(levelsText(t.gemUpgrades)=="AutoRoll=1",levelsText(t.gemUpgrades))
+		assert(#t.rebirthChickenCredits==0 and t.discovered.Bucket,"Credits or Index")
+		local again=Session.new(-9340,"Veteran reload fixture",1)
+		ok,message=again:LoadData(t:ToData())
+		assert(ok and again.gems==200 and again.pets[scratch.id].species=="Bucket","Refunded twice: "..tostring(message))
+		return "Veteran3 -> Robo-Cluck Lv 4, +190 Gems once"
 	end)
 
 	test("Revision 12 saves keep the tree, Gems, Skip credits and settings",function()
@@ -504,7 +525,7 @@ function Checks.Run()
 		assert(t.gems==77 and t.gemsEarned==300 and levelsText(t.gemUpgrades)=="AutoRoll=1, CoinBoost=3, TimeSkip=2",
 			levelsText(t.gemUpgrades))
 		assert(t.autoRebirth==false and t.rebirthSkips==2 and t.missionTierLegacy==1 and t.eggVacuum==false,"Settings")
-		assert(#t.rebirthChickenCredits==1 and t.rebirthChickenCredits[1]=="Veteran2","Chicken credits")
+		assert(#t.rebirthChickenCredits==0,"Retired chicken credits are dropped")
 		assert(t.eggSpeedLevel==2 and t.capacity==4 and t:FlockSize()==6 and t.researchEffects.timeSkipMinutes==10
 			and t.researchEffects.eggVacuum==1,"Derived fields")
 		near(t.researchEffects.coinBoost,0.3,"Coin Boost")
@@ -549,7 +570,7 @@ function Checks.Run()
 		assert(levelsText(t.gemUpgrades)=="CoinBoost=10",levelsText(t.gemUpgrades))
 		assert(t.gems==0 and t.gemsEarned==0 and t.rebirthSkips==2 and t.missionTierLegacy==3,"Counts")
 		assert(t.rebirths==Config.Rebirth.MaxRank,"Rank "..tostring(t.rebirths))
-		assert(#t.rebirthChickenCredits==1 and t.rebirthChickenCredits[1]=="Veteran1" and next(t.passGemGifts)==nil,"Lists")
+		assert(#t.rebirthChickenCredits==0 and next(t.passGemGifts)==nil,"Lists")
 		assert(t.autoRebirth==true and t.eggVacuum==false,"Flags")
 		return "Loaded with safe values"
 	end)
@@ -579,7 +600,7 @@ function Checks.Run()
 		assert(u.missionTierLegacy==1 and u.eggVacuum==false and u.researchEffects.eggVacuum==1,"Mission tier and Egg Vacuum")
 		-- 1,000 s of unused skip time is 4 Gems; two ranks at double Gems are 2 x (50 + 60).
 		assert(u.gems==224 and u.gemsEarned==224,"Gems "..u.gems)
-		assert(veterans(u)==2,"Rebirth chickens "..veterans(u))
+		assert(veterans(u)==0,"Rebirth chickens "..veterans(u))
 		assert(#u.research.jobs==0 and u.research.completed.R1 and u.research.skipCredit==0,"Research record")
 		local summary=u.economyConversion
 		assert(summary and summary.families==10 and summary.skipGems==4 and summary.rankGems==220,"Conversion summary")
@@ -587,10 +608,10 @@ function Checks.Run()
 		assert(pet and pet.level==2 and pet.cashLevels==1 and u:ChickenUpgradeEligibility(fed.id),"Fed chicken")
 		local again=Session.new(-9317,"Reload fixture",1)
 		ok,message=again:LoadData(u:ToData())
-		assert(ok and message=="Loaded." and again.gems==224 and veterans(again)==2 and again.economyConversion==nil,
+		assert(ok and message=="Loaded." and again.gems==224 and veterans(again)==0 and again.economyConversion==nil,
 			"Converted twice: "..tostring(message))
 		assert(levelsText(again.upgradeTree)==levelsText(u.upgradeTree),"Tree changed on reload")
-		return "224 Gems, 10 families, 2 Veterans"
+		return "224 Gems, 10 families, no Veterans"
 	end)
 
 	test("Old saves missing board fields keep six podiums; a mid-guide save has no Egg Vacuum yet",function()
