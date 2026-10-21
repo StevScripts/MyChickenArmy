@@ -50,7 +50,9 @@ function Checks.Run()
   local eggs=Eggs.new({});eggs.Lay=function() end
   for i=1,20 do eggs:Produce(s,0.5,i) end
   local layers=eggs:Yard(s).layers
-  assert(layers[p.knight.id] and layers[p.knight.id].count>0,"A Flock chicken laid")
+  -- October 21 one egg = one egg: a layer tracks value/elapsed, not an egg count.
+  local layer=layers[p.knight.id]
+  assert(layer and (layer.value>0 or layer.elapsed>0),"A Flock chicken laid")
   assert(layers[p.duck.id]==nil and layers[p.spare.id]==nil,"A storage chicken laid")
  end)
 
