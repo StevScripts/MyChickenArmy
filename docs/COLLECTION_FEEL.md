@@ -26,12 +26,10 @@ unload will too. Robot vacuum deliveries stay quiet.
   release everything at once, so the readout always catches up.
 - October 21 pickup, matched to Stevin's reference recording (a Pet Simulator–style
   coin pickup): coins arc up and over into the player in a quick stream. The first
-  landing flashes a white ForceField bubble with a Neon glow and sparkles. A running
-  "N [coin]" counter (white number, black outline, coin image) sits beside the
-  player and pops with each coin. After `Counter.Idle` seconds without a coin it
-  stays where the player stood, lingers and fades; the next sale starts a new one.
-  The counter is always-on-top and sits `Counter.Toward` studs toward the camera.
-  Studio Flow screenshots skip always-on-top billboards, so check it by eye in play.
+  landing flashes a white ForceField bubble with a Neon glow and sparkles. The
+  running "N [coin]" counter beside the player was removed the same day (Stevin:
+  "I don't want to see the amount of money I made as the billboard gui"); the HUD
+  Coins readout still counts up per coin.
 - October 21 follow-up (Stevin: "the initial coins falling doesn't have sound and
   there's no VFX for when you just walk in"): stepping on the pad now flashes the
   pickup bubble and a gold ring at the player's feet at once. That works without the
@@ -51,7 +49,7 @@ unload will too. Robot vacuum deliveries stay quiet.
 
 Tune `CollectionFeel.CoinBurst`: coin counts and budgets, `Size`, landing `Radius`
 and `Spill`, pop `Height`, the `Rise/Fall/Rest/Fly` seconds and staggers, the
-flip, the tick sound, `HoldTimeout`, the `Flash` bubble and the `Counter`.
+flip, the tick sound, `HoldTimeout`, the `Flash` bubble and the `SpillPuff`.
 
 ## Cash: authored Money particle burst
 

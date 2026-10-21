@@ -3,10 +3,9 @@
 -- Gold coins pop out of the sell pad, bounce, then arc into the player one after
 -- another; `land` reports each coin's share as it arrives so the HUD counts up.
 -- October 21 (Stevin's reference recording): the first coin to land flashes a white
--- bubble around the player, and a running "N [coin]" counter beside them counts each
--- coin. After a pause the counter stays where it was and fades; the next sale starts
--- a new one. Every move is a native tween: a coin's Attachment slides while its
--- BillboardGui's world offset rises and drops. For the fly-in the Attachment moves
+-- bubble around the player. No amount billboard: Stevin removed the running "N [coin]"
+-- counter the same day. Every move is a native tween: a coin's Attachment slides while
+-- its BillboardGui's world offset rises and drops. For the fly-in the Attachment moves
 -- onto the HumanoidRootPart, so a walking player is followed without a frame loop.
 -- Tune CollectionFeel.CoinBurst.
 local Players = game:GetService("Players")
@@ -23,8 +22,7 @@ type Coin = {
 	index: number, share: number, size: number, attachment: Attachment, gui: BillboardGui,
 	land: Land, flip: Tween, tweens: {Tween}, done: boolean,
 }
-type Counter = {gui: BillboardGui, scale: UIScale, label: TextLabel, icon: ImageLabel, total: number, serial: number}
-type State = {coins: {[Coin]: boolean}, active: number, random: Random, counter: Counter?, leftovers: {[Instance]: boolean}}
+type State = {coins: {[Coin]: boolean}, active: number, random: Random, leftovers: {[Instance]: boolean}}
 type Burst = typeof(setmetatable({} :: State, CoinBurst))
 
 function CoinBurst.new(): Burst
@@ -134,7 +132,7 @@ function CoinBurst.Launch(self: Burst, index: number, share: number, from: Vecto
 		tween(coin, gui, TweenInfo.new(Feel.FallSeconds, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out),
 			{StudsOffsetWorldSpace = Vector3.new(0, size / 2, 0)}).Completed:Once(function(fallState)
 			if fallState ~= Enum.PlaybackState.Completed or coin.done then return end
-			-- Fly in one after another, so the counter ticks once per coin.
+			-- Fly in one after another, so the Coins readout ticks once per coin.
 			task.delay(Feel.RestSeconds + (index - 1) * math.max(0, Feel.FlyStagger - Feel.LaunchStagger),
 				function() self:Fly(coin) end)
 		end)
@@ -189,7 +187,6 @@ function CoinBurst.Finish(self: Burst, coin: Coin, quiet: boolean)
 		local root = playerRoot()
 		if root then
 			if coin.index == 1 then self:Flash(root) end
-			self:Count(root, coin.share)
 		end
 	end
 	coin.land(coin.share, coin.index, quiet)
@@ -251,92 +248,9 @@ function CoinBurst.Flash(self: Burst, root: BasePart)
 	bubble.Destroying:Once(function() self.leftovers[bubble] = nil end)
 end
 
-local function fadeCounter(counter: Counter, seconds: number, delay: number)
-	local info = TweenInfo.new(seconds, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, delay)
-	for _, item in counter.gui:GetDescendants() do
-		local goals = if item:IsA("TextLabel") then {TextTransparency = 1}
-			elseif item:IsA("ImageLabel") then {ImageTransparency = 1}
-			elseif item:IsA("UIStroke") then {Transparency = 1} else nil
-		if goals then TweenService:Create(item, info, goals):Play() end
-	end
-end
-
--- Leaves the counter where the player stood; it lingers, then fades out.
-function CoinBurst.Drop(self: Burst, counter: Counter)
-	if self.counter == counter then self.counter = nil end
-	local gui = counter.gui
-	local adornee = gui.Adornee
-	if not gui.Parent or not adornee or not adornee:IsA("BasePart") then gui:Destroy();return end
-	local spot = Instance.new("Attachment")
-	spot.Name, spot.WorldPosition = "CoinCounterSpot", adornee.Position
-	spot.Parent = workspace.Terrain
-	gui.Adornee, gui.Parent = spot, spot
-	self.leftovers[spot] = true
-	spot.Destroying:Once(function() self.leftovers[spot] = nil end)
-	local style = Feel.Counter
-	fadeCounter(counter, style.Fade, style.Linger)
-	Debris:AddItem(spot, style.Linger + style.Fade + 0.1)
-end
-
--- Adds a landed coin to the running counter beside the player, starting one if needed.
-function CoinBurst.Count(self: Burst, root: BasePart, share: number)
-	local style = Feel.Counter
-	local counter = self.counter
-	if counter and (not counter.gui.Parent or counter.gui.Adornee ~= root) then
-		self:Drop(counter)
-		counter = nil
-	end
-	if not counter then
-		local width = style.Height * 6
-		local gui = Instance.new("BillboardGui")
-		gui.Name, gui.Adornee, gui.Size = "CoinCounter", root, UDim2.fromScale(width, style.Height)
-		-- Camera-relative: the row starts just right of the character.
-		-- Pulled toward the camera, and AlwaysOnTop so walls and chickens never hide it.
-		-- (Studio Flow screenshots skip AlwaysOnTop billboards; check it by eye in play.)
-		gui.StudsOffset = Vector3.new(style.Gap + width / 2, style.Lift, style.Toward)
-		gui.AlwaysOnTop, gui.LightInfluence, gui.MaxDistance = true, 0, 120
-		local row = Instance.new("Frame")
-		row.Name, row.BackgroundTransparency = "Row", 1
-		row.AnchorPoint, row.Position, row.Size = Vector2.new(0, 0.5), UDim2.fromScale(0, 0.5), UDim2.fromScale(1, 1)
-		row.Parent = gui
-		local layout = Instance.new("UIListLayout")
-		layout.FillDirection, layout.SortOrder = Enum.FillDirection.Horizontal, Enum.SortOrder.LayoutOrder
-		layout.VerticalAlignment, layout.Padding = Enum.VerticalAlignment.Center, UDim.new(0.01, 0)
-		layout.Parent = row
-		local scale = Instance.new("UIScale")
-		scale.Parent = row
-		local label = Theme.Label(row, "Amount", "0", 20, Color3.new(1, 1, 1))
-		-- Order matters: setting TextWrapped=false after TextScaled turns scaling off.
-		label.LayoutOrder, label.TextWrapped = 1, false
-		label.TextScaled = true
-		label.TextXAlignment, label.SizeConstraint = Enum.TextXAlignment.Right, Enum.SizeConstraint.RelativeYY
-		local outline = label:FindFirstChild("TextOutline")
-		if outline and outline:IsA("UIStroke") then outline.Thickness = 0.09 end
-		local icon = Theme.CoinIcon(row, "CoinIcon", UDim2.fromScale(0.9, 0.9), UDim2.new())
-		icon.LayoutOrder, icon.SizeConstraint = 2, Enum.SizeConstraint.RelativeYY
-		gui.Parent = root
-		counter = {gui = gui, scale = scale, label = label, icon = icon, total = 0, serial = 0}
-		self.counter = counter
-	end
-	assert(counter)
-	counter.total += share
-	local text = if counter.total < 1000 then Theme.Money(counter.total) else Theme.Number(counter.total)
-	-- Roughly 0.6 of the height per glyph keeps the coin hugging the number.
-	counter.label.Text, counter.label.Size = text, UDim2.fromScale(0.62 * #text, 1)
-	counter.scale.Scale = style.Pop
-	TweenService:Create(counter.scale, TweenInfo.new(style.PopSeconds, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{Scale = 1}):Play()
-	counter.serial += 1
-	local serial = counter.serial
-	task.delay(style.Idle, function()
-		if self.counter == counter and counter.serial == serial then self:Drop(counter) end
-	end)
-end
-
 -- Removes every coin without landing it; ActionFeedback releases the held value.
 function CoinBurst.Clear(self: Burst)
 	for coin in self.coins do self:Remove(coin) end
-	if self.counter then self.counter.gui:Destroy();self.counter = nil end
 	for item in self.leftovers do item:Destroy() end
 	table.clear(self.leftovers)
 end
