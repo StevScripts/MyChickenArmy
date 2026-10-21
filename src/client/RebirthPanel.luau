@@ -51,6 +51,15 @@ local RANK={18,453,695,282}
 local CHICKEN={268,589,195,143}
 local GEM_PANEL={743,158,945,685}
 local PENDING_SECONDS=10
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 -- Places `item` at a mock-pixel rectangle, relative to `frame` (another rectangle
 -- in the same pixels; by default the body under the header).
@@ -129,7 +138,8 @@ local function mutationName(id): string
 end
 
 function Panel.new(app)
-	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil},Panel)
+	Audio=app.audio
+	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil,ready=false,skipReady=false},Panel)
 end
 
 -- Panel --------------------------------------------------------------------
@@ -221,6 +231,11 @@ function Panel:Build()
 	Theme.Motion:Tween(panel,"reenlist-size",{Size=restingSize},.28,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},.28)
 	Theme.Motion:Tween(panel,"reenlist-fade",{GroupTransparency=0},.22)
+	-- The HUD button's Click already answered the press; MenuOpen joins it once authored.
+	cue("MenuOpen",nil,nil,{voiceKey="MenuOpen",cooldown=0.2})
+	-- The Rebirth to Earn tiles grow in one after another.
+	Theme.Motion:Reveal(self.earn,{limit=6,window=0.3,from=0.75})
+	self.ready,self.skipReady=false,false
 end
 
 -- Warning, Rebirth to Earn and the Coins bar with the next Rebirth's chicken.
@@ -228,12 +243,15 @@ function Panel:BuildRewards(main)
 	local warning=rect(label(main,"Warning","You will lose all Coins and Upgrades\nwhen you rebirth!",27,WARNING),18,156,695,70)
 	warning.TextWrapped=true
 	local earn=inset(main,"RebirthToEarn",EARN)
+	self.earn=earn
 	rect(label(earn,"Title","Rebirth to Earn:",38),18,243,695,46,EARN)
 	self.timeSkip=self:Tile(earn,"TimeSkip","TIME SKIP",{48,290,205,140},"TimeSkip")
 	self.gemsReward=self:Tile(earn,"Gems","GEMS",{263,290,205,140},"Gems")
 	self.multiplier=self:Tile(earn,"Multiplier","MULTIPLIER",{478,290,210,140},nil)
 	local rankBox=inset(main,"NextRebirth",RANK)
 	self.rankTitle=rect(label(rankBox,"Title","",48),18,466,695,52,RANK)
+	-- Same resting rects; the title and Coins line punch from their middles.
+	Theme.Motion:Center(self.rankTitle)
 	local track=rect(Theme.Frame(rankBox,"CostProgress",UDim2.new(),TRACK),78,525,595,56,RANK)
 	track.ZIndex=2
 	Theme.Stroke(track,BLACK,3)
@@ -242,6 +260,7 @@ function Panel:BuildRewards(main)
 	self.costFill=fill
 	self.costText=label(track,"Label","",33)
 	self.costText.Position,self.costText.Size=UDim2.fromScale(0.08,0.05),UDim2.fromScale(0.84,0.9)
+	Theme.Motion:Center(self.costText)
 	-- The coin overlaps the bar's left end, as in the reference.
 	local coin=rect(Theme.Image(rankBox,"CostIcon",Theme.Assets.Coin,UDim2.new()),33,503,100,100,RANK)
 	coin.ZIndex=4
@@ -307,6 +326,7 @@ function Panel:BuildButtons(main)
 	tag.ZIndex=8
 	tag:SetAttribute("OwnsPopupStyle",true)
 	Theme.Stroke(tag,WHITE,3).Transparency=0.45
+	Theme.Motion:Center(tag)
 	self.robuxText=label(tag,"Price","",30,ROBUX_GREEN)
 	self.robuxText.Position,self.robuxText.Size=UDim2.fromScale(0.06,0.06),UDim2.fromScale(0.88,0.88)
 	self.robuxTag=tag
@@ -337,7 +357,8 @@ function Panel:RenderPanel()
 	self.multiplier.Text=multiplierText(quote.multiplierNext or quote.multiplierNow)
 	self.rankTitle.Text=Panel.Title(target or rank)
 	local progress=if cost and cost>0 then math.clamp(coins/cost,0,1) else 1
-	Theme.Motion:Tween(self.costFill,"fill",{Size=UDim2.fromScale(progress,1)},.25)
+	-- The bar fills with the shared Progress (no flash: Coins arrive every packet).
+	Theme.Motion:Progress(self.costFill,progress,.3,false)
 	-- As in the reference, the bar shows the real balance, even past the cost.
 	self.costText.Text=if target and cost then Theme.Money(coins).." / "..Theme.Money(cost) else "Highest rank reached"
 	self:RenderChicken(quote,target~=nil,target~=nil and cost~=nil and coins>=cost)
@@ -349,6 +370,19 @@ function Panel:RenderPanel()
 	if rebirth.BackgroundColor3~=tint then
 		rebirth.BackgroundColor3=tint
 		if tint==GREEN then Theme.ApplyReferenceAccent(rebirth,Theme.ReferenceGradients.Army) end
+	end
+	-- Affordable (and the Army home): the button breathes inside a green glow. The
+	-- loops stop the moment it is not, when a Rebirth is in flight, and on Dismiss.
+	local ready=quote.eligible==true and target~=nil and self.pending==nil
+	if ready~=self.ready then
+		self.ready=ready
+		if ready then
+			Theme.Motion:Breathe(rebirth.Visual,1.05,0.7)
+			Theme.Motion:Glow(rebirth,GREEN,4)
+		else
+			Theme.Motion:StopBreathe(rebirth.Visual)
+			Theme.Motion:StopGlow(rebirth)
+		end
 	end
 	self:RenderSkip(quote,target~=nil)
 	if self.grid then self.grid:Render(self.state) end
@@ -379,6 +413,10 @@ function Panel:RenderSkip(quote,hasNext: boolean)
 	local shown=skip~=nil and hasNext and skip.restricted~=true and (credits>0 or skip.onSale==true)
 	self.skipButton.Visible,self.robuxTag.Visible=shown,shown
 	if not shown then return end
+	-- A bought Skip arriving as a credit: the tag punches to "Ready!".
+	local skipReady=credits>0
+	if skipReady and not self.skipReady then Theme.Motion:Punch(self.robuxTag,1.25,0.32);cue("Badge","Pop",nil,{voiceKey="SkipReady",cooldown=1}) end
+	self.skipReady=skipReady
 	if credits>0 then self.robuxText.Text="Ready!";return end
 	local key=skip.productKey
 	local commerce=self.app.commerce
@@ -423,7 +461,11 @@ function Panel:PressSkip()
 	if (tonumber(skip.credits) or 0)>0 then
 		-- Spending a bought Skip rebirths now, resets nothing and pays every reward.
 		local id=self.app:Request("Rebirth",{expectedRank=rank,useSkip=true})
-		if id then self:SetPending(id,rank) end
+		if id then
+			self:SetPending(id,rank)
+			cue("Whoosh",nil,nil,{voiceKey="TimeSkip",cooldown=0.3})
+			Theme.Motion:Punch(self.costText,1.15,0.3)
+		end
 		return
 	end
 	-- Otherwise the Robux prompt; the receipt adds a credit the server then spends.
@@ -463,7 +505,13 @@ end
 -- what the rank paid.
 function Panel:Celebrate(before,quote,receipt)
 	local rank=tonumber(quote.rank) or 0
-	self.app.audio:Play("Victory",nil,{noFallback=true})
+	-- The deep Rebirth boom, then the Fanfare a beat later; the world flashes green
+	-- with a quick zoom (ScreenFeel; the camera stays with the player).
+	cue("Rebirth","Victory",nil,{voiceKey="Rebirth",cooldown=1})
+	task.delay(0.3,function() if self.app.alive~=false then cue("Fanfare",nil,nil,{voiceKey="Fanfare",cooldown=1}) end end)
+	if self.app.screenFeel then self.app.screenFeel:Celebrate(GREEN,3) end
+	-- "Rebirth N" punches when the rank changes (the reward title too, when open).
+	if self.gui and not self.closing and self.rankTitle then Theme.Motion:Punch(self.rankTitle,1.2,0.32) end
 	local parts={Panel.Title(rank).."!"}
 	if receipt and receipt.skip==true then table.insert(parts,"Upgrades kept") end
 	local reward=if type(before)=="table" then before.nextChicken else nil
@@ -507,6 +555,9 @@ function Panel:Dismiss(immediate)
 		GuiService.SelectedObject=if self.previousSelection and self.previousSelection.Parent then self.previousSelection else nil
 	end
 	self.app:SetMenuBlur("rebirth",false)
+	-- Stop the button's attention loops before the window leaves.
+	if self.rebirthButton then Theme.Motion:StopBreathe(self.rebirthButton.Visual);Theme.Motion:StopGlow(self.rebirthButton) end
+	self.ready,self.skipReady=false,false
 	local function finish()
 		if self.gui~=gui then return end
 		if self.grid then self.grid:Destroy();self.grid=nil end
@@ -515,6 +566,7 @@ function Panel:Dismiss(immediate)
 		gui:Destroy()
 	end
 	if immediate then finish();return end
+	cue("MenuClose",nil,nil,{voiceKey="MenuClose",cooldown=0.2})
 	Theme.Motion:Tween(panel,"reenlist-size",{Size=UDim2.fromScale(self.panelSize.X.Scale*.97,self.panelSize.Y.Scale*.97)},.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
 	Theme.Motion:Tween(panel,"position",{Position=UDim2.fromScale(self.panelPosition.X.Scale,self.panelPosition.Y.Scale+.025)},.16)
 	Theme.Motion:Tween(panel,"reenlist-fade",{GroupTransparency=1},.16,nil,nil,finish)

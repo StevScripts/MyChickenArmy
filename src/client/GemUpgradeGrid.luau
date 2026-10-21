@@ -29,6 +29,15 @@ local CARDS_TOP,ROW_PITCH,BOTTOM=97,178,14
 -- After it is bought, Auto Rebirth's card is the On/Off switch (gemUpgrades.autoRebirth).
 local TOGGLE_ID="AutoRebirth"
 local PENDING_SECONDS=10
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 local function rect(item,x,y,w,h,width,height)
 	item.Position,item.Size=UDim2.fromScale(x/width,y/height),UDim2.fromScale(w/width,h/height)
@@ -48,6 +57,7 @@ end
 
 function Grid.new(app,parent,frameAspect: number)
 	local self=setmetatable({app=app,cards={},pending={},alive=true,frameAspect=frameAspect,gems=0},Grid)
+	Audio=app.audio
 	local scroll=Instance.new("ScrollingFrame")
 	scroll.Name,scroll.Size="GemUpgrades",UDim2.fromScale(1,1)
 	scroll.BackgroundTransparency,scroll.BorderSizePixel,scroll.ZIndex=1,0,2
@@ -85,6 +95,8 @@ function Grid:Build(order: {string},items)
 	local balance=rect(Theme.Container(content,"Balance"),707,8,220,66,PANEL_W,height)
 	self.balance=text(balance,"Amount","0",46,C.Number,Enum.TextXAlignment.Right)
 	self.balance.Size=UDim2.fromScale(0.68,1)
+	-- Same resting rect; a gain punches the number from its middle.
+	Theme.Motion:Center(self.balance)
 	Theme.Aspect(Theme.GemIcon(balance,"Gem","Gems",UDim2.fromScale(0.3,1),UDim2.fromScale(0.7,0)),1)
 	local divider=rect(Theme.Frame(content,"Divider",UDim2.new(),WHITE),27,78,886,4,PANEL_W,height)
 	divider.BackgroundTransparency=0.8
@@ -93,6 +105,8 @@ function Grid:Build(order: {string},items)
 		self.cards[id]=self:Card(content,id,CARD_X[place.column],CARDS_TOP+(place.row-1)*ROW_PITCH,height)
 	end
 	Theme.ScaleText(content)
+	-- Title, balance and cards grow in one after another when the panel is built.
+	Theme.Motion:Reveal(content,{limit=14,window=0.4,from=0.8})
 end
 
 function Grid:Card(parent,id: string,x: number,y: number,height: number)
@@ -208,6 +222,7 @@ function Grid:Press(id: string)
 	if view.status=="Locked" then
 		app:Notify("Reach Rebirth "..view.unlockRank.." to unlock","info")
 		Theme.Motion:Shake(view.visual,4)
+		cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
 		return
 	end
 	if self.pending[id] then return end
@@ -225,13 +240,19 @@ function Grid:Press(id: string)
 		Theme.Motion:Shake(view.price,4)
 		return
 	end
-	if view.status~="Available" or not price then Theme.Motion:Shake(view.visual,4);return end
+	if view.status~="Available" or not price then
+		Theme.Motion:Shake(view.visual,4)
+		cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
+		return
+	end
 	local requestId=app:Request("BuyGemUpgrade",{upgradeId=id,expectedLevel=tonumber(item.level) or 0,expectedPrice=price})
 	if not requestId then return end
 	self:Hold(id,requestId)
 	Theme.Motion:PopScale(view.visual,1.06)
 end
 
+-- The server's answer. A bought level punches the card under a gem-coloured wash
+-- with GemGain; the level that fills a track washes gold with UpgradeMax instead.
 function Grid:Receive(result)
 	if type(result)~="table" or (result.action~="BuyGemUpgrade" and result.action~="SetAutoRebirth") then return end
 	for id,requestId in self.pending do
@@ -239,8 +260,20 @@ function Grid:Receive(result)
 			self.pending[id]=nil
 			local view=self.cards[id]
 			if view and result.ok then
-				if result.action=="BuyGemUpgrade" then self.app.audio:Play("UIPurchase",nil,{noFallback=true}) end
-				Theme.Motion:Shine(view.visual)
+				if result.action=="BuyGemUpgrade" then
+					-- The snapshot carrying this result already holds the new status.
+					local state=self.app.state
+					local data=type(state)=="table" and state.gemUpgrades
+					local now=type(data)=="table" and type(data.items)=="table" and data.items[id]
+					local maxed=type(now)=="table" and now.status=="Maxed"
+					Theme.Motion:Punch(view.visual,1.12,0.3)
+					Theme.Motion:Flash(view.visual,if maxed then GOLD else C.Number,0.45,0.6)
+					if maxed then cue("UpgradeMax",if Audio and type(Audio.Has)=="function" and Audio:Has("Shimmer") then "Shimmer" else "RollReveal",nil,{voiceKey="GemBuy",cooldown=0.2})
+					else cue("GemGain","UIPurchase",nil,{voiceKey="GemBuy",cooldown=0.2}) end
+				else
+					cue("Toggle","Click")
+					Theme.Motion:Shine(view.visual)
+				end
 			elseif view then Theme.Motion:Shake(view.visual,4) end
 		end
 	end
@@ -259,7 +292,9 @@ function Grid:Render(state)
 	end
 	local gems=math.max(0,math.floor(tonumber(state.gems) or 0))
 	self.gems=gems
-	Theme.Motion:Count(self.balance,gems,function(value) return Theme.Money(value) end,0.5)
+	-- Gains count up with a tick and a punch; spends drop at once (so does reduced motion).
+	Theme.Motion:CountTo(self.balance,gems,function(value) return Theme.Money(value) end,0.5,{punch=1.12,tickGap=0.06,
+		tick=function() cue("CountTick",nil,nil,{voiceKey="GemCount",cooldown=0.05,pitchVariance=0.06,volume=0.6}) end})
 	local rank=tonumber(type(state.rebirth)=="table" and state.rebirth.rank) or 0
 	local auto=if type(data)=="table" then data.autoRebirth else nil
 	for _,id in order do

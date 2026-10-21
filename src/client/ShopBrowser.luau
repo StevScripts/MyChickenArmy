@@ -65,6 +65,15 @@ local TITLE_GRADIENTS={
  Cash={Color3.fromRGB(255,166,0),Color3.fromRGB(255,244,120)},
 }
 local SECTION_ICONS={Galaxy=GalaxyPresentation.CrateImage,Passes=Theme.Assets.Army,Cash=Theme.Assets.Coin}
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+ if not Audio then return end
+ if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+ elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 local function frame(parent,name,size,position,color)
  local item=Theme.Frame(parent,name,size,color)
@@ -113,7 +122,8 @@ end
 
 function Browser.new(app,parent)
  local self=setmetatable({app=app,alive=true,sections={},tabs={},cards={},
-  passCount=0,connections={},priceViews={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy"},Browser)
+  passCount=0,connections={},priceViews={},cashViews={},motionViews={},entranceSerial=0,activeSection="Galaxy",revealed=false},Browser)
+ Audio=app.audio
  local root=frame(parent,"ShopBrowser",UDim2.fromScale(1,1))
  root.BackgroundTransparency,root.Visible,root.ZIndex=1,false,2
  -- The shared popup visitor must also skip this subtree while another page is open.
@@ -190,7 +200,8 @@ function Browser.new(app,parent)
   if input.UserInputType==Enum.UserInputType.MouseWheel then self:CancelScroll() end
  end))
  table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(function()
-  if root.Visible then self:Resize();self:AnimateSection(self.activeSection) else self:CancelScroll();self:CancelArtworkMotion() end
+  if root.Visible then self:Resize();self:AnimateSection(self.activeSection);self:RevealCards()
+  else self:CancelScroll();self:CancelArtworkMotion();self.galaxy:Settle() end
  end))
  table.insert(self.connections,parent:GetPropertyChangedSignal("Visible"):Connect(function()
   if parent.Visible and root.Visible then self:AnimateSection(self.activeSection)
@@ -221,10 +232,20 @@ function Browser:SectionTab(parent,key,index)
  caption.Position,caption.Size,caption.ZIndex=UDim2.fromScale(-0.1,0.76),UDim2.fromScale(1.2,0.24),9
  caption.TextXAlignment,caption.TextScaled,caption.TextWrapped=Enum.TextXAlignment.Center,true,false
  Theme.Motion:BindButton(button,visual)
+ button:SetAttribute("ClickSound",false)
  table.insert(self.connections,button.Activated:Connect(function()
-  self.app.audio:Play("Click");self:ScrollTo(key)
+  cue("TabSwitch","Click");self:ScrollTo(key)
  end))
  return button
+end
+
+-- The offer cards grow in the first time the Shop opens; later opens keep the
+-- section's artwork entrance only.
+function Browser:RevealCards()
+ if self.revealed or not self.alive then return end
+ self.revealed=true
+ Theme.Motion:Reveal(self.passGrid,{limit=8,window=0.35,from=0.8})
+ Theme.Motion:Reveal(self.cashShelf,{limit=6,window=0.35,from=0.8})
 end
 
 function Browser:Section(key,title,order)
@@ -287,7 +308,11 @@ end
 
 function Browser:Activate(key,button,cardVisual)
  -- A tap on an unavailable card answers with a small "no" instead of silence.
- if not button.Active then if cardVisual then Theme.Motion:Shake(cardVisual) end return end
+ if not button.Active then
+  Theme.Motion:Shake(cardVisual or button:FindFirstChild("Visual"))
+  cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
+  return
+ end
  self.app.audio:Play("Click")
  local state=self.app.commerce:State(key)
  if state=="owned" then self.app.commerce:Toggle(key)
@@ -371,10 +396,11 @@ function Browser:UpdatePurchase(button,key,root)
   commerce.justBought[key]=nil
   local visual=button.Parent
   if commerce.clock()-bought<30 and visual and visual.Name=="Visual" then
-   Theme.Motion:Pop(visual,1.06)
-   local face=visual:FindFirstChild("Face")
-   if face then Theme.Motion:Shine(face) end
-   Theme.Motion:Burst(visual,UDim2.fromScale(0.5,0.45),P.gold)
+   -- One reward emphasis: a gold wash on the bought card under a confetti burst
+   -- over the window, with the Jingle.
+   Theme.Motion:Flash(visual,P.gold,0.5,0.6)
+   Theme.Motion:Confetti(self.body,{origin=Theme.Motion:Point(self.body,Theme.Motion:CenterOf(visual)),spread=0.35,seconds=1.4})
+   cue("Jingle","UIPurchase",nil,{voiceKey="ShopJingle",cooldown=0.5})
   end
  end
 end

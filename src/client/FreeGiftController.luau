@@ -22,8 +22,18 @@ Controller.Assets={
 }
 -- Width/height of the whole window, header included.
 local PANEL_SIZE,PANEL_ASPECT=UDim2.fromScale(0.42,0.6),1.5
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 function Controller.new(app)
+	Audio=app.audio
 	return setmetatable({app=app,connections={},gift=nil,checking=false},Controller)
 end
 
@@ -90,8 +100,11 @@ function Controller:ShowClaimed(celebrate)
 	self.claimed.Visible=true
 	Theme.Motion:PopScale(self.claimed,0.6,0.3)
 	if celebrate then
+		-- The chicken pops under a confetti burst over the window, with the Claim cue.
+		cue("Claim","UIPurchase",nil,{voiceKey="GiftClaim",cooldown=0.3})
 		Theme.Motion:PopScale(self.portrait,1.25,0.35)
-		Theme.Motion:Burst(self.reward,UDim2.fromScale(0.5,0.4),GREEN)
+		local motion=Theme.Motion
+		motion:Confetti(self.main,{count=18,origin=motion:Point(self.main,motion:CenterOf(self.portrait)),spread=0.35,seconds=1.4})
 	end
 end
 
@@ -109,9 +122,11 @@ function Controller:Dismiss(immediate)
 	local function finish()
 		if self.gui~=gui then return end
 		self.gui,self.panel,self.closing,self.claimedShown=nil,nil,false,false
+		self.main=nil
 		gui:Destroy()
 	end
 	if immediate then finish();return end
+	cue("MenuClose",nil,nil,{voiceKey="MenuClose",cooldown=0.2})
 	Theme.Motion:Tween(panel,"gift-size",{Size=UDim2.fromScale(PANEL_SIZE.X.Scale*0.97,PANEL_SIZE.Y.Scale*0.97)},0.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
 	Theme.Motion:Tween(panel,"gift-fade",{GroupTransparency=1},0.16,nil,nil,finish)
 end
@@ -163,6 +178,7 @@ function Controller:Open()
 	Theme.BelowHeader(header,main)
 	Theme.Surface(main,Theme.PageSurfaces.Army)
 	main.UIStroke.BorderStrokePosition=Enum.BorderStrokePosition.Inner
+	self.main=main
 	-- Like (+) Join (=) chicken, then Verify.
 	local row=Theme.Container(main,"Steps")
 	row.Position,row.Size=UDim2.fromScale(0.03,0.05),UDim2.fromScale(0.94,0.62)
@@ -236,6 +252,9 @@ function Controller:Open()
 		Theme.Motion:PopScale(portrait,1.15,0.3)
 	end)
 	Theme.Motion:Tween(panel,"gift-fade",{GroupTransparency=0},0.22)
+	-- Like, +, Join, = and the chicken grow in one after another.
+	Theme.Motion:Reveal(row,{limit=6,window=0.3,from=0.75})
+	cue("MenuOpen",nil,nil,{voiceKey="MenuOpen",cooldown=0.2})
 	ContextActionService:BindActionAtPriority("PetRollFreeGiftClose",function(_,inputState)
 		if inputState==Enum.UserInputState.Begin then close() end
 		return Enum.ContextActionResult.Sink

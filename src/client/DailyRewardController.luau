@@ -42,6 +42,15 @@ local AFTER_RECEIPT_SECONDS = 0.6
 -- is height-led on wide screens and width-led on narrow ones.
 local LAYOUT_NAME = "DailyStreak"
 local DEFAULT_SIZE, DEFAULT_ASPECT = UDim2.fromScale(0.9,0.72), 1.5
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio = nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 -- Today's tile shows the coins the server granted. Other days estimate from the
 -- HUD income (the server pays minutes of income at claim time).
@@ -58,6 +67,7 @@ local function clock(seconds: number): string
 end
 
 function Controller.new(app)
+	Audio = app.audio
 	return setmetatable({app=app,alive=true,shownDay=nil,pending=nil,connections={}},Controller)
 end
 
@@ -112,6 +122,7 @@ function Controller:Dismiss(immediate: boolean?)
 	for _,connection in self.connections do connection:Disconnect() end
 	table.clear(self.connections)
 	if self.todayCard then Theme.Motion:StopBreathe(self.todayCard) end
+	if self.reveal then self.reveal.cancel();self.reveal = nil end
 	self.app:SetMenuBlur("daily",false)
 	local function finish()
 		if self.gui~=gui then return end
@@ -121,6 +132,7 @@ function Controller:Dismiss(immediate: boolean?)
 		if self.alive and self.pending then self:Schedule() end
 	end
 	if immediate then finish();return end
+	cue("MenuClose",nil,nil,{voiceKey="MenuClose",cooldown=0.2})
 	Theme.Motion:Tween(panel,"daily-size",{Size=UDim2.fromScale(self.panelSize.X.Scale*0.97,self.panelSize.Y.Scale*0.97)},0.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
 	Theme.Motion:Tween(panel,"position",{Position=UDim2.fromScale(self.panelPosition.X.Scale,self.panelPosition.Y.Scale+0.025)},0.16)
 	Theme.Motion:Tween(panel,"daily-fade",{GroupTransparency=1},0.16,nil,nil,finish)
@@ -228,20 +240,19 @@ function Controller:Collect(granted)
 	if not self.gui or self.closing or self.collecting then return end
 	self.collecting = true
 	local app = self.app
-	app.audio:Play("Click")
-	-- The reward is already in the wallet; this is presentation only.
-	if (granted.cash or 0)>0 and app.feedback then
-		local root = app.feedback:Root()
-		app.feedback:ShowCash(if root then root.Position else Vector3.zero,granted.cash)
-	else
-		app.audio:Play("Pop",1.05,{volume=0.4,maxDuration=0.35})
-	end
+	-- The reward is already in the wallet; this is presentation only: the Claim
+	-- cue, a ring out of today's card and a small confetti burst over the window
+	-- (on the screen root, so it outlives the closing popup).
+	cue("Claim","UIPurchase",nil,{voiceKey="DailyClaim",cooldown=0.3})
 	local card,gui = self.todayCard,self.gui
 	if not card or Theme.Motion.reduced then self:Dismiss();return end
 	Theme.Motion:StopBreathe(card)
-	Theme.Motion:PopScale(card,1.12,0.26)
-	if card.Parent then Theme.Motion:Burst(card.Parent,card.Position,GOLD) end
-	task.delay(0.25,function() if self.gui==gui then self:Dismiss() end end)
+	Theme.Motion:Ripple(card,GOLD)
+	local motion = Theme.Motion
+	if app.gui then
+		motion:Confetti(app.gui,{count=16,origin=motion:Point(app.gui,motion:CenterOf(card)),spread=0.3,seconds=1.3})
+	end
+	task.delay(0.35,function() if self.gui==gui then self:Dismiss() end end)
 end
 
 function Controller:Show(granted)
@@ -293,13 +304,16 @@ function Controller:Show(granted)
 	-- October 14 grid (owner reference): Days 1–6 in two rows of three, Day 7 tall on the right.
 	self.timer,self.collect = nil,nil
 	local todayCard
+	local cards = {}
 	for index=1,6 do
 		local column,row = (index-1)%3,(index-1)//3
 		local card = self:Card(main,index,today,granted,0.025+column*0.232,0.035+row*0.48,0.215,0.45)
 		if index==today then todayCard = card end
+		table.insert(cards,card)
 	end
 	local seventh = self:Card(main,7,today,granted,0.72,0.035,0.255,0.93)
 	if today==7 then todayCard = seventh end
+	table.insert(cards,seventh)
 	Theme.HeaderClose(header,function() self:Collect(granted) end)
 	Theme.ApplyPopupStyle(panel)
 	Theme.ScaleText(panel)
@@ -318,15 +332,22 @@ function Controller:Show(granted)
 		panel.Size = UDim2.fromScale(restingSize.X.Scale*0.94,restingSize.Y.Scale*0.94)
 		panel.Position = UDim2.fromScale(restingPosition.X.Scale,restingPosition.Y.Scale+0.035)
 	end
-	-- Today's card breathes from its centre (same place at rest); reduced motion keeps it still.
+	-- The day cards grow in one after another (the Main surface's own rim stays
+	-- still), then today's card breathes from its centre (same place at rest);
+	-- reduced motion keeps everything still.
 	self.todayCard = todayCard
+	for _,card in cards do Theme.Motion:Center(card) end
+	self.reveal = Theme.Motion:Stagger(cards,function(card) Theme.Motion:PopScale(card,0.75,0.28) end,0.05,0.35)
 	if todayCard then
-		Theme.Motion:Center(todayCard)
-		Theme.Motion:Breathe(todayCard,1.04,0.7)
+		-- After the last card's grow-in, so the two never share the UIScale.
+		task.delay(0.75,function()
+			if self.gui==gui and self.todayCard==todayCard and not self.collecting then Theme.Motion:Breathe(todayCard,1.04,0.7) end
+		end)
 	end
 	Theme.Motion:Tween(panel,"daily-size",{Size=restingSize},0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
 	Theme.Motion:Tween(panel,"position",{Position=restingPosition},0.28)
 	Theme.Motion:Tween(panel,"daily-fade",{GroupTransparency=0},0.22)
+	cue("MenuOpen","Pop",nil,{voiceKey="MenuOpen",cooldown=0.2})
 	if app.editPreview then return end
 	ContextActionService:BindActionAtPriority("PetRollDailyRewardClose",function(_,inputState)
 		if inputState==Enum.UserInputState.Begin then self:Collect(granted) end

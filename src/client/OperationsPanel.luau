@@ -25,6 +25,15 @@ local RED=Color3.fromRGB(232,62,48)
 local CARD=Color3.fromRGB(26,32,36)
 local EMBLEMS={Theme.Assets.TierVeteran,Theme.Assets.TierElite,Theme.Assets.TierRoyal}
 local UNLOCK_NODES={"S15","S16","S17"}
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
 
 local function label(parent,name,text,x,y,w,h,color,align)
 	local item=Theme.Label(parent,name,text,20,color or WHITE)
@@ -48,8 +57,10 @@ local function hitArea(parent,name,callback)
 	button.Size,button.ZIndex,button.AutoButtonColor,button.Selectable=UDim2.fromScale(1,1),20,false,true
 	button.Parent=parent
 	-- Press feedback scales the card; it is rebuilt on Refresh, never repositioned.
+	-- The callback plays TabSwitch itself.
 	Theme.Motion:Center(parent)
 	Theme.Motion:BindButton(button,Theme.Motion:ScaleOf(parent))
+	button:SetAttribute("ClickSound",false)
 	button.Activated:Connect(callback)
 	return button
 end
@@ -60,7 +71,8 @@ local function money(value)
 end
 
 function Panel.new(app)
-	return setmetatable({app=app,connections={},tier=nil,selected=nil,key=nil},Panel)
+	Audio=app.audio
+	return setmetatable({app=app,connections={},tier=nil,selected=nil,key=nil,revealOnBuild=false},Panel)
 end
 
 function Panel:Data()
@@ -101,7 +113,9 @@ function Panel:Open()
 	end
 	self.previousSelection=GuiService.SelectedObject
 	self:BuildShell()
+	self.revealOnBuild=true
 	self:Refresh(true)
+	cue("MenuOpen",nil,nil,{voiceKey="MenuOpen",cooldown=0.2})
 	if app.editPreview then return end
 	ContextActionService:BindActionAtPriority("PetRollOperationsClose",function(_,inputState)
 		if inputState==Enum.UserInputState.Begin then self:Close() end
@@ -186,6 +200,11 @@ function Panel:Refresh(force: boolean?)
 	self:BuildMissions(content,data)
 	self:BuildDetail(content,data,state)
 	Theme.ScaleText(content)
+	-- First build after Open: tabs, bars, status and the button grow in one after another.
+	if self.revealOnBuild then
+		self.revealOnBuild=false
+		Theme.Motion:Reveal(content,{limit=10,window=0.35,from=0.8})
+	end
 	-- The clicked card was rebuilt; give the new selection a small pop.
 	local picked=pop and content:FindFirstChild(pop)
 	if picked then Theme.Motion:PopScale(picked,1.06) end
@@ -210,7 +229,7 @@ function Panel:BuildTabs(content,data)
 		Theme.Aspect(emblem,1);emblem.ZIndex=6
 		label(tab,"Name",name,.36,.15,.6,.7,if locked then MUTED else WHITE)
 		hitArea(tab,"Select",function()
-			self.app.audio:Play("Click")
+			cue("TabSwitch","Click")
 			self.tier,self.selected=index,self:DefaultMission(data,index)
 			self.pop="Tab"..name
 			self:Refresh()
@@ -241,7 +260,7 @@ function Panel:BuildMissions(content,data)
 			label(chip,"Text",if cleared then "CLEAR!" else money(definition.firstCash),.06,.08,.88,.84,WHITE,Enum.TextXAlignment.Center)
 		end
 		hitArea(row,"Select",function()
-			self.app.audio:Play("Click")
+			cue("Select","Click")
 			self.selected=index
 			self.pop="Mission"..index
 			self:Refresh()
@@ -287,9 +306,15 @@ function Panel:BuildDetail(content,data,state)
 		local home=state.armyState=="Home" or state.armyState=="Following"
 		button=Theme.ActionButton(content,"Deploy",if not home then "Army busy" elseif cleared then "Defend again" else "Defend",function()
 			if not home then return end
+			cue("Confirm","UIPurchase")
+			Theme.Motion:Ripple(button,WHITE)
 			app:Request("StartOperation",{operationId=id})
 		end,if home then GREEN else Theme.ActionColors.disabled)
 		button.Active=home
+		-- Army busy: the press answers with BindButton's "no" and the Locked cue.
+		button.MouseButton1Down:Connect(function()
+			if not button.Active then cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2}) end
+		end)
 	end
 	button.Position,button.Size=UDim2.fromScale(.15,.79),UDim2.fromScale(.7,.17)
 	self.deploy=button
@@ -317,6 +342,7 @@ function Panel:Dismiss(immediate: boolean?)
 		gui:Destroy()
 	end
 	if immediate or not panel then finish();return end
+	cue("MenuClose",nil,nil,{voiceKey="MenuClose",cooldown=0.2})
 	Theme.Motion:Tween(panel,"operations-size",{Size=UDim2.fromScale(self.panelSize.X.Scale*.97,self.panelSize.Y.Scale*.97)},.16,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
 	Theme.Motion:Tween(panel,"position",{Position=UDim2.fromScale(self.panelPosition.X.Scale,self.panelPosition.Y.Scale+.025)},.16)
 	Theme.Motion:Tween(panel,"operations-fade",{GroupTransparency=1},.16,nil,nil,finish)

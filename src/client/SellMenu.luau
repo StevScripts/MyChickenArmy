@@ -21,6 +21,19 @@ local EDGE=Color3.fromRGB(66,119,149)
 local INK=Color3.fromRGB(3,11,14)
 local CYAN=Color3.fromRGB(0,223,255)
 local GOLD=Theme.Colors.coins
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
+local function denied(item)
+	Theme.Motion:Shake(item,6)
+	cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2})
+end
 local Art={
 	Helmet="rbxassetid://80504375672119",
 	Search="rbxassetid://111902627409710",
@@ -117,6 +130,10 @@ local function button(parent,name,text,callback,key)
 	Theme.Studs(visual.Face,0.07,24,0).ZIndex=visual.Face.ZIndex+1
 	Theme.ScaleText(item)
 	tone(item)
+	-- A press on a greyed button: BindButton's small "no" shake plus a soft Locked cue.
+	item.MouseButton1Down:Connect(function()
+		if not item.Active then cue("Locked","Error",nil,{volume=0.5,voiceKey="Locked",cooldown=0.2}) end
+	end)
 	return item
 end
 
@@ -139,7 +156,8 @@ end
 
 function Menu.new(app,parent)
 	local self=setmetatable({app=app,parent=parent,chosen={},order={},cards={},query="",sort="Value",
-		shown=PAGE,key="",connections={},alive=true},Menu)
+		shown=PAGE,key="",connections={},alive=true,revealOnRender=false},Menu)
+	Audio=app.audio
 	local root=Instance.new("Frame")
 	root.Name,root.BackgroundTransparency,root.BorderSizePixel="SellMenu",1,0
 	root.Visible,root.ZIndex,root.Parent=false,parent.ZIndex+1,parent
@@ -225,10 +243,11 @@ function Menu.new(app,parent)
 	end,"Red")
 	Theme.RelativeRect(self.back,488,barY,234,82,W,BH)
 	self.sortButton=button(body,"Sort","Sort: Value",function()
-		app.audio:Play("Click")
+		cue("TabSwitch","Click")
 		self.sort=SORTS[(table.find(SORTS,self.sort) or 1)%#SORTS+1]
 		self.grid.CanvasPosition=Vector2.zero;self:Render(true)
 	end,"Purple")
+	self.sortButton:SetAttribute("ClickSound",false)
 	Theme.RelativeRect(self.sortButton,753,barY,338,82,W,BH)
 	self.sell=button(body,"SellSelected","Sell (0)",function() self:Review() end,"Green")
 	Theme.RelativeRect(self.sell,1122,barY,338,82,W,BH)
@@ -285,9 +304,10 @@ function Menu:BuildConfirm()
 	amount.TextFace.TextOutline.Color,amount.TextFace.TextOutline.Thickness=INK,0.07
 	Theme.RelativeRect(amount,154,352,400,84,708,610)
 	self.confirmSell=button(card,"ConfirmSell","Sell!",function() self:Confirm() end,"Green")
+	self.confirmSell:SetAttribute("ClickSound",false)
 	Theme.RelativeRect(self.confirmSell,40,466,296,92,708,610)
 	self.confirmCancel=button(card,"Cancel","Cancel",function()
-		self.app.audio:Play("Click");self:HideConfirm()
+		cue("MenuClose",nil);self:HideConfirm()
 	end,"Red")
 	Theme.RelativeRect(self.confirmCancel,372,466,296,92,708,610)
 	for _,item in {self.confirmSell,self.confirmCancel} do
@@ -359,12 +379,12 @@ function Menu:ShowTooltip(card,pet)
 	tip.Position=UDim2.fromScale((x-rootPosition.X)/rootSize.X,(y-rootPosition.Y)/rootSize.Y)
 	parts.Pointer.Text=if flip then "▶" else "◀"
 	Theme.RelativeRect(parts.Pointer,if flip then 282 else -36,140,34,50,280,330)
-	tip.Visible=true
+	Theme.Motion:Appear(tip,true,0.85)
 	self.tipFor=card
 end
 
 function Menu:HideTooltip(card)
-	if card==nil or self.tipFor==card then self.tooltip.Visible=false;self.tipFor=nil end
+	if card==nil or self.tipFor==card then Theme.Motion:Appear(self.tooltip,false);self.tipFor=nil end
 end
 
 -- Called by AppController:OpenSell before the page opens. A sellable petId starts
@@ -378,6 +398,8 @@ function Menu:Begin(petId)
 	if pet and sellable(pet) then self:Toggle(pet.id,true) end
 	self.focusSelected=pet and self.chosen[pet.id] and pet.id or nil
 	self.grid.CanvasPosition=Vector2.zero
+	-- The rows grow in once per open, never on every snapshot re-render.
+	self.revealOnRender=true
 end
 
 function Menu:Sellable()
@@ -468,8 +490,10 @@ function Menu:Card(parent,pet,order)
 	strength.Position,strength.Size,strength.TextXAlignment=UDim2.fromScale(5/210,188/220),UDim2.fromScale(200/210,22/220),Enum.TextXAlignment.Center
 	local mutation=MutationVFX.Badge(card,pet.mutation)
 	if mutation then mutation.Position,mutation.Size=UDim2.fromScale(92/210,36/220),UDim2.fromScale(112/210,28/220) end
-	-- Selected for sale: a dark cell under the red trash can (or a SELL tag until uploaded).
+	-- Selected for sale: a dark cell under the red trash can (or a SELL tag until
+	-- uploaded), centred so it punches in place.
 	local mark=frame(card,"SellMark")
+	mark.AnchorPoint,mark.Position=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5)
 	mark.Size,mark.ZIndex,mark.Visible=UDim2.fromScale(1,1),card.ZIndex+9,false
 	mark.BackgroundColor3,mark.BackgroundTransparency=Color3.new(),0.3
 	if Art.Trash~="" then
@@ -488,12 +512,19 @@ function Menu:Card(parent,pet,order)
 	local border=Theme.Stroke(outline,color,Theme.Border.Card)
 	border.BorderStrokePosition=Enum.BorderStrokePosition.Inner
 	self.cards[pet.id]={card=card,mark=mark}
+	-- Activated picks the cue itself (Select or Click).
+	card:SetAttribute("ClickSound",false)
 	card.Activated:Connect(function()
 		if self.pending or self.confirm.Visible then return end
-		self.app.audio:Play("Click")
 		self:Toggle(pet.id)
 		self:UpdateSelection()
-		Theme.Motion:PopScale(card,if self.chosen[pet.id] then 1.08 else 0.94)
+		if self.chosen[pet.id] then
+			cue("Select","Click",nil,{pitchVariance=0.04})
+			Theme.Motion:Punch(mark,1.2,0.3)
+		else
+			self.app.audio:Play("Click")
+			Theme.Motion:PopScale(card,0.94)
+		end
 	end)
 	card.MouseEnter:Connect(function()
 		if UserInputService.PreferredInput~=Enum.PreferredInput.Touch then self:ShowTooltip(card,pet) end
@@ -513,7 +544,9 @@ function Menu:UpdateSelection()
 		entry.mark.Visible=on
 	end
 	self.count.Text=#ids.." Selected -"
-	self.countValue.Text=Theme.Money(total)
+	-- Gains count up with a tick; a smaller total drops at once (and under reduced motion).
+	Theme.Motion:CountTo(self.countValue,total,Theme.Money,0.35,{punch=1.1,tickGap=0.06,
+		tick=function() cue("CountTick",nil,nil,{voiceKey="SellCount",cooldown=0.05,pitchVariance=0.06,volume=0.6}) end})
 	self.sell.Text=if self.pending then "Selling…" else "Sell ("..#ids..")"
 	enabled(self.sell,self.pending==nil)
 	enabled(self.sortButton,self.pending==nil)
@@ -578,10 +611,22 @@ function Menu:Render(force)
 		end
 		self.grid.CanvasPosition=scroll
 		self.fitGrid()
+		if self.revealOnRender then
+			self.revealOnRender=false
+			Theme.Motion:Reveal(self.grid,{limit=10,window=0.35,from=0.8})
+		end
 	end
+	local wasEmpty=self.empty.Visible
 	self.empty.Visible=#visible==0
 	if #visible==0 then
 		self.empty.Text=if self.query~="" then "No matching chickens" else self:EmptyReason()
+		if not wasEmpty then
+			-- The empty line fades in rather than snapping (at once under reduced motion).
+			local outline=self.empty:FindFirstChild("TextOutline")
+			self.empty.TextTransparency=1
+			Theme.Motion:Tween(self.empty,"fade",{TextTransparency=0},0.3)
+			if outline then outline.Transparency=1;Theme.Motion:Tween(outline,"fade",{Transparency=0},0.3) end
+		end
 	end
 	self:UpdateSelection()
 end
@@ -603,10 +648,10 @@ function Menu:Review()
 	if self.pending or self.confirm.Visible then return end
 	local ids,total=self:UpdateSelection()
 	if #ids==0 then
-		Theme.Motion:Shake(self.sell.Visual,6)
+		denied(self.sell.Visual)
 		return
 	end
-	self.app.audio:Play("Click")
+	cue("MenuOpen","Click")
 	self:HideTooltip()
 	self.confirmNote.Text=""
 	self.confirm.Visible=true
@@ -638,13 +683,34 @@ function Menu:Confirm()
 	if total~=self.quote.total or #ids~=#self.quote.ids then
 		-- The flock changed under the open card: show the new total before selling.
 		self:RenderConfirm(ids,total);self.confirmNote.Text="Your chickens changed. Check the new total."
-		Theme.Motion:Shake(self.confirmNote,5)
+		denied(self.confirmNote)
 		return
 	end
-	self.app.audio:Play("Click")
+	cue("Confirm","UIPurchase")
+	Theme.Motion:Ripple(self.confirmSell,WHITE)
 	-- The server rechecks ownership, protection and the exact total atomically.
-	self.pending={id=self.app:Request("Sell",{petIds=table.clone(ids),expectedTotal=total,sparesOnly=true}),at=os.clock()}
+	self.pending={id=self.app:Request("Sell",{petIds=table.clone(ids),expectedTotal=total,sparesOnly=true}),at=os.clock(),total=total,count=#ids}
 	self:UpdateSelection()
+end
+
+-- The sale's reward feedback: a small confetti burst at the total, the Coins tick,
+-- and three to five coins that fly from the total into the HUD Coins readout.
+function Menu:Celebrate(pending)
+	local app=self.app
+	local gui=app.gui
+	local motion=Theme.Motion
+	motion:Confetti(self.root,{count=14,origin=motion:Point(self.root,motion:CenterOf(self.countValue)),spread=0.25,seconds=1.2})
+	-- Same voice key as ActionFeedback's sale payoff, so the two never double.
+	cue("CashTick",nil,1,{voiceKey="Sale",maxVoices=3})
+	if not (app.hud and app.hud.money and gui) then return end
+	local target=motion:Point(gui,motion:CenterOf(app.hud.money))
+	local origin=motion:Point(gui,motion:CenterOf(self.countCoin))
+	cue("Whoosh",nil,nil,{voiceKey="CoinWhoosh",cooldown=0.3})
+	for index=1,math.clamp(pending.count or 3,3,5) do
+		motion:Fly(gui,Theme.Assets.Coin,origin+UDim2.fromScale((index-3)*0.012,0),target,{seconds=0.5+index*0.04,arc=0.1,onArrive=function()
+			if index==1 then cue("CoinPickup","Collect",1,{voiceKey="CoinArrive",cooldown=0.15,pitchVariance=0.05}) end
+		end})
+	end
 end
 
 function Menu:Receive(result)
@@ -656,11 +722,14 @@ function Menu:Receive(result)
 		-- Sold chickens leave the snapshot; anything left selected was refused already.
 		self.chosen,self.order={},{}
 		if self.root.Visible then
-			Theme.Motion:PopScale(self.countValue,1.2)
+			self:Celebrate(pending)
 			if UserInputService.GamepadEnabled then GuiService.SelectedObject=self.sell end
 		end
+	elseif self.root.Visible then
+		-- AppController shows the refusal (with its Error cue); the button answers with a shake.
+		Theme.Motion:Shake(self.sell.Visual,6)
 	end
-	-- AppController shows the reply as a toast and renders the page right after.
+	-- AppController renders the page right after.
 end
 
 -- Leaving the page hides the card and tooltip. A request in flight still completes.

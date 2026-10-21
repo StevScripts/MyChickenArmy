@@ -33,6 +33,16 @@ local REST=UDim2.fromScale(0.5,0.5)
 local CARD_SIZE=UDim2.fromScale(0.976,0.976)
 local WHITE=Color3.new(1,1,1)
 local BLACK=Color3.new(0,0,0)
+-- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
+-- fallback until the sound session adds it (UI Lab previews stub audio without Has).
+-- Presentation only; one client audio.
+local Audio=nil
+local function cue(name,fallback,pitch,options)
+	if not Audio then return end
+	if type(Audio.Has)=="function" and Audio:Has(name) then Audio:Play(name,pitch,options)
+	elseif fallback then Audio:Play(fallback,pitch,options) end
+end
+local DISCOVERY_GLOW_SECONDS=2
 
 -- Every card now has a caption (name, or rarity and source), so portraits sit high.
 local function previewPosition(_collected)
@@ -41,8 +51,9 @@ end
 
 function Browser.new(app,parent)
 	local self=setmetatable({
-		app=app,parent=parent,cards={},connections={},pending={},alive=true,opened=false,columns=4,
+		app=app,parent=parent,cards={},connections={},pending={},alive=true,opened=false,columns=4,reveal=nil,
 	},Browser)
+	Audio=app.audio
 	local root=Theme.Frame(parent,"IndexBrowser",UDim2.fromScale(0.98,0.96))
 	root.Position,root.BackgroundTransparency,root.Visible=UDim2.fromScale(0.01,0.02),1,false
 	root:SetAttribute("OwnsPopupStyle",true)
@@ -152,11 +163,13 @@ end
 function Browser:StopMotion()
 	for thread in self.pending do task.cancel(thread) end
 	table.clear(self.pending)
+	if self.reveal then self.reveal.cancel();self.reveal=nil end
 	for _,view in self.cards do
 		Theme.Motion:Cancel(view.visual,"index-size")
 		Theme.Motion:Cancel(view.visual,"index-enter")
 		Theme.Motion:Cancel(view.preview,"index-lift")
 		Theme.Motion:Cancel(view.rim,"index-highlight")
+		Theme.Motion:StopGlow(view.root)
 		view.visual.Size,view.visual.Position,view.rim.Transparency=CARD_SIZE,REST,0.42
 		view.preview.Position=previewPosition(view.collected==true)
 		local shine=view.visual:FindFirstChild("MotionShine")
@@ -168,27 +181,26 @@ function Browser:StopMotion()
 	end
 end
 
+-- The cards grow in one after another when the Index opens (the shared Reveal;
+-- it settles at once under reduced motion).
 function Browser:Reveal()
 	self:StopMotion()
-	if Theme.Motion.reduced then return end
-	local top,bottom=self.grid.AbsolutePosition.Y,self.grid.AbsolutePosition.Y+self.grid.AbsoluteSize.Y
-	local order=0
-	for _,species in ORDER do
-		local view=self.cards[species]
-		local y=view.root.AbsolutePosition.Y
-		if y+view.root.AbsoluteSize.Y>=top and y<bottom then
-			view.visual.Size,view.visual.Position=UDim2.fromScale(0.888,0.888),REST+UDim2.fromScale(0,0.04)
-			local thread
-			thread=task.delay(math.min(order*0.035,0.24),function()
-				self.pending[thread]=nil
-				if not self.alive or not self.opened then return end
-				Theme.Motion:Tween(view.visual,"index-size",{Size=CARD_SIZE},0.28,Enum.EasingStyle.Back)
-				Theme.Motion:Tween(view.visual,"index-enter",{Position=REST},0.24)
-			end)
-			self.pending[thread]=true
-			order+=1
-		end
-	end
+	self.reveal=Theme.Motion:Reveal(self.cardHolder,{limit=32,window=0.4,from=0.8})
+end
+
+-- A chicken discovered while the Index is open: a sweep of light, a glow in its
+-- rarity colour around the slot (the card keeps its own stroke) that fades after
+-- a moment, and the Shimmer cue.
+function Browser:Discovered(view,color)
+	Theme.Motion:Shine(view.visual)
+	Theme.Motion:Glow(view.root,color,3)
+	cue("Shimmer","RollReveal",nil,{volume=0.4,voiceKey="IndexDiscovery",cooldown=0.3})
+	local thread
+	thread=task.delay(DISCOVERY_GLOW_SECONDS,function()
+		self.pending[thread]=nil
+		if self.alive then Theme.Motion:StopGlow(view.root) end
+	end)
+	self.pending[thread]=true
 end
 
 function Browser:SyncVisibility()
@@ -259,10 +271,8 @@ function Browser:Render(_force)
 				view.rim.Color=Color3.fromRGB(176,194,201):Lerp(color,0.55)
 				view.studs.ImageTransparency=0.91
 			end
-			if newlyCollected and self.opened and not Theme.Motion.reduced then
-				view.visual.Size=UDim2.fromScale(0.917,0.917)
-				Theme.Motion:Tween(view.visual,"index-size",{Size=CARD_SIZE},0.32,Enum.EasingStyle.Back)
-				Theme.Motion:Shine(view.visual)
+			if newlyCollected and self.opened then
+				self:Discovered(view,Theme.Rarities[Catalog[species].rarity] or Theme.ActionColors.navigation)
 			end
 		end
 	end

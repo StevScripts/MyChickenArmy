@@ -105,6 +105,10 @@ function Browser:Mount(parent)
  table.insert(self.connections,odds.Activated:Connect(function() self.app.audio:Play("Click");self.app:OpenPage("Odds") end))
  table.insert(self.connections,odds.MouseEnter:Connect(function() luck.hover=true;self:Render() end))
  table.insert(self.connections,odds.MouseLeave:Connect(function() luck.hover=false;self:Render() end))
+ -- October 21 game feel: the three cards grow in one after another whenever the page shows.
+ table.insert(self.connections,root:GetPropertyChangedSignal("Visible"):Connect(function()
+  if root.Visible and self.alive then Theme.Motion:Reveal(row,{limit=3,window=0.2,from=0.8}) end
+ end))
  Theme.ScaleText(root)
  task.spawn(function() pcall(function() ContentProvider:PreloadAsync(images) end) end)
 end
