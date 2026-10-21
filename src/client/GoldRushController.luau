@@ -11,6 +11,7 @@ local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local RunService=game:GetService("RunService")
 local Config=require(ReplicatedStorage.PetRoll.Shared.Config)
 local Theme=require(script.Parent.UITheme)
+local BoostReadout=require(script.Parent.BoostReadout)
 local Controller={}
 Controller.__index=Controller
 
@@ -77,9 +78,11 @@ function Controller:BuildChip()
 end
 
 -- October 21 (Stevin): the bottom-right corner, where Camps held / Flock were (Auto
--- Roll sits higher on the right edge, so the two never meet).
+-- Roll sits higher on the right edge, so the two never meet). Later that day the
+-- small coin/clover boosts (BoostReadout) took the very corner; the chip rests on them.
 function Controller:Place()
-	self.chip.Position=UDim2.fromScale(0.988,0.98)
+	local boosts=BoostReadout.Position.Y.Scale-BoostReadout.Size.Y.Scale
+	self.chip.Position=UDim2.fromScale(0.988,boosts-0.008)
 end
 
 function Controller:Step()

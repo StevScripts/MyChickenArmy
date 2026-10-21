@@ -1,11 +1,13 @@
 --!strict
 -- October 20 boosts readout (S16, docs/team/PLAYTIME_REWARDS.md): the reference's coin
 -- "x9.2" and clover "x4.5", showing the player's total Coins and Luck multipliers.
--- October 21 (Stevin): moved from the top-right to one row under Friend Boost, in
--- HudController's BoostSlot, as a single line: coin x9.2, clover x4.5. The server computes both (state.boosts,
+-- October 21 (Stevin): moved from the top-right to one row under Friend Boost, then
+-- (later October 21, his reference image) to a very small pair of icons in the
+-- bottom-right corner (HudController's BoostSlot), each number a badge overlaid on
+-- its icon's top-right. The server computes both (state.boosts,
 -- PlaytimeService.Boosts); this module only presents. Stevin, October 20, approved one
 -- addition to the reference: while a Playtime Rewards boost runs, its number turns
--- green with the time left underneath.
+-- green with the time left over the foot of its icon.
 local RunService=game:GetService("RunService")
 local Theme=require(script.Parent.UITheme)
 local PlaytimeRewards=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PlaytimeRewards)
@@ -19,11 +21,13 @@ local GREEN=Theme.ReferenceColors.Army
 local WHITE=Color3.new(1,1,1)
 -- October 21 game feel: a running boost's column glows in its own colour.
 local GLOW={Coins=Theme.Colors.coins,Luck=GREEN}
--- Fallback place when there is no HUD slot (UI Lab story): the bottom-left corner.
-Readout.Position=UDim2.fromScale(0.012,0.98)
-Readout.Size=UDim2.fromScale(0.3,0.039)
--- One column per boost: icon, number, then the time left of a running boost.
-local COLUMN_WIDTH,COLUMN_GAP=0.37,0.02
+-- The bottom-right corner, very small: two square icons with a gap between them.
+-- HudController's BoostSlot uses these too; without it (UI Lab story) the readout
+-- places itself on the HUD layer.
+local COLUMN_GAP=0.15 -- of one icon's width
+Readout.Aspect=2+COLUMN_GAP
+Readout.Position=UDim2.fromScale(0.988,0.98)
+Readout.Size=UDim2.fromScale(0.2,0.055)
 
 local function clock(seconds: number): string
 	seconds=math.max(0,math.ceil(seconds))
@@ -34,22 +38,26 @@ function Readout.new(app)
 	local self=setmetatable({app=app,connections={},columns={},nextStepAt=0},Readout)
 	local slot=app.hud and app.hud.boostSlot
 	local root=Theme.Container(slot or app.hudLayer,"BoostReadout")
-	if not slot then root.AnchorPoint,root.Position,root.Size=Vector2.new(0,1),Readout.Position,Readout.Size end
+	if not slot then
+		root.AnchorPoint,root.Position,root.Size=Vector2.new(1,1),Readout.Position,Readout.Size
+		Theme.Aspect(root,Readout.Aspect)
+	end
 	root.Visible=false
 	self.root=root
 	for index,kind in PlaytimeRewards.BoostKinds do
 		local column=Theme.Container(root,kind)
-		column.Position,column.Size=UDim2.fromScale((index-1)*(COLUMN_WIDTH+COLUMN_GAP),0),UDim2.fromScale(COLUMN_WIDTH,1)
-		local icon=Theme.Image(column,"Icon",Readout.Icons[kind],UDim2.fromScale(1,1.15),UDim2.fromScale(0,0.5))
-		icon.AnchorPoint=Vector2.new(0,0.5)
-		Theme.Aspect(icon,1)
+		column.Position=UDim2.fromScale((index-1)*(1+COLUMN_GAP)/Readout.Aspect,0)
+		column.Size=UDim2.fromScale(1/Readout.Aspect,1)
+		Theme.Image(column,"Icon",Readout.Icons[kind],UDim2.fromScale(1,1))
+		-- The number is a tilted badge over the icon's top-right corner.
 		local value=Theme.Display(column,"Value","x1",30,WHITE)
-		value.Position,value.Size,value.ZIndex=UDim2.fromScale(0.33,0),UDim2.fromScale(0.43,1),5
-		value.TextXAlignment,value.TextWrapped=Enum.TextXAlignment.Left,false
-		Theme.Motion:Center(value)
+		value.AnchorPoint,value.Position,value.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.8,0.16),UDim2.fromScale(0.9,0.46)
+		value.Rotation,value.ZIndex=-8,5
+		value.TextXAlignment,value.TextWrapped=Enum.TextXAlignment.Center,false
 		local timer=Theme.Display(column,"Timer","",20,GREEN)
-		timer.Position,timer.Size,timer.ZIndex,timer.Visible=UDim2.fromScale(0.77,0.15),UDim2.fromScale(0.23,0.7),5,false
-		timer.TextXAlignment,timer.TextWrapped=Enum.TextXAlignment.Left,false
+		timer.AnchorPoint,timer.Position,timer.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,1.08),UDim2.fromScale(1.15,0.38)
+		timer.ZIndex,timer.Visible=5,false
+		timer.TextXAlignment,timer.TextWrapped=Enum.TextXAlignment.Center,false
 		self.columns[kind]={root=column,value=value,timer=timer,endsAt=nil,last=nil,glowing=false}
 	end
 	Theme.ScaleText(root)
