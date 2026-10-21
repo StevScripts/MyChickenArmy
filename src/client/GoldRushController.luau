@@ -136,7 +136,8 @@ function Controller:SetActive(active: boolean, seconds: number)
 			local audio=app.audio
 			local fallback=if type(audio.Has)=="function" and audio:Has("GoldRush") then "GoldRush" else "Victory"
 			app:Cue("GoldRushStart",fallback)
-			if app.screenFeel then app.screenFeel:Flash(Theme.Arcade.gold,0.2,0.5) end
+			-- Oct 21 (Stevin): the start startled him; a faint, slower gold wash now (was 0.2 over 0.5 s).
+			if app.screenFeel then app.screenFeel:Flash(Theme.Arcade.gold,0.08,0.7) end
 			Theme.Motion:Punch(self.chip,1.2,0.35)
 		end
 	else
