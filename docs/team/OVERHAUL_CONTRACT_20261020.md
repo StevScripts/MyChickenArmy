@@ -3,6 +3,8 @@
 Owner: session S7 "Economy core (server)", branch `oct20/s7-economy-core`.
 Decisions: [OVERHAUL_PLAN_20261020.md](OVERHAUL_PLAN_20261020.md). Stevin confirmed
 S7's plan and the old-save mapping (section 9) on October 20, 2026.
+Checks for sections 4–9: `tests/RebirthV2Checks.luau`
+(`require(game.ServerStorage.PetRollTests.RebirthV2Checks).Run()`).
 
 S8–S13 build against this file. Ids, request names, saved keys and snapshot keys
 below are fixed. **Numbers are drafts** until the P0 cost fit lands (section 10):

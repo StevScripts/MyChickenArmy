@@ -9,6 +9,6 @@ instead of being rewritten during integration (lead session, Oct 20):
 - `OpeningGrowthChecks`, `OpenRollChecks`: read `Config.RollCooldown`, which no
   longer exists (already stale before the overhaul).
 - `RebirthChecks`: the Oct 15 Rebirth ladder (now Rebirth v2 with Gems; see
-  `docs/team/OVERHAUL_CONTRACT_20261020.md`). A Rebirth v2 suite is still to write.
+  `docs/team/OVERHAUL_CONTRACT_20261020.md`). Replaced by `tests/RebirthV2Checks.luau`.
 
 Decisions: `docs/team/OVERHAUL_PLAN_20261020.md`.
