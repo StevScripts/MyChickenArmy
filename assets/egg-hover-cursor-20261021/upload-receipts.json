@@ -1,0 +1,22 @@
+{
+ "method": "Roblox Studio MCP upload_image (HandCursor.png served from 127.0.0.1:8791)",
+ "placeId": 96683186622050,
+ "creator": "not reported by upload_image; whichever account/group Studio MCP uploads as",
+ "uploadedAt": "2026-10-21",
+ "approval": "Stevin asked for the egg hover to show a click icon; generated with the Codex CLI per his image rule",
+ "verified": "ContentProvider:PreloadAsync in the live playtest client returned Success",
+ "assets": [
+  {
+   "key": "HandCursor",
+   "file": "HandCursor.png",
+   "size": [
+    72,
+    72
+   ],
+   "hotspot": "image centre (fingertip)",
+   "assetId": 74062853444480,
+   "content": "rbxassetid://74062853444480",
+   "usedBy": "src/client/EggController.luau HOVER_CURSOR"
+  }
+ ]
+}
