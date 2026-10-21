@@ -364,7 +364,8 @@ function HillIntro:Lock()
 	local camera = workspace.CurrentCamera
 	self.cameraFov = camera.FieldOfView
 	-- Full device screen, so the bars and cover reach past phone notches.
-	local layer = Theme.InsetContainer(app.gui, "HillIntro", Enum.ScreenInsets.None)
+	-- MarchFilm (the tutorial's march) reuses this staging under its own layer name.
+	local layer = Theme.InsetContainer(app.gui, self.layerName or "HillIntro", Enum.ScreenInsets.None)
 	layer.ZIndex = 90
 	self.layer = layer
 	local cover = Instance.new("Frame")

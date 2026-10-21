@@ -1,5 +1,6 @@
 -- October 20 Commander guide and Next goals (S14; docs/team/COMMANDER_TUTORIAL.md).
 -- October 21: the short core (5 eggs, sell, Flock Size I, FREE roll) and the tips.
+-- Later October 21: eight lessons; the last sends the Army to a Camp and the win ends it.
 -- Snapshot routing plus a real-session opening route. Isolated sessions only: no
 -- DataStore, live world, Players or prompts. Run in Studio:
 -- require(game.ServerStorage.PetRollTests.CommanderGuideChecks).Run()
@@ -50,7 +51,7 @@ function Checks.Run()
 		local state=opening()
 		local first=Guide.Resolve(state)
 		expect(first,"Collect","Click your eggs to collect them! (0/3)")
-		assert(first.tag=="TUTORIAL" and first.index==1 and first.total==7,"Tag "..tostring(first.tag))
+		assert(first.tag=="TUTORIAL" and first.index==1 and first.total==8,"Tag "..tostring(first.tag))
 		expect(Guide.Resolve(state,"Touch"),"Collect","Tap your eggs to collect them! (0/3)")
 		expect(Guide.Resolve(state,"Gamepad"),"Collect","Press R2 to collect your eggs! (0/3)")
 		assert(Guide.EggGoal==3 and Guide.CollectedEggCount({collectedEggCount=37})==3,"Saved counts clamp to 3")
@@ -59,20 +60,20 @@ function Checks.Run()
 		state.eggs.carriedValue=80
 		local sell=Guide.Resolve(state)
 		expect(sell,"Sell","Sell your eggs on the green pad!")
-		assert(sell.index==2,"Sell is 2/7")
+		assert(sell.index==2,"Sell is 2/8")
 		return "Click, Tap and R2 wording; 37 clamps to 3"
 	end)
 
-	test("Seven lessons: eggs, sell, roll, chicken, vacuum claim, vacuum 20, sell; then complete",function()
+	test("Eight lessons: eggs, sell, roll, chicken, vacuum claim, vacuum 20, sell, Camp; then complete",function()
 		local state=opening()
 		state.tutorial.collectedEggCount,state.tutorial.soldEggs=3,true
 		local roll=Guide.Resolve(state)
 		expect(roll,"Roll","Pull the lever for a chicken!")
-		assert(roll.index==3 and roll.total==7,"Roll is 3/7")
+		assert(roll.index==3 and roll.total==8,"Roll is 3/8")
 		state.tutorial.rolled,state.offer=true,{price=0}
 		local recruit=Guide.Resolve(state)
 		expect(recruit,"Recruit","Grab your chicken!")
-		assert(recruit.index==4,"Recruit is 4/7")
+		assert(recruit.index==4,"Recruit is 4/8")
 		state.tutorial.bought,state.offer=true,nil
 		state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
 		local vacuum=Guide.Resolve(state)
@@ -91,23 +92,29 @@ function Checks.Run()
 		state.tutorial.vacuumEggCount=20
 		local sell=Guide.Resolve(state)
 		expect(sell,"VacuumSell","Sell your vacuumed eggs on the green pad!")
-		assert(sell.target=="EggDeposit" and sell.index==7 and sell.total==7,"Sell is 7/7")
-		assert(not Guide.Facts(state).Core,"Not done before the sale")
+		assert(sell.target=="EggDeposit" and sell.index==7 and sell.total==8,"Sell is 7/8")
 		state.tutorial.vacuumSold=true
-		assert(Guide.Facts(state).Core,"Done after the sale")
+		local conquer=Guide.Resolve(state)
+		expect(conquer,"Conquer","Go to Cluck Camp and send your Army to attack!")
+		assert(conquer.target=="Camp1" and conquer.index==8 and conquer.total==8,"Camp is 8/8")
+		assert(not Guide.Facts(state).Core,"Not done before the win")
+		state.outgoing,state.armyState="battle1","Traveling"
+		expect(Guide.Resolve(state),"Battle","Defeat the enemy and capture their Camp!")
+		state.outgoing,state.armyState,state.campsWon=nil,"Home",1
+		assert(Guide.Facts(state).Core,"Done after the win")
 		expect(Guide.Resolve(state),"Complete",Guide.CompleteText)
 		local order=table.concat(Guide.Core,",")
-		assert(order=="Collect,Sell,Roll,Recruit,Vacuum,VacuumUse,VacuumSell",order)
-		return "No Flock or Army lessons"
+		assert(order=="Collect,Sell,Roll,Recruit,Vacuum,VacuumUse,VacuumSell,Win",order)
+		return "No Flock or Army Size lessons; the Camp win ends it"
 	end)
 
 	test("An army walking home shows Return, not the fight",function()
 		local state=opening()
 		state.tutorial.collectedEggCount,state.tutorial.soldEggs=3,true
 		state.outgoing,state.armyState="battle1","Returning"
-		expect(Guide.Resolve(state),"Return","Wait for your army to return")
+		expect(Guide.Resolve(state),"Return","Wait for your Army to return")
 		state.armyState="Marching"
-		expect(Guide.Resolve(state),"Battle","Your army is fighting")
+		expect(Guide.Resolve(state),"Battle","Defeat the enemy and capture their Camp!")
 		return "Returning beats outgoing"
 	end)
 
@@ -249,7 +256,7 @@ function Checks.Run()
 		return empty.." from an empty cell, "..boxed.." boxed in (? fallback), "..hidden.." hidden-hex cases"
 	end)
 
-	test("A real starter session walks the seven lessons and the guide completes",function()
+	test("A real starter session walks the eight lessons and the guide completes",function()
 		local s=Session.new(-9403,"Starter route",1)
 		-- DataService marks a loaded profile; the guide stays hidden while it is "loading".
 		s.loaded,s.saveStatus=true,"saved"
@@ -275,15 +282,20 @@ function Checks.Run()
 		s.tutorial.vacuumEggCount=20
 		expect((route()),"VacuumSell","Sell your vacuumed eggs on the green pad!")
 		s.tutorial.vacuumSold=true
+		local camp,before=route()
+		expect(camp,"Conquer","Go to Cluck Camp and send your Army to attack!")
+		local service2=Tutorial.new(function() end)
+		service2:Begin(nil,s)
+		service2:Observe(s,before)
+		assert(not s.tutorial.guideCompleted and not s.tutorial.coreDone,"Not complete before the Camp win")
+		-- TutorialService completes the guide with the first Camp win.
+		s.tutorial.wonCamp=true
 		local done,final=route()
 		expect(done,"Complete",Guide.CompleteText)
 		assert(Guide.Facts(final).Core and s.coins==2400,"Nothing was spent: "..s.coins)
-		-- TutorialService completes the guide with the lessons (no camp win needed).
-		local service2=Tutorial.new(function() end)
-		service2:Begin(nil,s)
 		service2:Observe(s,final)
 		assert(s.tutorial.guideCompleted and s.tutorial.coreDone,"Guide completed")
-		return "2,400 Coins kept; complete after the vacuum sale"
+		return "2,400 Coins kept; complete after the Camp win"
 	end)
 
 	local passed=0

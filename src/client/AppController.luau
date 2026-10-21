@@ -22,6 +22,7 @@ local CommanderGuide = require(script.Parent.CommanderGuide)
 local LeaderboardBoards = require(script.Parent.LeaderboardBoards)
 local IntroCutscene = require(script.Parent.IntroCutscene)
 local HillIntro = require(script.Parent.HillIntro)
+local MarchFilm = require(script.Parent.MarchFilm)
 local PromptStyleController = require(script.Parent.PromptStyleController)
 local ProgressionBrowser = require(script.Parent.ProgressionBrowser)
 local EggProcessorController = require(script.Parent.EggProcessorController)
@@ -1085,6 +1086,8 @@ function AppController:Receive(packet)
 	if self.commander then self.commander:Update() end
 	-- After menus and popups render, so the first-time Hill film sees them open.
 	if self.hillIntro then self.hillIntro:Observe(state) end
+	-- Tutorial lesson 8: the march film starts on the reply to the Army's order.
+	if self.marchFilm then self.marchFilm:Observe(state,result) end
 	if result and not result.ok then
 		local source=self:CommandButton(result.action)
 		if source then Theme.Motion:Shake(source.Visual,6) end
@@ -1130,6 +1133,7 @@ function AppController:Start()
 	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)
 	self.hillIntro=HillIntro.new(self)
+	self.marchFilm=MarchFilm.new(self)
 	self.eggBoard:Start()
 	self.audio:Start()
 	self.audio:BindUI(self.gui)
@@ -1192,6 +1196,7 @@ function AppController:Destroy()
 	if self.leaderboards then self.leaderboards:Destroy() end
 	if self.intro then self.intro:Destroy() end
 	if self.hillIntro then self.hillIntro:Destroy() end
+	if self.marchFilm then self.marchFilm:Destroy() end
 	if self.animator then self.animator:Destroy() end
 	if self.galaxyCrateVisuals then self.galaxyCrateVisuals:Destroy() end
 	if self.prompts then self.prompts:Destroy() end

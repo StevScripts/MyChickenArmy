@@ -370,7 +370,7 @@ function Commander:Update()
 	end
 	-- October 21: Daily Rewards now opens mid-guide; its popup is never dimmed or covered.
 	local blocked=app.dialogueActive or (app.offlineCash and app.offlineCash.gui~=nil) or (app.intro~=nil and app.intro:Pending())
-		or (app.dailyReward~=nil and app.dailyReward.gui~=nil)
+		or (app.dailyReward~=nil and app.dailyReward.gui~=nil) or (app.marchFilm~=nil and app.marchFilm.playing)
 	local character=Players.LocalPlayer.Character
 	if not self.ready and not blocked and character and character:FindFirstChild("HumanoidRootPart") then
 		self.ready=true;self:Signal("Ready")

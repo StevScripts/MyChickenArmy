@@ -83,10 +83,12 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Saves:** tier-meaning changes go through `TreeMigrations` (`upgradeTreeVersion`).
   Never bump `DataRevision`: older live servers reject newer revisions. Every publish
   uses "Migrate To Latest Update" (restart servers).
-- **Tutorial (Oct 21, Stevin: Drop a Fruit style, "as SHORT as possible"):** seven
-  lessons "TUTORIAL • n/7", only the essentials: click 3 eggs, sell, pull the lever,
-  take the chicken (0 Coins), claim the Egg Vacuum (0 Coins), vacuum 20 eggs, sell them.
-  The guide completes there; Flock Size I, Army Size I and Cluck Camp are not lessons
+- **Tutorial (Oct 21, Stevin: Drop a Fruit style, "as SHORT as possible"):** eight
+  lessons "TUTORIAL • n/8", only the essentials: click 3 eggs, sell, pull the lever,
+  take the chicken (0 Coins), claim the Egg Vacuum (0 Coins), vacuum 20 eggs, sell them,
+  then (later Oct 21, from his reference recording) go to Cluck Camp and send the Army:
+  a short letterboxed march film (`MarchFilm`, SKIP) plays and the first camp win
+  completes the guide. Flock Size I and Army Size I are not lessons
   and nothing instructs the player after the tutorial: no Next goals, no NEXT marker,
   no automatic Mission hints (only a Mission picked with GUIDE). No "FREE" wording anywhere. Menu lessons
   darken the screen around their control with a gold ring, and the egg lesson lights

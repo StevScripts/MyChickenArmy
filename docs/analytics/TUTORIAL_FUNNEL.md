@@ -7,6 +7,10 @@ with every action of the Drop a Fruit–style guide (`docs/team/COMMANDER_TUTORI
 as its own step. Latest October 21 (Stevin: "keep the tutorial as SHORT as possible"): the
 tutorial is seven lessons — click eggs, sell, roll, take the chicken, claim the Egg Vacuum,
 vacuum 20 eggs, sell them — and completes there. Nothing instructs the player after it (no Next goals).
+Later October 21 (Stevin): an eighth lesson, conquer Cluck Camp (with a short march film), so
+the tutorial now completes on the first camp win and `CluckCampWon` (20) is reached just before
+`TutorialComplete` (18). The step order and names are unchanged (Roblox dashboard continuity);
+20 is sent to Roblox right after 18 and 19.
 
 Source of truth: `Schema.TutorialFunnel` in `src/server/AnalyticsSchema.luau` (this page is
 generated from it; if they disagree, the schema wins). Tracking: `src/server/AnalyticsTutorial.luau`,
@@ -220,7 +224,7 @@ Read it: `AnalyticsReport.Summary({days = 7}).tutorialFunnel` in Studio Edit (ea
 `TutorialComplete` · hard
 
 - **On screen:** 'TUTORIAL COMPLETE! Keep collecting eggs and rolling chickens!' with confetti for 4 s; the My Army button appears.
-- **Counts when:** tutorial.guideCompleted (TutorialService: all seven lessons done, or a camp win).
+- **Counts when:** tutorial.guideCompleted (TutorialService: all eight lessons done; the eighth is the first camp win).
 - **What it tells you:** The headline number: this share of Joined finished the tutorial. tf.t.18 minus tf.t.04 is how long the tutorial took after the player got control (target: about a minute).
 
 
@@ -241,9 +245,9 @@ Read it: `AnalyticsReport.Summary({days = 7}).tutorialFunnel` in Studio Edit (ea
 #### 20 Captured Cluck Camp  
 `CluckCampWon` · hard
 
-- **On screen:** Nothing on screen guides the player any more; they find Cluck Camp on their own (camp signs show Should win / Close fight / Very tough).
+- **On screen:** TUTORIAL 8/8 'Go to Cluck Camp and send your Army to attack!' with the beam to the camp; after Send Army a short march film plays, then 'Defeat the enemy and capture their Camp!'.
 - **Counts when:** First camp win (firstWins, campsWon or tutorial.wonCamp).
-- **What it tells you:** First fight, found without any instructions (Stevin removed all post-tutorial guidance). A drop from TutorialComplete is players who never fought or lost; read with the Camp funnel (Deployed, Won). If this is low, fighting needs its own discovery hook.
+- **What it tells you:** Later October 21 (Stevin): lesson 8 of 8, so it now lands just before TutorialComplete (18) and is sent to Roblox right after it (steps go out in order). A drop from VacuumSold to here is players who never reached the camp, never sent the Army or lost; read with the Camp funnel (Deployed, Won).
 
 
 #### 21 Won Fort Roost  

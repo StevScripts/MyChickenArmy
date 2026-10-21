@@ -9,7 +9,10 @@ local Guide = {}
 -- completes there (no Flock Size I, no Army or Cluck Camp lessons). Later the same day
 -- (Stevin): no instructions at all after the tutorial; the post-guide Next goals are
 -- gone. docs/team/COMMANDER_TUTORIAL.md has the contract.
-Guide.Version = "cluck-8-essentials"
+-- Later October 21 (Stevin, from his reference recording): one last lesson, conquer a
+-- Camp. The guide walks the player to Cluck Camp, they send their Army, a short film
+-- follows the march (MarchFilm) and the win completes the tutorial: "TUTORIAL • n/8".
+Guide.Version = "cluck-9-conquer"
 -- Later October 21 (Stevin: "one-to-one" with the recording, keep it short): 3 eggs,
 -- like its "Tap your fruits (0/3)". Each menu lesson also carries the words for the
 -- step before it (`outside`: the menu or tool isn't open yet; `wrongTab`: the
@@ -18,7 +21,7 @@ Guide.EggGoal = 3
 -- Eggs the Egg Vacuum tip asks for (tutorial.vacuumEggCount, EggService). Later
 -- October 21 (Stevin): vacuum 20, then sell them on the pad (tutorial.vacuumSold).
 Guide.VacuumGoal = 20
-Guide.Core = {"Collect", "Sell", "Roll", "Recruit", "Vacuum", "VacuumUse", "VacuumSell"}
+Guide.Core = {"Collect", "Sell", "Roll", "Recruit", "Vacuum", "VacuumUse", "VacuumSell", "Win"}
 Guide.Milestones = {"Collect", "Sell", "Roll", "Recruit", "Grow", "Flock", "Core", "Vacuum", "VacuumUse",
 	"VacuumSell", "Expand", "Select", "Deploy", "Win"}
 -- The analytics funnel for this guide is Schema.TutorialFunnel (server, version 11).
@@ -192,18 +195,19 @@ local function resolve(state, input: string?, t, f)
 		return step("Complete", Guide.CompleteText, nil)
 	end
 	if state.incoming then
-		return step("Defend", "Your army is defending", nil)
+		return step("Defend", "Your Army is defending", nil)
 	end
 	-- Before `outgoing`: an army walking home still has its battle record, and the
 	-- launch review found this step never showed while it was checked second.
 	if state.armyState == "Returning" or state.armyState == "Recovering" then
 		if t.starterArmy and f.Sell then
-			return step("Return", "Wait for your army to return", nil)
+			return step("Return", "Wait for your Army to return", nil)
 		end
 		return step("Return", "Collect eggs while they return", "Yard")
 	end
 	if state.outgoing then
-		return step("Battle", "Your army is fighting", nil)
+		-- The reference's line once the troops are sent (lesson 8 waits for the win).
+		return step("Battle", "Defeat the enemy and capture their Camp!", nil)
 	end
 	-- Starter birds can teach income before recruiting. Legacy openings retain
 	-- their recruit-first route, and an empty flock always needs an egg producer.
@@ -234,7 +238,12 @@ local function resolve(state, input: string?, t, f)
 			.. Guide.VacuumEggCount(state.tutorial or {}) .. "/" .. Guide.VacuumGoal .. ")", "VacuumTool", nil,
 			"Equip your Egg Vacuum!")
 	end
-	return step("VacuumSell", "Sell your vacuumed eggs on the green pad!", "EggDeposit")
+	if not f.VacuumSell then
+		return step("VacuumSell", "Sell your vacuumed eggs on the green pad!", "EggDeposit")
+	end
+	-- Lesson 8: the ground beam and CLUCK CAMP marker lead to the player's own first
+	-- Camp; its native "Send Army" prompt starts the march (any Camp's win counts).
+	return step("Conquer", "Go to Cluck Camp and send your Army to attack!", "Camp1")
 end
 
 -- input: "Touch", "Gamepad" or anything else for mouse and keyboard (CommanderGuide).

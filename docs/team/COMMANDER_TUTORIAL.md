@@ -7,6 +7,42 @@ Studio playtests used the existing PetRollPlaytestSessionOnly=true setting and
 disposable Free profiles. The user's audio, research-tree, texture and VFX work
 was preserved.
 
+## Conquer a Camp, with a march film: latest October 21
+
+Stevin, with a screen recording of his reference game (a guide card "Rush your Army! Go to
+a camp and order troops to attack!", a ground arrow to the camp, a "Move Troops Here"
+button, then a short letterboxed film "Your soldiers march into battle!" →
+"Defeat the enemy and capture their camp!" with SKIP): "I want to add one last step to the
+tutorial which is to conquer a camp … 1:1 to how this game does it." The list is now
+"TUTORIAL • n/8"; everything in the section below stands except the end.
+
+8. **Go to Cluck Camp and send your Army to attack!** (`TutorialGuide` step `Conquer`,
+   target `Camp1`). The usual white ground beam and the "CLUCK CAMP" marker lead to the
+   player's own first Camp; its native **Send Army** prompt (our "Move Troops Here") sends
+   the Army. An empty Army is filled with the best chickens by the server, so My Army
+   (still hidden) is not needed. The card stays up at the prompt, like the reference.
+   - On the server's reply to that order, `MarchFilm` (client) plays once per visit,
+     about 7 s, SKIP any time: HUD, prompts and controls off, letterbox bars;
+     shot 1 chases the leading marching chicken out of the base with "Your Army marches
+     into battle!"; shot 2 (whoosh) dollies over the Camp from the Army's side with
+     "Defeat the enemy and capture their Camp!"; then the camera is back on the player.
+     The staging (bars, caption, SKIP, Lock/Unlock, Cut/Dolly) is HillIntro's; the music
+     is the same "Forward Advance". Presentation only: the march and fight run live.
+   - While the Army fights, the card reads "Defeat the enemy and capture their Camp!"
+     (step `Battle`). After a loss it reads "Wait for your Army to return", then step 8
+     again.
+   - The **first camp win** (`Guide.Facts.Win`, any Camp) completes the tutorial:
+     `Guide.Core` ends in `Win`, so `coreDone`/`guideCompleted` save then and the
+     "TUTORIAL COMPLETE!" card, confetti, My Army and Daily Rewards Day 1 follow as before.
+     An early win before the vacuum lessons still completes the guide (as it always did).
+   - A headless check (Lune, `Battle` module) had a starter Army of three level-1
+     chickens win Cluck Camp (three Ducks) 40 of 40 times, so no upgrade is needed first.
+   - Saves: nothing new is saved. Players who finished the seven lessons keep
+     `coreDone`/`guideCompleted` and are never sent back. The 1,200 Army Size reserve is
+     released when the guide completes, now after the win.
+   - Analytics: step names and order are unchanged; `CluckCampWon` (20) is now reached
+     just before `TutorialComplete` (18) (`docs/analytics/TUTORIAL_FUNNEL.md`).
+
 ## Essentials only: latest October 21
 
 Stevin: "I feel like the tutorial is too long … egg collection, rolling and the vacuum

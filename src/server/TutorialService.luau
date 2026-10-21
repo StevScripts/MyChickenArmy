@@ -169,8 +169,9 @@ function Tutorial:Observe(session, state)
 			if id=="Sell" or id=="Win" then self:Emit(r, "FTUEFirstPayoffSeconds", now-r.at, id, "Confirmed") end
 		end
 	end
-	-- Latest October 21: the guide is the seven essential lessons and completes with
-	-- them (coreDone and guideCompleted together); a camp win also completes it.
+	-- Latest October 21: the guide is the eight lessons (the last is a camp win) and
+	-- completes with them (coreDone and guideCompleted together); an early camp win
+	-- also completes it.
 	if facts.Core and not session.tutorial.coreDone then
 		session.tutorial.coreDone=true;session:Touch();state.tutorial.coreDone=true
 	end
