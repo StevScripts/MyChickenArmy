@@ -1,7 +1,8 @@
 --!strict
 -- October 16 free gift popup: like the game + join the group, then Verify for one
 -- free chicken. The server checks the group and grants; this only presents.
-local GroupService=game:GetService("GroupService")
+-- October 21 (Stevin): no in-game join prompt. Players join the group themselves
+-- from the game page (so they seek the game out); the popup only checks membership.
 local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
 local UserInputService=game:GetService("UserInputService")
@@ -77,37 +78,10 @@ function Controller:Render(state,result)
 			-- The reference's red banner. The server's own refusal was shown a moment ago
 			-- in the same packet; this replaces it unless the server already says this.
 			if result.message~=GROUP_COPY then self.app:Notify(GROUP_COPY,false) end
-			-- Not in the group yet: offer Roblox's own join prompt, then claim if they join.
-			self:PromptJoin(true)
 		end
 	elseif self.gui and type(self.gift)=="table" and self.gift.claimed and not self.claimedShown then
 		self:ShowClaimed(false)
 	end
-end
-
--- Roblox's native "Join group" prompt. With `claimAfter`, a successful join
--- claims again automatically (after the server's 3 s lookup cooldown).
-function Controller:PromptJoin(claimAfter)
-	local groupId=type(self.gift)=="table" and self.gift.groupId
-	if type(groupId)~="number" or self.joinPrompting then return end
-	self.joinPrompting=true
-	task.spawn(function()
-		local ok,status=pcall(GroupService.PromptJoinAsync,GroupService,groupId)
-		self.joinPrompting=false
-		if not ok then return end
-		if status==Enum.GroupMembershipStatus.Joined or status==Enum.GroupMembershipStatus.AlreadyMember then
-			self.joined=true
-			self:RefreshRows(true)
-			if not claimAfter or (type(self.gift)=="table" and self.gift.claimed) then return end
-			self.app:Notify("Welcome to the group! Claiming your reward…",true)
-			self.checking=true
-			self:RefreshClaim()
-			task.wait(3.2)
-			self.app:Request("ClaimFreeGift")
-		elseif status==Enum.GroupMembershipStatus.JoinRequestPending then
-			self.app:Notify("Your join request is pending. Press Claim! once you're in!",true)
-		end
-	end)
 end
 
 function Controller:RefreshClaim()
@@ -258,15 +232,16 @@ function Controller:Open()
 	self.portrait=portrait
 	local name=label(card,"ChickenName",definition.name,40,Theme.Rarities[definition.rarity] or Color3.new(1,1,1))
 	name.AnchorPoint,name.Position,name.Size,name.ZIndex=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.86),UDim2.fromScale(0.92,0.17),6
-	-- The task rows: Like is honor-system copy (Roblox has no like API); Join opens
-	-- Roblox's own join prompt and turns into a check once the player is a member.
+	-- The task rows: Like is honor-system copy (Roblox has no like API); Join only
+	-- explains where to join (no in-game prompt) and turns into a check once the
+	-- player is a member.
 	self.rows={
 		Like=self:Row(main,"Like","1. Like the game","Like!",ROW_Y,function()
 			self.liked=true
 			self:RefreshRows(true)
 		end),
 		Join=self:Row(main,"Join","2. Join the group","Join!",ROW_Y+ROW_STEP,function()
-			self:PromptJoin(true)
+			self.app:Notify(GROUP_COPY,true)
 		end),
 	}
 	local groupId=self.gift.groupId
