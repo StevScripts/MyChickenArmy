@@ -93,16 +93,21 @@ local origRebirth = Rebirth.Rebirth
 Rebirth.Rebirth = function(session, expectedRank, ...)
 	local r = record(session)
 	local owned, spent, perFamily = 0, 0, {}
+	-- October 22: tree prices scale with rank (UpgradeCatalog.PriceScale), so the Coins
+	-- spent on the tree and the whole-tree total are taken at this run's rank.
+	local scale = Tree.PriceScale(session.rebirths)
 	for id, fam in families do
 		local tier = Tree.Tier(session.upgradeTree, id)
 		owned += tier
-		for t = 1, tier do spent += fam.prices[t] end
+		for t = 1, tier do spent += Tree.Price(id, t, session.rebirths) or 0 end
 		perFamily[id] = tier
 	end
 	local gemsOwned = 0
 	for id, u in Gems.Upgrades do gemsOwned += (Gems.Level(session.gemUpgrades, id) - u.startLevel) end
 	local snap = {rank = session.rebirths + 1, coins = session.coins, gems = session.gems, treeOwned = owned, treeSpent = spent,
-		tiers = perFamily, gemLevels = gemsOwned, luck = session.luck, minutes = r.lastNow / 60}
+		tiers = perFamily, gemLevels = gemsOwned, luck = session.luck, minutes = r.lastNow / 60,
+		treeTotal = treeTotal * scale, nextTreeTotal = treeTotal * Tree.PriceScale(session.rebirths + 1),
+		nextCost = Rebirth.Cost(session.rebirths + 2)}
 	local ok, reason, receipt = origRebirth(session, expectedRank, ...)
 	if ok then table.insert(r.rebirths, snap) end
 	return ok, reason, receipt
@@ -123,7 +128,8 @@ local function fmt(n)
 	end
 	return tostring(math.floor(n))
 end
-print(string.format("Tree: %d hexes, %s Coins in all. Gem board: %d levels, %d Gems in all.", treeTiers, fmt(treeTotal), gemLevels, gemTotal))
+print(string.format("Tree: %d hexes, %s Coins in all at Rebirth 0 (x%.1f at Rebirth 10, x%.0f at 30, x%.0f at 49). Gem board: %d levels, %d Gems in all.",
+	treeTiers, fmt(treeTotal), Tree.PriceScale(10), Tree.PriceScale(30), Tree.PriceScale(49), gemLevels, gemTotal))
 for i, run in results.runs do
 	local r = probes[i]
 	print(string.format("-- seed %d rank %d after %.0f min (%.0f played)", run.seed, run.final.rank, run.minutes, run.played or run.minutes))
@@ -136,13 +142,15 @@ for i, run in results.runs do
 	local luck = {}
 	for _, e in r.luckLog do table.insert(luck, string.format("L%d@%.0fm(R%d)", e.tier, e.minutes, e.rank)) end
 	print("   Luck: " .. table.concat(luck, " "))
-	print("   Rebirth  wall min  Coins(cost)   tree hexes  tree spent  Mut Luck  Gems lv  tree-total/income-after (min)")
+	print("   Rebirth  wall min  Coins(cost)   tree hexes  tree spent  Mut Luck  Gems lv  next tree/income-after (min)  next tree/next cost")
 	for _, snap in r.rebirths do
 		local m = run.milestones["Rebirth" .. snap.rank]
 		local income = m and m.income or 0
-		print(string.format("   R%-3d   %8.0f  %10s   %3d/%-3d   %10s   %d   %2d    %3d     %s", snap.rank, m and m.minutes or snap.minutes,
+		local nextTree = snap.nextTreeTotal or treeTotal
+		print(string.format("   R%-3d   %8.0f  %10s   %3d/%-3d   %10s   %d   %2d    %3d     %-8s  %s", snap.rank, m and m.minutes or snap.minutes,
 			fmt(snap.coins), snap.treeOwned, treeTiers, fmt(snap.treeSpent), snap.tiers.Mutation or 0, snap.luck, snap.gemLevels,
-			if income > 0 then string.format("%.1f", treeTotal / income / 60) else "-"))
+			if income > 0 then string.format("%.1f", nextTree / income / 60) else "-",
+			if snap.nextCost then string.format("%.0f%% (%s)", nextTree / snap.nextCost * 100, fmt(nextTree)) else "-"))
 	end
 	local firsts = {}
 	for _, id in {"Mutation1", "Mutation2", "Mutation3", "Mutation4", "Luck4", "Luck8", "Luck12", "RollSlot7", "RollSpeed4", "Flock8", "EggSpeed4", "EggValue4",

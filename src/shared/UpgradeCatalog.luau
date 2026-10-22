@@ -3,7 +3,7 @@
 -- A few named tiers per family, in a main tree and three "Open" subtrees. Every
 -- node is an instant Coins purchase, resets on Rebirth and has no camp, rank or King
 -- gate (September 25 rule). Prices here are the base quotes: the server snapshot is
--- the only price a client may show (it can scale with Rebirth rank).
+-- the only price a client may show (it scales with Rebirth rank: PriceScale below).
 -- Tier values and prices are drafts for the P0 fit in tests/ProgressionSimulation.
 -- October 21 later (P5, docs/team/REBIRTH_PACING_20261021.md "reference-shaped ladder"):
 -- Egg Speed III-IV, Egg Value III-IV and Flock Size 7-15 cost far more (Egg Speed IV
@@ -325,19 +325,36 @@ function Catalog.YardStage(tree: any): number
 	return if tier > 0 then Catalog.Families.Flock.tiers[tier].yardStage or 0 else 0
 end
 
--- P0 knob: tree prices may grow with Rebirth rank. 1 keeps the base quotes.
-Catalog.RankPriceGrowth = 0
+-- October 22 (Stevin: late runs "easily unlock everything"; REBIRTH_PACING_20261021.md
+-- "Tree prices grow with rank"): every tree price is multiplied by RankPriceGrowth for
+-- each Rebirth rank past RankPriceFreeRanks and by RankPriceLateGrowth for each rank past
+-- RankPriceLateFromRank, the same shape as the Rebirth ladder (x1.2 a rank to 30, x1.12
+-- after), so the whole tree stays about a fifth to a third of the next Rebirth from rank
+-- 8 up instead of a minute of income. Ranks 0-4 pay the base quotes. Growth 1 keeps the
+-- base quotes at every rank. Tier values never change with rank (no TreeMigrations step).
+Catalog.RankPriceGrowth = 1.2
+Catalog.RankPriceFreeRanks = 4
+Catalog.RankPriceLateFromRank = 30
+Catalog.RankPriceLateGrowth = 1.12
 function Catalog.PriceScale(rank: number?): number
 	local r = if type(rank) == "number" and rank == rank then math.max(0, math.floor(rank)) else 0
-	return 1 + Catalog.RankPriceGrowth * r
+	local early = math.clamp(r - Catalog.RankPriceFreeRanks, 0, Catalog.RankPriceLateFromRank - Catalog.RankPriceFreeRanks)
+	local late = math.max(0, r - Catalog.RankPriceLateFromRank)
+	return Catalog.RankPriceGrowth ^ early * Catalog.RankPriceLateGrowth ^ late
 end
 
 -- Coins for `tier` of a family at Rebirth `rank` (whole Coins), or nil past the ladder.
+-- A scaled price is rounded up to three significant figures (1,194 → 1,200; 1.194T →
+-- 1.2T) so hex tags read like the base quotes; rank 0-4 quotes are the base prices.
 function Catalog.Price(familyId: string, tier: number, rank: number?): number?
 	local family = Catalog.Families[familyId]
 	local entry = family and family.tiers[tier]
 	if not entry then return nil end
-	return math.ceil(entry.price * Catalog.PriceScale(rank))
+	local scale = Catalog.PriceScale(rank)
+	if scale == 1 then return entry.price end
+	local raw = entry.price * scale
+	local unit = 10 ^ math.max(0, math.floor(math.log10(raw)) - 2)
+	return math.ceil(raw / unit) * unit
 end
 
 local function decimal(value: number): string
