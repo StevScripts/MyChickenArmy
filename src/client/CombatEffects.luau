@@ -42,11 +42,13 @@ end
 
 -- A bright ball pops at the point of impact and fades: the hit reads from afar.
 function Effects:Flash(position: Vector3, size: number, color: Color3)
-	local ball = self:Strike("HitFlash", Enum.PartType.Ball, 0.22)
+	local ball = self:Strike("HitFlash", Enum.PartType.Ball, 0.26)
 	if not ball then return end
-	ball.Size, ball.Position, ball.Color, ball.Transparency = Vector3.one * size * 0.3, position, color, 0.05
+	ball.Size, ball.Position, ball.Color, ball.Transparency = Vector3.one * size * 0.3, position, color, 0
 	ball.Parent = self.folder
-	TweenService:Create(ball, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- Pops to full size solid, then fades while it keeps swelling a little.
+	TweenService:Create(ball, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.one * size * 0.85}):Play()
+	TweenService:Create(ball, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.06),
 		{Size = Vector3.one * size, Transparency = 1}):Play()
 end
 
@@ -56,13 +58,14 @@ function Effects:Slash(position: Vector3, facing: Vector3, big: boolean)
 	if not slash then return end
 	local across = Vector3.new(-facing.Z, 0, facing.X)
 	if across.Magnitude < 0.1 then across = Vector3.xAxis end
-	local length = if big then 4.4 else 3.2
-	slash.CFrame = CFrame.lookAt(position, position + across.Unit) * CFrame.Angles(0, 0, math.rad(math.random(0, 180)))
+	local length = if big then 5.5 else 4.4
+	-- Slanted 25–45° up or down so it reads as a cut, not a bar.
+	slash.CFrame = CFrame.lookAt(position, position + across.Unit)
 		* CFrame.Angles(math.rad(math.random(25, 45) * (if math.random() < 0.5 then -1 else 1)), 0, 0)
-	slash.Size, slash.Color, slash.Transparency = Vector3.new(0.3, 0.3, length * 0.25), if big then GOLD else Color3.new(1, 1, 1), 0
+	slash.Size, slash.Color, slash.Transparency = Vector3.new(0.4, 0.4, length * 0.25), if big then GOLD else Color3.new(1, 1, 1), 0
 	slash.Parent = self.folder
-	TweenService:Create(slash, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(0.26, 0.26, length)}):Play()
-	TweenService:Create(slash, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.07),
+	TweenService:Create(slash, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(0.34, 0.34, length)}):Play()
+	TweenService:Create(slash, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.06),
 		{Size = Vector3.new(0.04, 0.04, length * 1.15), Transparency = 1}):Play()
 end
 
@@ -210,7 +213,7 @@ end
 
 -- `facing` is the victim's facing (toward its foe); the slash crosses it.
 function Effects:Hit(position: Vector3, damage: number, big: boolean, facing: Vector3?)
-	self:Flash(position, if big then 3.6 else 2.4, if big then GOLD else Color3.new(1, 1, 1))
+	self:Flash(position, if big then 4.2 else 3, if big then GOLD else Color3.new(1, 1, 1))
 	self:Slash(position, facing or Vector3.zAxis, big)
 	self:Sparks(position, if big then 14 else 8, if big then 0.5 else 0.38)
 	self:Feathers(position, if big then 10 else 6, 1.3)
