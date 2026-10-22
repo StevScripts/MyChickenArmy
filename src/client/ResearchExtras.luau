@@ -12,7 +12,9 @@ local Extras={}
 Extras.__index=Extras
 -- Matches ArmyService.SaveFormation / ResearchRules.Read: 1-40 bytes of UTF-8.
 local MAX_FORMATION_NAME=40
-local RALLY_SHOWN_X,RALLY_HIDDEN_X=.988,1.12
+-- October 21 (Stevin: "the rally overlaps the auto roll GUI"): Rally pops out to the
+-- left of the Rebirth icon (0.988, 0.5, 0.082 wide) from behind it, clear of Auto Roll.
+local RALLY_SHOWN_X,RALLY_HIDDEN_X,RALLY_Y=.896,.988,.5
 
 local function clampName(text)
 	if #text<=MAX_FORMATION_NAME then return text end
@@ -30,12 +32,13 @@ end
 
 function Extras.new(app)
 	local self=setmetatable({app=app,tier=1,connections={}},Extras)
-	-- October 16 owner request: a war-horn icon that slides in from the right edge
+	-- October 16 owner request: a war-horn icon that slides out on the right
 	-- while the army is fighting, like Call Army / My Base pop out of My Army.
 	self.rally=Theme.IconButton(app.hudLayer,"Rally","Rally",Theme.Assets.Rally,function() self:PressRally() end)
-	self.rally.AnchorPoint,self.rally.Position,self.rally.Size=Vector2.new(1,.5),UDim2.fromScale(RALLY_HIDDEN_X,.68),UDim2.fromScale(.082,.16)
+	self.rally.AnchorPoint,self.rally.Position,self.rally.Size=Vector2.new(1,.5),UDim2.fromScale(RALLY_HIDDEN_X,RALLY_Y),UDim2.fromScale(.082,.16)
 	Theme.Aspect(self.rally,136/132);self.rally.Visual.Label.TextScaled=true;self.rally.Visual.Label.Position=UDim2.fromScale(0,.64)
 	Theme.ScaleText(self.rally);self.rally.Visible,self.rally.Interactable=false,false
+	self.rally.ZIndex=0 -- under Rebirth (ZIndex 1) while it slides out
 	self.rallyShown=false
 	-- October 21 game feel: a thin cooldown bar under the label fills as Rally comes
 	-- back (Theme.Motion:Progress); hidden while Rally is ready or active.
@@ -90,7 +93,7 @@ function Extras:UpdateRally()
 		local rally=self.rally
 		if shown then rally.Visible=true else self.rallyCooling=false end
 		rally.Interactable=shown
-		Theme.Motion:Tween(rally,"slide",{Position=UDim2.fromScale(if shown then RALLY_SHOWN_X else RALLY_HIDDEN_X,.68)},
+		Theme.Motion:Tween(rally,"slide",{Position=UDim2.fromScale(if shown then RALLY_SHOWN_X else RALLY_HIDDEN_X,RALLY_Y)},
 			.32,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,function()
 				if not self.rallyShown then rally.Visible=false end
 			end)
