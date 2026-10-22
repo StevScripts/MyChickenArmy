@@ -350,18 +350,15 @@ function BattleController:MarchStart(battle)
 	if count > 0 then feel:Poof(sum / count - Vector3.new(0, 1, 0), {count = 12, size = 1.6}) end
 end
 
--- Camp victory: the ActionFeedback burst and Victory cue, plus a green celebrate,
--- confetti on the HUD and a Fanfare a beat later. Missions are MissionTracker's.
+-- Camp victory: the ActionFeedback burst and Victory cue, plus a green celebrate and
+-- confetti on the HUD. Missions are MissionTracker's. October 21 (Stevin): the Victory
+-- sound is the one camp-win noise; the Fanfare no longer plays over it.
 function BattleController:Victory(battle)
 	self.app.feedback:Conquer(Vector3.new(battle.x, battle.y or 1.2, battle.z), battle.captureRadius)
 	if isMission(battle) then return end
 	local feel = self.app.screenFeel
 	if feel then feel:Celebrate(Theme.Arcade.green, 2) end
 	if self.app.gui then Motion:Confetti(self.app.gui, {origin = UDim2.fromScale(0.5, 0.12)}) end
-	if not self.app.audio:Has("Fanfare") then return end
-	task.delay(Feel.FanfareDelay, function()
-		if self.alive then self.app.audio:Play("Fanfare", 1, {noFallback = true, voiceKey = "Fanfare", cooldown = 1}) end
-	end)
 end
 
 -- An authored flag that becomes owned: a burst and ring at the cloth with "FlagRaise".

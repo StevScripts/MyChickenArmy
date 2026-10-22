@@ -329,7 +329,8 @@ end
 
 function Feedback:Conquer(position, captureRadius)
 	if not self.alive then return end
-	self.app.audio:Play("Victory", 1, {volume = 0.35, maxDuration = 2, voiceKey = "CaptureVictory"})
+	-- The camp-win noise at Stevin's own library volume.
+	self.app.audio:Play("Victory", 1, {maxDuration = 2, voiceKey = "CaptureVictory"})
 	local root=self:Root()
 	if self.app.reducedMotion or self.bursts>=6 or not root or (root.Position-position).Magnitude>180 then return end
 	self.bursts+=1

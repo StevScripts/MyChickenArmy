@@ -11,7 +11,6 @@ return table.freeze({
 	TickPitchBase=0.9,TickPitchStep=0.1, -- CaptureTick/Pop pitch: base + step x section (1..Segments)
 	PausedTransparency=0.4,DimSeconds=0.25, -- the meter dims while no attacker counts, and recovers
 	AppearFrom=0.6,LeaveSeconds=0.14, -- grow-in scale and shrink-out time of the meter
-	FanfareDelay=0.2, -- "Fanfare" follows the Victory burst by this much
 	HitShakeGap=0.4,KnockoutShakeGap=1, -- screen-shake cooldowns: own chicken hit / knocked out
 	HitShakeRange=30,KnockoutShakeRange=60, -- how close the chicken must be for a hit / knockout to shake the camera
 })
