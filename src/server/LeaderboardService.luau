@@ -45,12 +45,22 @@ function Leaderboards.new(world,sessions,stores)
  return self
 end
 
+-- Cut by characters, not bytes: a byte cut splits names like 無限の空のドメイン拡張
+-- into invalid UTF-8, JSONEncode throws and every board stayed empty (October 22).
+local function shortName(name)
+ local stop=utf8.len(name) and utf8.offset(name,21)
+ if stop then return string.sub(name,1,stop-1) end
+ return if utf8.len(name) then name else "Player"
+end
+
 function Leaderboards:Publish(def,status,entries)
  local value=self.values[def.key]
  if not value then return end
+ local ok,json=pcall(HttpService.JSONEncode,HttpService,{key=def.key,title=def.title,status=status,
+  updated=os.time(),entries=entries or self.published[def.key] or {}})
+ if not ok then warn("[ChickenLeaderboards] "..def.key.." publish skipped: "..tostring(json));return end
  if entries then self.published[def.key]=entries end
- value.Value=HttpService:JSONEncode({key=def.key,title=def.title,status=status,
-  updated=os.time(),entries=self.published[def.key] or {}})
+ value.Value=json
 end
 
 function Leaderboards:Build()
@@ -144,7 +154,7 @@ function Leaderboards:Refresh()
   for _,entry in raw do
    local id=tonumber(entry.key)
    if id and entry.value>0 and #entries<Leaderboards.Top then
-    table.insert(entries,{rank=#entries+1,userId=id,name=string.sub(self.names[id] or ("Player "..id),1,20),value=entry.value})
+    table.insert(entries,{rank=#entries+1,userId=id,name=shortName(self.names[id] or ("Player "..id)),value=entry.value})
    end
   end
   self:Publish(def,if self.preview then "Studio preview" else "Global",entries)
