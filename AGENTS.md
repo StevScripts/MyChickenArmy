@@ -124,6 +124,13 @@ sells on the pad itself; its cargo goes to the bag whenever it goes away. This u
 unlock is the owner's explicit exception to "no gates"; check it on purchase only,
 never on load. See `docs/team/AUTO_VACUUM.md`.
 
+## Egg Vacuum capacity in eggs (October 21, owner request)
+Stevin: the vacuum got "too large very easily" and was no challenge. It holds a fixed
+`VacuumConfig.Capacity` (20 eggs) plus Vacuum Capacity tiers (+10/25/50/100 at 1.5K,
+25K, 3M, 100M) and the Gem card (+5 a level), never seconds of the Flock's laying, so
+Flock Size and Egg Speed don't grow it. Range tiers are +3/+6/+10 studs (2.5K, 40K,
+1.5M). The Auto Vacuum tank keeps its seconds model. See `docs/team/COLLECTION_TOOLS.md`.
+
 ## Game feel (October 21, owner request)
 Stevin: every interaction, UI and world, is animated with VFX and sound, and
 everything stays responsive on every device. Use the shared vocabulary, never a

@@ -2,23 +2,94 @@
 -- Local fight feedback: voxel feather puffs, a comic hit spark, floating damage
 -- numbers and knockout poofs, plus their sounds. Presentation only; the server's
 -- battle snapshots decide every hit, knockout and number shown here.
+-- October 21 (Stevin: "I only see the animations and no fighting vfx"): hits add a
+-- neon impact flash, a slash streak and a spark burst; knockouts a big flash, a
+-- ground shockwave and a star burst; lunges kick up dust. Sized to read from the
+-- camera at a camp, not only up close.
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.UITheme)
 
 local INK = Color3.fromRGB(16, 23, 16)
 local GOLD = Color3.fromRGB(255, 214, 64)
+local HOT = Color3.fromRGB(255, 150, 40)
 local FEATHER = Color3.new(1, 1, 1)
 local FEATHER_WARM = Color3.fromRGB(236, 226, 204)
+local DUST = Color3.fromRGB(214, 186, 140)
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
+local SPARKS = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(0.35, GOLD), ColorSequenceKeypoint.new(1, HOT)})
 -- Busy fights stay readable and cheap: extra effects are skipped, never queued.
-local MAX_FEATHERS, MAX_NUMBERS = 70, 14
+local MAX_FEATHERS, MAX_NUMBERS, MAX_STRIKES, MAX_DUST = 90, 14, 10, 8
 
 local Effects = {}
 Effects.__index = Effects
 
 function Effects.new(app, folder: Instance)
-	return setmetatable({app = app, folder = folder, feathers = 0, numbers = 0}, Effects)
+	return setmetatable({app = app, folder = folder, feathers = 0, numbers = 0, strikes = 0, dust = 0}, Effects)
+end
+
+-- A short-lived neon part for flashes and slashes; counted against MAX_STRIKES.
+function Effects:Strike(name: string, shape: Enum.PartType, lifetime: number): Part?
+	if self.app.reducedMotion or self.strikes >= MAX_STRIKES then return nil end
+	self.strikes += 1
+	task.delay(lifetime, function() self.strikes -= 1 end)
+	local part = Instance.new("Part")
+	part.Name, part.Shape, part.Material = name, shape, Enum.Material.Neon
+	part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery, part.CastShadow = true, false, false, false, false
+	Debris:AddItem(part, lifetime)
+	return part
+end
+
+-- A bright ball pops at the point of impact and fades: the hit reads from afar.
+function Effects:Flash(position: Vector3, size: number, color: Color3)
+	local ball = self:Strike("HitFlash", Enum.PartType.Ball, 0.22)
+	if not ball then return end
+	ball.Size, ball.Position, ball.Color, ball.Transparency = Vector3.one * size * 0.3, position, color, 0.05
+	ball.Parent = self.folder
+	TweenService:Create(ball, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{Size = Vector3.one * size, Transparency = 1}):Play()
+end
+
+-- A white streak cuts across the victim, crossing the way it faces at a slant.
+function Effects:Slash(position: Vector3, facing: Vector3, big: boolean)
+	local slash = self:Strike("HitSlash", Enum.PartType.Block, 0.25)
+	if not slash then return end
+	local across = Vector3.new(-facing.Z, 0, facing.X)
+	if across.Magnitude < 0.1 then across = Vector3.xAxis end
+	local length = if big then 4.4 else 3.2
+	slash.CFrame = CFrame.lookAt(position, position + across.Unit) * CFrame.Angles(0, 0, math.rad(math.random(0, 180)))
+		* CFrame.Angles(math.rad(math.random(25, 45) * (if math.random() < 0.5 then -1 else 1)), 0, 0)
+	slash.Size, slash.Color, slash.Transparency = Vector3.new(0.3, 0.3, length * 0.25), if big then GOLD else Color3.new(1, 1, 1), 0
+	slash.Parent = self.folder
+	TweenService:Create(slash, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(0.26, 0.26, length)}):Play()
+	TweenService:Create(slash, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.07),
+		{Size = Vector3.new(0.04, 0.04, length * 1.15), Transparency = 1}):Play()
+end
+
+-- Hot sparks spray out of the impact (the shared WorldFeel burst and budget).
+function Effects:Sparks(position: Vector3, count: number, size: number)
+	local feel = self.app.worldFeel
+	if not feel then return end
+	feel:Burst(position, {color = SPARKS, count = count, size = size, speed = {9, 16}, spread = 180,
+		lifetime = {0.15, 0.32}, gravity = -30, light = 1})
+end
+
+-- A small dirt kick at the feet of a chicken that lunges.
+function Effects:Dust(position: Vector3)
+	if self.app.reducedMotion or self.dust >= MAX_DUST then return end
+	self.dust += 1
+	task.delay(0.7, function() self.dust -= 1 end)
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = self:Anchor(position, 0.7)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture, emitter.Color, emitter.LightInfluence = SMOKE, ColorSequence.new(DUST), 0
+	emitter.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1.4)})
+	emitter.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1)})
+	emitter.Lifetime, emitter.Speed = NumberRange.new(0.3, 0.5), NumberRange.new(2, 4)
+	emitter.SpreadAngle, emitter.Drag, emitter.Rate = Vector2.new(70, 70), 5, 0
+	emitter.EmissionDirection, emitter.Acceleration = Enum.NormalId.Top, Vector3.new(0, -2, 0)
+	emitter.Parent = attachment
+	emitter:Emit(5)
 end
 
 function Effects:Anchor(position: Vector3, lifetime: number): BasePart
@@ -62,7 +133,7 @@ function Effects:Spark(position: Vector3, big: boolean)
 	if self.app.reducedMotion then return end
 	local anchor = self:Anchor(position, 0.4)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(if big then 4 else 2.8, if big then 4 else 2.8)
+	gui.Size = UDim2.fromScale(if big then 5.5 else 4, if big then 5.5 else 4)
 	gui.LightInfluence, gui.Parent = 0, anchor
 	local star = Instance.new("Frame")
 	star.BackgroundTransparency, star.AnchorPoint = 1, Vector2.new(0.5, 0.5)
@@ -131,19 +202,32 @@ function Effects:Sound(cue: string, position: Vector3, pitch: number, cooldown: 
 	self.app.audio:Play(cue, pitch, {noFallback = true, parent = anchor, cooldown = cooldown, maxVoices = 4})
 end
 
-function Effects:Swing(position: Vector3)
+-- `feet` is the ground under the attacker; nil skips the dust.
+function Effects:Swing(position: Vector3, feet: Vector3?)
+	if feet then self:Dust(feet) end
 	self:Sound("CombatSwing", position, 1.25 + math.random() * 0.2, 0.08)
 end
 
-function Effects:Hit(position: Vector3, damage: number, big: boolean)
-	self:Feathers(position, if big then 8 else 5, 0.9)
+-- `facing` is the victim's facing (toward its foe); the slash crosses it.
+function Effects:Hit(position: Vector3, damage: number, big: boolean, facing: Vector3?)
+	self:Flash(position, if big then 3.6 else 2.4, if big then GOLD else Color3.new(1, 1, 1))
+	self:Slash(position, facing or Vector3.zAxis, big)
+	self:Sparks(position, if big then 14 else 8, if big then 0.5 else 0.38)
+	self:Feathers(position, if big then 10 else 6, 1.3)
 	self:Spark(position, big)
 	if damage > 0 then self:Number(position + Vector3.new(0, 1.6, 0), damage, big) end
 	self:Sound("CombatHit", position, 0.95 + math.random() * 0.25, 0.06)
 end
 
-function Effects:Knockout(position: Vector3)
-	self:Feathers(position, 14, 1.2)
+-- `ground` is the floor under the fallen chicken, for the shockwave.
+function Effects:Knockout(position: Vector3, ground: Vector3?)
+	self:Flash(position, 5.5, GOLD)
+	local feel = self.app.worldFeel
+	if feel then
+		feel:Ring(ground or position, {color = Color3.new(1, 1, 1), radius = 6, seconds = 0.45, thickness = 0.5, transparency = 0.1})
+		feel:Burst(position, {color = GOLD, count = 16, size = 0.6, speed = {6, 11}, spread = 70, lifetime = {0.45, 0.8}, gravity = -14, light = 1})
+	end
+	self:Feathers(position, 18, 1.6)
 	self:Smoke(position)
 	self:Spark(position, true)
 	self:Sound("CombatKnockout", position, 1.1, 0.1)

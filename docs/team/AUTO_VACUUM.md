@@ -37,7 +37,9 @@ eggs, a limited range, and so on.
 | Auto Speed | +25% 20K, +50% 100K, +100% 500K | `autoVacuumSpeed` |
 
 - Tank: `(Seconds 20 + Auto Capacity) × EggService:LayingRate` eggs, never below
-  `MinCapacity` 8, like the Egg Vacuum's seconds-of-laying capacity (30/40/60/80 s).
+  `MinCapacity` 8 (30/40/60/80 s with the tiers). The held Egg Vacuum used the same
+  model until October 21; it now holds a fixed egg count
+  ([COLLECTION_TOOLS.md](COLLECTION_TOOLS.md)).
 - Range: 5 studs flat from the nozzle plus the tiers (7/9/11). The route cuts the yard
   into strips two Ranges wide (2–10 passes), so more Range also means fewer, shorter
   trips.

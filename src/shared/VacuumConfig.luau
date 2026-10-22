@@ -16,11 +16,12 @@ return table.freeze({
 	MaxHeight = 12, -- Vertical reach for clicks and the vacuum.
 
 	-- Egg Vacuum: while equipped it pulls ready eggs within Range (+ Vacuum Range tiers)
-	-- until it holds Seconds (+ Vacuum Capacity tiers and Gem levels, all in seconds) of
-	-- the Flock's current laying, shown in eggs and never below MinCapacity.
+	-- until it holds Capacity eggs (+ Vacuum Capacity tiers and Gem levels, also eggs).
+	-- October 21 (Stevin: "too large very easily"): a fixed egg count, no longer seconds
+	-- of the Flock's laying, so Flock Size and Egg Speed never grow it for free. 20 is
+	-- about one full yard early on and the tutorial's VacuumGoal.
 	Range = 10,
-	Seconds = 30,
-	MinCapacity = 10,
+	Capacity = 20,
 	PickupBatch = 8, -- Stacks claimed per server step.
 	PickupStagger = 0.05,
 

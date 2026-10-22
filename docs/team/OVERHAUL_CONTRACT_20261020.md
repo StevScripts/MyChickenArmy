@@ -176,7 +176,7 @@ upgrade since S14 (Stevin, Oct 20: bought in Tools, resets on Rebirth).
 | Main | `DiamondMachine` | 1 | unlock | `goldMachine` = 2 |
 | Main | `PrismMachine` (placeholder name; S12/Stevin may rename) | 1 | unlock | `goldMachine` = 3 |
 | Tools | `EggVacuum` (Egg Vacuum) | 1 | unlock, 500 Coins (S14) | `eggVacuum` = 1; `ToolService.Owns` reads it |
-| Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | +15, +30, +60, +90 s of laying (45/60/90/120 s with the 30 s base) | `vacuumCapacity` |
+| Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | +10, +25, +50, +100 eggs (30/45/70/120 with the 20-egg base; Oct 21, was seconds of laying) | `vacuumCapacity` |
 | Tools | `VacuumRange` (Vacuum Range) | 2 | bonus studs | `vacuumRange` |
 | Tools | `ChickenFeed` (Chicken Feed) | 1 | unlock | `chickenFeed` = 1 |
 | Player | `WalkSpeed` (Walk Speed) | 3 | +5%, +10%, +15% | `walk` |
@@ -225,7 +225,7 @@ Upgrade levels. Where a key has both, they add.
 | `armySlots` | 0 | – | +1 Army Slot +1/level (S7b) | `PlayerSession:RefreshEffects`: `capacity` = Army Size value + this |
 | `feedMaxLevel` | 0 | S9c: Feed Max Level I–III (extra levels) | – | `Rules.LevelCap`: Chicken Feed cap = `Config.MaxPetLevel` (10) + this, at most `Config.PetLevelLimit` (20) |
 | `eggVacuum` | 0 | Egg Vacuum = 1 (S14) | – | ToolService (the held tool), EggService (pulls eggs) |
-| `vacuumCapacity` | 0 | Vacuum Capacity (bonus seconds) | Vacuum Capacity +15 s/level | S11: seconds = 30 s base (`VacuumConfig`) + this; capacity in eggs = seconds × the Flock's current eggs/s (Stevin, Oct 20) |
+| `vacuumCapacity` | 0 | Vacuum Capacity (bonus eggs) | Vacuum Capacity +5 eggs/level | Capacity = 20 eggs (`VacuumConfig.Capacity`) + this (Oct 21; was seconds × the Flock's eggs/s) |
 | `vacuumRange` | 0 | Vacuum Range | – | S11 |
 | `chickenFeed` | 0 | Chicken Feed = 1 | – | S11; `ArmyService.UpgradeChicken` requires it (S7 gate) |
 | `goldMachine` | 0 | Gold 1, Diamond 2, Prism 3 | – | S12 |
@@ -342,7 +342,7 @@ until the post-S9c re-fit.
 |---|---|---|---|---|---|---|
 | 1 | start | `RollSpeed` | Roll Speed | 8 (was 5) | +10% faster rolls | 5, 10, 20, 35, 60, 100, 160, 250 |
 | 1 | start | `ExtraLuck` | Extra Luck | 8 (was 5) | +10% roll luck | 5, 10, 20, 35, 60, 100, 160, 250 |
-| 2 | start | `VacuumCapacity` | Vacuum Capacity | 5 (was 3) | +15 s of eggs in your vacuum | 10, 25, 50, 100, 175 |
+| 2 | start | `VacuumCapacity` | Vacuum Capacity | 5 (was 3) | +5 eggs in your vacuum (Oct 21, was +15 s) | 10, 25, 50, 100, 175 |
 | 2 | start | `AutoRoll` | Auto Roll | 1 | Unlocks Auto Roll | 15 |
 | 3 | Rebirth 1 | `FlockSlot` | +1 Flock Slot | 2 | +1 chicken laying eggs in your Flock | 20, 60 |
 | 3 | Rebirth 1 | `ArmySlot` | +1 Army Slot | 2 | +1 chicken in your Army | 25, 75 |

@@ -50,11 +50,18 @@ Tuning lives in `src/shared/VacuumConfig.luau`.
 - While it is in hand, `EggService:Vacuum` pulls the nearest ready eggs within
   **Range** (10 studs, plus `vacuumRange`), up to 8 stacks per step, until it is
   full.
-- **Capacity** is in eggs but sized in seconds of the Flock's current laying:
-  `(Seconds 30 + vacuumCapacity) × EggService:LayingRate`, never below
-  `MinCapacity` (10). `vacuumCapacity` is in seconds and adds the Tools tiers
-  (+15/30/60/90, for totals of 45/60/90/120 s) and the Gem Upgrade (+15 s per
-  level). Capacity is recounted at most once a second.
+- **Capacity** is a fixed egg count: `VacuumConfig.Capacity` (20) +
+  `vacuumCapacity`, which adds the Tools tiers (+10/25/50/100 eggs at 1.5K, 25K,
+  3M and 100M Coins, for 30/45/70/120) and the Gem Upgrade (+5 eggs a level).
+  October 21 (Stevin: "too large very easily, not enough of a challenge"): it was
+  30–120 s of the Flock's current laying, which held two full yards before any
+  upgrade and grew with every Flock Size and Egg Speed tier. Each tier now costs
+  what the Flock tier whose yard it fits costs (a yard holds
+  `Config.EggsPerChicken` 5 eggs per laying chicken), so a full yard takes about
+  one trip to the pad. Saved tiers keep their number.
+- **Range** tiers are +3/+6/+10 studs at 2.5K, 40K and 1.5M (13/16/20 studs;
+  were +4/+8/+12 by 75K, and 18 studs reached the whole starter yard from its
+  middle).
 - A stack bigger than the room left is split (`EggService:Split`). The claimed
   part takes its share of the Coins, rounded down, and the eggs left behind keep
   the rest.

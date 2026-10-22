@@ -26,7 +26,7 @@ local CASH_MIN_HORIZONTAL_SPEED=0.5 -- Ignore standing jitter and vertical pad t
 -- Eggs still landing in the bag right after a sale wait for the next pass instead of
 -- firing a second payout (pop and sound) a split second later.
 local DEPOSIT_DEBOUNCE_SECONDS=0.5
--- Vacuum capacity follows the Flock's laying; recount it at most this often.
+-- The Auto Vacuum tank follows the Flock's laying; recount it at most this often.
 local CAPACITY_REFRESH_SECONDS=1
 local VACUUM_TOOL="EggVacuum"
 
@@ -282,9 +282,9 @@ function EggService:Produce(session,dt,now)
 end
 
 -- Real eggs per second the yard lays right now: one per laying chicken every
--- Rules.LaySeconds. The vacuum's capacity is seconds of this laying. S10's
+-- Rules.LaySeconds. The Auto Vacuum's tank is seconds of this laying. S10's
 -- LayingIds is the Flock at home plus fill-ins for layers away with the Army, so a
--- march never shrinks the vacuum; before S10 every chicken at home lays.
+-- march never shrinks the tank; before S10 every chicken at home lays.
 function EggService:LayingRate(session)
  local layers=0
  if session.LayingIds then
@@ -295,14 +295,9 @@ function EggService:LayingRate(session)
  return layers/Rules.LaySeconds(session:EggProductionMultiplier())
 end
 
--- Eggs the vacuum holds: Seconds plus the Tools tiers and Gem levels (also seconds)
--- of the Flock's current laying, never below MinCapacity.
-function EggService:VacuumCapacity(session,yard,now)
- if yard.capacity and now<(yard.capacityAt or 0) then return yard.capacity end
- local seconds=Tools.Seconds+(session.researchEffects.vacuumCapacity or 0)
- yard.capacity=math.max(Tools.MinCapacity,math.floor(seconds*self:LayingRate(session)+0.5))
- yard.capacityAt=now+CAPACITY_REFRESH_SECONDS
- return yard.capacity
+-- Eggs the vacuum holds: Capacity plus the Tools tiers and Gem levels (also eggs).
+function EggService:VacuumCapacity(session)
+ return math.max(1,math.floor(Tools.Capacity+(session.researchEffects.vacuumCapacity or 0)))
 end
 
 function EggService:VacuumRange(session)
@@ -557,7 +552,7 @@ end
 -- The equipped Egg Vacuum pulls the nearest ready eggs in range until it is full.
 function EggService:Vacuum(session,yard,root,now)
  local cargo=vacuumCargo(session)
- local room=self:VacuumCapacity(session,yard,now)-cargo.count-(yard.vacuumPending or 0)
+ local room=self:VacuumCapacity(session)-cargo.count-(yard.vacuumPending or 0)
  if room<1 then return end
  local position=root.Position
  local range=self:VacuumRange(session)
@@ -644,7 +639,7 @@ function EggService:Snapshot(session,now)
   -- count includes eggs still flying into the nozzle, so the meter fills as they land.
   vacuum={count=cargo.count+pending,stored=cargo.count,
    value=session:EarnedAmount(cargo.value+(yard.vacuumPendingValue or 0),"eggs"),
-   capacity=self:VacuumCapacity(session,yard,now),range=self:VacuumRange(session)},
+   capacity=self:VacuumCapacity(session),range=self:VacuumRange(session)},
   -- The Auto Vacuum robot (enabled=false while it isn't owned).
   rover=if yard.rover then yard.rover:Snapshot(session,self:RoverCapacity(session,yard,now)) else {enabled=false}}
 end

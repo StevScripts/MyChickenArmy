@@ -155,16 +155,22 @@ local families: {Family} = {
 	{id = "EggVacuum", name = "Egg Vacuum", category = "Tools", icon = "eggVacuum", effect = "eggVacuum", base = 0,
 		format = "unlock", description = "Equip the Egg Vacuum to pull in nearby eggs, then sell them on the pad.",
 		tiers = tiers({{1, 500}}), positions = walk(-1, 1)},
-	-- October 20 (Stevin): capacity is sized in seconds of the Flock's current laying
-	-- and shown in eggs (seconds x Flock eggs/s). Values are bonus seconds on top of
-	-- the Egg Vacuum's 30 s base (S11's VacuumConfig): 45, 60, 90, 120 s in total.
+	-- October 21 (Stevin: "too large very easily, not enough of a challenge"): bonus eggs
+	-- on the Egg Vacuum's fixed 20 (VacuumConfig.Capacity): 30, 45, 70, 120 eggs. Was
+	-- 15-90 s of the Flock's laying at 500-40K, which already held two full yards and
+	-- grew with every Flock Size and Egg Speed tier. Each tier is priced with the Flock
+	-- tier whose yard it fits (Flock 4-5, 7, 10, 12: 20-60 eggs on the ground), so the
+	-- vacuum fills about once a yard. Saved tiers keep their number (a deliberate nerf,
+	-- reset by the next Rebirth anyway), so no TreeMigrations step.
 	{id = "VacuumCapacity", name = "Vacuum Capacity", category = "Tools", icon = "vacuumCapacity", effect = "vacuumCapacity", base = 0,
-		format = "seconds", unit = "of eggs", description = "Your Egg Vacuum holds more eggs (seconds of your Flock's laying).",
-		tiers = tiers({{15, 500}, {30, 3000}, {60, 12000}, {90, 40000}}),
+		format = "bonusCount", unit = "eggs", description = "Your Egg Vacuum holds more eggs.",
+		tiers = tiers({{10, 1500}, {25, 25000}, {50, 3000000}, {100, 100000000}}),
 		positions = walk(-2, 2, {"SE", "SW", "SE"}), prerequisite = "EggVacuum"},
+	-- Same day: 13, 16, 20 studs (were 14, 18, 22 by 75K, when 18 studs already reached
+	-- every egg of the 30x30 starter yard from its middle).
 	{id = "VacuumRange", name = "Vacuum Range", category = "Tools", icon = "vacuumRange", effect = "vacuumRange", base = 0,
 		format = "studs", description = "Your Egg Vacuum reaches eggs from farther away.",
-		tiers = tiers({{4, 2000}, {8, 15000}, {12, 75000}}), positions = walk(-2, 1, {"NW", "SW"}), prerequisite = "EggVacuum"},
+		tiers = tiers({{3, 2500}, {6, 40000}, {10, 1500000}}), positions = walk(-2, 1, {"NW", "SW"}), prerequisite = "EggVacuum"},
 	-- October 21 (Stevin): the retired Auto Collect robot comes back as a tool. Its hex
 	-- opens once the player owns the Egg Vacuum and has vacuumed AutoVacuumConfig.UnlockEggs eggs with the held
 	-- Egg Vacuum (UpgradeService.Requirement), then it is an ordinary Coins purchase that

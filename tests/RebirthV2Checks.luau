@@ -101,7 +101,7 @@ function Checks.Run()
 		assert(effects.keepTiers==0 and effects.autoRebirth==0 and effects.rebirthChickenChance==0.01,"Gem defaults")
 		assert(effects.armySlots==0 and effects.feedMaxLevel==0,"Army slot and Feed level defaults")
 		assert(GemCatalog.Level({},"TimeSkip")==1 and GemCatalog.Level({},"CoinBoost")==0,"Gem start levels")
-		assert(Tree.ValueText("VacuumCapacity",1)=="+15 s of eggs",Tree.ValueText("VacuumCapacity",1))
+		assert(Tree.ValueText("VacuumCapacity",1)=="+10 eggs",Tree.ValueText("VacuumCapacity",1))
 		return "Defaults match the contract"
 	end)
 

@@ -260,6 +260,12 @@ function BattleController:ReleaseView(view)
 	for gui, enabled in view.tags do if gui.Parent then gui.Enabled = enabled end end
 end
 
+-- The floor under the rig, for dust kicks and knockout shockwaves.
+function BattleController:Feet(view)
+	local offset=view.model:GetAttribute("FootOffset")
+	return view.position-Vector3.new(0,(if type(offset)=="number" then offset else 1)-0.1,0)
+end
+
 -- Where hit effects burst: a little above the rig's pivot, scaled to its height.
 function BattleController:Chest(view)
 	local model=view.model
@@ -510,7 +516,7 @@ function BattleController:Receive(snapshots)
 			view.position = if view.model.PrimaryPart then view.model.PrimaryPart.Position else Vector3.new(unit.x, 1.2, unit.z)
 			if unit.attackSerial ~= view.attack then
 				view.model:SetAttribute("LocalAttackAt", os.clock())
-				if self:IsNearby(view.position) then self.combat:Swing(view.position) end
+				if self:IsNearby(view.position) then self.combat:Swing(view.position,self:Feet(view)) end
 			end
 			if (unit.impactSerial or 0)~=view.impact then
 				if Catalog[unit.species].splash then
@@ -524,13 +530,13 @@ function BattleController:Receive(snapshots)
 				self:Flash(view)
 				if self:IsNearby(view.position) then
 					local damage=math.max(0,(view.hp or unit.hp)-unit.hp)
-					self.combat:Hit(self:Chest(view),damage,damage>=(unit.maxHp or 40)*0.25)
+					self.combat:Hit(self:Chest(view),damage,damage>=(unit.maxHp or 40)*0.25,Vector3.new(unit.faceX or 0,0,unit.faceZ or 1))
 					self:HitFeel(battle,unit,view,now)
 				end
 			end
 			if unit.hp <= 0 and (view.hp > 0 or not view.unit) then
 				-- Only a knockout seen happening gets a poof, not one already down on binding.
-				if view.unit and self:IsNearby(view.position) then self.combat:Knockout(self:Chest(view));self:KnockoutFeel(battle,unit,view,now) end
+				if view.unit and self:IsNearby(view.position) then self.combat:Knockout(self:Chest(view),self:Feet(view));self:KnockoutFeel(battle,unit,view,now) end
 				self:Defeat(view)
 			elseif unit.hp > 0 and (view.hp <= 0 or (unit.spawnSerial or 0)>(view.spawnSerial or 0)) then
 				self:Respawn(view,unit,os.clock())
