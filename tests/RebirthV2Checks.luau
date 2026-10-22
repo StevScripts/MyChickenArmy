@@ -16,6 +16,7 @@ local Rebirth=require(Server.RebirthService)
 local Upgrades=require(Server.UpgradeService)
 local GemUpgrades=require(Server.GemUpgradeService)
 local RebirthChickens=require(Server.RebirthChickens)
+local Rolls=require(Server.RollService)
 local Army=require(Server.ArmyService)
 local TreeMigrations=require(Server.TreeMigrations)
 local Operations=require(Server.OperationService)
@@ -56,6 +57,12 @@ local function fixture(userId)
 	local session=Session.new(userId,"Rebirth fixture",1)
 	session.loaded=true
 	session.tutorial.bought,session.tutorial.guideCompleted=true,true
+	-- October 22 Rebirth finds: the fixture has found every rank's chicken (the finds
+	-- test starts from a bare session instead).
+	for rank=1,Config.Rebirth.MaxRank do
+		local species=RebirthChickens.Required(rank)
+		if species then session.discovered[species]=true end
+	end
 	return session
 end
 
@@ -601,6 +608,59 @@ function Checks.Run()
 		s.rebirths=30
 		for _=1,50 do assert(RebirthChickens.MaybeReplace(s,"Duck",rng,1)=="Duck","A podium offer was replaced") end
 		return "Nothing granted, credited or offered"
+	end)
+
+	-- October 22 (Stevin): a Rebirth is earned by finding its chicken, not paid with one.
+	test("Rebirth finds: ranks 1-15 need their chicken in the Index (sold is fine), 16+ only Coins, nothing granted",function()
+		assert(Config.Rebirth.FindRanks==15,"FindRanks "..tostring(Config.Rebirth.FindRanks))
+		assert(#Catalog.RebirthFinds==15,"Finds "..#Catalog.RebirthFinds)
+		local lastOdds=0
+		for rank,species in Catalog.RebirthFinds do
+			local d=Catalog[species]
+			assert(d and table.find(Catalog.Order,species) and d.weight>0,"Find "..rank.." "..tostring(species).." is rollable")
+			assert(d.oneIn>=lastOdds,"Find "..rank.." rarer than the one before");lastOdds=d.oneIn
+			assert(RebirthChickens.Required(rank)==species,"Required "..rank)
+		end
+		assert(RebirthChickens.Required(16)==nil and RebirthChickens.Required(0)==nil,"No find past 15")
+		assert(Catalog.RebirthFinds[1]=="Bucket" and Catalog.RebirthFinds[15]=="FirstHen","Robo-Cluck first, The First Hen last")
+		local s=Session.new(-9340,"Rebirth finds",1)
+		s.loaded=true
+		s.tutorial.bought,s.tutorial.guideCompleted=true,true
+		s.coins=60000
+		local quote=Rebirth.Quote(s)
+		assert(quote.find and quote.find.species=="Bucket" and quote.find.found==false and quote.find.rarity=="Rare","Quote find: "..tostring(quote.find and quote.find.species))
+		assert(not quote.eligible and quote.reason=="Find Robo-Cluck first","Reason: "..tostring(quote.reason))
+		local ok,message=Rebirth.Rebirth(s,0,NO_SERVER,false)
+		assert(not ok and message=="Find Robo-Cluck first","Refused: "..tostring(message))
+		assert(Rolls.Keeper(s,{species="Bucket",level=1})=="rebirth","Auto Roll stops for the find")
+		assert(Rolls.Keeper(s,{species="Viking",level=1})~="rebirth","Only the next rank's find")
+		-- Found once, then sold: the Index remembers it (the starter Ducks stay).
+		local before=s:Count()
+		local pet=s:AddPet("Bucket",1)
+		s.pets[pet.id]=nil
+		assert(s.discovered.Bucket==true and s:Count()==before,"Sold but discovered")
+		quote=Rebirth.Quote(s)
+		assert(quote.find.found==true and quote.eligible,"Found: "..tostring(quote.reason))
+		assert(Rolls.Keeper(s,{species="Bucket",level=1})~="rebirth","No stop once found")
+		local count=s:Count()
+		local receipt
+		ok,message,receipt=Rebirth.Rebirth(s,0,NO_SERVER,false)
+		assert(ok and s.rebirths==1 and s:Count()==count and receipt.petId==nil and receipt.species==nil,"No chicken granted: "..tostring(message))
+		-- Rank 15 needs the Secret First Hen; rank 16 needs only the Coins.
+		s.rebirths=14
+		s.coins=Config.Rebirth.Costs[15]
+		quote=Rebirth.Quote(s)
+		assert(quote.find and quote.find.species=="FirstHen" and quote.reason=="Find The First Hen first","Rank 15: "..tostring(quote.reason))
+		s.discovered.FirstHen=true
+		assert(Rebirth.Quote(s).eligible,"Rank 15 found")
+		s.rebirths=15
+		s.coins=Config.Rebirth.Costs[16]
+		quote=Rebirth.Quote(s)
+		assert(quote.find==nil and quote.eligible,"Rank 16 needs only Coins: "..tostring(quote.reason))
+		-- Coins come first in the refusal order, then the find, then the army.
+		s.rebirths=0;s.coins=0;s.discovered.Bucket=nil
+		assert(Rebirth.Quote(s).reason:sub(1,5)=="Need ","Coins first: "..Rebirth.Quote(s).reason)
+		return "Find before Rebirth 1-15, Coins only after"
 	end)
 
 	test("Saved Veterans load as their voxel chicken; Rebirth Chicken Odds is refunded in Gems",function()

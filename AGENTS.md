@@ -138,6 +138,15 @@ load as the chicken whose stats they copied (`PetCatalog.RetiredSpecies`). A
 chicken without its own template wears its `baseSpecies` voxel model
 (`BlenderPetView`). New chickens need a voxel model before they enter the game.
 
+## Rebirth finds (October 22, owner decision)
+A Rebirth is earned by FINDING a chicken, not paid with one. Rebirths 1–15
+(`Config.Rebirth.FindRanks`) each need `PetCatalog.RebirthFinds[rank]` in the Index
+(owned once; sold later is fine) before the Coins buy the rank; from Rebirth 16 only
+the Coins count. The Rebirth screen's chicken tile is that find (silhouette + "Find to
+Rebirth" until found), Auto Roll stops on it, and nothing is granted on a Rebirth. The
+ladder runs Robo-Cluck → … → Galaxy Overlord → The First Hen (Secret); re-run the
+discovery probe before changing it. See `docs/team/REBIRTH_SCREEN.md` "Rebirth finds".
+
 ## Auto Vacuum (October 21, owner request)
 The retired Auto Collect robot is a Tools upgrade again: Auto Vacuum, then Auto
 Capacity/Range/Speed tiers. It sweeps the yard until its tank is full and sells on the

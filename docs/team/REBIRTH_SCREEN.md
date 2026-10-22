@@ -17,9 +17,12 @@ What that means in the build:
   2-second hold and grey button are gone. It is greyed only at the top rank.
 - **The screen stays open after a Rebirth.** Confetti falls, the Gems balance counts
   up and everything moves on to the next Rebirth. One toast lists the rewards:
-  "Rebirth 2! · Corporal Cluck joined your Flock · +60 Gems · ×3 egg Coins".
-- **The reward chicken is a black silhouette until the Rebirth is affordable**, then
-  it shows in colour.
+  "Rebirth 2! · +60 Gems · ×3 egg Coins" (October 22: no chicken joins; see "Rebirth
+  finds" below).
+- **The chicken on the Coins bar is the one to FIND** (October 22, Stevin: "you had to
+  find that chicken first"): a black silhouette captioned "Find to Rebirth" until it is
+  in the Index, then in colour with "Found!". Ranks 1–15 each need theirs; the tile is
+  hidden from Rebirth 16. See "Rebirth finds" below.
 - **The Coins bar shows the real balance**, even past the cost ("214,880 / 200,000").
 - **Money resets to zero** on a Rebirth (later October 20, Stevin; `RebirthService`),
   and it reads 0 (October 21 reference parity, P4; the bar shows "0 / 1,000,000" like
@@ -97,9 +100,95 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
   commit ae94c9d.
 - **HUD Rebirth button:** it shows once the Coins reach a quarter of the next cost, or
   once the player has a rank. Each new rank re-arms the "Rebirth ready" toast.
-- **Index:** the Rebirth chickens (`PetCatalog.RebirthOrder`) come last. Locked ones
-  are silhouettes captioned "Reach Rebirth N", with "Rebirth N" in the corner. Until
-  the art pass adds their portraits, they use their `baseSpecies` picture.
+- **Index:** `PetCatalog.RebirthOrder` has been empty since October 21 (no Rebirth
+  chickens are granted or offered). The finds are ordinary rollable chickens with their
+  normal odds and portraits.
+
+## Rebirth finds (October 22, owner decision)
+
+Stevin: "the chickens that you get are chickens that you're supposed to find first
+before you can rebirth. It's not chickens that you get … you had to have found it and
+had to be in your index before you rebirth … it should be for every single rebirth,
+maybe up to 15 … and after that it could just be the money."
+
+- **Rule.** Rebirth N (1 ≤ N ≤ `Config.Rebirth.FindRanks`, 15) needs
+  `PetCatalog.RebirthFinds[N]` in the Index: `session.discovered[species]`, set the
+  first time the player owns one (a roll recruit, a Free Roll, a crate). Selling it
+  later does not matter. From Rebirth 16 only the Coins count. Nothing is granted on a
+  Rebirth any more (`RebirthChickens.Grant` is dormant; the receipt has no `petId`).
+- **Server.** `RebirthChickens.Required(rank)`, `.Found(session, rank)` and
+  `.Wanted(session, species)` (the next rank's missing find). `RebirthService.Quote`
+  adds `find = {species, name, rarity, found}` (nil past rank 15) and refuses with
+  "Find Robo-Cluck first" after the Coins check and before the army check, so the HUD
+  badge, the "Rebirth ready" toast and Auto Rebirth all wait for the find. A paid Skip
+  needs the find too. `RollService.Keeper` returns "rebirth" for the missing find, so
+  Auto Roll stops on it ("Auto Roll found a Rebirth chicken!").
+- **Screen.** `RebirthPanel:RenderChicken(quote, hasNext)` draws `quote.find`: name,
+  silhouette (black) and "Find to Rebirth" in the rarity colour until found, then the
+  portrait in colour and "Found!" in green, with one punch when the find lands while the
+  screen is open. The Lab's `RebirthFirst` story shows Robo-Cluck unfound; the late
+  preset shows the Heavenly Chicken found.
+- **Checks.** `tests/RebirthV2Checks.luau` "Rebirth finds" (30/30 with the suite);
+  the fixture pre-discovers every find so the older Rebirth tests still run.
+  `ProgressionSimulation` buys the next rank's find on sight (assumption 10) and
+  reports "Rebirth finds: N bought on sight, M min waiting with the Coins in hand".
+
+### The ladder
+
+Rarer every rank; picked with `tools/sim/` discovery probes (first podium offer per
+species on 3 fast, 1 casual and 2 daily 45-minute seeds) so each one has been seen by
+the time its Rebirth is affordable: with eight podiums every Epic–Mythic shows inside
+the first 40 minutes; the Galaxy Overlord at about 40 min (fast) or day 1 (daily), the
+First Hen at 1.3 h (fast) or day 1–2 (daily). The gate therefore bites at Rebirths 1–2
+(one or two podiums, the Robo-Cluck first shows at 2–14 min against an 8-minute Rebirth
+1) and on buying the find when it shows (prices are small against the ranks' costs:
+Galaxy Overlord 100M at Rebirth 14's 25.9T, The First Hen 5.8B at Rebirth 15's 29.4T).
+
+| Rebirth | Find | Rarity | 1 in (zero Luck) |
+|---|---|---|---|
+| 1 | Robo-Cluck (`Bucket`) | Rare | 73 |
+| 2 | Crystal Chicken (`Viking`) | Rare | 160 |
+| 3 | Magma Chicken (`Knight`) | Epic | 364 |
+| 4 | Chicken Jockey (`Jockey`) | Epic | 520 |
+| 5 | Golden Emperor (`Dragon`) | Legendary | 909 |
+| 6 | Rainbow Rider (`Rainbow`) | Legendary | 1,000 |
+| 7 | Water Chicken (`Water`) | Legendary | 1,212 |
+| 8 | Pharaoh Chicken (`Pharaoh`) | Legendary | 2,857 |
+| 9 | Phoenix Chicken (`Phoenix`) | Legendary | 4,000 |
+| 10 | Glitch Chicken (`IceDuck`) | Mythic | 7,771 |
+| 11 | Heavenly Chicken (`Heavenly`) | Mythic | 10,361 |
+| 12 | Time Keeper (`TimeKeeper`) | Mythic | 18,995 |
+| 13 | Mecha Chicken (`Mecha`) | Mythic | 18,995 |
+| 14 | Galaxy Overlord (`StormDuck`) | Mythic | 121,224 |
+| 15 | The First Hen (`FirstHen`) | Secret | 444,489 |
+
+### Simulation (the discovery probe's seeds, with and without the rule)
+
+`tools/sim/unlock_probe.luau` with the find rule (fast 301–303 for 8 h, casual 321–322 for
+8 h, 45 min a day 311–313 for 14 days) against the same seeds without it (`find_probe`,
+October 22 morning). Wall-clock medians:
+
+| Rebirth | Fast, before → after | Casual, before → after | 45 min a day, before → after |
+|---|---|---|---|
+| 1 | 8 → 9 min | 11 → 16 min | 5–6 → 12–15 min |
+| 2 | 17 → 18 min | 19 → 22 min | 18–21 → 20 min |
+| 3 | 25 → 25 min | 25 → 33 min | 25–27 → 25–31 min |
+| 5 | 56 → 54 min | 63 → 67 min | day 2 → day 2 |
+| 10 | 2.9 → 2.7 h | 3.2 → 3.0 h | day 4 → day 4 |
+| 15 | 5.9 → 5.3 h | 6.1 → 5.6 h | day 7 → day 7 |
+
+Time with the Coins in hand but the chicken missing: 1.5–5.8 min at Rebirth 1 (the
+Robo-Cluck has to show on one or two podiums), 0.2 min at Rebirths 2–3, 0.2–2.5 min at
+Rebirth 15 for the First Hen (two of eight seeds), nothing else. Each seed bought 10–14 of
+its 15 finds on sight (the rest were already owned for their eggs). So the rule costs a
+first-session player 5–9 minutes at Rebirth 1 and a few minutes at Rebirths 2–3; from
+Rebirth 5 every find has been seen long before the Coins are there, and the chased
+Legendaries and Mythics lay eggs, so Rebirths 10–15 come a little earlier. If the later
+finds should bite, the lever is rarer picks: the two other Secrets (Rift Walker,
+Supernova) first show at 1.5–1.8 h nonstop and on day 2 for the daily player.
+
+Lab note: the `RebirthFirst` story renders with the late-game preset (the Starter
+preset mounts but draws nothing, a pre-existing preset issue).
 
 ## Art
 

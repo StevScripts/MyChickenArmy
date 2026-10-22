@@ -231,12 +231,17 @@ function RebirthService.Quote(session)
 	local cost = if nextRank then RebirthService.Cost(nextRank) else nil
 	local coins = session.coins or 0
 	local home = armyHome(session)
+	-- October 22 (Stevin): ranks 1..FindRanks need their chicken in the Index first.
+	local findSpecies = if nextRank then RebirthChickens.Required(nextRank) else nil
+	local findDefinition = findSpecies and PetCatalog[findSpecies]
+	local found = if nextRank then RebirthChickens.Found(session, nextRank) else true
 	local reason: string?
 	if not rules.Enabled then reason = "Coming soon"
 	elseif not nextRank or not cost then reason = "Max Rebirth reached"
 	elseif coins < cost then
 		local short = math.ceil(cost - coins)
 		reason = "Need " .. Currency.Grouped(short) .. " more " .. (if short == 1 then "Coin" else "Coins")
+	elseif not found then reason = "Find " .. (findDefinition and findDefinition.name or findSpecies) .. " first"
 	elseif not home then reason = ARMY_AWAY
 	end
 	local effects = session.researchEffects or {}
@@ -269,6 +274,9 @@ function RebirthService.Quote(session)
 		-- October 21 (P4): the Time Skip Coins waiting for a claim (the popup), or nil.
 		timeSkipPending = pendingTimeSkip(session),
 		nextChicken = chickenInfo(nextRank),
+		-- October 22: the chicken to find before this Rebirth (ranks 1..FindRanks), or nil.
+		find = if findSpecies then {species = findSpecies, name = findDefinition and findDefinition.name or findSpecies,
+			rarity = findDefinition and findDefinition.rarity or "Common", found = found} else nil,
 		keepTiers = effects.keepTiers or 0,
 		resets = resets,
 		keeps = keeps,
@@ -380,6 +388,8 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 		if (session.rebirthSkips or 0) < 1 then return false, "You have no Skip ready." end
 		if not quote.enabled then return false, "Coming soon" end
 		if not quote.nextRank then return false, "Max Rebirth reached" end
+		-- October 22: a Skip still needs the rank's chicken found (it is not a reward).
+		if quote.find and quote.find.found ~= true then return false, "Find " .. quote.find.name .. " first" end
 		if not quote.armyHome then
 			return false, if operationRunning(session, server) then MISSION else "Skip ready: bring your army home."
 		end
@@ -418,7 +428,7 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	session.rebirths = nextRank
 	-- Derived run state (Army Size, podiums, Flock, Luck tiers) follows the tree.
 	session:RefreshEffects()
-	-- 7. Rewards: Gems, Time Skip Coins (measured above) and the chicken.
+	-- 7. Rewards: Gems and Time Skip Coins (measured above).
 	local gems = RebirthService.Gems(session, nextRank)
 	session.gems = math.min(1e12, (session.gems or 0) + gems)
 	session.gemsEarned = math.min(1e12, (session.gemsEarned or 0) + gems)
@@ -436,7 +446,7 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 		-- "rebirth" is not an earned source, so Credit pays it exactly (analytics: TimeSkip).
 		if timeSkip > 0 then timeSkip = session:Credit(timeSkip, "rebirth") end
 	end
-	local petId = RebirthChickens.Grant(session, nextRank)
+	-- October 22: no chicken is granted; the rank's chicken was found beforehand.
 	-- The checkpoint at the new rate; DataService:Capture rewrites it on every save.
 	session.offlineCash = OfflineCash.Checkpoint(session, os.time())
 	-- 8. Derived state. GameServer runs armyCommands:Sync and world:UpdateSession after.
@@ -446,10 +456,9 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	requestSave(server, session)
 	-- 10. Observation only.
 	record(server, session, nextRank, coinsBefore, gems, skip, automatic == true)
-	if petId and server and server.analytics then server.analytics:LaunchCount(session, "rebirthChicken.granted") end
 	return true, "Rebirth complete: " .. RebirthService.Title(nextRank),
 		{rank = nextRank, gems = gems, timeSkipCoins = timeSkip, timeSkipPending = pendingClaim and timeSkip > 0,
-			petId = petId, species = RebirthChickens.Species(nextRank), skip = skip, automatic = automatic == true}
+			skip = skip, automatic = automatic == true}
 end
 
 -- October 21 (P4): pays the waiting Time Skip Coins (the "Time Skip!" popup's Claim!).

@@ -93,7 +93,9 @@ local Config = {
  -- income. Ranks 6-49 were re-fit with that rebuy modelled (ProgressionSimulation
  -- rebuyFraction, eight fast seeds) and moved by at most 12% either way: the rebought
  -- Luck nearly pays for itself. Ranks 1-5 (base-priced runs) and 50 are unchanged.
- Rebirth={Enabled=true,Version=2,MaxRank=50,
+ -- October 22 (Stevin): Rebirths 1-FindRanks each need a chicken found first
+ -- (PetCatalog.RebirthFinds, in the Index), after that only the Coins. 0 turns it off.
+ Rebirth={Enabled=true,Version=2,MaxRank=50,FindRanks=15,
   Costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.74e10,5.86e10,2.08e11,8.8e11,3.84e12,
    7.43e12,1.06e13,1.74e13,2.47e13,2.94e13,3.24e13,3.74e13,4.19e13,4.78e13,5.37e13,
    6.19e13,6.82e13,7.51e13,8.27e13,9.1e13,1.01e14,1.37e14,1.71e14,2.41e14,2.99e14,

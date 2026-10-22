@@ -10,6 +10,34 @@ local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
 local RebirthChickens = {}
 
+-- October 22 (Stevin): a Rebirth is earned by finding a chicken, not paid with one.
+-- Ranks 1..Config.Rebirth.FindRanks each require PetCatalog.RebirthFinds[rank] in the
+-- Index (session.discovered: owned once, sold or not); later ranks need only the Coins.
+-- The grant, credit and podium-swap code below is dormant (RebirthOrder is empty) and
+-- stays only to drain credits from old saves.
+function RebirthChickens.Required(rank: number): string?
+	local ranks = tonumber((Config.Rebirth :: any).FindRanks) or 0
+	if type(rank) ~= "number" or rank ~= rank or rank < 1 or rank > ranks then return nil end
+	local finds = (Catalog :: any).RebirthFinds
+	local species = if type(finds) == "table" then finds[math.floor(rank)] else nil
+	return if type(species) == "string" and Catalog[species] then species else nil
+end
+
+-- True when the rank needs no find or its chicken is in the Index.
+function RebirthChickens.Found(session, rank: number): boolean
+	local species = RebirthChickens.Required(rank)
+	if species == nil then return true end
+	local discovered = session.discovered
+	return type(discovered) == "table" and discovered[species] == true
+end
+
+-- The next Rebirth's find while it is still missing: the podium offer Auto Roll stops
+-- for and the simulation buys on sight.
+function RebirthChickens.Wanted(session, species: string): boolean
+	local rank = math.floor(tonumber(session.rebirths) or 0) + 1
+	return RebirthChickens.Required(rank) == species and not RebirthChickens.Found(session, rank)
+end
+
 function RebirthChickens.Species(rank: number): string?
 	return if type(rank) == "number" and rank == rank then Catalog.RebirthOrder[math.floor(rank)] else nil
 end

@@ -2,8 +2,8 @@
 -- Rebirth screen (October 20 overhaul, S8): a 1:1 copy of the owner's reference
 -- (Drop a Fruit's Rebirth screen) in the game's style, built to plan v2's element
 -- spec. Left: the warning, Rebirth to Earn (Time Skip, Gems, Multiplier), the Coins
--- bar toward the next Rebirth with its Rebirth chicken (a silhouette until it is
--- affordable), Rebirth and Skip! KEEP UPGRADES. Right: Gem Upgrades
+-- bar toward the next Rebirth with the chicken to find for it (October 22: a
+-- silhouette until it is in the Index), Rebirth and Skip! KEEP UPGRADES. Right: Gem Upgrades
 -- (GemUpgradeGrid). As in the reference, Rebirth is one tap and the screen stays
 -- open afterwards, with confetti. The server quote (state.rebirth,
 -- docs/team/OVERHAUL_CONTRACT_20261020.md §7) is authoritative; this module never
@@ -290,7 +290,8 @@ function Panel:Tile(parent,name: string,caption: string,box,gemKey: string?)
 	return rect(label(frame,"Value","",32),4,96,box[3]-8,38,own)
 end
 
--- The next Rebirth's chicken on a glow of its rarity colour: name, picture, rarity.
+-- The chicken to find for the next Rebirth on a glow of its rarity colour: name,
+-- picture, then "Find to Rebirth" or "Found!" (October 22).
 function Panel:BuildChicken(rankBox)
 	local own={0,0,CHICKEN[3],CHICKEN[4]}
 	local tile=rect(Theme.Frame(rankBox,"NextChicken",UDim2.new(),BLACK),CHICKEN[1],CHICKEN[2],CHICKEN[3],CHICKEN[4],RANK)
@@ -372,7 +373,7 @@ function Panel:RenderPanel()
 	-- As in the reference, the bar shows the real balance, even past the cost. October 22
 	-- (Stevin): abbreviated numbers (50K, 1M, 14.6M … 3.13Qa), never the full digits.
 	self.costText.Text=if target and cost then Theme.Number(coins).." / "..Theme.Number(cost) else "Highest rank reached"
-	self:RenderChicken(quote,target~=nil,target~=nil and cost~=nil and coins>=cost)
+	self:RenderChicken(quote,target~=nil)
 	-- Rebirth stays green and answers every tap; a refused tap says why.
 	local rebirth=self.rebirthButton
 	rebirth.Text=if self.pending then "Rebirthing…" elseif target then "Rebirth" else "Max rank"
@@ -399,21 +400,28 @@ function Panel:RenderPanel()
 	if self.grid then self.grid:Render(self.state) end
 end
 
--- The reference shows the reward as a black silhouette, then in colour once the
--- Rebirth is affordable.
-function Panel:RenderChicken(quote,hasNext: boolean,affordable: boolean)
-	local reward=quote.nextChicken
-	local shown=hasNext and type(reward)=="table" and type(reward.species)=="string"
+-- October 22 (Stevin: "you had to find that chicken first"): the tile is the chicken to
+-- FIND before this Rebirth, not a reward. A black silhouette captioned "Find to
+-- Rebirth" until it is in the Index (owned once, sold or not), then in colour with
+-- "Found!". Ranks past Config.Rebirth.FindRanks have no tile (quote.find is nil).
+function Panel:RenderChicken(quote,hasNext: boolean)
+	local find=quote.find
+	local shown=hasNext and type(find)=="table" and type(find.species)=="string"
 	self.chickenTile.Visible=shown
-	if not shown then return end
-	local definition=PetCatalog[reward.species]
-	local rarity=reward.rarity or (definition and definition.rarity) or "Common"
+	if not shown then self.findFound=nil;return end
+	local definition=PetCatalog[find.species]
+	local rarity=find.rarity or (definition and definition.rarity) or "Common"
 	local color=Theme.Rarities[rarity] or WHITE
-	self.chickenName.Text=reward.name or (definition and definition.name) or ""
-	self.chickenRarity.Text,self.chickenRarity.TextColor3=rarity,color
+	local found=find.found==true
+	self.chickenName.Text=find.name or (definition and definition.name) or ""
+	self.chickenRarity.Text=if found then "Found!" else "Find to Rebirth"
+	self.chickenRarity.TextColor3=if found then GREEN else color
 	for _,disk in self.glow do disk.BackgroundColor3=color end
-	self:SetPortrait(reward.species)
-	if self.portrait then self.portrait.ImageColor3=if affordable then WHITE else BLACK end
+	self:SetPortrait(find.species)
+	if self.portrait then self.portrait.ImageColor3=if found then WHITE else BLACK end
+	-- The tile punches once when the find lands while the screen is open.
+	if found and self.findFound==false then Theme.Motion:Punch(self.chickenTile,1.15,0.35) end
+	self.findFound=found
 end
 
 -- Skip! hides where paid random items are restricted (its Gems buy luck) and while
@@ -522,14 +530,11 @@ function Panel:Celebrate(before,quote,receipt)
 	cue("Rebirth","Victory",nil,{voiceKey="Rebirth",cooldown=1})
 	task.delay(0.3,function() if self.app.alive~=false then cue("Fanfare",nil,nil,{voiceKey="Fanfare",cooldown=1}) end end)
 	if self.app.screenFeel then self.app.screenFeel:Celebrate(GREEN,3) end
-	-- "Rebirth N" punches when the rank changes (the reward title too, when open).
+	-- "Rebirth N" punches when the rank changes (October 22: no chicken joins; the
+	-- rank's chicken was found beforehand).
 	if self.gui and not self.closing and self.rankTitle then Theme.Motion:Punch(self.rankTitle,1.2,0.32) end
 	local parts={Panel.Title(rank).."!"}
 	if receipt and receipt.skip==true then table.insert(parts,"Upgrades kept") end
-	local reward=if type(before)=="table" then before.nextChicken else nil
-	local granted=receipt and type(receipt.species)=="string" and PetCatalog[receipt.species]
-	local name=if granted then granted.name elseif type(reward)=="table" then reward.name else nil
-	if type(name)=="string" then table.insert(parts,name.." joined your Flock") end
 	local gems=tonumber(receipt and receipt.gems) or tonumber(type(before)=="table" and before.gemsNext)
 	if gems and gems>0 then table.insert(parts,"+"..Theme.Gems(gems)) end
 	table.insert(parts,multiplierText(quote.multiplierNow).." egg Coins")

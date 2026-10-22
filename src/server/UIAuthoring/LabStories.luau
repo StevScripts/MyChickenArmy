@@ -143,6 +143,12 @@ Render.Rebirth=function(ctx)
 	app.other=menuFrame(ctx,"Rebirth","Rebirth")
 	local panel=require(ctx.code.RebirthPanel).new(app)
 	app.rebirthPanel=panel
+	-- October 22 Rebirth finds: the saved late-game preset predates them; rank 11's
+	-- Heavenly Chicken shows as found.
+	local quote=ctx.state.rebirth
+	if type(quote)=="table" and quote.find==nil and quote.nextRank then
+		quote.find={species="Heavenly",name="Heavenly Chicken",rarity="Mythic",found=true}
+	end
 	panel:Render(ctx.state)
 	panel:Open()
 end
@@ -159,6 +165,8 @@ Render.RebirthFirst=function(ctx)
 	quote.rank,quote.nextRank,quote.cost,quote.coins,quote.eligible=0,1,50000,3019,false
 	quote.multiplierNow,quote.multiplierNext,quote.gemsNext,quote.timeSkipMinutes=1,2,50,5
 	quote.skip={credits=0,productKey="RebirthSkip1",onSale=true,restricted=false}
+	-- October 22 Rebirth finds: Rebirth 1 needs Robo-Cluck, not found yet.
+	quote.find={species="Bucket",name="Robo-Cluck",rarity="Rare",found=false}
 	local upgrades=state.gemUpgrades or {}
 	upgrades.autoRebirth={owned=false,enabled=true}
 	for id,item in upgrades.items or {} do

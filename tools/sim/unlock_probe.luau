@@ -117,6 +117,15 @@ options.print = if options.print == nil then true else options.print
 options.targetRank = options.targetRank or Config.Rebirth.MaxRank
 local results = Sim.Run(options)
 
+-- JSON needs string keys: stats.findWaits is keyed by rank (sparse).
+for _, run in results.runs do
+	local waits = run.stats and run.stats.findWaits
+	if type(waits) == "table" then
+		local byRank = {}
+		for rank, seconds in waits do byRank[tostring(rank)] = seconds end
+		run.stats.findWaits = byRank
+	end
+end
 local probes = {}
 for i, r in records do
 	probes[i] = {seen = r.seen, owned = r.owned, luckLog = r.luckLog, rebirths = r.rebirths, firstTier = r.firstTier}

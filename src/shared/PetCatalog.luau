@@ -213,6 +213,14 @@ end
 -- and podium swaps stop. A saved Veteran loads as the chicken whose exact stats it
 -- copied (PlayerSession), e.g. Veteran3 "Sergeant Scratch" becomes a Robo-Cluck.
 Catalog.RebirthOrder = table.freeze({})
+-- October 22 (Stevin): a Rebirth is earned by FINDING a chicken, not paid with one.
+-- Ranks 1..Config.Rebirth.FindRanks each name the chicken that must be in the Index
+-- (owned once; selling it later does not matter) before that Rebirth; later ranks need
+-- only the Coins. Rarer every rank, picked from the discovery probe so a player who
+-- rolls has seen it before the Coins are there (docs/team/REBIRTH_SCREEN.md "Rebirth
+-- finds"): Rare, Epic, Legendary, Mythic, then the Secret First Hen at 15.
+Catalog.RebirthFinds = table.freeze({"Bucket", "Viking", "Knight", "Jockey", "Dragon", "Rainbow", "Water", "Pharaoh",
+	"Phoenix", "IceDuck", "Heavenly", "TimeKeeper", "Mecha", "StormDuck", "FirstHen"})
 local retired = {}
 for rank, species in {"Chunky","Chunky","Bucket","Bucket","Viking","Viking","Knight","Knight","Knight",
  "Dragon","Dragon","Dragon","Rainbow","Rainbow","Rainbow","IceDuck","IceDuck","IceDuck","IceDuck"} do

@@ -68,6 +68,10 @@
 --     (DailyService.Check; its roll credits draw like Free Rolls at lever Luck, not
 --     Hill Luck). Every visit restarts the Playtime tiles. Milestones carry wall-clock
 --     minutes (the "Days" column) and played minutes; `hours` is the wall-clock horizon.
+-- 10. Rebirth finds (October 22): ranks 1..Config.Rebirth.FindRanks need their chicken
+--     (PetCatalog.RebirthFinds) in the Index; the player buys it on sight when affordable
+--     (stats.finds) and stats.findWaits counts the seconds each rank spent with the Coins
+--     in hand but the chicken missing.
 local Server=game:GetService("ServerStorage").PetRoll
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
@@ -87,6 +91,7 @@ local Rolls=require(Server.RollService)
 local Upgrades=require(Server.UpgradeService)
 local GemService=require(Server.GemUpgradeService)
 local Rebirth=require(Server.RebirthService)
+local RebirthChickens=require(Server.RebirthChickens)
 local King=require(Server.KingEncounter)
 local Playtime=require(Server.PlaytimeService)
 local PlaytimeRewards=require(Shared.PlaytimeRewards)
@@ -617,9 +622,12 @@ local function judgeOffers(state,ctx,at)
 		local powerGain=petPower(pet,offer.level)-weakest
 		local economy=gain>0 and offer.price/gain<=ctx.paybackLimit
 		local combat=ctx.blocked and powerGain>0 and offer.price<=ctx.combatBudget
-		if not (economy or combat or offer.starter==true) then continue end
+		-- October 22 Rebirth finds: the next rank's chicken is bought on sight (assumption 10).
+		local wanted=RebirthChickens.Wanted(s,offer.species)
+		if not (economy or combat or wanted or offer.starter==true) then continue end
 		if state.rolls:Buy(s,offer.id,at) then
 			stats.recruits+=1
+			if wanted then stats.finds+=1 end
 			if combat and not economy then ctx.combatBudget-=offer.price end
 			_,layers=flockEggs(s)
 			floorLayer=layers[size]
@@ -655,7 +663,16 @@ local function tryRebirth(state,now)
 	if not cost then return end
 	-- Sell the bag first when that makes the rank affordable.
 	if s.coins<cost and s.coins+s:EarnedAmount(state.bag*rushFactor(state,now),"eggs")>=cost then deposit(state,now) end
-	if not Rebirth.Quote(s).eligible then return end
+	local quote=Rebirth.Quote(s)
+	if not quote.eligible then
+		-- October 22 Rebirth finds: time with the Coins in hand but the chicken missing.
+		if quote.find and not quote.find.found and s.coins>=cost then
+			local waits=state.stats.findWaits
+			waits[s.rebirths+1]=(waits[s.rebirths+1] or 0)+options.tickSeconds
+			state.stats.findWait+=options.tickSeconds
+		end
+		return
+	end
 	local before=s.coins
 	local ok,_,receipt=Rebirth.Rebirth(s,s.rebirths,nil,false)
 	if not ok then return end
@@ -723,7 +740,7 @@ local function runOnce(seed,options)
 		bag=0,deploy=nil,nextRollAt=2,milestones={},flags={},peakEggs=0,now=0,played=0,boosts={},
 		visits=1,visitStart=0,claimed={},trace={},nextTrace=0,
 		rushPhase=(seed*277)%options.rushEvery,
-		stats={rolls=0,recruits=0,eggCash=0,battleCash=0,invasionCash=0,invasionFirsts=0,invasionReplays=0,
+		stats={rolls=0,recruits=0,finds=0,findWait=0,findWaits={},eggCash=0,battleCash=0,invasionCash=0,invasionFirsts=0,invasionReplays=0,
 			treeBuys=0,treeSpent=0,gemsEarned=0,gemsSpent=0,timeSkip=0,playtimeCash=0,offlineCash=0,dailyCash=0,
 			purchases={economy=0,combat=0,utility=0}}}
 	local realBoost=Playtime.Boost
@@ -862,6 +879,13 @@ local function report(results)
 			run.seed,run.minutes,run.played or run.minutes,run.visits or 1,f.rank,money(st.eggCash),money(st.battleCash),money(st.invasionCash),st.invasionFirsts,st.invasionReplays,
 			money(st.offlineCash or 0),money(st.dailyCash or 0),money(st.playtimeCash or 0),
 			st.rolls,st.recruits,st.treeBuys,money(st.treeSpent),st.gemsEarned,st.gemsSpent,money(st.timeSkip)))
+		local waits={}
+		for rank,seconds in st.findWaits or {} do table.insert(waits,{rank,seconds}) end
+		table.sort(waits,function(a,b) return a[1]<b[1] end)
+		local parts={}
+		for _,w in waits do table.insert(parts,string.format("R%d %.1f",w[1],w[2]/60)) end
+		line(string.format("  Rebirth finds: %d bought on sight, %.1f min waiting with the Coins in hand%s",
+			st.finds or 0,(st.findWait or 0)/60,if #parts>0 then " ("..table.concat(parts,", ")..")" else ""))
 		local gems={}
 		for id,level in f.gemUpgrades do table.insert(gems,id.."="..level) end
 		table.sort(gems)

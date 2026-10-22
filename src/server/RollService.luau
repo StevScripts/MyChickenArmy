@@ -108,6 +108,8 @@ function RollService.Keeper(session, offer): string?
 	if offer.starter then return nil end
 	local definition=Catalog[offer.species]
 	if offer.rebirthChicken or (definition and definition.rebirthRank) then return "rebirth" end
+	-- October 22: the chicken the next Rebirth needs, while it is still missing from the Index.
+	if RebirthChickens.Wanted(session,offer.species) then return "rebirth" end
 	local auto=session.autoRoll
 	local mutation=if MutationCatalog.IsValid(offer.mutation) then offer.mutation else nil
 	local fresh=mutation~=nil and auto.newMutation==true and newMutation(session,offer.species,mutation)
