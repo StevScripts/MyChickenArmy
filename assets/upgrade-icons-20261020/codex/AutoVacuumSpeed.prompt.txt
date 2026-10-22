@@ -1,0 +1,9 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Auto Speed icon for the Roblox game My Chicken Army. Image 1 is the approved Auto Vacuum icon (a chunky voxel robot vacuum) and is the edit target. Image 2 is an approved icon from the same set that shows the exact modifier to borrow.
+
+Edit image 1 using it as the actual image input: keep the same robot, colors, outline weight, perspective, lighting and framing. Keep the eggs. Add the white speed streaks with a thick black outline from image 2 (three horizontal motion lines) trailing behind the robot on the upper right, and tilt the robot very slightly forward as if it is driving fast.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/AutoVacuumSpeed-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.

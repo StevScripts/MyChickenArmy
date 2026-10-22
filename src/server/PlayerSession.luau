@@ -76,6 +76,8 @@ function PlayerSession:Reset()
 	-- Legacy grant flag only: the Egg Vacuum is an Upgrades tree node now (LoadData).
 	self.eggVacuum = false
 	self.vacuumCargo = {count=0,value=0}
+	-- October 21: lifetime eggs into the held Egg Vacuum; opens the Auto Vacuum hex.
+	self.vacuumedEggs = 0
 	self.goldRolls = {count=0}
 	-- October 20 Playtime Rewards (S16, PlaytimeService): this visit's clock, claims and
 	-- timed boosts. Live only, never saved; a new visit (or a reset) starts over.
@@ -873,6 +875,7 @@ function PlayerSession:ToData()
 		timeSkipPending=if self.timeSkipPending then {coins=self.timeSkipPending.coins,rank=self.timeSkipPending.rank} else nil,
 		flockSelection=if self.flockSelection then table.clone(self.flockSelection) else nil,
 		eggVacuum=self.eggVacuum==true,vacuumCargo=table.clone(self.vacuumCargo),goldRolls=table.clone(self.goldRolls),
+		vacuumedEggs=self.vacuumedEggs, -- October 21, additive; missing means 0.
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,robuxSpent=self.robuxSpent,
 		eggProcessor=EggProcessor.Copy(self.eggProcessor),
 		offlineCash=table.clone(self.offlineCash),
@@ -1338,6 +1341,7 @@ function PlayerSession:LoadData(data)
 	-- October 21 (owner): the Flock is always automatic; old saved picks are dropped.
 	self.flockSelection,self.eggVacuum=nil,false
 	self.vacuumCargo={count=cargoCount,value=cargoValue}
+	self.vacuumedEggs=readCount(data.vacuumedEggs,1e9)
 	-- S12b: one pull count per machine (count = Gold, diamond, prism); missing means 0.
 	local goldRolls:any=if type(data.goldRolls)=="table" then data.goldRolls else {}
 	self.goldRolls={count=readCount(goldRolls.count,1e6),diamond=readCount(goldRolls.diamond,1e6),prism=readCount(goldRolls.prism,1e6)}

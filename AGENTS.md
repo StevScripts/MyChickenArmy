@@ -115,6 +115,14 @@ load as the chicken whose stats they copied (`PetCatalog.RetiredSpecies`). A
 chicken without its own template wears its `baseSpecies` voxel model
 (`BlenderPetView`). New chickens need a voxel model before they enter the game.
 
+## Auto Vacuum (October 21, owner request)
+The retired Auto Collect robot is a Tools upgrade again: Auto Vacuum (20K Coins) opens
+after 1,000 eggs vacuumed with the held Egg Vacuum (saved lifetime `vacuumedEggs`),
+then Auto Capacity/Range/Speed tiers. It sweeps the yard until its tank is full and
+sells on the pad itself; its cargo goes to the bag whenever it goes away. This usage
+unlock is the owner's explicit exception to "no gates"; check it on purchase only,
+never on load. See `docs/team/AUTO_VACUUM.md`.
+
 ## Game feel (October 21, owner request)
 Stevin: every interaction, UI and world, is animated with VFX and sound, and
 everything stays responsive on every device. Use the shared vocabulary, never a

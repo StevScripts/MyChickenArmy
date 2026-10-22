@@ -26,6 +26,7 @@ local Tools=require(Shared.VacuumConfig)
 local Motion=require(Shared.EggMotion)
 local EggView=require(script.Parent.EggView)
 local VacuumController=require(script.Parent.VacuumController)
+local AutoVacuumController=require(script.Parent.AutoVacuumController)
 local Theme=require(script.Parent.UITheme)
 local Eggs={}
 Eggs.__index=Eggs
@@ -73,6 +74,8 @@ end
 function Eggs:Start()
  self.folder=Instance.new("Folder");self.folder.Name="PetRollEggVisuals";self.folder.Parent=workspace
  self.vacuum=VacuumController.new(self.app)
+ -- October 21 Auto Vacuum robot (docs/team/AUTO_VACUUM.md).
+ self.rover=AutoVacuumController.new(self.app,self.folder)
  self:CreateCollectionRange()
  -- One shared "Get closer" tag for an egg clicked outside Click Range.
  self.tooFar=Instance.new("BillboardGui")
@@ -186,7 +189,10 @@ end
 function Eggs:Feedback(id,value,receipt)
  if self.feedback[id] then return end
  local now=os.clock();self.feedback[id]=now
- if not self.finishedFlights[id] then self:Arrive(value,now,receipt and receipt.collector) end
+ if self.finishedFlights[id] then return end
+ -- The robot's eggs pay when it sells them: its own tick, no "+N" over the player.
+ if receipt and receipt.collector=="rover" then self.rover:PickupCue(now);return end
+ self:Arrive(value,now,receipt and receipt.collector)
 end
 
 -- One egg reached you or the vacuum: one bright chime and its own "+N" coin float.
@@ -493,10 +499,15 @@ function Eggs:Receive(snapshot)
   self.nextCaptionAt=nil
   self.seenDeposits={};self.lastCashClaim=nil
   self.app.feedback:ResetCollections()
+  self.rover:Clear()
  end
+ self.rover:Receive(snapshot.rover,now)
  local seenDeposits={}
  for _,deposit in snapshot.deposits or (if snapshot.deposit then {snapshot.deposit} else {}) do
-  if not (self.seenDeposits and self.seenDeposits[deposit.id]) then self.app.feedback:Deposit(deposit) end
+  if not (self.seenDeposits and self.seenDeposits[deposit.id]) then
+   self.app.feedback:Deposit(deposit)
+   if deposit.collector=="rover" then self.rover:Deposit(deposit,now) end
+  end
   seenDeposits[deposit.id]=true
  end
  self.seenDeposits=seenDeposits
@@ -628,14 +639,16 @@ function Eggs:Step(now)
   if view.flightAt then
    local t=math.clamp((now-view.flightAt)/Feel.Egg.FlightSeconds,0,1)
    local vacuum=view.data.collector=="vacuum"
+   local rover=view.data.collector=="rover"
    -- Vacuum pickups fly into the held nozzle; if it was put away, to the server's
-   -- landing point. Clicked eggs follow the player.
+   -- landing point. Robot pickups fly into the robot's nozzle. Clicked eggs follow the player.
    local goal=if vacuum then (self.vacuum:NozzlePosition()
      or (if view.data.targetX then Vector3.new(view.data.targetX,view.data.targetY,view.data.targetZ) else nil)
      or (if root then root.Position else view.ground))
+    elseif rover then (self.rover:NozzlePosition(view.data) or view.ground)
     elseif root then root.Position+Vector3.new(0,-0.25,0) else view.ground
    local dt=math.clamp(now-(view.lastStep or now),0,0.1);view.lastStep=now
-   local interrupted=not vacuum and not root or view.goal and (goal-view.goal).Magnitude>Feel.Egg.TeleportDistance
+   local interrupted=not vacuum and not rover and not root or view.goal and (goal-view.goal).Magnitude>Feel.Egg.TeleportDistance
    view.goal=if not view.goal then goal else view.goal:Lerp(goal,1-math.exp(-Feel.Egg.TargetResponse*dt))
    if interrupted then t=1 end
    local position=Motion.Flight(view.flightStart,view.goal,t,view.seed,self.app.reducedMotion)
@@ -646,7 +659,8 @@ function Eggs:Step(now)
    if t>=1 then
     self.finishedFlights[id]=now
     -- The egg reached you or the nozzle: its chime and "+N" (not when a teleport cut it short).
-    if not interrupted then self:Arrive(if view.receipt then view.receipt.value else view.data.value,now,view.data.collector) end
+    if rover then self.rover:PickupCue(now)
+    elseif not interrupted then self:Arrive(if view.receipt then view.receipt.value else view.data.value,now,view.data.collector) end
     if view.receipt then self:Feedback(id,view.receipt.value,view.receipt)
     elseif view.picked then
      -- A clicked egg counts in as it lands; the server's receipt later is the same egg.
@@ -667,6 +681,7 @@ function Eggs:Step(now)
   end
  end
  self.vacuum:SetActive(sucking)
+ self.rover:Step(now)
  -- A full vacuum refuses the eggs it can reach: a new one coming into reach shakes the
  -- pill (ToolController throttles it and skips the moment it filled).
  local tools=self.app.tools
@@ -694,5 +709,6 @@ function Eggs:Destroy()
  if self.folder then self.folder:Destroy() end
  if self.tooFar then self.tooFar:Destroy() end
  if self.vacuum then self.vacuum:Destroy() end
+ if self.rover then self.rover:Destroy() end
 end
 return Eggs

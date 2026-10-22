@@ -165,6 +165,27 @@ local families: {Family} = {
 	{id = "VacuumRange", name = "Vacuum Range", category = "Tools", icon = "vacuumRange", effect = "vacuumRange", base = 0,
 		format = "studs", description = "Your Egg Vacuum reaches eggs from farther away.",
 		tiers = tiers({{4, 2000}, {8, 15000}, {12, 75000}}), positions = walk(-2, 1, {"NW", "SW"}), prerequisite = "EggVacuum"},
+	-- October 21 (Stevin): the retired Auto Collect robot comes back as a tool. Its hex
+	-- opens once the player has vacuumed AutoVacuumConfig.UnlockEggs eggs with the held
+	-- Egg Vacuum (UpgradeService.Requirement), then it is an ordinary Coins purchase that
+	-- resets on Rebirth. Its three chains fan out above Back (docs/team/AUTO_VACUUM.md).
+	{id = "AutoVacuum", name = "Auto Vacuum", category = "Tools", icon = "autoVacuum", effect = "autoVacuum", base = 0,
+		format = "unlock", description = "A robot drives around your yard, vacuums up eggs and sells them on the pad for you.",
+		tiers = tiers({{1, 20000}}), positions = walk(0, -1)},
+	-- Bonus seconds of the Flock's laying on top of the robot's 20 s tank: 30, 40, 60, 80 s.
+	{id = "AutoVacuumCapacity", name = "Auto Capacity", category = "Tools", icon = "autoVacuumCapacity", effect = "autoVacuumCapacity", base = 0,
+		format = "seconds", unit = "of eggs", description = "The Auto Vacuum holds more eggs before it drives to the pad.",
+		tiers = tiers({{10, 15000}, {20, 60000}, {40, 250000}, {60, 1000000}}),
+		positions = walk(-1, -1, {"NW", "N", "NW"}), prerequisite = "AutoVacuum"},
+	-- Studs on top of the robot's 5-stud reach; a longer reach also means fewer passes.
+	{id = "AutoVacuumRange", name = "Auto Range", category = "Tools", icon = "autoVacuumRange", effect = "autoVacuumRange", base = 0,
+		format = "studs", description = "The Auto Vacuum pulls in eggs from farther away.",
+		tiers = tiers({{2, 25000}, {4, 120000}, {6, 600000}}),
+		positions = walk(1, -2, {"NE", "N"}), prerequisite = "AutoVacuum"},
+	{id = "AutoVacuumSpeed", name = "Auto Speed", category = "Tools", icon = "autoVacuumSpeed", effect = "autoVacuumSpeed", base = 0,
+		format = "percent", description = "The Auto Vacuum drives faster.",
+		tiers = tiers({{0.25, 20000}, {0.5, 100000}, {1, 500000}}),
+		positions = walk(0, -2, {"N", "N"}), prerequisite = "AutoVacuum"},
 	{id = "ChickenFeed", name = "Chicken Feed", category = "Tools", icon = "chickenFeed", effect = "chickenFeed", base = 0,
 		format = "unlock", description = "Equip Chicken Feed and walk to one of your chickens to level it up.",
 		tiers = tiers({{1, 1000}}), positions = walk(1, 0)},
@@ -352,6 +373,8 @@ Catalog.DefaultEffects = table.freeze({
 	armySlots = 0, feedMaxLevel = 0,
 	-- S9c: Diamond/Prism Rate tiers (GoldRolls) and how many mutations can roll.
 	diamondRate = 0, prismRate = 0, mutations = 0,
+	-- October 21 Auto Vacuum (EggService:UpdateRover).
+	autoVacuum = 0, autoVacuumCapacity = 0, autoVacuumRange = 0, autoVacuumSpeed = 0,
 })
 
 -- Pure effect table for a saved tree and Gem Upgrade levels. The highest owned

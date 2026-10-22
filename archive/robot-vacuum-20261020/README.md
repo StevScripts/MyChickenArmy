@@ -17,3 +17,8 @@ The Studio robot template `ReplicatedStorage.PetRoll.Assets.EggVacuum` and the
 six authored stands in the plots stay in the place until they are removed in
 Studio. Restoring the robot would also need its EggService paths
 (`git show b70a45a:src/server/EggService.luau`).
+
+October 21, 2026: the robot is back as the Auto Vacuum Tools upgrade
+(`docs/team/AUTO_VACUUM.md`). `EggRover`, `VacuumClips` and the presentation
+(`src/client/AutoVacuumController.luau`) were restored from these copies with a tank,
+Range and speed; the pass and its stand stay retired.

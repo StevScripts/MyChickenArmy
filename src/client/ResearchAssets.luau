@@ -67,5 +67,11 @@ local treeV2={
 	mutationShadow="rbxassetid://92726160751769", mutationCosmic="rbxassetid://133241731715561",
 }
 for key,image in treeV2 do Assets.upgrades[key]=image end
+-- October 21 Auto Vacuum (docs/team/AUTO_VACUUM.md; same receipts file): the yard robot,
+-- and the robot with the capacity arrows, range arcs and speed streaks.
+Assets.upgrades.autoVacuum="rbxassetid://87438684899708"
+Assets.upgrades.autoVacuumCapacity="rbxassetid://136395026668974"
+Assets.upgrades.autoVacuumRange="rbxassetid://90654814367743"
+Assets.upgrades.autoVacuumSpeed="rbxassetid://126011071889706"
 return Assets
 --stevin

@@ -3,12 +3,15 @@
 -- October 20 (docs/team/COLLECTION_TOOLS.md): players click, tap or press R2 on eggs
 -- (GameServer "CollectEggs") and they fly into the unlimited bag; the held Egg Vacuum
 -- pulls nearby eggs into its own cargo until it is full. The green pad sells both.
--- Walk-over pickup and the robot vacuum (Auto Collect pass) are retired.
+-- Walk-over pickup and the Auto Collect pass are retired. October 21 (docs/team/
+-- AUTO_VACUUM.md): the robot is back as the Auto Vacuum Tools upgrade (EggRover).
 local Players=game:GetService("Players")
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Rules=require(Shared.Rules)
 local Tools=require(Shared.VacuumConfig)
+local Auto=require(Shared.AutoVacuumConfig)
+local EggRover=require(script.Parent.EggRover)
 local Layout=require(Shared.HomePlotLayout)
 local Processor=require(script.Parent.EggProcessor)
 local ProcessorConfig=require(Shared.EggProcessorConfig)
@@ -322,6 +325,19 @@ function EggService:Pay(session,yard,drop,now)
   local cargo=vacuumCargo(session)
   cargo.count=math.min(CARRY_LIMIT,cargo.count+count)
   cargo.value=math.min(CARRY_LIMIT,cargo.value+drop.value)
+  -- Lifetime count that opens the Auto Vacuum hex (AutoVacuumConfig.UnlockEggs).
+  session.vacuumedEggs=math.min(1e9,(tonumber(session.vacuumedEggs) or 0)+count)
+ elseif drop.collector=="rover" then
+  local rover=yard.rover
+  if rover and rover.enabled then
+   rover.pendingCount=math.max(0,rover.pendingCount-count)
+   rover.pendingValue=math.max(0,rover.pendingValue-drop.value)
+   rover.cargoCount+=count
+   rover.cargoValue+=drop.value
+  else
+   -- A claim already belongs to this player, even if the robot has gone.
+   addCarry(session,count,drop.value)
+  end
  else
   addCarry(session,count,drop.value)
  end
@@ -392,7 +408,121 @@ function EggService:Claim(yard,drop,now,collector,target)
  drop.claimAt=now;drop.collector=collector
  drop.targetX,drop.targetY,drop.targetZ=target.X,target.Y,target.Z
  yard.revision+=1
+ if collector=="rover" then
+  yard.rover.pendingCount+=drop.stack or 1
+  yard.rover.pendingValue+=drop.value
+  yard.rover.suctionSerial+=1
+ end
  return true
+end
+
+-- Auto Vacuum (docs/team/AUTO_VACUUM.md) -------------------------------------------
+
+-- Range and speed from the base plus the Auto Range and Auto Speed tiers.
+function EggService:RoverStats(session)
+ local effects=session.researchEffects
+ return {range=Auto.Range+(effects.autoVacuumRange or 0),speed=Auto.MoveSpeed*(1+(effects.autoVacuumSpeed or 0))}
+end
+
+-- The tank in eggs: Seconds plus the Auto Capacity tiers of the Flock's laying.
+function EggService:RoverCapacity(session,yard,now)
+ if yard.roverCapacity and now<(yard.roverCapacityAt or 0) then return yard.roverCapacity end
+ local seconds=Auto.Seconds+(session.researchEffects.autoVacuumCapacity or 0)
+ yard.roverCapacity=math.max(Auto.MinCapacity,math.floor(seconds*self:LayingRate(session)+0.5))
+ yard.roverCapacityAt=now+CAPACITY_REFRESH_SECONDS
+ return yard.roverCapacity
+end
+
+-- Finishes the robot's claims and empties its tank into the bag, so a robot that goes
+-- away (Rebirth, leaving, a missing pad) never loses an earned egg.
+function EggService:ParkRover(session,yard,now)
+ local rover=yard.rover
+ if not rover then return end
+ for i=#yard.drops,1,-1 do
+  local drop=yard.drops[i]
+  if drop.claimAt and drop.collector=="rover" then self:Pay(session,yard,drop,now);table.remove(yard.drops,i) end
+ end
+ if rover.cargoCount>0 or rover.cargoValue>0 then
+  addCarry(session,rover.cargoCount,rover.cargoValue)
+  rover.cargoCount,rover.cargoValue=0,0
+  session:Touch()
+ end
+ rover.enabled=false
+ yard.rover=nil
+ yard.revision+=1
+end
+
+function EggService:UpdateRover(session,yard,dt,now)
+ local pad,ownerId=self.world:EggDeposit(session.plotIndex)
+ local enabled=(session.researchEffects.autoVacuum or 0)>=1
+  and pad~=nil and pad:IsA("BasePart") and ownerId==session.userId
+ if not enabled then
+  if yard.rover then self:ParkRover(session,yard,now) end
+  return
+ end
+ local stats=self:RoverStats(session)
+ local rover=yard.rover
+ -- A new Range or yard size redraws the route on the next empty stop at the pad.
+ if rover and rover.state=="Idle" and rover.cargoCount==0 and rover.pendingCount==0
+  and (rover.range~=stats.range or yard.roverPlotSize~=session.plotSizeLevel) then
+  yard.rover=nil;rover=nil
+ end
+ if not rover then
+  yard.roverSerial=(yard.roverSerial or 0)+1
+  yard.roverPlotSize=session.plotSizeLevel
+  rover=EggRover.new(session.userId..":"..yard.generation..":"..yard.roverSerial,
+   self.world:PlotFrame(session.plotIndex),session.plotIndex,pad,now,stats)
+  yard.rover=rover
+ end
+ rover.speed=stats.speed
+ local capacity=self:RoverCapacity(session,yard,now)
+ local room=capacity-rover.cargoCount-rover.pendingCount
+ local hasEggs=false
+ for _,drop in yard.drops do
+  if not drop.claimAt and now>=drop.readyAt then hasEggs=true;break end
+ end
+ rover:Step(dt,now,hasEggs,room<1)
+ local nozzle=rover:Nozzle()
+ -- Eggs already flying in chase the moving nozzle (clients aim at the model's own).
+ for _,drop in yard.drops do
+  if drop.collector=="rover" and drop.claimAt then
+   drop.targetX,drop.targetY,drop.targetZ=nozzle.X,nozzle.Y,nozzle.Z
+  end
+ end
+ if room>=1 and rover:CanCollect() then
+  local near={}
+  for _,drop in yard.drops do
+   if not drop.claimAt and now>=drop.readyAt and math.abs(drop.y-nozzle.Y)<=Auto.MaxHeight then
+    local distance=math.sqrt((drop.x-nozzle.X)^2+(drop.z-nozzle.Z)^2)
+    if distance<=rover.range then table.insert(near,{drop=drop,distance=distance}) end
+   end
+  end
+  table.sort(near,function(a,b) return a.distance<b.distance end)
+  local claimed=0
+  for _,entry in near do
+   if claimed>=Auto.PickupBatch or room<1 then break end
+   room-=entry.drop.stack or 1
+   self:Claim(yard,entry.drop,now+claimed*Auto.PickupStagger,"rover",nozzle)
+   claimed+=1
+  end
+ end
+ if rover:ReadyToUnload(now) then
+  -- Recheck the owner's pad at the payment boundary: the robot sells only on it.
+  local localAt=pad.CFrame:PointToObjectSpace(rover.position)
+  local atPad=math.abs(localAt.X)<=pad.Size.X/2+0.7 and math.abs(localAt.Z)<=pad.Size.Z/2+0.7
+   and math.abs(localAt.Y)<=pad.Size.Y/2+5
+  if not atPad then return end
+  local count,value=rover.cargoCount,rover.cargoValue
+  if value>0 then
+   local accepted,credited,queued=self:AcceptDeposit(session,count,value)
+   if not accepted then return end
+   session:Touch()
+   self:RecordDeposit(yard,count,credited,now,"rover",rover.position,queued)
+  end
+  rover.cargoCount,rover.cargoValue=0,0
+  rover:FinishUnload(now)
+  yard.revision+=1
+ end
 end
 
 -- October 20 click, tap and gamepad pickup. Each id names one ready stack within
@@ -464,6 +594,7 @@ function EggService:Step(sessions,dt,now)
   local position,character,humanoid,root=playerRoot(session)
   -- The vacuum is an Upgrades > Tools node (October 20, S14); a Rebirth takes it back.
   if root and (session.researchEffects.eggVacuum or 0)>=1 and holding(character,VACUUM_TOOL) then self:Vacuum(session,yard,root,now) end
+  self:UpdateRover(session,yard,dt,now)
   for i=#yard.receipts,1,-1 do if now-yard.receipts[i].at>3 then table.remove(yard.receipts,i) end end
   for i=#(yard.deposits or {}),1,-1 do if now-yard.deposits[i].at>3 then table.remove(yard.deposits,i) end end
   self:Deposit(session,position,now)
@@ -513,14 +644,19 @@ function EggService:Snapshot(session,now)
   -- count includes eggs still flying into the nozzle, so the meter fills as they land.
   vacuum={count=cargo.count+pending,stored=cargo.count,
    value=session:EarnedAmount(cargo.value+(yard.vacuumPendingValue or 0),"eggs"),
-   capacity=self:VacuumCapacity(session,yard,now),range=self:VacuumRange(session)}}
+   capacity=self:VacuumCapacity(session,yard,now),range=self:VacuumRange(session)},
+  -- The Auto Vacuum robot (enabled=false while it isn't owned).
+  rover=if yard.rover then yard.rover:Snapshot(session,self:RoverCapacity(session,yard,now)) else {enabled=false}}
 end
 
 function EggService:Release(session)
  local yard=self.yards[session.userId]
  if not yard then return end
  -- A claimed pickup is already earned even if the player leaves mid-flight.
- if not session.saveLost then self:SettleClaims(session,yard,os.clock(),true) end
+ if not session.saveLost then
+  self:ParkRover(session,yard,os.clock())
+  self:SettleClaims(session,yard,os.clock(),true)
+ end
  self.yards[session.userId]=nil
 end
 

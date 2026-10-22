@@ -482,6 +482,54 @@
    "assetId": 133241731715561,
    "content": "rbxassetid://133241731715561",
    "batch": "2026-10-20 S6b+S6c"
+  },
+  {
+   "key": "AutoVacuum",
+   "file": "upload/AutoVacuum.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 87438684899708,
+   "content": "rbxassetid://87438684899708",
+   "uploadedAt": "2026-10-21",
+   "note": "Auto Vacuum tree icons (docs/team/AUTO_VACUUM.md), Codex CLI from the robot render"
+  },
+  {
+   "key": "AutoVacuumCapacity",
+   "file": "upload/AutoVacuumCapacity.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 136395026668974,
+   "content": "rbxassetid://136395026668974",
+   "uploadedAt": "2026-10-21",
+   "note": "Auto Vacuum tree icons (docs/team/AUTO_VACUUM.md), Codex CLI from the robot render"
+  },
+  {
+   "key": "AutoVacuumRange",
+   "file": "upload/AutoVacuumRange.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 90654814367743,
+   "content": "rbxassetid://90654814367743",
+   "uploadedAt": "2026-10-21",
+   "note": "Auto Vacuum tree icons (docs/team/AUTO_VACUUM.md), Codex CLI from the robot render"
+  },
+  {
+   "key": "AutoVacuumSpeed",
+   "file": "upload/AutoVacuumSpeed.png",
+   "size": [
+    512,
+    512
+   ],
+   "assetId": 126011071889706,
+   "content": "rbxassetid://126011071889706",
+   "uploadedAt": "2026-10-21",
+   "note": "Auto Vacuum tree icons (docs/team/AUTO_VACUUM.md), Codex CLI from the robot render"
   }
  ],
  "reusedInGame": [

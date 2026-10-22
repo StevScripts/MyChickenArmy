@@ -844,6 +844,8 @@ end
 -- "You need 3,096,960 more Coins!" from the server's price and balance; a starter
 -- reserve hold (enough Coins, but kept for Army Size I) shows the server's reason.
 function Browser:Shortfall(info)
+	-- A hex with a server requirement (the Auto Vacuum's eggs to vacuum) says that first.
+	if type(info.requirement)=="string" and info.requirement~="" then return info.requirement end
 	local price=type(info.price)=="number" and info.price or nil
 	if price and self.coins<price then
 		local short=math.ceil(price-self.coins)
@@ -1103,7 +1105,8 @@ function Browser:TooltipText(id)
 	-- A starter-reserve hold (enough Coins, but kept back) says why; a plain shortfall
 	-- needs no words, the red price already says it.
 	local held=look=="unaffordable" and type(info.price)=="number" and self.coins>=info.price
-	if held and type(info.spendReason)=="string" and info.spendReason~="" then body..=" "..info.spendReason end
+	if look=="unaffordable" and type(info.requirement)=="string" and info.requirement~="" then body..=" "..info.requirement
+	elseif held and type(info.spendReason)=="string" and info.spendReason~="" then body..=" "..info.spendReason end
 	local price=if look~="owned" and type(info.price)=="number" then info.price else nil
 	return node.name,body,change,price,"Resets on Rebirth"
 end

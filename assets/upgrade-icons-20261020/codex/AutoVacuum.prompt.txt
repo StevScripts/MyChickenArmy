@@ -1,0 +1,12 @@
+Use the $chunky-simulator-icons skill and your built-in image generation tool to create exactly one icon, then stop.
+
+Task: the Auto Vacuum icon for the Roblox game My Chicken Army (an upgrade that buys a little robot vacuum which drives around the chicken yard by itself and sucks up eggs). It belongs to the same approved set as the attached images.
+
+Image 1 is the in-game robot vacuum model and is the subject to draw: a boxy wheeled robot with a green lower body, a cream/white upper band with two small dark square eyes and a tan beak-like hose socket, a green lid with a red blocky handle on top, a dark rubber wheel with a tan hub on the side, and a dark hose down to a wide tan floor nozzle with green end caps in front. Keep its shape, colors and parts.
+Images 2 and 3 (the Egg Vacuum and Vacuum Capacity icons) and image 4 (boots) show the exact icon style to match: voxel-built chunky beveled blocks, bright clean colors, simple per-face shading, crisp pale highlights and a heavy continuous near-black outline.
+
+Draw the robot in a slightly top-down three-quarter view facing lower left, upper-left lighting, with two or three small cream eggs just in front of the floor nozzle being sucked in.
+
+Output: one isolated icon on a genuinely transparent background (true alpha), square canvas, about 80 percent occupancy, heavy near-black outer outline, no text, letters, numbers or badges, no backdrop, shadow or glow.
+
+When the image exists, copy that PNG to raw/AutoVacuum-codex.png in this working directory. Do not edit or create any other files, do not upload anything, and do not run git.
