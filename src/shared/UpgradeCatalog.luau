@@ -166,7 +166,7 @@ local families: {Family} = {
 		format = "studs", description = "Your Egg Vacuum reaches eggs from farther away.",
 		tiers = tiers({{4, 2000}, {8, 15000}, {12, 75000}}), positions = walk(-2, 1, {"NW", "SW"}), prerequisite = "EggVacuum"},
 	-- October 21 (Stevin): the retired Auto Collect robot comes back as a tool. Its hex
-	-- opens once the player has vacuumed AutoVacuumConfig.UnlockEggs eggs with the held
+	-- opens once the player owns the Egg Vacuum and has vacuumed AutoVacuumConfig.UnlockEggs eggs with the held
 	-- Egg Vacuum (UpgradeService.Requirement), then it is an ordinary Coins purchase that
 	-- resets on Rebirth. Its three chains fan out above Back (docs/team/AUTO_VACUUM.md).
 	{id = "AutoVacuum", name = "Auto Vacuum", category = "Tools", icon = "autoVacuum", effect = "autoVacuum", base = 0,

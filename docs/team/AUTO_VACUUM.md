@@ -9,10 +9,16 @@ eggs, a limited range, and so on.
 
 - Upgrades > Tools has a new branch above Back: **Auto Vacuum**, then three chains:
   **Auto Capacity I–IV**, **Auto Speed I–III** and **Auto Range I–III**.
-- The Auto Vacuum hex shows its price in red until the player has vacuumed
-  `AutoVacuumConfig.UnlockEggs` (1,000) eggs with the held Egg Vacuum. Clicking it, or
-  its tooltip, says "Vacuum 760 more eggs with the Egg Vacuum to unlock it (240 / 1,000)."
-  After that it is an ordinary Coins purchase.
+- The Auto Vacuum hex shows its price in red until the player owns the Egg Vacuum
+  (this run) and has vacuumed `AutoVacuumConfig.UnlockEggs` (5,000) eggs with it.
+  Clicking it, or its tooltip, says "Buy the Egg Vacuum first, then vacuum eggs with it
+  to unlock this." and then "Vacuum 4,760 more eggs with the Egg Vacuum to unlock it
+  (240 / 5,000)." After that it is an ordinary Coins purchase.
+- Later October 21 (Stevin): the robot comes "a little more later into the game" so
+  the player really uses the hand vacuum first, and only after the hand vacuum is
+  owned. UnlockEggs went from 1,000 to 5,000, and owning the Egg Vacuum is checked
+  every run (after a Rebirth the hand vacuum is bought again first; the lifetime count
+  is kept).
 - Once bought, the robot (the Studio model `ReplicatedStorage.PetRoll.Assets.EggVacuum`
   with its Blender clips) drives the yard in straight passes and pulls in every ready egg
   within its Range. A meter over it reads "12 / 40" and turns red "Full!" when the tank
@@ -43,7 +49,7 @@ eggs, a limited range, and so on.
 ## Server (`EggRover`, `EggService`)
 
 - `EggService:UpdateRover` runs every step while `researchEffects.autoVacuum >= 1` and the
-  player owns their pad. A new Range or yard stage redraws the route the next time the
+  player owns their pad (once bought, the Egg Vacuum check no longer applies). A new Range or yard stage redraws the route the next time the
   robot stops at the pad empty; speed changes apply at once.
 - States: Idle (waits `IdleSeconds` and for a ready egg) → Sweeping → Returning (at the
   end of the passes, or as soon as the tank is full) → Unloading → sale through
@@ -56,7 +62,7 @@ eggs, a limited range, and so on.
 - `session.vacuumedEggs` is a saved, additive lifetime count of eggs that landed in the
   held Egg Vacuum (`Pay`, collector `"vacuum"`). Missing reads as 0; it never fails a
   load. Existing profiles start at 0 on October 21.
-- `UpgradeService.Requirement` is the only gate, checked in `NodeOffer` (status
+- `UpgradeService.Requirement` (Egg Vacuum owned, then the egg count) is the only gate, checked in `NodeOffer` (status
   `Unaffordable` plus `requirement`, so older clients still show a red price) and in
   `BuyNode`. It never runs on load, so a bought Auto Vacuum always stays bought.
 - Snapshot: `state.eggs.rover = {enabled, id, state, x, y, z, dx, dz, range, count,

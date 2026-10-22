@@ -117,7 +117,8 @@ chicken without its own template wears its `baseSpecies` voxel model
 
 ## Auto Vacuum (October 21, owner request)
 The retired Auto Collect robot is a Tools upgrade again: Auto Vacuum (20K Coins) opens
-after 1,000 eggs vacuumed with the held Egg Vacuum (saved lifetime `vacuumedEggs`),
+once the Egg Vacuum is owned (each run) and 5,000 eggs were vacuumed with it (saved
+lifetime `vacuumedEggs`; later Oct 21, was 1,000),
 then Auto Capacity/Range/Speed tiers. It sweeps the yard until its tank is full and
 sells on the pad itself; its cargo goes to the bag whenever it goes away. This usage
 unlock is the owner's explicit exception to "no gates"; check it on purchase only,

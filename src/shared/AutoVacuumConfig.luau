@@ -6,8 +6,10 @@
 return table.freeze({
 	-- Unlock (Stevin, October 21: "after the player gets a good amount through with
 	-- the normal vacuum"): the Auto Vacuum hex opens once this many eggs have gone into
-	-- the held Egg Vacuum, counted for life (saved `vacuumedEggs`, never reset).
-	UnlockEggs = 1000,
+	-- the held Egg Vacuum, counted for life (saved `vacuumedEggs`, never reset), and only
+	-- while the player owns the Egg Vacuum this run. Later October 21 (Stevin: later in
+	-- the game, so the hand vacuum really gets used): 5,000, was 1,000.
+	UnlockEggs = 5000,
 
 	-- Tank: like the Egg Vacuum, sized in seconds of the Flock's current laying (plus
 	-- the Auto Capacity tiers), shown in eggs and never below MinCapacity.

@@ -136,7 +136,7 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
 ## Retired
 
 - The Auto Collect pass is off sale (S7 gives owners Gems). October 21: its robot is
-  back as the **Auto Vacuum** Tools upgrade, unlocked by vacuuming 1,000 eggs
+  back as the **Auto Vacuum** Tools upgrade, unlocked by owning the Egg Vacuum and vacuuming 5,000 eggs
   ([AUTO_VACUUM.md](AUTO_VACUUM.md)); `EggRover`, `VacuumClips` and the robot
   presentation (`AutoVacuumController`) were restored from the archive below.
 - `EggRover`, the robot's `VacuumClips`, and the old `VacuumController`,

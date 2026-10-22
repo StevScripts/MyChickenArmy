@@ -52,6 +52,8 @@ end
 -- player buys, never on load (saves keep a bought Auto Vacuum).
 function UpgradeService.Requirement(session, familyId: string): string?
 	if familyId ~= "AutoVacuum" then return nil end
+	-- The hand vacuum comes first, every run (it resets on Rebirth like the robot).
+	if Tree.Tier(session.upgradeTree, "EggVacuum") < 1 then return "Buy the Egg Vacuum first, then vacuum eggs with it to unlock this." end
 	local done = math.floor(tonumber(session.vacuumedEggs) or 0)
 	if done >= AutoVacuum.UnlockEggs then return nil end
 	return "Vacuum " .. Currency.Grouped(AutoVacuum.UnlockEggs - done) .. " more eggs with the Egg Vacuum to unlock it ("
