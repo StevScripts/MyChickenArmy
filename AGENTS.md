@@ -120,13 +120,12 @@ chicken without its own template wears its `baseSpecies` voxel model
 (`BlenderPetView`). New chickens need a voxel model before they enter the game.
 
 ## Auto Vacuum (October 21, owner request)
-The retired Auto Collect robot is a Tools upgrade again: Auto Vacuum (20K Coins) opens
-once the Egg Vacuum is owned (each run) and 5,000 eggs were vacuumed with it (saved
-lifetime `vacuumedEggs`; later Oct 21, was 1,000),
-then Auto Capacity/Range/Speed tiers. It sweeps the yard until its tank is full and
-sells on the pad itself; its cargo goes to the bag whenever it goes away. This usage
-unlock is the owner's explicit exception to "no gates"; check it on purchase only,
-never on load. See `docs/team/AUTO_VACUUM.md`.
+The retired Auto Collect robot is a Tools upgrade again: Auto Vacuum, then Auto
+Capacity/Range/Speed tiers. It sweeps the yard until its tank is full and sells on the
+pad itself; its cargo goes to the bag whenever it goes away. October 22 (Stevin): no
+eggs-vacuumed unlock (the Oct 21 5,000-egg gate is gone); it is a plain Coins purchase
+priced above the hand vacuum's last tier (250M vs Vacuum Capacity IV 100M), its tiers
+400M–25B. See `docs/team/AUTO_VACUUM.md`.
 
 ## Egg Vacuum capacity in eggs (October 21, owner request)
 Stevin: the vacuum got "too large very easily" and was no challenge. It holds a fixed

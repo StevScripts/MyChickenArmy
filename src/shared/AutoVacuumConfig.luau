@@ -4,12 +4,8 @@
 -- its Range until its tank is full, then drives to the green pad and sells them.
 -- Tuning only: EggRover moves it, EggService owns claims, cargo and Coins.
 return table.freeze({
-	-- Unlock (Stevin, October 21: "after the player gets a good amount through with
-	-- the normal vacuum"): the Auto Vacuum hex opens once this many eggs have gone into
-	-- the held Egg Vacuum, counted for life (saved `vacuumedEggs`, never reset), and only
-	-- while the player owns the Egg Vacuum this run. Later October 21 (Stevin: later in
-	-- the game, so the hand vacuum really gets used): 5,000, was 1,000.
-	UnlockEggs = 5000,
+	-- October 22 (Stevin): no eggs-vacuumed unlock any more. The Auto Vacuum is an
+	-- ordinary Coins purchase priced above the hand vacuum's last tier (UpgradeCatalog).
 
 	-- Tank: like the Egg Vacuum, sized in seconds of the Flock's current laying (plus
 	-- the Auto Capacity tiers), shown in eggs and never below MinCapacity.

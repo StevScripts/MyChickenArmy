@@ -844,7 +844,7 @@ end
 -- "You need 3,096,960 more Coins!" from the server's price and balance; a starter
 -- reserve hold (enough Coins, but kept for Army Size I) shows the server's reason.
 function Browser:Shortfall(info)
-	-- A hex with a server requirement (the Auto Vacuum's eggs to vacuum) says that first.
+	-- A hex with a server requirement says that first (none since October 22's Auto Vacuum).
 	if type(info.requirement)=="string" and info.requirement~="" then return info.requirement end
 	local price=type(info.price)=="number" and info.price or nil
 	if price and self.coins<price then

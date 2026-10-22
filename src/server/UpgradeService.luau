@@ -8,8 +8,6 @@ local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
 local Rules = require(Shared.Rules)
 local Tree = require(Shared.UpgradeCatalog)
-local AutoVacuum = require(Shared.AutoVacuumConfig)
-local Currency = require(Shared.CurrencyLimits)
 local UpgradeService = {}
 UpgradeService.__index = UpgradeService
 
@@ -45,19 +43,6 @@ function UpgradeService.Quote(session, familyId: string, tier: number): number?
 		return 0
 	end
 	return Tree.Price(familyId, tier, session.rebirths)
-end
-
--- October 21 (Stevin): the Auto Vacuum opens after a good amount of hand vacuuming.
--- Returns why a family's first tier can't be bought yet, or nil. Checked when the
--- player buys, never on load (saves keep a bought Auto Vacuum).
-function UpgradeService.Requirement(session, familyId: string): string?
-	if familyId ~= "AutoVacuum" then return nil end
-	-- The hand vacuum comes first, every run (it resets on Rebirth like the robot).
-	if Tree.Tier(session.upgradeTree, "EggVacuum") < 1 then return "Buy the Egg Vacuum first, then vacuum eggs with it to unlock this." end
-	local done = math.floor(tonumber(session.vacuumedEggs) or 0)
-	if done >= AutoVacuum.UnlockEggs then return nil end
-	return "Vacuum " .. Currency.Grouped(AutoVacuum.UnlockEggs - done) .. " more eggs with the Egg Vacuum to unlock it ("
-		.. Currency.Grouped(done) .. " / " .. Currency.Grouped(AutoVacuum.UnlockEggs) .. ")."
 end
 
 -- Normal individual roll outcomes for the Luck hex; same odds as ordinary rolls
@@ -103,9 +88,6 @@ function UpgradeService.NodeOffer(session, nodeId: string)
 	if node.prerequisite and not owned(session, node.prerequisite) then
 		return {status = "Locked", price = price, spendReason = "Buy " .. Tree.Nodes[node.prerequisite].name .. " first."}
 	end
-	-- Shown like a too-expensive hex (its price in red) with the requirement as reason.
-	local requirement = UpgradeService.Requirement(session, node.family :: string)
-	if requirement then return {status = "Unaffordable", price = price, spendReason = requirement, requirement = requirement} end
 	local canSpend, reason = session:CanSpendCash(price, purpose(node.family))
 	return {status = if canSpend then "Available" else "Unaffordable", price = price,
 		spendReason = if canSpend then nil else reason}
@@ -170,8 +152,6 @@ function UpgradeService:BuyNode(session, nodeId: any, expectedPrice: any, _now: 
 	local familyId, tier = node.family :: string, node.tier :: number
 	-- Tiers within a family are bought in order (the prerequisite chain above).
 	if Tree.Tier(session.upgradeTree, familyId) + 1 ~= tier then return false, "Buy the earlier tiers first." end
-	local requirement = UpgradeService.Requirement(session, familyId)
-	if requirement then return false, requirement end
 	local price = UpgradeService.Quote(session, familyId, tier)
 	-- A replay or stale click never purchases at an unexpected price.
 	if not price or expectedPrice ~= price then return false, "This upgrade changed. Try again." end

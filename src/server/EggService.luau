@@ -320,7 +320,7 @@ function EggService:Pay(session,yard,drop,now)
   local cargo=vacuumCargo(session)
   cargo.count=math.min(CARRY_LIMIT,cargo.count+count)
   cargo.value=math.min(CARRY_LIMIT,cargo.value+drop.value)
-  -- Lifetime count that opens the Auto Vacuum hex (AutoVacuumConfig.UnlockEggs).
+  -- Saved lifetime count (it opened the Auto Vacuum until October 22; now a stat only).
   session.vacuumedEggs=math.min(1e9,(tonumber(session.vacuumedEggs) or 0)+count)
  elseif drop.collector=="rover" then
   local rover=yard.rover
