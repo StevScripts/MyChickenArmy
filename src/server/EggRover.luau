@@ -88,7 +88,7 @@ function EggRover.new(id, frame, plotIndex, pad, now, stats)
 		route = {}, waypoint = 1, range = stats.range, speed = stats.speed, passes = passes,
 		nextSweepAt = now, unloadAt = 0,
 		cargoCount = 0, cargoValue = 0, pendingCount = 0, pendingValue = 0,
-		suctionSerial = 0, unloadSerial = 0,
+		suctionSerial = 0, unloadSerial = 0, reversed = false, lapSerial = 0,
 	}, EggRover)
 end
 
@@ -103,6 +103,17 @@ end
 function EggRover:BeginSweep()
 	local route = {self.dockApproach, self.corridor, self.approach}
 	for _, point in self.rows do table.insert(route, point) end
+	self.reversed, self.lapSerial = false, self.suctionSerial
+	self:SetRoute("Sweeping", route)
+end
+
+-- Another lap from where the last one ended: the same passes, driven the other way.
+function EggRover:SweepAgain()
+	self.reversed = not self.reversed
+	local route = {}
+	local count = #self.rows
+	for i = 1, count do table.insert(route, self.rows[if self.reversed then count + 1 - i else i]) end
+	self.lapSerial = self.suctionSerial
 	self:SetRoute("Sweeping", route)
 end
 
@@ -153,13 +164,21 @@ function EggRover:Move(dt)
 	return false
 end
 
--- `full`: the tank (cargo plus eggs still flying in) has no room left.
-function EggRover:Step(dt, now, hasEggs, full)
+-- `full`: the tank (cargo plus eggs still flying in) has no room left; `fill` is
+-- that load as a share of the tank.
+function EggRover:Step(dt, now, hasEggs, full, fill)
 	if self.state == "Idle" then
 		if hasEggs and not full and now >= self.nextSweepAt then self:BeginSweep() end
 	elseif self.state == "Sweeping" then
-		-- A full tank heads home at once; otherwise finish every pass first.
-		if full or self:Move(dt) then self:BeginReturn() end
+		-- A full tank heads home at once. At the end of the passes it heads home once
+		-- the tank is nearly full, or after an empty lap with no egg waiting (no layers
+		-- at home), so its cargo never waits forever; otherwise it sweeps again.
+		if full then
+			self:BeginReturn()
+		elseif self:Move(dt) then
+			local emptyLap = self.suctionSerial == self.lapSerial and not hasEggs
+			if fill >= Config.ReturnFill or emptyLap then self:BeginReturn() else self:SweepAgain() end
+		end
 	elseif self.state == "Returning" then
 		if self:Move(dt) then
 			self.state = "Unloading"

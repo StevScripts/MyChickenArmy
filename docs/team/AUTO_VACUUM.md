@@ -51,9 +51,14 @@ costs more than the hand vacuum's last tier, not an eggs-vacuumed unlock.
 - `EggService:UpdateRover` runs every step while `researchEffects.autoVacuum >= 1` and the
   player owns their pad. A new Range or yard stage redraws the route the next time the
   robot stops at the pad empty; speed changes apply at once.
-- States: Idle (waits `IdleSeconds` and for a ready egg) → Sweeping → Returning (at the
-  end of the passes, or as soon as the tank is full) → Unloading → sale through
-  `AcceptDeposit`, recorded as collector `"rover"`.
+- States: Idle (waits `IdleSeconds` and for a ready egg) → Sweeping → Returning →
+  Unloading → sale through `AcceptDeposit`, recorded as collector `"rover"`.
+- October 22 (Stevin: keep vacuuming "until its sack is pretty much full"): a full tank
+  heads home at once. At the end of its passes it heads home only when the tank is at
+  `ReturnFill` (90%) or more; otherwise it sweeps the same passes again, driven the other
+  way (`EggRover:SweepAgain`). An empty lap with no ready egg in the yard (no layers at
+  home) also sends it home, so its cargo never waits forever. Checked in a Studio
+  playtest: laps ended at 23/40 and 17/40 and swept again; it sold at 40/40.
 - Claims are made in `EggService:Claim` with collector `"rover"` and land in the robot's
   cargo in `Pay`. The robot's cargo is live only. `EggService:ParkRover` settles its
   claims and moves its cargo into the player's bag whenever the robot goes away

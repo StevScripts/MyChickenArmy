@@ -11,6 +11,10 @@ return table.freeze({
 	-- the Auto Capacity tiers), shown in eggs and never below MinCapacity.
 	Seconds = 20,
 	MinCapacity = 8,
+	-- October 22 (Stevin): it keeps sweeping until the tank is "pretty much full".
+	-- At the end of its passes it drives home only at this share of the tank (a full
+	-- tank still heads home at once); otherwise it sweeps the yard again.
+	ReturnFill = 0.9,
 	-- Range: flat studs from the nozzle (plus the Auto Range tiers). The route splits
 	-- the yard into strips two Ranges wide, so a longer reach means fewer passes.
 	Range = 5,

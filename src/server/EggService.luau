@@ -476,7 +476,7 @@ function EggService:UpdateRover(session,yard,dt,now)
  for _,drop in yard.drops do
   if not drop.claimAt and now>=drop.readyAt then hasEggs=true;break end
  end
- rover:Step(dt,now,hasEggs,room<1)
+ rover:Step(dt,now,hasEggs,room<1,(capacity-room)/capacity)
  local nozzle=rover:Nozzle()
  -- Eggs already flying in chase the moving nozzle (clients aim at the model's own).
  for _,drop in yard.drops do
