@@ -86,12 +86,19 @@ local Config = {
  -- pays minutes of the post-Rebirth income, not the end-of-run income, so it no longer
  -- carries part of each rank. Ranks 3-49 cost 5-33% less to keep the same play time per
  -- Rebirth (REBIRTH_PACING_20261021.md "Time Skip head start").
+ -- October 22 later (Stevin: late runs still "easily unlock everything";
+ -- REBIRTH_PACING_20261021.md "Tree prices grow with rank"): tree prices are x1.2 a rank
+ -- from Rebirth 5 to 30 and x1.12 a rank after (UpgradeCatalog.PriceScale), so every run
+ -- rebuys its tree for about a fifth to a third of the next Rebirth instead of a minute of
+ -- income. Ranks 6-49 were re-fit with that rebuy modelled (ProgressionSimulation
+ -- rebuyFraction, eight fast seeds) and moved by at most 12% either way: the rebought
+ -- Luck nearly pays for itself. Ranks 1-5 (base-priced runs) and 50 are unchanged.
  Rebirth={Enabled=true,Version=2,MaxRank=50,
-  Costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.82e10,6.05e10,2.13e11,9.41e11,4.15e12,
-   8.15e12,1.18e13,1.82e13,2.59e13,3.18e13,3.6e13,3.96e13,4.36e13,4.8e13,5.28e13,
-   6.18e13,7.08e13,7.79e13,8.57e13,1.02e14,1.21e14,1.56e14,1.92e14,2.44e14,2.99e14,
-   3.41e14,3.76e14,4.47e14,5.29e14,5.82e14,6.68e14,7.57e14,8.33e14,9.17e14,1.01e15,
-   1.12e15,1.24e15,1.37e15,1.51e15,1.67e15,1.84e15,2.06e15,2.37e15,2.7e15,3.13e15},
+  Costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.74e10,5.86e10,2.08e11,8.8e11,3.84e12,
+   7.43e12,1.06e13,1.74e13,2.47e13,2.94e13,3.24e13,3.74e13,4.19e13,4.78e13,5.37e13,
+   6.19e13,6.82e13,7.51e13,8.27e13,9.1e13,1.01e14,1.37e14,1.71e14,2.41e14,2.99e14,
+   3.67e14,4.06e14,4.49e14,5.39e14,6.15e14,6.77e14,7.7e14,8.72e14,9.6e14,1.06e15,
+   1.17e15,1.29e15,1.42e15,1.57e15,1.73e15,1.91e15,2.11e15,2.33e15,2.57e15,3.13e15},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EggBoostPerRank=1.7,EggBoostFromRank=5,EggBoostToRank=10,EggLateGrowthPerRank=1.06,
   EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,

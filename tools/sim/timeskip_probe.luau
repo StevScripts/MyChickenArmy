@@ -10,18 +10,23 @@ local Tree = Harness.require(Harness.Shared.UpgradeCatalog)
 local Rebirth = Harness.require(Harness.Server.RebirthService)
 local Sim = Harness.require(Harness.Tests.ProgressionSimulation)
 
-local prices = {}
-local total = 0
-for id, family in Tree.Families do
-	for tier = 1, #family.tiers do
-		local p = Tree.Price(id, tier, 0)
-		if p then table.insert(prices, p); total += p end
+-- October 22: tree prices scale with rank (UpgradeCatalog.PriceScale); the tiers the Time
+-- Skip buys are priced at the rank the player just reached.
+local function treePrices(rank)
+	local prices, total = {}, 0
+	for id, family in Tree.Families do
+		for tier = 1, #family.tiers do
+			local p = Tree.Price(id, tier, rank)
+			if p then table.insert(prices, p); total += p end
+		end
 	end
+	table.sort(prices)
+	return prices, total
 end
-table.sort(prices)
-local function buys(coins)
+local prices, total = treePrices(0)
+local function buys(coins, rank)
 	local n, spent = 0, 0
-	for _, p in prices do
+	for _, p in treePrices(rank) do
 		if spent + p > coins then break end
 		spent += p; n += 1
 	end
@@ -32,20 +37,20 @@ local function fmt(n)
 	elseif n >= 1e6 then return string.format("%.1fM", n/1e6) elseif n >= 1e3 then return string.format("%.1fK", n/1e3) end
 	return tostring(math.floor(n))
 end
-print(string.format("Tree: %d tiers, %s total", #prices, fmt(total)))
+print(string.format("Tree: %d tiers, %s total at Rebirth 0 (x%.1f at 10, x%.0f at 30)", #prices, fmt(total), Tree.PriceScale(10), Tree.PriceScale(30)))
 local orig = Rebirth.Rebirth
 Rebirth.Rebirth = function(session, ...)
 	local minutes = session.researchEffects and session.researchEffects.timeSkipMinutes or 0
 	local owned = 0
 	for id, family in Tree.Families do
-		for tier = 1, Tree.Tier(session.upgradeTree, id) do owned += Tree.Price(id, tier, 0) or 0 end
+		for tier = 1, Tree.Tier(session.upgradeTree, id) do owned += Tree.Price(id, tier, session.rebirths) or 0 end
 	end
 	local ok, msg, receipt = orig(session, ...)
 	if ok and receipt then
 		local pre = if session.timeSkipPending then session.timeSkipPending.coins else receipt.timeSkipCoins or 0
 		local nextCost = Rebirth.Cost(session.rebirths + 1) or 0
 		print(string.format("R%2d  min=%2d  skip=%8s  buys %3d/%d tiers  = %6.2f%% of the tree you had (%s)  %5.2f%% of next rank %s",
-			session.rebirths, minutes, fmt(pre), buys(pre), #prices, owned > 0 and pre / owned * 100 or 0, fmt(owned),
+			session.rebirths, minutes, fmt(pre), buys(pre, session.rebirths), #prices, owned > 0 and pre / owned * 100 or 0, fmt(owned),
 			nextCost > 0 and pre / nextCost * 100 or 0, fmt(nextCost)))
 	end
 	return ok, msg, receipt

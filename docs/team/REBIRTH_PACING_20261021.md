@@ -578,3 +578,228 @@ the Rebirth, not a shopping trip.
 Also shipped the same day: the Rebirth screen shows abbreviated numbers (`UITheme.Number`:
 50K, 1M, 14.6M … 3.13Qa; `Qa`/`Qi` suffixes added) on its Coins bar and in "Need … more
 Coins" instead of full digits.
+
+## October 22 later: tree prices grow with rank
+
+Stevin, after the unlock-everything check ("easy but challenging enough"): the lever
+proposed above was taken. From Rebirth 10 the whole tree (677B Coins, 612B of it Luck)
+cost five minutes of the run's income and from Rebirth 20 under a minute, because its
+prices were flat while the egg multiplier grew x1.06–1.7 a rank; every late run rebought
+everything in its first minutes and then only waited.
+
+### Change
+
+`UpgradeCatalog.PriceScale(rank)`: every tree price is multiplied by
+`RankPriceGrowth` (1.2) for each Rebirth rank past `RankPriceFreeRanks` (4) and by
+`RankPriceLateGrowth` (1.12) for each rank past `RankPriceLateFromRank` (30), the same
+shape as the ladder itself (x1.2 a rank to 30, x1.12 after). Ranks 0–4 pay the base
+quotes, so Rebirths 1–5 and the first hour are unchanged. A scaled price is rounded up to
+three significant figures (Egg Speed I 400 → 480 at Rebirth 5, 1,200 at 10, 45,800 at
+30; Mega Luck IV 400B → 1.2T at 10, 45.8T at 30, 395T at 49). The linear
+`1 + growth × rank` knob is gone.
+
+Only the server quotes a price (`UpgradeService.Quote` → `Catalog.Price(family, tier,
+session.rebirths)`; `PlayerSession`'s compatibility offers pass the rank too) and the
+client shows the quoted price, as before; a stale base quote is refused with "This
+upgrade changed. Try again." Tier values never move with rank, so saved tiers keep their
+meaning: no `TreeMigrations` step, no `DataRevision` change. Keep Upgrades still keeps
+its tiers; the Time Skip head start now buys fewer of the cheap tiers in late ranks. The
+UI Lab's Upgrades story keeps showing base quotes (it is a display fixture).
+
+Why two rates: a single rate cannot track a ladder that steps x1.2 a rank to Rebirth 30
+and x1.1–1.12 after. On the morning ladder x1.15 from Rebirth 5 left the tree at 12% of
+the next Rebirth by rank 49 and x1.2 took it to 66%; 1.2 then 1.12 keeps it near a fifth
+everywhere (the integer at the top of the ladder, 395T, stays far below 2^53). A rank
+gate is still forbidden: higher ranks pay more, they are never locked out.
+
+Whole tree against the next Rebirth on the shipped ladder (`UpgradeCatalog` sums; the
+simulated player buys 55–67 of the 115 hexes, never the Tools, Player and Army ones):
+
+| Rank (run after Rebirth) | 5 | 8 | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 49 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Price scale | x1.2 | x2.07 | x2.99 | x7.43 | x18.5 | x46 | x114 | x202 | x356 | x627 | x986 |
+| Whole tree | 812B | 1.41T | 2.03T | 5.04T | 12.5T | 31.3T | 77.6T | 137T | 242T | 425T | 668T |
+| Share of the next Rebirth | 47x | 1.6x | 27% | 16% | 20% | 31% | 21% | 20% | 21% | 22% | 21% |
+
+### Simulation: the run rebuys its tree
+
+`tests/ProgressionSimulation.luau` bought Luck, Roll Slot and machine hexes only from a
+utility budget of 4% of the Coins on hand while saving, which was fine while Mega Luck IV
+cost 400B against trillion-Coin Rebirths but skipped every Luck tier past Mega Luck II
+from Rebirth 20 on once prices scaled (the first measurement below). The design intent is
+that each run rebuys its tree, so from the first scaled rank (Rebirth 5) a hex costing up
+to `rebuyFraction` (0.2) of the next Rebirth is always in budget while saving (assumption
+7). Ranks 0–4 behave exactly as before.
+
+### Ladder re-fit
+
+Targets: the October 22 morning gaps (this doc's unlock-everything run, fast seeds
+201–203), ranks 11–30 scaled by 0.95 so Rebirth 20 and 30 sit mid-range (11–13 h,
+21–24 h); ranks 48–50, which no 40-hour fast seed reached, take the 2-hour-a-day seeds'
+played gaps. Each iteration ran fast seeds 201–203 for 60 h (and casual 211–212 for 40 h
+as a check) through `tools/sim/cost_fit.luau`, then `gaps.py` and `fit.py` moved each cost
+by (target gap / measured gap)^0.8, log-smoothed over five ranks, inside the ratio bands
+(x3–20 through Rebirth 10, x1.1–3 after), rounded to three figures; Rebirth 1–5 (their
+runs pay base prices) and 50 are fixed.
+
+| Iteration | Ladder | Simulation | Fast Rebirth 10 / 20 / 30 / 40 |
+|---|---|---|---|
+| 1 | morning ladder | 4%-of-Coins utility rule | 2.8 h / 12.8 h / 24.5 h / 39.0 h: late runs skip Mega Luck III–IV, ranks 41–45 take 110–145 min |
+| 2 | fit 1 (ranks 6–49 3–13% lower) | rebuy rule at every rank | 2.9 h / 11.1 h / 20.3 h / 32.6 h: the rebought Luck more than pays for itself; Rebirth 5 slipped to 1.2 h because the rule also spent early |
+| 3 | fit 2 (ranks 6–40 raised 5–20%) | rebuy rule from Rebirth 5 | 3.0 h / 12.9 h / 25.6 h / 41.0 h |
+| 4 | fit 3, eight fast seeds (201–208, 40 h) plus the doc's casual and daily seeds | same | 2.8 h / 12.8 h / 24.5 h / 36.9 h; casual 20.2 h at 30, 45 min a day on day 25: Rebirth 30 at the top of its bands, so ranks 21–30 were trimmed 6% |
+| shipped | fit 3 with ranks 21–30 x0.94 | same | confirmation below |
+
+Three seeds are not enough for a rank: the same seed moves 2–4 h at Rebirth 30 between
+ladders that differ by 10%, because an earlier Rebirth changes every roll after it. The
+confirmation therefore uses eight fast seeds. The shipped ladder is within 12% of the
+morning ladder at every rank (lower through Rebirth 18, at 25–26 and at 48–49, higher
+from 27 to 47): with the rebuy modelled, the rank-priced tree costs the player about as
+much time as the better chickens it buys give back.
+
+| Rebirth | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 50K | 1M | 14.6M | 290M | 5.79B | 17.4B | 58.6B | 208B | 880B | 3.84T |
+| x prev | – | 20.00 | 14.60 | 19.86 | 19.97 | 3.01 | 3.37 | 3.55 | 4.23 | 4.36 |
+| Was (Oct 22 morning) | 50K | 1M | 14.6M | 290M | 5.79B | 18.2B | 60.5B | 213B | 941B | 4.15T |
+
+| Rebirth | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 7.43T | 10.6T | 17.4T | 24.7T | 29.4T | 32.4T | 37.4T | 41.9T | 47.8T | 53.7T |
+| x prev | 1.93 | 1.43 | 1.64 | 1.42 | 1.19 | 1.10 | 1.15 | 1.12 | 1.14 | 1.12 |
+| Was (Oct 22 morning) | 8.15T | 11.8T | 18.2T | 25.9T | 31.8T | 36T | 39.6T | 43.6T | 48T | 52.8T |
+
+| Rebirth | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 61.9T | 68.2T | 75.1T | 82.7T | 91T | 101T | 137T | 171T | 241T | 299T |
+| x prev | 1.15 | 1.10 | 1.10 | 1.10 | 1.10 | 1.11 | 1.36 | 1.25 | 1.41 | 1.24 |
+| Was (Oct 22 morning) | 61.8T | 70.8T | 77.9T | 85.7T | 102T | 121T | 156T | 192T | 244T | 299T |
+
+| Rebirth | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 367T | 406T | 449T | 539T | 615T | 677T | 770T | 872T | 960T | 1.06Qa |
+| x prev | 1.23 | 1.11 | 1.11 | 1.20 | 1.14 | 1.10 | 1.14 | 1.13 | 1.10 | 1.10 |
+| Was (Oct 22 morning) | 341T | 376T | 447T | 529T | 582T | 668T | 757T | 833T | 917T | 1.01Qa |
+
+| Rebirth | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Cost | 1.17Qa | 1.29Qa | 1.42Qa | 1.57Qa | 1.73Qa | 1.91Qa | 2.11Qa | 2.33Qa | 2.57Qa | 3.13Qa |
+| x prev | 1.10 | 1.10 | 1.10 | 1.11 | 1.10 | 1.10 | 1.10 | 1.10 | 1.10 | 1.22 |
+| Was (Oct 22 morning) | 1.12Qa | 1.24Qa | 1.37Qa | 1.51Qa | 1.67Qa | 1.84Qa | 2.06Qa | 2.37Qa | 2.7Qa | 3.13Qa |
+
+### Results (shipped ladder; fast seeds 201–208 for 40 h, casual 211–212 for 40 h, 2 h a day 231–232 and 45 min a day 221–223 for 60 days)
+
+Medians; "(n/m)" = seeds that got there; login players in days with the first visit as
+day 1. "Before" is the October 22 morning run (eb0dc28) re-rendered by
+`tools/sim/report.py` from its own files, so the two columns count days the same way.
+
+| Milestone | Fast, before | **Fast, now** | Casual, before | **Casual, now** | 2 h a day, before | **2 h a day, now** | 45 min a day, before | **45 min a day, now** |
+|---|---|---|---|---|---|---|---|---|
+| Rebirth 1 / 2 | 10 / 18 min | 10 / 17 min | 8 / 16 min | 8 / 16 min | 8 / 17 min | 8 / 17 min | 9 / 15 min | 9 / 15 min |
+| Rebirth 5 | 57 min | 58 min | 66 min | 66 min | 59 min | 59 min | day 2 | day 2 |
+| Rebirth 10 (target ~3 h) | 2.7 h | 2.8 h | 3.0 h | 3.3 h | day 2 | day 2 | day 4 | day 4 |
+| Rebirth 20 (11–13 h) | 12.3 h | 12.8 h | 11.7 h | 11.3 h | day 6 | day 6 | day 13 | day 14 |
+| Rebirth 30 (21–24 h; day 21–25) | 23.8 h | 24.2 h | 21.6 h | 20.0 h | day 11 | day 11 | day 26 | day 24 |
+| Rebirth 40 | 35.1 h (2/3) | 38.8 h (5/8) | 34.3 h | 30.8 h | day 17 | day 18 | day 40 | day 37 |
+| Rebirth 50 (max) | never | never (ranks 34–46) | never | 37.5 h (1/2) | day 24 | day 26 | day 55 (2/3) | day 52 (2/3) |
+| Gem board complete | 31.9 h (1/3) | 35.5 h (2/8) | 35.6 h | 31.7 h | day 17 | day 18 | day 42 | day 39 |
+| All 3 camps / King | 12 / 18 min | 14 / 18 min | 14 / 18 min | 14 / 18 min | 12 / 18 min | 12 / 18 min | 14 / 20 min | 14 / 20 min |
+| First Legendary owned | 16 min | 18 min | 18 min | 18 min | 22 min | 22 min | 20 min | 20 min |
+| First Mythic owned | 44 min (R4) | 44 min (R4) | 2.4 h (R8) | 2.5 h (R8) | day 3 (R11) | day 1 (R6) | day 13 (R19) | day 4 (R10) |
+| First Secret offer / owned | 49 min / 6.2 h | 48 min / 6.7 h | 79 min / 6.4 h | 69 min / 6.8 h (1/2) | 60 min / day 3 | 76 min / day 4 | 29 min / day 4 | 29 min / day 7 |
+| All 8 podiums | 27 min (R3) | 26 min (R2) | 31 min (R3) | 31 min (R3) | 26 min (R2) | 26 min (R2) | 28 min (R3) | 28 min (R3) |
+| All 4 Mutations | 37 min (R3) | 36 min (R3) | 35 min (R3) | 35 min (R3) | 44 min (R4) | 44 min (R4) | 45 min (R4) | 45 min (R4) |
+| Luck IV (x3) | 20 min (R2) | 20 min (R2) | 23 min (R2) | 23 min (R2) | 22 min (R2) | 22 min (R2) | 20 min (R2) | 20 min (R2) |
+| Egg Speed IV / Egg Value IV | 35 / 46 min (R4) | 39 / 48 min (R4) | 38 / 47 min (R4) | 38 / 47 min (R4) | 41 / 49 min (R4) | 41 / 49 min (R4) | 38 / 45 min (R3–4) | 38 / 45 min (R3–4) |
+| Super Luck IV (x5) | 90 min (R6) | 70 min (R5) | 1.8 h (R6) | 80 min (R5) | day 1 (R6) | 71 min (R5) | day 2 (R6) | day 2 (R5) |
+| Flock Size 15 | 1.6 h (R7) | 1.8 h (R7) | 1.6 h (R6) | 1.8 h (R6) | day 1 (R6) | day 1 (R7) | day 3 (R7) | day 3 (R7) |
+| Mega Luck IV (x10) | 3.8 h (R11) | 3.2 h (R10) | 4.0 h (R11) | 3.6 h (R10) | day 2 (R11) | day 2 (R10) | day 5 (R11) | day 4 (R10) |
+
+Play minutes per Rebirth (range of the per-rank medians; the longest single gap in
+brackets):
+
+| Ranks | Fast, before | **Fast, now** | Casual, now | 2 h a day, now | 45 min a day, now |
+|---|---|---|---|---|---|
+| 1–5 | 7–20 (32) | 7–19 (32) | 8–30 (30) | 8–18 (19) | 6–14 (17) |
+| 6–10 | 19–28 (58) | 19–31 (68) | 22–40 (42) | 18–29 (30) | 15–24 (26) |
+| 11–15 | 34–52 (60) | 39–56 (64) | 30–47 (47) | 37–53 (59) | 26–42 (44) |
+| 16–20 | 64–82 (94) | 63–91 (106) | 47–69 (74) | 53–75 (85) | 45–62 (86) |
+| 21–30 | 51–93 (112) | 54–91 (126) | 45–62 (74) | 41–80 (80) | 29–64 (76) |
+| 31–40 | 76–103 (118) | 78–101 (134) | 58–73 (96) | 51–96 (107) | 44–76 (97) |
+| 41–50 | 63–99 (99) | 59–116 (132) | 44–86 (115) | 78–107 (134) | 61–90 (123) |
+
+45 min a day, one visit a day, 60 days: seed 221 Rebirth 50 on day 51 (10 of days 12–51
+without a Rebirth, longest drought 1 day); seed 222 Rebirth 50 on day 54 (11 such days,
+longest 1); seed 223, the unlucky one, Rebirth 47 on day 60 (19 such days, longest 2).
+The 2-hour player never has a day without a Rebirth and finishes on day 25–27.
+
+### Inside a run: the tree against the run (fast seeds, medians)
+
+| Rebirth | cost | income before the reset | next run's tree | tree in minutes of that income (was) | tree / next Rebirth | hexes owned at the reset | play min this rank (was) |
+|---|---|---|---|---|---|---|---|
+| 3 | 14.6M | 116K/s | 677B | never (never) | – | 36 | 8 (7) |
+| 5 | 5.79B | 7.69M/s | 812B | 1,760 (1,454) | – | 53 | 19 (20) |
+| 8 | 208B | 235M/s | 1.4T | 99 (46) | 1.6x | 57 | 21 (22) |
+| 10 | 3.84T | 1.95B/s | 2.02T | 17 (5) | 27% | 60 | 31 (28) |
+| 12 | 10.6T | 5.59B/s | 2.91T | 8.7 (2.0) | 17% | 62 | 39 (38) |
+| 15 | 29.4T | 11B/s | 5.03T | 7.6 (1.1) | 16% | 62 | 46 (52) |
+| 20 | 53.7T | 34.4B/s | 12.5T | 6.1 (0.3) | 20% | 66 | 82 (80) |
+| 25 | 91T | 66.6B/s | 31.1T | 7.8 (0.2) | 31% | 66 | 65 (69) |
+| 30 | 299T | 142B/s | 77.5T | 9.1 (0.07) | 21% | 66 | 91 (93) |
+| 35 | 615T | 225B/s | 137T | 10.1 (0.05) | 20% | 66 | 81 (76) |
+| 40 | 1.06Qa | 387B/s | 241T | 10.4 (0.03) | 21% | 66 | 82 (84) |
+
+The whole tree is now a fifth to a third of the next Rebirth from Rebirth 10 on (it was
+8% at 10, 1% at 20, 0.2% at 30) and 6–17 minutes of the run's peak income instead of
+0.03–5. Because the run starts far below its peak (the tree, Feed levels and the new
+chickens come during the run), the rebuy fills the first third to half of each run:
+Mega Luck IV, the biggest hex, lands around the middle of the run and the cheap hexes
+at once. The simulated player still buys the same 55–67 hexes, now at ranks 5–10 one
+Rebirth earlier than before (Super Luck IV at Rebirth 5, Mega Luck IV at 10) because the
+rebuy rule spends on Luck as soon as it is a modest share of the next Rebirth.
+
+### Verdict against the targets
+
+- Fast nonstop: Rebirth 10 at 2.8 h, 20 at 12.8 h, 30 at 24.2 h (eight seeds, 21.1–30.3 h;
+  five of eight inside 21–24 h). Rebirth 30 sits at the top of its band after the 6% trim
+  of ranks 21–30, which moved the median only 0.3 h: the seed spread, not the ladder,
+  decides the last hour. Rebirth 40 at 38.8 h (5 of 8), Rebirth 50 never within 40 h
+  (as before).
+- Casual nonstop (60-minute visits): 3.3 h / 11.3 h / 20.0 h, one of two seeds at
+  Rebirth 50 by 37.5 h.
+- 45 min a day: Rebirth 30 on day 24 (was day 26), Rebirth 50 on day 51–54 for two of
+  three seeds; droughts of at most 2 days. 2 h a day: Rebirth 30 on day 11, 50 on day
+  25–27.
+- The first hour is byte-identical to the morning build for ranks 0–4
+  (`rarity_probe.luau profile=fast rollEverySeconds=4 hours=1 seeds=3` on both trees:
+  Rebirth 1 at 8–11 min, 2 at 18–20, 3 at 25–28, 5 at 58; first Legendary owned 14–22 min,
+  first Mythic 35–44 min, Secret offers from 21–44 min); only a seed that reaches
+  Rebirth 5 before the hour ends differs after that.
+- No rank takes more than 2.5 h of play for the fast player (longest single gap 134 min
+  at Rebirth 31–40) and the 45-minute player's longest drought is 2 days.
+
+### Live notes
+
+- Every tree price a player sees from Rebirth 5 on is higher than yesterday's (Egg Speed I
+  480 Coins at Rebirth 5, 1,200 at 10, 45,800 at 30); saved tiers keep their values. A
+  player mid-run at Rebirth 20 who had planned on 400B for Mega Luck IV now needs 7.4T.
+- Keep Upgrades is worth more: the tiers it keeps would cost x3 at Rebirth 10 and x114 at
+  30 to rebuy.
+- The Time Skip head start (5–45 minutes of the post-Rebirth income) buys fewer of the
+  cheap hexes late; the big ones were already out of its reach.
+- Ladder: ranks 6–18 and 25–26 cost 2–11% less than the morning ladder, 27–47 up to 12%
+  more, 48–49 less; a player saving for one of those ranks sees the new price on the
+  Rebirth screen. No `DataRevision` or `TreeMigrations` change.
+
+### Reproducing
+
+```
+cd tools/sim
+./lune run harness.luau ../.. unlock_probe.luau seeds=1 firstSeed=201 hours=40 profile=fast traceEvery=60 out=runs/fast-201.json   # 201-208
+./lune run harness.luau ../.. unlock_probe.luau seeds=1 firstSeed=211 hours=40 profile=casual traceEvery=60 out=runs/casual-211.json  # 211-212
+./lune run harness.luau ../.. unlock_probe.luau seeds=1 firstSeed=231 hours=1440 profile=fast playMinutes=120 awayMinutes=1320 traceEvery=60 out=runs/daily120-231.json  # 231-232
+./lune run harness.luau ../.. unlock_probe.luau seeds=1 firstSeed=221 hours=1440 profile=casual playMinutes=45 awayMinutes=1395 traceEvery=60 out=runs/daily45-221.json  # 221-223
+python3 report.py runs
+./lune run harness.luau ../.. cost_fit.luau seeds=1 firstSeed=201 hours=60 profile=fast costs=costs.json out=m-201.json  # a fit iteration (growth=1.2 lateGrowth=1.12 patch the knobs)
+python3 gaps.py m-201.json m-202.json m-203.json out=measured.json && python3 fit.py targets.json measured.json costs.json costs-next.json
+```
