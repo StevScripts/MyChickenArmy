@@ -277,15 +277,19 @@ Hooks other owners add (one call each):
   so `WorldService`/`PlotUpgradeService` keep growing the yard. `UpgradeCatalog`
   keeps `PlotPrices`/`PlotScales`/`PlotCapacity`/`EggSpeedPrices`/`RollSlotPrices` as
   compatibility views for those readers and the old cash hexes; S9/S10 may drop them.
-- Time Skip pays `timeSkipMinutes` × the egg income the player has right before the
-  Rebirth: the best Flock-size chickens at today's tiers, Chicken Feed levels and rank,
-  with Coin Boost, 2x Coins and 2x Egg Spawn. It is steady (no Gold Rush or Friend
+- Time Skip pays `timeSkipMinutes` × the egg income the player will have right after
+  the Rebirth (October 22, Stevin: the old end-of-run measure "easily unlocks
+  everything"): the best Flock-size chickens (tree Flock tiers reset, Gem slots stay)
+  at the tiers Keep Upgrades leaves, without Chicken Feed levels, at the next rank's
+  multiplier, with Coin Boost, 2x Coins and 2x Egg Spawn. A Skip Rebirth keeps the
+  tree and Feed levels, so it measures those. It is steady (no Gold Rush or Friend
   Boost) and floored at `DailyService.MinIncome`. It is credited after the reset
   through `Credit(..., "rebirth")` (analytics source `TimeSkip`), and
   `state.rebirth.timeSkipCoins` previews that exact amount. October 21 (P4): a
   non-Skip Rebirth saves it in `timeSkipPending` instead and `ClaimTimeSkip` credits
-  it, so the balance reads 0 after a Rebirth; a Skip Rebirth credits it at once. P0 chose this over the
-  post-reset income, which paid a few millionths of a rank's cost.
+  it, so the balance reads 0 after a Rebirth; a Skip Rebirth credits it at once. P0 had
+  chosen the pre-reset income (the post-reset one pays a few millionths of a rank's
+  cost); October 22 reverses that: Time Skip is a head start, not a share of the rank.
 - `BuyUpgrade` counts like `CashUpgrade` in `TutorialService:Action`, `AnalyticsFunnels`
   (Upgrades FirstBuy; a `Flock*` node counts as Plot Expanded) and `AnalyticsPlayer`.
 - Admin (lead-approved): `upgrade <target> <all|node>` (replaces `research`), `army`
@@ -377,8 +381,8 @@ Gem Upgrades are never reset, cost Gems only, and are not Coins upgrades, so the
 - **Rewards:**
   - Egg Coins x(1 + rank).
   - Gems = (40 + 10 × rank) × (1 + `gemBonus`), floored.
-  - Time Skip: `timeSkipMinutes` of the egg income just before the reset (exact rule
-    in "Rule changes" under §5).
+  - Time Skip: `timeSkipMinutes` of the egg income right after the reset (October 22;
+    exact rule in "Rule changes" under §5).
   - That rank's Rebirth chicken, Lv 1, free. Above `StorageLimit` it waits in
     `rebirthChickenCredits`.
   - Mutation unlocks: Rainbow at Rebirth 1, Shadow at 5, Cosmic at 10.
@@ -551,7 +555,8 @@ rise at least 1.1x per rank. Five rounds of 3 seeds, then checks on fresh seeds 
   2-hour visits (the fit), +41% with 1-hour visits (the casual rows, which beat the
   targets), and by the tile table about +100% when rejoining every 5–30 minutes.
   Without them the fast player is 20–30% behind.
-- Time Skip pays 11% (fast) to 17% (casual) as many Coins as eggs over a game.
+- Time Skip pays 11% (fast) to 17% (casual) as many Coins as eggs over a game (before
+  October 22; it now measures the post-Rebirth income and pays far less).
 - Feed Max Level: Flock chickens reach Lv 8–9 before each Rebirth through Rebirth 10,
   so levels past 10 matter only in the late game.
 - The Gem board completes at about Rebirth 25–27 for fast seeds.

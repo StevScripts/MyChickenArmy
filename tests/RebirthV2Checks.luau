@@ -163,6 +163,7 @@ function Checks.Run()
 		assert(quote.nextChicken==nil and quote.multiplierNext==2 and quote.enemyScaleNext==1,"Quote rewards")
 		assert(quote.timeSkipMinutes==5 and quote.cashLevels==2 and quote.kingRequired==false,"Quote details")
 		local count=s:Count()
+		local keptRun=Rebirth.TimeSkipCoins(s,true)
 		local ok,message,receipt=Rebirth.Rebirth(s,0,NO_SERVER,false)
 		assert(ok and message=="Rebirth complete: Rebirth 1",message)
 		assert(s.rebirths==1 and receipt.rank==1 and receipt.gems==50 and not receipt.skip and not receipt.automatic,"Receipt")
@@ -170,9 +171,10 @@ function Checks.Run()
 			"Tree left: "..levelsText(s.upgradeTree))
 		assert(s.gems==50 and s.gemsEarned==50,"Gems "..s.gems)
 		assert(s:Count()==count and receipt.petId==nil and receipt.species==nil,"A Rebirth chicken was granted")
-		-- Time Skip pays today's income, measured before the reset, as the quote showed.
-		assert(receipt.timeSkipCoins==quote.timeSkipCoins and receipt.timeSkipCoins>Rebirth.TimeSkipCoins(s),
-			"Time Skip "..receipt.timeSkipCoins.." vs quote "..quote.timeSkipCoins)
+		-- October 22: Time Skip pays the new run's income (no tree tiers or Feed levels),
+		-- measured before the reset, as the quote showed; never the old run's income.
+		assert(receipt.timeSkipCoins==quote.timeSkipCoins and receipt.timeSkipCoins<keptRun,
+			"Time Skip "..receipt.timeSkipCoins.." vs quote "..quote.timeSkipCoins.." and kept run "..keptRun)
 		assert(s.coins==0 and s.timeSkipPending.coins==receipt.timeSkipCoins,"Coins "..s.coins)
 		assert(fed.level==1 and fed.cashLevels==nil,"Chicken Feed levels stay")
 		assert(s.eggCarry.count==0 and s.eggCarry.value==0,"Carried eggs stay")

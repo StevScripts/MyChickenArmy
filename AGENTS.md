@@ -67,6 +67,10 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   a level with x4 quotes, Egg Speed/Value III–IV and Flock 7–15 priced 25K–2B) and the egg
   multiplier gains x1.7 a rank on ranks 5–10 and x1.06 a rank after (x266 at 10, never
   below the old 1 + rank), see "reference-shaped ladder" in that doc.
+- **Time Skip (Oct 22, Stevin: the Rebirth bonus "easily unlocks everything"):** it pays
+  its minutes of the income the player has right after the Rebirth (no tree tiers past
+  Keep Upgrades, no Feed levels, next rank's multiplier), never the end-of-run income.
+  See "Time Skip" in `docs/team/REBIRTH_PACING_20261021.md`.
 - **Flock** = chickens laying in the yard (only they lay, also offline), not the Sep 29
   25–100 capacity. Storage holds the rest (hidden cap 1,000); the **Army** is its own pick.
   Yard builds are instant (ends Oct 16 timed builds).
