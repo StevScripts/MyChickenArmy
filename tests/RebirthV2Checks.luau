@@ -19,6 +19,8 @@ local RebirthChickens=require(Server.RebirthChickens)
 local Army=require(Server.ArmyService)
 local TreeMigrations=require(Server.TreeMigrations)
 local Operations=require(Server.OperationService)
+local OperationCatalog=require(Shared.OperationCatalog)
+local DailyService=require(Server.DailyService)
 local Checks={}
 
 -- Isolated: no live server, so no analytics, battles, yard eggs or save requests.
@@ -252,6 +254,30 @@ function Checks.Run()
 		assert(Operations.Tier(m)==2,"Converted tier")
 		assert(Operations.LockedMessage(1)=="Defeat the Chicken King or reach Rebirth 5 first."
 			and Operations.LockedMessage(3)=="Reach Rebirth 15 first.","Locked messages")
+		-- October 22 (tester: one site paid a Rebirth): a Mission pays minutes of steady
+		-- egg income, capped at a share of the next Rebirth; gold doubles; the old fixed
+		-- 250K-2.5B amounts are gone and the 2x Coins pass is not baked into the base.
+		assert(OperationCatalog.Reward("1:1",1,5e4,false)==480,"Minutes bind: 8 min of 1/s")
+		assert(OperationCatalog.Reward("1:1",1e9,5e4,false)==1500,"Share binds: 3% of 50K")
+		assert(OperationCatalog.Reward("1:1",1e9,5e4,true)==3000,"Gold doubles")
+		assert(OperationCatalog.Reward("3:3",1e12,1e6,false)==50000,"Royal share 5%")
+		assert(OperationCatalog.Reward("2:2",1,1e12,false)==720,"Elite 12 minutes")
+		m.rebirths,m.missionTierLegacy,m.kingCleared=0,0,true
+		local scout=Operations.Reward(m,"1:1",false)
+		assert(scout>0 and scout<=OperationCatalog.RebirthShare[1]*(Rebirth.Cost(1) or 0) and scout<=DailyService.Income(m)*8*60,"Scout reward capped: "..scout)
+		assert(Operations.Reward(m,"1:1",true)==scout*2,"Gold site doubles")
+		m.entitlements.DoubleCash=true
+		assert(Operations.Reward(m,"1:1",false)==scout,"2x Coins is not in the base (EarnedAmount adds it once)")
+		m.entitlements.DoubleCash=nil
+		for rank=0,Config.Rebirth.MaxRank do
+			m.rebirths=rank
+			local nextCost=Rebirth.Cost(math.min(rank+1,Config.Rebirth.MaxRank)) or 0
+			for _,id in {"1:3","2:3","3:3"} do
+				local tier=OperationCatalog.Encounters[id].tier
+				assert(Operations.Reward(m,id,true)<=2*OperationCatalog.RebirthShare[tier]*nextCost+1,"Rank "..rank.." "..id.." over the cap")
+			end
+		end
+		m.rebirths=0
 		return "Formulas match the contract"
 	end)
 

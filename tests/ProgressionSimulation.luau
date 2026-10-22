@@ -41,7 +41,9 @@
 --     rushSaver option sells only during rushes (up to x2 egg Coins, slower spending).
 --  4. Battles are not simulated. A camp/King is attacked at "Close fight" or better,
 --     a Mission first clear at "Should win"; every attack wins. Army upgrades (Damage,
---     Health, Armor) are ignored because the displayed power ignores them.
+--     Health, Armor) are ignored because the displayed power ignores them. A Mission
+--     pays OperationService.Reward (October 22: minutes of steady income, capped at a
+--     share of the next Rebirth); replays when that beats the squad's laying while away.
 --  5. Away: camp 90 s, King 150 s, Mission 150 s. The army's chickens stop laying while
 --     away; the next best home chickens fill the Flock (S10 backfill rule).
 --  6. Rebirth keeps camp/King progress but releases flags: the player re-takes camps
@@ -75,6 +77,7 @@ local Gems=require(Shared.GemUpgradeCatalog)
 local MutationCatalog=require(Shared.MutationCatalog)
 local PetCatalog=require(Shared.PetCatalog)
 local Operations=require(Shared.OperationCatalog)
+local OperationService=require(Server.OperationService)
 local CombatRewards=require(Shared.CombatRewards)
 local Session=require(Server.PlayerSession)
 local Army=require(Server.ArmyService)
@@ -318,9 +321,9 @@ local function resolve(state,now)
 		mark(state,"King",now)
 	elseif job.kind=="Invasion" then
 		local id=job.data.id
-		local definition=Operations.Encounters[id]
 		local first=not s.research.operationWins[id]
-		local amount=math.floor(s:EarnedAmount((if first then definition.firstCash else definition.replayCash)*rush,"battle"))
+		-- October 22: the live formula (no gold sites in the model).
+		local amount=math.floor(s:EarnedAmount(OperationService.Reward(s,id,false)*rush,"battle"))
 		stats.invasionCash+=s:Credit(amount,"operation")
 		if first then stats.invasionFirsts+=1 else stats.invasionReplays+=1 end
 		s.research.operationWins[id]=true
@@ -345,8 +348,9 @@ local function chooseAttack(state,now)
 	for id,won in s.research.operationWins do
 		local definition=Operations.Encounters[id]
 		if won and definition and definition.tier<=missionTier(s)
-			and Guide.Difficulty(power,Operations.Power(id))=="Should win" and definition.replayCash>bestCash then
-			best,bestCash=id,definition.replayCash
+			and Guide.Difficulty(power,Operations.Power(id))=="Should win" then
+			local cash=OperationService.Reward(s,id,false)
+			if cash>bestCash then best,bestCash=id,cash end
 		end
 	end
 	if not best then return end

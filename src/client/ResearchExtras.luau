@@ -217,7 +217,7 @@ function Extras:RenderOperations()
 		local id=self.tier..":"..index;local definition=Operations.Encounters[id];local cleared=data.wins[id]
 		app:Text("Title"..index,(if cleared then "✓ " else "")..definition.name,25,40,Operations.Colors[self.tier])
 		app:Text("Details"..index,definition.description.."\nEnemy power "..Theme.Money(Operations.Power(id)),18,50)
-		app:Button("Start"..index,(if cleared then "Defend again" else "Defend").." · "..Theme.CompactCoins(if cleared then definition.replayCash else definition.firstCash).." reward",function()
+		app:Button("Start"..index,(if cleared then "Defend again" else "Defend").." · "..math.floor((Operations.RebirthShare[self.tier] or 0)*100+.5).."% of a Rebirth",function()
 			app:Request("StartOperation",{operationId=id,expectedRevision=state.research and state.research.revision})
 		end,Theme.ActionColors.purchase)
 	end

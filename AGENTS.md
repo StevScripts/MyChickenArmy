@@ -101,6 +101,17 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Stevin:** "dont ask me for permission no more just do it". Agents decide and build
   without a confirm step, but still never publish or push unless asked.
 
+## Mission rewards (October 22, tester through Stevin)
+A tester got a whole Rebirth from one Mission site ("a CRAZY amount of money"). The payout
+floored at the October 8 fixed amounts (replayCash 250K–250M, firstCash 2.5M–2.5B) while
+Rebirth 1 costs 50K, and 8–15 minutes of end-of-run income often beats the next Rebirth
+too. Now `OperationCatalog.Reward`: `RewardMinutes` (8/12/15) of the player's steady egg
+income by tier, capped at `RebirthShare` (3%/4%/5%) of the next Rebirth's cost, doubled on
+gold sites; 2x Coins, Gold Rush and Friend Boost apply once, when the Coins are paid. The
+fixed amounts are removed from the catalog; never reintroduce a Coins floor there. Those
+two tables are the levers; re-run `tests/ProgressionSimulation` (it pays the live formula)
+before changing them. See `docs/team/MISSION_REWARDS_20261022.md`.
+
 ## One egg is one egg (October 21, owner decision)
 Each chicken lays one real egg every `Config.EggLaySeconds` (Egg Speed shortens it,
 floor `EggMinLaySeconds`); the egg carries all the Coins earned since its last.

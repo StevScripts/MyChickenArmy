@@ -28,6 +28,7 @@ local March=require(Shared.ArmyMarch)
 local Config=require(Shared.Config)
 local Currency=require(Shared.CurrencyLimits)
 local DailyService=require(script.Parent.DailyService)
+local RebirthService=require(script.Parent.RebirthService)
 local Service={}
 Service.__index=Service
 
@@ -154,15 +155,17 @@ Service.MinSites,Service.MaxSites=3,6 -- 2 + one per eligible player, clamped
 Service.LifeSeconds=900
 Service.GuardReturnSeconds=3
 Service.RareChance=.1 -- gold sites pay double
--- Cash reward: minutes of the player's egg income by tier, never below the
--- encounter's old replay reward.
-Service.RewardMinutes={8,12,15}
-
+-- Coins reward (October 22, tester through Stevin: one site paid a whole Rebirth).
+-- OperationCatalog.Reward: minutes of the player's steady egg income by tier, capped
+-- at a share of the next Rebirth's cost, doubled on gold sites. The old fixed replay
+-- floor (250K-250M) is gone. The payout goes through EarnedAmount("battle") once
+-- (2x Coins, Gold Rush, Friend Boost), so the income here leaves the 2x Coins pass
+-- out; DailyService.Income already holds the Rebirth multiplier and Coin Boost.
 function Service.Reward(session,id,rare)
-	local definition=Catalog.Encounters[id]
-	local minutes=Service.RewardMinutes[definition.tier] or 8
-	local cash=math.max(definition.replayCash,math.floor(DailyService.Income(session)*minutes*60))
-	return if rare then cash*2 else cash
+	local income=DailyService.Income(session)/(if session.entitlements and session.entitlements.DoubleCash then 2 else 1)
+	local rank=session.rebirths or 0
+	local nextCost=RebirthService.Cost(rank+1) or RebirthService.Cost(Config.Rebirth.MaxRank) or 0
+	return Catalog.Reward(id,income,nextCost,rare)
 end
 
 -- The highest unlocked tier comes up most often (weight 3), lower tiers weight 1.
@@ -609,10 +612,12 @@ function Service:Resolve(battle,outcome,now)
 		if won and site then
 			reward,first=self:Conquered(session,site,battle)
 		elseif won then
-			-- Keep the exact earned amount if the wallet fills during this fight.
-			-- A pending reward prevents another deployment, so these cannot overflow.
+			-- The site left during the fight: the same reward as a site win (October 22;
+			-- the old firstCash/replayCash amounts are gone). Keep the exact earned
+			-- amount if the wallet fills during this fight; a pending reward prevents
+			-- another deployment, so these cannot overflow.
 			first=not session.research.operationWins[battle.operationId]
-			session.research.pendingOperationReward=session:EarnedAmount(if first then definition.firstCash else definition.replayCash,"battle")
+			session.research.pendingOperationReward=session:EarnedAmount(Service.Reward(session,battle.operationId,battle.missionRare),"battle")
 			reward=Service.ClaimReward(session)
 			if first then session.research.operationWins[battle.operationId]=true;session.research.revision+=1 end
 		end

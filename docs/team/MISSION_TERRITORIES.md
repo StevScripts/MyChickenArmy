@@ -20,7 +20,9 @@ appears. This replaces the old 6-minute wait.
 - The roster is listed in `OperationCatalog.Encounters`. The art is in `LOYALIST_GUARDS.md`.
 
 **Winning against the guards.**
-- The conquest reward is paid as before: minutes of egg income, doubled on gold sites.
+- The conquest reward is `OperationCatalog.Reward` (October 22): minutes of steady egg income
+  by tier, capped at a share of the next Rebirth's cost (3% / 4% / 5%), doubled on gold sites.
+  The old fixed replay floor (250K–250M) is gone. See `MISSION_REWARDS_20261022.md`.
 - The army then stays stationed at the site under a conquest flag (`Battle:Hold`).
 - The army does not walk home.
 

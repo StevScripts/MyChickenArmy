@@ -261,14 +261,14 @@ function Panel:BuildMissions(content,data)
 			if selected then color:Lerp(CARD,.5) else CARD,if selected then color:Lerp(WHITE,.35) else Color3.new(0,0,0))
 		if selected then row.UIStroke.Thickness=4 end
 		label(row,"Name",definition.name,.04,.14,.6,.72,if locked then MUTED else WHITE)
-		-- Right chip: CLEAR!, a padlock, or the first-clear cash.
+		-- Right chip: CLEAR!, a padlock, or the win's share of the next Rebirth (October 22).
 		local chipColor=if locked then MUTED elseif cleared then GREEN else GOLD
 		local chip=card(row,"Chip",.67,.14,.3,.72,chipColor:Lerp(CARD,.6),chipColor)
 		if locked then
 			local lock=Theme.Image(chip,"Lock",Theme.Assets.Padlock,UDim2.fromScale(.4,.8),UDim2.fromScale(.3,.1))
 			Theme.Aspect(lock,1);lock.ZIndex=7
 		else
-			label(chip,"Text",if cleared then "CLEAR!" else money(definition.firstCash),.06,.08,.88,.84,WHITE,Enum.TextXAlignment.Center)
+			label(chip,"Text",if cleared then "CLEAR!" else math.floor((Operations.RebirthShare[definition.tier] or 0)*100+.5).."% of a Rebirth",.06,.08,.88,.84,WHITE,Enum.TextXAlignment.Center)
 		end
 		Theme.PadHit(hitArea(row,"Select",function()
 			cue("Select","Click")

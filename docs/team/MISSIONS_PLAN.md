@@ -133,8 +133,9 @@ Six site **themes**, each with its own look, enemy flavor and reward:
   `CommandTarget="mission:<id>"`, `Rare`) plus the airship drop; the open crates stay
   until the attack. `StartOperation {missionId}` sends the army; the loyalists appear,
   the 3-minute limit starts and the old Resolve/return flow runs. Reward: max(old replay
-  cash, income × 8/12/15 min by tier), doubled on gold, then 2x Cash; first clears still
-  set `operationWins` (banners). The old menu start is refused with a pointer to the island.
+  cash, income × 8/12/15 min by tier), doubled on gold, then 2x Cash (superseded October 22:
+  minutes of steady income capped at 3–5% of the next Rebirth, `MISSION_REWARDS_20261022.md`);
+  first clears still set `operationWins` (banners). The old menu start is refused with a pointer to the island.
   Snapshot adds `missions` (id, name, tier, power, count, reward, rare, expiresIn) and
   `activeSite`. Analytics: `mission.spawn/expired/start/won/lost/timeout.<tier>`
   (`Schema.Version` 3).
