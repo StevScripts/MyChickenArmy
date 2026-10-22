@@ -675,14 +675,18 @@ end
 -- The readout counts toward `value` (Quart Out) with a tick that rises in pitch across
 -- the count; spends drop at once. The target is always ShownCoins, never past the
 -- server's balance. seconds=0 lands at once without a tick (the first packet).
-function Hud:CountCoins(value,seconds)
+-- quiet: steady income (the Hill) counts up without a tick, unless a sale's count is
+-- still running.
+function Hud:CountCoins(value,seconds,quiet)
 	local amount=self.money:FindFirstChild("DisplayedAmount")
+	local idle=not amount or amount.Value==amount:GetAttribute("Target")
 	-- A count already running keeps its start, so the pitch keeps rising as coins land.
-	if not amount or amount.Value==amount:GetAttribute("Target") then self.countFrom=if amount then amount.Value else value end
+	if idle then self.countFrom=if amount then amount.Value else value end
 	self.countTo=value
-	local instant=seconds==0
+	local silent:boolean=seconds==0 or (quiet==true and (idle or self.countQuiet==true))
+	self.countQuiet=silent
 	Theme.Motion:CountTo(self.money,value,function(v) return Theme.CompactMoney(v) end,seconds,
-		{punch=false,tickGap=0.07,tick=if instant then nil else function(v) self:CoinTick(v) end})
+		{punch=false,tickGap=0.07,tick=if silent then nil else function(v) self:CoinTick(v) end})
 end
 
 function Hud:CoinTick(value)
@@ -810,8 +814,13 @@ function Hud:Update(state,count,limit,capacity,selected,deployed,result)
 	self.heldCash=if type(receipt)=="table" and (tonumber(receipt.amount) or 0)>0 and receipt.id~=self.releasedReceipt
 		then receipt.amount else 0
 	local shown=self:ShownCoins(state)
+	-- October 21 (Stevin): holding the Hill credits coins every few frames; that steady
+	-- income counts up silently instead of ticking nonstop. Confirmed results still tick.
+	local hill=state.hill
+	local steady=type(hill)=="table" and hill.holding==true
+		and not (type(result)=="table" and result.ok==true)
 	-- The first packet lands at once; later ones count up with ticks.
-	self:CountCoins(shown,if self.lastCoins==nil then 0 else nil)
+	self:CountCoins(shown,if self.lastCoins==nil then 0 else nil,steady)
 	-- Confirmed gains only (never the first packet or a purchase).
 	if self.lastCoins and shown>self.lastCoins then self:PopCash() end
 	self.lastCoins=shown
