@@ -44,8 +44,15 @@ local function display(parent: Instance, name: string, text: string, size: numbe
 	label.Position, label.Size = position, box
 	label.TextXAlignment = align or Enum.TextXAlignment.Left
 	label.TextWrapped = false
-	for _, layer in {label.TextFace, label.TextShadow} do layer.TextTruncate = Enum.TextTruncate.AtEnd end
-	label.TextTruncate = Enum.TextTruncate.AtEnd
+	-- Shrink long titles, names and values to fit their box (size is the cap)
+	-- instead of cutting them to "STRONGEST..."; truncate only below the floor.
+	label.TextScaled = true
+	for _, layer in {label, label.TextFace, label.TextShadow} do
+		layer.TextTruncate = Enum.TextTruncate.AtEnd
+		local fit = Instance.new("UITextSizeConstraint")
+		fit.MinTextSize, fit.MaxTextSize = math.min(20, size), size
+		fit.Parent = layer
+	end
 	return label
 end
 
