@@ -403,3 +403,87 @@ milestone, prints "Coins earned per minute" for the first hour and can trace a r
 - Offline Coins, daily rewards, Playtime tiles and Time Skip are minutes of steady
   income, so they grow with the multiplier as before.
 
+
+## October 22: Time Skip head start
+
+Stevin: "Every time I rebirth yea my money resets to zero but I get some type of bonus
+that lets me easily unlock everything, thats too easy, yea I want a bonus but not to a
+point where it easily unlocks everything!!"
+
+### Cause
+
+Time Skip paid its minutes (5, up to 45 with Gems) of the egg income the player had
+*right before* the Rebirth: every tree tier, every Chicken Feed level. That rate is what
+pays for a whole rank, so a few minutes of it is far more than the reset tree costs.
+`tools/sim/timeskip_probe.luau` on the fast player (HEAD before the change):
+
+| Rebirth | Time Skip | Tree tiers it buys (of 115) | x the tree just lost | Share of the next rank |
+|---|---|---|---|---|
+| 1 | 181K | 36 | 8.7x | 18% |
+| 3 | 33M | 96 | 11x | 8% |
+| 5 | 1.7B | 109 | 2.5x | 7% |
+| 9 | 287B | 114 | 19x | 6% |
+| 10 | 761B | all | 3.5x | 8% |
+| 15 | 10T | all | 16x | 23% |
+| 18 | 36T | all | 58x | 59% |
+
+### Change
+
+`RebirthService.TimeSkipCoins` now measures the income the player will have right
+*after* the Rebirth: the best Flock-size chickens (the tree's Flock tiers reset, Gem
+Flock slots stay) at the tiers Keep Upgrades leaves, with no Feed levels, at the next
+rank's multiplier, with Coin Boost, 2x Coins and 2x Egg Spawn. It is a head start on
+the new run: N minutes of what that run will earn at its start. A Skip Rebirth resets
+nothing, so it measures the kept tree and Feed levels. Panel preview, claim popup,
+saved `timeSkipPending` and Gem levels are unchanged.
+
+| Rebirth | Time Skip | Tree tiers it buys | Share of the tree just lost |
+|---|---|---|---|
+| 1 | 30K | 20 | (the tree was 21K) |
+| 3 | 1.7M | 66 | 19% |
+| 5 | 6.7M | 84 | 1% |
+| 10 | 434M | 106 | 0.2% |
+| 18 | 10.7B | 111 | 1.7% |
+
+The big tiers (Egg Speed/Egg Value IV, Flock 10–15, Super and Mega Luck) have to be
+earned again in every run. The many cheap tiers (Army, Tools, early Luck) still come
+back at once in late ranks: the tree's prices are flat while the egg multiplier grows,
+so the new run's own income rebuys them within minutes too (`UpgradeCatalog.RankPriceGrowth`
+is the knob if that should change; it is 0).
+
+### Ladder re-fit
+
+The old Time Skip was carrying part of every rank (6–8% early, 50–60% from Rebirth 17),
+so without it the fast player reached Rebirth 10 at 3.3 h instead of 2.5 h and Rebirth 30
+at 28.5 h instead of 20.3 h (seeds 121–123, 40 h). Costs of ranks 3–49 were moved by
+(gap before / gap now)^0.8, smoothed over five ranks, one iteration (`tools/sim/cost_fit.luau`),
+then rounded to three digits inside the ratio bands (x3–20 to Rebirth 10, x1.1–3 after).
+Rebirth 1, 2 and 50 are unchanged (50K, 1M, 3.13e15).
+
+| Rebirth | 3 | 5 | 10 | 15 | 20 | 25 | 30 | 40 | 45 |
+|---|---|---|---|---|---|---|---|---|---|
+| Was | 20M | 8B | 4.7T | 39T | 71.2T | 152T | 384T | 1.18e15 | 1.92e15 |
+| Now | 14.6M | 5.79B | 4.15T | 31.8T | 52.8T | 102T | 299T | 1.01e15 | 1.67e15 |
+
+Confirmation with the committed code (fresh seeds; fast 131–134 for 40 h, 45 min a day
+141–142 for 60 days):
+
+| Rebirth | Target (fast) | Fast, Oct 21 | **Fast, now** | 45 min a day, Oct 21 | **45 min a day, now** |
+|---|---|---|---|---|---|
+| 1 | ~10 min | 10 min | 9–12 min | 8 min | 6–8 min |
+| 2 | 18–20 min | 17 min | 18–20 min | 16 min | 17–18 min |
+| 5 | ~55 min | 55 min | 60–70 min | day 1 | day 1 |
+| 10 | ~2.9 h | 2.9 h | 3.0–3.2 h | day 2 | day 3 |
+| 20 | ~11 h | 12.9 h | 12.0–13.9 h | day 11 | day 12 |
+| 30 | ~21 h | 24.6 h | 21.9–26.6 h | day 18 | day 20–22 |
+| 40 | – | 33.9 h (4 of 6) | 34–39 h (2 of 4) | day 27 | day 28–32 |
+| 50 | ~40 h | 38.7 h (1 of 6) | – (0 of 4) | day 36–43 | day 41–45 |
+
+Play time per Rebirth is within noise of the October 21 ladder (fast slightly slower to
+Rebirth 10, the daily player now on the day-21 target for Rebirth 30). Coins in the first
+hour arrive slower than on October 21 (fast, per minute: 8K–30K for 0–10 min, was 25K;
+5.7M–12.7M for 10–30, was 26.6M; 176M–260M for 30–60, was 493M) because no Rebirth pays
+a lump sum any more; the cheaper ranks make up the time.
+
+Live: saved ranks and Gem levels keep their meaning; an unclaimed `timeSkipPending`
+keeps the amount it was saved with. No `DataRevision` or `TreeMigrations` change.

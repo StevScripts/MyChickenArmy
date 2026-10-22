@@ -347,11 +347,12 @@ function Checks.Run()
 	-- October 21 later (P5, reference parity §2.5; REBIRTH_PACING_20261021.md "reference-shaped
 	-- ladder"): Rebirth 2 costs 1M like the reference, paid for by taming in-run growth.
 	test("Reference-shaped ladder: 50 costs, ratio bands, Feed x1.6 and the tree prices that pace a run",function()
-		local costs={5e4,1e6,2e7,4e8,8e9,2.4e10,7.2e10,2.55e11,1.09e12,4.7e12,
-			9.6e12,1.5e13,2.2e13,3.18e13,3.9e13,4.29e13,4.72e13,5.2e13,6.11e13,7.12e13,
-			8.64e13,1.01e14,1.15e14,1.28e14,1.52e14,1.77e14,2.21e14,2.63e14,3.24e14,3.84e14,
-			4.56e14,5.1e14,5.8e14,6.42e14,7.12e14,7.88e14,8.7e14,9.59e14,1.07e15,1.18e15,
-			1.3e15,1.43e15,1.58e15,1.74e15,1.92e15,2.12e15,2.34e15,2.58e15,2.84e15,3.13e15}
+		-- October 22: ranks 3-49 re-fit after Time Skip became a post-Rebirth head start.
+		local costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.82e10,6.05e10,2.13e11,9.41e11,4.15e12,
+			8.15e12,1.18e13,1.82e13,2.59e13,3.18e13,3.6e13,3.96e13,4.36e13,4.8e13,5.28e13,
+			6.18e13,7.08e13,7.79e13,8.57e13,1.02e14,1.21e14,1.56e14,1.92e14,2.44e14,2.99e14,
+			3.41e14,3.76e14,4.47e14,5.29e14,5.82e14,6.68e14,7.57e14,8.33e14,9.17e14,1.01e15,
+			1.12e15,1.24e15,1.37e15,1.51e15,1.67e15,1.84e15,2.06e15,2.37e15,2.7e15,3.13e15}
 		assert(#Config.Rebirth.Costs==#costs,"Cost count")
 		for rank,cost in costs do assert(Rebirth.Cost(rank)==cost,"Cost "..rank.." "..tostring(Rebirth.Cost(rank))) end
 		assert(Rebirth.Cost(1)==5e4 and Rebirth.Cost(2)==1e6,"Rebirth 1 and 2 as in the reference")

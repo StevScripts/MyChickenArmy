@@ -32,6 +32,11 @@ The binary is not committed.
   `rollEverySeconds=4`, `hours=1`, `seeds=3`, `playMinutes=45 awayMinutes=1395`,
   `print=true` for the standard milestone table).
 
+- `timeskip_probe.luau key=value …` — at every Rebirth, the Time Skip Coins, how many of
+  the tree's tiers they buy and their share of the tree just lost and of the next rank.
+- `cost_fit.luau costs=<json> out=<json> key=value …` — ProgressionSimulation with patched
+  `Config.Rebirth.Costs`, writing played minutes per rank for a cost fit.
+
 ## Running
 
 ```bash
