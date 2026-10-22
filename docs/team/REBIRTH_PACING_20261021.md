@@ -487,3 +487,94 @@ a lump sum any more; the cheaper ranks make up the time.
 
 Live: saved ranks and Gem levels keep their meaning; an unclaimed `timeSkipPending`
 keeps the amount it was saved with. No `DataRevision` or `TreeMigrations` change.
+
+## October 22: unlock-everything check
+
+Stevin: "see how easy it is to unlock everything, I want to make sure it's easy but
+challenging enough at the same time." Measured on the committed code (eb0dc28: Time Skip
+head start, re-fit ladder) with `tools/sim/unlock_probe.luau`: fast nonstop seeds 201–203
+(40 h), casual nonstop 211–212 (40 h), 2 h a day 231–232 and 45 min a day 221–223 (60
+days). Medians; "(n/m)" = seeds that got there. The tree has 115 hexes worth 677B Coins
+in all (612B of it is Luck I–XII, Mega Luck IV alone 400B); the Gem board has 78 levels
+for 13,560 Gems.
+
+| Milestone | Fast, nonstop | Casual, nonstop | 2 h a day | 45 min a day |
+|---|---|---|---|---|
+| Rebirth 1 / 2 | 10 / 18 min | 8 / 16 min | 8 / 17 min | 9 / 15 min |
+| Rebirth 5 | 57 min | 66 min | 59 min | day 1 |
+| Rebirth 10 | 2.7 h | 3.0 h | day 1 | day 3 |
+| Rebirth 20 | 12.3 h | 11.7 h | day 6 | day 12 |
+| Rebirth 30 | 23.8 h | 21.6 h | day 10 | day 25 |
+| Rebirth 40 | 35.1 h (2/3) | 34.3 h | day 16 | day 39 |
+| Rebirth 50 (max) | never in 40 h (ranks 37–47) | never in 40 h (41, 45) | day 21–27 | day 50–60+ (2/3) |
+| Gem board complete | 31.9 h (1/3) | 35.6 h | day 16 | day 41 |
+| All 3 camps / King | 12 / 18 min | 14 / 18 min | 12 / 18 min | 14 / 20 min |
+| First Legendary owned | 16 min | 18 min | 22 min | 20 min |
+| First Mythic owned | 44 min | 2.4 h | day 3 | day 12 |
+| First Secret offer / owned | 49 min / 6.2 h | 79 min / 6.4 h | 60 min / day 2 | 29 min / day 3 |
+| All 8 podiums | 27 min (R3) | 31 min (R3) | 26 min (R2) | 28 min (R3) |
+| All 4 Mutations | 37 min (R3) | 35 min (R3) | 44 min (R4) | 45 min (R4) |
+| Luck IV (x3) | 20 min (R2) | 23 min (R2) | 22 min (R2) | 20 min (R2) |
+| Egg Speed IV / Egg Value IV | 35 / 46 min (R4) | 38 / 47 min (R4) | 41 / 49 min (R4) | 38 / 45 min (R3–4) |
+| Super Luck IV (x5) | 90 min (R6) | 106 min (R6) | 94 min (R6) | day 1 (R6) |
+| Flock Size 15 | 95 min (R7) | 98 min (R6) | 94 min (R6) | day 2 (R7) |
+| Mega Luck IV (x10) | 3.8 h (R11) | 4.0 h (R11) | day 1 (R11) | day 4 (R11) |
+
+Play minutes per Rebirth (median, longest in brackets): ranks 1–5 10 (32), 6–10 17–23
+(58), 11–15 33–42 (60), 16–20 52–75 (94), 21–30 47–68 (112), 31–40 55–82 (118), 41–50
+62–90 (126). The 2-hour player never has a day without a Rebirth; the 45-minute player
+has 9–18 such days in 60, never two in a row.
+
+### Inside a run: the whole tree against the end-of-run income
+
+Income just before each reset (fast nonstop; the daily player is within 20%) and the
+whole tree (677B) as minutes of it. The simulated player never buys the Tools, Player
+and Army hexes (48 hexes, 62B; clicking is free in the model), so "hexes owned" tops out
+at 66–67; the minutes column uses all 115.
+
+| Rebirth | cost | income before reset | whole tree in minutes | hexes owned | play min this rank |
+|---|---|---|---|---|---|
+| 3 | 16.6M | 106K/s | 107K (never) | 33 | 7 |
+| 5 | 5.81B | 7.76M/s | 1,450 (never) | 53 | 20 |
+| 8 | 215B | 247M/s | 46 | 57 | 22 |
+| 10 | 4.16T | 2.14B/s | 5 | 60 | 28 |
+| 12 | 11.9T | 5.72B/s | 2 | 62 | 38 |
+| 15 | 31.9T | 10.4B/s | 1 | 62 | 52 |
+| 20 | 53.0T | 34.8B/s | 0.3 | 66 | 80 |
+| 30 | 301T | 151B/s | 0.07 | 66 | 93 |
+| 40 | 1.01Qa | 427B/s | 0.03 | 66 | 84 |
+| 50 | 3.16Qa | 1.30T/s | 0.01 | 67 | 80 |
+
+Feed Max Level III (2.5M) shows up late (R36–42) only because the model's payback rule
+never values Feed levels past 10; it is affordable from Rebirth 3.
+
+### Verdict
+
+- **Rebirths 1–10 (first 3 h, day 3 for a daily player): easy but challenging.** Every
+  big unlock has a wait and lands where the October 21 fits put it: all podiums and all
+  four Mutations inside the first 40 minutes, Egg Speed/Value IV at 35–50 min, Super
+  Luck IV and Flock 15 at about 1.5 h, Mega Luck IV at 3.8 h, the first Mythic at 44 min
+  (fast) to day 12 (45 min a day), the first Secret at about 6 h. Until Rebirth 5 the
+  whole tree is out of reach inside a run (a day of income); at Rebirth 8 it is an hour.
+- **Rebirth 10 and up: easy and flat inside each run.** From Rebirth 10 the whole tree
+  costs five minutes of the run's income, from Rebirth 20 under a minute, so each run
+  rebuys everything in its first minutes (the cheap hexes at once, see "Time Skip head
+  start") and then waits 50–90 minutes for the next Rebirth with only Gem cards left to
+  buy (board done at Rebirth 41). The tree's prices are flat while the egg multiplier
+  grows x1.06–1.7 a rank. The challenge that remains is the ladder itself.
+- **The ladder is long but moving:** Rebirth 30 at 22–24 h nonstop, day 10 at 2 h a day,
+  day 25 at 45 min a day; Rebirth 50 needs more than 40 h nonstop (every 40-hour seed
+  ended at rank 37–47), day 21–27 at 2 h a day, day 50 to past day 60 at 45 min a day.
+
+Lever, if the flat late runs should change (owner decision, not done): tree prices that
+grow with Rebirth rank. `UpgradeCatalog.RankPriceGrowth` exists but is linear
+(`1 + growth × rank`) and cannot follow a ladder that grows x1.1–x3 a rank; a per-rank
+multiplier (about x1.15–1.25 a rank, so the whole tree stays near 20–30% of the next
+Rebirth) would make each run spend its first half rebuying and its second half saving.
+That moves the Rebirth times, so it needs the ladder re-fit (`cost_fit.luau`) and these
+tables re-run. Leaving it as is keeps the reference's shape: late runs are a wait for
+the Rebirth, not a shopping trip.
+
+Also shipped the same day: the Rebirth screen shows abbreviated numbers (`UITheme.Number`:
+50K, 1M, 14.6M … 3.13Qa; `Qa`/`Qi` suffixes added) on its Coins bar and in "Need … more
+Coins" instead of full digits.

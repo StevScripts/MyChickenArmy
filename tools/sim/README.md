@@ -36,6 +36,12 @@ The binary is not committed.
   the tree's tiers they buy and their share of the tree just lost and of the next rank.
 - `cost_fit.luau costs=<json> out=<json> key=value …` — ProgressionSimulation with patched
   `Config.Rebirth.Costs`, writing played minutes per rank for a cost fit.
+- `unlock_probe.luau key=value … out=<file.json>` — ProgressionSimulation plus, per seed, the
+  tree and Gem board at every Rebirth (hexes owned, Coins spent), the first offer and first
+  owned chicken per rarity, Luck tier changes and the first purchase of key hexes
+  (Mutations IV, Mega Luck IV, all podiums…). The October 22 "unlock-everything" tables in
+  `REBIRTH_PACING_20261021.md` come from it (3 fast, 2 casual, 3 daily 45-min and 2 daily
+  2-hour seeds, `traceEvery=60`).
 
 ## Running
 
@@ -55,3 +61,9 @@ macOS has no `timeout`; wrap long runs in `perl -e 'alarm 600; exec @ARGV' ./lun
 A 40-hour fast seed takes about 150 s; the login model skips away time, so cost
 follows minutes played. `GoldRushService.Multiplier()` stays 1 headless, so the
 simulation's own Gold Rush model does not double count.
+- `unlock_probe.luau key=value … out=<file.json>` — ProgressionSimulation plus, per seed, the tree
+  and Gem board at every Rebirth (hexes owned, Coins spent), the first offer and first owned
+  chicken per rarity, Luck tier changes and the first purchase of key hexes (Mutations IV,
+  Mega Luck IV, all podiums…). The October 22 "unlock-everything" tables in
+  `REBIRTH_PACING_20261021.md` come from it (3 fast, 2 casual, 3 daily 45-min and 2 daily
+  2-hour seeds with `traceEvery=60`).

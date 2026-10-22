@@ -121,7 +121,7 @@ end
 -- Readable reason for a refused tap (the server reason has raw digits).
 local function refusal(quote): string
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	if cost and coins<cost then return "Need "..Theme.Money(cost-coins).." more Coins" end
+	if cost and coins<cost then return "Need "..Theme.Number(cost-coins).." more Coins" end
 	if quote.armyHome==false or quote.missionRunning==true then return "Bring your Army home first" end
 	return if type(quote.reason)=="string" and quote.reason~="" then quote.reason else "Not ready yet"
 end
@@ -369,8 +369,9 @@ function Panel:RenderPanel()
 	local progress=if cost and cost>0 then math.clamp(coins/cost,0,1) else 1
 	-- The bar fills with the shared Progress (no flash: Coins arrive every packet).
 	Theme.Motion:Progress(self.costFill,progress,.3,false)
-	-- As in the reference, the bar shows the real balance, even past the cost.
-	self.costText.Text=if target and cost then Theme.Money(coins).." / "..Theme.Money(cost) else "Highest rank reached"
+	-- As in the reference, the bar shows the real balance, even past the cost. October 22
+	-- (Stevin): abbreviated numbers (50K, 1M, 14.6M … 3.13Qa), never the full digits.
+	self.costText.Text=if target and cost then Theme.Number(coins).." / "..Theme.Number(cost) else "Highest rank reached"
 	self:RenderChicken(quote,target~=nil,target~=nil and cost~=nil and coins>=cost)
 	-- Rebirth stays green and answers every tap; a refused tap says why.
 	local rebirth=self.rebirthButton

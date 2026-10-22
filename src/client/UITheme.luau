@@ -930,8 +930,9 @@ function Theme.CollectionCard(parent,name,callback,rarity,selected)
 end
 
 -- One compact formatter for prices and stats: about three significant figures
--- with K/M/B/T (2,880 → 2.88K, 725,760 → 726K, 3,628,800 → 3.63M, 1.2e9 → 1.2B).
-local SUFFIXES={"","K","M","B","T"}
+-- with K/M/B/T/Qa/Qi (2,880 → 2.88K, 725,760 → 726K, 3,628,800 → 3.63M, 1.2e9 → 1.2B,
+-- 3.13e15 → 3.13Qa; October 22: the Rebirth ladder ends past a thousand trillion).
+local SUFFIXES={"","K","M","B","T","Qa","Qi"}
 local function significant(x)
 	if x<=0 then return 0,0 end
 	local decimals=math.clamp(2-math.floor(math.log10(x)),0,3)
