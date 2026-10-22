@@ -156,7 +156,9 @@ local families: {Family} = {
 		format = "unlock", description = "Equip the Egg Vacuum to pull in nearby eggs, then sell them on the pad.",
 		tiers = tiers({{1, 500}}), positions = walk(-1, 1)},
 	-- October 21 (Stevin: "too large very easily, not enough of a challenge"): bonus eggs
-	-- on the Egg Vacuum's fixed 20 (VacuumConfig.Capacity): 30, 45, 70, 120 eggs. Was
+	-- on the Egg Vacuum's fixed base (VacuumConfig.Capacity). October 22 (Stevin: "a
+	-- little" more) about 25% larger at the same prices: 25 base, 40, 60, 90, 150 eggs
+	-- (were 20, 30, 45, 70, 120). Was
 	-- 15-90 s of the Flock's laying at 500-40K, which already held two full yards and
 	-- grew with every Flock Size and Egg Speed tier. Each tier is priced with the Flock
 	-- tier whose yard it fits (Flock 4-5, 7, 10, 12: 20-60 eggs on the ground), so the
@@ -164,7 +166,7 @@ local families: {Family} = {
 	-- reset by the next Rebirth anyway), so no TreeMigrations step.
 	{id = "VacuumCapacity", name = "Vacuum Capacity", category = "Tools", icon = "vacuumCapacity", effect = "vacuumCapacity", base = 0,
 		format = "bonusCount", unit = "eggs", description = "Your Egg Vacuum holds more eggs.",
-		tiers = tiers({{10, 1500}, {25, 25000}, {50, 3000000}, {100, 100000000}}),
+		tiers = tiers({{15, 1500}, {35, 25000}, {65, 3000000}, {125, 100000000}}),
 		positions = walk(-2, 2, {"SE", "SW", "SE"}), prerequisite = "EggVacuum"},
 	-- Same day: 13, 16, 20 studs (were 14, 18, 22 by 75K, when 18 studs already reached
 	-- every egg of the 30x30 starter yard from its middle).

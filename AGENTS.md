@@ -130,8 +130,8 @@ never on load. See `docs/team/AUTO_VACUUM.md`.
 
 ## Egg Vacuum capacity in eggs (October 21, owner request)
 Stevin: the vacuum got "too large very easily" and was no challenge. It holds a fixed
-`VacuumConfig.Capacity` (20 eggs) plus Vacuum Capacity tiers (+10/25/50/100 at 1.5K,
-25K, 3M, 100M) and the Gem card (+5 a level), never seconds of the Flock's laying, so
+`VacuumConfig.Capacity` (25 eggs; Oct 22, was 20) plus Vacuum Capacity tiers
+(+15/35/65/125 at 1.5K, 25K, 3M, 100M, for 40/60/90/150) and the Gem card (+5 a level), never seconds of the Flock's laying, so
 Flock Size and Egg Speed don't grow it. Range tiers are +3/+6/+10 studs (2.5K, 40K,
 1.5M). The Auto Vacuum tank keeps its seconds model. See `docs/team/COLLECTION_TOOLS.md`.
 

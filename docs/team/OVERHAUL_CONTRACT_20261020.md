@@ -176,7 +176,7 @@ upgrade since S14 (Stevin, Oct 20: bought in Tools, resets on Rebirth).
 | Main | `DiamondMachine` | 1 | unlock | `goldMachine` = 2 |
 | Main | `PrismMachine` (placeholder name; S12/Stevin may rename) | 1 | unlock | `goldMachine` = 3 |
 | Tools | `EggVacuum` (Egg Vacuum) | 1 | unlock, 500 Coins (S14) | `eggVacuum` = 1; `ToolService.Owns` reads it |
-| Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | +10, +25, +50, +100 eggs (30/45/70/120 with the 20-egg base; Oct 21, was seconds of laying) | `vacuumCapacity` |
+| Tools | `VacuumCapacity` (Vacuum Capacity) | 4 | +15, +35, +65, +125 eggs (40/60/90/150 with the 25-egg base; Oct 22, was +10/25/50/100 on 20; Oct 21, was seconds of laying) | `vacuumCapacity` |
 | Tools | `VacuumRange` (Vacuum Range) | 2 | bonus studs | `vacuumRange` |
 | Tools | `ChickenFeed` (Chicken Feed) | 1 | unlock | `chickenFeed` = 1 |
 | Player | `WalkSpeed` (Walk Speed) | 3 | +5%, +10%, +15% | `walk` |
@@ -225,7 +225,7 @@ Upgrade levels. Where a key has both, they add.
 | `armySlots` | 0 | – | +1 Army Slot +1/level (S7b) | `PlayerSession:RefreshEffects`: `capacity` = Army Size value + this |
 | `feedMaxLevel` | 0 | S9c: Feed Max Level I–III (extra levels) | – | `Rules.LevelCap`: Chicken Feed cap = `Config.MaxPetLevel` (10) + this, at most `Config.PetLevelLimit` (20) |
 | `eggVacuum` | 0 | Egg Vacuum = 1 (S14) | – | ToolService (the held tool), EggService (pulls eggs) |
-| `vacuumCapacity` | 0 | Vacuum Capacity (bonus eggs) | Vacuum Capacity +5 eggs/level | Capacity = 20 eggs (`VacuumConfig.Capacity`) + this (Oct 21; was seconds × the Flock's eggs/s) |
+| `vacuumCapacity` | 0 | Vacuum Capacity (bonus eggs) | Vacuum Capacity +5 eggs/level | Capacity = 25 eggs (`VacuumConfig.Capacity`, Oct 22; was 20) + this (Oct 21; was seconds × the Flock's eggs/s) |
 | `vacuumRange` | 0 | Vacuum Range | – | S11 |
 | `chickenFeed` | 0 | Chicken Feed = 1 | – | S11; `ArmyService.UpgradeChicken` requires it (S7 gate) |
 | `goldMachine` | 0 | Gold 1, Diamond 2, Prism 3 | – | S12 |

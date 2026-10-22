@@ -50,9 +50,11 @@ Tuning lives in `src/shared/VacuumConfig.luau`.
 - While it is in hand, `EggService:Vacuum` pulls the nearest ready eggs within
   **Range** (10 studs, plus `vacuumRange`), up to 8 stacks per step, until it is
   full.
-- **Capacity** is a fixed egg count: `VacuumConfig.Capacity` (20) +
-  `vacuumCapacity`, which adds the Tools tiers (+10/25/50/100 eggs at 1.5K, 25K,
-  3M and 100M Coins, for 30/45/70/120) and the Gem Upgrade (+5 eggs a level).
+- **Capacity** is a fixed egg count: `VacuumConfig.Capacity` (25) +
+  `vacuumCapacity`, which adds the Tools tiers (+15/35/65/125 eggs at 1.5K, 25K,
+  3M and 100M Coins, for 40/60/90/150) and the Gem Upgrade (+5 eggs a level).
+  October 22 (Stevin: it filled "JUST a little too fast") raised these about 25%
+  from 20 base and 30/45/70/120 at the same prices.
   October 21 (Stevin: "too large very easily, not enough of a challenge"): it was
   30–120 s of the Flock's current laying, which held two full yards before any
   upgrade and grew with every Flock Size and Egg Speed tier. Each tier now costs
