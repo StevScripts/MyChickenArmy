@@ -237,7 +237,9 @@ function Tutorial:Leave(st, _session)
 	local ledger = host.ledger
 	ledger:Count("tf.exit." .. code(furthest))
 	local record = host.tutorial and host.tutorial.records and host.tutorial.records[st.userId]
-	local lesson = tostring(record and record.step or "None")
+	-- TutorialService's record is usually gone by now (every live exit read "None");
+	-- Analytics' own guide step is what journeys report as `ex`.
+	local lesson = tostring(record and record.step or st.guideStep or "None")
 	ledger:Count("tf.exitLesson." .. lesson)
 	local player = st.player
 	if not player then return end
