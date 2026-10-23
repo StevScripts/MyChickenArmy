@@ -89,8 +89,11 @@ function Rules.Read(value)
 	-- Paid skip seconds that found no running job; spent by the next research.
 	-- A bad value is dropped rather than rejecting the save.
 	result.skipCredit=if integer(value.skipCredit,0,1e8) then value.skipCredit else 0
-	if not integer(value.pendingOperationReward or 0,0,2^53-1) then return nil end
-	result.pendingOperationReward=value.pendingOperationReward or 0
+	-- October 23: Mission wins saved fractional rewards (Friend Boost, Gold Rush) and
+	-- every such save failed to load. Keep the whole Coins; a bad value is dropped.
+	local pending=value.pendingOperationReward or 0
+	result.pendingOperationReward=if type(pending)=="number" and pending==pending and pending>=0 and pending<2^53
+		then math.floor(pending) else 0
 	if value.formations~=nil then
 		if type(value.formations)~="table" then return nil end
 		count=0

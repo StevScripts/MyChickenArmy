@@ -301,7 +301,7 @@ function Service:Conquered(session,site,battle)
 	if site.rewarded[session.userId] then return 0,false end
 	site.rewarded[session.userId]=true
 	local first=not session.research.operationWins[battle.operationId]
-	session.research.pendingOperationReward=session:EarnedAmount(Service.Reward(session,battle.operationId,battle.missionRare),"battle")
+	session.research.pendingOperationReward=math.floor(session:EarnedAmount(Service.Reward(session,battle.operationId,battle.missionRare),"battle"))
 	local reward=Service.ClaimReward(session)
 	if first then session.research.operationWins[battle.operationId]=true;session.research.revision+=1 end
 	return reward,first
@@ -524,7 +524,9 @@ function Service:StartMission(session,siteId,now)
 end
 
 function Service.ClaimReward(session)
-	local amount=session.research.pendingOperationReward
+	-- Whole Coins only: Credit rejects fractions, and a fraction saved here made the save unloadable.
+	local amount=math.floor(session.research.pendingOperationReward)
+	session.research.pendingOperationReward=amount
 	if amount==0 then return 0 end
 	local credited=session:Credit(amount,"operation")
 	if credited>0 then session.research.pendingOperationReward=0;session.research.revision+=1;session:Touch() end
@@ -617,7 +619,7 @@ function Service:Resolve(battle,outcome,now)
 			-- amount if the wallet fills during this fight; a pending reward prevents
 			-- another deployment, so these cannot overflow.
 			first=not session.research.operationWins[battle.operationId]
-			session.research.pendingOperationReward=session:EarnedAmount(Service.Reward(session,battle.operationId,battle.missionRare),"battle")
+			session.research.pendingOperationReward=math.floor(session:EarnedAmount(Service.Reward(session,battle.operationId,battle.missionRare),"battle"))
 			reward=Service.ClaimReward(session)
 			if first then session.research.operationWins[battle.operationId]=true;session.research.revision+=1 end
 		end
