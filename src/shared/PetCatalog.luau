@@ -212,31 +212,38 @@ end
 -- chicken with effects stays (ten to a rarity); Stevin picked the eight plain ones that
 -- stay. Each rarity lists its Luck bands, most common chicken first. A moved chicken
 -- takes its new tier's original stats (the October 7 pattern); the 11 original tier
--- species never move. Inside a rarity each chicken is a step rarer than the one before
--- (the rarest is `span` times the most common), with spans fitted so no chicken reads
--- rarer than the next rarity's first. Band totals (each rarity's share of rolls) match
--- LuckBands. The basic Chicken keeps 28 of its band's 47.5 (28% of rolls).
+-- species never move. Inside a rarity each chicken is `step` times rarer than the one
+-- before (October 23, below), and no chicken reads rarer than the next rarity's first.
+-- Each rarity's share of rolls matches LuckBands. The basic Chicken keeps 28 (28% of rolls).
 -- The value ladder (`valueSpan`, `valueTotal`, LuckBands `value`) is the morning's
 -- 78-chicken ladder: it sets each chicken's price, income and power ("1 in X"), so
 -- the later switch to reference-like chances changed how often, never what a chicken
 -- is worth.
+-- October 23 (Stevin, from the Drop a Fruit Index: "look at the 1 in values, theyre not
+-- all close"): each rarity is now ONE odds ladder, every chicken `step` times rarer than
+-- the one before it, across its Luck bands (they used to split fixed band totals, which
+-- packed the Commons into 1 in 15-25). Each rarity's share of rolls is unchanged; the
+-- band weights in LuckBands follow their members. Steps are the widest that keep every
+-- rarity's rarest below the next rarity's first with a x1.1 gap and Mythic where it was:
+-- Common 1 in 7-78, Uncommon 87-590, Rare 660-5,900, Epic 9,400-87,000, Legendary
+-- 147,000-271,000. Mythic and Secret keep their ladders.
 local RollPool = {
- {rarity="Common", span=1.75, valueSpan=1.57, bands={
+ {rarity="Common", step=1.24, valueSpan=1.57, bands={
   {key="Duck", total=47.5, valueTotal=38, ids={"Duck","Rooster","RubberDucky","Cardboard"}},
   {key="Mallard", total=45.4, valueTotal=22, ids={"Pajama","Party","Piggy","Gamer","Donut","Painter","Popcorn","Miner","Bonsai"}}}},
- {rarity="Uncommon", span=8, valueSpan=1.12, bands={
+ {rarity="Uncommon", step=1.19, valueSpan=1.12, bands={
   {key="Chunky", total=6.32, valueTotal=22, ids={"Bee","Cow","ZombieHunter","Ironbeak","Detective","Mummy","Coral","CastleGuard","Snowman","Honeycomb","Jungle","Lollipop"}}}},
- {rarity="Rare", span=3.22, valueSpan=1.89, bands={
+ {rarity="Rare", step=1.22, valueSpan=1.89, bands={
   {key="Bucket", total=0.48, valueTotal=9, ids={"Bucket","Neon","Gladiator","DeepseaDiver","Rockstar","Slime"}},
   {key="Viking", total=0.282, valueTotal=5, ids={"Viking","Ghost","Steampunk","Jester","Toxic","Frost"}}}},
- {rarity="Epic", span=8, valueSpan=2.83, bands={
+ {rarity="Epic", step=1.25, valueSpan=2.83, bands={
   {key="Knight", total=0.0434, valueTotal=3, ids={"Knight","Jockey","Aurora","AirshipCaptain","Mimic","Animatronic","Vampire","Yeti","DragonHatchling","Wizard","Storm"}}}},
- {rarity="Legendary", span=1.55, valueSpan=2.78, bands={
+ {rarity="Legendary", step=1.07, valueSpan=2.78, bands={
   {key="Wizard", total=0.0033, valueTotal=0.7, ids={"Dragon","Witch","Jade","StainedGlass","Geode","Pharaoh"}},
   {key="Dragon", total=0.0018, valueTotal=0.25, ids={"Rainbow","Diamond","Water","SolarFlare"}}}},
- {rarity="Mythic", span=6.15, valueSpan=4, bands={
+ {rarity="Mythic", step=6.15 ^ (1 / 9), valueSpan=4, bands={
   {key="IceDuck", total=0.0003, valueTotal=0.05, ids={"IceDuck","Griffin","DragonKnight","Kraken","Unicorn","Moon","Olympian","Valkyrie","Phoenix","Devil"}}}},
- {rarity="Secret", span=7.37, valueSpan=4, bands={
+ {rarity="Secret", step=7.37 ^ (1 / 9), valueSpan=4, bands={
   {key="StormDuck", total=0.00147, valueTotal=0.01, ids={"FirstHen","StormDuck","ForestGuardian","TimeKeeper","Eclipse","Kitsune","Mecha","Heavenly","Supernova","RiftWalker"}}}},
 }
 Catalog.RollPool = RollPool
@@ -305,8 +312,26 @@ do
   end
   return result
  end
+ -- October 23: the real odds are one ladder over the whole rarity (its band totals
+ -- summed), each member `step` times rarer than the one before.
+ local function rarityLadder(group)
+  local free, members = 0, {}
+  for _, band in group.bands do
+   free += band.total
+   for _, id in band.ids do
+    if AnchorWeight[id] then free -= AnchorWeight[id] else table.insert(members, id) end
+   end
+  end
+  local step: number, sum, result = group.step, 0, {}
+  for rank = 0, #members - 1 do sum += step ^ -rank end
+  for rank, id in members do result[id] = free * step ^ -(rank - 1) / sum end
+  for _, band in group.bands do
+   for _, id in band.ids do result[id] = AnchorWeight[id] or result[id] end
+  end
+  return result
+ end
  for _, group in RollPool do
-  local weights, values = ladder(group, group.span, "total"), ladder(group, group.valueSpan, "valueTotal")
+  local weights, values = rarityLadder(group), ladder(group, group.valueSpan, "valueTotal")
   for _, band in group.bands do
    local s = tierStats[band.key]
    for _, id in band.ids do
@@ -419,6 +444,21 @@ function Catalog.LuckSignature(definition): string
 end
 for _, definition in Catalog do
 	if type(definition) == "table" and definition.name then definition.luckSignature = Catalog.LuckSignature(definition) end
+end
+-- October 23: a band's weight is its members' weights (the RollPool rarity ladders), so
+-- the numbers above are only the starting split; each rarity's total is unchanged.
+do
+	local bandOf = {}
+	for index, band in Catalog.LuckBands do bandOf[Catalog[band.species].luckSignature] = index end
+	local sums = {}
+	for _, id in Catalog.Order do
+		local definition = Catalog[id] :: any
+		local index = definition.weight > 0 and not definition.crateExclusive and bandOf[definition.luckSignature]
+		if index then sums[index] = (sums[index] or 0) + definition.weight end
+	end
+	for index, band in Catalog.LuckBands do
+		if sums[index] then band.weight = sums[index] end
+	end
 end
 do
 	-- Zero-Luck odds: each band keeps its weight share, the top band hands most of
@@ -540,6 +580,27 @@ for id, stats in RetiredFromRolls do
 	local definition = Catalog[id] :: any
 	definition.rarity, definition.income, definition.hp, definition.damage, definition.price =
 		stats.rarity, stats.income, stats.hp, stats.damage, stats.price
+end
+
+-- October 23 (Stevin: "the common chickens are all the same value"): along the roll
+-- pool, most common to rarest, every chicken lays more Coins and costs more than the one
+-- before it, in whole numbers. Income rises by at least 1 Coin a second and the price by
+-- at least one step in its second digit (1,900 -> 2,000, 57,600 -> 58,600); nothing earns
+-- or costs less than before. This includes the original tier species' income (enemies use
+-- only hp, damage and timing, which stay exact).
+do
+	local income, price = 0, 0
+	for _, group in RollPool do
+		for _, band in group.bands do
+			for _, id in band.ids do
+				local definition = Catalog[id] :: any
+				definition.income = math.max(math.floor(definition.income + 0.5), income + 1)
+				local step = 10 ^ math.max(0, math.floor(math.log10(math.max(price, 1))) - 1)
+				definition.price = math.max(math.floor(definition.price + 0.5), price + step)
+				income, price = definition.income, definition.price
+			end
+		end
+	end
 end
 
 -- October 22 rebalance: the Index lists each rarity from most common to rarest, then

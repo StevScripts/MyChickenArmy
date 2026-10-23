@@ -20,12 +20,14 @@ function Currency.Text(value: number): string
 	return text .. (if text == "1" then " Coin" else " Coins")
 end
 
--- Per-second rates can be fractional: "0.6 Coins", "12.5 Coins", "1,234 Coins".
+-- Per-second rates in whole Coins: "1 Coin", "13 Coins", "1,234 Coins". October 23
+-- (Stevin: "never give a decimal number"): rounded, and any positive rate shows at least 1.
 function Currency.Rate(value: number): string
 	local number = tonumber(value) or 0
-	if math.abs(number) >= 100 then return Currency.Text(number) end
-	local text = (string.format("%.1f", number):gsub("%.0$", ""))
-	return text .. (if text == "1" then " Coin" else " Coins")
+	if number ~= number then number = 0 end
+	local whole = math.floor(number + 0.5)
+	if number > 0 and whole < 1 then whole = 1 end
+	return Currency.Text(whole)
 end
 
 return table.freeze(Currency)

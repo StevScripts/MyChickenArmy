@@ -9,10 +9,11 @@ function EggFeedback.Width(text,size)
  return TextService:GetTextSize(text,size,Theme.Font,Vector2.new(100000,1000)).X+8
 end
 
+-- October 23 (Stevin: "never give a decimal number"): amounts are whole; `fractional`
+-- now rounds to the nearest Coin instead of showing tenths.
 function EggFeedback.Fit(value,prefix,suffix,width,size,currency,fractional)
- local rounded=if fractional then math.floor(value*10+0.5)/10 else math.floor(value)
+ local rounded=if fractional then math.floor(value+0.5) else math.floor(value)
  local exact=Theme.Money(rounded)
- if fractional and rounded%1~=0 then exact..="."..math.floor((rounded%1)*10+0.5) end
  -- October 20: coin amounts read "+1,200 Coins"; the old "$" prefix is retired.
  local unit=if currency then " Coins" else ""
  local text=prefix..exact..unit..suffix

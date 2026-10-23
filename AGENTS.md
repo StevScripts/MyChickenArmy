@@ -166,6 +166,18 @@ ranks 3–50 cost 37–88% less (Rebirth 50 1.17e15), fitted on eight fast 40 h 
 old chances' times (R10 ~3 h, R20 ~11.5 h, R30 ~22 h). Tree prices unchanged (flat).
 See `docs/team/RARITY_REBALANCE_20261022.md`.
 
+## Every chicken its own odds and value (October 23, owner request)
+Stevin, from the Drop a Fruit Index: the "1 in X" values must not sit close together, and
+no two chickens may lay the same Coins or cost the same. Each rarity is one odds ladder,
+every chicken `RollPool[].step` times rarer than the last (Common x1.24: 1 in 4, 7, 9 …
+78; Uncommon x1.19; Rare x1.22; Epic x1.25; Legendary x1.07, squeezed by Mythic's start;
+Mythic/Secret unchanged); each rarity's share of rolls is unchanged and LuckBands
+weights follow their members. Along that order income rises by at least 1 Coin/s and
+price by a second-digit step, never below the old values (enemies use only hp/damage,
+so the tier species' income may move). Only whole numbers reach players: incomes,
+prices, "1 in X", and shown rates/egg worth (`Currency.Rate`, `wholeRate`). A 6 h
+probe ran ~10% faster than before (within seed noise).
+
 ## Rebirth finds (October 22, owner decision)
 A Rebirth is earned by FINDING a chicken, not paid with one. Rebirths 1–15
 (`Config.Rebirth.FindRanks`) each need `PetCatalog.RebirthFinds[rank]` in the Index

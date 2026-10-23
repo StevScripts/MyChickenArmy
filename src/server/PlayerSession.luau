@@ -591,9 +591,15 @@ function PlayerSession:PetIncome(id: string): number
 		*MutationCatalog.Multiplier(pet.mutation)
 end
 
+-- October 23 (Stevin: "only whole numbers"): shown rates are whole Coins.
+local function wholeRate(value: number): number
+ if value~=value or value<=0 then return 0 end
+ return math.max(1,math.floor(value+0.5))
+end
+
 function PlayerSession:DisplayedPetIncome(species: string, stars: number, level: number?, mutation: string?): number
  local raw=Rules.Income(species,stars,level,self.incomeLevel)*(1+self.researchEffects.eggValue)*MutationCatalog.Multiplier(mutation)
- return self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs")
+ return wholeRate(self:EarnedAmount(raw*self:EggProductionMultiplier(),"eggs"))
 end
 
 function PlayerSession:PetEggRate(species: string, stars: number, level: number?, mutation: string?): number
@@ -734,8 +740,9 @@ function PlayerSession:PetEntries(best: {string}, deployedIds: {string}, flock: 
 		shown.giantSize,shown.mutation,shown.slot=pet.giantSize,pet.mutation,self:FindSlot(id)
 		shown.selected,shown.deployed,shown.home=context.selected[id]==true,deployed[id]==true,self:IsPetHome(id)
 		shown.flock,shown.laying,shown.canSell,shown.saleReason=context.flock[id]==true,layers[id]==true,canSell,saleReason
-		shown.income=Rules.Income(pet.species,pet.stars,level,self.incomeLevel)*mutation*value
-		shown.eggValue=shown.income*laySeconds
+		local income=Rules.Income(pet.species,pet.stars,level,self.incomeLevel)*mutation*value
+		shown.income=wholeRate(income)
+		shown.eggValue=wholeRate(income*laySeconds)
 		local levelCap=self:LevelCap()
 		shown.upgradePrice=if level<levelCap then Rules.ChickenUpgradePrice(pet.species,level) else nil
 		shown.canUpgrade,shown.upgradeReason=canUpgrade,upgradeReason

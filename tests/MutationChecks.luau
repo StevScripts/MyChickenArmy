@@ -168,7 +168,8 @@ function Checks.Run()
   local rate={}
   -- October 21 one egg = one egg: a chicken's strength (and mutation) raises each egg's worth.
   for _,entry in snap.pets do rate[entry.id]=entry.eggValue end
-  near(rate[gold.id],1.5*rate[plain.id],"Snapshot Coins/egg")
+  -- October 23: shown egg worth is whole Coins, so 1.5x holds to the nearest Coin.
+  assert(math.abs(rate[gold.id]-1.5*rate[plain.id])<=1,"Snapshot Coins/egg: "..rate[gold.id].." vs "..rate[plain.id])
   -- Mutations never touch combat.
   local a,b=Rules.Stats("Knight",1,3),Rules.Stats("Knight",1,3)
   assert(a.damage==b.damage and a.hp==b.hp)

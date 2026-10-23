@@ -144,3 +144,25 @@ Common (32 → 9 Coins/s at level 1), and Phoenix goes from Legendary to Mythic.
   after 3 h, as on HEAD. Every find was bought on sight with no wait.
 - luau-lsp: PetCatalog, IndexBrowser and LabStories have the same diagnostics as HEAD.
 - Not checked in Studio.
+
+## October 23: spread odds, distinct values (Stevin)
+
+Stevin compared the Drop a Fruit Index ("1/2, 1/3, 1/5 … 1/24") with ours: the Commons
+read 1 in 15-25 and all laid 6 or 8 Coins. Cause: each Luck band split a fixed total, so
+the 12 non-basic Commons shared their bands almost evenly.
+
+- `RollPool[].step`: each rarity is one geometric ladder across its bands. The widest
+  steps that keep a x1.1 gap to the next rarity, Mythic's start and every rarity's share:
+  Common x1.24 (1 in 7-78), Uncommon x1.19 (87-590), Rare x1.22 (660-5,900), Epic x1.25
+  (10,500-98,000), Legendary x1.07 (147,000-271,000; the Mythic share caps it). Mythic
+  and Secret keep their ladders. LuckBands weights are recomputed from members (rarity
+  totals exact; e.g. Duck band 61.4 / Mallard band 31.5, was 47.5 / 45.4).
+- Values along that order: income +1 Coin/s at least, price at least +1 in its second
+  digit, never below the old numbers (Commons 4, 6, 7 … 17; Uncommons 18-29; Rares
+  30-35 and 56-61). Bucket, Wizard and StormDuck incomes moved; their hp/damage did not.
+- Whole numbers: `Currency.Rate`, the snapshot's per-chicken income/egg worth and
+  `DisplayedPetIncome` round to whole Coins (at least 1); `EggFeedback.Fit` no longer
+  shows tenths.
+- Rebirth finds moved with the ladder (e.g. Frost 1 in 5,900, was 2,800; Mimic 25,700).
+- `rarity_probe` fast, 6 h, 3 seeds: Rebirth 1 at 11-14 min (was 12-15), Rebirth 5 at
+  61-74 min (was 69-77), rank 13-15 at 6 h (was 14).
