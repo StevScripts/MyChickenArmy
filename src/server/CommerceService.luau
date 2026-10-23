@@ -240,9 +240,31 @@ end
 
 -- October 20: owners of a retired pass get its Gems once (session.passGemGifts is
 -- saved). Only verified ownership counts: never a Studio test preset.
+-- October 23 (Stevin: "I have 300 gems to begin with ... That should be zero"): the
+-- game's creator owns every pass, so the developer (Studio, the creator, DebugUserIds)
+-- gets no gift and loses any already given. Real buyers keep theirs.
+local function developer(player: Player): boolean
+	return RunService:IsStudio() or table.find(Config.DebugUserIds or {}, player.UserId) ~= nil
+		or (game.CreatorType == Enum.CreatorType.User and game.CreatorId == player.UserId)
+end
+
 function CommerceService:_GiftRetiredPasses(record)
 	local session = record.session
 	if not session.loaded or session.closing or session.saveLost or type(session.passGemGifts) ~= "table" then return end
+	if developer(record.player) then
+		local given = 0
+		for key in session.passGemGifts do
+			local gems = self.catalog.Definitions[key] and self.catalog.Definitions[key].retiredGems
+			if type(gems) == "number" then given += gems end
+		end
+		if next(session.passGemGifts) then
+			table.clear(session.passGemGifts)
+			session.gems = math.max(0, (session.gems or 0) - given)
+			session.gemsEarned = math.max(0, (session.gemsEarned or 0) - given)
+			session:Touch()
+		end
+		return
+	end
 	for _, key in self.catalog.RetiredOrder or {} do
 		local definition = self.catalog.Definitions[key]
 		local gems = definition.retiredGems

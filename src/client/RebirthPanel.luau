@@ -1,7 +1,7 @@
 --!strict
 -- Rebirth screen (October 20 overhaul, S8): a 1:1 copy of the owner's reference
 -- (Drop a Fruit's Rebirth screen) in the game's style, built to plan v2's element
--- spec. Left: the warning, Rebirth to Earn (Time Skip, Gems, Multiplier), the Coins
+-- spec. Left: the warning, Rebirth to Earn (Gems, Multiplier), the Coins
 -- bar toward the next Rebirth with the chicken to find for it (October 22: a
 -- silhouette until it is in the Index), Rebirth and Skip! KEEP UPGRADES. Right: Gem Upgrades
 -- (GemUpgradeGrid). As in the reference, Rebirth is one tap and the screen stays
@@ -36,7 +36,6 @@ local KEEP_GOLD=Color3.fromRGB(255,226,92)
 local TAG=Color3.fromRGB(16,23,18)
 local ROBUX=utf8.char(0xE002)
 local TILES={
-	TimeSkip={Color3.fromRGB(63,186,255),Color3.fromRGB(22,119,223)},
 	Gems={Theme.GemColors.Top,Theme.GemColors.Bottom},
 	Multiplier={Color3.fromRGB(95,207,71),Color3.fromRGB(44,154,39)},
 }
@@ -51,9 +50,6 @@ local RANK={18,453,695,282}
 local CHICKEN={268,589,195,143}
 local GEM_PANEL={743,158,945,685}
 local PENDING_SECONDS=10
--- October 21 (P4): the boom, fanfare and confetti take about this long; the Time Skip
--- claim popup (TimeSkipController) waits for celebratingUntil before it opens.
-local CELEBRATE_SECONDS=2.2
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
 -- fallback until the sound session adds it (UI Lab previews stub audio without Has).
 -- Presentation only; one client audio.
@@ -142,7 +138,7 @@ end
 
 function Panel.new(app)
 	Audio=app.audio
-	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil,ready=false,skipReady=false,celebratingUntil=0},Panel)
+	return setmetatable({app=app,connections={},quote=nil,state=nil,lastRank=nil,pending=nil,ready=false,skipReady=false},Panel)
 end
 
 -- Panel --------------------------------------------------------------------
@@ -168,9 +164,7 @@ function Panel:Open()
 	end,false,3000,Enum.KeyCode.ButtonB)
 	local function connect(signal,callback) table.insert(self.connections,signal:Connect(callback)) end
 	connect(UserInputService.InputBegan,function(input)
-		-- Escape over the Time Skip popup claims there; this window stays open beneath it.
-		local timeSkip=self.app.timeSkip
-		if input.KeyCode==Enum.KeyCode.Escape and not (timeSkip and timeSkip.gui) then self:Close() end
+		if input.KeyCode==Enum.KeyCode.Escape then self:Close() end
 	end)
 	-- Another menu opening replaces this one.
 	if self.app.panel then
@@ -250,9 +244,9 @@ function Panel:BuildRewards(main)
 	local earn=inset(main,"RebirthToEarn",EARN)
 	self.earn=earn
 	rect(label(earn,"Title","Rebirth to Earn:",38),18,243,695,46,EARN)
-	self.timeSkip=self:Tile(earn,"TimeSkip","TIME SKIP",{48,290,205,140},"TimeSkip")
-	self.gemsReward=self:Tile(earn,"Gems","GEMS",{263,290,205,140},"Gems")
-	self.multiplier=self:Tile(earn,"Multiplier","MULTIPLIER",{478,290,210,140},nil)
+	-- October 23 (Stevin): no Time Skip tile; the two rewards sit centred.
+	self.gemsReward=self:Tile(earn,"Gems","GEMS",{153,290,205,140},"Gems")
+	self.multiplier=self:Tile(earn,"Multiplier","MULTIPLIER",{368,290,210,140},nil)
 	local rankBox=inset(main,"NextRebirth",RANK)
 	self.rankTitle=rect(label(rankBox,"Title","",48),18,466,695,52,RANK)
 	-- Same resting rects; the title and Coins line punch from their middles.
@@ -361,8 +355,6 @@ function Panel:RenderPanel()
 	local rank=tonumber(quote.rank) or 0
 	local target=nextRank(quote)
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	local minutes=tonumber(quote.timeSkipMinutes)
-	self.timeSkip.Text=if minutes then math.floor(minutes).." min" else "—"
 	local gems=tonumber(quote.gemsNext)
 	self.gemsReward.Text=if gems then "+"..Theme.Money(gems) else "—"
 	self.multiplier.Text=multiplierText(quote.multiplierNext or quote.multiplierNow)
@@ -524,7 +516,6 @@ end
 -- what the rank paid.
 function Panel:Celebrate(before,quote,receipt)
 	local rank=tonumber(quote.rank) or 0
-	self.celebratingUntil=os.clock()+CELEBRATE_SECONDS
 	-- The deep Rebirth boom, then the Fanfare a beat later; the world flashes green
 	-- with a quick zoom (ScreenFeel; the camera stays with the player).
 	cue("Rebirth","Victory",nil,{voiceKey="Rebirth",cooldown=1})
@@ -538,16 +529,6 @@ function Panel:Celebrate(before,quote,receipt)
 	local gems=tonumber(receipt and receipt.gems) or tonumber(type(before)=="table" and before.gemsNext)
 	if gems and gems>0 then table.insert(parts,"+"..Theme.Gems(gems)) end
 	table.insert(parts,multiplierText(quote.multiplierNow).." egg Coins")
-	-- October 21 (P4): the Coins stay at 0; Time Skip waits for its claim popup. A Skip
-	-- Rebirth keeps the run, so its Time Skip was paid at once.
-	local skipCoins=tonumber(receipt and receipt.timeSkipCoins) or 0
-	if receipt and receipt.skip==true then
-		if skipCoins>0 then table.insert(parts,"Time Skip: +"..Theme.CompactCoins(skipCoins)) end
-	else
-		local waiting=if type(quote.timeSkipPending)=="table" then tonumber(quote.timeSkipPending.coins) else nil
-		local ready=waiting or skipCoins
-		if ready and ready>0 then table.insert(parts,"Time Skip ready: +"..Theme.CompactCoins(ready)) end
-	end
 	local unlock=if type(before)=="table" then before.unlockNext else nil
 	if type(unlock)=="table" and unlock.name then table.insert(parts,mutationName(unlock.name).." mutations unlocked") end
 	self.app:Notify(table.concat(parts," · "),true)

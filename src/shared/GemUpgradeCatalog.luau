@@ -50,11 +50,8 @@ local upgrades: {Upgrade} = {
 	{id = "AutoRebirth", name = "Auto Rebirth", row = 4, column = 2, unlockRank = 2, maxLevel = 1, startLevel = 0,
 		prices = {25}, effect = "autoRebirth", perLevel = 1,
 		text = "Unlocks Auto Rebirth: rebirths for you when you have enough Coins", icon = "gemAutoRebirth"},
-	-- Time Skip starts at level 1 (5 minutes) for everyone.
-	{id = "TimeSkip", name = "Time Skip", row = 5, column = 1, unlockRank = 3, maxLevel = 9, startLevel = 1,
-		prices = {20, 40, 70, 110, 160, 230, 320, 430}, effect = "timeSkipMinutes", perLevel = 5,
-		text = "+5 min of Coins when you rebirth", icon = "gemTimeSkip"},
-	{id = "MoreGems", name = "More Gems", row = 5, column = 2, unlockRank = 3, maxLevel = 5, startLevel = 0,
+	-- October 23: Time Skip is retired (see RetiredRefund); More Gems takes its place.
+	{id = "MoreGems", name = "More Gems", row = 5, column = 1, unlockRank = 3, maxLevel = 5, startLevel = 0,
 		prices = {25, 50, 90, 140, 200}, effect = "gemBonus", perLevel = 0.10,
 		text = "+10% Gems from every rebirth", icon = "gemMoreGems"},
 	{id = "KeepUpgrades", name = "Keep Upgrades", row = 6, column = 1, unlockRank = 5, maxLevel = 3, startLevel = 0,
@@ -140,7 +137,10 @@ end
 
 -- October 21: Rebirth Chicken Odds is retired with the Rebirth chickens. Read drops
 -- its saved level; PlayerSession adds back the Gems those levels cost.
-local retired: {[string]: {number}} = {RebirthChickenOdds = {30, 60, 100, 150, 220}}
+-- October 23 (Stevin: no Time Skip "no matter what"): Time Skip is retired too. Its
+-- level 1 was free for everyone, hence the leading 0.
+local retired: {[string]: {number}} = {RebirthChickenOdds = {30, 60, 100, 150, 220},
+	TimeSkip = {0, 20, 40, 70, 110, 160, 230, 320, 430}}
 function Catalog.RetiredRefund(value: any): number
 	local gems = 0
 	if type(value) ~= "table" then return gems end

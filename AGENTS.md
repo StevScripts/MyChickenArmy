@@ -57,7 +57,7 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   the challenge of a run is the Coins reset itself. A rank-priced tree (x1.2 a rank) was
   built, measured and reverted the same day, see "tree prices stay flat" in
   `docs/team/REBIRTH_PACING_20261021.md`; do not propose it again.
-- **Rebirth** resets Coins to 0 (not 2,400; Time Skip then pays), Feed levels and the tree,
+- **Rebirth** resets Coins to 0 (not 2,400; nothing pays them back), Feed levels and the tree,
   except Keep Upgrades tiers and `mutationKeep`. Gems and Gem Upgrades never reset.
   Mutations (Golden, Rainbow, Shadow, Cosmic) are bought in the tree, not unlocked by rank.
   Oct 21 ladder (Stevin, after the pacing simulation: "more, not harder"): 50 ranks;
@@ -71,10 +71,14 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   a level with x4 quotes, Egg Speed/Value III–IV and Flock 7–15 priced 25K–2B) and the egg
   multiplier gains x1.7 a rank on ranks 5–10 and x1.06 a rank after (x266 at 10, never
   below the old 1 + rank), see "reference-shaped ladder" in that doc.
-- **Time Skip (Oct 22, Stevin: the Rebirth bonus "easily unlocks everything"):** it pays
-  its minutes of the income the player has right after the Rebirth (no tree tiers past
-  Keep Upgrades, no Feed levels, next rank's multiplier), never the end-of-run income.
-  See "Time Skip" in `docs/team/REBIRTH_PACING_20261021.md`.
+- **No Time Skip (Oct 23, Stevin: "I don't want any time skip ... no matter what"):** a
+  Rebirth pays no Coins at all, only Gems and the multiplier. The claim popup, the
+  Rebirth screen's TIME SKIP tile and the Time Skip Gem card are removed (bought levels
+  refunded in Gems; unclaimed saved rewards are dropped, never paid). Never bring it
+  back. The Oct 22 head-start version is history (`docs/team/REBIRTH_PACING_20261021.md`).
+- **Starting Gems are 0.** Oct 23: the game's creator owns every retired pass, so the
+  retired-pass Gems gift (300) skips the developer (Studio, creator, `DebugUserIds`) and
+  takes back one already given; real buyers keep theirs (`CommerceService`).
 - **Flock** = chickens laying in the yard (only they lay, also offline), not the Sep 29
   25–100 capacity. Storage holds the rest (hidden cap 1,000); the **Army** is its own pick.
   Yard builds are instant (ends Oct 16 timed builds).

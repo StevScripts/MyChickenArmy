@@ -21,7 +21,6 @@ Stories.List={
 	{id="AutoRoll",name="Auto Roll panel"},
 	{id="AutoRollAlert",name="Auto Roll banner"},
 	{id="Playtime",name="Playtime Rewards + boosts readout"},
-	{id="TimeSkip",name="Time Skip claim (after a Rebirth)"},
 }
 
 local function noop() end
@@ -156,21 +155,21 @@ end
 -- The first Rebirth before it is affordable (the reference's 3,019 / 50,000 screen):
 -- a silhouette reward, no Gems, and the Rebirth 2+ rows locked.
 local FIRST_PRICES={RollSpeed=5,ExtraLuck=5,VacuumCapacity=10,AutoRoll=15,FlockSlot=20,ArmySlot=25,CoinBoost=10,AutoRebirth=25,
-	TimeSkip=20,MoreGems=25,KeepUpgrades=40,Rally=30,MutationLuck=40,OfflineCoins=30,ArmyPower=50}
+	MoreGems=25,KeepUpgrades=40,Rally=30,MutationLuck=40,OfflineCoins=30,ArmyPower=50}
 Render.RebirthFirst=function(ctx)
 	local state=ctx.state
 	state.gems,state.gemsEarned=0,0
 	local quote=state.rebirth or {}
 	state.rebirth=quote
 	quote.rank,quote.nextRank,quote.cost,quote.coins,quote.eligible=0,1,50000,3019,false
-	quote.multiplierNow,quote.multiplierNext,quote.gemsNext,quote.timeSkipMinutes=1,2,50,5
+	quote.multiplierNow,quote.multiplierNext,quote.gemsNext=1,2,50
 	quote.skip={credits=0,productKey="RebirthSkip1",onSale=true,restricted=false}
 	-- October 22 Rebirth finds: Rebirth 1 needs Robo-Cluck, not found yet.
 	quote.find={species="Bucket",name="Robo-Cluck",rarity="Rare",found=false}
 	local upgrades=state.gemUpgrades or {}
 	upgrades.autoRebirth={owned=false,enabled=true}
 	for id,item in upgrades.items or {} do
-		item.level,item.price=(if id=="TimeSkip" then 1 else 0),FIRST_PRICES[id]
+		item.level,item.price=0,FIRST_PRICES[id]
 		item.status=if (item.unlockRank or 0)>0 then "Locked" else "Unaffordable"
 	end
 	Render.Rebirth(ctx)
@@ -262,14 +261,6 @@ Render.Playtime=function(ctx)
 	local panel=require(ctx.code.PlaytimePanel).new(app)
 	panel:Render(ctx.state)
 	panel:Open()
-end
-
--- October 21 reference parity (P4): the "Time Skip!" claim a Rebirth leaves, in the
--- Welcome Back window (MenuLayouts.OfflineEarnings): 10 minutes of Coins from Rebirth 3.
-Render.TimeSkip=function(ctx)
-	local app=makeApp(ctx)
-	app.other=menuFrame(ctx,"Offline","TimeSkip")
-	require(ctx.code.TimeSkipController).new(app):Show({coins=48250,rank=3},10)
 end
 
 function Stories.Render(id,ctx)

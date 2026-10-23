@@ -107,10 +107,10 @@ function Checks.Run()
 		assert(#Tree.Families.Mutation.tiers==#Mutations.Order and (Mutations.Defs.Shadow::any).unlockRank==nil,"Mutation tree hexes")
 		assert(Tree.Effects({Mutation=2},{}).mutations==2,"Mutation tier effect")
 		local effects=Tree.Effects({},{})
-		assert(effects.flockSize==3 and effects.timeSkipMinutes==5 and effects.callArmy==1,"Flock, Time Skip, Call Army")
+		assert(effects.flockSize==3 and effects.timeSkipMinutes==0 and effects.callArmy==1,"Flock, no Time Skip, Call Army")
 		assert(effects.keepTiers==0 and effects.autoRebirth==0 and effects.rebirthChickenChance==0.01,"Gem defaults")
 		assert(effects.armySlots==0 and effects.feedMaxLevel==0,"Army slot and Feed level defaults")
-		assert(GemCatalog.Level({},"TimeSkip")==1 and GemCatalog.Level({},"CoinBoost")==0,"Gem start levels")
+		assert(GemCatalog.Upgrades.TimeSkip==nil and GemCatalog.Level({},"CoinBoost")==0,"Gem start levels")
 		assert(Tree.ValueText("VacuumCapacity",1)=="+15 eggs",Tree.ValueText("VacuumCapacity",1))
 		return "Defaults match the contract"
 	end)
@@ -158,7 +158,7 @@ function Checks.Run()
 		return "Reserve, quotes and order hold"
 	end)
 
-	test("Rebirth 1 resets the run and pays Gems and Time Skip Coins (no chicken); progress stays",function()
+	test("Rebirth 1 resets the run and pays Gems, no Time Skip Coins (no chicken); progress stays",function()
 		local s=fixture(-9302)
 		setTree(s,{EggSpeed=4,EggValue=4,Luck=2,Flock=1,ArmySize=2,ChickenFeed=1})
 		local fed=s:AddPet("Duck",1)
@@ -171,9 +171,8 @@ function Checks.Run()
 		assert(quote.eligible and quote.nextRank==1 and quote.cost==50000 and quote.gemsNext==50,
 			"Quote: "..tostring(quote.reason)..", "..tostring(quote.gemsNext).." Gems")
 		assert(quote.nextChicken==nil and quote.multiplierNext==2 and quote.enemyScaleNext==1,"Quote rewards")
-		assert(quote.timeSkipMinutes==5 and quote.cashLevels==2 and quote.kingRequired==false,"Quote details")
+		assert(quote.timeSkipMinutes==nil and quote.cashLevels==2 and quote.kingRequired==false,"Quote details")
 		local count=s:Count()
-		local keptRun=Rebirth.TimeSkipCoins(s,true)
 		local ok,message,receipt=Rebirth.Rebirth(s,0,NO_SERVER,false)
 		assert(ok and message=="Rebirth complete: Rebirth 1",message)
 		assert(s.rebirths==1 and receipt.rank==1 and receipt.gems==50 and not receipt.skip and not receipt.automatic,"Receipt")
@@ -181,16 +180,13 @@ function Checks.Run()
 			"Tree left: "..levelsText(s.upgradeTree))
 		assert(s.gems==50 and s.gemsEarned==50,"Gems "..s.gems)
 		assert(s:Count()==count and receipt.petId==nil and receipt.species==nil,"A Rebirth chicken was granted")
-		-- October 22: Time Skip pays the new run's income (no tree tiers or Feed levels),
-		-- measured before the reset, as the quote showed; never the old run's income.
-		assert(receipt.timeSkipCoins==quote.timeSkipCoins and receipt.timeSkipCoins<keptRun,
-			"Time Skip "..receipt.timeSkipCoins.." vs quote "..quote.timeSkipCoins.." and kept run "..keptRun)
-		assert(s.coins==0 and s.timeSkipPending.coins==receipt.timeSkipCoins,"Coins "..s.coins)
+		-- October 23 (Stevin): no Time Skip; the Coins stay 0.
+		assert(s.coins==0 and receipt.timeSkipCoins==nil and s.timeSkipPending==nil,"Coins "..s.coins)
 		assert(fed.level==1 and fed.cashLevels==nil,"Chicken Feed levels stay")
 		assert(s.eggCarry.count==0 and s.eggCarry.value==0,"Carried eggs stay")
 		assert(s.firstWins[1] and s.kingCleared and s.research.operationWins.Fixture,"Camp, King or Mission progress lost")
 		near(s:EarnedAmount(100,"eggs",true),200,"Rebirth 1 egg multiplier")
-		return "+50 Gems, Time Skip "..receipt.timeSkipCoins.." Coins"
+		return "+50 Gems, 0 Coins"
 	end)
 
 	test("Refusals: short of Coins, stale rank, army away, not loaded",function()
@@ -292,12 +288,14 @@ function Checks.Run()
 	test("Gem shop: the reference order in rows of two, rows open by rank, buys use the exact quote",function()
 		-- Stevin's order (October 20, S7b), as in Drop a Fruit's shop: two cards per row.
 		local order={"RollSpeed","ExtraLuck","VacuumCapacity","AutoRoll","FlockSlot","ArmySlot","CoinBoost","AutoRebirth",
-			"TimeSkip","MoreGems","KeepUpgrades","Rally","MutationLuck","OfflineCoins","ArmyPower"}
+			"MoreGems","KeepUpgrades","Rally","MutationLuck","OfflineCoins","ArmyPower"}
 		assert(table.concat(GemCatalog.Order,",")==table.concat(order,","),table.concat(GemCatalog.Order,","))
 		local previousRank=0
 		for index,id in order do
 			local upgrade=GemCatalog.Upgrades[id]
-			assert(upgrade.row==math.ceil(index/2) and upgrade.column==(index-1)%2+1,
+			-- October 23: retired Time Skip leaves row 5, column 2 empty.
+			local slot=if index>=10 then index+1 else index
+			assert(upgrade.row==math.ceil(slot/2) and upgrade.column==(slot-1)%2+1,
 				id.." at row "..upgrade.row..", column "..upgrade.column)
 			assert(upgrade.unlockRank>=previousRank,id.." opens before the row above it")
 			previousRank=upgrade.unlockRank
@@ -308,10 +306,10 @@ function Checks.Run()
 		s.rebirths,s.gems=1,50
 		local snapshot=GemUpgrades.Snapshot(s)
 		assert(#snapshot.order==#GemCatalog.Order and not snapshot.autoRebirth.owned,"Snapshot")
-		assert(snapshot.items.TimeSkip.status=="Locked" and snapshot.items.TimeSkip.level==1
+		assert(snapshot.items.TimeSkip==nil and snapshot.items.MoreGems.status=="Locked"
 			and snapshot.items.FlockSlot.status=="Available" and snapshot.items.CoinBoost.status=="Locked","Row status")
 		refused("Reach Rebirth 2 to unlock Coin Boost.",GemUpgrades.Buy(s,"CoinBoost",0,10))
-		refused("Reach Rebirth 3 to unlock Time Skip.",GemUpgrades.Buy(s,"TimeSkip",1,20))
+		refused("Choose a Gem Upgrade.",GemUpgrades.Buy(s,"TimeSkip",1,20))
 		refused("This upgrade changed. Try again.",GemUpgrades.Buy(s,"AutoRoll",0,99))
 		refused("Choose a Gem Upgrade.",GemUpgrades.Buy(s,"Nope",0,1))
 		local ok,message=GemUpgrades.Buy(s,"AutoRoll",0,15)
@@ -334,33 +332,25 @@ function Checks.Run()
 		return "Order, locks, quotes, prices and effects hold"
 	end)
 
-	test("Time Skip and More Gems raise the next Rebirth's rewards",function()
+	test("More Gems raises the next Rebirth's Gems",function()
 		local s=fixture(-9309)
 		s.rebirths,s.gems=3,200
-		local fiveMinutes=Rebirth.TimeSkipCoins(s)
-		local ok,message=GemUpgrades.Buy(s,"TimeSkip",1,20)
-		assert(ok and s.researchEffects.timeSkipMinutes==10,message)
-		local tenMinutes=Rebirth.TimeSkipCoins(s)
-		assert(math.abs(tenMinutes-2*fiveMinutes)<=1,fiveMinutes.." then "..tenMinutes)
-		ok,message=GemUpgrades.Buy(s,"MoreGems",0,25)
+		local ok,message=GemUpgrades.Buy(s,"MoreGems",0,25)
 		assert(ok,message)
 		local quote=Rebirth.Quote(s)
-		-- floor((40 + 40) x 1.1) Gems for Rebirth 4.
-		assert(quote.gemsNext==88 and quote.timeSkipCoins==tenMinutes,
-			tostring(quote.gemsNext).." Gems, Time Skip "..tostring(quote.timeSkipCoins))
-		return "Time Skip "..fiveMinutes.." -> "..tenMinutes.." Coins"
+		-- floor((40 + 40) x 1.1) Gems for Rebirth 4; no Time Skip (October 23).
+		assert(quote.gemsNext==88 and quote.timeSkipCoins==nil,tostring(quote.gemsNext).." Gems")
+		return "88 Gems"
 	end)
 
 	test("+1 Flock Slot and +1 Army Slot add to the tree's sizes and stay through Rebirths and saves",function()
 		local s=fixture(-9320)
 		s.rebirths,s.gems=1,100
 		for _=1,3 do s:AddPet("Chunky",1) end -- six chickens, so a fourth layer counts
-		local before=Rebirth.TimeSkipCoins(s)
 		local ok,message=GemUpgrades.Buy(s,"FlockSlot",0,20)
 		assert(ok and s:FlockSize()==4,message)
 		ok,message=GemUpgrades.Buy(s,"ArmySlot",0,25)
 		assert(ok and s.capacity==4 and s:Capacity()==4,message)
-		assert(Rebirth.TimeSkipCoins(s)>before,"Time Skip ignored the Gem Flock slot")
 		setTree(s,{ArmySize=1,Flock=2})
 		assert(s.capacity==5 and s:FlockSize()==6,"On top of the tree: "..s.capacity.." and "..s:FlockSize())
 		local nextSlot=s:NextSlot()
@@ -511,7 +501,7 @@ function Checks.Run()
 		local ok,message,receipt=Rebirth.Step(s,NO_SERVER)
 		assert(ok and receipt.skip and not receipt.automatic and s.rebirths==2 and s.rebirthSkips==0,message)
 		assert(s.upgradeTree.EggSpeed==1 and fed.level==2 and fed.cashLevels==1,"The run was reset")
-		assert(s.coins==123+receipt.timeSkipCoins and s.gems==60,"Coins "..s.coins.." Gems "..s.gems)
+		assert(s.coins==123 and s.gems==60,"Coins "..s.coins.." Gems "..s.gems)
 		assert(receipt.petId==nil,"A Rebirth chicken was granted")
 		return "Credit spent once the army was home"
 	end)
@@ -532,7 +522,7 @@ function Checks.Run()
 		s.autoRebirth=true
 		local ok,message,receipt=Rebirth.Step(s,NO_SERVER)
 		assert(ok and receipt.automatic and not receipt.skip and s.rebirths==2,message)
-		assert(s.coins==0 and s.timeSkipPending.coins==receipt.timeSkipCoins,"Coins "..s.coins)
+		assert(s.coins==0 and receipt.timeSkipCoins==nil,"Coins "..s.coins)
 		local other=fixture(-9312)
 		other.coins=Rebirth.Cost(1)
 		assert(not Rebirth.Step(other,NO_SERVER) and other.rebirths==0,"Rebirthed without Auto Rebirth")
@@ -672,11 +662,12 @@ function Checks.Run()
 		local ok,message=t:LoadData(data)
 		assert(ok and message=="Loaded.",message)
 		assert(t.rebirths==4 and levelsText(t.upgradeTree)=="ArmySize=1, EggSpeed=2, EggVacuum=1, Flock=3",levelsText(t.upgradeTree))
-		assert(t.gems==77 and t.gemsEarned==300 and levelsText(t.gemUpgrades)=="AutoRoll=1, CoinBoost=3, TimeSkip=2",
+		-- October 23: the retired Time Skip card refunds its one bought level (20 Gems).
+		assert(t.gems==97 and t.gemsEarned==300 and levelsText(t.gemUpgrades)=="AutoRoll=1, CoinBoost=3",
 			levelsText(t.gemUpgrades))
 		assert(t.autoRebirth==false and t.rebirthSkips==2 and t.missionTierLegacy==1 and t.eggVacuum==false,"Settings")
 		assert(#t.rebirthChickenCredits==0,"Retired chicken credits are dropped")
-		assert(t.eggSpeedLevel==2 and t.capacity==4 and t:FlockSize()==6 and t.researchEffects.timeSkipMinutes==10
+		assert(t.eggSpeedLevel==2 and t.capacity==4 and t:FlockSize()==6 and t.researchEffects.timeSkipMinutes==0
 			and t.researchEffects.eggVacuum==1,"Derived fields")
 		near(t.researchEffects.coinBoost,0.3,"Coin Boost")
 		assert(t.economyConversion==nil,"A revision 12 save converted again")

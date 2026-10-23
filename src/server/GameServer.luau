@@ -356,11 +356,6 @@ function GameServer:Handle(player,request)
 	elseif action=="Rebirth" then
 		ok,message,receipt=RebirthService.Rebirth(session,request.expectedRank,self,request.useSkip==true)
 		if ok and receipt and receipt.petId then petId=receipt.petId;self.world:Recruit(session,receipt.petId) end
-	elseif action=="ClaimTimeSkip" then
-		-- October 21 (P4): the "Time Skip!" popup's Claim!. Quiet: the popup and the HUD
-		-- count-up are the feedback; a second claim is refused with an empty message.
-		ok,message,receipt=RebirthService.ClaimTimeSkip(session,self)
-		if ok then message="" end
 	elseif action=="Income" then ok,message=self.upgrades:BuyFamily(session,"EggValue")
  elseif action=="Luck" then ok,message=self.upgrades:BuyFamily(session,"Luck")
  elseif action=="Attack" then

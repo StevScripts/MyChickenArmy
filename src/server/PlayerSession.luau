@@ -64,8 +64,6 @@ function PlayerSession:Reset()
 	self.rebirthSkips = self.rebirthSkips or 0
 	self.passGemGifts = self.passGemGifts or {}
 	self.rebirthChickenCredits = {}
-	-- October 21 (P4): a Rebirth's Time Skip Coins waiting for a claim, {coins, rank} or nil.
-	self.timeSkipPending = nil :: {coins: number, rank: number}?
 	self.missionTierLegacy = 0
 	-- Mutations a save keeps from its Rebirth rank (S9c's Mutation tree family). A new
 	-- profile under that family keeps none; before it exists nil leaves the choice to
@@ -871,8 +869,6 @@ function PlayerSession:ToData()
 		rebirthChickenCredits=table.clone(self.rebirthChickenCredits),passGemGifts=table.clone(self.passGemGifts),
 		missionTierLegacy=self.missionTierLegacy,mutationKeep=self.mutationKeep,
 		upgradeTreeVersion=TreeMigrations.Version,
-		-- October 21 (P4): additive; missing means nothing to claim.
-		timeSkipPending=if self.timeSkipPending then {coins=self.timeSkipPending.coins,rank=self.timeSkipPending.rank} else nil,
 		flockSelection=if self.flockSelection then table.clone(self.flockSelection) else nil,
 		eggVacuum=self.eggVacuum==true,vacuumCargo=table.clone(self.vacuumCargo),goldRolls=table.clone(self.goldRolls),
 		vacuumedEggs=self.vacuumedEggs, -- October 21, additive; missing means 0.
@@ -946,15 +942,6 @@ local function readRebirths(value): number
 	if not numberIn(value,0,2^53-1,true) then return 0 end
 	-- A rank above a later, lower MaxRank keeps the highest rank instead of resetting.
 	return math.min(value,Config.Rebirth.MaxRank)
-end
-
--- Additive October 21 field (P4): the unclaimed Time Skip reward. Never rejects a
--- profile: anything but {coins = a number >= 1, rank = a whole number >= 0} reads as nil.
-local function readTimeSkipPending(value): {coins: number, rank: number}?
-	if type(value)~="table" then return nil end
-	local coins,rank=value.coins,value.rank
-	if type(coins)~="number" or coins~=coins or coins<1 or not numberIn(rank,0,2^53-1,true) then return nil end
-	return {coins=math.min(math.floor(coins),Currency.MaxCoins),rank=math.min(rank,Config.Rebirth.MaxRank)}
 end
 
 local function readDaily(value)
@@ -1359,7 +1346,8 @@ function PlayerSession:LoadData(data)
  self.hillWins,self.hillRollCredits,self.hillChampion=hillWins,hillRollCredits,data.hillChampion==true
  -- Additive launch fields: missing or malformed values read as their defaults.
  self.rebirths=rebirths
- self.timeSkipPending=readTimeSkipPending(data.timeSkipPending)
+ -- October 23 (Stevin): Time Skip is removed; a saved unclaimed timeSkipPending is
+ -- ignored and dropped on the next save, never paid.
  self.daily=readDaily(data.daily)
  self.dailyGranted=nil
  -- Additive October 14 field: anything but a whole number below the guarantee reads as 0.

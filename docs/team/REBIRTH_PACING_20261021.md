@@ -406,6 +406,9 @@ milestone, prints "Coins earned per minute" for the first hour and can trace a r
 
 ## October 22: Time Skip head start
 
+> October 23 (Stevin): Time Skip is removed entirely; a Rebirth pays no Coins. The
+> ladder below was fitted with this head start and was not re-fit without it.
+
 Stevin: "Every time I rebirth yea my money resets to zero but I get some type of bonus
 that lets me easily unlock everything, thats too easy, yea I want a bonus but not to a
 point where it easily unlocks everything!!"

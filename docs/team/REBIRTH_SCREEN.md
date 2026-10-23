@@ -26,7 +26,10 @@ What that means in the build:
 - **The Coins bar shows the real balance**, even past the cost ("214,880 / 200,000").
 - **Money resets to zero** on a Rebirth (later October 20, Stevin; `RebirthService`),
   and it reads 0 (October 21 reference parity, P4; the bar shows "0 / 1,000,000" like
-  the reference). Time Skip is no longer credited in the same transaction: the
+  the reference). **October 23 (Stevin): Time Skip is removed.** A Rebirth pays no
+  Coins; Rebirth to Earn shows only GEMS and MULTIPLIER, centred; the claim popup,
+  `ClaimTimeSkip`, `timeSkipPending` and the Time Skip Gem card are gone. History:
+  Time Skip was no longer credited in the same transaction: the
   server saves its Coins as a claim (`timeSkipPending = {coins, rank}`) and, once the
   confetti has played, a **"Time Skip!"** popup in the Welcome Back style opens over
   the still-open Rebirth window ("TIME SKIP:", coin art, "+N Coins", "N min of egg
@@ -211,7 +214,5 @@ UI Lab stories:
 - **Rebirth:** the late-game preset, a Rebirth 10 player who can afford Rebirth 11,
   with Maxed, Available, Unaffordable, Locked and the Auto Rebirth toggle.
 - **Rebirth (first, not ready):** the reference's 3,019 / 50,000 screen.
-- **Time Skip claim (after a Rebirth):** the claim popup, 10 minutes from Rebirth 3,
-  in the Welcome Back window (`MenuLayouts.OfflineEarnings`).
 
 The menu editor previews the same panel.

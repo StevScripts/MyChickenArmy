@@ -494,8 +494,6 @@ function AppController:CloseOtherMenus(keep: string?)
 	if keep~="freeGift" and self.freeGift then self.freeGift:Dismiss(true) end
 	if keep~="autoRoll" and self.autoRollMenu then self.autoRollMenu:Dismiss(true) end
 	if keep~="playtime" and self.playtimePanel then self.playtimePanel:Dismiss(true) end
-	-- October 21 (P4): a waiting Time Skip claim steps aside and comes back afterwards.
-	if keep~="timeSkip" and self.timeSkip then self.timeSkip:Dismiss(true) end
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
@@ -1128,7 +1126,6 @@ function AppController:Start()
 	self.cornerNotice=CornerNotice.new(self)
 	self.boostReadout=BoostReadout.new(self)
 	self.playtimePanel=PlaytimePanel.new(self)
-	self.timeSkip=require(script.Parent.TimeSkipController).new(self) -- Oct 21 (P4): the Time Skip claim popup reads its own packets
 	self.commander=CommanderGuide.new(self)
 	self.leaderboards=LeaderboardBoards.new(self)
 	self.intro=IntroCutscene.new(self)

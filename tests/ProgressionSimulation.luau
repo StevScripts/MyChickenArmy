@@ -124,7 +124,7 @@ local DEFAULTS={
 
 -- Gem Upgrades in buying order (the first affordable unlocked one each time). S7b's
 -- +1 Flock Slot and +1 Army Slot open at Rebirth 1, Coin Boost at Rebirth 2.
-local GEM_PRIORITY={"FlockSlot","CoinBoost","AutoRoll","ArmySlot","ExtraLuck","RollSpeed","TimeSkip","MoreGems",
+local GEM_PRIORITY={"FlockSlot","CoinBoost","AutoRoll","ArmySlot","ExtraLuck","RollSpeed","MoreGems",
 	"KeepUpgrades","CoinBoost","ExtraLuck","RollSpeed","CoinBoost","AutoRebirth","VacuumCapacity","MutationLuck",
 	"ArmyPower","OfflineCoins","RebirthChickenOdds","Rally"}
 
@@ -667,17 +667,15 @@ local function tryRebirth(state,now)
 	local before=s.coins
 	local ok,_,receipt=Rebirth.Rebirth(s,s.rebirths,nil,false)
 	if not ok then return end
-	-- October 21 (P4): Time Skip waits as a claim; the player claims it at once.
-	Rebirth.ClaimTimeSkip(s,nil :: any)
 	-- No BattleService here: release the flags ourselves; the bag is cleared.
 	table.clear(state.flags)
 	s.territoryBonus=0
 	state.bag=0
 	state.stats.gemsEarned+=receipt.gems
-	state.stats.timeSkip+=receipt.timeSkipCoins
+	state.stats.timeSkip+=receipt.timeSkipCoins or 0 -- October 23: Time Skip removed (always 0)
 	spendGems(state,now)
 	state.milestones["Rebirth"..s.rebirths]={minutes=now/60,played=state.played/60,coins=before,income=cashRate(s),
-		power=armyPower(s),flock=s:Count(),rank=s.rebirths,cost=cost,eggs=state.peakEggs,timeSkip=receipt.timeSkipCoins,
+		power=armyPower(s),flock=s:Count(),rank=s.rebirths,cost=cost,eggs=state.peakEggs,timeSkip=receipt.timeSkipCoins or 0,
 		earned=earnedSoFar(state)}
 	state.peakEggs=0
 end

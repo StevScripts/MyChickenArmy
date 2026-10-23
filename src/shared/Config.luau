@@ -61,7 +61,7 @@ local Config = {
   ChampionWins=10,ChampionSpecies="HillChampion"},
  -- October 20 overhaul, Rebirth v2 (docs/team/OVERHAUL_CONTRACT_20261020.md §7; plan v2
  -- with Stevin's changes). Coins on hand are the only requirement (no camps, no King);
- -- Coins reset to 0, then Time Skip pays. Each rank adds +100% egg Coins (ranks
+ -- Coins reset to 0 (October 23: no Time Skip). Each rank adds +100% egg Coins (ranks
  -- EggBoostFromRank–EggBoostToRank also multiply it by EggBoostPerRank and later ranks by
  -- EggLateGrowthPerRank: RebirthService.Multiplier) and pays GemsBase + GemsPerRank × rank
  -- Gems. Enemies stay ×1 through EnemyFreeRanks,
@@ -86,6 +86,8 @@ local Config = {
  -- pays minutes of the post-Rebirth income, not the end-of-run income, so it no longer
  -- carries part of each rank. Ranks 3-49 cost 5-33% less to keep the same play time per
  -- Rebirth (REBIRTH_PACING_20261021.md "Time Skip head start").
+ -- October 23 (Stevin: no Time Skip Coins "no matter what"): Time Skip is removed; a
+ -- Rebirth pays only Gems and the multiplier. Costs were not re-fit for it.
  -- October 22 (Stevin): Rebirths 1-FindRanks each need a chicken found first
  -- (PetCatalog.RebirthFinds, in the Index), after that only the Coins. 0 turns it off.
  -- October 23 (Stevin: keep the Drop a Fruit-like chances, "re-fit the Rebirth costs so the
