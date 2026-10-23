@@ -19,7 +19,12 @@ ChickenLuck.TopBandKeep = Catalog.LuckTopBandKeep
 -- boost, x10 Prism roll = x400) 5.85, never past the top band. The old 9 (M-1)/(M+2)
 -- curve gave Luck IV a 3.6-band shift: Legendaries on 22% of podiums twelve minutes in
 -- (docs/team/RARITY_PACING_20261021.md).
-ChickenLuck.ShiftPerDecade = 2.25
+-- October 22 (Stevin: chances "similar to that other game… it was mostly common"): the
+-- bands now match the Drop a Fruit Index (Common 93%), so a band of shift moves far more
+-- of a roll; 0.35 keeps a simulated first hour at about 83% Commons (2.25 gave 21%).
+-- x3 (Luck IV) moves 0.17 bands, x10 0.35, the x400 stack 0.91
+-- (docs/team/RARITY_REBALANCE_20261022.md).
+ChickenLuck.ShiftPerDecade = 0.35
 local initialWindowEnd = 5 -- These bands contain 95.99% of baseline probability.
 local bandBySignature, bandBySpecies, memberWeights = {}, {}, {}
 local totalBudget = 0

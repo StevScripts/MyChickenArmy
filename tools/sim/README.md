@@ -35,15 +35,14 @@ The binary is not committed.
 - `timeskip_probe.luau key=value …` — at every Rebirth, the Time Skip Coins, how many of
   the tree's tiers they buy and their share of the tree just lost and of the next rank.
 - `cost_fit.luau costs=<json> out=<json> key=value …` — ProgressionSimulation with patched
-  `Config.Rebirth.Costs` and tree price growth knobs (`growth=1.2 lateGrowth=1.12
-  freeRanks=4 lateFrom=30` patch `UpgradeCatalog.RankPrice*`), writing played minutes per
-  rank for a cost fit. `gaps.py <run.json…> out=targets.json` turns run or cost_fit JSON into
-  median played minutes per rank; `fit.py targets.json measured.json costs_in.json
-  costs_out.json` moves each cost by (target gap / measured gap)^0.8, log-smoothed over five
-  ranks, inside the ratio bands, three figures, Rebirth 1, 2 and 50 fixed (the October 22
-  re-fits). `report.py <runs dir>` renders the unlock tables, play minutes per rank, daily
-  droughts and the inside-a-run table from a folder of `unlock_probe` JSONs named
-  `fast-*`, `casual-*`, `daily120-*`, `daily45-*`.
+  `Config.Rebirth.Costs`, writing played minutes per rank for a cost fit. `gaps.py
+  <run.json…> out=gaps.json` turns run or cost_fit JSON into median played minutes per
+  rank; `fit.py targets.json measured.json costs_in.json costs_out.json [fixed=1,2,50]`
+  moves each cost by (target gap / measured gap)^0.8, log-smoothed over five ranks, inside
+  the ratio bands, three figures, the fixed ranks untouched (the October 22 re-fits);
+  `report.py <runs dir>` renders the unlock tables, play minutes per rank, daily droughts and
+  the inside-a-run table from a folder of `unlock_probe` JSONs named `fast-*`, `casual-*`,
+  `daily120-*`, `daily45-*`.
 - `unlock_probe.luau key=value … out=<file.json>` — ProgressionSimulation plus, per seed, the
   tree and Gem board at every Rebirth (hexes owned, Coins spent), the first offer and first
   owned chicken per rarity, Luck tier changes and the first purchase of key hexes

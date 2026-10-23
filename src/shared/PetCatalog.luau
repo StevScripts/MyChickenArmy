@@ -214,26 +214,30 @@ end
 -- takes its new tier's original stats (the October 7 pattern); the 11 original tier
 -- species never move. Inside a rarity each chicken is a step rarer than the one before
 -- (the rarest is `span` times the most common), with spans fitted so no chicken reads
--- rarer than the next rarity's first. Band totals, and so each rarity's share of rolls,
--- are unchanged. The basic Chicken keeps 28 of its band's 38.
+-- rarer than the next rarity's first. Band totals (each rarity's share of rolls) match
+-- LuckBands. The basic Chicken keeps 28 of its band's 47.5 (28% of rolls).
+-- The value ladder (`valueSpan`, `valueTotal`, LuckBands `value`) is the morning's
+-- 78-chicken ladder: it sets each chicken's price, income and power ("1 in X"), so
+-- the later switch to reference-like chances changed how often, never what a chicken
+-- is worth.
 local RollPool = {
- {rarity="Common", span=1.57, bands={
-  {key="Duck", total=38, ids={"Duck","Rooster","RubberDucky","Cardboard"}},
-  {key="Mallard", total=22, ids={"Pajama","Party","Piggy","Gamer","Donut","Painter","Popcorn","Miner","Bonsai"}}}},
- {rarity="Uncommon", span=1.12, bands={
-  {key="Chunky", total=22, ids={"Bee","Cow","ZombieHunter","Ironbeak","Detective","Mummy","Coral","CastleGuard","Snowman","Honeycomb","Jungle","Lollipop"}}}},
- {rarity="Rare", span=1.89, bands={
-  {key="Bucket", total=9, ids={"Bucket","Neon","Gladiator","DeepseaDiver","Rockstar","Slime"}},
-  {key="Viking", total=5, ids={"Viking","Ghost","Steampunk","Jester","Toxic","Frost"}}}},
- {rarity="Epic", span=2.83, bands={
-  {key="Knight", total=3, ids={"Knight","Jockey","Aurora","AirshipCaptain","Mimic","Animatronic","Vampire","Yeti","DragonHatchling","Wizard","Storm"}}}},
- {rarity="Legendary", span=2.78, bands={
-  {key="Wizard", total=0.7, ids={"Dragon","Witch","Jade","StainedGlass","Geode","Pharaoh"}},
-  {key="Dragon", total=0.25, ids={"Rainbow","Diamond","Water","SolarFlare"}}}},
- {rarity="Mythic", span=4, bands={
-  {key="IceDuck", total=0.05, ids={"IceDuck","Griffin","DragonKnight","Kraken","Unicorn","Moon","Olympian","Valkyrie","Phoenix","Devil"}}}},
- {rarity="Secret", span=4, bands={
-  {key="StormDuck", total=0.01, ids={"StormDuck","FirstHen","ForestGuardian","TimeKeeper","Eclipse","Kitsune","Mecha","Heavenly","Supernova","RiftWalker"}}}},
+ {rarity="Common", span=1.75, valueSpan=1.57, bands={
+  {key="Duck", total=47.5, valueTotal=38, ids={"Duck","Rooster","RubberDucky","Cardboard"}},
+  {key="Mallard", total=45.4, valueTotal=22, ids={"Pajama","Party","Piggy","Gamer","Donut","Painter","Popcorn","Miner","Bonsai"}}}},
+ {rarity="Uncommon", span=8, valueSpan=1.12, bands={
+  {key="Chunky", total=6.32, valueTotal=22, ids={"Bee","Cow","ZombieHunter","Ironbeak","Detective","Mummy","Coral","CastleGuard","Snowman","Honeycomb","Jungle","Lollipop"}}}},
+ {rarity="Rare", span=3.22, valueSpan=1.89, bands={
+  {key="Bucket", total=0.48, valueTotal=9, ids={"Bucket","Neon","Gladiator","DeepseaDiver","Rockstar","Slime"}},
+  {key="Viking", total=0.282, valueTotal=5, ids={"Viking","Ghost","Steampunk","Jester","Toxic","Frost"}}}},
+ {rarity="Epic", span=8, valueSpan=2.83, bands={
+  {key="Knight", total=0.0434, valueTotal=3, ids={"Knight","Jockey","Aurora","AirshipCaptain","Mimic","Animatronic","Vampire","Yeti","DragonHatchling","Wizard","Storm"}}}},
+ {rarity="Legendary", span=1.55, valueSpan=2.78, bands={
+  {key="Wizard", total=0.0033, valueTotal=0.7, ids={"Dragon","Witch","Jade","StainedGlass","Geode","Pharaoh"}},
+  {key="Dragon", total=0.0018, valueTotal=0.25, ids={"Rainbow","Diamond","Water","SolarFlare"}}}},
+ {rarity="Mythic", span=6.15, valueSpan=4, bands={
+  {key="IceDuck", total=0.0003, valueTotal=0.05, ids={"IceDuck","Griffin","DragonKnight","Kraken","Unicorn","Moon","Olympian","Valkyrie","Phoenix","Devil"}}}},
+ {rarity="Secret", span=7.37, valueSpan=4, bands={
+  {key="StormDuck", total=0.00147, valueTotal=0.01, ids={"FirstHen","StormDuck","ForestGuardian","TimeKeeper","Eclipse","Kitsune","Mecha","Heavenly","Supernova","RiftWalker"}}}},
 }
 Catalog.RollPool = RollPool
 -- Out of the roll pool (weight 0) but kept for saves: owned copies keep these level-1
@@ -284,26 +288,35 @@ local RetiredFromRolls: {[string]: {rarity: string, income: number, hp: number, 
 Catalog.RetiredFromRolls = RetiredFromRolls
 do
  local AnchorWeight = {Duck=28}
- for _, group in RollPool do
+ -- Ladder weights for one rarity: each member a steady step rarer, a band's members
+ -- sharing its total (less the anchored Chicken).
+ local function ladder(group, span: number, totalKey: string)
   local count = 0
   for _, band in group.bands do for _, id in band.ids do if not AnchorWeight[id] then count += 1 end end end
-  local step, rank = group.span ^ (-1 / math.max(1, count - 1)), 0
+  local step, rank, result = span ^ (-1 / math.max(1, count - 1)), 0, {}
   for _, band in group.bands do
-   local s = tierStats[band.key]
-   local weights, sum, free = {}, 0, band.total
+   local weights, sum, free = {}, 0, band[totalKey]
    for i, id in band.ids do
     if AnchorWeight[id] then weights[i] = 0; free -= AnchorWeight[id]
     else weights[i] = step ^ rank; rank += 1 end
     sum += weights[i]
    end
-   for i, id in band.ids do
+   for i, id in band.ids do result[id] = AnchorWeight[id] or free * weights[i] / sum end
+  end
+  return result
+ end
+ for _, group in RollPool do
+  local weights, values = ladder(group, group.span, "total"), ladder(group, group.valueSpan, "valueTotal")
+  for _, band in group.bands do
+   local s = tierStats[band.key]
+   for _, id in band.ids do
     local d = Catalog[id] :: any
     if not TierRarity[id] and d.economyBase ~= band.key then
      d.price,d.income,d.hp,d.damage,d.interval,d.size,d.splash = s.price,s.income,s.hp,s.damage,s.interval,s.size,s.splash
      d.economyBase = band.key
     end
     d.rarity = group.rarity
-    d.weight = AnchorWeight[id] or free * weights[i] / sum
+    d.weight, d.valueWeight = weights[id], values[id]
    end
   end
  end
@@ -326,9 +339,12 @@ Catalog.RebirthOrder = table.freeze({})
 -- rolls has seen it before the Coins are there (docs/team/REBIRTH_SCREEN.md "Rebirth
 -- finds"): Rare, Epic, Legendary, Mythic, then the Secret First Hen at 15.
 -- October 22 roll pool: every find is a chicken with effects (they always stay in the
--- roll pool), picked nearest the old ladder's odds.
-Catalog.RebirthFinds = table.freeze({"Bucket", "Frost", "Mimic", "DragonHatchling", "StainedGlass", "Geode", "Pharaoh",
-	"SolarFlare", "IceDuck", "Griffin", "DragonKnight", "Moon", "Olympian", "StormDuck", "FirstHen"})
+-- roll pool). With the reference-like chances (mostly Commons, gentle Luck) a find rarer
+-- than about 1 in 25,000 kept simulated players waiting hours with the Coins in hand (The
+-- First Hen 3-26 h, Storm Wing 1-5 h), so the ladder runs Uncommon (1-4), Rare (5-11) and
+-- the four easiest Epics (12-15, up to Mimic at 1 in 25,000).
+Catalog.RebirthFinds = table.freeze({"Ironbeak", "Detective", "Snowman", "Jungle", "Bucket", "Gladiator", "DeepseaDiver",
+	"Rockstar", "Ghost", "Jester", "Frost", "Knight", "Aurora", "AirshipCaptain", "Mimic"})
 local retired = {}
 for rank, species in {"Chunky","Chunky","Bucket","Bucket","Viking","Viking","Knight","Knight","Knight",
  "Dragon","Dragon","Dragon","Rainbow","Rainbow","Rainbow","IceDuck","IceDuck","IceDuck","IceDuck"} do
@@ -382,12 +398,17 @@ end
 -- Luck's strength bands live here so the catalog can compute each chicken's
 -- zero-Luck odds; ChickenLuck reads the same table. Bands are matched by each
 -- chicken's tier stats (luckSignature, recorded before the rarity premium).
+-- October 22 (Stevin: "I want my chances to be similar to that other game… it was
+-- mostly common"): the weights match the Drop a Fruit Index at zero Luck. Common 93%
+-- (the basic Chicken 28%), Uncommon 6.3%, Rare 0.76%, Epic 0.043%, Legendary 0.005%,
+-- Mythic 0.0016%, Secret 0.0002%. They were 60 / 22 / 14 / 3 / 0.95 / 0.06 / 0.0015;
+-- `value` keeps those old budgets for each chicken's price, income and power.
 Catalog.LuckBands = {
-	{species="Duck", weight=38}, {species="Mallard", weight=22},
-	{species="Chunky", weight=22}, {species="Bucket", weight=9},
-	{species="Viking", weight=5}, {species="Knight", weight=3},
-	{species="Dragon", weight=0.7}, {species="Rainbow", weight=0.25},
-	{species="IceDuck", weight=0.05}, {species="StormDuck", weight=0.01},
+	{species="Duck", weight=47.5, value=38}, {species="Mallard", weight=45.4, value=22},
+	{species="Chunky", weight=6.32, value=22}, {species="Bucket", weight=0.48, value=9},
+	{species="Viking", weight=0.282, value=5}, {species="Knight", weight=0.0434, value=3},
+	{species="Dragon", weight=0.0033, value=0.7}, {species="Rainbow", weight=0.0018, value=0.25},
+	{species="IceDuck", weight=0.0003, value=0.05}, {species="StormDuck", weight=0.00147, value=0.01},
 }
 -- October 14 owner retune: only this share of the strongest band's odds stays.
 Catalog.LuckTopBandKeep = 0.15
@@ -401,27 +422,32 @@ for _, definition in Catalog do
 end
 do
 	-- Zero-Luck odds: each band keeps its weight share, the top band hands most of
-	-- its share to the band below, and members split their band by weight.
-	local bandOf, bandChance, members, total = {}, {}, {}, 0
-	for index, band in Catalog.LuckBands do
-		bandOf[Catalog[band.species].luckSignature] = index
-		total += band.weight
+	-- its share to the band below, and members split their band by weight. `oneIn` is
+	-- the real chance (rolls, Index, podium tags); `valueOneIn` prices the chicken.
+	local function odds(budgetKey: string, weightKey: string, resultKey: string)
+		local bandOf, bandChance, members, total = {}, {}, {}, 0
+		for index, band in Catalog.LuckBands do
+			bandOf[Catalog[band.species].luckSignature] = index
+			total += band[budgetKey]
+		end
+		for index, band in Catalog.LuckBands do bandChance[index] = band[budgetKey] / total end
+		local top = #Catalog.LuckBands
+		bandChance[top - 1] += bandChance[top] * (1 - Catalog.LuckTopBandKeep)
+		bandChance[top] *= Catalog.LuckTopBandKeep
+		local function rollable(definition) return definition.weight > 0 and not definition.crateExclusive end
+		for _, id in Catalog.Order do
+			local definition, band = Catalog[id] :: any, nil
+			if rollable(definition) then band = bandOf[definition.luckSignature] end
+			if band then members[band] = (members[band] or 0) + definition[weightKey] end
+		end
+		for _, id in Catalog.Order do
+			local definition = Catalog[id] :: any
+			local band = rollable(definition) and bandOf[definition.luckSignature]
+			if band then definition[resultKey] = 1 / (bandChance[band] * definition[weightKey] / members[band]) end
+		end
 	end
-	for index, band in Catalog.LuckBands do bandChance[index] = band.weight / total end
-	local top = #Catalog.LuckBands
-	bandChance[top - 1] += bandChance[top] * (1 - Catalog.LuckTopBandKeep)
-	bandChance[top] *= Catalog.LuckTopBandKeep
-	local function rollable(definition) return definition.weight > 0 and not definition.crateExclusive end
-	for _, id in Catalog.Order do
-		local definition, band = Catalog[id], nil
-		if rollable(definition) then band = bandOf[definition.luckSignature] end
-		if band then members[band] = (members[band] or 0) + definition.weight end
-	end
-	for _, id in Catalog.Order do
-		local definition = Catalog[id]
-		local band = rollable(definition) and bandOf[definition.luckSignature]
-		if band then definition.oneIn = 1 / (bandChance[band] * definition.weight / members[band]) end
-	end
+	odds("weight", "weight", "oneIn")
+	odds("value", "valueWeight", "valueOneIn")
 end
 
 -- Rarer always means better, and rarity sets the price. R is a chicken's odds
@@ -435,12 +461,14 @@ end
 -- chickens (1 in SecretOneIn or rarer) are Secret, with x SecretPricePremium on top.
 -- The 11 original tier species keep their exact stats, because camps, the King and
 -- invasions are built from them; only their price follows the curve.
+-- October 22: these use each chicken's value odds (`valueOneIn`), so prices, income and
+-- power did not move when the real chances became reference-like.
 Catalog.SecretOneIn = 200000
 Catalog.SecretPricePremium = 5
 local ProtectedStats = {Duck=true,Mallard=true,Chunky=true,Sailor=true,Bucket=true,Viking=true,
 	Knight=true,Wizard=true,Dragon=true,IceDuck=true,StormDuck=true}
 function Catalog.RarityPrice(oneIn: number, income: number): number
-	local relative = math.max(1, oneIn / Catalog.Duck.oneIn)
+	local relative = math.max(1, oneIn / (Catalog.Duck :: any).valueOneIn)
 	local curve = 2400 * relative ^ (0.25 + 0.17 * math.log10(relative))
 	local price = math.max(basePrice(income), curve) * (if oneIn >= Catalog.SecretOneIn then Catalog.SecretPricePremium else 1)
 	return math.floor(price + 0.5)
@@ -448,18 +476,19 @@ end
 do
 	local floor = {}
 	for _, id in Catalog.Order do
-		local definition = Catalog[id]
-		if definition.oneIn then
+		local definition = Catalog[id] :: any
+		if definition.valueOneIn then
 			local key = definition.economyBase or id
-			floor[key] = math.min(floor[key] or math.huge, definition.oneIn)
+			floor[key] = math.min(floor[key] or math.huge, definition.valueOneIn)
 		end
 	end
 	for _, id in Catalog.Order do
-		local definition = Catalog[id]
-		if not definition.oneIn then continue end
+		local definition = Catalog[id] :: any
+		local valueOneIn = definition.valueOneIn
+		if not valueOneIn then continue end
 		if not ProtectedStats[id] then
-			local relative = math.max(1, definition.oneIn / Catalog.Duck.oneIn)
-			local tierRatio = math.max(1, definition.oneIn / floor[definition.economyBase or id])
+			local relative = math.max(1, valueOneIn / (Catalog.Duck :: any).valueOneIn)
+			local tierRatio = math.max(1, valueOneIn / floor[definition.economyBase or id])
 			-- October 15 owner playtest: Common/Uncommon prices are now very low (EarlyPrices),
 			-- so they keep only the within-tier bonus; the game-wide curve made cheap
 			-- commons snowball (simulated 30-minute income 47x the old pace).
@@ -471,8 +500,8 @@ do
 			definition.hp = math.floor(definition.hp * strength + 0.5)
 			definition.damage = math.floor(definition.damage * strength + 0.5)
 		end
-		definition.price = Catalog.RarityPrice(definition.oneIn, definition.income)
-		if definition.oneIn >= Catalog.SecretOneIn then definition.rarity = "Secret" end
+		definition.price = Catalog.RarityPrice(valueOneIn, definition.income)
+		if valueOneIn >= Catalog.SecretOneIn then definition.rarity = "Secret" end
 	end
 end
 
@@ -502,8 +531,8 @@ function Catalog.EarlyPrice(oneIn: number, rarity: string): number?
 	return points[#points][2]
 end
 for _, id in Catalog.Order do
-	local definition = Catalog[id]
-	local early = definition.oneIn and (Catalog.EarlyPriceOverrides[id] or Catalog.EarlyPrice(definition.oneIn, definition.rarity))
+	local definition = Catalog[id] :: any
+	local early = definition.valueOneIn and (Catalog.EarlyPriceOverrides[id] or Catalog.EarlyPrice(definition.valueOneIn, definition.rarity))
 	if early then definition.price = early end
 end
 
@@ -520,7 +549,7 @@ do
 	local position = {}
 	for index, id in Catalog.Order do position[id] = index end
 	table.sort(Catalog.Order, function(a, b)
-		local da, db = Catalog[a], Catalog[b]
+		local da, db = Catalog[a] :: any, Catalog[b] :: any
 		local ra, rb = rank[da.rarity] or 8, rank[db.rarity] or 8
 		if ra ~= rb then return ra < rb end
 		if (da.oneIn ~= nil) ~= (db.oneIn ~= nil) then return da.oneIn ~= nil end

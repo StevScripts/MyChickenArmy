@@ -44,7 +44,7 @@ The map, rigs, assets, world settings, saved profiles and builder geometry remai
 
 Preserve the current relative module paths, internal PetRoll/Duck IDs and save compatibility. Server modules own state, money and transactions; client modules own input/presentation. No unrelated framework, file reshuffle or formatting pass. The user prefers quick PC iteration and small relevant checks over extensive suites.
 
-October 15 "1 in X" rarity (owner decision): every rollable chicken shows its zero-Luck odds ("1 in 19,000") next to its rarity, and its price, income and power follow its own odds (`PetCatalog` RarityPrice/oneIn; Luck bands now live in `PetCatalog.LuckBands`, matched by `luckSignature`). Rarer chickens never earn less than their old tier value. A new **Secret** rarity covers 1 in 200,000 or rarer. The 11 original tier species keep their exact stats because enemies use them. See `docs/team/ONE_IN_X_RARITY.md`.
+October 15 "1 in X" rarity (owner decision): every rollable chicken shows its zero-Luck odds ("1 in 19,000") next to its rarity, and its price, income and power follow its own odds (`PetCatalog` RarityPrice/oneIn; Luck bands now live in `PetCatalog.LuckBands`, matched by `luckSignature`). Rarer chickens never earn less than their old tier value. A new **Secret** rarity covers 1 in 200,000 or rarer (since Oct 22: the top band; value odds set its price). The 11 original tier species keep their exact stats because enemies use them. See `docs/team/ONE_IN_X_RARITY.md`.
 
 October 16 timed yard builds (owner decision "Option A"): Flock Size 25→30→35 stays instant; from Flock 40 up each expansion is paid up front and finishes after `UpgradeCatalog.PlotBuildSeconds` (2, 5, 10, 25, 60 min), one at a time, counting offline. Plot prices are unchanged. Saved `plotBuild` is additive and lenient. This is a build time, not a camp/rank gate. See `docs/team/TIMED_PLOT_BUILDS.md`.
 
@@ -53,14 +53,10 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Upgrades tree:** instant Coins tiers (no camp/rank/King gate) replace the cash tracks and
   research, ending the Sep 27, Oct 7–8 and Oct 14 track lengths and prices, and the Sep 29
   Roll Slot prices (eight podiums stay). The Oct 6 Luck window math stays.
-  Oct 22 (Stevin: late runs "easily unlock everything"): every tree price grows with the
-  player's Rebirth rank, x1.2 a rank from Rebirth 5 to 30 and x1.12 a rank after
-  (`UpgradeCatalog.PriceScale`, rounded up to three figures; ranks 0–4 pay the base
-  quotes), so the whole tree stays about a fifth to a third of the next Rebirth instead of
-  a minute of income, and the ladder was re-fit to keep the time targets. Only the server
-  quotes a price (`UpgradeService.Quote`); tier values never move with rank, so saved tiers
-  need no migration. A rank gate is still forbidden: higher ranks pay more, they are never
-  locked out. See "Tree prices grow with rank" in `docs/team/REBIRTH_PACING_20261021.md`.
+  Oct 22 (Stevin): tree prices never change with Rebirth rank ("the same all the time");
+  the challenge of a run is the Coins reset itself. A rank-priced tree (x1.2 a rank) was
+  built, measured and reverted the same day, see "tree prices stay flat" in
+  `docs/team/REBIRTH_PACING_20261021.md`; do not propose it again.
 - **Rebirth** resets Coins to 0 (not 2,400; Time Skip then pays), Feed levels and the tree,
   except Keep Upgrades tiers and `mutationKeep`. Gems and Gem Upgrades never reset.
   Mutations (Golden, Rainbow, Shadow, Cosmic) are bought in the tree, not unlocked by rank.
@@ -149,6 +145,14 @@ original tier species keep their tiers and stats.
 `PetCatalog.RetiredFromRolls` lists the 40 cut chickens (weight 0, `vaulted`). They still
 load with their old stats, show in the Index only once found, and Mallard/Chunky/Sailor
 still lead camps. Never cut an effect chicken; Rebirth finds are effect chickens only.
+Later Oct 22 (Stevin: chances "similar to that other game… mostly common"): LuckBands
+weights give the Drop a Fruit shares at zero Luck (Common 93%, Uncommon 6.3%, Rare
+0.76%, Epic 0.043%), `ChickenLuck.ShiftPerDecade` is 0.35 (supersedes the Oct 21 2.25;
+a simulated first hour is ~83% Common), and prices, income and power come from each
+chicken's `valueOneIn` (the morning ladder), never from the real `oneIn`.
+Oct 23 (Stevin: "re-fit the Rebirth costs so the Rebirth pace matches what it was before"):
+ranks 3–50 cost 37–88% less (Rebirth 50 1.17e15), fitted on eight fast 40 h seeds to the
+old chances' times (R10 ~3 h, R20 ~11.5 h, R30 ~22 h). Tree prices unchanged (flat).
 See `docs/team/RARITY_REBALANCE_20261022.md`.
 
 ## Rebirth finds (October 22, owner decision)
@@ -157,8 +161,9 @@ A Rebirth is earned by FINDING a chicken, not paid with one. Rebirths 1–15
 (owned once; sold later is fine) before the Coins buy the rank; from Rebirth 16 only
 the Coins count. The Rebirth screen's chicken tile is that find (silhouette + "Find to
 Rebirth" until found), Auto Roll stops on it, and nothing is granted on a Rebirth. The
-ladder runs Robo-Cluck → … → Galaxy Overlord → The First Hen (Secret); re-run the
-discovery probe before changing it. See `docs/team/REBIRTH_SCREEN.md` "Rebirth finds".
+ladder runs Ironbeak Chicken (Uncommon) → … → Robo-Cluck → … → Mimic Chicken (Epic, 1 in
+25,000) since the Oct 22–23 reference-like chances (rarer finds stalled players for hours);
+re-run the discovery probe before changing it. See `docs/team/REBIRTH_SCREEN.md` "Rebirth finds".
 
 ## Auto Vacuum (October 21, owner request)
 The retired Auto Collect robot is a Tools upgrade again: Auto Vacuum, then Auto
@@ -188,8 +193,8 @@ Contract: `docs/team/GAME_FEEL_20261021.md`.
 
 ## Rarity pacing (October 21, tester feedback through Stevin)
 "Rare chickens way too fast; Luck maxed from the start; check the Playtime money." Luck
-strength moves the favored range `ChickenLuck.ShiftPerDecade` (2.25) bands per x10 of
-Luck (x3 = 1.07 bands, Legendary 3.7% a podium; x10 = 2.25, Legendary 8.6%), never the
+strength moves the favored range `ChickenLuck.ShiftPerDecade` (2.25; 0.35 since the Oct 22
+reference-like chances) bands per x10 of Luck (x3 = 1.07 bands, Legendary 3.7% a podium; x10 = 2.25, Legendary 8.6%), never the
 old `9 (M − 1)/(M + 2)` curve that put Legendaries on 22% of podiums at Luck IV. Super
 Luck is priced for Rebirth 2–5 (5M–2B) and Mega Luck for Rebirth 5–11 (10B–400B; x10
 Luck at about 3.8 h nonstop or day 4–5 at 45 min a day on the P5 ladder).

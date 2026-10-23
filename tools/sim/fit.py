@@ -1,20 +1,23 @@
-# fit.py targets.json measured.json costs_in.json costs_out.json [damp=0.8] [smooth=5]
+# fit.py targets.json measured.json costs_in.json costs_out.json [damp=0.8] [smooth=5] [fixed=1,2,50]
 # targets/measured are gaps.py outputs ({"gaps": [...50], "seeds": [...50]}).
 # New cost[r] = cost[r] * (target gap[r] / measured gap[r])^damp, log-smoothed over `smooth`
 # ranks, clamped to the ratio bands (x3-20 through Rebirth 10, x1.1-3 after), rounded to three
-# figures. Ranks 1-5 (their runs pay base tree prices) and 50 are fixed. Ranks without a measured gap keep the previous
-# adjustment (the last fitted rank's factor).
+# figures. The `fixed` ranks (default Rebirth 1, 2 and 50, the October 22 method) never move;
+# ranks without a measured gap keep the previous adjustment (the last fitted rank's factor).
 import json, sys, math
 targets = json.load(open(sys.argv[1]))["gaps"]
 measured = json.load(open(sys.argv[2])); meas, n = measured["gaps"], measured["seeds"]
 costs = json.load(open(sys.argv[3]))
 damp = float(next((a[5:] for a in sys.argv if a.startswith("damp=")), 0.8))
 smooth = int(next((a[7:] for a in sys.argv if a.startswith("smooth=")), 5))
+fixed = set(int(x) for x in next((a[6:] for a in sys.argv if a.startswith("fixed=")), "1,2,50").split(","))
+free = [r for r in range(50) if (r+1) not in fixed]
+first = min(free)
 logf = [0.0]*50
 last = 0.0
 for r in range(50):
     rank = r+1
-    if rank <= 5 or rank == 50: logf[r] = 0.0; continue
+    if rank in fixed: logf[r] = 0.0; continue
     if targets[r] is None or meas[r] is None or n[r] < 1 or meas[r] <= 0:
         logf[r] = last; continue
     logf[r] = damp * math.log(targets[r] / meas[r]); last = logf[r]
@@ -46,12 +49,14 @@ def ceil3(x):
 def floor3(x):
     e = math.floor(math.log10(x)) - 2
     return math.floor(x / 10**e + 1e-9) * 10**e
-for r in range(5, 49):
+for r in free:
     rank = r+1
     lo, hi = (3, 20) if rank <= 10 else (1.1, 3)
     if new[r] < new[r-1]*lo: new[r] = ceil3(new[r-1]*lo)
     if new[r] > new[r-1]*hi: new[r] = floor3(new[r-1]*hi)
-assert new[49] >= new[48]*1.1 and new[49] <= new[48]*3, "Rebirth 50 band"
+for r in range(1, 50):
+    lo, hi = (3, 20) if r+1 <= 10 else (1.1, 3)
+    assert new[r-1]*lo - 1e-6 <= new[r] <= new[r-1]*hi + 1e-6, "Band at Rebirth %d" % (r+1)
 json.dump(new, open(sys.argv[4], "w"))
 for r in range(50):
     t = targets[r]; m = meas[r]

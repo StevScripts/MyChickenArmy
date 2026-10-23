@@ -86,21 +86,21 @@ local Config = {
  -- pays minutes of the post-Rebirth income, not the end-of-run income, so it no longer
  -- carries part of each rank. Ranks 3-49 cost 5-33% less to keep the same play time per
  -- Rebirth (REBIRTH_PACING_20261021.md "Time Skip head start").
- -- October 22 later (Stevin: late runs still "easily unlock everything";
- -- REBIRTH_PACING_20261021.md "Tree prices grow with rank"): tree prices are x1.2 a rank
- -- from Rebirth 5 to 30 and x1.12 a rank after (UpgradeCatalog.PriceScale), so every run
- -- rebuys its tree for about a fifth to a third of the next Rebirth instead of a minute of
- -- income. Ranks 6-49 were re-fit with that rebuy modelled (ProgressionSimulation
- -- rebuyFraction, eight fast seeds) and moved by at most 12% either way: the rebought
- -- Luck nearly pays for itself. Ranks 1-5 (base-priced runs) and 50 are unchanged.
  -- October 22 (Stevin): Rebirths 1-FindRanks each need a chicken found first
  -- (PetCatalog.RebirthFinds, in the Index), after that only the Coins. 0 turns it off.
+ -- October 23 (Stevin: keep the Drop a Fruit-like chances, "re-fit the Rebirth costs so the
+ -- Rebirth pace matches what it was before"): mostly-Common rolls earn less, so ranks
+ -- 3-50 cost 37-88% less (3-15 about 80%). Seven fit rounds on eight fast 40 h seeds
+ -- (401-408) against the old chances' run: within about 7% of its time at every rank to
+ -- 40 (Rebirth 10 2.9 h, 20 11.5 h, 30 21.8 h, 40 31.7 h). Rebirth 1 and 2 are unchanged;
+ -- Rebirth 50 is 1.17e15 (was 3.13e15) because the tail keeps its old steps. Rebirth 4 is
+ -- 57M (fit 56.8M) to stay inside the x20 band. RARITY_REBALANCE_20261022.md.
  Rebirth={Enabled=true,Version=2,MaxRank=50,FindRanks=15,
-  Costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.74e10,5.86e10,2.08e11,8.8e11,3.84e12,
-   7.43e12,1.06e13,1.74e13,2.47e13,2.94e13,3.24e13,3.74e13,4.19e13,4.78e13,5.37e13,
-   6.19e13,6.82e13,7.51e13,8.27e13,9.1e13,1.01e14,1.37e14,1.71e14,2.41e14,2.99e14,
-   3.67e14,4.06e14,4.49e14,5.39e14,6.15e14,6.77e14,7.7e14,8.72e14,9.6e14,1.06e15,
-   1.17e15,1.29e15,1.42e15,1.57e15,1.73e15,1.91e15,2.11e15,2.33e15,2.57e15,3.13e15},
+  Costs={5e4,1e6,3.26e6,5.7e7,1.14e9,3.72e9,1.35e10,4.7e10,2.01e11,8.43e11,
+   1.52e12,2.27e12,2.5e12,3.05e12,7.09e12,1.39e13,2.09e13,2.73e13,3.01e13,3.32e13,
+   3.66e13,4.03e13,4.44e13,4.89e13,5.38e13,6.12e13,6.96e13,7.97e13,9.83e13,1.21e14,
+   1.34e14,1.48e14,1.63e14,1.8e14,1.98e14,2.18e14,2.44e14,2.74e14,3.47e14,4e14,
+   4.54e14,5.1e14,5.96e14,6.56e14,7.22e14,7.95e14,8.75e14,9.63e14,1.06e15,1.17e15},
   CostStep=0, -- Unused: every rank up to MaxRank is listed.
   EggBonusPerRank=1.0,EggBoostPerRank=1.7,EggBoostFromRank=5,EggBoostToRank=10,EggLateGrowthPerRank=1.06,
   EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,

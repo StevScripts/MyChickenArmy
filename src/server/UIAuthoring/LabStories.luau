@@ -144,10 +144,10 @@ Render.Rebirth=function(ctx)
 	local panel=require(ctx.code.RebirthPanel).new(app)
 	app.rebirthPanel=panel
 	-- October 22 Rebirth finds: the saved late-game preset predates them; rank 11's
-	-- Dragon Knight shows as found.
+	-- Airship Captain shows as found.
 	local quote=ctx.state.rebirth
 	if type(quote)=="table" and quote.find==nil and quote.nextRank then
-		quote.find={species="DragonKnight",name="Dragon Knight",rarity="Mythic",found=true}
+		quote.find={species="AirshipCaptain",name="Airship Captain",rarity="Epic",found=true}
 	end
 	panel:Render(ctx.state)
 	panel:Open()

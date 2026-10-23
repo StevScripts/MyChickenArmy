@@ -52,9 +52,7 @@
 --     Flock, Chicken Feed levels on layers, Feed Max Level with the level it unlocks,
 --     recruits), combat while blocked (Army Size, Feed levels on fighters, recruits),
 --     then utility within a budget (Luck, Roll Slots, Roll Speed, Mutations and the
---     Gold/Diamond/Prism machines and rates; the cheapest open hex first; from Rebirth 5,
---     while saving, a hex up to rebuyFraction of the next Rebirth is always in budget, so
---     the October 22 rank-priced tree is rebought early in every run). Paybacks
+--     Gold/Diamond/Prism machines and rates; the cheapest open hex first). Paybacks
 --     must beat the time left to afford the next Rebirth (savingPaybackFraction). Gem
 --     Upgrades are bought after each Rebirth in a fixed priority. Rebirth happens as
 --     soon as the quote is eligible.
@@ -107,11 +105,6 @@ local DEFAULTS={
 	seeds=1,hours=40,tickSeconds=15,profile="fast",firstSeed=1, -- firstSeed: run seeds firstSeed.. (parallel fits)
 	campSeconds=90,kingSeconds=150,invasionSeconds=150,
 	savingPaybackFraction=0.5,utilityFraction=0.10,savingUtilityFraction=0.04,savingCombatFraction=0.25,
-	-- rebuyFraction (October 22, rank-priced tree): from the first rank whose tree prices are
-	-- scaled (Rebirth 5), a utility hex costing up to this share of the next Rebirth is always
-	-- in budget while saving, so every run rebuys its Luck and roll hexes early instead of
-	-- skipping the ones past savingUtilityFraction of the Coins. Ranks 0-4 are unchanged.
-	rebuyFraction=0.2,
 	-- targetRank: nil plays to Config.Rebirth.MaxRank (50 since October 21; was 30).
 	targetRank=nil,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=60,
 	-- rushSaver: sell only during Gold Rush (S4: up to 2x egg Coins for savers).
@@ -545,11 +538,9 @@ local function context(state)
 			limit=math.min(limit,need/math.max(1,cashRate(s))*options.savingPaybackFraction)
 		end
 	end
-	local utility=coins*(if saving then options.savingUtilityFraction else options.utilityFraction)
-	if saving and cost and Tree.PriceScale(s.rebirths)>1 then utility=math.max(utility,math.min(coins,cost*options.rebuyFraction)) end
 	return {target=target,blocked=blocked,paybackLimit=limit,saving=saving,
 		combatBudget=if not blocked then 0 elseif saving then coins*options.savingCombatFraction else math.huge,
-		utilityBudget=utility}
+		utilityBudget=coins*(if saving then options.savingUtilityFraction else options.utilityFraction)}
 end
 
 local function spend(state,ctx)

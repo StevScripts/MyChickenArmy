@@ -158,43 +158,6 @@ function Checks.Run()
 		return "Reserve, quotes and order hold"
 	end)
 
-	-- October 22 (REBIRTH_PACING_20261021.md "Tree prices grow with rank"): every tree price
-	-- is x1.2 a rank from Rebirth 5 to 30 and x1.12 a rank after, rounded up to three figures;
-	-- ranks 0-4 pay the base quotes, the server quote carries the session's rank and tier
-	-- values never move with rank.
-	test("Tree prices grow with Rebirth rank: x1.2 a rank from 5 to 30, x1.12 after, three figures",function()
-		assert(Tree.RankPriceGrowth==1.2 and Tree.RankPriceFreeRanks==4 and Tree.RankPriceLateFromRank==30
-			and Tree.RankPriceLateGrowth==1.12,"Growth knobs")
-		for rank=0,4 do assert(Tree.PriceScale(rank)==1,"Rank "..rank.." pays base quotes") end
-		near(Tree.PriceScale(5),1.2,"Rank 5")
-		near(Tree.PriceScale(10),1.2^6,"Rank 10")
-		near(Tree.PriceScale(30),1.2^26,"Rank 30")
-		near(Tree.PriceScale(31),1.2^26*1.12,"Rank 31")
-		near(Tree.PriceScale(50),1.2^26*1.12^20,"Rank 50")
-		assert(Tree.PriceScale(nil)==1 and Tree.PriceScale(-3)==1 and Tree.PriceScale(0/0)==1,"Junk ranks")
-		for rank=1,49 do assert(Tree.PriceScale(rank+1)>=Tree.PriceScale(rank),"Scale never falls at "..rank) end
-		assert(Tree.Price("EggSpeed",1,0)==400 and Tree.Price("EggSpeed",1,4)==400,"Base quote")
-		assert(Tree.Price("EggSpeed",1,5)==480 and Tree.Price("EggSpeed",1,10)==1200,"Three figures: "..tostring(Tree.Price("EggSpeed",1,10)))
-		assert(Tree.Price("Luck",12,10)==1.2e12 and Tree.Price("Luck",12,30)==4.58e13,"Mega Luck IV: "..tostring(Tree.Price("Luck",12,30)))
-		assert(Tree.Price("Luck",12,49)==3.95e14 and Tree.Price("Luck",12,49)<2^53,"Top of the ladder stays a safe integer")
-		for _,family in Tree.FamilyOrder do
-			for tier=1,#Tree.Families[family].tiers do
-				local price=Tree.Price(family,tier,20) :: number
-				assert(price%1==0 and price>=Tree.Price(family,tier,0) :: number,"Whole Coins "..family..tier)
-			end
-		end
-		-- The server quote is the catalog price at the session's rank; a stale base quote is refused.
-		local s=fixture(-9330)
-		s.rebirths,s.coins=10,1e6
-		assert(Upgrades.Quote(s,"EggSpeed",1)==1200 and Upgrades.NodeOffer(s,"EggSpeed1").price==1200,"Quote at Rebirth 10")
-		local upgrades=Upgrades.new(nil,nil)
-		refused("This upgrade changed. Try again.",upgrades:BuyNode(s,"EggSpeed1",400))
-		local ok,message=upgrades:BuyNode(s,"EggSpeed1",1200)
-		assert(ok and s.coins==1e6-1200 and s.eggSpeedLevel==1,tostring(message))
-		assert(Tree.Families.EggSpeed.tiers[1].value==Tree.Value({EggSpeed=1},"EggSpeed"),"Tier value is rank-free")
-		return "480 at Rebirth 5, 1,200 at 10, 45.8T for Mega Luck IV at 30"
-	end)
-
 	test("Rebirth 1 resets the run and pays Gems and Time Skip Coins (no chicken); progress stays",function()
 		local s=fixture(-9302)
 		setTree(s,{EggSpeed=4,EggValue=4,Luck=2,Flock=1,ArmySize=2,ChickenFeed=1})
@@ -418,13 +381,13 @@ function Checks.Run()
 	-- October 21 later (P5, reference parity §2.5; REBIRTH_PACING_20261021.md "reference-shaped
 	-- ladder"): Rebirth 2 costs 1M like the reference, paid for by taming in-run growth.
 	test("Reference-shaped ladder: 50 costs, ratio bands, Feed x1.6 and the tree prices that pace a run",function()
-		-- October 22: ranks 3-49 re-fit after Time Skip became a post-Rebirth head start, then
-		-- ranks 6-49 again (within 12%) for the rank-priced tree; 1-5 and 50 are fixed.
-		local costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.74e10,5.86e10,2.08e11,8.8e11,3.84e12,
-			7.43e12,1.06e13,1.74e13,2.47e13,2.94e13,3.24e13,3.74e13,4.19e13,4.78e13,5.37e13,
-			6.19e13,6.82e13,7.51e13,8.27e13,9.1e13,1.01e14,1.37e14,1.71e14,2.41e14,2.99e14,
-			3.67e14,4.06e14,4.49e14,5.39e14,6.15e14,6.77e14,7.7e14,8.72e14,9.6e14,1.06e15,
-			1.17e15,1.29e15,1.42e15,1.57e15,1.73e15,1.91e15,2.11e15,2.33e15,2.57e15,3.13e15}
+		-- October 22: ranks 3-49 re-fit after Time Skip became a post-Rebirth head start.
+		-- October 23: ranks 3-50 re-fit for the Drop a Fruit-like chances (same pace).
+		local costs={5e4,1e6,3.26e6,5.7e7,1.14e9,3.72e9,1.35e10,4.7e10,2.01e11,8.43e11,
+			1.52e12,2.27e12,2.5e12,3.05e12,7.09e12,1.39e13,2.09e13,2.73e13,3.01e13,3.32e13,
+			3.66e13,4.03e13,4.44e13,4.89e13,5.38e13,6.12e13,6.96e13,7.97e13,9.83e13,1.21e14,
+			1.34e14,1.48e14,1.63e14,1.8e14,1.98e14,2.18e14,2.44e14,2.74e14,3.47e14,4e14,
+			4.54e14,5.1e14,5.96e14,6.56e14,7.22e14,7.95e14,8.75e14,9.63e14,1.06e15,1.17e15}
 		assert(#Config.Rebirth.Costs==#costs,"Cost count")
 		for rank,cost in costs do assert(Rebirth.Cost(rank)==cost,"Cost "..rank.." "..tostring(Rebirth.Cost(rank))) end
 		assert(Rebirth.Cost(1)==5e4 and Rebirth.Cost(2)==1e6,"Rebirth 1 and 2 as in the reference")
@@ -623,43 +586,44 @@ function Checks.Run()
 			assert(RebirthChickens.Required(rank)==species,"Required "..rank)
 		end
 		assert(RebirthChickens.Required(16)==nil and RebirthChickens.Required(0)==nil,"No find past 15")
-		assert(Catalog.RebirthFinds[1]=="Bucket" and Catalog.RebirthFinds[15]=="FirstHen","Robo-Cluck first, The First Hen last")
+		-- October 22 roll pool: the first find is Ironbeak (Uncommon), not Robo-Cluck.
+		assert(Catalog.RebirthFinds[1]=="Ironbeak" and Catalog.RebirthFinds[15]=="Mimic","Ironbeak first, the Mimic Chicken last")
 		local s=Session.new(-9340,"Rebirth finds",1)
 		s.loaded=true
 		s.tutorial.bought,s.tutorial.guideCompleted=true,true
 		s.coins=60000
 		local quote=Rebirth.Quote(s)
-		assert(quote.find and quote.find.species=="Bucket" and quote.find.found==false and quote.find.rarity=="Rare","Quote find: "..tostring(quote.find and quote.find.species))
-		assert(not quote.eligible and quote.reason=="Find Robo-Cluck first","Reason: "..tostring(quote.reason))
+		assert(quote.find and quote.find.species=="Ironbeak" and quote.find.found==false and quote.find.rarity=="Uncommon","Quote find: "..tostring(quote.find and quote.find.species))
+		assert(not quote.eligible and quote.reason=="Find Ironbeak Chicken first","Reason: "..tostring(quote.reason))
 		local ok,message=Rebirth.Rebirth(s,0,NO_SERVER,false)
-		assert(not ok and message=="Find Robo-Cluck first","Refused: "..tostring(message))
-		assert(Rolls.Keeper(s,{species="Bucket",level=1})=="rebirth","Auto Roll stops for the find")
+		assert(not ok and message=="Find Ironbeak Chicken first","Refused: "..tostring(message))
+		assert(Rolls.Keeper(s,{species="Ironbeak",level=1})=="rebirth","Auto Roll stops for the find")
 		assert(Rolls.Keeper(s,{species="Viking",level=1})~="rebirth","Only the next rank's find")
 		-- Found once, then sold: the Index remembers it (the starter Ducks stay).
 		local before=s:Count()
-		local pet=s:AddPet("Bucket",1)
+		local pet=s:AddPet("Ironbeak",1)
 		s.pets[pet.id]=nil
-		assert(s.discovered.Bucket==true and s:Count()==before,"Sold but discovered")
+		assert(s.discovered.Ironbeak==true and s:Count()==before,"Sold but discovered")
 		quote=Rebirth.Quote(s)
 		assert(quote.find.found==true and quote.eligible,"Found: "..tostring(quote.reason))
-		assert(Rolls.Keeper(s,{species="Bucket",level=1})~="rebirth","No stop once found")
+		assert(Rolls.Keeper(s,{species="Ironbeak",level=1})~="rebirth","No stop once found")
 		local count=s:Count()
 		local receipt
 		ok,message,receipt=Rebirth.Rebirth(s,0,NO_SERVER,false)
 		assert(ok and s.rebirths==1 and s:Count()==count and receipt.petId==nil and receipt.species==nil,"No chicken granted: "..tostring(message))
-		-- Rank 15 needs the Secret First Hen; rank 16 needs only the Coins.
+		-- Rank 15 needs the Mimic Chicken; rank 16 needs only the Coins.
 		s.rebirths=14
 		s.coins=Config.Rebirth.Costs[15]
 		quote=Rebirth.Quote(s)
-		assert(quote.find and quote.find.species=="FirstHen" and quote.reason=="Find The First Hen first","Rank 15: "..tostring(quote.reason))
-		s.discovered.FirstHen=true
+		assert(quote.find and quote.find.species=="Mimic" and quote.reason=="Find Mimic Chicken first","Rank 15: "..tostring(quote.reason))
+		s.discovered.Mimic=true
 		assert(Rebirth.Quote(s).eligible,"Rank 15 found")
 		s.rebirths=15
 		s.coins=Config.Rebirth.Costs[16]
 		quote=Rebirth.Quote(s)
 		assert(quote.find==nil and quote.eligible,"Rank 16 needs only Coins: "..tostring(quote.reason))
 		-- Coins come first in the refusal order, then the find, then the army.
-		s.rebirths=0;s.coins=0;s.discovered.Bucket=nil
+		s.rebirths=0;s.coins=0;s.discovered.Ironbeak=nil
 		assert(Rebirth.Quote(s).reason:sub(1,5)=="Need ","Coins first: "..Rebirth.Quote(s).reason)
 		return "Find before Rebirth 1-15, Coins only after"
 	end)

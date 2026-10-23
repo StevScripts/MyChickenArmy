@@ -127,7 +127,7 @@ maybe up to 15 … and after that it could just be the money."
   silhouette (black) and "Find to Rebirth" in the rarity colour until found, then the
   portrait in colour and "Found!" in green, with one punch when the find lands while the
   screen is open. The Lab's `RebirthFirst` story shows Robo-Cluck unfound; the late
-  preset shows the Dragon Knight found.
+  preset shows the Airship Captain found.
 - **Checks.** `tests/RebirthV2Checks.luau` "Rebirth finds" (30/30 with the suite);
   the fixture pre-discovers every find so the older Rebirth tests still run.
   `ProgressionSimulation` buys the next rank's find on sight (assumption 10) and
@@ -144,32 +144,31 @@ First Hen at 1.3 h (fast) or day 1–2 (daily). The gate therefore bites at Rebi
 1) and on buying the find when it shows (prices are small against the ranks' costs:
 Galaxy Overlord 100M at Rebirth 14's 25.9T, The First Hen 5.8B at Rebirth 15's 29.4T).
 
-October 22 roll pool (`RARITY_REBALANCE_20261022.md`): the finds were re-picked from
-chickens with effects, which always stay in the pool, each nearest the old ladder's odds
-on the new 78-chicken ladder. A 3-seed fast probe (3 h) kept the pace: Rebirth 1 at
-9–12 min (HEAD 8–11), Rebirth 5 at 56–62 min (HEAD 53–67), and every find was bought on
-sight.
+October 22–23 roll pool and reference-like chances (`RARITY_REBALANCE_20261022.md`): the
+finds are chickens with effects (they always stay in the pool). With mostly-Common rolls
+and gentle Luck, a find rarer than about 1 in 25,000 left simulated players waiting hours
+with the Coins in hand (The First Hen 3–26 h, the Glitch Chicken 3–24 h, Storm Wing 1–5 h
+at Rebirth 15), so the ladder now runs Uncommon (1–4), Rare (5–11) and the four easiest
+Epics (12–15). In the cost re-fit's eight fast 40 h seeds every find was bought on sight
+except waits of 1–24 min on six seeds (Rebirth 1, 13 or 14).
 
 | Rebirth | Find | Rarity | 1 in (zero Luck) | Before October 22 |
 |---|---|---|---|---|
-| 1 | Robo-Cluck (`Bucket`) | Rare | 58 | 73 |
-| 2 | Frost Feather (`Frost`) | Rare | 139 | Crystal Chicken, 160 |
-| 3 | Mimic Chicken (`Mimic`) | Epic | 349 | Magma Chicken, 364 |
-| 4 | Dragon Hatchling (`DragonHatchling`) | Epic | 529 | Chicken Jockey, 520 |
-| 5 | Stained Glass Chicken (`StainedGlass`) | Legendary | 924 | Golden Emperor, 909 |
-| 6 | Geode Chicken (`Geode`) | Legendary | 1,040 | Rainbow Rider, 1,000 |
-| 7 | Pharaoh Chicken (`Pharaoh`) | Legendary | 1,160 | Water Chicken, 1,212 |
-| 8 | Solar Flare Chicken (`SolarFlare`) | Legendary | 1,910 | Pharaoh, 2,857 |
-| 9 | Glitch Chicken (`IceDuck`) | Mythic | 9,410 | Phoenix, 4,000 |
-| 10 | Griffin Chicken (`Griffin`) | Mythic | 11,000 | Glitch Chicken, 7,771 |
-| 11 | Dragon Knight (`DragonKnight`) | Mythic | 12,800 | Heavenly, 10,361 |
-| 12 | Moon Chicken (`Moon`) | Mythic | 20,300 | Time Keeper, 18,995 |
-| 13 | Olympian Chicken (`Olympian`) | Mythic | 23,700 | Mecha, 18,995 |
-| 14 | Galaxy Overlord (`StormDuck`) | Secret | 367,000 | Mythic, 121,224 |
-| 15 | The First Hen (`FirstHen`) | Secret | 428,000 | 444,489 |
-
-Rebirth 8 is easier and 9 harder than before, because no Legendary is rarer than 1 in
-1,910 now and Mythics start at 1 in 9,410.
+| 1 | Ironbeak Chicken (`Ironbeak`) | Uncommon | 145 | Robo-Cluck, 73 |
+| 2 | Detective Chicken (`Detective`) | Uncommon | 176 | Crystal Chicken, 160 |
+| 3 | Snowman Chicken (`Snowman`) | Uncommon | 374 | Magma Chicken, 364 |
+| 4 | Jungle Chicken (`Jungle`) | Uncommon | 546 | Chicken Jockey, 520 |
+| 5 | Robo-Cluck (`Bucket`) | Rare | 974 | Golden Emperor, 909 |
+| 6 | Gladiator Chicken (`Gladiator`) | Rare | 1,210 | Rainbow Rider, 1,000 |
+| 7 | Deepsea Diver (`DeepseaDiver`) | Rare | 1,340 | Water Chicken, 1,212 |
+| 8 | Rockstar Chicken (`Rockstar`) | Rare | 1,490 | Pharaoh, 2,857 |
+| 9 | Ghost Chicken (`Ghost`) | Rare | 1,840 | Phoenix, 4,000 |
+| 10 | Court Jester (`Jester`) | Rare | 2,280 | Glitch Chicken, 7,771 |
+| 11 | Frost Feather (`Frost`) | Rare | 2,820 | Heavenly, 10,361 |
+| 12 | Magma Chicken (`Knight`) | Epic | 11,000 | Time Keeper, 18,995 |
+| 13 | Aurora Chicken (`Aurora`) | Epic | 16,700 | Mecha, 18,995 |
+| 14 | Airship Captain (`AirshipCaptain`) | Epic | 20,600 | Galaxy Overlord, 121,224 |
+| 15 | Mimic Chicken (`Mimic`) | Epic | 25,300 | The First Hen, 444,489 |
 
 ### Simulation (the discovery probe's seeds, with and without the rule)
 

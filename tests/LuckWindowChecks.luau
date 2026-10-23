@@ -11,9 +11,10 @@ local Checks = {}
 local LuckTiers = #UpgradeCatalog.Families.Luck.tiers
 
 local Representatives = {"Duck", "Mallard", "Chunky", "Bucket", "Viking", "Knight", "Dragon", "Rainbow", "IceDuck", "StormDuck"}
-local OpeningBudgets = {38, 22, 22, 9, 5, 3, 0.7, 0.25, 0.05, 0.01}
+-- October 22: the Drop a Fruit-like chances (PetCatalog.LuckBands weights).
+local OpeningBudgets = {47.5, 45.4, 6.32, 0.48, 0.282, 0.0434, 0.0033, 0.0018, 0.0003, 0.00147}
 local ResearchBonuses = {0, 0.1, 0.2, 0.35, 0.5, 0.75, 1}
-local OpeningTotal = 100.01
+local OpeningTotal = 100.03227
 local Epsilon = 1e-10
 
 local function near(actual, expected, context)
