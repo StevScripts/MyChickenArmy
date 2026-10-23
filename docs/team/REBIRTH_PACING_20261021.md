@@ -578,3 +578,26 @@ the Rebirth, not a shopping trip.
 Also shipped the same day: the Rebirth screen shows abbreviated numbers (`UITheme.Number`:
 50K, 1M, 14.6M … 3.13Qa; `Qa`/`Qi` suffixes added) on its Coins bar and in "Need … more
 Coins" instead of full digits.
+
+## October 22 later: tree prices stay flat (owner decision)
+
+Stevin, on the lever above: "No, don't change the tree prices from Rebirths; the tree
+prices should be the same all the time. It's just that the Rebirth doesn't give you any
+Coins and resets your Coins." The challenge of a run is the Coins reset itself, not a
+pricier tree.
+
+What was tried and reverted the same day (commit ef14870, reverted by 2b78eef on the
+side branch; nothing reached main): every tree price x1.2 a Rebirth rank from Rebirth 5
+to 30 and x1.12 after (`UpgradeCatalog.PriceScale`), which kept the whole tree near a
+fifth of the next Rebirth, with the ladder re-fit on top. Measured with the simulation
+rebuying its tree each run (eight fast seeds, 40 h): Rebirth 10 / 20 / 30 at 2.8 / 12.8 /
+24.2 h against 2.7 / 12.3 / 23.8 h on the morning build, casual 20.0 h at Rebirth 30, the
+45-minute player's Rebirth 30 on day 24 (was 26). The rank-priced tree barely changed the
+pacing because the Luck a run rebuys more than pays for itself; late runs still waited
+most of the time, just with a longer shopping trip first. Do not propose a rank-priced
+tree again; the knob `UpgradeCatalog.RankPriceGrowth` stays 0.
+
+Kept from that work: `tools/sim/gaps.py`, `fit.py` and `report.py` (the ladder fit and
+the unlock tables are reproducible from `cost_fit.luau` / `unlock_probe.luau` output).
+The live economy is the morning build (Time Skip head start, the re-fit ladder above).
+
