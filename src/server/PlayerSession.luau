@@ -290,7 +290,11 @@ function PlayerSession:StarterCashReserve(): number
 end
 
 function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean, string)
-	if amount<0 or amount~=amount or self.coins<amount then return false,"Not enough coins." end
+	if amount<0 or amount~=amount or self.coins<amount then
+		-- October 23: GameServer turns this into the reply's `needCoins` (the Coins pack prompt).
+		if amount>self.coins then self.coinShortfall=amount-self.coins end
+		return false,"Not enough coins."
+	end
 	local reserve=self:StarterCashReserve()
 	-- Only validated server transactions supply a purpose. Each required purchase
 	-- may use its own earmark, never the money reserved for the other purchase.

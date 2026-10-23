@@ -114,14 +114,43 @@ function Controller:Buy(key,jobId)
 		local intent={key=key,baseline=(shop and shop.crateCredits) or 0,armed=false}
 		pending.crateIntent,self.autoCrate=intent,intent
 	end
+	self:Prepare(pending)
+end
+
+function Controller:Prepare(pending)
 	self.pending=pending
-	pending.requestId=self.app:Request("PreparePurchase",{key=key,jobId=jobId})
+	pending.requestId=self.app:Request("PreparePurchase",{key=pending.key,jobId=pending.jobId})
 	self:Changed()
 	self.delay(20,function()
 		if not self.alive or self.pending~=pending or pending.prompted then return end
 		if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
 		self.pending=nil;self:Changed();self.app:Notify("Purchase check timed out. Try again.",false)
 	end)
+end
+
+-- October 23 (Stevin): short of Coins, Roblox's checkout opens straight away for the
+-- smallest Coins pack that covers the shortfall (the biggest when none does), with
+-- no menu first. False means no prompt (a test session, a purchase already open),
+-- so the caller shows its usual message; `fallback` is shown if the server refuses.
+function Controller:BuyCoins(needed,fallback)
+	if not self.alive or type(needed)~="number" or needed<=0 or self.pending or self.autoCrate
+		or self.cratePending or self.cratePresenting then return false end
+	local shop=self.app.state and self.app.state.shop
+	local amounts=shop and shop.cashPacks
+	if type(amounts)~="table" or shop.testAllowed==true then return false end
+	local closest,closestAmount,biggest,biggestAmount
+	for _,key in self.catalog.ProductOrder or {} do
+		local product,amount=self.catalog.Products[key],amounts[key]
+		if product and product.coins and not product.crates and type(amount)=="number" and self.catalog.ProductOnSale(key) then
+			if amount>=needed and (not closestAmount or amount<closestAmount) then closest,closestAmount=key,amount end
+			if not biggestAmount or amount>biggestAmount then biggest,biggestAmount=key,amount end
+		end
+	end
+	local key=closest or biggest
+	local definition,kind,id=self:Definition(key or "")
+	if not definition then return false end
+	self:Prepare({key=key,kind=kind,productId=id,prompted=false,fallback=fallback})
+	return true
 end
 
 function Controller:Toggle(key)
@@ -251,7 +280,8 @@ function Controller:Receive(result)
 			-- Research skips are bought outside the Shop page, so say why it stopped.
 			-- Chicken offers are bought from the HUD, so they say why too.
 			local definition=self.catalog.Products[pending.key]
-			if (pending.jobId or (definition and definition.chickenOffer)) and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false) end
+			if (pending.jobId or (definition and definition.chickenOffer)) and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false)
+			elseif type(pending.fallback)=="string" and pending.fallback~="" then self.app:Notify(pending.fallback,false) end
 			self.pending=nil;self:Changed();return
 		end
 		-- A validated server response permits the native checkout, never a local grant.
@@ -262,7 +292,7 @@ function Controller:Receive(result)
 		end)
 		if not ok then
 			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
-			self.pending=nil;self.app:Notify("Roblox couldn't open the purchase. Try again.",false)
+			self.pending=nil;self.app:Notify(pending.fallback or "Roblox couldn't open the purchase. Try again.",false)
 		end
 	end
 	self:Changed()

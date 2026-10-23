@@ -166,7 +166,13 @@ function Board:Purchase(key)
 	if not self.alive or self.pending[key] or not offer or not offer.ready or not offer.price then return end
 	self.app.audio:Play("Click")
 	if not offer.unlocked then self:Reject(key); self.app:Notify(offer.requirement, false); return end
-	if state.coins < offer.price then self:Reject(key); self.app:Notify("Not enough coins for this upgrade.", false); return end
+	if state.coins < offer.price then
+		-- October 23: short of Coins opens the closest Coins pack's checkout instead.
+		if not (self.app.commerce and self.app.commerce:BuyCoins(math.ceil(offer.price - state.coins), "Not enough coins for this upgrade.")) then
+			self:Reject(key); self.app:Notify("Not enough coins for this upgrade.", false)
+		end
+		return
+	end
 	local id = self.app:Request("BoardUpgrade", {upgradeKey = key, expectedLevel = offer.level, expectedPrice = offer.price})
 	self.pending[key] = id
 	self:Render()

@@ -120,6 +120,13 @@ fixed amounts are removed from the catalog; never reintroduce a Coins floor ther
 two tables are the levers; re-run `tests/ProgressionSimulation` (it pays the live formula)
 before changing them. See `docs/team/MISSION_REWARDS_20261022.md`.
 
+## Coins shortfall opens a Coins pack (October 23, owner request)
+Not enough Coins for a Coins purchase (Upgrades tree, Army Size, podium chicken, Feed,
+upgrade board) shows no error: Roblox's purchase prompt opens directly for the smallest
+Coins pack covering the shortfall (the biggest if none does), with no menu first. Server
+replies carry `needCoins`; `CommerceController:BuyCoins` picks the pack. Test sessions
+keep the old message. See `docs/team/COINS_SHORTFALL_PROMPT.md`.
+
 ## One egg is one egg (October 21, owner decision)
 Each chicken lays one real egg every `Config.EggLaySeconds` (Egg Speed shortens it,
 floor `EggMinLaySeconds`); the egg carries all the Coins earned since its last.

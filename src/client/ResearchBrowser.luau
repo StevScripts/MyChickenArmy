@@ -932,7 +932,8 @@ function Browser:Receive(state,result)
 		local message=if type(result.message)=="string" and result.message~="" then result.message else "Upgrade changed. Try again."
 		local info=self:Info(id)
 		if message:lower():find("^not enough coins") and info and type(info.price)=="number" then message=self:Shortfall(info) end
-		self:Refuse(message,id)
+		-- October 23: short of Coins opens the closest Coins pack's checkout instead.
+		if not (type(result.needCoins)=="number" and self.app.commerce and self.app.commerce:BuyCoins(result.needCoins,message)) then self:Refuse(message,id) end
 	end
 	return true
 end
@@ -1184,7 +1185,10 @@ function Browser:Activate(id)
 	if not info then self:Feedback("Upgrades are loading…",WHITE,id);return end
 	if info.status=="Owned" then self:Feedback(node.name..": owned",GREEN,id)
 	elseif info.status=="Available" and type(info.price)=="number" then self:Purchase(id,info.price)
-	elseif info.status=="Unaffordable" then self:Refuse(self:Shortfall(info),id)
+	elseif info.status=="Unaffordable" then
+		-- October 23: short of Coins opens the closest Coins pack's checkout instead.
+		local short=if type(info.price)=="number" and (info.requirement or "")=="" then info.price-self.coins else 0
+		if not (short>0 and self.app.commerce and self.app.commerce:BuyCoins(math.ceil(short),self:Shortfall(info))) then self:Refuse(self:Shortfall(info),id) end
 	else
 		local prerequisite=node.prerequisite and View.Nodes[node.prerequisite]
 		self:Refuse(if prerequisite then "Buy "..prerequisite.name.." first" else "Not available yet",id)

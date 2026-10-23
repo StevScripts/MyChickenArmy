@@ -156,7 +156,8 @@ function ArmyService.UpgradeChicken(session,petId,expectedLevel,expectedPrice)
 	local level=pet.level or 1
 	local price=Rules.ChickenUpgradePrice(pet.species,level)
 	if expectedLevel~=level or expectedPrice~=price then return false,"The upgrade changed. Try again." end
-	if not price or session.coins<price then return false,"Not enough coins to upgrade this chicken." end
+	if not price then return false,"Not enough coins to upgrade this chicken." end
+	if session.coins<price then session.coinShortfall=price-session.coins;return false,"Not enough coins to upgrade this chicken." end
 	local canSpend,spendReason=session:CanSpendCash(price)
 	if not canSpend then return false,spendReason end
 	-- Feed levels past 10 can cost more than 1e12 (S7b); the limit is the Coins cap.

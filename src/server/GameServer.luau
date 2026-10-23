@@ -213,6 +213,7 @@ function GameServer:Handle(player,request)
 	local selectedBefore=#session:BestPetIds()
 	local recapBefore=#(session.researchRecap or {})
 	local selectionBefore=if action=="SetArmy" or action=="SelectBest" then table.concat(session:BestPetIds(),":") else nil
+	session.coinShortfall=nil
 	if action=="Sync" then
 		local sync=self.syncs[player.UserId] or {readyAt=0};self.syncs[player.UserId]=sync
 		if now<sync.readyAt then sync.pending=request.id;return end
@@ -376,6 +377,11 @@ function GameServer:Handle(player,request)
 		ok,message=self:StartNewPlayerTest(player,session,now)
 		if self.sessions[player.UserId]~=session or session.closing then return end
 	end
+	-- October 23 (Stevin): a Coins shortfall tells the client how many Coins are missing,
+	-- so it opens the closest Coins pack's Roblox checkout instead of an error.
+	local needCoins=if not ok and type(session.coinShortfall)=="number" and type(message)=="string"
+		and message:lower():find("^not enough coins") then math.ceil(session.coinShortfall) else nil
+	session.coinShortfall=nil
 	-- Research finished inside Start/Cancel/Skip (Step reports timer completions).
 	if action=="StartResearch" or action=="CancelResearch" or action=="SkipResearch" then
 		local recap=session.researchRecap or {}
@@ -412,7 +418,7 @@ function GameServer:Handle(player,request)
  end
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
-	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift})
+	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift,needCoins=needCoins})
 end
 
 -- Observation only: what a pull put on the podiums, manual or Auto Roll (October 20, S12).
