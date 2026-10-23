@@ -138,6 +138,19 @@ load as the chicken whose stats they copied (`PetCatalog.RetiredSpecies`). A
 chicken without its own template wears its `baseSpecies` voxel model
 (`BlenderPetView`). New chickens need a voxel model before they enter the game.
 
+## Roll pool: 78 chickens on one ladder (October 22, owner decision)
+Stevin, after the Drop a Fruit Index (52 fruits on one odds ladder): "too many chickens
+on one level", narrow the roll pool, **every chicken with effects stays no matter what**,
+and he picked the plain ones that stay. `PetCatalog.RollPool` holds 78 chickens: ten
+effect chickens per rarity plus his eight (Common 13, Uncommon 12, Rare 12, Epic 11,
+Legendary/Mythic/Secret 10). Each chicken is one steady step rarer than the last, with
+no inversions across rarities. Each rarity's share of rolls is unchanged. The 11
+original tier species keep their tiers and stats.
+`PetCatalog.RetiredFromRolls` lists the 40 cut chickens (weight 0, `vaulted`). They still
+load with their old stats, show in the Index only once found, and Mallard/Chunky/Sailor
+still lead camps. Never cut an effect chicken; Rebirth finds are effect chickens only.
+See `docs/team/RARITY_REBALANCE_20261022.md`.
+
 ## Rebirth finds (October 22, owner decision)
 A Rebirth is earned by FINDING a chicken, not paid with one. Rebirths 1–15
 (`Config.Rebirth.FindRanks`) each need `PetCatalog.RebirthFinds[rank]` in the Index

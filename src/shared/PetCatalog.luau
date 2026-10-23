@@ -207,6 +207,112 @@ for _, key in RosterExpansionOrder do
  end
 end
 
+-- October 22 owner decision (docs/team/RARITY_REBALANCE_20261022.md): the roll pool
+-- is narrowed to 78 chickens, one steady odds ladder like the Drop a Fruit Index. Every
+-- chicken with effects stays (ten to a rarity); Stevin picked the eight plain ones that
+-- stay. Each rarity lists its Luck bands, most common chicken first. A moved chicken
+-- takes its new tier's original stats (the October 7 pattern); the 11 original tier
+-- species never move. Inside a rarity each chicken is a step rarer than the one before
+-- (the rarest is `span` times the most common), with spans fitted so no chicken reads
+-- rarer than the next rarity's first. Band totals, and so each rarity's share of rolls,
+-- are unchanged. The basic Chicken keeps 28 of its band's 38.
+local RollPool = {
+ {rarity="Common", span=1.57, bands={
+  {key="Duck", total=38, ids={"Duck","Rooster","RubberDucky","Cardboard"}},
+  {key="Mallard", total=22, ids={"Pajama","Party","Piggy","Gamer","Donut","Painter","Popcorn","Miner","Bonsai"}}}},
+ {rarity="Uncommon", span=1.12, bands={
+  {key="Chunky", total=22, ids={"Bee","Cow","ZombieHunter","Ironbeak","Detective","Mummy","Coral","CastleGuard","Snowman","Honeycomb","Jungle","Lollipop"}}}},
+ {rarity="Rare", span=1.89, bands={
+  {key="Bucket", total=9, ids={"Bucket","Neon","Gladiator","DeepseaDiver","Rockstar","Slime"}},
+  {key="Viking", total=5, ids={"Viking","Ghost","Steampunk","Jester","Toxic","Frost"}}}},
+ {rarity="Epic", span=2.83, bands={
+  {key="Knight", total=3, ids={"Knight","Jockey","Aurora","AirshipCaptain","Mimic","Animatronic","Vampire","Yeti","DragonHatchling","Wizard","Storm"}}}},
+ {rarity="Legendary", span=2.78, bands={
+  {key="Wizard", total=0.7, ids={"Dragon","Witch","Jade","StainedGlass","Geode","Pharaoh"}},
+  {key="Dragon", total=0.25, ids={"Rainbow","Diamond","Water","SolarFlare"}}}},
+ {rarity="Mythic", span=4, bands={
+  {key="IceDuck", total=0.05, ids={"IceDuck","Griffin","DragonKnight","Kraken","Unicorn","Moon","Olympian","Valkyrie","Phoenix","Devil"}}}},
+ {rarity="Secret", span=4, bands={
+  {key="StormDuck", total=0.01, ids={"StormDuck","FirstHen","ForestGuardian","TimeKeeper","Eclipse","Kitsune","Mecha","Heavenly","Supernova","RiftWalker"}}}},
+}
+Catalog.RollPool = RollPool
+-- Out of the roll pool (weight 0) but kept for saves: owned copies keep these level-1
+-- stats from before the change, and the Index shows them only once found. Mallard,
+-- Chunky and Sailor still lead camps, the King and Missions.
+local RetiredFromRolls: {[string]: {rarity: string, income: number, hp: number, damage: number, price: number}} = {
+ Noob={rarity="Common",income=6,hp=51,damage=5,price=600},
+ Mallard={rarity="Common",income=8,hp=62,damage=6,price=1800},
+ Penguin={rarity="Common",income=9,hp=66,damage=6,price=2000},
+ Chunky={rarity="Uncommon",income=16,hp=88,damage=9,price=3000},
+ Sailor={rarity="Uncommon",income=16,hp=88,damage=9,price=3000},
+ Cheesy={rarity="Uncommon",income=17,hp=91,damage=9,price=3500},
+ Camo={rarity="Uncommon",income=17,hp=91,damage=9,price=3500},
+ Cactus={rarity="Uncommon",income=17,hp=91,damage=9,price=3500},
+ Zombie={rarity="Rare",income=29,hp=173,damage=10,price=9000},
+ Tiger={rarity="Rare",income=29,hp=173,damage=10,price=9000},
+ Skeleton={rarity="Rare",income=59,hp=190,damage=18,price=16000},
+ Pirate={rarity="Rare",income=59,hp=190,damage=18,price=16000},
+ Gentleman={rarity="Rare",income=62,hp=195,damage=19,price=19000},
+ Ninja={rarity="Epic",income=96,hp=280,damage=24,price=57600},
+ Hatchling={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ Silkie={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ SpeckledHen={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ BaconHair={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ Scarecrow={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ Sheep={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ Plushie={rarity="Common",income=8,hp=59,damage=6,price=2500},
+ CrateRunner={rarity="Common",income=10,hp=69,damage=7,price=2200},
+ Lumberjack={rarity="Common",income=10,hp=69,damage=7,price=2200},
+ Mailman={rarity="Common",income=10,hp=69,damage=7,price=2200},
+ Raincoat={rarity="Common",income=10,hp=69,damage=7,price=2200},
+ Skater={rarity="Common",income=10,hp=69,damage=7,price=2200},
+ Sushi={rarity="Uncommon",income=19,hp=96,damage=10,price=4500},
+ Frog={rarity="Uncommon",income=19,hp=96,damage=10,price=4500},
+ Taco={rarity="Uncommon",income=19,hp=96,damage=10,price=4500},
+ Sunflower={rarity="Uncommon",income=19,hp=96,damage=10,price=4500},
+ Paratrooper={rarity="Rare",income=35,hp=190,damage=11,price=17000},
+ Firefighter={rarity="Rare",income=35,hp=190,damage=11,price=17000},
+ Chef={rarity="Rare",income=35,hp=190,damage=11,price=17000},
+ Police={rarity="Rare",income=35,hp=190,damage=11,price=17000},
+ Doctor={rarity="Rare",income=35,hp=190,damage=11,price=17000},
+ Samurai={rarity="Rare",income=67,hp=202,damage=20,price=25000},
+ Cowboy={rarity="Rare",income=67,hp=202,damage=20,price=25000},
+ Archer={rarity="Rare",income=67,hp=202,damage=20,price=25000},
+ RoyalGuard={rarity="Epic",income=111,hp=301,damage=26,price=74460},
+ NorseRaider={rarity="Epic",income=111,hp=301,damage=26,price=74460},
+}
+Catalog.RetiredFromRolls = RetiredFromRolls
+do
+ local AnchorWeight = {Duck=28}
+ for _, group in RollPool do
+  local count = 0
+  for _, band in group.bands do for _, id in band.ids do if not AnchorWeight[id] then count += 1 end end end
+  local step, rank = group.span ^ (-1 / math.max(1, count - 1)), 0
+  for _, band in group.bands do
+   local s = tierStats[band.key]
+   local weights, sum, free = {}, 0, band.total
+   for i, id in band.ids do
+    if AnchorWeight[id] then weights[i] = 0; free -= AnchorWeight[id]
+    else weights[i] = step ^ rank; rank += 1 end
+    sum += weights[i]
+   end
+   for i, id in band.ids do
+    local d = Catalog[id] :: any
+    if not TierRarity[id] and d.economyBase ~= band.key then
+     d.price,d.income,d.hp,d.damage,d.interval,d.size,d.splash = s.price,s.income,s.hp,s.damage,s.interval,s.size,s.splash
+     d.economyBase = band.key
+    end
+    d.rarity = group.rarity
+    d.weight = AnchorWeight[id] or free * weights[i] / sum
+   end
+  end
+ end
+ for id in RetiredFromRolls do
+  local d = Catalog[id] :: any
+  d.weight, d.vaulted = 0, true
+ end
+end
+
 -- October 21 owner decision: the October 20 "Veteran Corps" Rebirth chickens are
 -- retired. They had no voxel model and showed as the old round part chicken; every
 -- chicken in the game is a voxel model. RebirthOrder stays empty, so Rebirth grants
@@ -219,8 +325,10 @@ Catalog.RebirthOrder = table.freeze({})
 -- only the Coins. Rarer every rank, picked from the discovery probe so a player who
 -- rolls has seen it before the Coins are there (docs/team/REBIRTH_SCREEN.md "Rebirth
 -- finds"): Rare, Epic, Legendary, Mythic, then the Secret First Hen at 15.
-Catalog.RebirthFinds = table.freeze({"Bucket", "Viking", "Knight", "Jockey", "Dragon", "Rainbow", "Water", "Pharaoh",
-	"Phoenix", "IceDuck", "Heavenly", "TimeKeeper", "Mecha", "StormDuck", "FirstHen"})
+-- October 22 roll pool: every find is a chicken with effects (they always stay in the
+-- roll pool), picked nearest the old ladder's odds.
+Catalog.RebirthFinds = table.freeze({"Bucket", "Frost", "Mimic", "DragonHatchling", "StainedGlass", "Geode", "Pharaoh",
+	"SolarFlare", "IceDuck", "Griffin", "DragonKnight", "Moon", "Olympian", "StormDuck", "FirstHen"})
 local retired = {}
 for rank, species in {"Chunky","Chunky","Bucket","Bucket","Viking","Viking","Knight","Knight","Knight",
  "Dragon","Dragon","Dragon","Rainbow","Rainbow","Rainbow","IceDuck","IceDuck","IceDuck","IceDuck"} do
@@ -397,6 +505,28 @@ for _, id in Catalog.Order do
 	local definition = Catalog[id]
 	local early = definition.oneIn and (Catalog.EarlyPriceOverrides[id] or Catalog.EarlyPrice(definition.oneIn, definition.rarity))
 	if early then definition.price = early end
+end
+
+for id, stats in RetiredFromRolls do
+	local definition = Catalog[id] :: any
+	definition.rarity, definition.income, definition.hp, definition.damage, definition.price =
+		stats.rarity, stats.income, stats.hp, stats.damage, stats.price
+end
+
+-- October 22 rebalance: the Index lists each rarity from most common to rarest, then
+-- that rarity's retired, limited, crate and Hill chickens.
+do
+	local rank = {Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythic=6, Secret=7}
+	local position = {}
+	for index, id in Catalog.Order do position[id] = index end
+	table.sort(Catalog.Order, function(a, b)
+		local da, db = Catalog[a], Catalog[b]
+		local ra, rb = rank[da.rarity] or 8, rank[db.rarity] or 8
+		if ra ~= rb then return ra < rb end
+		if (da.oneIn ~= nil) ~= (db.oneIn ~= nil) then return da.oneIn ~= nil end
+		if da.oneIn and db.oneIn and da.oneIn ~= db.oneIn then return da.oneIn < db.oneIn end
+		return position[a] < position[b]
+	end)
 end
 
 -- "1 in 4", "1 in 129", "1 in 2,900", "1 in 444,500": three significant figures.

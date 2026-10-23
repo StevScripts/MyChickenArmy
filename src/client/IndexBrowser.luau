@@ -98,6 +98,7 @@ local function oddsText(species)
 	if definition.oneIn then return "1 in "..Theme.Number(definition.oneIn) end
 	if definition.hillExclusive then return "The Hill" end
 	if definition.limited then return "Limited" end
+	if definition.vaulted then return "Retired" end
 	return "Galaxy Crate"
 end
 
@@ -427,7 +428,8 @@ function Browser:Render(_force)
 		end
 	end
 	-- Event-only chickens (Catalog .limited) appear only while their event runs or once
-	-- found; otherwise they are hidden and not counted.
+	-- found; chickens retired from the roll pool (.vaulted, October 22) only once found.
+	-- Otherwise they are hidden and not counted.
 	local eventOn=Config.Event and Config.Event.Enabled==true
 	local everFound={}
 	if type(state.discovered)=="table" then for species,value in state.discovered do everFound[species]=value==true end end
@@ -435,7 +437,8 @@ function Browser:Render(_force)
 	local shown,total,collected={},0,0
 	local sectionFound,sectionTotal={},{}
 	for _,species in ORDER do
-		local visible=everFound[species]==true or not Catalog[species].limited or eventOn
+		local definition=Catalog[species]
+		local visible=everFound[species]==true or not (definition.vaulted or (definition.limited and not eventOn))
 		shown[species]=visible
 		self.cards[species].root.Visible=visible
 		if visible then

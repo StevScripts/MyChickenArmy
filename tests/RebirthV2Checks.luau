@@ -86,7 +86,8 @@ function Checks.Run()
 		for id,species in Catalog.RetiredSpecies do
 			count+=1
 			assert(Catalog[id]==nil and not table.find(Catalog.Order,id),id.." is still in the catalog")
-			assert(table.find(Catalog.Order,species) and Catalog[species].weight>0,id.." maps to "..species)
+			-- October 22 roll pool: the target still loads (Chunky is retired from rolls).
+			assert(table.find(Catalog.Order,species) and Catalog[species].income>0,id.." maps to "..species)
 		end
 		assert(count==30,"Retired "..count) -- the 30 Veterans of the 30-rank ladder; ranks 31–50 never had one
 		for rank=1,Config.Rebirth.MaxRank do assert(RebirthChickens.Species(rank)==nil,"Species "..rank) end
