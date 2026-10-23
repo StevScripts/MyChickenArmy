@@ -148,43 +148,6 @@ function Checks.Run()
 		return "Reserve, quotes and order hold"
 	end)
 
-	-- October 22 (REBIRTH_PACING_20261021.md "Tree prices grow with rank"): every tree price
-	-- is x1.2 a rank from Rebirth 5 to 30 and x1.12 a rank after, rounded up to three figures;
-	-- ranks 0-4 pay the base quotes, the server quote carries the session's rank and tier
-	-- values never move with rank.
-	test("Tree prices grow with Rebirth rank: x1.2 a rank from 5 to 30, x1.12 after, three figures",function()
-		assert(Tree.RankPriceGrowth==1.2 and Tree.RankPriceFreeRanks==4 and Tree.RankPriceLateFromRank==30
-			and Tree.RankPriceLateGrowth==1.12,"Growth knobs")
-		for rank=0,4 do assert(Tree.PriceScale(rank)==1,"Rank "..rank.." pays base quotes") end
-		near(Tree.PriceScale(5),1.2,"Rank 5")
-		near(Tree.PriceScale(10),1.2^6,"Rank 10")
-		near(Tree.PriceScale(30),1.2^26,"Rank 30")
-		near(Tree.PriceScale(31),1.2^26*1.12,"Rank 31")
-		near(Tree.PriceScale(50),1.2^26*1.12^20,"Rank 50")
-		assert(Tree.PriceScale(nil)==1 and Tree.PriceScale(-3)==1 and Tree.PriceScale(0/0)==1,"Junk ranks")
-		for rank=1,49 do assert(Tree.PriceScale(rank+1)>=Tree.PriceScale(rank),"Scale never falls at "..rank) end
-		assert(Tree.Price("EggSpeed",1,0)==400 and Tree.Price("EggSpeed",1,4)==400,"Base quote")
-		assert(Tree.Price("EggSpeed",1,5)==480 and Tree.Price("EggSpeed",1,10)==1200,"Three figures: "..tostring(Tree.Price("EggSpeed",1,10)))
-		assert(Tree.Price("Luck",12,10)==1.2e12 and Tree.Price("Luck",12,30)==4.58e13,"Mega Luck IV: "..tostring(Tree.Price("Luck",12,30)))
-		assert(Tree.Price("Luck",12,49)==3.95e14 and Tree.Price("Luck",12,49)<2^53,"Top of the ladder stays a safe integer")
-		for _,family in Tree.FamilyOrder do
-			for tier=1,#Tree.Families[family].tiers do
-				local price=Tree.Price(family,tier,20) :: number
-				assert(price%1==0 and price>=Tree.Price(family,tier,0) :: number,"Whole Coins "..family..tier)
-			end
-		end
-		-- The server quote is the catalog price at the session's rank; a stale base quote is refused.
-		local s=fixture(-9330)
-		s.rebirths,s.coins=10,1e6
-		assert(Upgrades.Quote(s,"EggSpeed",1)==1200 and Upgrades.NodeOffer(s,"EggSpeed1").price==1200,"Quote at Rebirth 10")
-		local upgrades=Upgrades.new(nil,nil)
-		refused("This upgrade changed. Try again.",upgrades:BuyNode(s,"EggSpeed1",400))
-		local ok,message=upgrades:BuyNode(s,"EggSpeed1",1200)
-		assert(ok and s.coins==1e6-1200 and s.eggSpeedLevel==1,tostring(message))
-		assert(Tree.Families.EggSpeed.tiers[1].value==Tree.Value({EggSpeed=1},"EggSpeed"),"Tier value is rank-free")
-		return "480 at Rebirth 5, 1,200 at 10, 45.8T for Mega Luck IV at 30"
-	end)
-
 	test("Rebirth 1 resets the run and pays Gems and Time Skip Coins (no chicken); progress stays",function()
 		local s=fixture(-9302)
 		setTree(s,{EggSpeed=4,EggValue=4,Luck=2,Flock=1,ArmySize=2,ChickenFeed=1})
@@ -384,13 +347,12 @@ function Checks.Run()
 	-- October 21 later (P5, reference parity §2.5; REBIRTH_PACING_20261021.md "reference-shaped
 	-- ladder"): Rebirth 2 costs 1M like the reference, paid for by taming in-run growth.
 	test("Reference-shaped ladder: 50 costs, ratio bands, Feed x1.6 and the tree prices that pace a run",function()
-		-- October 22: ranks 3-49 re-fit after Time Skip became a post-Rebirth head start, then
-		-- ranks 6-49 again (within 12%) for the rank-priced tree; 1-5 and 50 are fixed.
-		local costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.74e10,5.86e10,2.08e11,8.8e11,3.84e12,
-			7.43e12,1.06e13,1.74e13,2.47e13,2.94e13,3.24e13,3.74e13,4.19e13,4.78e13,5.37e13,
-			6.19e13,6.82e13,7.51e13,8.27e13,9.1e13,1.01e14,1.37e14,1.71e14,2.41e14,2.99e14,
-			3.67e14,4.06e14,4.49e14,5.39e14,6.15e14,6.77e14,7.7e14,8.72e14,9.6e14,1.06e15,
-			1.17e15,1.29e15,1.42e15,1.57e15,1.73e15,1.91e15,2.11e15,2.33e15,2.57e15,3.13e15}
+		-- October 22: ranks 3-49 re-fit after Time Skip became a post-Rebirth head start.
+		local costs={5e4,1e6,1.46e7,2.9e8,5.79e9,1.82e10,6.05e10,2.13e11,9.41e11,4.15e12,
+			8.15e12,1.18e13,1.82e13,2.59e13,3.18e13,3.6e13,3.96e13,4.36e13,4.8e13,5.28e13,
+			6.18e13,7.08e13,7.79e13,8.57e13,1.02e14,1.21e14,1.56e14,1.92e14,2.44e14,2.99e14,
+			3.41e14,3.76e14,4.47e14,5.29e14,5.82e14,6.68e14,7.57e14,8.33e14,9.17e14,1.01e15,
+			1.12e15,1.24e15,1.37e15,1.51e15,1.67e15,1.84e15,2.06e15,2.37e15,2.7e15,3.13e15}
 		assert(#Config.Rebirth.Costs==#costs,"Cost count")
 		for rank,cost in costs do assert(Rebirth.Cost(rank)==cost,"Cost "..rank.." "..tostring(Rebirth.Cost(rank))) end
 		assert(Rebirth.Cost(1)==5e4 and Rebirth.Cost(2)==1e6,"Rebirth 1 and 2 as in the reference")

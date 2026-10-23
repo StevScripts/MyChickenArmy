@@ -53,14 +53,6 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Upgrades tree:** instant Coins tiers (no camp/rank/King gate) replace the cash tracks and
   research, ending the Sep 27, Oct 7–8 and Oct 14 track lengths and prices, and the Sep 29
   Roll Slot prices (eight podiums stay). The Oct 6 Luck window math stays.
-  Oct 22 (Stevin: late runs "easily unlock everything"): every tree price grows with the
-  player's Rebirth rank, x1.2 a rank from Rebirth 5 to 30 and x1.12 a rank after
-  (`UpgradeCatalog.PriceScale`, rounded up to three figures; ranks 0–4 pay the base
-  quotes), so the whole tree stays about a fifth to a third of the next Rebirth instead of
-  a minute of income, and the ladder was re-fit to keep the time targets. Only the server
-  quotes a price (`UpgradeService.Quote`); tier values never move with rank, so saved tiers
-  need no migration. A rank gate is still forbidden: higher ranks pay more, they are never
-  locked out. See "Tree prices grow with rank" in `docs/team/REBIRTH_PACING_20261021.md`.
 - **Rebirth** resets Coins to 0 (not 2,400; Time Skip then pays), Feed levels and the tree,
   except Keep Upgrades tiers and `mutationKeep`. Gems and Gem Upgrades never reset.
   Mutations (Golden, Rainbow, Shadow, Cosmic) are bought in the tree, not unlocked by rank.

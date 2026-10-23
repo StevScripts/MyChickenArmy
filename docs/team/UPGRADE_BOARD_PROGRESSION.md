@@ -1,12 +1,5 @@
 # Upgrade board progression — independent design review
 
-**October 22, 2026 supersedes every price below:** the October 20 overhaul replaced these
-cash tracks with the Upgrades tree (`src/shared/UpgradeCatalog.luau`), and since October 22
-every tree price grows with the player's Rebirth rank (x1.2 a rank from Rebirth 5 to 30,
-x1.12 a rank after, `UpgradeCatalog.PriceScale`; ranks 0–4 pay the base quotes). The
-Rebirth ladder was re-fit at the same time. Current contract and tables: "Tree prices grow
-with rank" in [REBIRTH_PACING_20261021.md](REBIRTH_PACING_20261021.md).
-
 **September 29 supersedes the Roll Slot and seller portions of this historical
 review:** seven purchases now unlock eight slots, with slot 6/7/8 at
 $150M/$300M/$500M. The target is roughly 8–9 active F2P hours; see the
