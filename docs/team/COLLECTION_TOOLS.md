@@ -166,3 +166,15 @@ burst; only the retired `"rover"` never did. No `UnloadVacuum` request is needed
   - Feed prompt, quote and level;
   - tools after respawn and after Rebirth;
   - the vacuum's grip orientation.
+
+## Eggs on your back (October 24, Stevin)
+
+The eggs you carry by hand ride on your back, the way arcade-idle games stack what the
+character carries: in rows of three side by side (`CollectionFeel.BackStack.RowSize`), a new
+row starting on top once the one below is full, up to `Rows` (6) rows, 18 eggs. Each clicked
+egg flies onto its slot and pops in; the bag keeps counting past the limit (the HUD's Carrying
+line is the number). Each row follows the one below with a little lag that grows up the
+stack, so it leans and sways as you run and settles when you stop; reduced motion rides
+rigid. A sale pours the stack into the pad, top eggs first. Presentation only (`src/client/EggBackStack.luau`, owned by EggController): the
+server's `eggCarry` is the truth; the vacuum's cargo has its own tank and is not stacked.
+Eggs on the back are the species' voxel egg at half size, one anchored part each, no glow.

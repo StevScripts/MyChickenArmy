@@ -29,20 +29,26 @@ local function owned(session, nodeId: string): boolean
 	return Tree.Tier(session.upgradeTree, node.family :: string) >= (node.tier :: number)
 end
 
--- The tutorial's Army Size 4 may spend its own earmark (PlayerSession:CanSpendCash).
+-- The purchase's name for PlayerSession:CanSpendCash (no reserve since October 23).
 local function purpose(familyId: string?): string?
 	return if familyId == "ArmySize" then "ArmySize" else nil
 end
 
--- October 21 (Stevin, like the reference's free Vacuum tip): the Egg Vacuum is FREE
--- while the Commander guide runs. Every quote and purchase reads prices here.
+-- Every quote and purchase reads prices here. October 23 empty start: the Egg Vacuum
+-- is no longer free during the tutorial (it costs 150 Coins, a post-tutorial tip).
 function UpgradeService.Quote(session, familyId: string, tier: number): number?
-	local tutorial = session.tutorial or {}
-	if familyId == "EggVacuum" and tier == 1 and tutorial.starterArmy == true
-		and not tutorial.guideCompleted and not tutorial.guideSkipped then
-		return 0
-	end
 	return Tree.Price(familyId, tier, session.rebirths)
+end
+
+-- October 23 empty start: the Start hex is claimed once, free (the tutorial's
+-- "Claim Start!" lesson); saved as tutorial.startClaimed.
+-- October 24: only a guide still in progress claims it; finished or skipped guides and
+-- older saves (no startClaimed field) see the ordinary Start hex.
+local function startClaimable(session, node): boolean
+	local tutorial = session.tutorial
+	if node.claimable ~= true or type(tutorial) ~= "table" then return false end
+	return tutorial.startClaimed ~= true and tutorial.guideCompleted ~= true and tutorial.guideSkipped ~= true
+		and tutorial.coreDone ~= true
 end
 
 -- Normal individual roll outcomes for the Luck hex; same odds as ordinary rolls
@@ -80,8 +86,11 @@ end
 
 -- One node's server quote: status ("Owned", "Available", "Unaffordable", "Locked",
 -- or a special hex's kind), price and the reason it can't be bought right now.
-function UpgradeService.NodeOffer(session, nodeId: string)
+function UpgradeService.NodeOffer(session, nodeId: string): any
 	local node = Tree.Nodes[nodeId]
+	if node.kind == "start" and startClaimable(session, node) then
+		return {status = "Claim", claimable = true, price = 0}
+	end
 	if node.kind ~= "upgrade" then return {status = KIND_STATUS[node.kind] or "Start"} end
 	if owned(session, nodeId) then return {status = "Owned"} end
 	local price = UpgradeService.Quote(session, node.family :: string, node.tier :: number) :: number
@@ -97,8 +106,9 @@ function UpgradeService.new(_world, rolls)
 	return setmetatable({rolls = rolls}, UpgradeService)
 end
 
--- state.upgradeTree. Badges count what the player can buy right now, respecting
--- the starter reserve, per category and in total.
+-- state.upgradeTree. Badges count what the player can buy right now, per category
+-- and in total. The Start claim is not counted (the tutorial points at it, and older
+-- saves that never claimed it get no lasting badge).
 function UpgradeService:Snapshot(session)
 	local nodes, badges = {}, {Main = 0, Tools = 0, Player = 0, Army = 0, total = 0}
 	for id, node in Tree.Nodes do
@@ -144,6 +154,13 @@ end
 function UpgradeService:BuyNode(session, nodeId: any, expectedPrice: any, _now: number?): (boolean, string)
 	if not ready(session) then return false, "Wait for your flock to load." end
 	local node = if type(nodeId) == "string" then Tree.Nodes[nodeId] else nil
+	-- October 23 empty start: "Start" is claimed once for 0 Coins (no price check).
+	if node and node.kind == "start" and node.claimable == true then
+		if not startClaimable(session, node) then return false, "Start is already claimed." end
+		session.tutorial.startClaimed = true
+		session:Touch()
+		return true, "Start claimed!"
+	end
 	if not node or node.kind ~= "upgrade" then return false, "Choose an upgrade." end
 	if owned(session, nodeId) then return false, node.name .. " is already yours." end
 	if node.prerequisite and not owned(session, node.prerequisite) then

@@ -14,6 +14,7 @@ Stories.List={
 	{id="Upgrades",name="Upgrades tree"},
 	{id="Rebirth",name="Rebirth"},
 	{id="RebirthFirst",name="Rebirth (first, not ready)"},
+	{id="RebirthIntro",name="Rebirth 0 (new profile, ready)"},
 	{id="Invasions",name="Invasions / Missions"},
 	{id="Daily",name="Daily reward"},
 	{id="Offline",name="Offline earnings"},
@@ -168,6 +169,30 @@ Render.RebirthFirst=function(ctx)
 	quote.find={species="Bucket",name="Robo-Cluck",rarity="Rare",found=false}
 	local upgrades=state.gemUpgrades or {}
 	upgrades.autoRebirth={owned=false,enabled=true}
+	for id,item in upgrades.items or {} do
+		item.level,item.price=0,FIRST_PRICES[id]
+		item.status=if (item.unlockRank or 0)>0 then "Locked" else "Unaffordable"
+	end
+	Render.Rebirth(ctx)
+end
+
+-- October 23 empty start: a new profile's first Rebirth screen is Rebirth 0 (Config.Rebirth.Intro:
+-- 1,700 Coins, +30 Gems, x1.5 Coins; three earn tiles, no find tile, no Skip), shown here ready.
+Render.RebirthIntro=function(ctx)
+	local state=ctx.state
+	local okConfig,config=pcall(function() return require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config) end)
+	local intro=if okConfig and type(config)=="table" and type(config.Rebirth)=="table" and type(config.Rebirth.Intro)=="table"
+		then config.Rebirth.Intro else {Cost=1700,Multiplier=1.5,Gems=30}
+	state.gems,state.gemsEarned,state.introRebirth=0,0,"pending"
+	state.coins=intro.Cost
+	local quote=state.rebirth or {}
+	state.rebirth=quote
+	quote.intro,quote.title,quote.nextTitle=true,"Rebirth 0","Rebirth 0"
+	quote.rank,quote.nextRank,quote.cost,quote.coins,quote.eligible,quote.reason=0,0,intro.Cost,intro.Cost,true,nil
+	quote.multiplierNow,quote.multiplierNext,quote.gemsNext=1,intro.Multiplier,intro.Gems
+	quote.find,quote.skip,quote.nextChicken,quote.kingRequired=nil,nil,nil,false
+	local upgrades=state.gemUpgrades or {}
+	upgrades.autoRebirth={owned=false,enabled=false}
 	for id,item in upgrades.items or {} do
 		item.level,item.price=0,FIRST_PRICES[id]
 		item.status=if (item.unlockRank or 0)>0 then "Locked" else "Unaffordable"

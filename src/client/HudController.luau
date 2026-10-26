@@ -216,37 +216,33 @@ function Hud.new(app,shell)
 	mark.Size,mark.TextScaled,mark.ZIndex,mark.TextXAlignment=UDim2.fromScale(1,1),true,9,Enum.TextXAlignment.Center
 	self.rebirthBadge=badge
 	-- October 16 free gift: a gift icon above Rebirth until the free chicken is claimed.
-	local giftCorner=Theme.Frame(shell,"FreeGiftCorner",UDim2.fromScale(0.082,0.16))
+	-- October 23 (Stevin): the chunky gift box, not the chicken, and a bit bigger (1.2x;
+	-- the chicken is revealed in the popup). Its foot stays clear of Rebirth's top (0.42).
+	local giftCorner=Theme.Frame(shell,"FreeGiftCorner",UDim2.fromScale(0.0984,0.192))
 	giftCorner.BackgroundTransparency,giftCorner.AnchorPoint=1,Vector2.new(1,0.5)
-	giftCorner.Position=UDim2.fromScale(0.988,0.31)
+	giftCorner.Position=UDim2.fromScale(0.988,0.3)
 	Theme.Aspect(giftCorner,136/132)
 	self.freeGiftCorner=giftCorner
-	self.freeGift=Theme.IconButton(giftCorner,"FreeGift","Free Chicken!",FreeGiftController.Assets.Gift,function()
+	self.freeGift=Theme.IconButton(giftCorner,"FreeGift","Free Gift!",FreeGiftController.Assets.Gift,function()
 		app.audio:Play("Click")
 		if app.freeGift then app.freeGift:Open() end
 	end)
 	self.freeGift.Size,self.freeGift.Visible=UDim2.fromScale(1,1),false
-	-- Golden sunburst behind the chicken (centred on the icon), slowly spinning.
+	-- Golden sunburst behind the gift (centred on the icon), slowly spinning.
 	local burst=Theme.Image(self.freeGift.Visual,"Sunburst",Theme.Assets.Rays,UDim2.fromScale(1.25,1.25),UDim2.fromScale(0.5,0.37))
 	burst.AnchorPoint,burst.ZIndex=Vector2.new(0.5,0.5),2
 	burst.ImageColor3,burst.ImageTransparency=Color3.fromRGB(255,184,0),0
 	Theme.Aspect(burst,1)
 	Theme.Motion:Tween(burst,"spin",{Rotation=360},10,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
-	-- Golden caption with a shine sweeping across it on repeat.
+	-- October 23 (Stevin): a plain white "Free Gift!" caption like the other HUD icons
+	-- (was "Free Chicken!" with a sweeping gold shine).
 	self.freeGift.TextColor3=Color3.new(1,1,1)
-	local shine=Instance.new("UIGradient")
-	shine.Name="GoldShine"
-	shine.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,178,2)),
-		ColorSequenceKeypoint.new(0.4,Color3.fromRGB(255,214,40)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,250,205)),
-		ColorSequenceKeypoint.new(0.6,Color3.fromRGB(255,214,40)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,178,2))})
-	shine.Rotation,shine.Offset=20,Vector2.new(-1,0)
-	shine.Parent=self.freeGift.Visual.Label
-	Theme.Motion:Tween(shine,"shine",{Offset=Vector2.new(1,0)},1.8,Enum.EasingStyle.Linear,Enum.EasingDirection.In,nil,-1,false)
 	self:BuildChickenOffer(shell)
 	-- Below the top-centre line, clear of the Settings corner; errors also raise a toast.
 	self.save=Theme.Display(shell,"SaveStatus","",21)
 	self.save.AnchorPoint,self.save.Position,self.save.Size,self.save.TextXAlignment=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.08),UDim2.fromScale(0.45,0.04),Enum.TextXAlignment.Center
 	self:Layout()
+	self:StartIdleMotion()
 	-- October 21 game feel: the Army count punches from its middle when it changes.
 	Theme.Motion:Center(self.armyCount)
 	self:BindBasePresence()
@@ -426,6 +422,19 @@ function Hud:Layout()
 	self:UpdateArmyCommands(true)
 end
 
+-- October 23 (Stevin, Drop a Fruit recording): every HUD icon idles with a slow tilt,
+-- staggered so neighbours never swing in step, and the red badges ping now and then.
+-- Plain looping tweens (UIMotion Sway/Ping); reduced motion keeps them still.
+function Hud:StartIdleMotion()
+	local buttons={self.shortcuts.Shop,self.shortcuts.Upgrades,self.shortcuts.Index,self.reenlist,
+		self.freeGift,self.offer,self.army,self.callArmy,self.myBase}
+	for index,button in buttons do
+		Theme.Motion:Sway(button.Visual.Icon,5,1.3+(index%3)*0.12,(index-1)*0.23)
+	end
+	Theme.Motion:Ping(self.upgradesBadge,1.7)
+	Theme.Motion:Ping(self.rebirthBadge,1.5)
+end
+
 -- October 15 owner request: ONE HUD layout for every device (PC, phone, tablet,
 -- gamepad). No touch-only positions; edit it once (UI Lab) and it applies everywhere.
 -- settingsBottom: lowest screen Y scale the Settings button can reach (for neighbours).
@@ -486,10 +495,9 @@ function Hud:UpdateRebirth(state)
 	local quote=state and state.rebirth
 	if type(quote)~="table" then self.rank.Visible=false;self.reenlist.Visible=false;return end
 	local rank=tonumber(quote.rank) or 0
-	-- Plan v2 (October 20): the icon appears once the Coins reach a quarter of the
-	-- next Rebirth or a rank is earned; the King no longer matters.
-	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-	local showIcon=quote.enabled~=false and (rank>=1 or (cost~=nil and cost>0 and coins>=cost/4))
+	-- October 23 (Stevin): the icon shows from the start (was: once the Coins reach a
+	-- quarter of the next Rebirth or a rank is earned).
+	local showIcon=quote.enabled~=false and not self.quiet -- October 23: hidden while the HUD is quiet (lessons 1-2)
 	if self.reenlist.Visible~=showIcon then
 		self.reenlist.Visible=showIcon;self:PlaceRebirth()
 		-- Grow in only when it newly unlocks this session, not on the first packet.
@@ -503,16 +511,58 @@ function Hud:UpdateRebirth(state)
 		self.reenlistPulse=pulse
 		if pulse then Theme.Motion:Breathe(self.reenlist.Visual,1.08,0.8) else Theme.Motion:StopBreathe(self.reenlist.Visual) end
 	end
-	self.rank.Text=RebirthPanel.Title(rank)
+	-- October 23 empty start: Rebirth 0 (introRebirth) keeps rank 0 but reads "Rebirth 0".
+	local introDone=rank==0 and state.introRebirth=="done"
+	self.rank.Text=if introDone then "Rebirth 0" else RebirthPanel.Title(rank)
 	-- The Hill countdown chip uses the same spot above the coin readout.
-	self.rank.Visible=rank>=1 and not (self.hill and self.hill.waitingShown)
+	self.rank.Visible=(rank>=1 or introDone) and not self.quiet and not (self.hill and self.hill.waitingShown)
 	-- Rebirths come often now, so each new rank re-arms the "Rebirth ready" toast.
 	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15);self.rebirthToastShown=false end
 	self.lastRank=rank
-	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown then
+	-- Rebirth 0 completing re-arms it too (the next one is Rebirth 1).
+	if self.lastIntro=="pending" and state.introRebirth=="done" then
+		Theme.Motion:PopScale(self.rank,1.15);self.rebirthToastShown=false
+	end
+	self.lastIntro=state.introRebirth
+	local intro=quote.intro==true
+	local guideDone=type(state.tutorial)=="table" and state.tutorial.guideCompleted==true
+	self:UpdateRebirthProgress(showIcon and intro and guideDone and quote.eligible~=true,quote)
+	-- Never while the HUD is quiet; Rebirth 0 after the tutorial has its own tip card
+	-- (TutorialGuide "Rebirth is ready!"), so it gets no toast as well.
+	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown and not self.quiet
+		and not (intro and guideDone) then
 		self.rebirthToastShown=true
-		local nextTitle=RebirthPanel.Title(rank+1)
+		local nextTitle=if intro then "Rebirth 0" else RebirthPanel.Title(rank+1)
 		self.app:Notify("Rebirth ready: "..nextTitle.."!",true)
+	end
+end
+
+-- October 23 empty start (the reference's Rebirth progress): while Rebirth 0 is on
+-- its way, the Rebirth button wears its Coins progress as "42%" at its top-left
+-- corner, opposite the red "!" that replaces it once it is affordable.
+function Hud:UpdateRebirthProgress(shown: boolean,quote)
+	local tag=self.rebirthProgress
+	if not tag then
+		if not shown then return end
+		tag=Theme.Frame(self.reenlist.Visual,"RebirthProgress",UDim2.fromScale(0.5,0.22),Color3.fromRGB(16,23,18))
+		tag.AnchorPoint,tag.Position,tag.ZIndex,tag.BackgroundTransparency=Vector2.new(0.5,0.5),UDim2.fromScale(0.2,0.1),8,0.15
+		tag.Visible=false -- Pops in below.
+		Theme.Round(tag).CornerRadius=UDim.new(0.5,0)
+		-- Round joins: a Miter stroke draws a square box around a pill.
+		Theme.Stroke(tag,Color3.new(0,0,0),2).LineJoinMode=Enum.LineJoinMode.Round
+		local text=Theme.Label(tag,"Percent","",22,A.gold)
+		text.AnchorPoint,text.Position,text.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.86,0.86)
+		text.TextScaled,text.ZIndex,text.TextXAlignment=true,9,Enum.TextXAlignment.Center
+		self.rebirthProgress,self.rebirthProgressText=tag,text
+	end
+	if shown then
+		local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
+		local percent=if cost and cost>0 then math.clamp(math.floor(coins/cost*100),0,99) else 0
+		self.rebirthProgressText.Text=percent.."%"
+	end
+	if tag.Visible~=shown then
+		tag.Visible=shown
+		if shown then Theme.Motion:PopScale(tag,0.6,0.25) end
 	end
 end
 
@@ -567,10 +617,73 @@ function Hud:UpdateAutoRoll(state)
 	end
 end
 
+-- October 25 (Stevin, supersedes the October 23 quiet lessons): during the tutorial the
+-- screen shows nothing but the guide card. stage "bare" hides the whole HUD; "coins"
+-- brings in the Coins readout (the first money); "upgrades" adds the Upgrades button
+-- (the card that opens it); nil brings everything back once the tutorial is over.
+-- Every other HUD piece, including ones other controllers mount later (Settings,
+-- Playtime, Gold Rush, boosts, Rally …), waits in a hidden holder, so nobody's own
+-- Visible toggles are fought. CommanderGuide drives it. `quiet` stays true for the
+-- whole tutorial: Rebirth, Free Gift, the offer, the Upgrades badge and boosts read it.
+function Hud:SetTutorialStage(stage: string?)
+	if self.tutorialStage==stage then return end
+	local was=self.tutorialStage
+	self.tutorialStage=stage
+	self.quiet=stage~=nil
+	local layer=self.cashReadout.Parent :: Instance
+	if stage and not self.tutorialHold then
+		local hold=Theme.Container(layer,"TutorialHold")
+		hold.Visible=false
+		self.tutorialHold=hold
+		local function park(child: Instance)
+			if child~=hold and child~=self.cashReadout and child~=self.shortcuts and child:IsA("GuiObject") then child.Parent=hold end
+		end
+		for _,child in layer:GetChildren() do park(child) end
+		self.tutorialHoldAdded=layer.ChildAdded:Connect(function(child) task.defer(park,child) end)
+	elseif not stage and self.tutorialHold then
+		if self.tutorialHoldAdded then self.tutorialHoldAdded:Disconnect();self.tutorialHoldAdded=nil end
+		for _,child in self.tutorialHold:GetChildren() do child.Parent=layer end
+		self.tutorialHold:Destroy();self.tutorialHold=nil
+	end
+	local cashShown=stage~="bare"
+	local shortcuts=self.shortcuts
+	local shown={Shop=stage==nil,Index=stage==nil,Upgrades=stage==nil or stage=="upgrades"}
+	self.friendBoostSlot.Visible=stage==nil
+	-- Each piece that comes in pops in; the first load (was == nil and stage set) does not.
+	local reveal=was~=nil
+	if self.cashReadout.Visible~=cashShown then
+		self.cashReadout.Visible=cashShown
+		if cashShown and reveal then
+			self.cashRevealedAt=os.clock()
+			Theme.Motion:PopScale(self.cashReadout,0.6,0.3)
+		end
+	end
+	-- The first sale also opens card 5, so the Upgrades button waits a beat after the
+	-- Coins instead of popping in with them.
+	local wait=if stage=="upgrades" and self.cashRevealedAt then math.max(0,self.cashRevealedAt+1.2-os.clock()) else 0
+	for page,visible in shown do
+		local button=shortcuts[page]
+		if button.Visible~=visible then
+			local function show()
+				if self.tutorialStage~=stage or button.Visible==visible then return end
+				button.Visible=visible
+				if visible and reveal then Theme.Motion:PopScale(button.Visual,0.6,0.3) end
+			end
+			if visible and page=="Upgrades" and wait>0 then task.delay(wait,show) else show() end
+		end
+	end
+	local state=self.app.state
+	if state then
+		self:UpdateRebirth(state);self:UpdateUpgradesBadge(state)
+		self:UpdateFreeGift(state);self:UpdateChickenOffer(state)
+		if self.app.boostReadout then self.app.boostReadout:Render(state) end
+	end
+end
+
 -- Shown until the free chicken is claimed; breathes to invite a tap.
 function Hud:UpdateFreeGift(state)
 	local gift=state.freeGift
-	local shown=type(gift)=="table" and gift.enabled==true and gift.claimed~=true
+	local shown=type(gift)=="table" and gift.enabled==true and gift.claimed~=true and not self.quiet
 	if shown==(self.freeGiftShown==true) then return end
 	self.freeGiftShown=shown
 	self.freeGift.Visible=shown
@@ -634,7 +747,7 @@ function Hud:UpdateChickenOffer(state)
 	local step=tonumber(state.chickenOfferStep) or 0
 	local key=ShopCatalog.ChickenOfferOrder[step+1]
 	local product=key and ShopCatalog.Products[key]
-	local shown=giftDone and product~=nil
+	local shown=giftDone and product~=nil and not self.quiet
 	-- A step bought this session: celebrate, then show the next offer.
 	if self.offerStep~=nil and step>self.offerStep then
 		local bought=ShopCatalog.Products[ShopCatalog.ChickenOfferOrder[step]]
@@ -784,16 +897,17 @@ function Hud:UpdateUpgradesBadge(state)
 	local total=type(badges)=="table" and tonumber(badges.total) or 0
 	self.upgradesCount.Text=if total>99 then "99+" else tostring(total)
 	local previous=self.upgradesReady
-	Theme.Motion:Appear(self.upgradesBadge,total>0)
+	local ready=total>0 and not self.quiet -- October 23: hidden while the HUD is quiet (lessons 1-2)
+	Theme.Motion:Appear(self.upgradesBadge,ready)
 	-- October 21 game feel: a rise punches the count with a badge chime (its first
 	-- appearance grows in through Appear); the gold ring pulses while any is ready.
 	if previous and total>previous then
 		if previous>0 then Theme.Motion:Punch(self.upgradesBadge,1.3,0.32) end
 		self.app:Cue("Badge","Pop")
 	end
-	if (total>0)~=(self.upgradesGlowing==true) then
-		self.upgradesGlowing=total>0
-		if total>0 then Theme.Motion:Glow(self.upgradesGlow,A.gold,2) else Theme.Motion:StopGlow(self.upgradesGlow) end
+	if ready~=(self.upgradesGlowing==true) then
+		self.upgradesGlowing=ready
+		if ready then Theme.Motion:Glow(self.upgradesGlow,A.gold,2) else Theme.Motion:StopGlow(self.upgradesGlow) end
 	end
 	self.upgradesReady=total
 end

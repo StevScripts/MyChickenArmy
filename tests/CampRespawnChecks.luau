@@ -10,6 +10,8 @@ local Checks={}
 
 local function setup()
  local a,b=Session.new(901,"First",1),Session.new(902,"Second",2)
+ -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+ for _,fixture in {a,b} do for _=1,3 do fixture:AddPet("Duck",1).investment=0 end end
  a.loaded,b.loaded=true,true
  local world={owners={},busy={},restored={},events={}}
  local function key(location)

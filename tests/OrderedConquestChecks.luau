@@ -9,6 +9,8 @@ local Layout=require(Shared.FlockLayout)
 local Checks={}
 local function setup()
  local s=Session.new(1,"Route Tester",1)
+ -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+ for _=1,3 do s:AddPet("Duck",1).investment=0 end
  s.firstWins={true,true};s.frontierWins={true,true,true,true,true,true};s.kingCleared=true;s.campUnlocked=2
  local w={}
  function w:Position(_) return Vector3.new(0,1.05,-240) end
@@ -106,6 +108,8 @@ function Checks.Run()
  test("An abandoned shared camp returns to enemies before a new capture",function()
   local s,service=setup()
   local other=Session.new(2,"Other Commander",2);service.sessions[2]=other
+  -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+  for _=1,3 do other:AddPet("Duck",1).investment=0 end
   assert(service:Attack(other,"outpost:1",0))
   local held=service.battles[other.outgoing];prepareCapture(held,1);service:Finish(held,"A",1)
   assert(service:ReturnHome(other,2))
@@ -150,6 +154,8 @@ function Checks.Run()
  test("Leaving the server releases only the departing player's ownership",function()
   local s,service=setup()
   local other=Session.new(2,"Other Commander",2);service.sessions[2]=other
+  -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+  for _=1,3 do other:AddPet("Duck",1).investment=0 end
   service:SetTerritoryOwner("1:1",s,{plot=1,index=1})
   service:SetTerritoryOwner("king:1",s,{king=true})
   service:SetTerritoryOwner("outpost:1",other,{outpost=1})

@@ -1,5 +1,116 @@
 # Commander Cluck tutorial — October 3, 2026
 
+## Empty start, eight cards, tips and Rebirth 0: October 23–25 (supersedes everything below)
+
+**October 25 (Stevin, from his playtest notes):**
+- **Card 7 "Roll another chicken!", card 8 recruits it.** The second pull keeps the basic
+  Chicken on the first podium at 150 Coins (`Config.Economy.StarterLadder`: Chicken free,
+  then Chicken 150; `RollService`). Whenever the Coins are short of the podium's price, the
+  card becomes the earn step: "Collect eggs worth N more Coins" (arrow to the yard), then
+  "Sell your eggs on the green pad!" (arrow to the pad) once the bag covers it, then back to
+  the podium ("Buy the chicken!"). The tutorial completes on that recruit, not on the pull;
+  Daily Rewards opens then.
+- **Favoured pulls.** The next five pulls after the tutorial put the basic Chicken on the
+  first podium with a 60% chance at its normal price (`Config.Economy.FavoredRolls`), so the
+  first Army fills with chickens the player can afford; later pulls draw normally.
+- **The plot card does not pan the tree.** Card 6 ("Expand your plot!") rings the Flock Size I
+  hex where it is; the map no longer centres on it (`CommanderGuide`).
+- **The Egg Vacuum is free, always** (`UpgradeCatalog` EggVacuum I at 0 Coins; the tree
+  renders a 0-Coin upgrade as "Claim" in green like Start). Its tip appears once the player
+  has collected 12 more eggs (4 until later Oct 25) by hand after the tutorial completed (`TutorialGuide.VacuumTipEggs`,
+  counted from `tutorial.eggsAtComplete`, never shown): "Open Upgrades for an Egg Vacuum!" →
+  Tools → "Claim your Egg Vacuum!" → "Equip your Egg Vacuum!" → "Walk near eggs to vacuum them
+  up! (n/10)" → **"Sell your eggs on the green pad!"**; the chain completes when those eggs
+  are sold (`tutorial.vacuumSold`, set by EggService at 10 vacuumed). The Camp tip's
+  "settled" check is now 20 eggs vacuumed or 60 by hand.
+
+**October 24 (Stevin, from his reference screenshots):**
+- **Click badges on the eggs.** During the egg lesson and after it, every ready egg wears
+  Stevin's reference badge 1:1: a tan lumpy blob with a white outline holding a dark mouse
+  (one image, `EggView.CLICK_BADGE`; touch: the same blob with a pointing finger,
+  `TAP_BADGE`; gamepad: a white blob reading "R2"), with the word Click / Tap drawn under it
+  by the game, overlapping the blob's lower edge. Art: `assets/generated/click-badge-20261024/`.
+  The lit egg keeps the tapping hand. The hint stays on through the rest of the tutorial and
+  the first tips until the Egg Vacuum is owned (`TutorialGuide.EggHint`; after the guide only
+  empty-start profiles, `introRebirth` set).
+- **Eggs every second in the tutorial.** `Config.TutorialEggLaySeconds = 1` through
+  `PlayerSession:LaySeconds` until the guide completes (empty-start profiles). Coins/sec are
+  unchanged: each egg carries the Coins since the last, so a Duck's eggs are 4 Coins and
+  three sell for 12. Flock Size I therefore costs 10 Coins (was 30).
+- **Start alone.** While Start is claimable the Upgrades tree shows only the Start hex, with
+  a red "!" badge and "Claim" in green under it (never "FREE"); claiming reveals the rest
+  with a pop-in. `UpgradeService` offers the claim only to a guide in progress (older saves
+  and finished guides see the ordinary hex).
+- **Card 7: "Pull the lever again!"** (`RollAgain`, `tutorial.rollCount >= 2`, counted by
+  RollService, saved up to `TutorialGuide.RollCountLimit`). On Oct 24 the tutorial completed
+  on the pull; since Oct 25 it completes on the recruit (card 8, see the top). Analytics:
+  Onboarding funnel step 10, step 11 is the completion (schema 15,
+  `docs/analytics/ONBOARDING_FUNNEL.md`).
+- **Tips retimed.** Egg Vacuum after 12 more eggs by hand (free since Oct 25, see above);
+  Cluck
+  Camp once the Army holds three AND the player is a little settled in: a load of vacuumed
+  eggs sold (`vacuumSold`) or `ArmyTipEggs` (60) eggs by hand; Rebirth 0 when the bar is full
+  (1,700 Coins). Priority when several are ready stays Rebirth, Attack, Vacuum.
+
+Owner decision from his Drop a Fruit first-join recording (Oct 23, 1:42 AM) and the session
+audit (`https://claude.ai/artifact/2GbK1xwfiSCsc9zF67G83a`).
+
+**Fresh profile.** No chickens, 0 Coins, one podium, Flock cap 3, Army Size 3. The first lever
+pull is the free starter roll (level-1 basic Chicken, 0 Coins). No Coins reserve exists any
+more; `StarterFlockMinimum` is 1 (never sell the last chicken). `tutorial.starterArmy=true`
+stays as the cohort marker; `introRebirth="pending"` is new.
+
+**Cards, "TUTORIAL • n/8"** (`TutorialGuide.Core = Roll, Recruit, Collect, Sell, Start, Expand, RollAgain, Recruit2`):
+1. Pull the lever for a chicken! (beam to the lever)
+2. Grab your chicken!
+3. Tap your eggs to collect them! (n/3): every ready egg wears a tap icon, the nearest lit
+   egg keeps the hand and the gold highlight
+4. Sell your eggs on the green pad!
+5. Open Upgrades! → Claim Start! (the centre hex is claimable once, free; `tutorial.startClaimed`)
+6. Expand your plot! (Flock Size I, 10 Coins since Oct 24; it now grows the yard one stage)
+7. Roll another chicken! (Oct 24–25)
+8. Buy the chicken! (Oct 25: the basic Chicken at 150; short of it, collect and sell first)
+→ "TUTORIAL COMPLETE! Your yard is up and running. Keep collecting!" Daily Rewards opens
+after it (Day 1 is half a minute of income with a 60-Coin floor).
+
+**Tips, "TIP • n/N"** (`TutorialGuide.Tips`, after the tutorial, one chain at a time, dim +
+ring on menu targets, each chain ends with "TIP • COMPLETE! … learned!"):
+- Vacuum, after 12 more eggs by hand since the tutorial (free since Oct 25):
+  Open Upgrades for an Egg Vacuum! → Open the Tools category! → Claim your Egg Vacuum! →
+  Equip your Egg Vacuum! → Walk near eggs to vacuum them up! (n/10) → Sell your eggs on
+  the green pad!
+- Attack, once the Army holds 3 chickens and no camp is won: Send your Army to attack
+  Cluck Camp! (beam; Cluck Camp is one basic Chicken, three of yours read "Should win").
+  The client sends TutorialSignal `CampTip` the first time it shows.
+- Rebirth, once the tutorial is done and Coins reach 1,700: Rebirth is ready! Open it to earn
+  x1.5 Coins forever! → Tap Rebirth! Coins & upgrades reset, but you keep x1.5 Coins forever!
+  → Pick a Gem Upgrade. They never reset!
+Priority when several are ready: Rebirth, then Attack, then Vacuum. The Attack tip's first
+order still plays the short march film (`MarchFilm`, SKIP): it now gates on "guided player,
+no Camp won yet" instead of the old lesson 8. The Rebirth 0 celebration belongs to the Rebirth
+screen (`RebirthIntro` is a quiet success in `AppController`).
+
+**Rebirth 0** (`Config.Rebirth.Intro`: cost 1,700 (350 until October 25), x1.5, 30 Gems; `RebirthService` intro quote
+`intro=true, title "Rebirth 0"`; request `RebirthIntro`): resets Coins, the tree and Feed
+levels like a Rebirth, keeps chickens, Index and Gems, grants 30 Gems and x1.5 egg Coins
+while the rank is 0 (Rebirth 1's x2 replaces it). Saves without `introRebirth` never see it.
+Ranks 1–50, their costs and finds are unchanged. See `REBIRTH_SCREEN.md`.
+
+**HUD.** Quiet during cards 1–4 (`Hud:SetTutorialQuiet`): no Shop, Rebirth, Free Gift or
+chicken offer, Upgrades badge, Gold Rush chip or boost readout until card 5. The Rebirth
+button shows a "%" tag toward 1,700 while Rebirth 0 is pending. The spawn faces the yard and
+`CommanderGuide:TurnToEgg` turns the camera to the lit egg once if it is off screen.
+
+**Economy that follows.** Basic Chicken offers 150 Coins and Brown Chicken 300 (other
+species unchanged); Egg Vacuum 150 on Oct 23 (free since Oct 25, see the top); Flock tiers I–VIII grow the yard one stage
+earlier (the T at Flock IV); the Coins-shortfall checkout waits for tutorial completion and
+2,000 Coins earned. Analytics: since October 24 the 15-step Onboarding funnel (schema 15,
+`docs/analytics/ONBOARDING_FUNNEL.md`) replaces the schema 11–14 tutorial funnel.
+Build labels `1.22.0-empty-start` (Oct 23), `1.23.0-seven-cards` (Oct 24) and
+`1.25.0-eight-cards` (Oct 25). Also Oct 25: while an affordable tutorial chicken waits on the
+podium, `RollStation` turns the lever prompt off and lets the chicken's prompt reach the lever,
+so a player standing there sees "Buy …", not "Pull lever".
+
 Implemented locally and synchronized into Pet Roll Test (place 96683186622050).
 Original art was uploaded for this implementation. No experience release was
 published, no Git commit/push was made, and no saved player profiles were reset.
@@ -922,3 +1033,36 @@ Record when the objective becomes obvious, the first interesting consequence,
 where they stall, and what they choose after capture. Compare these observations
 with first-session survival and mature D1 cohorts. Refine the timing/copy from
 that evidence rather than treating this first implementation as a proven optimum.
+
+## October 23, 2026: the first minute (session audit)
+
+The Oct 22–23 ledger lost 571 fresh players a day (13.5% of joins) between "has control"
+and "first egg tapped". A fresh-session replay on a 749×381 touch viewport showed the
+authored spawn facing the lane: every chicken and egg sat behind the camera while the
+card said "Tap your eggs". Two rules, both built:
+
+- **Spawn faces the yard.** `WorldService:SpawnFrame` keeps the authored `Anchors.Spawn`
+  position and turns it toward the plot's `ChickenYard` (the deck centre when missing).
+  The camera starts behind the character looking the same way. Respawns too.
+- **The lit egg is on screen.** `EggController:StepGuideHint` prefers the nearest egg the
+  camera can see; `CommanderGuide:TurnToEgg` turns the camera to the hinted egg once if it
+  is still off screen a second after the egg lesson shows (yaw only, 0.4 s tween, reduced
+  motion snaps; again after a respawn; never during a menu or a cutscene camera).
+- **Only the card during the tutorial (October 25, Stevin; supersedes the quiet lessons).**
+  `CommanderGuide` calls `Hud:SetTutorialStage(stage)` from the saved facts (not the card
+  on screen): `"bare"` until the first money (nothing but the guide card), `"coins"` once
+  the first sale lands (the Coins readout pops in, without the Friend Boost row),
+  `"upgrades"` from card 5 (the Upgrades button pops in a beat after the Coins), `nil`
+  once the tutorial is complete (everything returns). Every other HUD piece, including
+  ones other controllers mount into `app.hudLayer` later (Settings, Playtime, Gold Rush,
+  boosts, Rally, the tool hotbar, corner notices), waits in a hidden `TutorialHold`
+  frame, so no controller's own Visible toggles are fought; `hud.quiet` stays true for
+  the whole tutorial. Players who completed the tutorial before this visit never see it.
+- **E takes the tutorial chicken.** While the tutorial's affordable chicken waits on the
+  first podium, `RollStation` switches the lever prompt off, widens the chicken's prompt
+  to 12 studs, names it "Take <chicken>" when free, and sets `TutorialHold` on the
+  station; `BaseController:RollPromptChoice` then gives E to the chicken even at the
+  lever (schema 14 data: 12% left between the pull and the take, 25% of them re-pulled).
+
+`Config.Version` is `1.21.1-opening` so the ledger separates this build from
+`1.21.0-overhaul`: compare exits at tutorial step 04 and survival at one minute.

@@ -9,6 +9,8 @@ local CrateRoll=require(script.Parent.GalaxyCrateRollPresentation)
 local Theme=require(script.Parent.UITheme)
 local Controller={}
 Controller.__index=Controller
+-- Lifetime Coins earned before a Coins shortfall may open a pack's checkout (BuyCoins).
+local COINS_PROMPT_EARNED=2000
 
 function Controller.new(app,dependencies)
 	local deps=dependencies or {}
@@ -135,6 +137,12 @@ end
 function Controller:BuyCoins(needed,fallback)
 	if not self.alive or type(needed)~="number" or needed<=0 or self.pending or self.autoCrate
 		or self.cratePending or self.cratePresenting then return false end
+	-- October 23 empty start: not before the tutorial is complete and 2,000 Coins have
+	-- been earned in all (eggs and battles); until then the caller's plain message shows.
+	local state=self.app.state
+	local tutorial=state and state.tutorial
+	if type(tutorial)~="table" or tutorial.guideCompleted~=true then return false end
+	if (tonumber(state.passiveEarned) or 0)+(tonumber(state.battleEarned) or 0)<COINS_PROMPT_EARNED then return false end
 	local shop=self.app.state and self.app.state.shop
 	local amounts=shop and shop.cashPacks
 	if type(amounts)~="table" or shop.testAllowed==true then return false end

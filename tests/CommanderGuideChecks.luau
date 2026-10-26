@@ -1,6 +1,12 @@
 -- October 20 Commander guide and Next goals (S14; docs/team/COMMANDER_TUTORIAL.md).
 -- October 21: the short core (5 eggs, sell, Flock Size I, FREE roll) and the tips.
 -- Later October 21: eight lessons; the last sends the Army to a Camp and the win ends it.
+-- October 23 empty start: six lessons (roll, chicken, 3 eggs, sell, claim Start, Flock
+-- Size I), then the Egg Vacuum, Cluck Camp and Rebirth 0 tips ("TIP • n/N").
+-- October 24: a seventh lesson, pull the lever again; the egg hint stays until the vacuum;
+-- the Camp tip once a little settled in. October 25: eight lessons (card 8 recruits the
+-- second basic Chicken at 150, with the arrow to the pad when short); the free vacuum's
+-- tip after 12 more eggs by hand, ending with a sale; five pulls favour the Chicken.
 -- Snapshot routing plus a real-session opening route. Isolated sessions only: no
 -- DataStore, live world, Players or prompts. Run in Studio:
 -- require(game.ServerStorage.PetRollTests.CommanderGuideChecks).Run()
@@ -12,6 +18,8 @@ local Session=require(Server.PlayerSession)
 local Upgrades=require(Server.UpgradeService)
 local Tools=require(Server.ToolService)
 local Tutorial=require(Server.TutorialService)
+local Rolls=require(Server.RollService)
+local Config=require(Shared.Config)
 local Checks={}
 
 local function expect(current,id,text,why)
@@ -20,24 +28,35 @@ local function expect(current,id,text,why)
 	if text then assert(current.text==text,(why or id)..": text '"..tostring(current.text).."'") end
 end
 
--- The starter opening right after the intro: three Ducks, 2,400 Coins, nothing done.
+-- The empty opening right after joining (October 23): no chickens, 0 Coins, one roll
+-- podium, Start claimable, Flock Size I at 30 Coins, Rebirth 0 pending.
 local function opening()
-	return {saveStatus="ready",armyState="Home",coins=2400,capacity=3,selectedCount=3,flock={size=3},
-		tutorial={starterArmy=true,guideStarted=true,collectedEggCount=0},pets={{id="a"},{id="b"},{id="c"}},
-		starterCashReserve=1200,starterArmyReserve=1200,starterRecruitPrice=0,eggs={carriedValue=0},nextSlot={capacity=4,price=1200,tier=1},
-		tools={eggVacuum=false,chickenFeed=false,vacuum={count=0,capacity=10}},
-		upgradeTree={families={},nodes={Flock1={status="Available",price=300},ArmySize1={status="Available",price=1200},
-			EggVacuum={status="Available",price=0}}}}
+	return {saveStatus="ready",armyState="Home",coins=0,capacity=3,selectedCount=0,flock={size=3},
+		tutorial={starterArmy=true,guideStarted=true,collectedEggCount=0,startClaimed=false,rollCount=0},pets={},
+		starterCashReserve=0,starterArmyReserve=0,starterRecruitPrice=0,eggs={carriedValue=0},nextSlot={capacity=4,price=1200,tier=1},
+		tools={eggVacuum=false,chickenFeed=false,vacuum={count=0,capacity=25}},
+		introRebirth="pending",rebirth={intro=true,rank=0,cost=1700,eligible=false},gems=0,gemsEarned=0,
+		upgradeTree={families={},nodes={Start={status="Claim",claimable=true,price=0},Flock1={status="Available",price=10},
+			ArmySize1={status="Available",price=1200},EggVacuum={status="Available",price=0}}}}
 end
 
--- A player who finished the tutorial earlier (guide complete, nothing pending).
+-- A player who finished the eight lessons (two chickens, Flock Size I, two pulls, nothing pending).
 local function afterGuide()
 	local state=opening()
 	state.tutorial={starterArmy=true,guideStarted=true,guideCompleted=true,coreDone=true,bought=true,soldEggs=true,
-		rolled=true,collectedEggCount=3,vacuumEggCount=20,vacuumSold=true}
-	state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
-	state.tools={eggVacuum=true,chickenFeed=false,vacuum={count=0,capacity=40}}
+		rolled=true,rollCount=2,startClaimed=true,collectedEggCount=3}
+	state.pets={{id="a"},{id="b"}};state.selectedCount=2
+	state.flock={size=4};state.upgradeTree.families.Flock=1
+	state.upgradeTree.nodes.Start={status="Start"};state.upgradeTree.nodes.Flock1={status="Owned"}
+	state.upgradeTree.nodes.EggVacuum={status="Available",price=0} -- free since October 25
 	return state
+end
+
+-- A tip card's place and chain.
+local function tipIs(card,id,text,index,total,chain,why)
+	expect(card,id,text,why)
+	assert(card.tag=="TIP" and card.index==index and card.total==total and card.chain==chain,
+		(why or id)..": "..tostring(card.tag).." "..tostring(card.index).."/"..tostring(card.total).." "..tostring(card.chain))
 end
 
 function Checks.Run()
@@ -47,65 +66,104 @@ function Checks.Run()
 		table.insert(results,{name=name,passed=ok,detail=tostring(detail)})
 	end
 
-	test("The opening teaches clicking 3 eggs in the player's own input",function()
+	test("The opening rolls the first chicken, then teaches clicking 3 eggs in the player's own input",function()
 		local state=opening()
 		local first=Guide.Resolve(state)
-		expect(first,"Collect","Click your eggs to collect them! (0/3)")
-		assert(first.tag=="TUTORIAL" and first.index==1 and first.total==8,"Tag "..tostring(first.tag))
+		expect(first,"Roll","Pull the lever for a chicken!")
+		assert(first.tag=="TUTORIAL" and first.index==1 and first.total==8 and first.target=="RollStation","Tag "..tostring(first.tag).." "..tostring(first.index).."/"..tostring(first.total))
+		assert(not Guide.EggHint(state,Guide.Facts(state)),"No egg hint before a chicken")
+		state.tutorial.rolled,state.tutorial.rollCount,state.offer=true,1,{price=0}
+		local recruit=Guide.Resolve(state)
+		expect(recruit,"Recruit","Grab your chicken!")
+		assert(recruit.index==2,"Recruit is 2/8")
+		-- A roll that gave nothing to take (an old offer gone) asks for the lever again, without "free".
+		state.offer={price=600}
+		expect(Guide.Resolve(state),"Roll","Pull the lever again!")
+		state.tutorial.bought,state.offer=true,nil
+		state.pets={{id="a"}};state.selectedCount=1
+		local collect=Guide.Resolve(state)
+		expect(collect,"Collect","Click your eggs to collect them! (0/3)")
+		assert(collect.index==3 and collect.target=="Yard","Collect is 3/8")
+		assert(Guide.EggHint(state,Guide.Facts(state)),"Egg hint on with the first chicken")
 		expect(Guide.Resolve(state,"Touch"),"Collect","Tap your eggs to collect them! (0/3)")
 		expect(Guide.Resolve(state,"Gamepad"),"Collect","Press R2 to collect your eggs! (0/3)")
 		assert(Guide.EggGoal==3 and Guide.CollectedEggCount({collectedEggCount=37})==3,"Saved counts clamp to 3")
+		assert(Guide.EggsCollected({collectedEggCount=37})==37,"The tip count runs on past 3")
 		state.tutorial.collectedEggCount=3
 		expect(Guide.Resolve(state),"RecoverCollect","Collect eggs in your yard","Nothing to sell yet")
-		state.eggs.carriedValue=80
+		state.eggs.carriedValue=36
 		local sell=Guide.Resolve(state)
 		expect(sell,"Sell","Sell your eggs on the green pad!")
-		assert(sell.index==2,"Sell is 2/8")
-		return "Click, Tap and R2 wording; 37 clamps to 3"
+		assert(sell.index==4 and sell.target=="EggDeposit","Sell is 4/8")
+		assert(Guide.EggHint(state,Guide.Facts(state)),"Egg hint stays on through the sale")
+		return "Roll, chicken, Click/Tap/R2 wording; 37 clamps to 3"
 	end)
 
-	test("Eight lessons: eggs, sell, roll, chicken, vacuum claim, vacuum 20, sell, Camp; then complete",function()
+	test("Eight lessons: roll, chicken, 3 eggs, sell, claim Start, Flock Size I, roll again, recruit it; then complete",function()
 		local state=opening()
-		state.tutorial.collectedEggCount,state.tutorial.soldEggs=3,true
-		local roll=Guide.Resolve(state)
-		expect(roll,"Roll","Pull the lever for a chicken!")
-		assert(roll.index==3 and roll.total==8,"Roll is 3/8")
-		state.tutorial.rolled,state.offer=true,{price=0}
-		local recruit=Guide.Resolve(state)
-		expect(recruit,"Recruit","Grab your chicken!")
-		assert(recruit.index==4,"Recruit is 4/8")
-		state.tutorial.bought,state.offer=true,nil
-		state.pets={{id="a"},{id="b"},{id="c"},{id="d"}}
-		local vacuum=Guide.Resolve(state)
-		expect(vacuum,"Vacuum","Claim your Egg Vacuum!")
-		assert(vacuum.index==5 and vacuum.node=="EggVacuum" and vacuum.outside=="Open Upgrades for an Egg Vacuum!"
-			and vacuum.wrongTab=="Open the Tools category!","Vacuum lesson")
-		state.tools.eggVacuum=true
-		local use=Guide.Resolve(state)
-		expect(use,"VacuumUse","Walk near eggs to vacuum them up! (0/20)")
-		assert(use.target=="VacuumTool" and use.outside=="Equip your Egg Vacuum!" and use.index==6,"Equip words")
-		state.tools.vacuum={count=40,capacity=40}
-		local full=Guide.Resolve(state)
-		expect(full,"VacuumUse","Vacuum full! Sell your eggs on the green pad!")
-		assert(full.target=="EggDeposit","Full vacuum goes to the pad")
-		state.tools.vacuum={count=20,capacity=40}
-		state.tutorial.vacuumEggCount=20
-		local sell=Guide.Resolve(state)
-		expect(sell,"VacuumSell","Sell your vacuumed eggs on the green pad!")
-		assert(sell.target=="EggDeposit" and sell.index==7 and sell.total==8,"Sell is 7/8")
-		state.tutorial.vacuumSold=true
-		local conquer=Guide.Resolve(state)
-		expect(conquer,"Conquer","Go to Cluck Camp and send your Army to attack!")
-		assert(conquer.target=="Camp1" and conquer.index==8 and conquer.total==8,"Camp is 8/8")
-		assert(not Guide.Facts(state).Core,"Not done before the win")
-		state.outgoing,state.armyState="battle1","Traveling"
-		expect(Guide.Resolve(state),"Battle","Defeat the enemy and capture their Camp!")
-		state.outgoing,state.armyState,state.campsWon=nil,"Home",1
-		assert(Guide.Facts(state).Core,"Done after the win")
+		state.tutorial.rolled,state.tutorial.rollCount,state.tutorial.bought=true,1,true
+		state.pets={{id="a"}};state.selectedCount=1
+		state.tutorial.collectedEggCount,state.tutorial.soldEggs,state.coins=3,true,36
+		local start=Guide.Resolve(state)
+		expect(start,"Start","Claim Start!")
+		assert(start.index==5 and start.total==8 and start.target=="Upgrades" and start.node=="Start"
+			and start.outside=="Open Upgrades!" and start.wrongTab=="Open the Main category!","Start lesson")
+		state.tutorial.startClaimed=true
+		state.upgradeTree.nodes.Start={status="Start"}
+		-- Flock Size I costs 10: short of it, the card sends the player back to the eggs.
+		state.coins=4
+		expect(Guide.Resolve(state),"RecoverCollect","Collect eggs worth 6 more Coins","Short of Flock Size I")
+		state.eggs.carriedValue=8
+		expect(Guide.Resolve(state),"RecoverSell","Sell your eggs on the green pad!","A bag that covers it")
+		state.eggs.carriedValue,state.coins=0,12
+		local expand=Guide.Resolve(state)
+		expect(expand,"Expand","Expand your plot!")
+		assert(expand.index==6 and expand.total==8 and expand.target=="Upgrades" and expand.node=="Flock1"
+			and expand.outside=="Open Upgrades!" and expand.wrongTab=="Open the Main category!","Expand lesson")
+		assert(not Guide.Facts(state).Core,"Not done before Flock Size I")
+		-- The tree tier says it is bought (a snapshot without tiers reads Flock Size 4).
+		state.upgradeTree.families.Flock,state.upgradeTree.nodes.Flock1=1,{status="Owned"}
+		state.flock={size=4}
+		assert(Guide.Facts(state).Expand and not Guide.Facts(state).Core,"Not done before the second pull")
+		-- Lesson 7: the lever again; an unbought offer on the podium does not matter.
+		state.offer={price=150}
+		local again=Guide.Resolve(state)
+		expect(again,"RollAgain","Roll another chicken!")
+		assert(again.index==7 and again.total==8 and again.target=="RollStation","Roll again is 7/8")
+		state.tutorial.rollCount=2
+		assert(Guide.Facts(state).RollAgain and not Guide.Facts(state).Core,"Not done before the second chicken")
+		-- Lesson 8 (October 25): the second chicken (the basic Chicken at 150), with the arrow
+		-- to the eggs and the pad while short; the tutorial completes on the recruit.
+		state.offer={species="Duck",price=150};state.coins=12
+		local short=Guide.Resolve(state)
+		expect(short,"RecoverCollect","Collect eggs worth 138 more Coins","Short of the second chicken")
+		assert(short.index==8 and short.target=="Yard","The collect arrow is card 8")
+		state.eggs.carriedValue=140
+		local sell2=Guide.Resolve(state)
+		expect(sell2,"RecoverSell","Sell your eggs on the green pad!","A bag that covers it")
+		assert(sell2.target=="EggDeposit","The sell arrow points at the pad")
+		state.eggs.carriedValue,state.coins=0,150
+		local buy2=Guide.Resolve(state)
+		expect(buy2,"BuyChicken","Buy the chicken!")
+		assert(buy2.index==8 and buy2.total==8 and buy2.target=="RollStation","Buy is 8/8")
+		state.offer=nil
+		expect(Guide.Resolve(state),"RollMore","Roll another chicken!","No offer on the podium")
+		state.pets={{id="a"},{id="b"}};state.selectedCount=2
+		assert(Guide.Facts(state).Core and Guide.Facts(state).Recruit2,"Done with the second chicken")
 		expect(Guide.Resolve(state),"Complete",Guide.CompleteText)
+		assert(Guide.RollCount({rollCount=37})==Guide.RollCountLimit and Guide.RollCount({rolled=true})==1
+			and Guide.RollCount({guideCompleted=true})==Guide.RollCountLimit and Guide.RollCount({})==0,"Roll counts")
+		state.upgradeTree.families.Flock=nil
+		assert(Guide.Facts(state).Expand,"Flock Size 4 without tiers")
+		state.flock={size=3}
+		assert(not Guide.Facts(state).Expand,"Flock Size 3 without tiers")
 		local order=table.concat(Guide.Core,",")
-		assert(order=="Collect,Sell,Roll,Recruit,Vacuum,VacuumUse,VacuumSell,Win",order)
-		return "No Flock or Army Size lessons; the Camp win ends it"
+		assert(order=="Roll,Recruit,Collect,Sell,Start,Expand,RollAgain,Recruit2",order)
+		assert(Guide.Version=="empty-8-recruit" and Guide.CompleteText=="Your yard is up and running. Keep collecting!","Version and payoff")
+		local ladder,favor=Config.Economy.StarterLadder,Config.Economy.FavoredRolls
+		assert(#ladder==2 and ladder[1].species=="Duck" and ladder[1].price==0 and ladder[2].species=="Duck" and ladder[2].price==150,"Starter ladder")
+		assert(favor.rolls==5 and favor.chance==0.6 and favor.species=="Duck","Favoured pulls")
+		return "No vacuum or Camp lessons; the second chicken ends it"
 	end)
 
 	test("An army walking home shows Return, not the fight",function()
@@ -118,8 +176,9 @@ function Checks.Run()
 		return "Returning beats outgoing"
 	end)
 
-	test("After the tutorial there are no more instructions",function()
+	test("After the tutorial there are no instructions until a tip is ready",function()
 		local state=afterGuide()
+		state.tools.eggVacuum,state.tutorial.vacuumEggCount,state.tutorial.vacuumSold=true,10,true -- the vacuum learned
 		expect(Guide.Resolve(state),"Complete",Guide.CompleteText,"Only the completion card")
 		assert(Guide.NextGoal==nil,"Next goals were removed")
 		state.outgoing,state.armyState="battle2","Returning"
@@ -127,23 +186,130 @@ function Checks.Run()
 		local skipped=opening()
 		skipped.tutorial.guideSkipped=true
 		assert(Guide.Resolve(skipped)==nil,"A hidden guide shows nothing")
+		local legacy=afterGuide()
+		legacy.tutorial.guideStarted=nil
+		legacy.coins,legacy.rebirth=1700,{intro=true,eligible=true}
+		assert(Guide.Resolve(legacy)==nil,"An established player gets no tips either")
 		return "Complete card, then nothing"
 	end)
 
-	test("The Egg Vacuum is a 500-Coin Tools node that a session buys",function()
+	test("The egg hint stays after the tutorial until the vacuum, for empty-start profiles only",function()
+		local state=afterGuide()
+		assert(Guide.EggHint(state,Guide.Facts(state)),"On after the guide")
+		state.tools.eggVacuum=true
+		assert(not Guide.EggHint(state,Guide.Facts(state)),"Off once the vacuum is owned")
+		state.tools.eggVacuum=false;state.tutorial.vacuumUsed=true
+		assert(not Guide.EggHint(state,Guide.Facts(state)),"Off once the vacuum was used")
+		state.tutorial.vacuumUsed=nil;state.introRebirth=nil
+		assert(not Guide.EggHint(state,Guide.Facts(state)),"Older profiles get no badges after their guide")
+		local skipped=afterGuide();skipped.tutorial.guideSkipped=true
+		assert(not Guide.EggHint(skipped,Guide.Facts(skipped)),"A skipped guide shows none")
+		return "On until the vacuum; empty-start saves only"
+	end)
+
+	test("Tip: the free Egg Vacuum after 12 more eggs by hand since the tutorial, six cards, done once the eggs are sold",function()
+		local state=afterGuide()
+		-- The tutorial completed at 4 eggs by hand (TutorialService saves eggsAtComplete).
+		state.tutorial.eggsAtComplete,state.tutorial.collectedEggCount=4,15
+		expect(Guide.Resolve(state),"Complete",nil,"Eleven more eggs is one short")
+		state.tutorial.collectedEggCount=16
+		state.upgradeTree.nodes.EggVacuum={status="Locked",price=0}
+		expect(Guide.Resolve(state),"Complete",nil,"Not while the offer is locked")
+		state.upgradeTree.nodes.EggVacuum={status="Available",price=0}
+		local buy=Guide.Resolve(state)
+		tipIs(buy,"TipVacuum","Claim your Egg Vacuum!",3,6,"Vacuum")
+		assert(buy.target=="Upgrades" and buy.node=="EggVacuum" and buy.outside=="Open Upgrades for an Egg Vacuum!" and buy.outsideIndex==1
+			and buy.wrongTab=="Open the Tools category!" and buy.wrongTabIndex==2,"Buy card lines")
+		-- Without the server's offer in the snapshot the tip shows too (the vacuum is free); a
+		-- save finished before the counter existed counts from the lesson's 3 eggs.
+		local bare=afterGuide();bare.upgradeTree.nodes.EggVacuum=nil;bare.coins=0;bare.tutorial.collectedEggCount=15
+		tipIs(Guide.Resolve(bare),"TipVacuum","Claim your Egg Vacuum!",3,6,"Vacuum","No offer in the snapshot, 12 more eggs")
+		assert(Guide.VacuumTipEggs==12 and Tree.Price("EggVacuum",1,0)==0,"Free vacuum, 12 more eggs")
+		assert(Guide.EggsAtComplete({})==3 and Guide.EggsAtComplete({eggsAtComplete=4})==4,"Eggs at completion")
+		state.tools.eggVacuum=true
+		local use=Guide.Resolve(state)
+		tipIs(use,"TipVacuumUse","Walk near eggs to vacuum them up! (0/10)",5,6,"Vacuum")
+		assert(use.target=="VacuumTool" and use.outside=="Equip your Egg Vacuum!" and use.outsideIndex==4,"Equip words")
+		state.tools.vacuum={count=25,capacity=25}
+		local full=Guide.Resolve(state)
+		tipIs(full,"TipVacuumUse","Vacuum full! Sell your eggs on the green pad!",5,6,"Vacuum")
+		assert(full.target=="EggDeposit","Full vacuum goes to the pad")
+		state.tools.vacuum={count=5,capacity=25}
+		state.tutorial.vacuumEggCount=7
+		tipIs(Guide.Resolve(state),"TipVacuumUse","Walk near eggs to vacuum them up! (7/10)",5,6,"Vacuum")
+		expect(Guide.Resolve(state,nil,{TipVacuumUse=true}),"Complete",nil,"A dismissed card stays away")
+		-- October 25 (Stevin): the chain ends by selling the vacuumed eggs on the pad.
+		state.tutorial.vacuumEggCount=10
+		local sell=Guide.Resolve(state)
+		tipIs(sell,"TipVacuumSell","Sell your eggs on the green pad!",6,6,"Vacuum")
+		assert(sell.target=="EggDeposit","The last card points at the pad")
+		state.tutorial.vacuumSold=true
+		expect(Guide.Resolve(state),"Complete",nil,"Learned once the eggs are sold")
+		assert(Guide.VacuumTipGoal==10 and Guide.VacuumGoal==20,"Tip knobs; the saved goal stays 20 for the funnel")
+		return "Free vacuum after 12 more eggs: claim, equip, 10 vacuumed, sold"
+	end)
+
+	test("Tips: Rebirth 0 at 1,700 Coins, then its Gem card; the first Camp once settled with 3 chickens; Rebirth first",function()
+		local state=afterGuide()
+		state.pets={{id="a"},{id="b"},{id="c"}};state.selectedCount=3
+		-- Three chickens alone bring the vacuum tip; the Camp waits until a little settled in.
+		state.tools.eggVacuum,state.tutorial.vacuumEggCount,state.tutorial.vacuumSold=true,10,true
+		expect(Guide.Resolve(state),"Complete",nil,"Not settled yet: no Camp tip")
+		state.tutorial.vacuumEggCount=20
+		local attack=Guide.Resolve(state)
+		tipIs(attack,"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack")
+		assert(attack.target=="Camp1" and Guide.ArmyTipSize==3,"Camp card")
+		state.tutorial.vacuumEggCount=10;state.tutorial.collectedEggCount=60
+		tipIs(Guide.Resolve(state),"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack","60 eggs by hand settle it too")
+		assert(Guide.ArmyTipEggs==60,"Settled knob")
+		state.selectedCount=2
+		expect(Guide.Resolve(state),"Complete",nil,"Two chickens are not an Army yet")
+		state.selectedCount=3
+		state.outgoing,state.armyState="battle1","Marching"
+		expect(Guide.Resolve(state),"Complete",nil,"No tips while the Army is away")
+		state.outgoing,state.armyState=nil,"Home"
+		-- Rebirth 0 comes first once it is affordable and the quote allows it.
+		state.coins,state.rebirth=1700,{intro=true,rank=0,cost=1700,eligible=true}
+		local rebirth=Guide.Resolve(state)
+		tipIs(rebirth,"TipRebirth","Tap Rebirth! Coins & Upgrades reset, but you keep ×1.5 Coins forever!",2,3,"Rebirth")
+		assert(rebirth.target=="Rebirth" and rebirth.outside=="Rebirth is ready! Open it to earn ×1.5 Coins forever!" and rebirth.outsideIndex==1,"Rebirth card lines")
+		state.rebirth.eligible=false
+		tipIs(Guide.Resolve(state),"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack","An ineligible quote yields to the Camp")
+		state.coins=349;state.rebirth.eligible=true
+		tipIs(Guide.Resolve(state),"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack","349 Coins")
+		-- After Rebirth 0: the Gem card until a Gem is spent (or the client's timer).
+		state.introRebirth,state.coins,state.gems,state.gemsEarned="done",0,30,30
+		state.rebirth={rank=0,eligible=false}
+		local gems=Guide.Resolve(state)
+		tipIs(gems,"TipGems","Pick a Gem Upgrade. They never reset!",3,3,"Rebirth")
+		assert(gems.target=="Gems" and gems.seconds==Guide.GemTipSeconds and Guide.GemTipSeconds==20,"Gem card")
+		tipIs(Guide.Resolve(state,nil,{TipGems=true}),"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack","Timed out Gem card")
+		state.gems=20
+		tipIs(Guide.Resolve(state),"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack","Rebirth learned")
+		state.campsWon=1
+		expect(Guide.Resolve(state),"Complete",nil,"Camp captured")
+		-- A legacy save without Rebirth 0 never sees its tip.
+		state.introRebirth,state.coins,state.rebirth=nil,1700,{rank=0,nextRank=1,cost=50000,eligible=false}
+		expect(Guide.Resolve(state),"Complete",nil,"No Rebirth 0 for older saves")
+		return "Rebirth > Camp > Vacuum; each chain ends when learned"
+	end)
+
+	test("The Egg Vacuum is a free Tools node that a session claims, with 0 Coins",function()
 		local node=Tree.Nodes.EggVacuum
 		assert(node and node.kind=="upgrade" and node.family=="EggVacuum" and node.prerequisite=="ToolsBack","Node shape")
-		assert(Tree.Price("EggVacuum",1,0)==500 and Tree.Nodes.VacuumCapacity1.prerequisite=="EggVacuum","Price and chain")
+		assert(Tree.Price("EggVacuum",1,0)==0 and Tree.Nodes.VacuumCapacity1.prerequisite=="EggVacuum","Price and chain")
 		assert(Tree.DefaultEffects.eggVacuum==0 and Tree.Effects({EggVacuum=1},{}).eggVacuum==1,"Effect key")
 		local s=Session.new(-9401,"Vacuum buyer",1)
 		s.loaded=true
-		s.tutorial.bought,s.tutorial.guideCompleted=true,true
-		assert(not Tools.Owns(s,"EggVacuum"),"Owned before buying")
 		local service=Upgrades.new(nil,nil)
-		assert(service:Snapshot(s).nodes.EggVacuum.status=="Available","Quote")
-		local ok,message=service:BuyNode(s,"EggVacuum",500)
+		-- October 25 (Stevin): free, so it reads Available with 0 Coins, even mid-guide.
+		local quote=service:Snapshot(s).nodes.EggVacuum
+		assert(quote.price==0 and quote.status=="Available","Quote "..tostring(quote.status).." "..tostring(quote.price))
+		assert(not (service:BuyNode(s,"EggVacuum",150)),"A stale 150-Coin quote accepted")
+		assert(not Tools.Owns(s,"EggVacuum"),"Owned before buying")
+		local ok,message=service:BuyNode(s,"EggVacuum",0)
 		assert(ok,message)
-		assert(Tools.Owns(s,"EggVacuum") and s.coins==1900 and s.upgradeTree.EggVacuum==1,"Bought")
+		assert(Tools.Owns(s,"EggVacuum") and s.coins==0 and s.upgradeTree.EggVacuum==1,"Claimed")
 		assert(string.find(message,"Egg Vacuum"),message)
 		s.upgradeTree={}
 		s:RefreshEffects()
@@ -151,19 +317,21 @@ function Checks.Run()
 		return message
 	end)
 
-	test("The Egg Vacuum is FREE only while the guide runs",function()
-		local s=Session.new(-9405,"Free vacuum",1)
+	test("Start is claimed once for 0 Coins; the quote reads Claim, then Start",function()
+		local s=Session.new(-9405,"Start claim",1)
 		s.loaded=true
 		local service=Upgrades.new(nil,nil)
-		local quote=service:Snapshot(s).nodes.EggVacuum
-		assert(quote.status=="Available" and quote.price==0,"Guide quote "..tostring(quote.price))
-		assert(not (service:BuyNode(s,"EggVacuum",500)),"Old price accepted")
-		local ok,message=service:BuyNode(s,"EggVacuum",0)
-		assert(ok and s.coins==2400 and Tools.Owns(s,"EggVacuum"),message)
-		s.upgradeTree={};s:RefreshEffects()
-		s.tutorial.guideCompleted=true
-		assert(service:Snapshot(s).nodes.EggVacuum.price==500,"After the guide")
-		return "0 during, 500 after"
+		local quote=service:Snapshot(s).nodes.Start
+		assert(quote.status=="Claim" and quote.claimable==true and quote.price==0,"Claimable: "..tostring(quote.status))
+		assert(s.tutorial.startClaimed==false,"Fresh profile")
+		local ok,message=service:BuyNode(s,"Start",0)
+		assert(ok and message=="Start claimed!" and s.tutorial.startClaimed==true and s.coins==0,message)
+		assert(service:Snapshot(s).nodes.Start.status=="Start","Claimed quote")
+		ok,message=service:BuyNode(s,"Start",0)
+		assert(not ok and message=="Start is already claimed.",message)
+		local back=Session.new(-9405,"Start reload",1)
+		assert(back:LoadData(s:ToData()) and back.tutorial.startClaimed==true,"Saved")
+		return "Claim, then Start"
 	end)
 
 	test("The vacuum tip counter saves and clamps",function()
@@ -177,7 +345,11 @@ function Checks.Run()
 		ok=back:LoadData(junk)
 		assert(ok and back.tutorial.vacuumEggCount==Guide.VacuumGoal,"Clamp")
 		assert(Guide.VacuumEggCount({vacuumUsed=true})==Guide.VacuumGoal,"Older vacuum users pass")
-		return "2 saved, 99 clamps"
+		-- October 23: eggs by hand count on to 200 (the vacuum tip waits for 10 more).
+		junk.tutorial.collectedEggCount=999
+		ok=back:LoadData(junk)
+		assert(ok and Session.TutorialEggLimit==200 and back.tutorial.collectedEggCount==200,"Hand-egg clamp "..tostring(back.tutorial.collectedEggCount))
+		return "2 saved, 99 clamps; 999 eggs by hand clamp to 200"
 	end)
 
 	test("The vacuum's first egg ends the equip goal, saved for every player",function()
@@ -256,11 +428,12 @@ function Checks.Run()
 		return empty.." from an empty cell, "..boxed.." boxed in (? fallback), "..hidden.." hidden-hex cases"
 	end)
 
-	test("A real starter session walks the eight lessons and the guide completes",function()
+	test("A real empty-start session walks the eight lessons: recruiting the second Chicken ends it",function()
 		local s=Session.new(-9403,"Starter route",1)
 		-- DataService marks a loaded profile; the guide stays hidden while it is "loading".
 		s.loaded,s.saveStatus=true,"saved"
 		local service=Upgrades.new(nil,nil)
+		local rolls=Rolls.new()
 		local function route()
 			local state=s:Snapshot(0)
 			state.upgradeTree=service:Snapshot(s)
@@ -268,34 +441,77 @@ function Checks.Run()
 			state.tutorial.guideStarted=true
 			return Guide.Resolve(state),state
 		end
+		assert(s.coins==0 and s:Count()==0 and s.introRebirth=="pending","Empty start")
+		local first,opening=route()
+		expect(first,"Roll","Pull the lever for a chicken!")
+		assert(opening.rebirth.intro==true and opening.rebirth.cost==1700 and opening.rebirth.eligible==false,"Rebirth 0 quoted from the start")
+		-- The real lever: the free starter Chicken, then the second Chicken at 150.
+		assert(rolls:Roll(s,0))
+		assert(s.offer and s.offer.species=="Duck" and s.offer.price==0 and s.tutorial.rollCount==1,"Starter roll")
+		expect((route()),"Recruit","Grab your chicken!")
+		assert(rolls:Buy(s,s.offer.id,100))
+		assert(s:Count()==1 and s.tutorial.bought,"First chicken taken")
 		expect((route()),"Collect","Click your eggs to collect them! (0/3)")
 		s.tutorial.collectedEggCount,s.tutorial.soldEggs=3,true
-		expect((route()),"Roll","Pull the lever for a chicken!")
-		s.tutorial.rolled=true
-		s:AddPet("Duck",1)
-		s.tutorial.bought=true
-		local _,state=route()
-		assert(state.upgradeTree.nodes.EggVacuum.price==0,"The vacuum costs 0 during the guide")
-		expect((route()),"Vacuum","Claim your Egg Vacuum!")
-		local ok,message=service:BuyNode(s,"EggVacuum",0)
-		assert(ok,message)
-		s.tutorial.vacuumEggCount=20
-		expect((route()),"VacuumSell","Sell your vacuumed eggs on the green pad!")
-		s.tutorial.vacuumSold=true
-		local camp,before=route()
-		expect(camp,"Conquer","Go to Cluck Camp and send your Army to attack!")
+		local start,claim=route()
+		expect(start,"Start","Claim Start!")
+		assert(claim.upgradeTree.nodes.Start.status=="Claim" and claim.upgradeTree.nodes.EggVacuum.price==0,"Start claimable; the vacuum is free")
+		local ok,message=service:BuyNode(s,"Start",0)
+		assert(ok and s.tutorial.startClaimed and s.coins==0,message)
+		expect((route()),"RecoverCollect","Collect eggs worth 10 more Coins","Flock Size I costs 10")
+		s.coins=12
+		local expand,before=route()
+		expect(expand,"Expand","Expand your plot!")
+		assert(before.upgradeTree.nodes.Start.status=="Start" and before.upgradeTree.nodes.Flock1.price==10,"Flock Size I at 10")
 		local service2=Tutorial.new(function() end)
 		service2:Begin(nil,s)
 		service2:Observe(s,before)
-		assert(not s.tutorial.guideCompleted and not s.tutorial.coreDone,"Not complete before the Camp win")
-		-- TutorialService completes the guide with the first Camp win.
-		s.tutorial.wonCamp=true
+		assert(not s.tutorial.guideCompleted and not s.tutorial.coreDone,"Not complete before Flock Size I")
+		ok,message=service:BuyNode(s,"Flock1",10)
+		assert(ok and s.coins==2 and s:FlockSize()==4,message)
+		-- October 24: eggs lay every second until the guide completes (one Duck: 4 Coins an egg).
+		assert(s:LaySeconds(1)==1 and Config.TutorialEggLaySeconds==1,"Tutorial lay seconds "..tostring(s:LaySeconds(1)))
+		expect((route()),"RollAgain","Roll another chicken!")
+		assert(rolls:Roll(s,200))
+		assert(s.offer and s.offer.species=="Duck" and s.offer.price==150 and s.tutorial.rollCount==2,"Second pull: the basic Chicken at 150, got "..tostring(s.offer and s.offer.species).." "..tostring(s.offer and s.offer.price))
+		-- Short of the 150: the card sends the player to the eggs (the pad arrow once the bag covers it).
+		expect((route()),"RecoverCollect","Collect eggs worth 148 more Coins","Short of the second Chicken")
+		s.coins=150
+		local buy2,mid=route()
+		expect(buy2,"BuyChicken","Buy the chicken!")
+		service2:Observe(s,mid)
+		assert(not s.tutorial.guideCompleted,"Not complete before the recruit")
+		assert(rolls:Buy(s,s.offer.id,300))
+		assert(s:Count()==2 and s.coins==0,"Second chicken for 150")
 		local done,final=route()
 		expect(done,"Complete",Guide.CompleteText)
-		assert(Guide.Facts(final).Core and s.coins==2400,"Nothing was spent: "..s.coins)
+		assert(Guide.Facts(final).Core,"Core done")
 		service2:Observe(s,final)
-		assert(s.tutorial.guideCompleted and s.tutorial.coreDone,"Guide completed")
-		return "2,400 Coins kept; complete after the Camp win"
+		assert(s.tutorial.guideCompleted and s.tutorial.coreDone and s.tutorial.eggsAtComplete==3,"Guide completed at 3 eggs by hand")
+		assert(s:LaySeconds(1)==3,"Normal lay seconds after the guide: "..tostring(s:LaySeconds(1)))
+		assert(service:Snapshot(s).nodes.Start.status=="Start","Start reads plain once the guide is done")
+		-- The next five pulls favour the basic Chicken (60%) at its normal price; a fixed stream.
+		s.debugRandom=Random.new(7)
+		local chickens=0
+		for pull=1,5 do
+			assert(rolls:Roll(s,400+pull*100))
+			if s.offer.species=="Duck" then chickens+=1 end
+			assert(s.offer.price>0,"Normal price after the guide")
+		end
+		s.debugRandom=nil
+		assert(chickens>=2,"Favoured pulls landed "..chickens.." Chickens of 5")
+		local back=Session.new(-9403,"Starter reload",1)
+		assert(back:LoadData(s:ToData()) and back.tutorial.rollCount==7 and back.tutorial.eggsAtComplete==3,"rollCount and eggsAtComplete save")
+		-- The vacuum tip after 12 more eggs by hand; nothing before it.
+		s.tutorial.collectedEggCount=14
+		expect((route()),"Complete",Guide.CompleteText,"Eleven more eggs: no tip yet")
+		s.tutorial.collectedEggCount=15
+		expect((route()),"TipVacuum","Claim your Egg Vacuum!","12 more eggs: the vacuum tip")
+		s.coins=1700
+		local tipCard,ready=route()
+		assert(ready.rebirth.eligible==true,"Rebirth 0 eligible: "..tostring(ready.rebirth.reason))
+		expect(tipCard,"TipRebirth","Tap Rebirth! Coins & Upgrades reset, but you keep ×1.5 Coins forever!","Rebirth 0 tip at 1,700")
+		return "Two chickens for 0 + 150; complete on the recruit; favoured pulls; the vacuum and Rebirth 0 tips follow"
 	end)
 
 	local passed=0

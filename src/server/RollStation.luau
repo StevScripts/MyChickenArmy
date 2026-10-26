@@ -288,6 +288,11 @@ function RollStation:Sync(session)
 	-- October 20: only the hidden storage cap (Config.StorageLimit) stops a recruit.
 	self.storageFull = session:Count() >= session:CollectionLimit()
 	self.coins=session.coins
+	-- October 25: during the tutorial an affordable chicken on the podium hides the lever.
+	-- Both prompts use E and only the nearest shows, so a player still at the lever after
+	-- the reveal saw "Pull lever" instead of the chicken (25% of live stalls re-pulled).
+	local t=session.tutorial
+	self.tutorialHold=type(t)=="table" and t.guideCompleted~=true and t.guideSkipped~=true and t.coreDone~=true
  self.offerAdvice,self.offerImprovesArmy="",false
  local offer=if self.loaded then session.offers and session.offers[self.slot] else nil
  if offer then self.offerAdvice,self.offerImprovesArmy=session:OfferAdvice(offer.species,offer.level) end
@@ -333,9 +338,15 @@ end
 function RollStation:Step(now, force)
 	if not self.ownerId then return end
 	local rolling = self.offer ~= nil and now < self.revealAt
-	local canRoll, canBuy = self.loaded and now >= self.readyAt, self.loaded and self.offer ~= nil and not rolling
+	local hold = self.tutorialHold == true and self.offer ~= nil and (self.offer.price or 0) <= (self.coins or 0)
+	local canRoll, canBuy = self.loaded and now >= self.readyAt and not hold, self.loaded and self.offer ~= nil and not rolling
 	if self.rollPrompt and self.rollPrompt.Enabled~=canRoll then self.rollPrompt.Enabled=canRoll end
 	if self.buyPrompt.Enabled ~= canBuy then self.buyPrompt.Enabled = canBuy end
+	-- Held, the chicken's prompt reaches the lever so the player need not walk to find it;
+	-- BaseController reads TutorialHold to give E to the chicken, not the lever.
+	local buyReach = if hold then 12 else 6
+	if self.buyPrompt.MaxActivationDistance ~= buyReach then self.buyPrompt.MaxActivationDistance = buyReach end
+	if self.model:GetAttribute("TutorialHold") ~= (hold or nil) then self.model:SetAttribute("TutorialHold", hold or nil) end
 	if self.model:GetAttribute("Rolling") ~= rolling then self.model:SetAttribute("Rolling", rolling) end
 	local promptText = if canRoll then "Pull lever" else "Ready in " .. math.ceil(self.readyAt - now) .. "s"
 	if self.rollPrompt and self.rollPrompt.ActionText~=promptText then self.rollPrompt.ActionText=promptText end
@@ -369,7 +380,8 @@ function RollStation:Step(now, force)
 		-- (Stevin: no "FREE" wording).
 		self.priceLabel.Text = if price <= 0 then "" else commas(price)
 		local promptText = if self.storageFull then "Storage full · sell in My Army"
-			else "Buy " .. def.name .. (if price <= 0 then "" else " · " .. Currency.Text(price))
+			elseif price <= 0 then "Take " .. def.name
+			else "Buy " .. def.name .. " · " .. Currency.Text(price)
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
 		self.top.Color = tint
 

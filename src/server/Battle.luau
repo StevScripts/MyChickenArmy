@@ -9,6 +9,13 @@ local Giant=require(Shared.GiantChicken)
 local Battle={}
 Battle.__index=Battle
 
+-- Roam rhythms (Battle.StepRoam): the quiet Holding patrol, and the October 25
+-- conquering roam used during Capture (Config.Conquer), which also acts at every stop.
+local HOLD_ROAM={speed=Config.RoamSpeed,walk={3,9},pause={1.5,3.5},first={0.3,2},walkSeconds=8,actions=false}
+local CONQUER_ROAM={speed=Config.Conquer.Speed,walk=Config.Conquer.Walk,pause=Config.Conquer.Pause,
+	first=Config.Conquer.First,walkSeconds=Config.Conquer.WalkSeconds,actions=true}
+local CONQUER_RADIUS=Config.CaptureRadius-Config.Conquer.Margin
+
 local function distance(a,b)
 	local x,z=a.x-b.x,a.z-b.z
 	return math.sqrt(x*x+z*z)
@@ -130,6 +137,8 @@ function Battle:BeginCapture(now: number)
 		x,z=x*scale,z*scale
 		local at=((self.frame or CFrame.new(self.destination))*CFrame.new(x,0,z)).Position
 		unit.captureX,unit.captureZ=at.X,at.Z
+		-- A fresh conquering roam each time the capture (re)starts.
+		unit.holdWalking=false;unit.holdPauseUntil=nil
 	end
 end
 
@@ -176,7 +185,12 @@ function Battle:StepCapture(dt: number, now: number)
 	for _,unit in self.units do
 		if unit.side~="A" or unit.hp<=0 or unit.reinforcing or unit.retiring then continue end
 		local x,z=unit.captureX or self.destination.X,unit.captureZ or self.destination.Z
-		if self.actors then self.actors:Move(unit,x,z,Config.MoveSpeed)
+		if (unit.x-self.destination.X)^2+(unit.z-self.destination.Z)^2<=Config.CaptureRadius^2 then
+			-- October 25 (Stevin): inside the objective the chicken conquers (trots about,
+			-- pecks, hops, clucks) instead of standing on its slot. The roam stays inside
+			-- CaptureRadius - Margin, so it keeps counting and the meter fills as before.
+			self:StepRoam(unit,dt,now,x,z,CONQUER_RADIUS,CONQUER_ROAM)
+		elseif self.actors then self.actors:Move(unit,x,z,Config.MoveSpeed)
 		else
 			local dx,dz=x-unit.x,z-unit.z
 			local length=math.sqrt(dx*dx+dz*dz)
@@ -326,28 +340,47 @@ end
 
 -- Holding is a quiet patrol inside the objective, owned by the same battle loop.
 -- Fixed hold points remain arrival targets for recovering/new recruits only.
-function Battle:StepHolding(unit, dt: number, now: number)
+-- October 25 (Stevin: conquering chickens should "move around, do some conquering
+-- things"): the same roam runs during Capture, brisker (Config.Conquer) and with an
+-- action at every stop, so the army reads as taking the camp, not standing in it.
+-- What a conquering chicken does at a stop. Chosen on the server so every viewer sees
+-- the same thing (LiveBattleActors publishes it; the client plays the clip, dust and
+-- sound; CombatEffects.Conquer). Peck is twice as common; never the same twice running.
+Battle.ConquerActions={"Peck","Peck","Hop","Cluck"}
+function Battle:ConquerAction(unit, now: number, random)
+	local pool={}
+	for _,name in Battle.ConquerActions do if name~=unit.action then table.insert(pool,name) end end
+	unit.actionSerial=(unit.actionSerial or 0)+1
+	unit.action,unit.actionAt=pool[random:NextInteger(1,#pool)],now
+end
+
+-- Wander inside `radius` of the objective around `anchorX/anchorZ`, in `roam`'s
+-- rhythm: walk to a free spot, stop (an action when roam.actions), walk again.
+function Battle:StepRoam(unit, dt: number, now: number, anchorX: number, anchorZ: number, radius: number, roam)
 	self.holdRandom=self.holdRandom or Random.new()
 	local random=self.holdRandom
 	local frame=self.frame or CFrame.new(self.destination)
-	local radius=math.min(Config.CaptureRadius-2,if self.isKing then 18 else Config.CampHalfSize-3)
 	local position=frame:PointToObjectSpace(Vector3.new(unit.x,self.destination.Y,unit.z))
 	if Vector2.new(position.X,position.Z).Magnitude>radius+0.5 then
 		-- Finish entering the camp before wandering; never patrol the road outside it.
 		unit.holdWalking=false;unit.holdPauseUntil=nil
-		self:MoveUnit(unit,unit.holdX or self.destination.X,unit.holdZ or self.destination.Z,dt)
+		self:MoveUnit(unit,anchorX,anchorZ,dt)
 		return
 	end
-	unit.holdPauseUntil=unit.holdPauseUntil or now+random:NextNumber(0.3,2)
+	if not unit.holdPauseUntil then
+		unit.holdPauseUntil=now+random:NextNumber(roam.first[1],roam.first[2])
+		if roam.actions then self:ConquerAction(unit,now,random) end
+	end
 	if unit.holdWalking then
 		local dx,dz=unit.holdRoamX-unit.x,unit.holdRoamZ-unit.z
 		local length=math.sqrt(dx*dx+dz*dz)
 		if length<=1.4 or now>=unit.holdWalkUntil then
 			if self.actors then self.actors:Stop(unit) end
-			unit.holdWalking=false;unit.holdPauseUntil=now+random:NextNumber(1.5,3.5)
-		elseif self.actors then self.actors:Move(unit,unit.holdRoamX,unit.holdRoamZ,Config.RoamSpeed)
+			unit.holdWalking=false;unit.holdPauseUntil=now+random:NextNumber(roam.pause[1],roam.pause[2])
+			if roam.actions then self:ConquerAction(unit,now,random) end
+		elseif self.actors then self.actors:Move(unit,unit.holdRoamX,unit.holdRoamZ,roam.speed)
 		else
-			local step=math.min(length,Config.RoamSpeed*dt)
+			local step=math.min(length,roam.speed*dt)
 			unit.x+=dx/length*step;unit.z+=dz/length*step
 		end
 		return
@@ -359,7 +392,7 @@ function Battle:StepHolding(unit, dt: number, now: number)
 		local angle,r=random:NextNumber(0,math.pi*2),math.sqrt(random:NextNumber())*radius
 		local at=(frame*CFrame.new(math.cos(angle)*r,0,math.sin(angle)*r)).Position
 		local travel=Vector2.new(at.X-unit.x,at.Z-unit.z).Magnitude
-		if travel<3 or travel>9 then continue end
+		if travel<roam.walk[1] or travel>roam.walk[2] then continue end
 		local space=6
 		for _,other in self.units do
 			if other==unit or other.hp<=0 or other.reinforcing or other.retiring then continue end
@@ -371,8 +404,13 @@ function Battle:StepHolding(unit, dt: number, now: number)
 	end
 	if target then
 		unit.holdRoamX,unit.holdRoamZ=target.X,target.Z
-		unit.holdWalking=true;unit.holdWalkUntil=now+8
+		unit.holdWalking=true;unit.holdWalkUntil=now+roam.walkSeconds
 	else unit.holdPauseUntil=now+0.5 end
+end
+
+function Battle:StepHolding(unit, dt: number, now: number)
+	local radius=math.min(Config.CaptureRadius-2,if self.isKing then 18 else Config.CampHalfSize-3)
+	self:StepRoam(unit,dt,now,unit.holdX or self.destination.X,unit.holdZ or self.destination.Z,radius,HOLD_ROAM)
 end
 
 function Battle:StepSimulation(dt: number, now: number)
@@ -609,7 +647,7 @@ function Battle:Snapshot(now: number)
 		table.insert(units,{id=u.id,petId=u.petId,side=u.side,boss=u.boss,species=u.species,stars=u.stars,level=u.level,retiring=u.retiring==true,reinforcing=u.reinforcing==true,respawnRemaining=if u.respawnAt then math.max(0,u.respawnAt-now) else 0,x=u.x,z=u.z,
 			giantSize=u.giantSize,mutation=u.mutation,
 			hp=u.hp,maxHp=u.maxHp,attackSerial=u.attackSerial,impactSerial=u.impactSerial,damageSerial=u.damageSerial,impactX=u.impactX,impactZ=u.impactZ,
-			spawnSerial=u.spawnSerial,faceX=u.faceX,faceZ=u.faceZ})
+			spawnSerial=u.spawnSerial,faceX=u.faceX,faceZ=u.faceZ,actionSerial=u.actionSerial or 0,action=u.action})
 	end
 	local duration=if self.phase=="Travel" then Config.TravelSeconds elseif self.phase=="Capture" then self:CaptureDuration()
 		elseif self.phase=="Returning" then Config.ReturnSeconds else Config.FightTimeout

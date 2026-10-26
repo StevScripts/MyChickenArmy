@@ -162,3 +162,20 @@ or remote push are part of this change.
 October 9 user decisions: the first camp felt slow, so route camps now fill at 12/20/25
 seconds; and the conquest meter and owned label sit at `ConquestPresentation.Elevation=11`
 (was 18) so the bar stays in view while watching the chickens fight.
+
+## Conquering motion (October 25, Stevin)
+
+"When the chickens are conquering a camp I want them to move around, do some conquering
+things for the player to look at, so it looks like they're conquering and not just staying
+still." During the Capture phase every chicken inside the objective runs the Holding
+patrol's roam (`Battle.StepRoam`) in a brisker rhythm, `Config.Conquer`: trots of 2.5–7
+studs at speed 6, stops of 0.7–1.8 s, and one thing at every stop chosen by the server
+(`Battle.ConquerActions`: Peck, Peck, Hop, Cluck; never the same twice running) and
+published on the rig (`ActionSerial`, `Action`, `ActionStartedAt`; also in the snapshot).
+Clients play the authored Attack clip for a peck with a dust kick and a soft swing, the
+Victory clip for a hop with a puff and ChickenHappy, and one of Cluck1–3 for a cluck
+(`CombatEffects.Conquer`; cues ConquerPeck / ConquerHop / ConquerCluck replace those once
+authored). The roam stays inside `CaptureRadius - Margin` (2 studs), so every chicken keeps
+counting and the meter fills exactly as before (12/20/25 s); a chicken shoved out walks
+back to its slot and counts again. Holding keeps its quiet patrol without actions.
+Checks: `tests/ConquerRoamChecks.luau`.

@@ -25,6 +25,7 @@ local Feel=require(Shared.CollectionFeel)
 local Tools=require(Shared.VacuumConfig)
 local Motion=require(Shared.EggMotion)
 local EggView=require(script.Parent.EggView)
+local EggBackStack=require(script.Parent.EggBackStack)
 local VacuumController=require(script.Parent.VacuumController)
 local AutoVacuumController=require(script.Parent.AutoVacuumController)
 local Theme=require(script.Parent.UITheme)
@@ -53,6 +54,10 @@ local VACUUM_RING=Color3.fromRGB(150,214,255)
 local HINT_GOLD=Color3.fromRGB(255,214,64)
 local HINT_TAP=TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,-1,true)
 local HINT_RIPPLE=TweenInfo.new(0.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out,-1)
+-- October 23 empty start: the other ready eggs' Click badges (EggView) breathe together
+-- on one looping tween; TAP_PULSE is how much they shrink at its far end.
+local TAP_BEAT=TweenInfo.new(0.45,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true)
+local TAP_PULSE=0.18
 -- Back-out ease for the lay pop, computed in Step (VOXEL_EGGS.md: no per-egg tweens).
 local function backOut(t:number):number
  local c1,c3=1.70158,2.70158
@@ -63,7 +68,8 @@ end
 function Eggs.new(app)
  return setmetatable({app=app,views={},feedback={},finishedFlights={},streak=0,floatPending=0,
   optimistic={},queue={},touches={},lastFlush=0,connections={},
-  mousePoint=nil::Vector2?,hoverPop=Instance.new("NumberValue"),leavePop=Instance.new("NumberValue")},Eggs)
+  mousePoint=nil::Vector2?,hoverPop=Instance.new("NumberValue"),leavePop=Instance.new("NumberValue"),
+  tapPulse=Instance.new("NumberValue")},Eggs)
 end
 
 function Eggs:Root()
@@ -76,6 +82,8 @@ function Eggs:Start()
  self.vacuum=VacuumController.new(self.app)
  -- October 21 Auto Vacuum robot (docs/team/AUTO_VACUUM.md).
  self.rover=AutoVacuumController.new(self.app,self.folder)
+ -- October 24 (Stevin): the carried eggs ride on the player's back (EggBackStack).
+ self.backStack=EggBackStack.new(self.app,self.folder)
  self:CreateCollectionRange()
  -- One shared "Get closer" tag for an egg clicked outside Click Range.
  self.tooFar=Instance.new("BillboardGui")
@@ -283,6 +291,10 @@ function Eggs:Blocked(): boolean
  local app=self.app
  if not app.state or app.panel.Visible or app.dialogueActive==true then return true end
  if app.research and app.research.root and app.research.root.Visible then return true end
+ -- October 24: the Rebirth screen too (the egg hint now outlasts the tutorial, into the
+ -- Rebirth 0 tip), like the Upgrades tree above.
+ local rebirth=app.rebirthPanel
+ if rebirth and rebirth.gui~=nil and not rebirth.closing then return true end
  if app.commerce and app.commerce.cratePresenting then return true end
  if UserInputService:GetFocusedTextBox() then return true end
  local camera=workspace.CurrentCamera
@@ -374,11 +386,24 @@ function Eggs:GrabNearest(now: number)
  if best then self:Grab(best,now) end
 end
 
--- The CommanderGuide turns the egg hint on for its Collect lesson. `word` is the
--- player's own input ("CLICK!" or "TAP!"); one layout everywhere.
-function Eggs:SetGuideHint(on: boolean, word: string?)
+-- The CommanderGuide turns the egg hint on while TutorialGuide.EggHint says so (October
+-- 24: from the first chicken until the Egg Vacuum is owned, not only the Collect lesson).
+-- `word` is the player's own input for the big hand ("CLICK!" or "TAP!"); `input`
+-- ("Touch", "Gamepad", else mouse and keyboard) picks the Click badges' icon and word
+-- (EggView:SetTap). One layout everywhere.
+function Eggs:SetGuideHint(on: boolean, word: string?, input: string?)
  self.guideHint=on
+ -- October 23: kept for BuildGuideHint too, which runs later (on the first ready egg).
+ if word then self.hintWordText=word end
  if word and self.hintWord then self.hintWord.Text=word end
+ if input then self.tapInput=input end
+ -- The badges' shared beat runs only while the hint does.
+ if on and not self.tapTween then
+  self.tapPulse.Value=0
+  self.tapTween=TweenService:Create(self.tapPulse,TAP_BEAT,{Value=1});self.tapTween:Play()
+ elseif not on and self.tapTween then
+  self.tapTween:Cancel();self.tapTween=nil;self.tapPulse.Value=0
+ end
  if not on then self:HideGuideHint() end
 end
 
@@ -402,7 +427,7 @@ function Eggs:BuildGuideHint()
  hand.Name,hand.Image,hand.BackgroundTransparency=("Hand"),HOVER_CURSOR,1
  hand.AnchorPoint,hand.Size,hand.Position=Vector2.new(0.5,0.5),UDim2.fromOffset(72,72),UDim2.fromScale(0.5,0.62)
  hand.Parent=gui
- local word=Theme.Label(gui,"Word","CLICK!",22,Color3.new(1,1,1))
+ local word=Theme.Label(gui,"Word",self.hintWordText or "CLICK!",22,Color3.new(1,1,1))
  word.AnchorPoint,word.Position,word.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0.82),UDim2.fromScale(1,0.18)
  word.TextXAlignment,word.TextScaled,word.TextWrapped=Enum.TextXAlignment.Center,true,false
  self.hintHighlight,self.hintGui,self.hintHand,self.hintRipple,self.hintRing,self.hintWord=highlight,gui,hand,ripple,ring,word
@@ -417,6 +442,16 @@ function Eggs:HideGuideHint()
  self.hintTweens=nil
 end
 
+-- The guide's hinted egg: whether it is on screen now (nil when there is none) and where it is.
+function Eggs:GuideTarget(): (boolean?, Vector3?)
+ local view=self.guideView
+ if not (view and self.hintGui and self.hintGui.Enabled) then return nil,nil end
+ local camera=workspace.CurrentCamera
+ if not camera then return nil,view.ground end
+ local point,onScreen=camera:WorldToViewportPoint(view.ground)
+ return (onScreen and point.Z>0) and true or false,view.ground
+end
+
 -- Keeps one target until it is clicked, then moves to the next nearest settled egg.
 function Eggs:StepGuideHint(root,now: number)
  if not self.guideHint then return end
@@ -424,13 +459,21 @@ function Eggs:StepGuideHint(root,now: number)
  local view=self.guideView
  if not (view and self.views[view.data.id]==view and self:Ready(view,now)) then
   view=nil
-  local best=math.huge
+  -- October 23 (first-minute fix): prefer the nearest egg the player can see right now;
+  -- the nearest egg of all only when none is on screen (the spawn used to face away).
+  local camera=workspace.CurrentCamera
+  local best,bestSeen,seen=math.huge,math.huge,nil
   for _,candidate in self.views do
    if self:Ready(candidate,now) then
     local distance=(candidate.ground-root.Position).Magnitude
     if distance<best then view,best=candidate,distance end
+    if camera and distance<bestSeen then
+     local point,onScreen=camera:WorldToViewportPoint(candidate.ground)
+     if onScreen and point.Z>0 then seen,bestSeen=candidate,distance end
+    end
    end
   end
+  if seen then view=seen end
  end
  if not view then self:HideGuideHint();return end
  if not self.hintGui then self:BuildGuideHint() end
@@ -506,7 +549,12 @@ function Eggs:Receive(snapshot)
  for _,deposit in snapshot.deposits or (if snapshot.deposit then {snapshot.deposit} else {}) do
   if not (self.seenDeposits and self.seenDeposits[deposit.id]) then
    self.app.feedback:Deposit(deposit)
-   if deposit.collector=="rover" then self.rover:Deposit(deposit,now) end
+   if deposit.collector=="rover" then self.rover:Deposit(deposit,now)
+   elseif self.backStack then
+    -- The pad sold the bag: the column on the back pours into it.
+    local origin=if deposit.targetX then Vector3.new(deposit.targetX,deposit.targetY,deposit.targetZ) else nil
+    self.backStack:Dump(origin,now)
+   end
   end
   seenDeposits[deposit.id]=true
  end
@@ -575,6 +623,8 @@ function Eggs:StepCaptions(root,camera,now)
  local nearest={}
  for _,view in self.views do
   view.caption.Enabled=false
+  -- October 23: an egg wearing the lesson's tap icon shows the hand, not its value.
+  if view.tapOn then continue end
   if not root or not camera or view.flightAt or now-view.bornAt<Config.EggSettleSeconds then continue end
   local distance=(root.Position-view.ground).Magnitude
   if distance>CAPTION_DISTANCE then continue end
@@ -622,8 +672,15 @@ function Eggs:Step(now)
  local fullReach=if held and type(held.range)=="number" and (held.capacity or 0)>0 and (held.count or 0)>=held.capacity then held.range else nil
  local sucking=false
  local blocked=0
+ -- October 23 empty start: while the egg hint is on every other ready egg wears its Click
+ -- badge, all on the shared beat (reduced motion: still); the hinted egg keeps the gold
+ -- light and the big tapping hand (StepGuideHint), so nothing overlaps.
+ local tapping=self.guideHint==true and not self:Blocked()
+ local tapScale=1-TAP_PULSE*(if self.app.reducedMotion then 0 else self.tapPulse.Value)
+ local tapInput=self.tapInput
  for id,view in self.views do
   local age=now-view.bornAt
+  view:SetTap(tapping and view~=self.guideView and self:Ready(view,now),tapScale,tapInput)
   if vacuumReach and not sucking then
    if view.flightAt then sucking=view.data.collector=="vacuum"
    elseif root and age>=Config.EggSettleSeconds then
@@ -646,7 +703,7 @@ function Eggs:Step(now)
      or (if view.data.targetX then Vector3.new(view.data.targetX,view.data.targetY,view.data.targetZ) else nil)
      or (if root then root.Position else view.ground))
     elseif rover then (self.rover:NozzlePosition(view.data) or view.ground)
-    elseif root then root.Position+Vector3.new(0,-0.25,0) else view.ground
+    elseif root then ((self.backStack and self.backStack:LandingPoint()) or root.Position+Vector3.new(0,-0.25,0)) else view.ground
    local dt=math.clamp(now-(view.lastStep or now),0,0.1);view.lastStep=now
    local interrupted=not vacuum and not rover and not root or view.goal and (goal-view.goal).Magnitude>Feel.Egg.TeleportDistance
    view.goal=if not view.goal then goal else view.goal:Lerp(goal,1-math.exp(-Feel.Egg.TargetResponse*dt))
@@ -661,6 +718,7 @@ function Eggs:Step(now)
     -- The egg reached you or the nozzle: its chime and "+N" (not when a teleport cut it short).
     if rover then self.rover:PickupCue(now)
     elseif not interrupted then self:Arrive(if view.receipt then view.receipt.value else view.data.value,now,view.data.collector) end
+    if not vacuum and not rover and self.backStack then self.backStack:NoteArrival(view.data.species) end
     if view.receipt then self:Feedback(id,view.receipt.value,view.receipt)
     elseif view.picked then
      -- A clicked egg counts in as it lands; the server's receipt later is the same egg.
@@ -682,6 +740,17 @@ function Eggs:Step(now)
  end
  self.vacuum:SetActive(sucking)
  self.rover:Step(now)
+ -- The back stack shows the bag minus the clicked eggs still flying in, so each egg
+ -- joins the column as it lands.
+ if self.backStack then
+  local flying=0
+  for _,view in self.views do
+   if view.flightAt and view.data.collector~="vacuum" and view.data.collector~="rover" then flying+=1 end
+  end
+  local bag=if self.snapshot and type(self.snapshot.bagCount)=="number" then self.snapshot.bagCount else 0
+  self.backStack:Update(math.max(0,bag-flying))
+  self.backStack:Step(now)
+ end
  -- A full vacuum refuses the eggs it can reach: a new one coming into reach shakes the
  -- pill (ToolController throttles it and skips the moment it filled).
  local tools=self.app.tools
@@ -699,9 +768,11 @@ function Eggs:Destroy()
  for _,connection in self.connections do connection:Disconnect() end
  table.clear(self.connections)
  ContextActionService:UnbindAction("PetRollCollectEggs")
+ if self.backStack then self.backStack:Destroy() end
  if self.hoverTween then self.hoverTween:Cancel() end
  if self.leaveTween then self.leaveTween:Cancel() end
- self.hoverPop:Destroy();self.leavePop:Destroy()
+ if self.tapTween then self.tapTween:Cancel() end
+ self.hoverPop:Destroy();self.leavePop:Destroy();self.tapPulse:Destroy()
  if self.hoverView then UserInputService.MouseIcon="" end
  for _,view in self.views do view:Destroy() end
  table.clear(self.views)

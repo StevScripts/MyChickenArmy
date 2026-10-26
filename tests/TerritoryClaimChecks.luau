@@ -8,6 +8,8 @@ local Checks={}
 
 local function setup()
  local s=Session.new(-929,"Territory fixture",1);s.loaded=true
+ -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+ for _=1,3 do s:AddPet("Duck",1).investment=0 end
  local world={owners={},busy={},spawns={}}
  function world:Position() return Vector3.new(10000,1,-100) end
  function world:CampPosition(i) return Vector3.new(10000,1,i*80) end

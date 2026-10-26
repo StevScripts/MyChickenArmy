@@ -10,6 +10,17 @@ return {
 		TeleportDistance = 24, -- Resolve presentation when a target teleports.
 		HudPulse = 1.055, -- The HUD's "Carrying" line pulses as a clicked egg lands.
 	},
+	-- October 24 (Stevin): the eggs you carry stack on your back like arcade-idle games'
+	-- carried goods, in rows of RowSize side by side, up to Rows rows. October 25: rigid
+	-- with the player (the Follow lag and Sway lean are gone).
+	BackStack = {
+		RowSize = 3, Rows = 6, -- 18 eggs on the back at most; the bag keeps counting.
+		Scale = 0.5, -- Of the yard egg's size.
+		Gap = 0.06, -- Studs between eggs, across and up.
+		Lift = 0.3, Behind = 1.05, -- The bottom egg's spot from the upper back's centre (studs up, back): clear of the head and hats.
+		PopSeconds = 0.22, -- A landed egg pops in (Back ease).
+		DumpStagger = 0.03, DumpSeconds = 0.32, -- A sale pours the column into the pad, top egg first.
+	},
 	Deposit = {
 		GroupWindow = 0.08, GroupGap = 0.38,
 		Count = 3, -- Particles per emitter in ReplicatedStorage.EggDepositEffects.

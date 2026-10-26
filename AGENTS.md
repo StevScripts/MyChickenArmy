@@ -3,18 +3,12 @@
 This repository is the code source of truth starting with the September 24, 2026 Rojo migration. Read README.md and docs/CODE_MAP.md first. The legacy pet-roll-prototype tree under Documents/ChatGPT/RobloxGameIdeas is historical; do not copy its scripts over these files without comparing changes.
 
 ## Upgrade rule — never gate upgrades behind camps
-October 4 starter-army opening supersedes the October 3 empty yard for fresh
-profiles: start with three free level-1 `Duck` chickens, $2,400, three deployment
-slots and no offer. The first free roll guarantees a level-1 fourth chicken for
-$600. Reserve that recruit cost plus $1,200 for Army Size 4; each required
-purchase may spend its own reserve in either order. Teach egg collection and
-selling once, then expand/select four and deploy to Cluck Camp. Protect three
-owned chickens before recruiting and four afterward until the guide completes.
-Other upgrades use cash above the remaining reserve without camp/rank or
-guide-step prerequisites. Skipping/rejoining does not release the reserve.
-Existing profiles retain their flock, balance and saved tutorial cohort; legacy
-`emptyStart` saves keep their earlier supported opening without bonus grants.
-Contract: `docs/team/COMMANDER_TUTORIAL.md`.
+October 23 empty start (Stevin, from his Drop a Fruit first-join recording) supersedes the
+October 4 starter army: a fresh profile has NO chickens and 0 Coins; the first lever pull
+is free and lands a level-1 basic Chicken. No Coins reserve of any kind (the 1,200 Army
+Size reserve is gone); the only protection is that a player never sells their last
+chicken. Existing profiles keep their flock, balance and tutorial cohort. The Oct 4 rules
+below this line are history. Contract: `docs/team/COMMANDER_TUTORIAL.md`.
 
 All available cash upgrades are purchasable from the start when the player can afford them. Egg Speed, Egg Value, Plot Size, Army Size, Luck, Roll Slots and Selling Speed must not require visiting/conquering another camp, earning a rank, or reaching the King. This explicit September 25 user correction supersedes historical rank/camp gates in code, docs, tests and handoffs; never reintroduce them during UI work or balancing. Preserve configured track maxima, prices, server validation and physical plot/podium limits unless separately changed. Camp-route/King access and merge progression remain separate. Read `docs/UPGRADE_RULES.md` for the authoritative rule.
 
@@ -95,17 +89,34 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
 - **Saves:** tier-meaning changes go through `TreeMigrations` (`upgradeTreeVersion`).
   Never bump `DataRevision`: older live servers reject newer revisions. Every publish
   uses "Migrate To Latest Update" (restart servers).
-- **Tutorial (Oct 21, Stevin: Drop a Fruit style, "as SHORT as possible"):** eight
-  lessons "TUTORIAL • n/8", only the essentials: click 3 eggs, sell, pull the lever,
-  take the chicken (0 Coins), claim the Egg Vacuum (0 Coins), vacuum 20 eggs, sell them,
-  then (later Oct 21, from his reference recording) go to Cluck Camp and send the Army:
-  a short letterboxed march film (`MarchFilm`, SKIP) plays and the first camp win
-  completes the guide. Flock Size I and Army Size I are not lessons
-  and nothing instructs the player after the tutorial: no Next goals, no NEXT marker,
-  no automatic Mission hints (only a Mission picked with GUIDE). No "FREE" wording anywhere. Menu lessons
-  darken the screen around their control with a gold ring, and the egg lesson lights
-  one egg with a tapping hand. This overrides the Oct 6 no-dimming/no-highlight rule
-  for the guide; don't remove them. Contract: `docs/team/COMMANDER_TUTORIAL.md`.
+- **Tutorial (Oct 23–25, Stevin, from his Drop a Fruit first-join recording; supersedes
+  the Oct 21 eight lessons):** eight cards "TUTORIAL • n/8": pull the lever, grab the
+  chicken, tap 3 eggs, sell them, claim Start in Upgrades (the tree shows ONLY the Start
+  hex, red "!" and green "Claim", never "FREE", until it is claimed), expand the plot
+  (Flock Size I, 10 Coins, grows the yard one stage; the map does not pan to its hex),
+  "Roll another chicken!", buy it. The second pull keeps the basic Chicken on the podium
+  at 150 (`Config.Economy.StarterLadder`); short of a price, the card arrows to the eggs
+  and the pad first; the tutorial completes on that recruit, not the pull. The next five
+  pulls favour the basic Chicken at 60% (`Config.Economy.FavoredRolls`). Eggs lay every
+  second until the tutorial completes (`Config.TutorialEggLaySeconds`; Coins/sec unchanged).
+  Every ready egg wears a mouse "Click" badge (hand "Tap" on touch) from the egg lesson
+  until the Egg Vacuum is owned. The tutorial ends with the second chicken; no camp, no
+  vacuum, no film. Then tip chains "TIP • n/N" (dim + ring, chain payoff "TIP • COMPLETE!"):
+  the Egg Vacuum (free, always; "Claim" in the tree) after 12 more eggs by hand, ending
+  with "Sell your eggs on the green pad!"; attack Cluck Camp once the Army
+  holds 3 chickens and the player is a little settled in (a load of vacuumed eggs sold, or
+  60 eggs by hand; Cluck Camp is one basic Chicken, so three read "Should win"); **Rebirth 0**
+  (1,700 Coins since Oct 25, was 350; no find, +30 Gems, x1.5 eggs while rank 0, keeps chickens) once the
+  tutorial is done and Coins reach 1,700. No "FREE" wording. Menu
+  cards darken the screen around their control with a gold ring; the egg card lights one
+  egg with a tapping hand and puts a tap icon on every ready egg. The spawn faces the
+  yard and the camera turns to the lit egg once if it is off screen. Oct 25 (Stevin): during
+  the tutorial the screen shows only the guide card; the Coins readout comes in with the
+  first money, the Upgrades button with card 5, everything else once the tutorial is over
+  (`Hud:SetTutorialStage`). A Coins shortfall never opens Roblox's checkout before the tutorial
+  is complete and 2,000 Coins were earned. Rebirth 0 is a one-time intro tier saved as
+  `introRebirth` (nil = old save, never offered); ranks 1–50 are unchanged.
+  Contract: `docs/team/COMMANDER_TUTORIAL.md`.
 - **Stevin:** "dont ask me for permission no more just do it". Agents decide and build
   without a confirm step, but still never publish or push unless asked.
 
@@ -326,7 +337,7 @@ place after rebuilding templates. See `docs/team/VOXEL_EGGS.md`.
 UI references, games studied, idea notes and the dev journal live in the Obsidian vault `~/Documents/ObsidianVaults/Roblox-Journal/` (read its `AGENTS.md`). Before UI work, check `UI References/` for the matching `screen:`. Vault notes are inspiration only; this repo's rules win.
 
 ## Analytics (October 9) — observation only
-Funnels, economy, retention and health go to Roblox AnalyticsService (live only) and an agent ledger in DataStores (`PetRollAnalytics_v1`, Studio uses `_Studio`). Names live in `src/server/AnalyticsSchema.luau`; append only, never rename/reorder, bump `Schema.Version`. For any stats question read `docs/analytics/AGENT_GUIDE.md` and run `AnalyticsReport` from Studio Edit. Analytics must never change gameplay.
+Funnels, economy, retention and health go to Roblox AnalyticsService (live only) and an agent ledger in DataStores (`PetRollAnalytics_v1`, Studio uses `_Studio`). Names live in `src/server/AnalyticsSchema.luau`; append only, never rename/reorder, bump `Schema.Version`. For any stats question read `docs/analytics/AGENT_GUIDE.md` and run `AnalyticsReport` from Studio Edit. Where new players leave: the 15-step Onboarding funnel (schema 15, October 24; ledger `ob.*`, `Report.OnboardingText`), `docs/analytics/ONBOARDING_FUNNEL.md`; the schema 11–14 Tutorial funnel (`tf.*`) is history and is not recorded. Analytics must never change gameplay.
 
 ## Save compatibility: never invalidate earned progress (October 9)
 Changing catalogs (research prerequisites, removed nodes or species) must never make an existing save fail to load; enforce new rules when the player acts, not in `LoadData`/`*.Read`. A rejected load kicks the player ("This save needs recovery"). See `docs/team/RESEARCH.md`.

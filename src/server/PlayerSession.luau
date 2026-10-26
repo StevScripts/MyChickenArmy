@@ -27,11 +27,16 @@ local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 -- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
 PlayerSession.CarryLimit = 1e12
+-- October 23 empty start: tutorial.collectedEggCount counts on past the 3-egg lesson
+-- (TutorialGuide.EggGoal) up to this bound, so the Egg Vacuum tip can wait for more
+-- eggs. EggService counts to it; LoadData clamps to it.
+PlayerSession.TutorialEggLimit = 200
+-- October 24: tutorial.rollCount (lever pulls) saves up to TutorialGuide.RollCountLimit.
 -- Saved tutorial flags. To persist a new one, add it here (one word) and list it in
 -- your hand-off (docs/team/OVERHAUL_CONTRACT_20261020.md §2).
 local TUTORIAL_KEYS = {"emptyStart","starterArmy","rolled","bought","collected","collectedEggs","soldEggs","wonCamp",
 	"returned","upgraded","guideStarted","guideSkipped","guideDeployed","guideCompleted","introSeen","goalsHidden","hillIntroSeen",
-	"vacuumUsed","coreDone","vacuumSold"}
+	"vacuumUsed","coreDone","vacuumSold","startClaimed"}
 
 function PlayerSession.new(userId: number, name: string, plotIndex: number)
 	local self = setmetatable({}, PlayerSession)
@@ -102,12 +107,17 @@ function PlayerSession:Reset()
  -- Launch fields (docs/team/launch): Re-enlist rank and the 7-day login streak.
  -- dailyGranted is live only: the reward granted this session, for the popup.
  self.rebirths=0
+ -- October 23 Rebirth 0 (Config.Rebirth.Intro): "pending" for new profiles, "done" once
+ -- taken (x1.5 egg income while the rank is 0). nil = a save from before it: never offered.
+ self.introRebirth="pending" :: string?
  self.daily={streak=0,lastDay=0,best=0}
  self.dailyGranted=nil
  -- October 14 Giants: fusions in a row without a Giant (guarantee at Giant.PityLimit).
  self.giantPity=0
  self.dataRevision,self.legacyCapacityGrant=Config.DataRevision,0
- self.tutorial={starterArmy=true,collectedEggCount=0}
+ -- starterArmy marks the guide cohort (free starter roll, HUD gating); since the
+ -- October 23 empty start it begins with no chickens. startClaimed: the Start hex.
+ self.tutorial={starterArmy=true,collectedEggCount=0,startClaimed=false,rollCount=0}
  self.fusionUnlocked=false
  self.saveStatus=self.saveStatus or "loading"
  self.saveMessage=self.saveMessage or "Loading your flock…"
@@ -122,6 +132,8 @@ function PlayerSession:Reset()
 	self.adminAssisted = false
 	-- October 16 free gift (FreeGiftService): one chicken for joining the group. Saved.
 	self.freeGiftClaimed = false
+	-- October 23: whole seconds played in earlier visits (PlaySeconds adds this visit). Saved.
+	self.playSeconds = 0
 	-- October 16 chicken offers (ProductService): how many ladder steps are bought (0-6). Saved.
 	self.chickenOfferStep = 0
 	self.discovered = {}
@@ -136,7 +148,8 @@ function PlayerSession:Reset()
 	self.passiveEarned, self.battleEarned, self.returnAt = 0, 0, 0
 	self.sessionIncome={eggs=0,battle=0,territory=0}
 	self.debugNext, self.debugRandom = nil, nil
-	self.lastResult, self.banner = "Your first three chickens are ready. Pull the lever to recruit your fourth!", ""
+	self.lastResult, self.banner = "Pull the lever to roll your first chicken!", ""
+	-- Empty since the October 23 empty start (was three Ducks); kept for the setting.
 	for slot, species in Config.StarterFlock do
 		local pet = self:AddPet(species, 1)
 		pet.investment = 0 -- Free birds have no cash purchase to refund.
@@ -252,10 +265,17 @@ function PlayerSession:AdvanceGuaranteedLuck(): string?
  return if guarantee.rollsRemaining==1 then guarantee.nextSpecies else nil
 end
 
+-- October 23 Rebirth 0: x Config.Rebirth.Intro.Multiplier egg income once it is taken,
+-- while the rank is 0; 1 otherwise. Applied with the Rebirth multiplier.
+function PlayerSession:IntroMultiplier(): number
+ return RebirthService.IntroMultiplier(self)
+end
+
 function PlayerSession:EarnedAmount(amount: number, source: string, steady: boolean?): number
  local earned=source=="eggs" or source=="battle" or source=="territory"
- -- Re-enlist pays a permanent egg multiplier (1 at rank 0); offline cash routes here too.
- local rebirth=if source=="eggs" then RebirthService.Multiplier(self.rebirths or 0) else 1
+ -- Re-enlist pays a permanent egg multiplier (1 at rank 0, 1.5 after Rebirth 0);
+ -- offline cash routes here too.
+ local rebirth=if source=="eggs" then RebirthService.Multiplier(self.rebirths or 0)*self:IntroMultiplier() else 1
  -- October 20 Gem Upgrade Coin Boost: egg Coins only, offline included (S7).
  local coinBoost=if source=="eggs" then 1+(self.researchEffects.coinBoost or 0) else 1
  -- October 20 live boosts on earned Coins, counted when Coins are paid: Gold Rush
@@ -278,47 +298,51 @@ function PlayerSession:StarterRecruitPending(): boolean
 		or (self.tutorial.emptyStart==true and self:Count()==0))
 end
 
+-- October 23 empty start: nothing is held back any more (was the Army Size I reserve
+-- and the tutorial recruit's earmark). Kept, at 0, for the snapshot fields and callers.
 function PlayerSession:StarterArmyReserve(): number
-	if not self.tutorial.starterArmy or self.tutorial.guideCompleted or self:Capacity()>=4 then return 0 end
-	local nextSlot=self:NextSlot()
-	return if nextSlot then nextSlot.price else 0
+	return 0
 end
 
 function PlayerSession:StarterCashReserve(): number
-	return (if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0)
-		+self:StarterArmyReserve()
+	return 0
 end
 
-function PlayerSession:CanSpendCash(amount: number, purpose: string?): (boolean, string)
+-- October 23: total seconds played across visits (earlier visits + this visit's
+-- Playtime clock, which starts once the save is ready). The free gift needs 5 minutes.
+function PlayerSession:PlaySeconds(now: number?): number
+	PlaytimeService.Begin(self)
+	return (self.playSeconds or 0)+PlaytimeService.Played(self,now)
+end
+
+-- `purpose` is the validated transaction's name (StarterRecruit, ArmySize, ...). Since
+-- the October 23 empty start no purchase is refused for a reserve; it stays for callers.
+function PlayerSession:CanSpendCash(amount: number, _purpose: string?): (boolean, string)
 	if amount<0 or amount~=amount or self.coins<amount then
 		-- October 23: GameServer turns this into the reply's `needCoins` (the Coins pack prompt).
 		if amount>self.coins then self.coinShortfall=amount-self.coins end
 		return false,"Not enough coins."
 	end
-	local reserve=self:StarterCashReserve()
-	-- Only validated server transactions supply a purpose. Each required purchase
-	-- may use its own earmark, never the money reserved for the other purchase.
-	if purpose=="StarterRecruit" and self:StarterRecruitPending() and amount==Config.Economy.StarterRecruitPrice then
-		reserve-=Config.Economy.StarterRecruitPrice
-	elseif purpose=="ArmySize" and amount==self:StarterArmyReserve() then
-		reserve-=self:StarterArmyReserve()
-	end
-	if self.coins-amount<reserve then
-		-- October 20 launch review: once the recruit is bought, name only Army Size
-		-- (1,307 refusals named a recruit the player already had).
-		local reason=if not self.tutorial.starterArmy
-			then "Keep "..Currency.Text(Config.Economy.StarterRecruitPrice).." for your first chicken. Pull the lever to roll!"
-			elseif self:StarterRecruitPending() and Config.Economy.StarterRecruitPrice>0 then "Keep "..Currency.Text(reserve).." for your tutorial recruit and Army Size I."
-			else "Keep "..Currency.Text(reserve).." for Army Size I in Upgrades."
-		return false,reason
-	end
 	return true,""
 end
 
+-- October 23 empty start: never sell your only chicken (was 3-4 starter chickens
+-- until the guide completed).
+-- Seconds between two eggs from one chicken: Rules.LaySeconds, except that an empty-start
+-- profile still in the tutorial lays every Config.TutorialEggLaySeconds (October 24,
+-- Stevin: "eggs should drop 1 every second for the tutorial portion"). The egg carries the
+-- Coins earned since the last, so Coins/sec are unchanged.
+function PlayerSession:LaySeconds(production: number?): number
+	local t=self.tutorial
+	if self.introRebirth~=nil and type(t)=="table" and t.guideCompleted~=true and t.guideSkipped~=true and t.coreDone~=true then
+		local seconds=Config.TutorialEggLaySeconds
+		if type(seconds)=="number" and seconds>0 then return math.min(seconds,Rules.LaySeconds(production)) end
+	end
+	return Rules.LaySeconds(production)
+end
+
 function PlayerSession:StarterFlockMinimum(): number
-	if self.tutorial.guideCompleted then return 0 end
-	if self.tutorial.starterArmy then return if self.tutorial.bought then 4 else 3 end
-	return if self.tutorial.emptyStart then 1 else 0
+	return 1
 end
 
 function PlayerSession:ProtectStarterFlock(): boolean
@@ -519,7 +543,7 @@ local function saleEligibility(session,id,context): (boolean,string)
 	if not pet then return false,"That chicken is no longer yours." end
 	local minimum=context.minimum
 	if minimum>0 and context.count<=minimum then
-		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
+		return false,if minimum==1 then "Keep your last chicken." else "Keep "..minimum.." chickens for your first mission."
 	end
 	if pet.favorite then return false,"Locked chickens can't be sold." end
 	if not session:IsPetHome(id) then return false,"Your Army is away with this chicken." end
@@ -617,7 +641,7 @@ end
 -- passes never multiply paid cash packs (ShopCatalog.CashPackAmount).
 function PlayerSession:PackIncome(): number
 	local rate=self:Income()*self:EggProductionMultiplier()*RebirthService.Multiplier(self.rebirths or 0)
-		*(1+(self.territoryBonus or 0))
+		*self:IntroMultiplier()*(1+(self.territoryBonus or 0))
 	if rate~=rate or rate<0 or rate==math.huge then return 0 end
 	return rate
 end
@@ -729,7 +753,7 @@ function PlayerSession:PetEntries(best: {string}, deployedIds: {string}, flock: 
 	local production=self:EggProductionMultiplier()
 	local value=self:EarnedAmount(production*(1+self.researchEffects.eggValue),"eggs")
 	-- October 21: every chicken lays one egg per LaySeconds, worth what it earned meanwhile.
-	local laySeconds=Rules.LaySeconds(production)
+	local laySeconds=self:LaySeconds(production)
 	local previous,entries,changed,shown=self.petEntries or {},{},false,{}
 	for id,pet in self.pets do
 		local level=pet.level or 1
@@ -777,7 +801,7 @@ function PlayerSession:FlockSnapshot(flock: {string}, laying: {string}, producti
 	local layers=0
 	for _,id in laying do if self.pets[id] then layers+=1 end end
 	return {size=flockSize(self),mode=if self.flockSelection==nil then "Auto" else "Manual",
-		ids=flock,laying=laying,eggsPerSecond=layers/Rules.LaySeconds(production)}
+		ids=flock,laying=laying,eggsPerSecond=layers/self:LaySeconds(production)}
 end
 
 function PlayerSession:Snapshot(now: number)
@@ -832,7 +856,7 @@ function PlayerSession:Snapshot(now: number)
 		coins=self.coins,starterCashReserve=self:StarterCashReserve(),starterArmyReserve=self:StarterArmyReserve(),
 		starterRecruitPrice=if self:StarterRecruitPending() then Config.Economy.StarterRecruitPrice else 0,
 		income=income,eggUnitValue=Rules.EggUnitValue(self.incomeLevel)*(1+self.researchEffects.eggValue),
-		homeEggsPerSecond=#laying/Rules.LaySeconds(eggProduction),
+		homeEggsPerSecond=#laying/self:LaySeconds(eggProduction),
 		capacity=self:Capacity(),baseCapacity=self.capacity,count=#pets,pets=pets,discovered=table.clone(self.discovered),
 		petsVersion=self.petsVersion,flock=self:FlockSnapshot(flock,laying,eggProduction),
 		collectionLimit=self:CollectionLimit(),selectedIds=best,deployedIds=deployedIds,
@@ -843,7 +867,11 @@ function PlayerSession:Snapshot(now: number)
 		returnRemaining=math.max(0,self.returnAt-now),passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
 		power=Rules.Power(self:Lineup()),deployed=#deployedIds,lastResult=self.lastResult,banner=self.banner,
 		rebirth=RebirthService.Quote(self),giantPity=self.giantPity or 0,
-		freeGift={enabled=Config.FreeGift.Enabled==true,claimed=self.freeGiftClaimed==true,species=Config.FreeGift.Species,groupId=Config.FreeGift.GroupId},
+		-- October 23 Rebirth 0: nil (older save, never offered), "pending" or "done".
+		introRebirth=self.introRebirth,
+		-- playSeconds is the total at server time `playedAt`; the popup counts on from it.
+		freeGift={enabled=Config.FreeGift.Enabled==true,claimed=self.freeGiftClaimed==true,species=Config.FreeGift.Species,groupId=Config.FreeGift.GroupId,
+			minPlaySeconds=Config.FreeGift.MinPlaySeconds or 0,playSeconds=self:PlaySeconds(),playedAt=workspace:GetServerTimeNow()},
 		chickenOfferStep=self.chickenOfferStep or 0,
 		daily={streak=self.daily.streak,lastDay=self.daily.lastDay,best=self.daily.best,
 			granted=if self.dailyGranted then table.clone(self.dailyGranted) else nil}}
@@ -890,12 +918,14 @@ function PlayerSession:ToData()
 		coins=self.coins,capacity=self.capacity,luck=self.luck,incomeLevel=self.incomeLevel,
 		armySelection=armySelection,
 		eggSpeedLevel=self.eggSpeedLevel,plotSizeLevel=self.plotSizeLevel,rollSlotsUnlocked=self.rollSlotsUnlocked,
-		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,freeGiftClaimed=self.freeGiftClaimed==true,chickenOfferStep=self.chickenOfferStep or 0,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
+		pets=pets,discovered=discovered,firstWins=wins,laneCamps=table.clone(self.laneCamps or {}),adminAssisted=self.adminAssisted==true,freeGiftClaimed=self.freeGiftClaimed==true,playSeconds=math.floor(self:PlaySeconds()),chickenOfferStep=self.chickenOfferStep or 0,frontierWins=frontier,kingCleared=self.kingCleared,kingBountyPaid=self.kingBountyPaid==true,tutorial=table.clone(self.tutorial),
 		hillWins=self.hillWins,hillRollCredits=self.hillRollCredits,hillChampion=self.hillChampion==true,
 		fusionUnlockVersion=2,
 		fusionUnlocked=self.fusionUnlocked==true or self.research.completed.FuseMachine==true,
 		passiveEarned=self.passiveEarned,battleEarned=self.battleEarned,
-		rebirths=self.rebirths,daily=table.clone(self.daily),giantPity=self.giantPity or 0}
+		rebirths=self.rebirths,daily=table.clone(self.daily),giantPity=self.giantPity or 0,
+		-- October 23 Rebirth 0; nil is left out (older saves stay without it).
+		introRebirth=self.introRebirth}
 end
 
 local function numberIn(value,minimum,maximum,integer)
@@ -1249,8 +1279,20 @@ function PlayerSession:LoadData(data)
 		collectedEggCount=clampHigh(collectedEggCount,0,1e12,true)
 		if not collectedEggCount then return false,"Invalid saved tutorial egg count." end
 	end
-	tutorial.collectedEggCount=math.min(collectedEggCount,TutorialGuide.EggGoal)
+	tutorial.collectedEggCount=math.min(collectedEggCount,PlayerSession.TutorialEggLimit)
 	tutorial.collectedEggs=tutorial.collectedEggCount>=TutorialGuide.EggGoal
+	-- October 24 lever-pull counter (additive and lenient: junk or a missing field reads
+	-- through TutorialGuide.RollCount, which treats the old `rolled` flag as one pull).
+	local rollCount=data.tutorial.rollCount
+	if type(rollCount)=="number" and rollCount==rollCount and rollCount>=0 and rollCount<math.huge then
+		tutorial.rollCount=math.min(math.floor(rollCount),TutorialGuide.RollCountLimit)
+	end
+	-- October 25: eggs by hand when the tutorial completed (the Egg Vacuum tip counts from
+	-- it); lenient, a missing field reads through TutorialGuide.EggsAtComplete.
+	local eggsAtComplete=data.tutorial.eggsAtComplete
+	if type(eggsAtComplete)=="number" and eggsAtComplete==eggsAtComplete and eggsAtComplete>=0 and eggsAtComplete<math.huge then
+		tutorial.eggsAtComplete=math.min(math.floor(eggsAtComplete),PlayerSession.TutorialEggLimit)
+	end
 	-- October 21 Egg Vacuum tip counter (additive and lenient: junk reads as 0).
 	local vacuumEggCount=data.tutorial.vacuumEggCount
 	if type(vacuumEggCount)=="number" and vacuumEggCount==vacuumEggCount then
@@ -1357,6 +1399,9 @@ function PlayerSession:LoadData(data)
  self.hillWins,self.hillRollCredits,self.hillChampion=hillWins,hillRollCredits,data.hillChampion==true
  -- Additive launch fields: missing or malformed values read as their defaults.
  self.rebirths=rebirths
+ -- Additive October 23 field (Rebirth 0): only "pending" or "done" are kept; anything
+ -- else (a save from before it) reads as nil, which never offers Rebirth 0.
+ self.introRebirth=if data.introRebirth=="pending" or data.introRebirth=="done" then data.introRebirth else nil
  -- October 23 (Stevin): Time Skip is removed; a saved unclaimed timeSkipPending is
  -- ignored and dropped on the next save, never paid.
  self.daily=readDaily(data.daily)
@@ -1370,6 +1415,8 @@ function PlayerSession:LoadData(data)
 	-- Additive field; anything but true reads as false.
 	self.adminAssisted=data.adminAssisted==true
 	self.freeGiftClaimed=data.freeGiftClaimed==true
+	-- Additive October 23 field: anything but a sane number reads as 0 (never rejects the save).
+	self.playSeconds=if numberIn(data.playSeconds,0,1e10,false) then data.playSeconds else 0
 	-- Additive and lenient: anything unexpected reads as no offers bought.
 	local offerStep=data.chickenOfferStep
 	self.chickenOfferStep=if type(offerStep)=="number" and offerStep==offerStep then math.clamp(math.floor(offerStep),0,#ShopCatalog.ChickenOfferOrder) else 0

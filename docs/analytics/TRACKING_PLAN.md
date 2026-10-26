@@ -19,7 +19,7 @@ request.
   graphics quality, input types and sensors. `AnalyticsPlayer.DeviceTier` turns them into
   Low / Mid / High. The Roblox Creator Dashboard already splits its own charts by
   platform, OS and country.
-- **Limits.** Roblox: 10 funnels (we use 9: Onboarding, which carries the Tutorial funnel, plus 8 recurring; schema 12 replaced Research with Upgrades; see TUTORIAL_FUNNEL.md), 100 custom events (35), 3 custom fields,
+- **Limits.** Roblox: 10 funnels (we use 9: Onboarding, which carries the 15-step Onboarding funnel since schema 15, plus 8 recurring; schema 12 replaced Research with Upgrades; see ONBOARDING_FUNNEL.md), 100 custom events (35), 3 custom fields,
   8,000 field combinations, 120 + 20×CCU requests/min (budgeted per server). Ledger: top
   tables cap at 150 keys; detail strings are validated and length-capped; per-player
   profile stays small (session log keeps the last 10).
@@ -29,7 +29,7 @@ request.
 
 | Question | Where |
 |---|---|
-| Where do new players quit? | Tutorial funnel + exits (`tf.exit`, `TutorialExit`; schema 12), plus `lastExit` per player |
+| Where do new players quit? | Onboarding funnel + exits (`ob.exit.NN`; schema 15, `docs/analytics/ONBOARDING_FUNNEL.md`), plus `lastExit` per player |
 | Which features do players find, use and abandon? | Feature funnels (section 3) |
 | Which menus do players open, how long, which buttons? | Client UI events (section 4) |
 | Who pays, how much, on what device, from where? | Robux + segments (sections 5, 6) |

@@ -40,14 +40,15 @@ function Motion:Cancel(object,channel)
 	track.tween:Cancel();track.tween:Destroy()
 end
 
-function Motion:Tween(object,channel,goals,seconds,style,direction,complete,repeats,reverses)
+-- delay: TweenInfo.DelayTime (with repeats, Roblox waits it again before every cycle).
+function Motion:Tween(object,channel,goals,seconds,style,direction,complete,repeats,reverses,delay)
 	self:Cancel(object,channel)
 	if self.reduced or seconds<=0 then
 		for property,value in goals do object[property]=value end
 		if complete then complete() end
 		return
 	end
-	local tween=TweenService:Create(object,TweenInfo.new(seconds,style or Enum.EasingStyle.Quad,direction or Enum.EasingDirection.Out,repeats or 0,reverses==true),goals)
+	local tween=TweenService:Create(object,TweenInfo.new(seconds,style or Enum.EasingStyle.Quad,direction or Enum.EasingDirection.Out,repeats or 0,reverses==true,delay or 0),goals)
 	local track={tween=tween,goals=goals,finish=complete}
 	self.tracks[object]=self.tracks[object] or {}
 	self.tracks[object][channel]=track
@@ -126,11 +127,11 @@ function Motion:Shake(item,pixels)
 end
 
 -- Endless back-and-forth. Cancel, StopLoop and reduced motion settle on `rest`.
-function Motion:Loop(object,channel,goals,rest,seconds,style)
+function Motion:Loop(object,channel,goals,rest,seconds,style,delay)
 	self:Cancel(object,channel)
 	for property,value in rest do object[property]=value end
 	if self.reduced then return end
-	self:Tween(object,channel,goals,seconds,style or Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,nil,-1,true)
+	self:Tween(object,channel,goals,seconds,style or Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,nil,-1,true,delay)
 	local track=self.tracks[object] and self.tracks[object][channel]
 	if track then track.goals=rest end
 end
@@ -164,7 +165,17 @@ function Motion:Appear(item,shown,from)
 		scale.Scale=if self.reduced then 1 else (from or 0.6)
 		self:Tween(scale,"pop",{Scale=1},0.26,Enum.EasingStyle.Back)
 	else
-		if not item.Visible or self.hiding[item] then return end
+		if not item.Visible then return end
+		if self.hiding[item] then
+			-- A hide is already running. October 23: if its tween is gone (cancelled by
+			-- another user of the scale or a destroyed track) the item would stay shown
+			-- for good (the HUD's Rebirth "!" after Rebirth 0), so finish the hide now.
+			local channels=self.tracks[scale]
+			if channels and channels.pop then return end
+			self.hiding[item]=nil
+			item.Visible,scale.Scale=false,1
+			return
+		end
 		if self.reduced then
 			self:Cancel(scale,"pop")
 			item.Visible,scale.Scale=false,1
@@ -757,6 +768,28 @@ function Motion:StopWobble(item)
 	if not item then return end
 	self:StopLoop(item,"wobble")
 	item.Rotation=0
+end
+
+-- October 23 (Stevin, Drop a Fruit recording): HUD icons idle with a slow side-to-side
+-- tilt. `phase` (seconds) staggers neighbours so they never swing in step. Rotation
+-- only, so it never fights a button's press (Size) or breathing (UIScale).
+function Motion:Sway(item,degrees,seconds,phase)
+	if not item or self.reduced then return end
+	local amount,period=degrees or 5,seconds or 1.3
+	local function start()
+		if item.Parent then self:Loop(item,"sway",{Rotation=amount},{Rotation=-amount},period) end
+	end
+	if (phase or 0)>0 then task.delay(phase,start) else start() end
+end
+
+-- October 23: a red notification badge "pings" now and then: it swells and tips, then
+-- rests `every` seconds. The badge's own Size and Rotation, so Appear/Punch (UIScale)
+-- keep working; one repeating tween (DelayTime is the rest between pings).
+function Motion:Ping(item,every)
+	if not item or self.reduced then return end
+	local rest=self.restingSizes[item] or item.Size
+	self.restingSizes[item]=rest
+	self:Loop(item,"ping",{Size=multiplied(rest,1.25),Rotation=12},{Size=rest,Rotation=0},0.16,Enum.EasingStyle.Quad,every or 1.6)
 end
 
 -- Slide an item from one Position to another (`ease` from Motion.Ease).

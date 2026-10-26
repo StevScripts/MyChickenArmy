@@ -13,7 +13,9 @@ truth for every name: `src/server/AnalyticsSchema.luau`.
    "Enable Studio Access to API Services" on. Use the studio-flow MCP:
    `get_connected_instances`, then `execute_luau` with the snippet in section 3.
 2. Pull `Report.Summary({days = 7, env = "live"})`. Read `flags` first, then
-   `tutorialFunnel`, `tutorialExits` + `tutorialExitLessons` (the 24-step tutorial funnel, ledger `tf.*`, on Roblox's Onboarding dashboard; every step explained in `docs/analytics/TUTORIAL_FUNNEL.md`; since schema 12 it is the only onboarding funnel: schema 9/10 `tut.*` and the old 20 onboarding steps `onb.*` are history and no longer read), `cohorts`, `guideDwell`, `rolls`, `health`.
+   `onboarding` (the 15-step Onboarding funnel, ledger `ob.*`, on Roblox's Onboarding
+   dashboard, `docs/analytics/ONBOARDING_FUNNEL.md`; print it with
+   `Report.OnboardingText({days = 7, env = "live"})`), `cohorts`, `guideDwell`, `rolls`, `health`.
    Feature drop-offs: `featureFunnels`; menus/buttons/prompts: `ui`; money:
    `robuxActual` and `devices`; who plays: `segments`; stalls: `stateSnapshots`,
    `exits`; save/battle health: `serverEvents` (section 11).
@@ -70,9 +72,9 @@ Unknown (Unknown = the client report had not arrived, usually under 8 seconds in
 
 `first` (unix), `firstDay` (only for tracked players), `firstVersion`, `tracked`,
 `preexisting`, `lastDay`, `days` (active days), `sessions`, `play` (seconds),
-`tf[NN]` (play-seconds when Tutorial funnel step NN was first reached), `tfSkip[NN]`
-(soft steps passed over), `tfRbx` (last Tutorial step sent to Roblox; older profiles
-also keep the retired `onb`, `onbMax` and `rbx`), `features[name]` (play-seconds at first use),
+`ob[NN]` (play-seconds when Onboarding funnel step NN was first reached), `obRbx` (last
+Onboarding step sent to Roblox; profiles from schema 11-14 also keep the retired `tf`,
+`tfSkip` and `tfRbx`, older ones `onb`, `onbMax` and `rbx`), `features[name]` (play-seconds at first use),
 `ret[dN]` (retention marks), `purchases`, `robux` (estimate from launch prices),
 `firstPurchase`, `lastSeen`. Concurrent writes merge with `Analytics.MergeProfile`.
 Version 5 adds (all optional; older profiles lack them): `dev` {platform, tier, vx,
@@ -118,34 +120,27 @@ through `eval_server_runtime` (Studio only) exposes `players[userId]` state,
 `ledger.pending` and `ledger:Flush()`. `Analytics.Diagnostics` lists the Roblox calls
 that would have been sent.
 
-## 4. Onboarding = the Tutorial funnel (schema 12)
+## 4. Onboarding = the Onboarding funnel (schema 15)
 
-Since schema 12 (October 21, 2026) the only onboarding funnel is the 24-step Tutorial
-funnel: `Schema.TutorialFunnel`, ledger `tf.*`, Roblox's Onboarding dashboard. Every
-step, trigger and reading note is in `docs/analytics/TUTORIAL_FUNNEL.md`; read that
-page, not this one, for the step table.
+Since schema 15 (October 24, 2026) the only onboarding funnel is the 15-step Onboarding
+funnel: `Schema.Onboarding`, ledger `ob.*`, Roblox's Onboarding dashboard, session stage
+`Ob:<step>` / `Post` / `Untracked`. The step table, the four keys and how to read exits
+are in `docs/analytics/ONBOARDING_FUNNEL.md`; read that page, not this one.
 
 Only **tracked** players enter it: first seen by analytics with a fresh game save
-(`Analytics.FreshSave`). Players who existed before are counted everywhere else,
-never in the funnel, cohorts or retention.
+(`Analytics.FreshSave`) that carries `introRebirth` (every save since the October 23
+empty start). Players who existed before are counted everywhere else, never in the
+funnel, cohorts or retention.
 
-The schema 1-8 onboarding steps (`onb.*`: Joined … Grow, Expand, Select, Deploy, Win,
-GuideComplete … Rebirth1) described the guide before the October 20 overhaul and
-stopped recording in schema 12. Days before that still hold `onb.*` keys in the
-ledger; the report no longer reads them.
+Where players quit: `ob.exit.NN` (a session ended with NN the furthest step, until step
+15) and the `onboarding` flag, which names the adjacent pair that lost the most players.
+`guide.dwell.<step>` (all players) and `guide.enter.<step>` still show how long each guide
+step takes overall.
 
-### Where players quit
-
-At session end, a tracked player who has not completed the tutorial records:
-- `tf.exit.NN`: the furthest Tutorial funnel step (`00` = none yet).
-- `tf.exitLesson.<id>`: the guide lesson on screen (`TutorialService` step id).
-- Roblox custom event `TutorialExit` (value = seconds since the last funnel step;
-  fields "NN <step id>", lesson, S1/S2/S3+). It replaces `OnboardingExit`.
-- Summary: `tutorialExits` (by furthest step) and `tutorialExitLessons`.
-
-`guide.dwell.<step>` (all players) and `guide.enter.<step>` show how long each guide
-step takes overall. A step with high dwell **and** a high share of exits is the
-first suspect.
+History: the schema 1-8 steps (`onb.*`) stopped recording in schema 12; the schema 11-14
+Tutorial funnel (`tf.*`, `tf.exit.NN`, `tf.exitLesson.<id>`, custom event `TutorialExit`,
+stage `Tut:<step>`) stopped in schema 15. Days before those versions still hold the old
+keys in the ledger; the report does not read them.
 
 ## 5. Name dictionary (ledger)
 
@@ -157,9 +152,9 @@ Players and sessions
 - `server.minutes`, `player.minutes` (sum of players per minute sample), `server.peakPlayers` (max), `server.players` (count hist)
 
 Cohorts and retention (`x[firstDay]`)
-- `cohort.size` (tracked new players that day), `ret.dN` for N in 1,2,3,4,5,6,7,14,21,30,60,90 (returned exactly N UTC days later; counted once), `ret.anyLater`, `robux.payer`, `tf.NN` (`onb.NN` before schema 12)
+- `cohort.size` (tracked new players that day), `ret.dN` for N in 1,2,3,4,5,6,7,14,21,30,60,90 (returned exactly N UTC days later; counted once), `ret.anyLater`, `robux.payer` (per-step cohort keys `tf.NN` / `onb.NN` exist only in days before schema 15)
 
-Onboarding and guide: see section 4. Also `intro.started|finished|skipped|notShown`, `ui.<signal>` (Help, Resume, Finish, TreeOpen, ArmyOpen, NodeInspect ...), `load.serverSeconds` (join to save loaded), `load.readySeconds` (join to control).
+Onboarding: `ob.reach.NN`, `ob.reach.NN|P`, `ob.t.NN`, `ob.exit.NN` (section 4, `ONBOARDING_FUNNEL.md`). Guide: `intro.started|finished|skipped|notShown`, `ui.<signal>` (Help, Resume, Finish, TreeOpen, ArmyOpen, NodeInspect ...), `load.serverSeconds` (join to save loaded), `load.readySeconds` (join to control).
 
 Actions
 - `act.<Action>` (succeeded), `act.<Action>.fail`; `t.reject["<Action> | <message>"]` (top rejection reasons, e.g. "Buy | Not enough cash")
@@ -180,7 +175,7 @@ Camps (main route; `Camp1` = Cluck Camp, `Camp2` Fort Roost, `Camp3` Ironbeak HQ
 - `camp.<C>.firstWin.seconds`, `camp.<C>.fail.seconds` (battle duration hists); failures are capped per user per server by BattleService
 
 Robux
-- `robux.purchases`, `robux.product.<key>`, `robux.pass.<key>`, `robux.estimate` (sum of launch `proposedPrice`, not actual revenue), `robux.stage.<Tutorial|Post|Untracked>` (`Onboarding` before schema 12), `robux.firstPurchase` (+ `.playSeconds` hist), `shop.prompt.<key>` (PreparePurchase opened), `crate.open.<Rarity>`
+- `robux.purchases`, `robux.product.<key>`, `robux.pass.<key>`, `robux.estimate` (sum of launch `proposedPrice`, not actual revenue), `robux.stage.<Tutorial|Post|Untracked>` (`Tutorial` = any `Ob:*` stage since schema 15; `Onboarding` before 12), `robux.firstPurchase` (+ `.playSeconds` hist), `shop.prompt.<key>` (PreparePurchase opened), `crate.open.<Rarity>`
 
 Client, performance, health
 - `client.platform.<P>`, `client.screen.<small|medium|large>`, `client.input.<touch|keyboard|gamepad>`
@@ -193,13 +188,14 @@ Client, performance, health
 
 ## 6. Journeys (sampled sessions)
 
-Every session of a tracked player still in the tutorial, plus ~5% of other sessions.
-Fields: `u` (anonymous hash), `v` version, `p` platform, `n` session index, `new`, `tr`
-(tracked), `s` session seconds, `pl` total play seconds, `stage` (Tut:<furthest Tutorial
-step id>, Post or Untracked; `Onb:<step>` before schema 12), `st` {NN = session second
-the Tutorial step was reached}, `ex` guide step at exit, `mx` furthest Tutorial step, `c` cash at exit, `pe` chickens, `r` rolls, `b` buys, `er` client errors,
+Every session of a tracked player before Onboarding step 15 (Rebirth 1), plus ~5% of
+other sessions. Fields: `u` (anonymous hash), `v` version, `p` platform, `n` session
+index, `new`, `tr` (tracked), `s` session seconds, `pl` total play seconds, `stage`
+(Ob:<furthest Onboarding step id>, Post or Untracked; `Tut:` in schema 11-14 days,
+`Onb:` before 12), `st` {NN = session second the Onboarding step was reached}, `ex` guide
+step at exit, `mx` furthest Onboarding step, `c` cash at exit, `pe` chickens, `r` rolls, `b` buys, `er` client errors,
 `earned`, `rej` (rejections like "Buyx3"), `ping`, `fps`, and `trail`: up to 60
-`{second, code}` entries. Codes: `tf:<StepId>`, `fun:<Funnel>.<Step>`, `guide:<step>`, an action name
+`{second, code}` entries. Codes: `ob:<StepId>` (`tf:` before schema 15), `fun:<Funnel>.<Step>`, `guide:<step>`, an action name
 (`Roll`, `Buy`, ... with `!` when rejected), `Camp1:firstWin`, `robux:<key>`,
 `guideSkip`, `clientError`.
 
@@ -207,8 +203,9 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
 
 ## 7. Roblox Creator Dashboard map (what the user sees)
 
-- Onboarding funnel: the 24 Tutorial funnel steps (`docs/analytics/TUTORIAL_FUNNEL.md`),
-  named "NN <label>", field 1 = game version, field 2 = platform.
+- Onboarding funnel: the 15 Onboarding steps (`docs/analytics/ONBOARDING_FUNNEL.md`),
+  named "NN <label>", field 1 = game version, field 2 = platform, always sent in order
+  (a later step of 11-15 sends the missing earlier ones first).
 - Recurring funnels: `Roll` (Rolled → AffordableOffer → Recruited; first 30 rolls per
   session), `Shop` (Prompted → Purchased), `Camp` (Deployed → Won, one session id per
   player per camp).
@@ -225,8 +222,8 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
   funnel session per game session. Roblox caps a funnel at 100 steps, so 96m–100m
   exist only in the ledger (section 12).
 - Custom events (35 of 100): TutorialService FTUE* and Conquest* events, plus
-  `SessionEnded` (seconds; platform, stage, new/returning), `TutorialExit` (schema 12;
-  replaces `OnboardingExit`),
+  `SessionEnded` (seconds; platform, stage, new/returning), `TutorialExit` (schema 12-14;
+  not sent since 15, name kept),
   `FeatureFirstUse`, `RobuxPurchase` (estimate; kind, key, stage), `ScriptError`
   (client), `ClientPerf` (fps; platform, fps bucket, version), `RollSummary`.
   Version 5: `PlayerSegment` (session minutes; device tier, payer state, platform),
@@ -238,15 +235,16 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
 
 - Minimum samples: ignore percentages from fewer than ~30 players; say "too early"
   instead. Report counts beside every percentage.
-- Day funnel vs cohort funnel: use cohorts (`summary.cohorts[i].steps`) for
-  conversion; a young cohort is still converting, so compare cohorts of equal age.
+- The onboarding funnel is a day-range funnel: the late steps of a young range are
+  still converting, so compare ranges of equal length or split by `version`. Cohort
+  rows carry retention only (no per-step cohort keys since schema 15).
 - Retention: `ret.dN` / `cohort.size`. A cohort's D7 is only final 8+ days after it.
 - Release effects: split by `version`; the version string is `Config.Version`.
 - Robux: `robux.estimate` uses launch prices; since version 5 `robux.actual` records
   what was actually spent (before Roblox fees). Payouts are on the dashboard.
-- Starting heuristics (not Roblox guarantees): early adjacent step conversion below
-  80% (steps 02-09) is worth a look; one guide step holding 30%+ of onboarding
-  exits is the first suspect; D1 under 15% on a cohort of 50+ is weak; median FPS
+- Starting heuristics (not Roblox guarantees): the `onboarding` flag names the adjacent
+  step pair that lost the most players (20+ joined; high when it loses 20%+), read its
+  `exitsHere` and the journeys of players whose `mx` is the step before it; D1 under 15% on a cohort of 50+ is weak; median FPS
   at or under 30 on a platform needs a perf pass; more than one script error per
   session is a bug hunt. `Report.Flags` implements these and names the numbers.
   Version 5 flags: feature-funnel adjacent conversion under 50% with 30+ players at
@@ -258,7 +256,8 @@ Read 10-20 trails of players who quit at the top exit step before proposing a fi
   sessions) with median dwell in the first bucket (<= 5 s; the seconds buckets cannot
   resolve 3 s), which hints at accidental or confusing opens.
 - Example narrow pull when the MCP truncates:
-  `local s = Report.Summary({days = 7}); return HttpService:JSONEncode({f = s.flags, funnel = s.tutorialFunnel, exits = s.tutorialExits})`
+  `local s = Report.Summary({days = 7}); return HttpService:JSONEncode({f = s.flags, onboarding = s.onboarding})`,
+  or just `return Report.OnboardingText({days = 7})`.
 
 ## 9. Changing the system safely
 
@@ -467,7 +466,7 @@ matches the game:
 
 | Removed | Why | Replaced by |
 |---|---|---|
-| `Schema.Onboarding` (`onb.*`, 20 steps), `OnboardingExit`, `guide.skipped` | lessons of the pre-overhaul guide (Grow, Expand, Select, Deploy…); hiding the guide was removed | the Tutorial funnel (`tf.*`, stage `Tut:<step>`, `TutorialExit`) |
+| `Schema.Onboarding` (`onb.*`, 20 steps), `OnboardingExit`, `guide.skipped` | lessons of the pre-overhaul guide (Grow, Expand, Select, Deploy…); hiding the guide was removed | the Tutorial funnel (`tf.*`, stage `Tut:<step>`, `TutorialExit`), itself replaced by the schema 15 Onboarding funnel (section 15) |
 | Feature funnel `Research` and its Roblox dashboard | research merged into the instant Upgrades tree on October 20 | Roblox dashboard `Upgrades` (Opened → Inspected → Bought) |
 | Feature funnel `Fuse` | Fuse removed October 20 | — |
 | Feature funnel `ChickenLevel` (Army inspector) | levels are bought with Chicken Feed | `Feed` |
@@ -490,3 +489,56 @@ ledger; nothing reads them, so compare those days through the raw buckets only.
 Verified 2026-10-21 in Studio Edit: `tests/AnalyticsChecks.luau` 16/16 (updated for
 schema 12), and a fake session reached every new funnel step with no `fun.unknown` or
 `analytics.funnelError`.
+
+## 14. Version 13: empty-start tutorial steps (October 23, 2026)
+
+Stevin's empty start (`docs/team/COMMANDER_TUTORIAL.md`, top): no chickens, 0 Coins, six
+cards, tips and a Rebirth 0 at 350 Coins. `Schema.TutorialFunnel` appends four steps (never
+renamed or reordered): 25 `StartClaimed` (hard), 26 `PlotExpanded` (hard), 27 `CampTipShown`
+(soft, client signal `CampTip`) and 28 `IntroRebirth` (hard). The hard egg steps 05–08 now
+land after 09–10 for every new player (the lever comes first), so they show as gap fills.
+New launch counter `rebirth0.count`; `RebirthService.RebirthIntro` pays its Gems through
+`gems.earned` with source `Rebirth0`. The build label is `Config.Version =
+"1.22.0-empty-start"`; compare it with `1.21.1-opening` by `version`. Details:
+`docs/analytics/TUTORIAL_FUNNEL.md`. Checks: `tests/AnalyticsChecks.luau` (28 steps).
+
+Version 14 (October 24): step 29 `RolledAgain` (hard, `tutorial.rollCount >= 2`), the
+seventh card "Pull the lever again!"; `TutorialComplete` (18) now follows it. 29 steps.
+Both are history since version 15 (section 15).
+
+## 15. Version 15: the Onboarding funnel (October 24, 2026)
+
+Stevin: "completely revamp the funnels section for the onboarding especially pls rn the
+data is super messy just redo it all for here and record the new data only only go into
+detail for a step when it matters I just need to see where players are leaving."
+`Schema.Onboarding` (15 hard steps in play order, ledger `ob.*`) replaces the 29-step
+Tutorial funnel (schema 11–14, `tf.*`: appended across three redesigns, steps 05–08 firing
+after 09–10, soft steps, gap fills, dwell histograms, exit lessons) on Roblox's
+Onboarding dashboard and as the session stage (`Ob:<step>` / `Post` / `Untracked`).
+Everything about it, including the steps whose drop matters, is in
+`docs/analytics/ONBOARDING_FUNNEL.md`.
+
+- Steps: Joined, Loaded, Rolled, ChickenTaken, Egg1, Eggs3, Sold, StartClaimed,
+  PlotExpanded, RolledAgain (= tutorial complete), Rebirth0, Chickens3, VacuumBought,
+  CluckCampWon, Rebirth1. Each a saved or server fact, once per player ever.
+- Keys per step, nothing more: `ob.reach.NN`, `ob.reach.NN|<platform>`, `ob.t.NN`
+  (seconds hist from first join), `ob.exit.NN` (a session ended with NN the furthest
+  step, `00` = none, until step 15).
+- Dropped: dwell, first-session share, gap/skip counters, exit lessons, Roblox gap-fill
+  counters, per-step cohort keys and the `TutorialExit` custom event (name kept, not
+  sent). `Schema.TutorialFunnel` stays declared (append-only) and is not recorded.
+- Tracked: fresh saves (`Analytics.FreshSave`) that carry `introRebirth` (the October 23
+  empty start), the first time this version sees them; profile `ob[NN]`, `obRbx`.
+- Roblox: the 15 steps strictly in order; when a later step of 11–15 is reached while an
+  earlier one is missing, the missing ones are sent at that moment (not counted in the
+  ledger).
+- Report: `summary.onboarding = {joined, steps[15] {step, id, reached, ofJoined,
+  ofPrevious, exitsHere, p50, n}, exitsNone, exitsTotal, biggestDrop}`;
+  `Report.OnboardingText(options | summary)` prints it; the `onboarding` flag names the
+  biggest drop (20+ joined). `tutorialFunnel`, `tutorialExits`, `tutorialExitLessons` and
+  `cohorts[i].steps` are gone; `Report.PlayerRow.onboardingMax` replaces `tutorialMax`;
+  `Report.Journeys({onlyOnboarding = true})` matches `Ob:` (and the old prefixes).
+- `tools/analytics/pull_ledger.py` still summarizes `tf.*`; read `ob.*` from its raw
+  buckets until it is updated.
+- Verified 2026-10-24 headless (Lune harness): `tests/AnalyticsChecks.luau` 15/15. Not
+  exercised: a Studio playtest or live Roblox sends.

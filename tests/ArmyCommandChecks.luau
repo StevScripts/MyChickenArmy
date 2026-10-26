@@ -9,6 +9,8 @@ local fixtures={}
 
 local function setup(unlocked)
 	local s=Session.new(-9286,"Army command fixture",1);s.loaded=true
+	-- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+	for _=1,3 do s:AddPet("Duck",1).investment=0 end
 	if unlocked~=false then s.research.completed.CallArmy=true;s.researchEffects=Research.Effects(s.research) end
 	s.pets,s.slots={},{}
 	local ids={}
@@ -194,6 +196,7 @@ function Checks.Run()
 		local s,ids,w,b,c,p=setup()
 		local Battle=require(Server.Battle)
 		local rival=Session.new(-9287,"Rival fixture",2);rival.loaded=true;b.sessions[rival.userId]=rival
+		for _=1,3 do rival:AddPet("Duck",1).investment=0 end;rival:RefreshArmy() -- October 23 empty start: the rival needs an Army too
 		local contest=Battle.new("RecallContest",rival.userId,"income:1",w:Position(),w:CampPosition(1),0)
 		contest.defender=s.userId;contest.incomeSite=true;contest.incomeContest=true
 		contest.phase="Fight";contest.captureElapsed=2;contest.name="Income outpost"

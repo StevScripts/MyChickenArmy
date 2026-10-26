@@ -27,6 +27,8 @@ export type Family = {
 export type Node = {
 	id: string, kind: string, category: string, q: number, r: number, name: string, icon: string,
 	family: string?, tier: number?, numeral: number?, prerequisite: string?, opens: string?,
+	-- October 23 empty start: Start is claimed once, free (tutorial.startClaimed).
+	claimable: boolean?,
 }
 
 Catalog.Categories = {"Main", "Tools", "Player", "Army"}
@@ -96,13 +98,18 @@ local families: {Family} = {
 		positions = walk(1, 2, {"S", "SE", "SE", "NE", "SE", "NE", "SE", "SE", "S", "SW", "NW"}), prerequisite = "RollSpeed1"},
 	-- Flock Size = chickens out in the yard laying. yardStage is the authored yard
 	-- expansion (PlayerSession.plotSizeLevel, 0-7) that tier opens.
+	-- October 23 empty start: Flock Size I is the tutorial's "Expand your plot!" lesson,
+	-- so it costs 30 Coins (was 300) and grows the yard one stage; every tier opens the
+	-- next stage (I-VII = stages 1-7, VIII stays at the full T, stage 7). Saved tiers
+	-- keep their counts and gain one yard stage; nothing is taken away.
 	{id = "Flock", name = "Flock Size", category = "Main", icon = "flockSize", effect = "flockSize", base = 3,
 		format = "count", unit = "chickens laying", description = "More of your chickens lay eggs in the yard.",
-		tiers = tiers({{4, 300, 0}, {5, 900, 1}, {6, 2000, 2}, {7, 25000, 3}, {8, 250000, 4}, {10, 3000000, 5},
-			{12, 80000000, 6}, {15, 2000000000, 7}}),
+		tiers = tiers({{4, 10, 1}, {5, 900, 2}, {6, 2000, 3}, {7, 25000, 4}, {8, 250000, 5}, {10, 3000000, 6},
+			{12, 80000000, 7}, {15, 2000000000, 7}}),
 		positions = walk(-1, 1, {"NW", "SW", "NW", "SW", "NW", "SW", "NW"})},
-	-- Tier 1 is the Commander guide's protected 1,200-Coin Army Size 4 (COMMANDER_TUTORIAL.md).
-	-- It opens from Army (Open), which always counts as owned, so it needs nothing new.
+	-- Tier 1 was the Commander guide's protected 1,200-Coin Army Size 4; since the
+	-- October 23 empty start nothing is reserved for it. It opens from Army (Open),
+	-- which always counts as owned, so it needs nothing new.
 	{id = "ArmySize", name = "Army Size", category = "Main", icon = "armySize", field = "capacity", base = Config.StartingSlots,
 		format = "count", unit = "Army slots", description = "Send more chickens into battle.",
 		tiers = tiers({{4, 1200}, {6, 6000}, {8, 25000}, {10, 90000}}),
@@ -153,8 +160,10 @@ local families: {Family} = {
 	-- October 20 (Stevin, S14): the hand vacuum is bought here and resets on Rebirth,
 	-- like Chicken Feed. It replaces the free gift at the end of the Commander guide.
 	{id = "EggVacuum", name = "Egg Vacuum", category = "Tools", icon = "eggVacuum", effect = "eggVacuum", base = 0,
+		-- October 25 (Stevin): free; the tip claims it 10 seconds after the tutorial. (Oct 23:
+		-- 150; Oct 20: 500.) The tree shows a 0-Coin upgrade as "Claim".
 		format = "unlock", description = "Equip the Egg Vacuum to pull in nearby eggs, then sell them on the pad.",
-		tiers = tiers({{1, 500}}), positions = walk(-1, 1)},
+		tiers = tiers({{1, 0}}), positions = walk(-1, 1)},
 	-- October 21 (Stevin: "too large very easily, not enough of a challenge"): bonus eggs
 	-- on the Egg Vacuum's fixed base (VacuumConfig.Capacity). October 22 (Stevin: "a
 	-- little" more) about 25% larger at the same prices: 25 base, 40, 60, 90, 150 eggs
@@ -263,7 +272,9 @@ local function add(node: Node)
 	Catalog.Nodes[node.id] = node
 	table.insert(Catalog.Order[node.category], node.id)
 end
-add({id = "Start", kind = "start", category = "Main", q = 0, r = 0, name = "Start", icon = "start"})
+-- October 23 empty start: the tutorial's "Claim Start!" lesson (UpgradeService BuyNode
+-- "Start": free, once, sets tutorial.startClaimed). It always counts as owned.
+add({id = "Start", kind = "start", category = "Main", q = 0, r = 0, name = "Start", icon = "start", claimable = true})
 add({id = "OpenTools", kind = "open", category = "Main", q = -1, r = 0, name = "Tools", icon = "openTools", opens = "Tools"})
 add({id = "OpenPlayer", kind = "open", category = "Main", q = 1, r = -1, name = "Player", icon = "openPlayer", opens = "Player"})
 add({id = "OpenArmy", kind = "open", category = "Main", q = 0, r = 1, name = "Army", icon = "openArmy", opens = "Army"})

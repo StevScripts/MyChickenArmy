@@ -7,17 +7,17 @@ local GuiService=game:GetService("GuiService")
 local ContextActionService=game:GetService("ContextActionService")
 local UserInputService=game:GetService("UserInputService")
 local Catalog=require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetCatalog)
-local Config=require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local Theme=require(script.Parent.UITheme)
 local Controller={}
 Controller.__index=Controller
 local GREEN=Theme.ReferenceColors.Army
 local GOLD=Theme.ReferenceColors.Base
 local BLUE=Theme.ReferenceColors.Upgrades
-local Portraits=require(script.Parent.ChickenPortraits)
+local GIFT_BOX="rbxassetid://85740083144452" -- assets/free-gift-20261016 gift-box.png
 Controller.Assets={
-	-- The gift chicken's own portrait fronts the HUD button and header.
-	Gift=Portraits[Config.FreeGift.Species] or "rbxassetid://85740083144452",
+	-- October 23 (Stevin): the HUD button shows the chunky gift box, not the chicken;
+	-- the chicken is revealed in the popup's reward card.
+	Gift=GIFT_BOX,
 	Like="rbxassetid://123763953639040",
 	Group="rbxassetid://109146933804070",
 }
@@ -26,17 +26,18 @@ Controller.Assets={
 -- the gift box and the red X; a "YOUR REWARD:" card with the gift chicken over rays
 -- and its name; numbered task rows ("1. Like the game  Like!", "2. Join the group
 -- Join!") that turn into a green check when done; a white Claim! that asks the server.
--- The reference window is 455 px wide; ours has two rows, so it is 0.95:1.
+-- The reference window is 455 px wide; ours has more rows, so it is 0.95:1.
 local PANEL_SIZE,PANEL_POSITION,PANEL_ASPECT=UDim2.fromScale(0.9,0.62),UDim2.fromScale(0.5,0.55),0.95
-local GIFT_BOX="rbxassetid://85740083144452" -- assets/free-gift-20261016 gift-box.png
 local ACTION=GOLD:Lerp(Color3.fromRGB(255,240,90),0.6) -- the reference's yellow "Like!" / "Join!"
 local DONE=Color3.fromRGB(112,222,98)
 local DARK_TEXT=Color3.fromRGB(26,28,32)
--- Body layout (fractions of the body): the reward card, two rows, then Claim!, whose
--- hit reaches from row 2's hit down to the window's foot (48 px on a phone).
-local CARD_Y,CARD_H=0.03,0.5
-local ROW_Y,ROW_STEP,ROW_HEIGHT=0.555,0.117,0.095
-local CLAIM_Y,CLAIM_H,CLAIM_W=0.805,0.14,0.55
+-- Body layout (fractions of the body): the reward card, three rows, then Claim!, whose
+-- hit reaches from row 3's hit down to the window's foot (48 px on a phone).
+-- October 23: the card gave room for the third row (5 minutes of play).
+local CARD_Y,CARD_H=0.03,0.42
+local ROW_Y,ROW_STEP,ROW_HEIGHT=0.47,0.112,0.092
+local ROWS=3
+local CLAIM_Y,CLAIM_H,CLAIM_W=0.82,0.14,0.55
 -- The reference's refusal banner when the group check fails.
 local GROUP_COPY="Join our group from the game page to claim this reward!"
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
@@ -52,6 +53,27 @@ end
 function Controller.new(app)
 	Audio=app.audio
 	return setmetatable({app=app,connections={},gift=nil,checking=false},Controller)
+end
+
+local function clock(seconds: number): string
+	seconds=math.max(0,math.floor(seconds))
+	return string.format("%d:%02d",seconds//60,seconds%60)
+end
+
+-- October 23 (Stevin): the free chicken also needs 5 minutes of total playtime. The
+-- server sends the total at its time `playedAt`; this counts on from it between packets.
+function Controller:Played(): (number, number)
+	local gift=self.gift
+	if type(gift)~="table" then return 0,0 end
+	local minimum=tonumber(gift.minPlaySeconds) or 0
+	local base,at=tonumber(gift.playSeconds),tonumber(gift.playedAt)
+	if not base or not at then return minimum,minimum end -- Older servers: no time requirement.
+	return base+math.max(0,workspace:GetServerTimeNow()-at),minimum
+end
+
+function Controller:PlayRemaining(): number
+	local played,minimum=self:Played()
+	return math.max(0,math.ceil(minimum-played))
 end
 
 -- state.freeGift is optional (older servers send none).
@@ -94,13 +116,20 @@ end
 -- A done task swaps its yellow action for a green check (popping when it just changed).
 function Controller:RefreshRows(celebrate: boolean)
 	for key,row in self.rows or {} do
-		local done=self.claimedShown==true or (if key=="Like" then self.liked==true else self.joined==true)
+		local done=self.claimedShown==true or (if key=="Like" then self.liked==true
+			elseif key=="Play" then self:PlayRemaining()<=0 else self.joined==true)
 		if row.done~=done then
 			row.done=done
 			row.action.Visible,row.check.Visible=not done,done
 			row.button.Active=not done
 			if done and celebrate then Theme.Motion:Punch(row.check,1.4,0.3) end
 		end
+	end
+	-- The play row tracks the time so far ("2:13/5:00") until it turns into a check.
+	local play=self.rows and self.rows.Play
+	if play and not play.done then
+		local played,minimum=self:Played()
+		play.action.Text=clock(math.min(played,minimum)).."/"..clock(minimum)
 	end
 end
 
@@ -136,6 +165,7 @@ function Controller:Dismiss(immediate)
 		if self.gui~=gui then return end
 		self.gui,self.panel,self.closing,self.claimedShown=nil,nil,false,false
 		self.main,self.claim,self.claimed,self.rows=nil,nil,nil,nil
+		self.ticking=nil
 		gui:Destroy()
 	end
 	if immediate then finish();return end
@@ -235,6 +265,7 @@ function Controller:Open()
 	-- The task rows: Like is honor-system copy (Roblox has no like API); Join only
 	-- explains where to join (no in-game prompt) and turns into a check once the
 	-- player is a member.
+	local _,minimum=self:Played()
 	self.rows={
 		Like=self:Row(main,"Like","1. Like the game","Like!",ROW_Y,function()
 			self.liked=true
@@ -243,7 +274,19 @@ function Controller:Open()
 		Join=self:Row(main,"Join","2. Join the group","Join!",ROW_Y+ROW_STEP,function()
 			self.app:Notify(GROUP_COPY,true)
 		end),
+		Play=self:Row(main,"Play","3. Play for "..math.max(1,math.round(minimum/60)).." minutes","",ROW_Y+ROW_STEP*2,function()
+			self.app:Notify("Keep playing! Your free chicken unlocks in "..clock(self:PlayRemaining())..".",true)
+		end),
 	}
+	-- Tick the play row once a second while the popup is open; it checks itself at 5:00.
+	self.ticking=gui
+	task.spawn(function()
+		while self.ticking==gui do
+			task.wait(1)
+			if self.ticking~=gui or self.gui~=gui then break end
+			self:RefreshRows(true)
+		end
+	end)
 	local groupId=self.gift.groupId
 	local player=game:GetService("Players").LocalPlayer
 	if player and type(groupId)=="number" and not self.joined then
@@ -264,6 +307,14 @@ function Controller:Open()
 	Theme.HeaderClose(header,close,3.6):SetAttribute("ClickSound",false)
 	local claim=Theme.ActionButton(actions,"Claim","Claim!",function()
 		if self.checking or self.claimedShown then return end
+		-- Not 5 minutes yet: say how long is left (no server lookup).
+		local remaining=self:PlayRemaining()
+		if remaining>0 then
+			Theme.Motion:Shake(self.claim.Visual,6)
+			if self.rows and self.rows.Play then Theme.Motion:Punch(self.rows.Play.action,1.2,0.3) end
+			app:Notify("Keep playing! Your free chicken unlocks in "..clock(remaining)..".",false)
+			return
+		end
 		self.checking=true
 		self:RefreshClaim()
 		app:Request("ClaimFreeGift")
@@ -274,8 +325,8 @@ function Controller:Open()
 	claim.Visual.Caption.TextScaled=true
 	claim.Visual.Caption.TextShadow.Visible=false
 	claim.Visual.Caption.TextFace.TextOutline.Color=Color3.new(1,1,1)
-	-- The hit grows up to row 2's hit and down to the window's foot, never past them.
-	local above=CLAIM_Y-(ROW_Y+ROW_STEP*1.5+ROW_HEIGHT/2)
+	-- The hit grows up to the last row's hit and down to the window's foot, never past them.
+	local above=CLAIM_Y-(ROW_Y+ROW_STEP*(ROWS-0.5)+ROW_HEIGHT/2)
 	local below=1-CLAIM_Y-CLAIM_H
 	Theme.PadHit(claim,1.05,(above+CLAIM_H+below)/CLAIM_H,0.5,above/(above+below))
 	self.claim=claim

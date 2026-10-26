@@ -105,6 +105,8 @@ function Panel:BuildButton()
 	local count=Theme.Label(badge,"Count","",28,WHITE)
 	count.AnchorPoint,count.Position,count.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.8,0.8)
 	count.TextScaled,count.ZIndex,count.TextXAlignment=true,34,Enum.TextXAlignment.Center
+	-- October 23: pings now and then like the HUD's other red badges.
+	Theme.Motion:Ping(badge,1.6)
 	Theme.Motion:BindButton(button,icon)
 	button.Activated:Connect(function() self:Toggle() end)
 	local function place()

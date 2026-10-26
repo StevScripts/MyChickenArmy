@@ -65,7 +65,7 @@ function Checks.Run()
   assert(granted,"Nothing granted")
   assert(s.daily.streak==1 and s.daily.lastDay==BASE_DAY and s.daily.best==1,"daily state")
   assert(granted.slot==1 and granted.streak==1 and granted.day==BASE_DAY and granted.rolls==0,"grant fields")
-  assert(granted.cash==Daily.MinIncome*5*60,"Slot 1 cash "..tostring(granted.cash))
+  assert(granted.cash==Daily.MinCoins,"Slot 1 cash "..tostring(granted.cash))
   assert(s.coins==coins+granted.cash,"Coins not credited")
   assert(s.dailyGranted==granted and s.revision>revision and server.updates==1,"Touch/UpdateSession")
   assert(server.counts["daily.claim.1"]==1 and server.counts["daily.reset"]==nil,"claim analytics")
@@ -129,7 +129,7 @@ function Checks.Run()
   coins=s.coins
   local day7=Daily.Check(s,at(6),server)
   assert(day7 and day7.slot==7 and day7.rolls==3,"Day 7 grant")
-  assert(day7.cash==Daily.MinIncome*60*60 and s.coins==coins+day7.cash,"Day 7 cash")
+  assert(day7.cash==math.max(math.floor(Daily.SteadyIncome(s)*15*60),Daily.MinCoins) and s.coins==coins+day7.cash,"Day 7 cash")
   assert(s.hillRollCredits==6,"Day 7 rolls")
   assert((s.crateCredits or 0)==0,"Galaxy Crate credits granted")
   -- HillService turns the credits into recruits while the flock has room.
@@ -138,22 +138,22 @@ function Checks.Run()
   assert(#granted==6 and s:Count()==count+6 and s.hillRollCredits==0,"Credits were not delivered")
  end)
 
- test("Cash scales with income, uses the $10/s floor and respects the cap",function()
+ test("Cash scales with income, uses the 60-Coin floor and respects the cap",function()
   local s,server=newSession(-966),stubServer()
   strongFlock(s)
   local rate=perSecond(s)
   assert(rate>Daily.MinIncome,"Fixture income too small: "..rate)
   local coins=s.coins
   local granted=Daily.Check(s,at(0),server)
-  assert(granted and granted.cash==math.floor(rate*300),"Income cash "..tostring(granted and granted.cash))
+  assert(granted and granted.cash==math.floor(rate*30),"Income cash "..tostring(granted and granted.cash))
   assert(s.coins==coins+granted.cash)
   -- 2x Cash doubles the income figure (daily itself is never doubled again).
   local doubled=newSession(-967);strongFlock(doubled);doubled.entitlements.DoubleCash=true
   local cash2=Daily.Check(doubled,at(0),stubServer()).cash
   assert(math.abs(cash2-2*granted.cash)<=1,"2x Cash "..cash2.." vs "..granted.cash)
-  -- Floor: an empty flock still earns $10/s worth.
+  -- Floor: an empty flock still earns the 60-Coin minimum (October 23).
   local poor=newSession(-968);emptyFlock(poor)
-  assert(Daily.Check(poor,at(0),stubServer()).cash==3000)
+  assert(Daily.Check(poor,at(0),stubServer()).cash==Daily.MinCoins)
   -- Near the cap: only what fits is credited, never above MaxCoins.
   local rich=newSession(-969);strongFlock(rich);rich.coins=Currency.MaxCoins-100
   local capped=Daily.Check(rich,at(0),stubServer())

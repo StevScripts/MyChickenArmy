@@ -8,6 +8,8 @@ ChickenClipPlayer.__index = ChickenClipPlayer
 local registered = {}
 local priorities = {Idle = Enum.AnimationPriority.Idle, Walk = Enum.AnimationPriority.Movement,
 	Attack = Enum.AnimationPriority.Action, Hit = Enum.AnimationPriority.Action2, Victory = Enum.AnimationPriority.Action}
+-- October 25: conquering actions (attributes ActionSerial / Action) reuse authored clips.
+local ACTION_CLIPS: {[string]: string} = {Peck = "Attack", Hop = "Victory"}
 
 local function clipIds(species, scale)
 	local key = species .. "/" .. string.format("%.4f", scale)
@@ -53,7 +55,8 @@ end
 function ChickenClipPlayer.new(model)
 	return setmetatable({model = model, tracks = {}, ready = false, retryAt = 0,
 		serials = {AttackSerial = model:GetAttribute("AttackSerial") or 0,
-			HitSerial = model:GetAttribute("HitSerial") or 0, VictorySerial = model:GetAttribute("VictorySerial") or 0},
+			HitSerial = model:GetAttribute("HitSerial") or 0, VictorySerial = model:GetAttribute("VictorySerial") or 0,
+			ActionSerial = model:GetAttribute("ActionSerial") or 0},
 		base = nil, sleeping = false}, ChickenClipPlayer)
 end
 
@@ -123,6 +126,14 @@ function ChickenClipPlayer:Step(now, reduced)
 				if age>0 and track.Length>0 then track.TimePosition=math.min(age,track.Length) end
 			end
 		end
+	end
+	local actionSerial = model:GetAttribute("ActionSerial") or 0
+	if actionSerial ~= self.serials.ActionSerial then
+		self.serials.ActionSerial = actionSerial
+		local action = model:GetAttribute("Action")
+		local clip = if typeof(action) == "string" then ACTION_CLIPS[action] else nil
+		local track = if clip then self.tracks[clip] else nil
+		if track then track:Play(0.035) end
 	end
 	local localAttack = model:GetAttribute("LocalAttackAt")
 	if model:GetAttribute("AttackSerial") == nil and localAttack and localAttack ~= self.localAttack then self.localAttack = localAttack; self.tracks.Attack:Play(0.045) end

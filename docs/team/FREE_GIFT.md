@@ -23,3 +23,13 @@ Owner request: like the game + join the group = one free chicken, once per profi
   Join card and a failed claim both show "Join our group from the game page to claim
   this reward!"; the server still verifies membership on Claim, and a member's Join row
   starts checked.
+- **Gift box and 5 minutes of play (October 23, Stevin):** the HUD button shows the chunky
+  gift box (`gift-box.png`, rbxassetid://85740083144452) instead of the chicken, 1.2x
+  bigger (`FreeGiftCorner` 0.0984 x 0.192 at y 0.3); the chicken is revealed only in the
+  popup's reward card. The claim also needs `Config.FreeGift.MinPlaySeconds` (300) of
+  total playtime. `PlayerSession.playSeconds` is a saved, additive total of earlier visits
+  (missing or bad = 0, never rejects a save); `PlayerSession:PlaySeconds()` adds this
+  visit's Playtime clock. The snapshot sends `minPlaySeconds`, `playSeconds` and the
+  server time `playedAt`; the popup's third row "3. Play for 5 minutes" counts on
+  ("2:13/5:00") once a second and turns into a check at 5:00. An early Claim! shakes and
+  says how long is left without asking the server; `FreeGiftService.Claim` refuses it too.

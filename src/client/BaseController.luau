@@ -140,9 +140,12 @@ end
 
 -- Snapshot-only guidance is shared by the small HUD line and destination beacon.
 -- It never blocks a purchase, roll or early deployment.
-function BaseController.OpeningGuidance(state)
- local guide=require(game.ReplicatedStorage.PetRoll.Shared.TutorialGuide).Resolve(state)
+-- October 23: `skip` is the Commander's dismissed tip cards, so the beacon follows the
+-- tip the card shows (the Cluck Camp tip's beam; menu tips have no world target).
+function BaseController.OpeningGuidance(state, skip: {[string]: boolean}?): {target: any, text: any, id: any}?
+ local guide=require(game.ReplicatedStorage.PetRoll.Shared.TutorialGuide).Resolve(state,nil,skip)
  if not guide or guide.id=="Complete" then return nil end
+ if guide.target=="Rebirth" or guide.target=="Gems" then return nil end
  return {target=guide.target,text=guide.text,id=guide.id}
 end
 
@@ -224,6 +227,12 @@ function BaseController:RollPromptChoice(station)
 			local value=distance(podium)
 			if value<best then nearest,best=candidate,value end
 		end
+	end
+	-- October 25: during the tutorial the server holds the lever while an affordable
+	-- chicken waits (RollStation TutorialHold), so E always takes that chicken.
+	if primary:GetAttribute("TutorialHold")==true then
+		self.rollPromptPlot,self.rollPromptChoice=plot,"BuyPrompt"
+		return if station==primary then "BuyPrompt" else nil
 	end
 	local rollDistance=distance(lever)
 	local choice=if rollDistance<=best then "RollPrompt" else "BuyPrompt"
@@ -570,7 +579,8 @@ function BaseController:UpdateObjective()
   self.objective,self.objectiveCaption=gui,label
  end
  local target
- local guidance=BaseController.OpeningGuidance(state)
+ local commander=self.app.commander
+ local guidance=BaseController.OpeningGuidance(state,commander and commander.tipSkip)
  local plot=world:FindFirstChild("Plot"..state.plotIndex)
  local lane=world:FindFirstChild("Lane"..state.plotIndex)
  if guidance then
@@ -612,13 +622,16 @@ function BaseController:UpdateObjective()
   waiting=site and site.PrimaryPart and site.PrimaryPart:FindFirstChild("Marker")
   if waiting then target=waiting end
  end
+ -- October 24: card 7 ("Pull the lever again!") points at the lever even with a chicken
+ -- waiting on the podium; buying it is the player's call.
+ local lever=guidance~=nil and guidance.id=="RollAgain"
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
-  elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
+  elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer and not lever then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
  self.objective.Adornee=anchor
  local waitLeft=waiting and tracker and tracker:Remaining(nextMission.id)
  self.objectiveCaption.Text=if waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
-  elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer then "BUY CHICKEN" else "ROLL")
+  elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer and not lever then "BUY CHICKEN" else "ROLL")
   elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
  -- Pop on a new goal only; the ticking countdown digits are ignored.
  local captionKey=self.objectiveCaption.Text:gsub("[%d:]","")

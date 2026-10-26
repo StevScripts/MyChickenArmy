@@ -29,7 +29,7 @@
 --     boost, no passes or Robux (free player), no daily rewards, no Friend Boost.
 --     Playtime Rewards (S16): play comes in visits of visitMinutes (fast 120, casual
 --     60), and each visit claims all twelve tiles, since the clock restarts every join.
---     Coins tiles pay minutes of steady income (DailyService.CashFor); the Luck and
+--     Coins tiles pay minutes of income (DailyService.Income, as PlaytimeService prices them); the Luck and
 --     Coins boosts run on the simulation clock; the Free Rolls draw like a lever pull.
 --  2. Coarse ticks (default 15 s); eggs accrue in closed form. The fast player clicks
 --     every egg and sells every 60 s (clicking is unlimited, so the hand vacuum is a
@@ -637,8 +637,8 @@ local function rollAndBuy(state,ctx,now)
 		local at=state.nextRollAt
 		state.nextRollAt+=every
 		pulls+=1
-		-- Opening: Army Size 4 first, then the guaranteed starter recruit (both earmarked).
-		if s:StarterRecruitPending() and s.capacity<4 then buyNode(state,"ArmySize",1) end
+		-- Opening (October 23 empty start): the first lever pull gives the first chicken
+		-- (the starter roll); nothing is earmarked any more (see `tutorial` below).
 		if at>=s.rollReadyAt and state.rolls:Roll(s,at) then
 			state.stats.rolls+=1
 			judgeOffers(state,ctx,s.rollRevealAt+0.01)
@@ -647,9 +647,47 @@ local function rollAndBuy(state,ctx,now)
 	if state.nextRollAt<now then state.nextRollAt=now end
 end
 
+-- October 23 empty start: the seven-card tutorial ends with Flock Size I (10 Coins) and a second pull once
+-- the first chicken lays; TutorialService completes the guide there, which opens
+-- Rebirth 0, the tips and the daily streak. The sim buys it as soon as the Coins are
+-- in hand and marks the guide complete ("Tutorial" milestone).
+local function tutorial(state,now)
+	local s=state.session
+	if s.tutorial.guideCompleted or s:Count()<1 then return end
+	if Tree.Tier(s.upgradeTree,"Flock")<1 then buyNode(state,"Flock",1) end
+	-- October 25: the guide also recruits the second Chicken (rollAndBuy buys the 150-Coin
+	-- offer), so it completes with two chickens.
+	if Tree.Tier(s.upgradeTree,"Flock")<1 or s:Count()<2 then return end
+	local t=s.tutorial
+	t.rolled,t.bought,t.soldEggs,t.collectedEggCount,t.startClaimed,t.rollCount=true,true,true,3,true,2
+	t.eggsAtComplete=3
+	t.coreDone,t.guideCompleted=true,true
+	mark(state,"Tutorial",now)
+end
+
 local function tryRebirth(state,now)
 	local s,options=state.session,state.options
 	if s.rebirths>=options.targetRank or state.deploy then return end
+	-- October 23: Rebirth 0 (1,700 Coins, +30 Gems, x1.5 eggs) comes before the ladder, as
+	-- soon as the tutorial is done and the Coins are there (the player is prompted).
+	if Rebirth.IntroPending(s) then
+		local intro=Config.Rebirth.Intro or {}
+		local introCost=intro.Cost or 1700
+		if s.coins<introCost and s.coins+s:EarnedAmount(state.bag*rushFactor(state,now),"eggs")>=introCost then deposit(state,now) end
+		if not Rebirth.Quote(s).eligible then return end
+		local before=s.coins
+		local ok,_,receipt=Rebirth.RebirthIntro(s,nil)
+		if not ok then return end
+		table.clear(state.flags)
+		s.territoryBonus=0
+		state.bag=0
+		state.stats.gemsEarned+=receipt.gems
+		spendGems(state,now)
+		state.milestones.Rebirth0={minutes=now/60,played=state.played/60,coins=before,income=cashRate(s),
+			power=armyPower(s),flock=s:Count(),rank=0,cost=introCost,eggs=state.peakEggs,timeSkip=0,earned=earnedSoFar(state)}
+		state.peakEggs=0
+		return
+	end
 	local cost=Rebirth.Cost(s.rebirths+1)
 	if not cost then return end
 	-- Sell the bag first when that makes the rank affordable.
@@ -699,7 +737,9 @@ local function playtime(state,now)
 		if not state.claimed[index] and now-start>=tile.at*60 then
 			state.claimed[index]=true
 			if tile.kind=="Coins" then
-				local coins=DailyService.CashFor(s,tile.coinMinutes or 0)
+				-- As PlaytimeService.lockedCoins prices a tile when it unlocks: minutes of
+				-- DailyService.Income (floored at MinIncome), not CashFor's MinCoins floor.
+				local coins=math.floor(DailyService.Income(s)*(tile.coinMinutes or 0)*60)
 				if coins>0 then state.stats.playtimeCash+=s:Credit(coins,"playtime") end
 			elseif tile.kind=="Boost" then
 				local kind,seconds=tile.boost or "Luck",(tile.minutes or 0)*60
@@ -789,10 +829,11 @@ local function runOnce(seed,options)
 				eggSpeed=Tree.Tier(s.upgradeTree,"EggSpeed"),eggValue=Tree.Tier(s.upgradeTree,"EggValue"),
 				flock=s:FlockSize(),levels=table.concat(levels,",")})
 		end
-		for _,minutes in {10,30,60,120,180} do -- minutes played (wall clock when continuous)
+		for _,minutes in {2,5,10,30,60,120,180} do -- minutes played (wall clock when continuous)
 			if state.played>=minutes*60 and not state.milestones["Min"..minutes] then mark(state,"Min"..minutes,now) end
 		end
 		if state.deploy and now>=state.deploy.returnAt then resolve(state,now) end
+		tutorial(state,now)
 		tryRebirth(state,now)
 		local ctx=context(state)
 		spend(state,ctx)
@@ -813,11 +854,14 @@ local function median(values)
 end
 
 local ROWS={
+	{"Tutorial","Tutorial done","~1 min"},
+	{"Min2","At 2 min",nil},{"Min5","At 5 min",nil},
 	{"Min10","At 10 min",nil},{"Min30","At 30 min",nil},{"Min60","At 60 min",nil},{"Min120","At 2 h",nil},
 	{"FirstCamp","First camp",nil},{"AllCamps","All 3 camps",nil},{"King","First King clear",nil},
 	{"Invasion","First Mission",nil},
 	-- Targets: the October 21 fits (REBIRTH_PACING_20261021.md; reference parity §2.5).
-	{"Rebirth1","Rebirth 1","~10 min"},{"Rebirth2","Rebirth 2","~18-20 min"},{"Rebirth3","Rebirth 3",nil},
+	-- October 23 empty start: Rebirth 0 at about two minutes, like the reference.
+	{"Rebirth0","Rebirth 0","~2 min"},{"Rebirth1","Rebirth 1","~10 min"},{"Rebirth2","Rebirth 2","~18-20 min"},{"Rebirth3","Rebirth 3",nil},
 	{"Rebirth5","Rebirth 5","~55 min"},{"Rebirth7","Rebirth 7",nil},{"Rebirth10","Rebirth 10","~2.9 h"},
 	{"Rebirth12","Rebirth 12",nil},{"Rebirth15","Rebirth 15",nil},{"Rebirth20","Rebirth 20","~11 h"},
 	{"Rebirth25","Rebirth 25",nil},{"Rebirth30","Rebirth 30","~21 h"},

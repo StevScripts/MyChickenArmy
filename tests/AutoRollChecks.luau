@@ -15,6 +15,8 @@ local RAREST=1-1e-8 -- The last chicken Rules.Draw can reach; no mutation draw p
 -- A finished-guide session with the Auto Roll Gem Upgrade, three podiums and a fixed draw.
 local function fixture(userId, draw, tree)
 	local session=Session.new(userId,"Auto Roll fixture",1)
+	-- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+	for _=1,3 do session:AddPet("Duck",1).investment=0 end
 	session.loaded=true
 	session.tutorial.bought,session.tutorial.guideCompleted=true,true
 	session.gemUpgrades={AutoRoll=1}

@@ -7,6 +7,11 @@
 -- without the Coins and resets nothing.
 -- October 23 (Stevin: "no extra time skip coins ... no matter what"): Coins stay 0
 -- after a Rebirth. Time Skip is removed: no Coins, no claim, no Gem card.
+-- October 23 empty start (Stevin, like Drop a Fruit's "Rebirth LVL 0"): new profiles
+-- (session.introRebirth == "pending") get one Rebirth 0 after the tutorial for
+-- Config.Rebirth.Intro.Cost Coins: the same reset without a rank, Intro.Gems Gems and
+-- x Intro.Multiplier egg income while the rank is 0 (IntroMultiplier). Saves from
+-- before it (introRebirth nil) never see it.
 -- Every number is Config.Rebirth. PlayerSession and BattleService require this
 -- module, so it must never require either of them.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
@@ -58,6 +63,35 @@ function RebirthService.Multiplier(rank: number): number
 	local late = math.max(0, r - math.max(to, 0))
 	return math.floor((1 + rules.EggBonusPerRank * r) * (rules.EggBoostPerRank or 1) ^ boosted
 		* (rules.EggLateGrowthPerRank or 1) ^ late + 0.5)
+end
+
+-- October 23 Rebirth 0: still to take (a new profile at rank 0 that has not taken it).
+function RebirthService.IntroPending(session: any): boolean
+	local intro = settings().Intro
+	return intro ~= nil and intro.Enabled == true and session.introRebirth == "pending"
+		and clampRank(session.rebirths) == 0
+end
+
+-- The Rebirth 0 egg income factor: Intro.Multiplier once it is taken, while the rank
+-- is 0 (Rebirth 1's x2 replaces it); 1 otherwise. Separate from Multiplier(rank), which
+-- stays a whole number (Multiplier(0) == 1).
+function RebirthService.IntroMultiplier(session: any): number
+	local intro = settings().Intro
+	if intro and session.introRebirth == "done" and clampRank(session.rebirths) == 0 then
+		local multiplier = intro.Multiplier
+		if type(multiplier) == "number" and multiplier == multiplier and multiplier >= 1 and multiplier < math.huge then
+			return multiplier
+		end
+	end
+	return 1
+end
+
+-- The guide is complete (TutorialService sets both with the last lesson). A skipped
+-- guide counts too, so a player who skipped it is never locked out of Rebirth.
+local function tutorialDone(session: any): boolean
+	local tutorial = session.tutorial
+	return type(tutorial) == "table"
+		and (tutorial.guideCompleted == true or tutorial.coreDone == true or tutorial.guideSkipped == true)
 end
 
 -- One scale for camp and King health and damage, by the attacker's rank: x1
@@ -158,8 +192,58 @@ local function manifest(session)
 	return resets, keeps
 end
 
+-- October 23 Rebirth 0's quote (IntroPending): rank and next rank 0, no chicken to find,
+-- no Skip. Not eligible until the tutorial is complete; the request is RebirthIntro.
+local function introQuote(session: any): any
+	local rules = settings()
+	local intro = rules.Intro
+	local cost: number = intro.Cost
+	local coins = session.coins or 0
+	local home = armyHome(session)
+	local reason: string?
+	if not tutorialDone(session) then reason = "Finish the tutorial first"
+	elseif coins < cost then
+		local short = math.ceil(cost - coins)
+		reason = "Need " .. Currency.Grouped(short) .. " more " .. (if short == 1 then "Coin" else "Coins")
+	elseif not home then reason = ARMY_AWAY
+	end
+	local effects: any = session.researchEffects or {}
+	local resets, keeps = manifest(session)
+	return {
+		version = 2,
+		intro = true,
+		enabled = rules.Enabled == true,
+		rank = 0,
+		maxRank = rules.MaxRank,
+		nextRank = 0,
+		title = "Rebirth 0",
+		nextTitle = "Rebirth 0",
+		cost = cost,
+		coins = coins,
+		kingCleared = session.kingCleared == true,
+		kingRequired = false,
+		cashLevels = feedLevels(session),
+		unlockNext = nil,
+		armyHome = home,
+		eligible = reason == nil,
+		reason = reason,
+		multiplierNow = 1,
+		multiplierNext = intro.Multiplier,
+		enemyScaleNext = RebirthService.EnemyScale(0),
+		gemsNext = intro.Gems,
+		nextChicken = nil,
+		find = nil,
+		keepTiers = effects.keepTiers or 0,
+		resets = resets,
+		keeps = keeps,
+		skip = nil,
+		autoRebirth = {owned = (effects.autoRebirth or 0) >= 1, enabled = session.autoRebirth == true},
+	}
+end
+
 -- Cheap and server-free: it is part of every snapshot. GameServer adds missionRunning.
 function RebirthService.Quote(session)
+	if RebirthService.IntroPending(session) then return introQuote(session) end
 	local rules = settings()
 	local rank = clampRank(session.rebirths)
 	local nextRank = if rank < rules.MaxRank then rank + 1 else nil
@@ -188,7 +272,8 @@ function RebirthService.Quote(session)
 		rank = rank,
 		maxRank = rules.MaxRank,
 		nextRank = nextRank,
-		title = RebirthService.Title(rank),
+		-- After Rebirth 0 the rank is still 0, but it reads "Rebirth 0" at x1.5.
+		title = if rank == 0 and session.introRebirth == "done" then "Rebirth 0" else RebirthService.Title(rank),
 		nextTitle = if nextRank then RebirthService.Title(nextRank) else nil,
 		cost = cost,
 		coins = coins,
@@ -200,7 +285,7 @@ function RebirthService.Quote(session)
 		armyHome = home,
 		eligible = reason == nil,
 		reason = reason,
-		multiplierNow = RebirthService.Multiplier(rank),
+		multiplierNow = RebirthService.Multiplier(rank) * RebirthService.IntroMultiplier(session),
 		multiplierNext = if nextRank then RebirthService.Multiplier(nextRank) else nil,
 		enemyScaleNext = if nextRank then RebirthService.EnemyScale(nextRank) else nil,
 		gemsNext = if nextRank then RebirthService.Gems(session, nextRank) else nil,
@@ -308,6 +393,9 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 	if not session or not session.loaded or session.closing or session.saveLost or session.dataReleasing then
 		return false, "Your flock is not ready yet."
 	end
+	-- October 23: Rebirth 0 comes before Rebirth 1 (its own request, RebirthIntro); a
+	-- Skip credit or Auto Rebirth never passes over it.
+	if RebirthService.IntroPending(session) then return false, "Rebirth 0 comes first." end
 	-- 2. A double tap or stale panel can't rebirth twice.
 	if expectedRank ~= session.rebirths then return false, "Your Rebirth changed. Try again." end
 	local skip = useSkip == true
@@ -373,10 +461,66 @@ function RebirthService.Rebirth(session, expectedRank, server, useSkip: boolean?
 		{rank = nextRank, gems = gems, skip = skip, automatic = automatic == true}
 end
 
+-- October 23 Rebirth 0 (request RebirthIntro). Refused unless it is pending, the
+-- tutorial is complete, the Coins are on hand and no battle or Mission holds the army.
+-- The same reset as a Rebirth (Coins to 0, the tree except Keep Upgrades and
+-- mutationKeep, Feed levels, carried eggs, Gold roll counts, camps released, yard eggs
+-- settled) without changing the rank; then introRebirth = "done" and Intro.Gems Gems.
+-- Returns ok, message and (on success) a receipt {rank = 0, gems, intro = true}.
+function RebirthService.RebirthIntro(session: any, server: any): (boolean, string, any?)
+	if not session or not session.loaded or session.closing or session.saveLost or session.dataReleasing then
+		return false, "Your flock is not ready yet."
+	end
+	if not RebirthService.IntroPending(session) then
+		return false, if session.introRebirth == "done" then "Rebirth 0 is already done." else "Rebirth 0 isn't available."
+	end
+	local intro = settings().Intro
+	local quote = RebirthService.Quote(session)
+	if not quote.eligible then
+		if quote.reason == ARMY_AWAY and operationRunning(session, server) then return false, MISSION end
+		return false, quote.reason or "You can't rebirth right now."
+	end
+	if operationRunning(session, server) then return false, MISSION end
+	if session.defending ~= nil or battleInvolves(session, server) then return false, ARMY_AWAY end
+	releaseTerritories(session, server)
+	-- Settle yard eggs into the bag, then empty it (as a Rebirth does).
+	local eggs = server and server.eggs
+	if eggs and eggs.Release then eggs:Release(session) end
+	-- The reset. No yields from here to the save request.
+	session.upgradeTree = keptTree(session)
+	session.coins = 0
+	resetFeedLevels(session)
+	session.eggCarry = {count = 0, value = 0}
+	session.vacuumCargo = {count = 0, value = 0}
+	session.goldRolls = {count = 0}
+	session.introRebirth = "done"
+	session:RefreshEffects()
+	local gems = math.max(0, math.floor(tonumber(intro.Gems) or 0))
+	session.gems = math.min(1e12, (session.gems or 0) + gems)
+	session.gemsEarned = math.min(1e12, (session.gemsEarned or 0) + gems)
+	-- The checkpoint at the new rate (x Intro.Multiplier); DataService rewrites it on save.
+	session.offlineCash = OfflineCash.Checkpoint(session, os.time())
+	session:RefreshArmy()
+	session:Touch()
+	requestSave(server, session)
+	-- Observation only.
+	local analytics: any = server and server.analytics
+	if analytics then
+		analytics:LaunchCount(session, "rebirth0.count")
+		if gems > 0 then
+			analytics:LaunchCount(session, "gems.earned", gems)
+			if analytics.Gems then analytics:Gems(session, "Source", gems, "Rebirth0") end
+		end
+	end
+	return true, "Rebirth complete: Rebirth 0", {rank = 0, gems = gems, intro = true, skip = false, automatic = false}
+end
+
 -- Server step (GameServer, about once a second): a waiting Skip credit rebirths as
 -- soon as the army is home; Auto Rebirth rebirths as soon as the quote is eligible.
+-- October 23: neither passes over a pending Rebirth 0 (RebirthIntro is the player's).
 function RebirthService.Step(session, server): (boolean, string?, any?)
 	if not session.loaded or session.closing or session.saveLost or session.dataReleasing then return false end
+	if RebirthService.IntroPending(session) then return false end
 	if not armyHome(session) or session.defending ~= nil or operationRunning(session, server)
 		or battleInvolves(session, server) then return false end
 	if (session.rebirthSkips or 0) > 0 and clampRank(session.rebirths) < settings().MaxRank then

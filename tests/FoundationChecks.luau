@@ -65,6 +65,8 @@ function Checks.Run()
 
  test("Junk launch values load as defaults and keep every chicken",function()
   local base=Session.new(-953,"Junk",1)
+  -- October 23 empty start: a new profile has no chickens; the junk mutations need two.
+  base:AddPet("Duck",1);base:AddPet("Duck",1)
   local data=base:ToData()
   local count=#data.pets
   for _,junk in {-3,"x",1.5,0/0,math.huge,{}} do
@@ -114,10 +116,12 @@ function Checks.Run()
 
  test("Without mutations, income and offline rate match main",function()
   local s=baselineSession()
-  near(s:Income(),1062,"Income")
-  near(s:DisplayedPetIncome("Knight",1,3),835.1999999999999,"Displayed income")
-  near(Offline.Rate(s),30.798,"Offline rate")
-  near(s:Snapshot(0).income,1539.8999999999999,"Snapshot income")
+  -- Re-pinned October 23: the October 22 per-chicken odds retune (valueOneIn incomes)
+  -- moved every number; the mutation-neutral relations below are what this guards.
+  near(s:Income(),1011.52,"Income")
+  near(s:DisplayedPetIncome("Knight",1,3),983,"Displayed income")
+  near(Offline.Rate(s),202.304,"Offline rate")
+  near(s:Snapshot(0).income,2023.04,"Snapshot income")
   assert(Rebirth.Multiplier(0)==1,"Rank 0 multiplier")
   near(s:EarnedAmount(100,"eggs"),100,"EarnedAmount")
  end)
@@ -133,13 +137,16 @@ function Checks.Run()
   assert(ok,why)
   local offers={}
   for i,o in s.offers do offers[i]=o.species..":"..o.level..":"..o.price;assert(o.mutation==nil) end
-  assert(table.concat(offers,",")=="Duck:1:2400,Viking:1:33600,Bee:1:9600,Penguin:1:4800","Offers: "..table.concat(offers,","))
+  -- October 22 roll pool and October 23 empty start: the basic Chicken costs 150 Coins.
+  assert(table.concat(offers,",")=="Duck:1:150,Cardboard:1:2100,Duck:1:150,RubberDucky:1:2000","Offers: "..table.concat(offers,","))
  end)
 
  test("With neutral stubs, camp and King power match main",function()
   local camps={}
   for i=1,3 do camps[i]=Rules.Power(Progression.Roster(1,i)) end
-  assert(table.concat(camps,",")=="38,106,192")
+  -- October 23 empty start: Cluck Camp is one basic Chicken (power 12), so three rolled
+  -- chickens read "Should win"; Fort Roost and Hen House are unchanged.
+  assert(table.concat(camps,",")=="12,106,192","Camps "..table.concat(camps,","))
   local k=King.Definition(4)
   assert(k.power==497 and k.roster[1].combatStats.hp==2800 and k.roster[1].combatStats.damage==32)
   local same=King.Definition(4,Rebirth.EnemyScale(0))

@@ -17,14 +17,22 @@ local TYPE_MAX_SECONDS = .65
 -- October 21 (Stevin, like the Drop a Fruit tutorial): the tutorial's payoff line holds
 -- this long, with confetti, before Daily Rewards may open.
 local CORE_SECONDS = 4
+-- October 23 tips: a finished chain's "TIP • COMPLETE!" line holds this long.
+local TIP_PAYOFF_SECONDS = 4
+-- The card and its pointer sit under the menus (OTHER layer, ZIndex 25/24); over the
+-- Rebirth screen (ZIndex 30) the Rebirth tip lifts both above it.
+local CARD_Z, POINTER_Z, OVER_MENU_Z = 25, 24, 32
 local TAP_WORD = {Touch="TAP!", Gamepad="R2!", Keyboard="CLICK!"}
 local Commander = {}
 Commander.__index = Commander
 
 function Commander.new(app)
-	local self = setmetatable({app=app, connections={}, sent={}, prompts={}, alive=true,wasTree=false,wasArmy=false}, Commander)
+	-- October 23 tips: chains seen this visit, chains paid off, when each timed card first
+	-- showed, and the card ids dismissed (Guide.Resolve skips them).
+	local self = setmetatable({app=app, connections={}, sent={}, prompts={}, alive=true,wasTree=false,wasArmy=false,
+		tipSeen={}, tipPaid={}, tipShownAt={}, tipSkip={}}, Commander)
 	local root = Theme.InsetContainer(app.other, "CommanderGuide", Enum.ScreenInsets.CoreUISafeInsets)
-	root.ZIndex, root.Visible = 25, false
+	root.ZIndex, root.Visible = CARD_Z, false
 	self.root = root
 	self.pointerGuide = GuideFocus.new(app.other)
 	local card = Theme.Container(root, "Card")
@@ -38,7 +46,8 @@ function Commander.new(app)
 	self.instruction=Theme.Display(card,"Objective","",27)
 	self.instruction.Position,self.instruction.Size=UDim2.fromScale(.18,.33),UDim2.fromScale(.795,.53)
 	self.instruction.TextXAlignment=Enum.TextXAlignment.Center
-	-- "TUTORIAL • 2/5" / "TIP • 3/6" over the instruction (October 21).
+	-- "TUTORIAL • 2/7" / "TIP • 3/5" over the instruction (October 21; the count is
+	-- TutorialGuide's, seven cards since October 24).
 	self.tag=Theme.Label(card,"Step","",14,Theme.Arcade.gold)
 	self.tag.Position,self.tag.Size=UDim2.fromScale(.18,.15),UDim2.fromScale(.795,.19)
 	self.tag.TextXAlignment,self.tag.TextScaled,self.tag.ZIndex=Enum.TextXAlignment.Center,true,5
@@ -375,8 +384,23 @@ function Commander:Update()
 	if not self.ready and not blocked and character and character:FindFirstChild("HumanoidRootPart") then
 		self.ready=true;self:Signal("Ready")
 	end
-	local current=Guide.Resolve(state,self:InputKind())
+	local skip:{[string]:boolean}=self.tipSkip
+	local tutorial:any=state.tutorial or {}
+	local current=Guide.Resolve(state,self:InputKind(),skip)
+	-- October 23: a timed tip card (the Gem Upgrade card) leaves after its seconds on
+	-- screen; its chain ends there for this visit (a payoff follows if it was seen).
+	if current and current.seconds and self.tipShownAt[current.id]
+		and os.clock()-self.tipShownAt[current.id]>=current.seconds then
+		self.tipSkip[current.id]=true;skip[current.id]=true
+		current=Guide.Resolve(state,self:InputKind(),skip)
+	end
 	if self.completedBeforeVisit and current and current.id=="Complete" then current=nil end
+	-- A tip means the completion moment is over: the completion card never comes back
+	-- (and the tutorial's guidance has ended, for the funnel's Finish).
+	if current and current.chain then
+		self.completeShown=true
+		if not self.sent.Finish and tutorial.guideCompleted==true then self.sent.Finish=true;self:Signal("Finish") end
+	end
 	-- The victory line stays eight seconds, then the same strip carries a
 	-- snapshot-derived next goal (also for players who finished earlier).
 	if current and current.id=="Complete" then
@@ -387,26 +411,65 @@ function Commander:Update()
 		end
 	end
 	-- Later October 21 (Stevin): no instructions after the tutorial, so nothing follows
-	-- the completion card (the old quiet "Next:" goals are gone).
+	-- the completion card (the old quiet "Next:" goals are gone). October 23: tips do.
 	-- A lesson flipping to done queues the celebration until the card can show it.
 	local facts=Guide.Facts(state)
 	if self.facts and not self.completedBeforeVisit then
 		if facts.Core and not self.facts.Core then self:CelebrateCore() end
 	end
-	-- The payoff shares the Complete card's id, so the line types once and its 8 s count on.
-	if self:Celebrating() then current={id="Complete",text=self.payoff.text,tag=self.payoff.tag} end
-	self:SetArmyHidden(current~=nil and not facts.Core
-		and (state.tutorial or {}).starterArmy==true and not self.completedBeforeVisit)
-	if self.facts and current then
-		for _,milestone in Guide.Milestones do
-			if facts[milestone] and not self.facts[milestone] then self.celebrate=true end
+	-- October 23: a tip chain the player saw ends with "TIP • COMPLETE!" and its line,
+	-- once it is learned or its last (timed) card has left.
+	for _,chain in Guide.Tips do
+		if self.tipSeen[chain.id] and not self.tipPaid[chain.id] and not self:Celebrating() then
+			local ended=chain.done(facts,state)
+			for _,card in chain.cards do if card.seconds and skip[card.id] then ended=true end end
+			if ended then
+				self.tipPaid[chain.id]=true;self.celebrate=true
+				self:Payoff(chain.payoff,"TIP • COMPLETE!",TIP_PAYOFF_SECONDS)
+			end
 		end
 	end
+	-- The payoff shares the Complete card's id, so the line types once and its 8 s count on.
+	if self:Celebrating() then current={id="Complete",text=self.payoff.text,tag=self.payoff.tag} end
+	-- My Army shows again once the tutorial is complete (also an early Camp win's).
+	self:SetArmyHidden(current~=nil and not facts.Core and tutorial.guideCompleted~=true
+		and tutorial.starterArmy==true and not self.completedBeforeVisit)
+	if self.facts and current then
+		if current.chain then
+			-- A tip ticks when its chain moves to its next card (the vacuum bought, Rebirth 0 done).
+			if self.tipChain==current.chain and self.tipStep~=current.id then self.celebrate=true end
+		else
+			for _,milestone in Guide.Milestones do
+				if facts[milestone] and not self.facts[milestone] then self.celebrate=true end
+			end
+		end
+	end
+	if current and current.chain then self.tipChain,self.tipStep=current.chain,current.id end
 	self.facts=facts
 	self.current=current
+	-- October 25 (Stevin): nothing but the guide card during the tutorial
+	-- (Hud:SetTutorialStage). The Coins come in with the first money, the Upgrades button
+	-- with card 5 (claim Start), everything else once the tutorial is over. Read from the
+	-- saved facts, not the card on screen, so a hidden card never flashes the HUD in.
+	local _,lessonIndex=Guide.Progress(facts)
+	local inTutorial=not facts.Core and tutorial.guideCompleted~=true and tutorial.starterArmy==true
+		and not self.completedBeforeVisit
+	local hudStage=if not inTutorial then nil elseif lessonIndex>=5 then "upgrades"
+		elseif facts.Sell or (tonumber(state.coins) or 0)>0 then "coins" else "bare"
+	if app.hud and app.hud.SetTutorialStage then app.hud:SetTutorialStage(hudStage) end
+	-- October 24 (Stevin): the egg hint (the lit egg with its tapping hand, the Click badge
+	-- on every other ready egg) follows the shared rule TutorialGuide.EggHint: on from the
+	-- first chicken through the tutorial and the first tips until the Egg Vacuum is owned,
+	-- card or no card (EggController hides it while a menu is open). The badges name the
+	-- player's input, so a change of input restyles them.
+	local input=self:InputKind()
+	local eggHint=Guide.EggHint(state,facts)
+	if app.eggs and app.eggs.SetGuideHint and (eggHint~=self.eggHint or (eggHint and input~=self.eggHintInput)) then
+		self.eggHint,self.eggHintInput=eggHint,input
+		app.eggs:SetGuideHint(eggHint,TAP_WORD[input],input)
+	end
 	if not current then
 		self.pendingType=false;self:CancelTypewriter()
-		if self.eggHint then self.eggHint=false;app.eggs:SetGuideHint(false) end
 		self.root.Visible=false;self:ClearFocus();self:Present(false);return
 	end
 	local id=current.id
@@ -423,20 +486,27 @@ function Commander:Update()
 	-- menu, switching the Upgrades category or equipping the tool come first.
 	local character=Players.LocalPlayer.Character
 	local holdingVacuum=character~=nil and character:FindFirstChild("EggVacuum")~=nil
+	-- October 23: the Rebirth screen (Rebirth 0 tip and its Gem Upgrades card).
+	local rebirthPanel=app.rebirthPanel
+	local inRebirth=rebirthPanel~=nil and rebirthPanel.gui~=nil and not rebirthPanel.closing
 	local text=current.text
+	-- A tip numbers each of its lines; the line shown picks the number (TutorialGuide tipCard).
+	local index=current.index
 	if current.outside then
 		local open=if current.target=="Upgrades" then inTree elseif id=="Select" then inArmy
-			elseif current.target=="VacuumTool" then holdingVacuum else true
+			elseif current.target=="VacuumTool" then holdingVacuum elseif current.target=="Rebirth" then inRebirth else true
 		local node=current.node and CashNodes.Nodes[current.node]
-		if not open then text=current.outside
-		elseif current.wrongTab and inTree and node and (app.research.category or "Main")~=node.category then text=current.wrongTab end
+		if not open then text,index=current.outside,current.outsideIndex or index
+		elseif current.wrongTab and inTree and node and (app.research.category or "Main")~=node.category then
+			text,index=current.wrongTab,current.wrongTabIndex or index
+		end
 	end
 	if text~=self.lessonText then self.lessonText=text;self.pendingType=true end
-	-- The egg lesson lights the egg to click and taps it with the hand (EggController).
+	-- The egg lesson (card 3, and the collect-more step) also turns the camera to the lit
+	-- egg once (TurnToEgg); the hint itself is on longer (above).
 	local eggLesson=id=="Collect" or id=="RecoverCollect"
-	if app.eggs and app.eggs.SetGuideHint and eggLesson~=self.eggHint then
-		self.eggHint=eggLesson;app.eggs:SetGuideHint(eggLesson,TAP_WORD[self:InputKind()])
-	end
+	if eggLesson~=self.eggLesson then self.eggLesson,self.eggCharacter=eggLesson,nil end
+	if eggLesson then self:TurnToEgg(character,blocked) end
 	-- Keep menu headers and controls unobstructed; the arrow points beside their relevant control.
 	local atTarget=false
 	for prompt in self.prompts do
@@ -450,34 +520,49 @@ function Commander:Update()
 	local menuLesson=current.outside~=nil
 	local visible=(menuLesson or (not app.panel.Visible and not inTree)) and not blocked and not atTarget
 	self:SetInstruction(text,visible and self.pendingType)
-	self.tag.Text=if current.tag and current.index then current.tag.." • "..current.index.."/"..current.total
+	self.tag.Text=if current.tag and index then current.tag.." • "..index.."/"..current.total
 		elseif current.tag then current.tag elseif id=="Complete" then "TUTORIAL COMPLETE!" else ""
 	if visible then self.pendingType=false end
 	self:Present(visible,changed)
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end
+	-- October 23 tips: a chain counts as seen once one of its cards is on screen; a timed
+	-- card counts its seconds from then. The Camp tip reports itself once (CampTip).
+	if visible and current.chain then
+		self.tipSeen[current.chain]=true
+		if current.seconds and not self.tipShownAt[id] then
+			self.tipShownAt[id]=os.clock()
+			task.delay(current.seconds+.05,function() if self.alive then self:Update() end end)
+		end
+		if id=="TipAttack" and not self.sent.CampTip then self.sent.CampTip=true;self:Signal("CampTip") end
+	end
 	if inTree~=self.wasTree then
 		self.wasTree=inTree;self:Signal(if inTree then "TreeOpen" else "TreeClose")
 	end
-	-- The Flock Size I and Army Size I lessons center their hex once per tree visit,
-	-- including when the second lesson starts with the tree still open.
-	local lessonNode=if id=="Flock" or id=="Expand" then current.node else nil
+	-- An Upgrades lesson or tip (Start, Flock Size I, the Egg Vacuum) centers its hex once
+	-- per tree visit, including when the next one starts with the tree still open.
+	local lessonNode=if current.target=="Upgrades" then current.node else nil
+	local lessonView=lessonNode and CashNodes.Nodes[lessonNode]
 	if not inTree then
 		self.centered=nil
-	elseif lessonNode and self.centered~=lessonNode and app.research.nodes[lessonNode] then
+	elseif lessonNode and self.centered~=lessonNode and app.research.nodes[lessonNode]
+		and lessonView and lessonView.category==(app.research.category or "Main")
+		-- October 25 (Stevin): the plot lesson (card 6) leaves the map where it is and only
+		-- rings its hex; the map does not pan to it.
+		and current.id~="Expand" then
 		self.centered=lessonNode
 		app.research:Center(lessonNode)
 		if UserInputService.GamepadEnabled then app.research:Select(lessonNode,true);GuiService.SelectedObject=app.research.nodes[lessonNode].button end
 	end
 	if inArmy~=self.wasArmy then self.wasArmy=inArmy;self:Signal(if inArmy then "ArmyOpen" else "ArmyClose") end
-	-- The Tutorial funnel's soft steps (AnalyticsTutorial): the Tools map and the
-	-- vacuum in hand, each reported as it starts.
+	-- Guide signals (TutorialService; the schema 15 Onboarding funnel ignores them, the
+	-- guide.* ledger keys still use them): the Tools map and the vacuum in hand.
 	local inTools=inTree and app.research.category=="Tools"
 	if inTools~=self.wasTools then self.wasTools=inTools;if inTools then self:Signal("ToolsOpen") end end
 	if holdingVacuum~=self.wasHolding then self.wasHolding=holdingVacuum;if holdingVacuum then self:Signal("VacuumEquip") end end
 	local target,placement
 	local where=current.target
-	-- Menu lessons dim the screen around their control.
-	local dim=where=="Upgrades" or where=="VacuumTool" or id=="Select" or id=="Deploy"
+	-- Menu lessons dim the screen around their control (October 23: and the Rebirth tips).
+	local dim=where=="Upgrades" or where=="VacuumTool" or id=="Select" or id=="Deploy" or where=="Rebirth" or where=="Gems"
 	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
 	if blocked then
 		target=nil
@@ -496,14 +581,61 @@ function Commander:Update()
 		target=if app.panel.Visible or inTree or (where=="VacuumTool" and holdingVacuum) then nil
 			else self:ToolSlot(if where=="VacuumTool" then "EggVacuum" else "ChickenFeed")
 		placement=if target then ABOVE else nil
-	elseif where=="Rebirth" then
-		target=if app.panel.Visible or inTree then nil else app.hud.reenlist
+	elseif where=="Rebirth" or where=="Gems" then
+		-- October 23: in the Rebirth screen, its Rebirth button (Rebirth 0) or its Gem
+		-- Upgrades; outside it, the HUD Rebirth button that opens it.
+		if inRebirth and rebirthPanel then
+			local grid=rebirthPanel.grid
+			target=if where=="Rebirth" then rebirthPanel.rebirthButton
+				elseif grid and grid.scroll then grid.scroll.Parent else nil
+		else
+			target=if app.panel.Visible or inTree then nil else app.hud.reenlist
+		end
 	end
+	-- Over the Rebirth screen the card, the dim and the ring draw above it.
+	local over=inRebirth and (where=="Rebirth" or where=="Gems") and target~=nil
+	self.root.ZIndex=if over then OVER_MENU_Z else CARD_Z
+	self.pointerGuide.root.ZIndex=if over then OVER_MENU_Z-1 else POINTER_Z
 	self:Focus(target,placement,dim)
+end
+
+-- October 23 (first-minute fix): on a phone the spawn used to face the lane and the lit
+-- egg sat behind the camera. If the hinted egg is still off screen a second after the
+-- egg lesson shows, turn the camera to it once: yaw only, from where it is (the camera
+-- stays with the player). Reduced motion snaps. Once more after a respawn.
+function Commander:TurnToEgg(character,blocked)
+	local app=self.app
+	if character~=self.eggCharacter then self.eggCharacter,self.eggLessonAt,self.cameraTurned=character,os.clock(),false end
+	if self.cameraTurned or blocked or not character or os.clock()-self.eggLessonAt<0.25 then return end
+	local camera=workspace.CurrentCamera
+	if not camera or camera.CameraType==Enum.CameraType.Scriptable or app.panel.Visible or app.research.root.Visible then return end
+	if not (app.eggs and app.eggs.GuideTarget) then return end
+	local onScreen,at=app.eggs:GuideTarget()
+	if onScreen~=false or not at then return end
+	self.cameraTurned=true
+	local from=camera.CFrame
+	local flat=Vector3.new(at.X-from.Position.X,0,at.Z-from.Position.Z)
+	if flat.Magnitude<0.5 then return end
+	local look=from.LookVector
+	local horizontal=math.sqrt(math.max(0,1-look.Y*look.Y))
+	local newLook=(flat.Unit*horizontal+Vector3.new(0,look.Y,0)).Unit
+	local target=CFrame.lookAt(from.Position,from.Position+newLook)
+	-- The default camera keeps its own heading and undoes a plain CFrame write (checked in
+	-- Studio), so turn it while Scriptable and hand it back a frame later. ScreenFeel and
+	-- RollCamera skip a Scriptable camera, so nothing fights the turn.
+	camera.CameraType=Enum.CameraType.Scriptable
+	local function handBack()
+		task.defer(function() if camera.CameraType==Enum.CameraType.Scriptable then camera.CameraType=Enum.CameraType.Custom end end)
+	end
+	if app.reducedMotion then camera.CFrame=target;handBack();return end
+	local tween=TweenService:Create(camera,TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{CFrame=target})
+	tween.Completed:Once(handBack)
+	tween:Play()
 end
 
 function Commander:Destroy()
 	self:CancelTypewriter()
+	if self.app.hud and self.app.hud.SetTutorialStage then self.app.hud:SetTutorialStage(nil) end
 	if self.eggHint and self.app.eggs then self.app.eggs:SetGuideHint(false) end
 	self:SetArmyHidden(false)
 	self.alive=false;self:ClearFocus();self:Present(false)

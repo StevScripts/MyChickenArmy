@@ -357,6 +357,9 @@ function GameServer:Handle(player,request)
 	elseif action=="Rebirth" then
 		ok,message,receipt=RebirthService.Rebirth(session,request.expectedRank,self,request.useSkip==true)
 		if ok and receipt and receipt.petId then petId=receipt.petId;self.world:Recruit(session,receipt.petId) end
+	elseif action=="RebirthIntro" then
+		-- October 23 Rebirth 0 (Config.Rebirth.Intro): the reset without a rank, once.
+		ok,message,receipt=RebirthService.RebirthIntro(session,self)
 	elseif action=="Income" then ok,message=self.upgrades:BuyFamily(session,"EggValue")
  elseif action=="Luck" then ok,message=self.upgrades:BuyFamily(session,"Luck")
  elseif action=="Attack" then

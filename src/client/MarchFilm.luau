@@ -33,15 +33,17 @@ function MarchFilm.new(app)
 	return setmetatable(self, MarchFilm)
 end
 
--- Called after every snapshot. Starts on the server's reply to the lesson's own order:
--- an early attack before the Egg Vacuum lessons plays nothing.
+-- Called after every snapshot. Starts on the server's reply to the player's first
+-- Camp order. October 23 empty start: the first Camp is a post-tutorial tip (the
+-- six-card guide ends with Flock Size I), so the film plays on the first attack of a
+-- guided player who has not won a Camp yet, once a session; a skipped guide plays none.
 function MarchFilm:Observe(state, result)
 	if self.seen or self.playing or not state or type(result) ~= "table" then return end
 	if result.ok ~= true or result.action ~= "Attack" or type(state.outgoing) ~= "string" then return end
 	local t = state.tutorial or {}
-	if not t.guideStarted or t.guideSkipped or t.guideCompleted then return end
+	if not t.guideStarted or t.guideSkipped then return end
 	local facts = Guide.Facts(state)
-	if facts.Core or not facts.VacuumSell or self:Busy() then return end
+	if facts.Win or self:Busy() then return end
 	local command = self.app.base and self.app.base.nearestCommand
 	self.seen, self.playing = true, true
 	self.battleId, self.campModel = state.outgoing, command and command.model

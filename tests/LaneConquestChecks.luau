@@ -12,6 +12,8 @@ local Checks={}
 local function setup()
  local s=Session.new(-931,"Stev",1);s.loaded=true;s.tutorial.wonCamp=true
  local f=Session.new(-932,"Friend",2);f.loaded=true;f.tutorial.wonCamp=true
+ -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+ for _,fixture in {s,f} do for _=1,3 do fixture:AddPet("Duck",1).investment=0 end end
  local world={owners={},busy={}}
  function world:Position(plot) return Vector3.new(plot*1000,1,-100) end
  function world:CampPosition(i,plot) return Vector3.new(plot*1000,1,i*80) end
@@ -133,6 +135,8 @@ function Checks.Run()
   local s,f,service=setup()
   for plot=3,6 do
    local o=Session.new(-940-plot,"Other"..plot,plot);o.tutorial.wonCamp=true
+   -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+   for _=1,3 do o:AddPet("Duck",1).investment=0 end
    service.sessions[o.userId]=o
   end
   for plot=3,5 do for i=1,3 do service:SetTerritoryOwner(plot..":"..i,s,{plot=plot,index=i}) end end

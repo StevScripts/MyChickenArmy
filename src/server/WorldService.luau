@@ -242,7 +242,20 @@ function WorldService:SpawnFrame(index: number): CFrame
 	local record=self.plots[index]
 	local anchors=record and record.folder:FindFirstChild("Anchors",true)
 	local spawn=anchors and anchors:FindFirstChild("Spawn")
-	if spawn and spawn:IsA("BasePart") then return spawn.CFrame end
+	if spawn and spawn:IsA("BasePart") then
+		-- October 23 (first-minute fix): the authored spawn faced the lane, so on a phone
+		-- every chicken and egg sat behind the camera while the card said "Tap your eggs"
+		-- (13.5% of joins never tapped one). Keep the authored spot; face the yard's
+		-- chicken area. The camera starts behind the character, looking the same way.
+		local yard=record.folder:FindFirstChild("ChickenYard",true)
+		local target=if yard and yard:IsA("BasePart") then yard.Position
+			elseif yard and yard:IsA("Model") then yard:GetPivot().Position
+			else self:PlotFrame(index).Position
+		local at=spawn.Position
+		local flat=Vector3.new(target.X,at.Y,target.Z)
+		if (flat-at).Magnitude>1 then return CFrame.lookAt(at,flat) end
+		return spawn.CFrame
+	end
 	local plot = self:PlotFrame(index)
 	local at = (plot * HomePlot.ForPlot(index).Spawn).Position
 	return CFrame.lookAt(at, at+plot.LookVector*20)

@@ -3,6 +3,14 @@
 local Economy = {
 	RecruitPaybackSeconds = 600,
 	StarterRecruitPrice = 0, -- October 21 (Stevin): the guide's first roll is FREE, like the reference.
+	-- October 25 (Stevin): the tutorial's two pulls land the basic Chicken: the free starter
+	-- roll, then the second one at 150 Coins on card 8 (the lever keeps it on the podium
+	-- until the guide completes, RollService).
+	StarterLadder = {{species = "Duck", price = 0}, {species = "Duck", price = 150}},
+	-- Then the next FavoredRolls.rolls pulls after the tutorial put the basic Chicken on the
+	-- first podium with this chance (normal price), so the first Army fills with chickens
+	-- the player can afford; the other podiums and later pulls draw normally.
+	FavoredRolls = {rolls = 5, chance = 0.6, species = "Duck"},
 	FusionRecruitFraction = 0.25, -- Cash fee relative to one normal matching recruit.
 	-- One paid level; scales with the current recruit level. October 21 later (P5): 0.45
 	-- (was 0.75) with x1.6 eggs a level, so the first Feed level pays back as before.
@@ -39,7 +47,7 @@ local Config = {
 	-- set it back to true to bring the film (and Settings > Replay Intro) back.
 	Features = {Merging = false, AutoMerging = false, IntroCutscene = false, ChickenCashUpgrades = true},
 	Economy = Economy,
- Version="1.21.0-overhaul", GameTitle="My Chicken Army!",
+ Version="1.25.0-eight-cards", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's
  -- arena (Config.Hill). Only one site exists; its internal key stays "income:1".
  -- Rate is unused while the Hill is enabled: HillService pays the holder's boost.
@@ -107,17 +115,25 @@ local Config = {
   EggBonusPerRank=1.0,EggBoostPerRank=1.7,EggBoostFromRank=5,EggBoostToRank=10,EggLateGrowthPerRank=1.06,
   EnemyFreeRanks=2,EnemyScalePerRank=0.25,EnemyScaleMaxRank=30,
   GemsBase=40,GemsPerRank=10,LegacyGemFactor=2,
-  MissionTierRanks={5,10,15}},
+  MissionTierRanks={5,10,15},
+  -- October 23 empty start (Stevin, like Drop a Fruit's "Rebirth LVL 0"): new profiles
+  -- (saved introRebirth="pending") get one Rebirth 0 after the tutorial for Cost Coins.
+  -- It resets like a Rebirth without changing the rank, pays Gems and multiplies egg
+  -- income by Multiplier while the rank is 0 (Rebirth 1's x2 replaces it). Saves from
+  -- before it (no introRebirth) never see it. docs/team/REBIRTH_SCREEN.md "Rebirth 0".
+  Intro={Enabled=true,Cost=1700,Multiplier=1.5,Gems=30}},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
  Event={Enabled=false,Id="Halloween2026",StartsAt=1791936000,EndsAt=1793491200,Species="Pumpkin",OfferChance=0.02},
  -- MaxSlots: the most Army slots without Bigger Army, the tree's 10 plus two +1 Army
  -- Slot Gem Upgrades (October 20, S7b).
- StartingCoins=2400,StartingSlots=3,MaxSlots=12,CollectionLimit=25,LegacyCollectionLimit=100,
+ -- October 23 empty start: new profiles begin with 0 Coins and no chickens (the first
+ -- lever pull is the free starter roll); was 2,400 Coins and three Ducks.
+ StartingCoins=0,StartingSlots=3,MaxSlots=12,CollectionLimit=25,LegacyCollectionLimit=100,
  -- October 20: chicken storage is unlimited; StorageLimit is the hidden safety cap per save.
  -- Revision 12 is the tree/Gems economy: EconomyMigration converts revision ≤ 11 saves once.
  StorageLimit=1000,
- DataRevision=12,StarterFlock={"Duck","Duck","Duck"},
+ DataRevision=12,StarterFlock={} :: {string},
  CommandDistance=14,
  PlayerHomeWalkSpeed=32,PlayerTravelWalkSpeed=45,PlayerTravelBoundaryPadding=2,
  -- Active offer slots, capped by the actual authored displays. Future unlocks change this gate.
@@ -178,6 +194,10 @@ local Config = {
  -- EggMinLaySeconds) and that egg carries all the Coins it earned meanwhile, so
  -- stronger chickens lay more valuable eggs, not more of them.
  EggBaseValue=4,EggLaySeconds=3,EggMinLaySeconds=1,EggsPerChicken=5,EggMaxDrops=80,
+ -- October 24 (Stevin): eggs drop every second through the tutorial (empty-start profiles
+ -- until the guide completes; PlayerSession.LaySeconds). Each egg still carries only the
+ -- Coins earned since the last, so Coins/sec are unchanged.
+ TutorialEggLaySeconds=1,
  LegacyEggLaySeconds=5, -- Older profile egg timers used the original five-second cycle.
  EggSpriteImage="rbxassetid://91011618236242",EggSpriteSize=2,EggSpriteMaxDistance=120,
  EggMagnetRadius=7.5,EggSettleSeconds=0.4,EggFlightSeconds=0.62,EggPickupBatch=4,
@@ -198,21 +218,28 @@ local Config = {
  -- October 6 footage: one continuous conquest meter, approximately 25s.
  -- Supply Outpost/player contests and Operations retain their existing timing.
  RoamStep=0.1,RoamSpeed=2.5,ConquestSeconds=25,ConquestSecondsByCamp={12,20,25},CaptureSeconds=8,NeutralizeSeconds=4,DefenderRespawnMinSeconds=10,DefenderRespawnMaxSeconds=15,CaptureRadius=7.8,FightTimeout=120,
+ -- October 25 (Stevin): while the meter fills the chickens conquer instead of standing
+ -- on a slot: short trots inside CaptureRadius - Margin (so every one keeps counting),
+ -- a pause and an action (peck the ground, hop, cluck) at every stop. Battle.StepRoam.
+ Conquer={Speed=6,Walk={2.5,7},Pause={0.7,1.8},First={0.2,0.9},WalkSeconds=4,Margin=2},
  KillCoins={Duck=100,Mallard=160,Chunky=280,Sailor=280,Bucket=520,Viking=960,Knight=1760,Wizard=3360,Dragon=7200,IceDuck=9600,StormDuck=14400},
  KillLevelBonus=0.15,
  KingKillCoins=48000,
  PvPKillMultiplier=0.25,
  PvPKillCaps={80,240,720,1800},MoveSpeed=13,AttackRange=3.7,ActorArrivalDistance=1.25,SplashRadius=7,
  -- Builder map: exact home anchors and approximately 80-stud camp legs.
- Map={IslandRadius=453.2087,ShoreRadius=514.0856,HomeRingRadius=370,OutpostRadius=226},
- CampRadii={273,190,109},
+ -- October 23, 2026: the authored island was scaled toward the centre by 0.85 (yards, camps,
+ -- roads, decor, discs, border; King arena fixed). These fallbacks follow it.
+ Map={IslandRadius=385.2274,ShoreRadius=436.9728,HomeRingRadius=314.5,OutpostRadius=192.1},
+ CampRadii={232.05,161.5,92.65},
  -- Keep generous travel limits for cross-field detours and returning reinforcements.
  TravelTimeout=85,ReturnTimeout=95,
- PlotPositions={{320.50122,-180.00012},{319.00177,185.64453},{0.25604,369.73779},{-317.31348,188.24377},{-318.81384,-182.59717},{0.25464,-366.74768}},
+ PlotPositions={{272.42604,-153.00010},{271.15150,157.79785},{0.21763,314.27712},{-269.71646,160.00720},{-270.99176,-155.20759},{0.21644,-311.73553}},
  DebugUserIds={146710616},
  -- October 16 free gift: one free chicken for joining the group. "Like the game" is
  -- honor-system (Roblox exposes no like check); only group membership is verified.
- FreeGift={Enabled=true,GroupId=778575811,Species="Bucket"},
+ -- October 23 (Stevin): also 5 minutes of total playtime (saved across visits).
+ FreeGift={Enabled=true,GroupId=778575811,Species="Bucket",MinPlaySeconds=300},
  -- October 20 Gold Rush (GoldRushService, docs/team/GOLD_RUSH_FRIEND_BOOST.md): every
  -- earned Coin (eggs, battles, Missions, the Hill) is multiplied by CoinMultiplier
  -- for Seconds out of every EverySeconds, stacking with 2x Coins. One wall clock for
@@ -224,7 +251,8 @@ local Config = {
  -- StudioTestPlayersAreFriends: Studio's local test players count as friends.
  FriendBoost={Enabled=true,PerFriend=0.10,Max=0.50,StudioTestPlayersAreFriends=true},
  Camps={
-  {name="Cluck Camp",position={0,-273},roster={"Duck","Duck","Duck"}},
+  -- Mirror of Progression's roster: one basic Chicken since the October 23 empty start.
+  {name="Cluck Camp",position={0,-273},roster={"Duck"}},
   {name="Fort Roost",position={0,-190},roster={{species="Bucket",level=1},{species="Sailor",level=1},{species="Mallard",level=1},{species="Mallard",level=1}}},
   {name="Ironbeak HQ",position={0,-109},roster={{species="Bucket",level=2},{species="Bucket",level=2},{species="Sailor",level=2},{species="Viking",level=1}}},
  },

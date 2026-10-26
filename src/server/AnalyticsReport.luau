@@ -209,6 +209,36 @@ local function playtimeSection(c: {[string]: number})
 		steps = steps, biggestDrop = biggest}
 end
 
+-- Version 15 Onboarding funnel (Schema.Onboarding; docs/analytics/ONBOARDING_FUNNEL.md):
+-- per step the players who reached it, the share of Joined and of the step before,
+-- sessions that ended with it as the furthest step, and the median play seconds to it.
+-- biggestDrop is the adjacent pair that lost the most players: where players leave.
+local function onboardingSection(c: {[string]: number}, h: {[string]: any})
+	local joined = c["ob.reach.01"] or 0
+	local exitsNone = c["ob.exit.00"] or 0
+	local steps, previous, biggest, exitsTotal = {}, nil :: number?, nil :: any, exitsNone
+	for index, step in Schema.Onboarding do
+		local nn = Schema.StepCode(index)
+		local reached = c["ob.reach." .. nn] or 0
+		local exits = c["ob.exit." .. nn] or 0
+		local p50, n = Report.Percentile(h["ob.t." .. nn], 0.5)
+		local row = {step = Schema.OnboardingName(index), id = step.id, reached = reached,
+			ofJoined = pct(reached, joined), ofPrevious = pct(reached, previous), exitsHere = exits, p50 = p50, n = n}
+		table.insert(steps, row)
+		exitsTotal += exits
+		if previous and previous > 0 then
+			local lost = previous - reached
+			if lost > 0 and (biggest == nil or lost > biggest.lost) then
+				local before = steps[index - 1]
+				biggest = {from = before.step, to = row.step, lost = lost, fromPlayers = previous,
+					pct = pct(lost, previous), exitsAtFrom = before.exitsHere}
+			end
+		end
+		previous = reached
+	end
+	return {joined = joined, steps = steps, exitsNone = exitsNone, exitsTotal = exitsTotal, biggestDrop = biggest}
+end
+
 local function uiSection(c: {[string]: number}, h: {[string]: any}, t: {[string]: any})
 	local menus, seen = {}, {}
 	for name in prefixed(c, "ui.menu.open.") do seen[name] = true end
@@ -404,37 +434,16 @@ function Report.Summarize(pulled: any, options: Options?)
 			errorsClient = b.c["err.client"] or 0})
 	end
 
-	-- Version 11 Tutorial funnel (since version 12 the only onboarding funnel; the
-	-- retired onb.* keys of older days are not read) (Schema.TutorialFunnel; docs/analytics/TUTORIAL_FUNNEL.md).
-	-- Per step: players reaching it, % of Joined and of the step before, play time to
-	-- reach it, dwell since the step before, first-session share, out-of-order reaches
-	-- (gap), soft steps passed over (skip), unfinished sessions that stopped here
-	-- (exitsHere), and the step's full description.
-	local tutorialFunnel = {}
-	local tutorialFirst, tutorialPrevious = c["tf.reach.01"], nil
-	for index, step in Schema.TutorialFunnel do
-		local code = Schema.StepCode(index)
-		local reached = c["tf.reach." .. code] or 0
-		table.insert(tutorialFunnel, {step = Schema.TutorialFunnelName(index), id = step.id, kind = step.kind,
-			reached = reached, ofJoined = pct(reached, tutorialFirst), ofPrevious = pct(reached, tutorialPrevious),
-			timeToStep = stat(h["tf.t." .. code]), dwell = stat(h["tf.d." .. code]),
-			firstSession = pct(c["tf.s1." .. code], reached), outOfOrder = c["tf.gap." .. code] or 0,
-			passedOver = c["tf.skip." .. code] or 0, exitsHere = c["tf.exit." .. code] or 0,
-			screen = step.screen, trigger = step.trigger, about = step.about})
-		tutorialPrevious = reached
-	end
-	local tutorialExitLessons = sortedTop(prefixed(c, "tf.exitLesson."), 30)
+	-- Version 15 Onboarding funnel (the schema 11-14 tf.* and older onb.* keys of
+	-- earlier days are not read).
+	local onboarding = onboardingSection(c, h)
 
-	-- Cohorts: x[firstDay] merged across every pulled day (steps/returns land later).
+	-- Cohorts: x[firstDay] merged across every pulled day (returns land later).
 	local cohorts = {}
 	for day, counters in total.x do
 		local size = counters["cohort.size"] or 0
-		local row = {cohort = day, size = size, steps = {}, retention = {}, payers = counters["robux.payer"] or 0,
+		local row = {cohort = day, size = size, retention = {}, payers = counters["robux.payer"] or 0,
 			anyLater = counters["ret.anyLater"] or 0, anyLaterPct = pct(counters["ret.anyLater"], size)}
-		for index in Schema.TutorialFunnel do
-			local code = Schema.StepCode(index)
-			if counters["tf." .. code] then row.steps[code] = counters["tf." .. code] end
-		end
 		for _, d in Schema.RetentionDays do
 			local n = counters["ret.d" .. d]
 			if n then row.retention["d" .. d] = {n = n, pct = pct(n, size)} end
@@ -442,16 +451,6 @@ function Report.Summarize(pulled: any, options: Options?)
 		table.insert(cohorts, row)
 	end
 	table.sort(cohorts, function(a, b) return a.cohort < b.cohort end)
-
-	-- Unfinished tutorial sessions by furthest step (tf.exit.NN).
-	local exits = {}
-	for index, step in Schema.TutorialFunnel do
-		local n = c["tf.exit." .. Schema.StepCode(index)]
-		if n then table.insert(exits, {step = Schema.TutorialFunnelName(index), id = step.id, n = n}) end
-	end
-	local none = c["tf.exit.00"]
-	if none then table.insert(exits, {step = "00 None", id = "None", n = none}) end
-	table.sort(exits, function(a, b) return a.n > b.n end)
 
 	local dwell = {}
 	for name, hist in h do
@@ -536,7 +535,7 @@ function Report.Summarize(pulled: any, options: Options?)
 			session = stat(h["session.seconds"]), sessionNew = stat(h["session.seconds.new"]),
 			sessionReturning = stat(h["session.seconds.returning"]), playerMinutes = c["player.minutes"] or 0,
 			serverMinutes = c["server.minutes"] or 0},
-		daily = daily, tutorialFunnel = tutorialFunnel, tutorialExits = exits, tutorialExitLessons = tutorialExitLessons, cohorts = cohorts,
+		daily = daily, onboarding = onboarding, cohorts = cohorts,
 		guideDwell = dwell, intro = prefixed(c, "intro."), economy = economy, rolls = rolls, camps = camps,
 		features = features, robux = robux, platforms = platforms, screens = prefixed(c, "client.screen."),
 		perf = perf, health = health, loop = prefixed(c, "loop."),
@@ -556,28 +555,14 @@ end
 function Report.Flags(s: any)
 	local flags = {}
 	local function flag(severity: string, area: string, text: string) table.insert(flags, {severity = severity, area = area, text = text}) end
-	-- Tutorial funnel: the seven lessons (through TutorialComplete) should keep nearly
-	-- everyone; soft steps are skipped because a later step may pass them over.
-	local tutorial = s.tutorialFunnel
-	local joined = tutorial[1] and tutorial[1].reached or 0
-	if joined >= 20 then
-		local complete = Schema.TutorialFunnelIndex.TutorialComplete
-		for i = 2, #tutorial do
-			local row = tutorial[i]
-			if row.kind == "hard" and row.ofPrevious then
-				if row.ofPrevious < 80 and i <= complete then
-					flag("high", "onboarding", row.step .. " keeps only " .. row.ofPrevious .. "% of the previous step (" .. row.reached .. " players).")
-				elseif row.ofPrevious < 60 then
-					flag("medium", "onboarding", row.step .. " keeps " .. row.ofPrevious .. "% of the previous step.")
-				end
-			end
-		end
-	end
-	local exitTotal = 0
-	for _, e in s.tutorialExits do exitTotal += e.n end
-	if exitTotal >= 20 and s.tutorialExits[1] and s.tutorialExits[1].n / exitTotal >= 0.3 then
-		flag("high", "onboarding", "Tutorial step '" .. s.tutorialExits[1].step .. "' is the furthest step in " ..
-			math.floor(s.tutorialExits[1].n / exitTotal * 100) .. "% of unfinished tutorial sessions.")
+	-- Onboarding: the one place players leave most (the adjacent pair losing the most
+	-- players, with the sessions that ended there). Needs 20+ joined to mean anything.
+	local onboarding = s.onboarding
+	local drop = onboarding and onboarding.biggestDrop
+	if onboarding and onboarding.joined >= 20 and drop then
+		flag(if (drop.pct or 0) >= 20 then "high" else "medium", "onboarding",
+			string.format("Biggest onboarding drop: %s -> %s loses %d of %d players (%s%%); %d sessions ended at %s.",
+				drop.from, drop.to, drop.lost, drop.fromPlayers, tostring(drop.pct), drop.exitsAtFrom, drop.from))
 	end
 	for _, cohort in s.cohorts do
 		local d1 = cohort.retention.d1
@@ -670,8 +655,33 @@ function Report.SummaryJSON(options: Options?): string
 	return HttpService:JSONEncode(Report.Summary(options))
 end
 
--- Sampled journeys for one day: tutorial sessions plus ~5% of the rest.
--- onlyOnboarding keeps the tutorial ones (stage "Tut:<step>"; "Onb:" before version 12).
+-- The onboarding funnel as compact text: one line per step (reached, % of joined,
+-- % of the step before, sessions that ended there, median seconds to it) and the
+-- biggest drop. Pass a summary, or options for Report.Summary.
+function Report.OnboardingText(summaryOrOptions: any?): string
+	local summary = if type(summaryOrOptions) == "table" and summaryOrOptions.onboarding then summaryOrOptions
+		else Report.Summary(summaryOrOptions)
+	local ob, range = summary.onboarding, summary.range or {}
+	local lines = {string.format("Onboarding %s..%s  %d joined  (schema %s)", tostring(range.from), tostring(range.to),
+		ob.joined, tostring(summary.schema))}
+	table.insert(lines, string.format("%-40s %7s %6s %6s %6s %8s", "step", "reached", "%join", "%prev", "exits", "p50s"))
+	for _, row in ob.steps do
+		table.insert(lines, string.format("%-40s %7d %6s %6s %6d %8s", row.step, row.reached,
+			if row.ofJoined then tostring(row.ofJoined) else "-", if row.ofPrevious then tostring(row.ofPrevious) else "-",
+			row.exitsHere, row.p50 or "-"))
+	end
+	if ob.exitsNone > 0 then table.insert(lines, ob.exitsNone .. " sessions ended before any step") end
+	local drop = ob.biggestDrop
+	if drop then
+		table.insert(lines, string.format("Biggest drop: %s -> %s: %d of %d lost (%s%%), %d sessions ended there",
+			drop.from, drop.to, drop.lost, drop.fromPlayers, tostring(drop.pct), drop.exitsAtFrom))
+	end
+	return table.concat(lines, "\n")
+end
+
+-- Sampled journeys for one day: onboarding sessions plus ~5% of the rest.
+-- onlyOnboarding keeps the onboarding ones (stage "Ob:<step>"; "Tut:" in schema 11-14
+-- days, "Onb:" before version 12).
 function Report.Journeys(options: {day: string?, env: string?, limit: number?, onlyOnboarding: boolean?, store: any?}?)
 	local opts = options or {}
 	local ds = store(opts :: any)
@@ -683,8 +693,9 @@ function Report.Journeys(options: {day: string?, env: string?, limit: number?, o
 		if ok and type(record) == "table" then
 			dropped += record.dropped or 0
 			for _, entry in record.list or {} do
-				local prefix = if type(entry.stage) == "string" then string.sub(entry.stage, 1, 4) else ""
-				if not opts.onlyOnboarding or prefix == "Tut:" or prefix == "Onb:" then
+				local stage = if type(entry.stage) == "string" then entry.stage else ""
+				local prefix = string.sub(stage, 1, 4)
+				if not opts.onlyOnboarding or string.sub(stage, 1, 3) == "Ob:" or prefix == "Tut:" or prefix == "Onb:" then
 					table.insert(list, entry)
 				end
 			end
@@ -704,11 +715,11 @@ local function spend(row: any): number
 	return math.max(row.robuxActual or 0, row.robux or 0)
 end
 
--- Furthest Tutorial funnel step in a profile's tf record (nil if it has none).
-local function tutorialMax(tf: any): number?
-	if type(tf) ~= "table" then return nil end
+-- Furthest Onboarding funnel step in a profile's ob record (nil if it has none).
+local function onboardingMax(ob: any): number?
+	if type(ob) ~= "table" then return nil end
 	local furthest = 0
-	for code in tf do furthest = math.max(furthest, tonumber(code) or 0) end
+	for code in ob do furthest = math.max(furthest, tonumber(code) or 0) end
 	return furthest
 end
 
@@ -724,7 +735,7 @@ function Report.PlayerRow(key: string, profile: any)
 		lastPurchase = profile.lastPurchase, firstPurchaseDevice = profile.firstPurchaseDevice,
 		platform = dev.platform, tier = dev.tier, os = dev.os, input = dev.input, geo = profile.geo,
 		premium = profile.premium, age = profile.age, joinSource = profile.joinSource,
-		friendsInServer = profile.friendsInServer, rebirths = profile.rebirths, tutorialMax = tutorialMax(profile.tf),
+		friendsInServer = profile.friendsInServer, rebirths = profile.rebirths, onboardingMax = onboardingMax(profile.ob),
 		lastExit = profile.lastExit, snap = profile.snap, life = profile.life, funN = profile.funN}
 end
 

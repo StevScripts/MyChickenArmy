@@ -63,6 +63,11 @@ local function fixture(userId)
 		local species=RebirthChickens.Required(rank)
 		if species then session.discovered[species]=true end
 	end
+	-- October 23 empty start: a new profile has no chickens and a pending Rebirth 0.
+	-- This fixture is an established save on the ordinary ladder: the old three-Duck
+	-- flock and no Rebirth 0 (the Rebirth 0 test starts from a bare session).
+	for _=1,3 do session:AddPet("Duck",1).investment=0 end
+	session.introRebirth=nil
 	return session
 end
 
@@ -135,27 +140,99 @@ function Checks.Run()
 		return "Three bands, ten retired skips, four retired passes"
 	end)
 
-	test("A fresh run: the starter reserve protects Army Size 4 and tiers buy in order",function()
+	test("A fresh run: 0 Coins, no chickens, no reserve, Rebirth 0 pending; tiers buy in order",function()
 		local s=Session.new(-9301,"Fresh fixture",1)
 		s.loaded=true
-		assert(s.coins==Config.StartingCoins and s.capacity==3 and s.rollSlotsUnlocked==1 and s:FlockSize()==3,"Fresh run")
+		-- October 23 empty start (docs/team/COMMANDER_TUTORIAL.md): the first lever pull
+		-- gives the first chicken; nothing is held back for a later purchase.
+		assert(Config.StartingCoins==0 and s.coins==0 and s:Count()==0,"Empty start: "..s.coins.." Coins, "..s:Count().." chickens")
+		assert(s.capacity==3 and s.rollSlotsUnlocked==1 and s:FlockSize()==3,"Fresh run")
 		assert(next(s.upgradeTree)==nil and s.gems==0 and s.rebirths==0,"Fresh economy")
-		assert(s:StarterArmyReserve()==1200,"Army Size reserve "..s:StarterArmyReserve())
+		assert(s.introRebirth=="pending" and Rebirth.IntroPending(s),"Rebirth 0 pending")
+		assert(s:StarterArmyReserve()==0 and s:StarterCashReserve()==0,"Reserve "..s:StarterCashReserve())
+		assert(s:StarterFlockMinimum()==1,"The only chicken stays")
 		local upgrades=Upgrades.new(nil,nil)
-		local ok,message=upgrades:BuyNode(s,"EggSpeed1",Tree.Price("EggSpeed",1,0))
-		assert(ok and s.eggSpeedLevel==1 and s.coins==Config.StartingCoins-400,message)
-		-- 2,000 Coins left, 1,200 kept for Army Size 4. October 21: the guide's starter
-		-- chicken is FREE (StarterRecruitPrice 0), so nothing is held for it any more.
-		assert(s:StarterCashReserve()==1200,"Reserve "..s:StarterCashReserve())
-		ok,message=upgrades:BuyNode(s,"EggSpeed2",Tree.Price("EggSpeed",2,0))
-		assert(not ok and message=="Keep 1,200 Coins for Army Size I in Upgrades.",message)
+		-- Start is claimed once for 0 Coins (the tutorial's fifth card), then owned.
+		local ok,message=upgrades:BuyNode(s,"Start",0)
+		assert(ok and message=="Start claimed!" and s.tutorial.startClaimed==true,message)
+		refused("Start is already claimed.",upgrades:BuyNode(s,"Start",0))
+		local speed1=Tree.Price("EggSpeed",1,0)
+		s.coins=speed1
+		ok,message=upgrades:BuyNode(s,"EggSpeed1",speed1)
+		assert(ok and s.eggSpeedLevel==1 and s.coins==0,message)
+		local speed2=Tree.Price("EggSpeed",2,0)
+		ok,message=upgrades:BuyNode(s,"EggSpeed2",speed2)
+		assert(not ok and message=="Not enough coins." and s.coinShortfall==speed2,message)
 		refused("This upgrade changed. Try again.",upgrades:BuyNode(s,"EggSpeed2",1))
-		refused("Egg Speed I is already yours.",upgrades:BuyNode(s,"EggSpeed1",Tree.Price("EggSpeed",1,0)))
-		ok,message=upgrades:BuyNode(s,"ArmySize1",1200)
-		assert(ok and s.capacity==4 and s.coins==800 and s:StarterArmyReserve()==0,message)
+		refused("Egg Speed I is already yours.",upgrades:BuyNode(s,"EggSpeed1",speed1))
+		local army1=Tree.Price("ArmySize",1,0)
+		s.coins=army1
+		ok,message=upgrades:BuyNode(s,"ArmySize1",army1)
+		assert(ok and s.capacity==4 and s.coins==0,message)
 		refused("Buy Army Size II first.",upgrades:BuyNode(s,"ArmySize3",Tree.Price("ArmySize",3,0)))
-		refused("Buy Chicken Feed in Upgrades > Tools first.",s:ChickenUpgradeEligibility((next(s.pets))))
-		return "Reserve, quotes and order hold"
+		local duck=s:AddPet("Duck",1)
+		refused("Buy Chicken Feed in Upgrades > Tools first.",s:ChickenUpgradeEligibility(duck.id))
+		return "No reserve, Start claim, quotes and order hold"
+	end)
+
+	test("Rebirth 0: pending on a new profile, 1,700 Coins after the tutorial, +30 Gems, x1.5 eggs until Rebirth 1",function()
+		local intro=Config.Rebirth.Intro
+		assert(intro.Enabled==true and intro.Cost==1700 and intro.Multiplier==1.5 and intro.Gems==30,"Intro settings")
+		local s=Session.new(-9304,"Rebirth 0 fixture",1)
+		s.loaded=true
+		local duck=s:AddPet("Duck",1)
+		s.coins=1000
+		-- Quoted as Rebirth 0 from the start, but not eligible until the tutorial is done.
+		local quote=Rebirth.Quote(s)
+		assert(quote.intro==true and quote.rank==0 and quote.nextRank==0 and quote.title=="Rebirth 0" and quote.cost==1700,
+			"Intro quote: "..tostring(quote.title).." "..tostring(quote.cost))
+		assert(quote.find==nil and quote.skip==nil and quote.multiplierNext==1.5 and quote.gemsNext==30 and quote.kingRequired==false,"Intro rewards")
+		assert(not quote.eligible and quote.reason=="Finish the tutorial first","Reason: "..tostring(quote.reason))
+		refused("Finish the tutorial first",Rebirth.RebirthIntro(s,NO_SERVER))
+		-- A normal Rebirth, a Skip credit and Auto Rebirth never pass over it.
+		refused("Rebirth 0 comes first.",Rebirth.Rebirth(s,0,NO_SERVER,false))
+		s.tutorial.guideCompleted=true
+		s.coins=10
+		assert(Rebirth.Quote(s).reason=="Need 1,690 more Coins",tostring(Rebirth.Quote(s).reason))
+		refused("Need 1,690 more Coins",Rebirth.RebirthIntro(s,NO_SERVER))
+		s.coins=2000
+		setTree(s,{EggSpeed=1,ChickenFeed=1})
+		duck.level,duck.cashLevels=2,1
+		s.rebirthSkips=1
+		assert(Rebirth.Step(s,NO_SERVER)==false and s.rebirths==0 and s.introRebirth=="pending","Step passed over Rebirth 0")
+		near(s:EarnedAmount(100,"eggs",true),100,"Eggs before Rebirth 0")
+		local ok,message,receipt=Rebirth.RebirthIntro(s,NO_SERVER)
+		assert(ok and message=="Rebirth complete: Rebirth 0",message)
+		assert(receipt.rank==0 and receipt.gems==30 and receipt.intro==true,"Receipt")
+		assert(s.introRebirth=="done" and s.rebirths==0 and s.coins==0 and s.gems==30 and s.gemsEarned==30,"After Rebirth 0")
+		assert(next(s.upgradeTree)==nil and s.eggSpeedLevel==0 and duck.level==1 and duck.cashLevels==nil and s:Count()==1,
+			"Reset left: "..levelsText(s.upgradeTree))
+		near(s:EarnedAmount(100,"eggs",true),150,"x1.5 eggs at rank 0")
+		assert(Rebirth.IntroMultiplier(s)==1.5 and Rebirth.Multiplier(0)==1,"Intro multiplier")
+		assert(Rebirth.Quote(s).title=="Rebirth 0","HUD rank after Rebirth 0")
+		refused("Rebirth 0 is already done.",Rebirth.RebirthIntro(s,NO_SERVER))
+		-- Rebirth 1 is the ordinary ladder again; its x2 replaces the x1.5.
+		local nextQuote=Rebirth.Quote(s)
+		assert(nextQuote.intro==nil and nextQuote.nextRank==1 and nextQuote.cost==50000,"Rebirth 1 next: "..tostring(nextQuote.cost))
+		s.rebirthSkips=0
+		s.discovered.Ironbeak=true
+		s.coins=50000
+		ok,message=Rebirth.Rebirth(s,0,NO_SERVER,false)
+		assert(ok,message)
+		near(s:EarnedAmount(100,"eggs",true),200,"Rebirth 1 x2")
+		assert(Rebirth.IntroMultiplier(s)==1,"Intro multiplier ends at Rebirth 1")
+		-- Save round trip: "done" reloads; a save without the field (or junk) never sees Rebirth 0.
+		local saved=s:ToData()
+		assert(saved.introRebirth=="done","Saved "..tostring(saved.introRebirth))
+		local again=Session.new(-9304,"Rebirth 0 reload",1)
+		assert(again:LoadData(saved) and again.introRebirth=="done","Reload done")
+		saved.introRebirth=nil
+		local legacy=Session.new(-9304,"Legacy reload",1)
+		assert(legacy:LoadData(saved) and legacy.introRebirth==nil and not Rebirth.IntroPending(legacy),"Legacy save never sees Rebirth 0")
+		saved.introRebirth="junk"
+		local junk=Session.new(-9304,"Junk reload",1)
+		assert(junk:LoadData(saved) and junk.introRebirth==nil,"Junk reads as legacy")
+		return "Rebirth 0: 1,700 Coins, +30 Gems, x1.5 eggs until Rebirth 1"
 	end)
 
 	test("Rebirth 1 resets the run and pays Gems, no Time Skip Coins (no chicken); progress stays",function()
@@ -390,8 +467,9 @@ function Checks.Run()
 		-- level pays back in the same time as with the old x2 / x5 curve.
 		assert(Rules.EggLevelGrowth==1.6 and Rules.ChickenUpgradeGrowth==2
 			and Config.Economy.ChickenUpgradeRecruitFraction==0.45,"Feed constants")
-		assert(Rules.ChickenUpgradePrice("Duck",1)==270 and Rules.ChickenUpgradePrice("Duck",2)==1080
-			and Rules.ChickenUpgradePrice("Duck",3)==4320,"Common quotes")
+		-- October 23 empty start: the basic Chicken costs 150, so its quotes start at 68 (45%).
+		assert(Rules.ChickenUpgradePrice("Duck",1)==68 and Rules.ChickenUpgradePrice("Duck",2)==270
+			and Rules.ChickenUpgradePrice("Duck",3)==1080,"Common quotes")
 		near(Rules.EggRate("Duck",1,10)/Rules.EggRate("Duck",1,1),1.6^9,"Lv 10 eggs")
 		for level=1,9 do
 			local gain=Rules.EggRate("Knight",1,level+1)-Rules.EggRate("Knight",1,level)
@@ -407,7 +485,9 @@ function Checks.Run()
 		end
 		assert(prices("EggSpeed")=="400,2000,250000,60000000","Egg Speed prices "..prices("EggSpeed"))
 		assert(prices("EggValue")=="600,3000,400000,250000000","Egg Value prices "..prices("EggValue"))
-		assert(prices("Flock")=="300,900,2000,25000,250000,3000000,80000000,2000000000","Flock prices "..prices("Flock"))
+		-- October 23 empty start: Flock Size I is a tutorial card; October 24: 10 Coins (three
+		-- one-second eggs sell for 12), was 30, was 300.
+		assert(prices("Flock")=="10,900,2000,25000,250000,3000000,80000000,2000000000","Flock prices "..prices("Flock"))
 		assert(Tree.Families.EggSpeed.tiers[4].value==3 and Tree.Families.EggValue.tiers[4].value==5
 			and Tree.Families.Flock.tiers[8].value==15,"Tier values unchanged")
 		assert(Config.Rebirth.EggBoostPerRank==1.7 and Config.Rebirth.EggBoostFromRank==5 and Config.Rebirth.EggBoostToRank==10
@@ -581,6 +661,7 @@ function Checks.Run()
 		local s=Session.new(-9340,"Rebirth finds",1)
 		s.loaded=true
 		s.tutorial.bought,s.tutorial.guideCompleted=true,true
+		s.introRebirth=nil -- an established save; Rebirth 0 has its own check
 		s.coins=60000
 		local quote=Rebirth.Quote(s)
 		assert(quote.find and quote.find.species=="Ironbeak" and quote.find.found==false and quote.find.rarity=="Uncommon","Quote find: "..tostring(quote.find and quote.find.species))

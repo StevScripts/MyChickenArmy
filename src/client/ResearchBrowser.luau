@@ -239,7 +239,7 @@ end
 
 function Browser.new(app,parent)
 	local self=setmetatable({app=app,nodes={},layers={},connections={},zoom=1,pan=Vector2.zero,alive=true,
-		category="Main",saved={},coins=0,pending={},requests={}},Browser)
+		category="Main",saved={},coins=0,pending={},requests={},startOnly=false},Browser)
 	local root=Instance.new("TextButton")
 	root.Name,root.Text,root.Size="Research","",UDim2.fromScale(1,1)
 	root:SetAttribute("HoverAudioCue","SkillTreeHover")
@@ -861,6 +861,15 @@ function Browser:Info(id)
 	return if type(info)=="table" then info else {status="Locked"}
 end
 
+-- October 23 empty start: the Start hex can be claimed once, at no price (the server's
+-- offer reads status "Claim", claimable, until then; "Start" afterwards).
+function Browser:Claimable():boolean
+	local tree=self.tree
+	local info=tree and type(tree.nodes)=="table" and tree.nodes.Start or nil
+	if type(info)~="table" then return false end
+	return info.status=="Claim" or (info.claimable==true and info.status~="Start")
+end
+
 -- Affordable upgrades in a category, counted by the server (starter reserve included).
 function Browser:Badge(category)
 	local badges=self.tree and self.tree.badges
@@ -898,6 +907,9 @@ function Browser:Receive(state,result)
 	if result.ok then
 		self.app.audio:Play("SkillTreePurchase",nil,{noFallback=true})
 		local node=View.Nodes[id]
+			-- October 24: the Start claim's one emphasis is the reveal wave Render just played
+			-- (every other hex pops in); no spend delta, confetti or tier cue for it.
+			if node.kind=="start" then self:PulseNode(self.nodes[id]);return true end
 		-- Reference parity (t15): a buy shows the red "-price" beside the Coins and the
 		-- hex's own payoff, no line of text; only unlocks (Egg Vacuum, Chicken Feed,
 		-- machines) keep the server's how-to line, since it says what to do next.
@@ -941,6 +953,19 @@ end
 function Browser:Render()
 	local reveals={}
 	self.badgeRose=false
+	-- October 24 (Stevin, from his Drop a Fruit recording): while the Start hex waits to be
+	-- claimed the screen shows nothing but it and the window's frame: no other hexes (so
+	-- no badges or Open hubs), no wallet. The claim (the next snapshot reads Start again)
+	-- pops everything else in from Start with the opening wave; a later visit, after
+	-- closing, simply opens as usual.
+	local startOnly=self:Claimable()
+	local claimed=self.startOnly==true and not startOnly and self.root.Visible
+	self.startOnly=startOnly
+	if claimed then self.opening=true end
+	if self.wallet.Visible==startOnly then
+		self.wallet.Visible=not startOnly
+		if claimed and not self.app.reducedMotion then Theme.Motion:PopScale(self.wallet,.85,.3) end
+	end
 	for _,category in View.Categories do
 		for _,id in View.Order[category] do
 			local entry=self:RenderNode(id)
@@ -952,6 +977,7 @@ function Browser:Render()
 	-- and the HUD's Badge in the same frame is held back by the shared cooldown.
 	if self.badgeRose and not self.revealOrigin then self:Cue({"Badge"},{noFallback=true}) end
 	self:RevealNodes(reveals)
+	if claimed then self.opening=false end
 	self:RefreshGlow()
 	-- The Coins readout counts up with ticks and a small punch on gains; a spend drops
 	-- at once. Opening snaps to the balance instead of counting from the last visit.
@@ -976,6 +1002,11 @@ function Browser:RenderNode(id)
 		-- A locked hex shows as "?" beside one you can see; further out it stays hidden.
 		visible=info~=nil and (look~="unknown" or self:Known(node.prerequisite))
 	end
+	-- October 24: until Start is claimed the map holds nothing but the Start hex (Render).
+	-- October 25: a 0-Coin upgrade (the Egg Vacuum) reads "Claim" the same way.
+	local claim=(kind=="start" and self.startOnly==true)
+		or (kind=="upgrade" and look=="available" and info~=nil and info.price==0)
+	if self.startOnly==true and kind~="start" then visible=false end
 	local hidden=look=="unknown"
 	if view.look~=look then
 		local style=LOOKS[look] or LOOKS.available
@@ -991,23 +1022,35 @@ function Browser:RenderNode(id)
 	view.title.Visible,view.hidden.Visible=not hidden,hidden
 	view.numeral.Visible=not hidden and kind=="upgrade" and node.numeral~=nil
 	-- Prices only on hexes you can still buy: green when affordable, red when not.
+	-- October 24 (supersedes the October 23 "Claim" title): a claimable Start keeps its
+	-- name and its price line reads "Claim" in green with no coin ("…" while the claim is
+	-- out), never "FREE".
 	local buyable=look=="available" or look=="unaffordable"
+	local centred=waiting or claim
 	-- Live state changes (not the first styling after Open): a red price turning green
 	-- pulses the hex once; a price that appears punches.
 	local live=view.look~=nil and view.button.Visible and self.root.Visible and not self.opening
 	if live and view.look=="unaffordable" and look=="available" then self:PulseNode(view,MOTION.ReadyScale) end
-	if live and buyable and not view.cost.Visible then Theme.Motion:Punch(view.cost,1.15,.3) end
-	view.cost.Visible=buyable
-	view.cashIcon.Visible=not waiting
-	view.price.Position=UDim2.fromScale(if waiting then 0 else COST_TEXT,0)
-	view.price.Size=UDim2.fromScale(if waiting then 1 else 1-COST_TEXT,1)
-	view.price.TextXAlignment=if waiting then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
-	view.price.Text=if waiting then "…" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
+	if live and (buyable or claim) and not view.cost.Visible then Theme.Motion:Punch(view.cost,1.15,.3) end
+	view.cost.Visible=buyable or claim
+	view.cashIcon.Visible=not centred
+	view.price.Position=UDim2.fromScale(if centred then 0 else COST_TEXT,0)
+	view.price.Size=UDim2.fromScale(if centred then 1 else 1-COST_TEXT,1)
+	view.price.TextXAlignment=if centred then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
+	view.price.Text=if waiting then "…" elseif claim then "Claim" elseif info and type(info.price)=="number" then Theme.Number(info.price) else ""
 	view.price.TextColor3=if look=="unaffordable" then RED else GREEN
+	if kind=="start" and view.claimed~=claim then
+		-- With "Claim" on the price row the name moves up to a one-line upgrade's spot,
+		-- clear of the row; it returns to its own spot once claimed.
+		view.claimed=claim
+		view.title.Text,view.title.TextColor3=node.name,WHITE
+		view.title.Position=UDim2.fromScale(.02,if claim then HEX.PriceTop-HEX.Line else .62)
+	end
 	-- Reference parity (supersedes the October 21 "no ! on hexes" note): a red "!" on
 	-- every upgrade you can buy now, and on an Open hex how many inside you can buy.
+	-- October 24: and on a claimable Start (the reference's "!"), until the claim is out.
 	local count=if kind=="open" then self:Badge(node.opens) else 0
-	local ready=kind=="upgrade" and look=="available" and not waiting
+	local ready=((kind=="upgrade" and look=="available") or claim) and not waiting
 	local shown=count>0 or ready
 	if live and shown and ((ready and view.look=="unaffordable") or (kind=="open" and count>(view.badgeCount or 0))) then
 		Theme.Motion:Punch(view.badge,1.35,.3)
@@ -1078,7 +1121,10 @@ end
 function Browser:TooltipText(id)
 	local node,view=View.Nodes[id],self.nodes[id]
 	local look=view.look
-	if node.kind=="start" then return "Start","Buy upgrades with Coins. Everything here resets on Rebirth.",nil,nil,nil end
+	if node.kind=="start" then
+		return "Start",if self:Claimable() then "A fresh new start. Claim it to open your Upgrades."
+			else "Buy upgrades with Coins. Everything here resets on Rebirth.",nil,nil,nil
+	end
 	if node.kind=="back" then return "Back","Return to the main Upgrades tree.",nil,nil,nil end
 	if node.kind=="open" then
 		local count=self:Badge(node.opens)
@@ -1177,6 +1223,12 @@ function Browser:Activate(id)
 	-- Open and Back hexes answer with the map-change cues in ShowCategory, not a Click.
 	if node.kind=="open" then self:ShowCategory(node.opens);return end
 	if node.kind=="back" then self:ShowCategory("Main");return end
+	-- October 23: a claimable Start hex is claimed like a purchase at no price.
+	if node.kind=="start" and self:Claimable() then
+		self.app.audio:Play("Click")
+		if not self.pending[id] then self:Purchase(id,0) end
+		return
+	end
 	local info=if node.kind=="upgrade" then self:Info(id) else nil
 	local refused=info~=nil and not self.pending[id] and info.status~="Owned" and not (info.status=="Available" and type(info.price)=="number")
 	-- A press answers with a Click at once; a refusal answers with its own "nope" instead.
@@ -1198,9 +1250,12 @@ end
 function Browser:Purchase(id,price)
 	-- The success line, worded from the card's state before the purchase.
 	local node=View.Nodes[id]
-	local before,after=View.Change(node)
-	local special=View.Lines(node,self.app.state and self.app.state.effects)
-	local text=if special then node.name..": "..special elseif View.Plain(node) then node.name.." bought!" else node.name..": "..before.." → "..after
+	local text=node.name.." claimed!" -- The Start hex (October 23) has no tier to word.
+	if node.kind=="upgrade" then
+		local before,after=View.Change(node)
+		local special=View.Lines(node,self.app.state and self.app.state.effects)
+		text=if special then node.name..": "..special elseif View.Plain(node) then node.name.." bought!" else node.name..": "..before.." → "..after
+	end
 	local requestId=self.app:Request("BuyUpgrade",{nodeId=id,expectedPrice=price})
 	if not requestId then return end
 	self.pending[id]=requestId
@@ -1458,7 +1513,7 @@ function Browser:Close()
 	self:MuteHover(false)
 	self.message.Visible=false;self.feedbackVersion=(self.feedbackVersion or 0)+1
 	self.delta.Visible=false;self.deltaVersion=(self.deltaVersion or 0)+1
-	self.opening,self.revealOrigin,self.pinchScale=false,nil,nil
+	self.opening,self.revealOrigin,self.pinchScale,self.startOnly=false,nil,nil,false
 	self:ClearSparks()
 	local confetti=self.map:FindFirstChild("MotionConfetti")
 	if confetti then confetti:Destroy() end

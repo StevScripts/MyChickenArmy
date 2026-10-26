@@ -1,0 +1,15 @@
+Generate ONE image with your built-in image generation tool, then copy the resulting PNG into this working directory as raw/rebirth-arrows-codex-v2.png. Do not edit any other files.
+
+Asset type: one isolated transparent game UI icon (a Roblox HUD "Rebirth" button).
+
+Match the supplied reference image closely: it is the target design. Recreate the same icon as an original, higher-quality version: two thick chunky arrows circling each other in a loop. The TOP arrow is pink (light face #FF8FB4, deep magenta side #D10F6B) sweeping clockwise over the top with its big arrowhead on the right pointing down. The BOTTOM arrow is white (face #FFFFFF, light sky-blue side #A9DDF9) sweeping along the bottom with its big arrowhead on the left pointing up. Keep the reference's chunky extruded 3D look: each arrow has a flat bright front face plus a thick darker side/extrusion face, like a toy block letter, slightly tilted so the extrusion shows on the lower-left. The two arrows interlock in the middle around a small dark center gap, exactly like the reference.
+
+Outline: one very thick, continuous near-black (#171B18) outer contour wrapping the whole shape like the reference's heavy black border, with clean rounded corners. Thin dark lines only where faces meet.
+
+Finish: a little more polish than the reference to match a glossy simulator icon set: subtle soft gradient on each face and one crisp small pale highlight on the upper-left of each arrow face. Keep it bold, flat-colored and readable; no texture noise, no realistic rendering.
+
+Composition: square canvas, centered, full silhouette visible with balanced transparent padding, about 82% occupancy. Readable at 64 pixels.
+
+Background: genuine alpha transparency outside the black outline (and in any real gaps). No backdrop, checkerboard, shadow on the ground, rays, card or frame.
+
+Text: none. No numbers, badges, sparkles, stars, chickens or extra arrows.

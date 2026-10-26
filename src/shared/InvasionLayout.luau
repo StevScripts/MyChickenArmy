@@ -3,15 +3,16 @@
 -- it, where the Chicken King's loyalists drop from their airship. Measured from
 -- the authored map (flat island ground, fewest props within 23 studs, inside the
 -- island edge), evenly spaced about 60° apart so neighbours never share one.
+-- October 23, 2026: scaled by 0.85 with the authored island (tools/map/radial_scale.luau).
 local InvasionLayout = {}
 
 InvasionLayout.Landings = {
-	Vector3.new(409.8, 1.05, -9.5),
-	Vector3.new(245.6, 1.05, 340.6),
-	Vector3.new(-172.6, 1.05, 388.3),
-	Vector3.new(-393.7, 1.05, 32.2),
-	Vector3.new(-271.1, 1.05, -320.9),
-	Vector3.new(169.0, 1.05, -379.1),
+	Vector3.new(348.3, 1.05, -8.1),
+	Vector3.new(208.8, 1.05, 289.5),
+	Vector3.new(-146.7, 1.05, 330.1),
+	Vector3.new(-334.6, 1.05, 27.4),
+	Vector3.new(-230.4, 1.05, -272.8),
+	Vector3.new(143.7, 1.05, -322.2),
 }
 
 -- The fixed landing zone for a plot: the fallback when no random spot is free.
@@ -25,7 +26,7 @@ end
 -- props) within ZoneClearance.
 InvasionLayout.ZoneClearance = 28 -- half-size of the empty box around a candidate
 InvasionLayout.MinSeparation = 90 -- two active invasions never land this close
-local GRID, INNER, OUTER = 24, 70, 420
+local GRID, INNER, OUTER = 24, 70, 357 -- October 23: island discs scaled by 0.85 (was 420)
 local candidates: {Vector3}? = nil
 
 function InvasionLayout.Candidates(): {Vector3}

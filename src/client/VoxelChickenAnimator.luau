@@ -22,6 +22,10 @@ type Controller = typeof(setmetatable({} :: State, VoxelChickenAnimator))
 local decoded: {[ModuleScript]: ClipSet} = setmetatable({}, {__mode = "k"}) :: any
 local EVENTS: {[string]: string} = {AttackSerial = "Attack", HitSerial = "Hit", VictorySerial = "Victory"}
 local CUE_PRIORITY = {"Hit", "Attack", "Victory"}
+-- October 25: a conquering action (server Battle.ConquerActions, attributes ActionSerial /
+-- Action / ActionStartedAt) plays an authored clip: a peck is the Attack pose, a hop the
+-- Victory pose; a cluck is sound only (CombatEffects.Conquer).
+local ACTION_CLIPS: {[string]: string} = {Peck = "Attack", Hop = "Victory"}
 
 local function numericAttribute(model: Model, name: string, fallback: number): number
 	local value = model:GetAttribute(name)
@@ -70,7 +74,8 @@ function VoxelChickenAnimator.new(model: Model): Controller?
 	local state: State = {model = model, bones = {}, mirrors = {}, original = {}, poses = {}, data = nil,
 		rootIndex = nil, retryAt = 0, warned = false,
 		serials = {AttackSerial = model:GetAttribute("AttackSerial") or 0,
-			HitSerial = model:GetAttribute("HitSerial") or 0, VictorySerial = model:GetAttribute("VictorySerial") or 0},
+			HitSerial = model:GetAttribute("HitSerial") or 0, VictorySerial = model:GetAttribute("VictorySerial") or 0,
+			ActionSerial = model:GetAttribute("ActionSerial") or 0},
 		cues = {}, localAttack = model:GetAttribute("LocalAttackAt"), lastStep = nil,
 		base = "Idle", baseTime = phase, mode = nil, transitionAt = 0, transition = {},
 		defeatAt = nil, sleeping = false, destroyed = false}
@@ -138,6 +143,15 @@ function VoxelChickenAnimator._events(self: Controller, now: number, allow: bool
 				self.cues[name] = {name = name, started = now - age}
 			end
 		end
+	end
+	local actionSerial = self.model:GetAttribute("ActionSerial") or 0
+	if actionSerial ~= self.serials.ActionSerial then
+		self.serials.ActionSerial = actionSerial
+		local action = self.model:GetAttribute("Action")
+		local name = if typeof(action) == "string" then ACTION_CLIPS[action] else nil
+		local started = self.model:GetAttribute("ActionStartedAt")
+		local age = if typeof(started) == "number" then math.max(0, workspace:GetServerTimeNow() - started) else 0
+		if allow and name and age < 0.75 then self.cues[name] = {name = name, started = now - age} end
 	end
 	local localAttack = self.model:GetAttribute("LocalAttackAt")
 	if localAttack ~= self.localAttack then

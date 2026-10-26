@@ -29,9 +29,9 @@ local WHITE = Color3.new(1,1,1)
 local BLACK = Color3.new(0,0,0)
 local MUTED = Color3.fromRGB(176,184,190)
 -- Presentation mirror of DailyService.Rewards (server). Keep the two in step.
-local TILES = {
-	{minutes=5, rolls=0}, {minutes=10, rolls=0}, {minutes=0, rolls=1}, {minutes=20, rolls=0},
-	{minutes=30, rolls=0}, {minutes=0, rolls=2}, {minutes=60, rolls=3},
+local TILES = { -- October 23 empty start: small Day 1 (see DailyService.Rewards)
+	{minutes=0.5, rolls=0}, {minutes=1, rolls=0}, {minutes=0, rolls=1}, {minutes=2, rolls=0},
+	{minutes=5, rolls=0}, {minutes=0, rolls=2}, {minutes=15, rolls=3},
 }
 local CASH_TIER = {1,2,0,3,3,0,4}
 -- Reference card families: Days 1–6 blue, Day 7 orange; a claimed card goes slate.
@@ -46,7 +46,7 @@ local COME_BACK = "Come back later for your daily reward! Your chickens keep ear
 -- uploads it and fills this in, the header shows the Time Skip clock.
 Controller.Calendar = "rbxassetid://85849770547707"
 local CLOCK = Theme.GemArt.TimeSkip
-local MIN_INCOME = 10 -- DailyService.MinIncome
+local MIN_COINS = 60 -- DailyService.MinCoins (October 23: a Coins day pays its minutes of steady income, at least this)
 local DAY_SECONDS = 86400 -- DailyService.DaySeconds (UTC days)
 -- Wait for the offline receipt (and the first-visit film) before showing.
 local RETRY_SECONDS = 0.4
@@ -226,8 +226,8 @@ function Controller:Card(parent,index,granted,x,y,w,h)
 	-- Small, subtle studs (owner feedback): about 15 cells across a card.
 	Theme.Studs(visual,0.07,28,0):SetAttribute("StudScaleWidth",1.6)
 	Theme.Stroke(visual,BLACK,3)
-	local income = math.max(MIN_INCOME,tonumber(self.app.state and self.app.state.income) or 0)
-	local cash = if index==self.today then (tonumber(granted.cash) or 0) else math.floor(income*reward.minutes*60)
+	local income = tonumber(self.app.state and self.app.state.income) or 0
+	local cash = if index==self.today then (tonumber(granted.cash) or 0) else math.max(math.floor(income*reward.minutes*60),MIN_COINS)
 	local coinIcon
 	if big then
 		-- The reference's Day 7: the pack (our 3 Free Rolls) + the coins, then the amount.

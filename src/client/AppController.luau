@@ -63,7 +63,9 @@ local MenuLayout = require(script.Parent.MenuLayout)
 -- Routine army commands confirm themselves on the HUD (status line, Army count); only failures notify.
 local QUIET_SUCCESS = {SelectBest = true, SetArmy = true, CallArmy = true, GoBase = true, SetAutoRoll = true,
 	-- October 20 (S8): the Rebirth screen shows these itself (card pulse, toggle, Rebirth toast).
-	Rebirth = true, BuyGemUpgrade = true, SetAutoRebirth = true}
+	Rebirth = true, BuyGemUpgrade = true, SetAutoRebirth = true,
+	-- October 23: the Rebirth screen celebrates Rebirth 0 itself (RebirthPanel).
+	RebirthIntro = true}
 
 -- October 20 Flock edits confirm themselves in My Army (the strip, counts and card pops).
 for _, action in {"FlockEquip", "FlockUnequip", "FlockBest"} do QUIET_SUCCESS[action] = true end

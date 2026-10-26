@@ -1,0 +1,22 @@
+Generate ONE image with your built-in image generation tool, then copy the resulting PNG into this working directory as raw/rebirth-arrows-codex-1.png. Do not edit any other files.
+
+Use case: stylized-concept.
+Asset type: one isolated transparent game UI icon (a Roblox HUD "Rebirth" button).
+
+Create an original icon of two thick circling arrows chasing each other in a loop, one bright red and one bright yellow-gold, recognizable at a glance as the classic Roblox simulator "Rebirth" symbol.
+Use the supplied reference screenshot only as a visual-style reference (the red basket, blue medallion and gold handshake HUD icons). Do not reproduce its whole screenshot or unrelated objects.
+
+Style: chunky glossy cartoon game illustration; exaggerated sturdy proportions; a strong simple silhouette; a heavy continuous near-black outer contour; thinner dark local-color interior lines. Dimensional, vector-clean 2.5D appearance, not a flat pictogram or realistic render.
+
+Subject details: two fat curved arrow bodies forming a near-complete circle, each ending in a big chunky triangular arrowhead; the red arrow sweeps over the top clockwise, the gold arrow sweeps along the bottom, each head pointing at the other's tail; bevelled tubular volume with a pale glossy highlight stripe along each arrow; a clear empty round hole in the middle (transparent).
+View: front-facing badge with subtle three-dimensional depth.
+Palette: red #FF302A with #FF8C78 highlights and #A91612 shadows; gold #FFD21A with #FFF39C highlights and #DA7B00 shadows; near-black ink #171B18 contours. Saturated and lively, not muted.
+
+Lighting: upper-left key light, broad clean cel-shaded planes, selective short gradients, darker lower/right faces and crisp glossy bevel highlights. Large readable shapes, sparse surface detail.
+
+Composition: square canvas, centered by visual weight, full silhouette visible with balanced transparent padding, roughly 80% subject occupancy along the longest dimension. Readable at 64-96 pixels.
+
+Background: genuine alpha transparency, including the internal hole. Output only the subject with clean antialiased edges. No painted checkerboard, solid backdrop, scene, floor, broad cast shadow, rays, card or button frame.
+
+Text: none. No label, number, notification badge, watermark or brand mark. No chickens, gears, shields, stars, sparkles or extra arrows.
+Avoid thin-outline clipart, white sticker borders, soft clay/emoji rendering, photorealism, gritty materials and blurry airbrushing.

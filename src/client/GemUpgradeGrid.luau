@@ -129,16 +129,16 @@ function Grid:Card(parent,id: string,x: number,y: number,height: number)
 	rimFrame.ZIndex=3
 	local rim=Theme.Stroke(rimFrame,WHITE,1)
 	rim.Transparency=0.46
-	local title=rect(text(visual,"Title","",31,WHITE),16,8,402,38,CARD_W,CARD_H)
+	local title=rect(text(visual,"Title","",31,WHITE),8,8,420,38,CARD_W,CARD_H)
 	title.TextWrapped=false
-	local effect=rect(text(visual,"Effect","",23,C.Effect),16,48,262,50,CARD_W,CARD_H)
+	local effect=rect(text(visual,"Effect","",23,C.Effect),8,48,270,50,CARD_W,CARD_H)
 	effect.TextYAlignment=Enum.TextYAlignment.Top
-	local price=rect(Theme.Container(visual,"Price"),16,100,220,48,CARD_W,CARD_H)
+	local price=rect(Theme.Container(visual,"Price"),8,100,220,48,CARD_W,CARD_H)
 	price.ZIndex=6
 	local gem=Theme.GemIcon(price,"Gem","Gems",UDim2.fromScale(0.24,1))
 	Theme.Aspect(gem,1)
 	local amount=text(price,"Amount","",33,WHITE)
-	local toggle=rect(Theme.Frame(visual,"Toggle",UDim2.new(),WHITE),16,100,150,48,CARD_W,CARD_H)
+	local toggle=rect(Theme.Frame(visual,"Toggle",UDim2.new(),WHITE),8,100,150,48,CARD_W,CARD_H)
 	toggle.ZIndex,toggle.Visible=6,false
 	Theme.Stroke(toggle,BLACK,2)
 	local toggleText=text(toggle,"State","ON",28,WHITE,Enum.TextXAlignment.Center)
@@ -175,9 +175,9 @@ function Grid:Paint(view,item,rank: number,auto)
 		Theme.Gradient(view.visual,LOCKED_TOP,LOCKED_BOTTOM)
 		view.studs.ImageTransparency,view.outline.Color=0.91,BLACK
 		view.title.RichText,view.title.Text=false,"Locked!"
-		rect(view.title,16,26,262,44,CARD_W,CARD_H)
+		rect(view.title,8,26,270,44,CARD_W,CARD_H)
 		view.effect.Text,view.effect.TextColor3="Rebirth "..unlockRank.." needed",C.LockedText
-		rect(view.effect,16,74,262,52,CARD_W,CARD_H)
+		rect(view.effect,8,74,270,52,CARD_W,CARD_H)
 		view.price.Visible,view.toggle.Visible,view.icon.Visible,view.lock.Visible=false,false,false,true
 		return
 	end
@@ -185,11 +185,13 @@ function Grid:Paint(view,item,rank: number,auto)
 	view.studs.ImageTransparency=0.88
 	view.title.RichText=true
 	view.title.Text=string.format('%s <font color="#%s">[%d/%d]</font>',name,C.Level:ToHex(),math.floor(level),math.floor(maxLevel))
-	rect(view.title,16,8,402,38,CARD_W,CARD_H)
+	-- October 23: text starts 8 units in (was 16) and the title runs to the inner edge,
+	-- so "Vacuum Capacity [3/3]" stays on one line at the phone text floor.
+	rect(view.title,8,8,420,38,CARD_W,CARD_H)
 	view.effect.TextColor3=C.Effect
 	view.effect.Text=if toggle then "Rebirths for you when you have enough Coins"
 		else (item and item.text) or (Catalog and Catalog.Text and Catalog.Text(id,level)) or ""
-	rect(view.effect,16,48,262,50,CARD_W,CARD_H)
+	rect(view.effect,8,48,270,50,CARD_W,CARD_H)
 	view.icon.Visible,view.lock.Visible=true,false
 	local maxed=status=="Maxed" and not toggle
 	view.outline.Color=if maxed then GOLD else BLACK

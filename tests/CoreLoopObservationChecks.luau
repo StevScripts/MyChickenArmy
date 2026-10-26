@@ -12,6 +12,8 @@ function Checks.Run()
  end
  local function setup()
   local session=Session.new(9001,"Observation",1);session.loaded=true
+  -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+  for _=1,3 do session:AddPet("Duck",1).investment=0 end
   local app=setmetatable({sessions={[9001]=session},limits={},telemetry=Telemetry.new(),
    recruitObservations={},awayObservations={},battles={battles={}},world={}},GameServer)
   function app.world:CanCommand() return true end

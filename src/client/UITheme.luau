@@ -60,8 +60,9 @@ Theme.Assets = {
 	Army="rbxassetid://100291580520125", Luck="rbxassetid://111087925336083",
 	ArmyHud="rbxassetid://107457338807219", CallArmy="rbxassetid://125964672530167", MyBase="rbxassetid://76117843071069",
 	Shop="rbxassetid://119358432410091", Index="rbxassetid://96489791857751", EggMagnet="rbxassetid://131332157337305",
-	-- October 13: Re-enlist HUD icon (assets/generated/reenlist-icon-20261013, version 1).
-	Reenlist="rbxassetid://106238480346679",
+	-- October 23 (Stevin): chunky pink and white circling Rebirth arrows from his reference
+	-- (assets/generated/rebirth-arrows-icon-20261023, v2). Was the Oct 13 shield.
+	Reenlist="rbxassetid://93261582019884",
 	-- October 16: Rally war horn (assets/generated/rally-icon-20261016).
 	Rally="rbxassetid://103846085793265",
 	-- October 13 Re-enlist/Operations redesign art (assets/generated/rebirth-ops-ui-20261013).

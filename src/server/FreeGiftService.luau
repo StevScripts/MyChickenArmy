@@ -31,6 +31,11 @@ function FreeGift.Claim(session,inGroup:boolean?)
 	local definition=Catalog[gift.Species]
 	if gift.Enabled~=true or type(definition)~="table" then return false,"The free chicken isn't ready yet." end
 	if session.freeGiftClaimed then return false,"You already claimed your free chicken!" end
+	-- October 23 (Stevin): 5 minutes of total playtime first (PlayerSession:PlaySeconds).
+	local remaining=math.ceil((gift.MinPlaySeconds or 0)-session:PlaySeconds())
+	if remaining>0 then
+		return false,string.format("Keep playing! Your free chicken unlocks in %d:%02d.",remaining//60,remaining%60)
+	end
 	if inGroup==nil then return false,"Couldn't check the group right now. Try again in a moment." end
 	if not inGroup then return false,"Join the group first, then press Verify!" end
 	-- A full flock keeps the claim available for later.

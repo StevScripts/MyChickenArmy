@@ -19,6 +19,7 @@ local Currency=require(Shared.CurrencyLimits)
 local TutorialGuide=require(Shared.TutorialGuide)
 local MutationCatalog=require(Shared.MutationCatalog)
 local CARRY_LIMIT=require(script.Parent.PlayerSession).CarryLimit
+local TUTORIAL_EGG_LIMIT=require(script.Parent.PlayerSession).TutorialEggLimit
 local EggService={}
 EggService.__index=EggService
 local CASH_COLLECT_SECONDS=1
@@ -243,7 +244,7 @@ function EggService:Produce(session,dt,now)
  local production=session:EggProductionMultiplier()
  -- Held territories raise live egg value only (offline uses OfflineCash.Rate).
  local unitValue=Rules.EggUnitValue(session.incomeLevel)*(1+session.researchEffects.eggValue)*(1+(session.territoryBonus or 0))
- local interval=Rules.LaySeconds(production)
+ local interval=session:LaySeconds(production)
  -- October 20 Flock: only Flock chickens lay (at home, plus fill-ins for Flock
  -- chickens away with the Army). Chickens in storage lay nothing.
  local laying={}
@@ -292,7 +293,7 @@ function EggService:LayingRate(session)
  else
   for id in session.pets do if session:IsPetHome(id) then layers+=1 end end
  end
- return layers/Rules.LaySeconds(session:EggProductionMultiplier())
+ return layers/session:LaySeconds(session:EggProductionMultiplier())
 end
 
 -- Eggs the vacuum holds: Capacity plus the Tools tiers and Gem levels (also eggs).
@@ -337,8 +338,13 @@ function EggService:Pay(session,yard,drop,now)
   addCarry(session,count,drop.value)
  end
  -- Count committed egg units once, including stacked and vacuum pickups. The
- -- saved lesson counter survives deposits and is bounded after completion.
- session.tutorial.collectedEggCount=math.min(TutorialGuide.EggGoal,TutorialGuide.CollectedEggCount(session.tutorial)+count)
+ -- saved lesson counter survives deposits; since the October 23 empty start it counts
+ -- on past the lesson (the Egg Vacuum tip waits for more eggs), bounded by
+ -- TUTORIAL_EGG_LIMIT. Read the raw count: TutorialGuide.CollectedEggCount stops at 3.
+ local counted=session.tutorial.collectedEggCount
+ local before=if type(counted)=="number" and counted==counted and counted<math.huge
+  then math.max(0,math.floor(counted)) else TutorialGuide.CollectedEggCount(session.tutorial)
+ session.tutorial.collectedEggCount=math.min(TUTORIAL_EGG_LIMIT,before+count)
  session.tutorial.collectedEggs=session.tutorial.collectedEggCount>=TutorialGuide.EggGoal
  -- October 21: the Egg Vacuum tip counts its first few vacuumed eggs.
  if drop.collector=="vacuum" then
@@ -382,8 +388,9 @@ function EggService:Deposit(session,position,now)
  session.vacuumCargo={count=0,value=0}
  session:Touch()
  if not queued then session.tutorial.soldEggs=true end
- -- October 21 guide tip: the 20 vacuumed eggs reach the pad (TutorialGuide.VacuumSell).
- if vacuumed and TutorialGuide.VacuumEggCount(session.tutorial)>=TutorialGuide.VacuumGoal then session.tutorial.vacuumSold=true end
+ -- October 25 vacuum tip: the vacuumed eggs reach the pad once VacuumTipGoal (10) are in
+ -- (TutorialGuide "Sell your eggs on the green pad!", the chain's last card).
+ if vacuumed and TutorialGuide.VacuumEggCount(session.tutorial)>=TutorialGuide.VacuumTipGoal then session.tutorial.vacuumSold=true end
  yard.lastPlayerDepositAt=now
  self:RecordDeposit(yard,count,credited,now,if vacuumed then "vacuum" else "player",pad.Position,queued)
  return true,credited

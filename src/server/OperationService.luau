@@ -199,7 +199,8 @@ function Service:Spawn(session,now,forcedId,forcedTheme,sharedTier)
 	-- Each site is a seeded build of one theme (MissionSite + MissionKits);
 	-- coastal themes prefer the island's edge.
 	local theme=if forcedTheme then forcedTheme else MissionSite.Themes[rng:NextInteger(1,#MissionSite.Themes)]
-	local landing=MissionSite.Coastal[theme] and InvasionLayout.Pick(rng,self:Taken(),340) or InvasionLayout.Pick(rng,self:Taken())
+	-- Coastal: island edge, radius scaled 0.85 on October 23 (was 340).
+	local landing=MissionSite.Coastal[theme] and InvasionLayout.Pick(rng,self:Taken(),289) or InvasionLayout.Pick(rng,self:Taken())
 	if not landing then return nil end
 	local id=if forcedId and Catalog.Encounters[forcedId] then forcedId
 		else pickEncounter(if session then Service.Tier(session) else sharedTier or 1)

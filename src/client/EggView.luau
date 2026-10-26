@@ -49,6 +49,11 @@ local function template(species:string?):BasePart?
  return if found and found:IsA("BasePart") then found else nil
 end
 
+-- The Studio-owned voxel egg for a species (Duck fallback), for the back stack's clones.
+function EggView.Template(species:string?):BasePart?
+ return template(species)
+end
+
 -- October 21: one egg is one egg; the caption shows what it is worth.
 local function worth(value) return Feedback.Fit(value,"","",156,18,true,false) end
 
@@ -62,6 +67,85 @@ local function caption(adornee,value)
  label.Size,label.TextXAlignment=UDim2.fromScale(1,1),Enum.TextXAlignment.Center
  label.TextWrapped=false
  return gui,label
+end
+
+-- October 23 empty start (Stevin: "a click icon on eggs"), rebuilt October 24 from his
+-- Drop a Fruit recording as the Click badge: while the guide's egg hint is on
+-- (TutorialGuide.EggHint) every ready egg but the lit one wears a small white blob
+-- holding a mouse with "Click" under it (touch: the hand and "Tap"; gamepad: "R2" in
+-- the blob). About the egg's size, laid over it (October 24, Stevin: on the egg, not
+-- above it). Off until EggController turns it on; all badges share one pulse there (no
+-- per-egg tweens). `lift`: studs from the adornee to the badge's centre (0 = on the egg).
+local CLICK_ICON="rbxassetid://121385630700970" -- October 24: mouse icon for the Click badge (Codex, uploaded Oct 24)
+-- October 24 (Stevin: "1:1" to his reference): the whole badge as one image, the tan blob
+-- with the white outline and the icon inside it; the word is drawn under it by the game.
+-- CLICK_BADGE (mouse) and TAP_BADGE (finger) replace the blob frame when set; the frame
+-- and CLICK_ICON/TAP_HAND remain the fallback.
+local CLICK_BADGE="rbxassetid://79756670832324" -- tan blob + mouse (Codex from Stevin's reference, uploaded Oct 24)
+local TAP_BADGE="rbxassetid://76701185375129" -- tan blob + pointing finger
+local TAP_HAND="rbxassetid://74062853444480"
+local BADGE_WIDTH,BADGE_HEIGHT=1.9,2.15 -- studs (October 24: about the reference badge, head-sized)
+local BADGE_WORD={Touch="Tap",Gamepad="R2",Keyboard="Click"}
+local BADGE_INK=Color3.fromRGB(34,36,44) -- the blob's thin stroke and the drawn mouse
+local BADGE_KEY=Color3.fromRGB(128,132,144) -- the drawn mouse's left button and divider
+local function tapIcon(adornee,lift)
+ local gui=Instance.new("BillboardGui")
+ gui.Name,gui.Adornee="TapIcon",adornee
+ gui.Size,gui.StudsOffset=UDim2.fromScale(BADGE_WIDTH,BADGE_HEIGHT),Vector3.new(0,lift,0)
+ gui.MaxDistance,gui.AlwaysOnTop,gui.LightInfluence=60,true,0
+ gui.Enabled,gui.Active,gui.Parent=false,false,adornee
+ -- The shared pulse scales this frame about its centre.
+ local badge=Instance.new("Frame")
+ badge.Name,badge.BackgroundTransparency,badge.Size=("Badge"),1,UDim2.fromScale(1,1)
+ badge.AnchorPoint,badge.Position,badge.Parent=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),gui
+ local pulse=Instance.new("UIScale");pulse.Parent=badge
+ -- The blob: a rounded white square with a thin dark stroke in the badge's top.
+ local blob=Instance.new("Frame")
+ blob.Name,blob.BackgroundColor3,blob.BorderSizePixel=("Blob"),Color3.new(1,1,1),0
+ blob.AnchorPoint,blob.Position,blob.Size=Vector2.new(0.5,0),UDim2.fromScale(0.5,0),UDim2.fromScale(0.74,0.74)
+ Instance.new("UICorner",blob).CornerRadius=UDim.new(0.3,0)
+ Instance.new("UIAspectRatioConstraint",blob).AspectRatio=1
+ local rim=Instance.new("UIStroke");rim.Color,rim.Thickness,rim.Parent=BADGE_INK,2,blob
+ blob.Parent=badge
+ -- A whole-badge image (CLICK_BADGE/TAP_BADGE) fills the blob's cell; the blob itself
+ -- then draws nothing (SetTap).
+ local whole=Instance.new("ImageLabel")
+ whole.Name,whole.BackgroundTransparency,whole.ScaleType,whole.Visible=("Whole"),1,Enum.ScaleType.Fit,false
+ whole.AnchorPoint,whole.Position,whole.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(1.3,1.3)
+ whole.Parent=blob
+ -- The icon: the mouse asset, or the hand on touch.
+ local icon=Instance.new("ImageLabel")
+ icon.Name,icon.BackgroundTransparency,icon.ScaleType,icon.Visible=("Icon"),1,Enum.ScaleType.Fit,false
+ icon.AnchorPoint,icon.Position,icon.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.74,0.74)
+ icon.Parent=blob
+ -- Without the asset, a mouse drawn from primitives: a dark pill with a lighter left
+ -- button and a thin divider.
+ local mouse=Instance.new("Frame")
+ mouse.Name,mouse.BackgroundColor3,mouse.BorderSizePixel,mouse.Visible=("Mouse"),BADGE_INK,0,false
+ mouse.AnchorPoint,mouse.Position,mouse.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.52),UDim2.fromScale(0.42,0.66)
+ Instance.new("UICorner",mouse).CornerRadius=UDim.new(0.5,0)
+ mouse.Parent=blob
+ local button=Instance.new("Frame")
+ button.Name,button.BackgroundColor3,button.BorderSizePixel=("LeftButton"),BADGE_KEY,0
+ button.Position,button.Size=UDim2.fromScale(0.1,0.08),UDim2.fromScale(0.36,0.34)
+ Instance.new("UICorner",button).CornerRadius=UDim.new(0.45,0)
+ button.Parent=mouse
+ local divider=Instance.new("Frame")
+ divider.Name,divider.BackgroundColor3,divider.BorderSizePixel=("Divider"),BADGE_KEY,0
+ divider.Position,divider.Size=UDim2.fromScale(0.5,0.06),UDim2.fromScale(0.06,0.38)
+ divider.Parent=mouse
+ -- Gamepad: "R2" in the blob instead of an icon, and no word under it.
+ local key=Theme.Label(blob,"Key","R2",22,BADGE_INK)
+ key.AnchorPoint,key.Position,key.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.5,0.5),UDim2.fromScale(0.8,0.56)
+ key.TextXAlignment,key.TextScaled,key.Visible=Enum.TextXAlignment.Center,true,false
+ local keyOutline=key:FindFirstChild("TextOutline") -- dark on white needs no outline
+ if keyOutline and keyOutline:IsA("UIStroke") then keyOutline.Enabled=false end
+ -- The word under the blob: white with the shared black outline.
+ local word=Theme.Label(badge,"Word",BADGE_WORD.Keyboard,22,Color3.new(1,1,1))
+ -- The word overlaps the blob's lower edge, as in the reference.
+ word.AnchorPoint,word.Position,word.Size=Vector2.new(0.5,1),UDim2.fromScale(0.5,1),UDim2.fromScale(1,0.36)
+ word.TextXAlignment,word.TextScaled=Enum.TextXAlignment.Center,true
+ return gui,{pulse=pulse,icon=icon,mouse=mouse,key=key,word=word,blob=blob,rim=rim,whole=whole}
 end
 
 local function trail(parent,center)
@@ -88,6 +172,8 @@ local function meshEgg(parent,data,source:BasePart)
  local center=Instance.new("Attachment");center.Name="Center";center.Position=Vector3.new(0,half,0);center.Parent=body
  local count=data.stack or 1
  local gui,label=caption(center,data.value)
+ -- October 24 (Stevin): the badge sits ON the egg, centred on it, not above it.
+ local tap,tapParts=tapIcon(center,0)
  local glow=body:FindFirstChild("Glow")
  if glow and glow:IsA("BasePart") then glow.CanQuery=false end
  local seed=tonumber(data.id) or 1
@@ -95,6 +181,7 @@ local function meshEgg(parent,data,source:BasePart)
  return setmetatable({anchor=body,shell=body,body=body,glow=if glow and glow:IsA("BasePart") then glow else nil,
   base=body.Size,glowBase=if glow and glow:IsA("BasePart") then glow.Size else nil,half=half,
   twist=math.rad(((seed*37)%51)-25),trail=trail(body,center.Position),caption=gui,valueLabel=label,
+  tap=tap,tapParts=tapParts,tapOn=false,tapScale=1,
   seed=seed,scale=1,rotation=0,displayedValue=data.value,displayedCount=count},EggView)
 end
 
@@ -124,9 +211,40 @@ function EggView.new(parent,data)
  whenReady(image,function(ok) if ok and sprite.Parent then sprite.Image=image end end)
  local count=data.stack or 1
  local captionGui,valueLabel=caption(anchor,data.value)
+ local tap,tapParts=tapIcon(anchor,Config.EggSpriteSize*EggArt.Scale*0.5) -- on the sprite's centre
  anchor.Parent=parent
  return setmetatable({anchor=anchor,shell=anchor,gui=gui,image=sprite,trail=trail(anchor,Vector3.zero),caption=captionGui,valueLabel=valueLabel,
+  tap=tap,tapParts=tapParts,tapOn=false,tapScale=1,
   seed=tonumber(data.id) or 1,scale=1,rotation=0,displayedValue=data.value,displayedCount=count},EggView)
+end
+
+-- The guide's Click badge (EggController): on or off, the shared pulse's scale, and the
+-- player's input ("Touch", "Gamepad", anything else is mouse and keyboard) for its icon
+-- and word. The badge is restyled only when the input changes.
+function EggView:SetTap(on: boolean,scale: number,input: string?)
+ if self.tapOn~=on then self.tapOn=on;self.tap.Enabled=on end
+ if not on then return end
+ local parts=self.tapParts
+ if math.abs(scale-self.tapScale)>0.005 then
+  self.tapScale=scale
+  parts.pulse.Scale=scale
+ end
+ local kind=if input=="Touch" or input=="Gamepad" then input else "Keyboard"
+ if kind==self.tapInput then return end
+ self.tapInput=kind
+ local touch,pad=kind=="Touch",kind=="Gamepad"
+ -- The reference badge as one image when it is set; else the blob frame with an icon.
+ local wholeImage=if pad then "" elseif touch then TAP_BADGE else CLICK_BADGE
+ local whole=wholeImage~=""
+ parts.whole.Image,parts.whole.Visible=wholeImage,whole
+ parts.blob.BackgroundTransparency=if whole then 1 else 0
+ parts.rim.Enabled=not whole
+ parts.icon.Image=if touch then TAP_HAND else CLICK_ICON
+ parts.icon.Visible=not whole and not pad and parts.icon.Image~=""
+ parts.mouse.Visible=not whole and not pad and not touch and CLICK_ICON==""
+ parts.key.Visible=pad
+ parts.word.Visible=not pad
+ parts.word.Text=BADGE_WORD[kind]
 end
 
 function EggView:SetValue(value,count)

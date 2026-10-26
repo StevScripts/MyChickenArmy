@@ -493,7 +493,7 @@ function BattleController:Receive(snapshots)
 				local previous = self.modelViews[model]
 				if previous then self:ReleaseView(previous) end
 				view = {model = model, battleId = battle.id, unitId = unit.id, position = model.PrimaryPart.Position, attack = unit.attackSerial, impact=unit.impactSerial or 0, hp = unit.hp,
-					damage=unit.damageSerial or 0, spawnSerial=unit.spawnSerial or 0, transparencies = {}, tags = {}}
+					damage=unit.damageSerial or 0, spawnSerial=unit.spawnSerial or 0, action = unit.actionSerial or 0, transparencies = {}, tags = {}}
 				self.modelViews[model] = view
 				local actorView = view
 				local function cachePart(item)
@@ -514,6 +514,12 @@ function BattleController:Receive(snapshots)
 			if unit.attackSerial ~= view.attack then
 				view.model:SetAttribute("LocalAttackAt", os.clock())
 				if self:IsNearby(view.position) then self.combat:Swing(view.position,self:Feet(view)) end
+			end
+			-- October 25: a conquering action (peck, hop, cluck) seen happening, not one
+			-- already on the rig when it was bound. The rig's own animator plays the pose.
+			if (unit.actionSerial or 0) ~= view.action then
+				view.action = unit.actionSerial or 0
+				if view.unit and unit.hp > 0 and self:IsNearby(view.position) then self.combat:Conquer(unit.action, view.position, self:Feet(view)) end
 			end
 			if (unit.impactSerial or 0)~=view.impact then
 				if Catalog[unit.species].splash then

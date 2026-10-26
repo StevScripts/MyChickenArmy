@@ -13,6 +13,8 @@ local Checks={}
 
 local function setup()
  local a,b,c=Session.new(1001,"First",1),Session.new(1002,"Second",2),Session.new(1003,"Third",3)
+ -- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+ for _,fixture in {a,b,c} do for _=1,3 do fixture:AddPet("Duck",1).investment=0 end end
  a.loaded,b.loaded,c.loaded=true,true,true
  local world={}
  function world:Position(plot)

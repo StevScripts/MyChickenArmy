@@ -8,6 +8,7 @@ local MutationCatalog = require(Shared.MutationCatalog)
 local Currency = require(Shared.CurrencyLimits)
 local AutoRollRules = require(Shared.AutoRollRules)
 local GoldRolls = require(Shared.GoldRolls)
+local TutorialGuide = require(Shared.TutorialGuide)
 local EventService = require(script.Parent.EventService)
 local RebirthChickens = require(script.Parent.RebirthChickens)
 local RollService = {}
@@ -17,9 +18,38 @@ function RollService.new()
 	return setmetatable({random=Random.new(),analytics=nil::any}, RollService)
 end
 
+-- October 25 (Stevin): an empty-start profile's lever keeps the next starter-ladder Common
+-- on the first podium, at its tutorial price, until the guide completes or it owns the
+-- ladder's three (Config.Economy.StarterLadder). Nil for everyone else.
+local function ladderStep(session): any
+	local ladder = Config.Economy.StarterLadder
+	if type(ladder) ~= "table" or session.introRebirth == nil then return nil end
+	local t = session.tutorial
+	if type(t) ~= "table" or t.guideCompleted == true or t.guideSkipped == true or t.coreDone == true then return nil end
+	local step = ladder[(session:Count() :: number) + 1]
+	return if type(step) == "table" and Catalog[step.species] then step else nil
+end
+
+-- October 25 (Stevin): after the guide, the next Config.Economy.FavoredRolls.rolls pulls
+-- have `chance` of the basic Chicken on the first podium (at its normal price), counted
+-- on tutorial.rollCount; nil for everyone else.
+local function favoredSpecies(session, rng): string?
+	local favor = Config.Economy.FavoredRolls
+	if type(favor) ~= "table" or session.introRebirth == nil then return nil end
+	local t = session.tutorial
+	if type(t) ~= "table" or t.guideCompleted ~= true or t.guideSkipped == true then return nil end
+	local ladder = Config.Economy.StarterLadder
+	local tutorialPulls = if type(ladder) == "table" then #ladder else 2
+	if (tonumber(t.rollCount) or 0) >= tutorialPulls + (favor.rolls or 0) then return nil end
+	if not Catalog[favor.species] or rng:NextNumber() >= (favor.chance or 0) then return nil end
+	return favor.species
+end
+
 function RollService:Roll(session, now: number)
 	if now < session.rollReadyAt then return false, "Roll ready in " .. math.max(1, math.ceil(session.rollReadyAt - now)) .. "s." end
 	local starter = session:StarterRecruitPending()
+	local ladder = if starter then nil else ladderStep(session)
+	local favored = if starter or ladder then nil else favoredSpecies(session, session.debugRandom or self.random)
 	-- Rank metadata remains compatible with saved sessions; rolls use the full roster.
 	session.recruitTier=session.promotion
 	local rng = session.debugRandom or self.random
@@ -42,7 +72,7 @@ function RollService:Roll(session, now: number)
 	local mutationChance=1+(session.researchEffects.mutationLuck or 0)
 	for slot=1,count do
 		-- The disclosed guarantee advances once per lever pull, not once per display.
-		local forced=if slot==1 then session.debugNext or guaranteed else nil
+		local forced=if slot==1 then session.debugNext or (ladder and ladder.species) or favored or guaranteed else nil
 		local species=if starter then "Duck" else forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
 		-- Launch hooks: never the starter or a forced first slot.
 		local drawn=species
@@ -57,7 +87,8 @@ function RollService:Roll(session, now: number)
 		end
 		local level=if starter then 1 else Rules.RecruitLevel(session.pets,species,session.promotion)
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
-			level=level,price=if starter then Config.Economy.StarterRecruitPrice else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
+			level=level,price=if starter then Config.Economy.StarterRecruitPrice
+				elseif slot==1 and ladder and type(ladder.price)=="number" then ladder.price else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
 			chance=if starter or (slot==1 and guaranteed) then 1 elseif event then Config.Event.OfferChance else odds[species],
 			event=event or nil,rebirthChicken=rebirthChicken or nil,special=special}
@@ -67,6 +98,8 @@ function RollService:Roll(session, now: number)
 	session.offers,session.offer=offers,offers[1]
 	session.debugNext=nil
 	session.tutorial.rolled=true
+	-- October 24: card 7 ("Pull the lever again!") counts pulls; saved up to the limit.
+	session.tutorial.rollCount=math.min((tonumber(session.tutorial.rollCount) or 0)+1,TutorialGuide.RollCountLimit)
 	-- A new roll replaces every offer, so an Auto Roll hold or skip is over.
 	session.autoRoll.held,session.autoRoll.heldReason,session.autoRoll.skipped=nil,nil,nil
 	-- Freeze this roll: completing research cannot move an accepted reveal deadline.

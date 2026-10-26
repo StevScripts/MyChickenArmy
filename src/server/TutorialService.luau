@@ -13,7 +13,9 @@ local meaningful = {Buy=true, Roll=true, CashUpgrade=true, BoardUpgrade=true, Bu
 	FlockEquip=true, FlockUnequip=true, FlockBest=true}
 local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
 	IntroStarted=true, IntroFinished=true, IntroSkipped=true, HillIntroStarted=true, HideGoals=true, ShowGoals=true,
-	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true, ToolsOpen=true, VacuumEquip=true}
+	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true, ToolsOpen=true, VacuumEquip=true,
+	-- October 23 empty start: the post-tutorial Cluck Camp attack tip appeared.
+	CampTip=true}
 local inputs = {Keyboard=true, Touch=true, Gamepad=true}
 -- Eggs wait for the first-visit film: a long allowance while the client loads,
 -- then a film-length one once it reports the film started.
@@ -177,6 +179,10 @@ function Tutorial:Observe(session, state)
 	end
 	if (facts.Core or facts.Win) and not session.tutorial.guideCompleted then
 		session.tutorial.guideCompleted=true; session:Touch();state.tutorial.guideCompleted=true
+		-- October 25 (Stevin): the Egg Vacuum tip waits for Guide.VacuumTipEggs more eggs by
+		-- hand from here (never shown to the player); saved with the tutorial flags.
+		session.tutorial.eggsAtComplete=Guide.EggsCollected(session.tutorial)
+		state.tutorial.eggsAtComplete=session.tutorial.eggsAtComplete
 		r.completedAt=now
 		self:Emit(r, "FTUEOutcome", now-r.at, "Complete", if session.tutorial.guideSkipped then "SkippedVictory"
 			elseif facts.Core then "Completed" else "EarlyVictory")

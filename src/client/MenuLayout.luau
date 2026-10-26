@@ -22,7 +22,11 @@ Layout.Defaults={
 	Offline={size=Vector2.new(0.330251,0.421687),aspect=1.391571045},
 	-- October 20 overhaul (S8): the owner's reference Rebirth window, 0.86 wide at
 	-- 1.94:1 (plan v2 element spec). It needs landscape on phones.
-	Rebirth={size=Vector2.new(0.86,0.9),aspect=1.94},
+	-- October 23 (Stevin: "overlapping with the bottom and isnt like the other GUI's"):
+	-- 0.74 tall (was 0.9), centred at 0.48: on wide screens it spans about 0.11-0.85
+	-- like the other menus and stays above the Coins row and the tool hotbar. The
+	-- 0.86 width cap only binds on 4:3 tablets.
+	Rebirth={size=Vector2.new(0.86,0.74),position=Vector2.new(0.5,0.48),aspect=1.94},
 }
 
 -- October 21: the Sell screen keeps the frame My Army used before ("MyArmy").

@@ -419,7 +419,8 @@ local function stateImpl(self: any, st: any, session: any, state: any)
 
 	local rebirth = state.rebirth
 	if type(rebirth) == "table" then
-		if rebirth.eligible == true then named(self, st, "Rebirth", "Eligible") end
+		-- October 23: Rebirth 0 (the intro quote) has its own tutorial step; it is not rank eligibility.
+		if rebirth.eligible == true and rebirth.intro ~= true then named(self, st, "Rebirth", "Eligible") end
 		local rank = tonumber(rebirth.rank) or 0
 		if rank >= 2 then named(self, st, "Rebirth", "Rebirth2") end
 		if rank >= 5 then named(self, st, "Rebirth", "Rebirth5") end

@@ -32,34 +32,25 @@ LEDGER = "PetRollAnalytics_v1"
 STUDIO_SUFFIX = "_Studio"
 SHARDS = 16  # must match Schema.Shards
 TOP_CAP = 150
-# Schema.TutorialFunnel (version 11, later October 21): the tutorial funnel, ledger
-# keys tf.*. Since version 12 it is the only onboarding funnel (the old onb.* steps are
-# retired). Must match the schema (id, Roblox label); see TUTORIAL_FUNNEL.md.
-TUTORIAL = [
+# Schema.Onboarding (schema 15, October 24): the onboarding funnel, ledger keys ob.*
+# (reach, reach|platform, t, exit). It replaced the schema 11-14 Tutorial funnel (tf.*,
+# old days only). Must match the schema (id, Roblox label); see ONBOARDING_FUNNEL.md.
+ONBOARDING = [
     ("Joined", "Joined the game"),
     ("Loaded", "Save loaded"),
-    ("IntroDone", "Intro film done"),
-    ("Control", "Player has control"),
+    ("Rolled", "Pulled the lever (1/7)"),
+    ("ChickenTaken", "Took the chicken (2/7)"),
     ("Egg1", "1st egg clicked"),
-    ("Egg2", "2nd egg clicked"),
-    ("Egg3", "3rd egg clicked (1/7)"),
-    ("Sold", "Sold eggs on the pad (2/7)"),
-    ("LeverPulled", "Pulled the lever (3/7)"),
-    ("ChickenTaken", "Took the chicken (4/7)"),
-    ("UpgradesOpen", "Opened Upgrades (vacuum)"),
-    ("ToolsOpen", "Opened the Tools category"),
-    ("VacuumClaimed", "Claimed the Egg Vacuum (5/7)"),
-    ("VacuumEquipped", "Equipped the vacuum"),
-    ("Vacuum10", "Vacuumed 10 eggs"),
-    ("Vacuum20", "Vacuumed 20 eggs (6/7)"),
-    ("VacuumSold", "Sold the vacuum eggs (7/7)"),
-    ("TutorialComplete", "TUTORIAL COMPLETE shown"),
-    ("DailyDay1", "Daily Rewards Day 1"),
-    ("CluckCampWon", "Captured Cluck Camp"),
-    ("FortRoostWon", "Won Fort Roost"),
-    ("IronbeakWon", "Won Ironbeak HQ"),
-    ("KingCleared", "Beat the Chicken King"),
-    ("Rebirth1", "First Rebirth"),
+    ("Eggs3", "3 eggs clicked (3/7)"),
+    ("Sold", "Sold eggs on the pad (4/7)"),
+    ("StartClaimed", "Claimed Start (5/7)"),
+    ("PlotExpanded", "Expanded the plot (6/7)"),
+    ("RolledAgain", "Tutorial done: lever again (7/7)"),
+    ("Rebirth0", "Rebirth 0 done"),
+    ("Chickens3", "Owns 3 chickens"),
+    ("VacuumBought", "Bought the Egg Vacuum"),
+    ("CluckCampWon", "Won Cluck Camp"),
+    ("Rebirth1", "Rebirth 1"),
 ]
 PLAYERS = "PetRollAnalyticsPlayers_v1"
 # Schema.FeatureFunnels step ids, in order (NN = index). Must match the schema; funnels
@@ -183,7 +174,7 @@ def player_row(entry, profile):
             "platform": dev.get("platform"), "tier": dev.get("tier"), "os": dev.get("os"), "input": dev.get("input"),
             "geo": profile.get("geo"), "premium": profile.get("premium"), "age": profile.get("age"),
             "joinSource": profile.get("joinSource"), "friendsInServer": profile.get("friendsInServer"),
-            "rebirths": profile.get("rebirths"), "tutorialMax": max((int(k) for k in (profile.get("tf") or {}) if str(k).isdigit()), default=None), "lastExit": profile.get("lastExit"),
+            "rebirths": profile.get("rebirths"), "onboardingMax": max((int(k) for k in (profile.get("ob") or {}) if str(k).isdigit()), default=None), "lastExit": profile.get("lastExit"),
             "snap": profile.get("snap"), "life": profile.get("life"), "funN": profile.get("funN")}
 
 
@@ -348,32 +339,29 @@ def summarize(days):
         for bucket in entry["v"].values():
             merge(total, bucket)
     c, h = total["c"], total["h"]
-    tutorial, previous = [], None
-    first = c.get("tf.reach.01")
-    for index, (step_id, label) in enumerate(TUTORIAL, start=1):
+    onboarding, previous = [], None
+    first = c.get("ob.reach.01")
+    for index, (step_id, label) in enumerate(ONBOARDING, start=1):
         code = f"{index:02d}"
-        reached = c.get(f"tf.reach.{code}", 0)
-        tutorial.append({"step": f"{code} {label}", "id": step_id, "reached": reached, "ofJoined": pct(reached, first),
-                         "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"tf.t.{code}"), 0.5),
-                         "dwellP50": percentile(h.get(f"tf.d.{code}"), 0.5),
-                         "firstSessionPct": pct(c.get(f"tf.s1.{code}"), reached),
-                         "outOfOrder": c.get(f"tf.gap.{code}", 0), "passedOver": c.get(f"tf.skip.{code}", 0),
-                         "exitsHere": c.get(f"tf.exit.{code}", 0)})
+        reached = c.get(f"ob.reach.{code}", 0)
+        onboarding.append({"step": f"{code} {label}", "id": step_id, "reached": reached, "ofJoined": pct(reached, first),
+                           "ofPrevious": pct(reached, previous), "timeP50": percentile(h.get(f"ob.t.{code}"), 0.5),
+                           "exitsHere": c.get(f"ob.exit.{code}", 0)})
         previous = reached
-    exits = sorted(({"step": k[len("tf.exit."):], "n": v} for k, v in c.items() if k.startswith("tf.exit.")),
+    exits = sorted(({"step": k[len("ob.exit."):], "n": v} for k, v in c.items() if k.startswith("ob.exit.")),
                    key=lambda e: -e["n"])
     cohorts = []
     for day, counters in sorted(total["x"].items()):
         size = counters.get("cohort.size", 0)
         cohorts.append({"cohort": day, "size": size,
                         "retention": {k[4:]: {"n": v, "pct": pct(v, size)} for k, v in counters.items() if k.startswith("ret.d")},
-                        "steps": {k[3:]: v for k, v in counters.items() if k.startswith("tf.")}})
+                        })
     sessions = c.get("session.count", 0)
     return {
         "totals": {"unique": c.get("players.unique", 0), "new": c.get("players.new", 0), "sessions": sessions,
                    "avgSessionSec": round(c.get("session.seconds", 0) / sessions) if sessions else None,
                    "sessionP50": percentile(h.get("session.seconds"), 0.5)},
-        "tutorialFunnel": tutorial, "tutorialExits": exits, "cohorts": cohorts,
+        "onboarding": onboarding, "onboardingExits": exits, "cohorts": cohorts,
         "economy": {"sourceTotal": c.get("econ.srcTotal", 0), "sinkTotal": c.get("econ.sinkTotal", 0)},
         "rolls": {"count": c.get("roll.count", 0), "anyAffordablePct": pct(c.get("roll.anyAffordable"), c.get("roll.count"))},
         "featureFunnels": feature_funnels(c, h),

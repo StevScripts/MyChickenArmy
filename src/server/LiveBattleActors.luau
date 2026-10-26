@@ -85,6 +85,13 @@ function LiveBattleActors:Publish(now)
    actor.model:SetAttribute("AttackStartedAt",if u.attackStartedAt then workspace:GetServerTimeNow()-math.max(0,now-u.attackStartedAt) else nil)
    actor.model:SetAttribute("AttackSerial",u.attackSerial)
   end
+  -- October 25: a conquering action (Battle.ConquerActions); the action lands before
+  -- its serial so a client reading on the serial change sees which one it is.
+  if actor.model:GetAttribute("ActionSerial")~=(u.actionSerial or 0) then
+   actor.model:SetAttribute("Action",u.action)
+   actor.model:SetAttribute("ActionStartedAt",if u.actionAt then workspace:GetServerTimeNow()-math.max(0,now-u.actionAt) else nil)
+   actor.model:SetAttribute("ActionSerial",u.actionSerial or 0)
+  end
   actor.model:SetAttribute("Attacking",u.pendingAttack~=nil)
   actor.model:SetAttribute("Defeated",u.hp<=0)
   actor.model:SetAttribute("Reinforcing",u.reinforcing==true)

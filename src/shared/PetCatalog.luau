@@ -550,13 +550,18 @@ end
 -- curve, so a new player's ~$2,000 buys a real choice of chickens. Income and stats
 -- are unchanged (cheaper chickens just pay back faster). Points are {odds, price};
 -- prices between points are interpolated on log odds and rounded to $100.
+-- October 23 empty start: the basic Chicken (the first point) costs 150 Coins (was 600),
+-- so the second and third chickens arrive in the first few minutes from 0 Coins. No
+-- other rollable chicken sits on that segment (Rooster, the next, is past 23.8). Its
+-- odds sit a hair past the point and the 100-Coin rounding would read 200, so it is
+-- also an override.
 Catalog.EarlyPrices = {
-	Common = {{3.57, 600}, {23.8, 1800}, {33.3, 2000}, {90.9, 2200}, {128.6, 2500}},
+	Common = {{3.57, 150}, {23.8, 1800}, {33.3, 2000}, {90.9, 2200}, {128.6, 2500}},
 	Uncommon = {{41.7, 3000}, {55.6, 3500}, {102.3, 4500}, {166.7, 6000}},
 	Rare = {{72.7, 8000}, {90.9, 9000}, {145.5, 11000}, {160, 14000}, {200, 16000},
 		{222.2, 17000}, {266.7, 19000}, {400, 25000}},
 }
-Catalog.EarlyPriceOverrides = {Noob = 600}
+Catalog.EarlyPriceOverrides = {Noob = 600, Duck = 150}
 function Catalog.EarlyPrice(oneIn: number, rarity: string): number?
 	local points = Catalog.EarlyPrices[rarity]
 	if not points then return nil end

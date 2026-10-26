@@ -48,7 +48,8 @@ function Readout.new(app)
 		local column=Theme.Container(root,kind)
 		column.Position=UDim2.fromScale((index-1)*(1+COLUMN_GAP)/Readout.Aspect,0)
 		column.Size=UDim2.fromScale(1/Readout.Aspect,1)
-		Theme.Image(column,"Icon",Readout.Icons[kind],UDim2.fromScale(1,1))
+		-- October 23: the icons idle with the HUD's slow tilt (Motion:Sway).
+		Theme.Motion:Sway(Theme.Image(column,"Icon",Readout.Icons[kind],UDim2.fromScale(1,1)),5,1.4,index*0.4)
 		-- The number is a tilted badge over the icon's top-right corner.
 		local value=Theme.Display(column,"Value","x1",30,WHITE)
 		value.AnchorPoint,value.Position,value.Size=Vector2.new(0.5,0.5),UDim2.fromScale(0.8,0.16),UDim2.fromScale(0.9,0.46)
@@ -71,7 +72,8 @@ end
 function Readout:Render(state)
 	local boosts=state and state.boosts
 	if type(boosts)~="table" then self.root.Visible=false;return end
-	self.root.Visible=true
+	-- October 23: hidden while the tutorial keeps the HUD quiet (lessons 1-2); Hud re-renders it.
+	self.root.Visible=not (self.app.hud~=nil and self.app.hud.quiet==true)
 	local running=type(boosts.running)=="table" and boosts.running or {}
 	for kind,column in self.columns do
 		local total=tonumber(boosts[KEYS[kind]]) or 1

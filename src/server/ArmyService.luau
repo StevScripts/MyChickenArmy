@@ -201,7 +201,8 @@ function ArmyService.Sell(session, petIds, _sparesOnly, expectedTotal)
 	if type(expectedTotal)~="number" or expectedTotal~=total then return false,"Your sale value changed. Choose again." end
 	local minimum=session:StarterFlockMinimum()
 	if session:Count()-count<minimum then
-		return false,"Keep "..minimum.." "..(if minimum==1 then "chicken" else "chickens").." for your first mission."
+		if minimum<=1 then return false,"Keep your last chicken." end
+		return false,"Keep "..minimum.." chickens for your first mission."
 	end
 	if not session:CanCredit(total,"sale") then return false,"Spend some coins before selling these chickens." end
 	-- Validate the whole batch before mutation; this transaction never yields.

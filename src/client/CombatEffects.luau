@@ -200,9 +200,10 @@ function Effects:Smoke(position: Vector3)
 end
 
 -- Sounds sit at the fight so they fall off with distance like the rest of the world.
-function Effects:Sound(cue: string, position: Vector3, pitch: number, cooldown: number)
+function Effects:Sound(cue: string, position: Vector3, pitch: number, cooldown: number, volume: number?)
 	local anchor = self:Anchor(position, 3)
-	self.app.audio:Play(cue, pitch, {noFallback = true, parent = anchor, cooldown = cooldown, maxVoices = 4})
+	self.app.audio:Play(cue, pitch, {noFallback = true, parent = anchor, cooldown = cooldown, maxVoices = 4,
+		volume = volume, forceVolume = volume ~= nil})
 end
 
 -- `feet` is the ground under the attacker; nil skips the dust.
@@ -235,6 +236,31 @@ function Effects:Knockout(position: Vector3, ground: Vector3?)
 	self:Spark(position, true)
 	self:Sound("CombatKnockout", position, 1.1, 0.1)
 	self:Sound("CombatKnockoutCluck", position, 1 + math.random() * 0.15, 0.1)
+end
+
+-- October 25 (Stevin: conquering chickens should "do some conquering things"): one light
+-- touch per server action (Battle.ConquerActions). Peck: a dust kick and a soft swing;
+-- Hop: a puff under the feet and a happy cluck; Cluck: one of the ambient clucks. The
+-- pose itself is the rig animator's (Attack / Victory clips). ConquerPeck / ConquerHop /
+-- ConquerCluck are used once authored; until then these fall back to existing cues.
+function Effects:Conquer(action: string?, position: Vector3, feet: Vector3?)
+	local audio = self.app.audio
+	local function cue(name: string, fallback: string): string
+		return if audio and audio.Has and audio:Has(name) then name else fallback
+	end
+	if action == "Peck" then
+		if feet then self:Dust(feet) end
+		local name = cue("ConquerPeck", "CombatSwing")
+		self:Sound(name, position, 1.3 + math.random() * 0.2, 0.12, if name == "CombatSwing" then 0.45 else nil)
+	elseif action == "Hop" then
+		local feel = self.app.worldFeel
+		if feel and feet then feel:Poof(feet, {count = 6, size = 1}) end
+		self:Sound(cue("ConquerHop", "ChickenHappy"), position, 1 + math.random() * 0.15, 0.3)
+	elseif action == "Cluck" then
+		local animator = self.app.animator
+		if audio and audio.Has and audio:Has("ConquerCluck") then self:Sound("ConquerCluck", position, 1, 0.3)
+		elseif animator and animator.Cluck then animator:Cluck(position) end
+	end
 end
 
 return Effects

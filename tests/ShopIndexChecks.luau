@@ -53,6 +53,8 @@ local function setup(configured)
 	function player:SetAttribute(name,value) self.attributes[name]=value end
 	fixture.player=player
 	local session=Session.new(1001,"Shop Fixture",1)
+	-- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+	for _=1,3 do session:AddPet("Duck",1).investment=0 end
 	session.loaded=true
 	local commerce=Commerce.new({marketplace=marketplace,catalog=catalog,
 		clock=function() return fixture.now end,
@@ -102,6 +104,8 @@ function Checks.Run()
 	end)
 	test("Invalid discovery fields cannot partially replace a loaded session",function()
 		local session=Session.new(1001,"Validation",1)
+		-- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+		for _=1,3 do session:AddPet("Duck",1).investment=0 end
 		local data=session:ToData();data.coins=123;data.discovered={Robot=true,Duck=7}
 		local coins,pets=session.coins,session.pets
 		assert(not session:LoadData(data))
@@ -113,6 +117,8 @@ function Checks.Run()
 	end)
 	test("Overgrown counters are clamped and removed species are preserved, not fatal",function()
 		local original=Session.new(1001,"Future",1)
+		-- October 23 empty start: a new profile has no chickens; these checks assume the old three-Duck flock.
+		for _=1,3 do original:AddPet("Duck",1).investment=0 end
 		local data=original:ToData()
 		data.eggCarry={count=2e12,value=5e12};data.enemyKills=3e12;data.coins=2^60
 		table.insert(data.pets,{id="future-1",species="RetiredBird",level=1,favorite=false,collected=0,investment=10,extra={x=1}})

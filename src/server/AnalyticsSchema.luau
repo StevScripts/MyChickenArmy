@@ -35,7 +35,20 @@ local Schema = {}
 -- Research Roblox dashboard becomes Upgrades, and the overhaul systems get their own
 -- funnels (Flock, Vacuum, Feed, GoldRolls, Mutations, Gems, PlaytimeRewards). Old
 -- days keep their onb.* and fun.<removed>.* keys in the ledger; nothing reads them.
-Schema.Version = 12
+-- 13 (October 23 empty start, build 1.22.0-empty-start): new profiles start with 0
+-- Coins and no chickens; six lessons (roll, take, 3 eggs, sell, Claim Start, expand
+-- the plot), then tips and Rebirth 0. Tutorial steps 25 StartClaimed, 26 PlotExpanded,
+-- 27 CampTipShown and 28 IntroRebirth are appended (05-08 now land after 09-10); the
+-- rebirth0.count counter, the RebirthIntro sink (Rebirth0) and feature are new.
+-- 14 (October 24): Tutorial step 29 RolledAgain (the seventh card).
+-- 15 (October 24, Stevin: "completely revamp the funnels section for the onboarding ...
+-- the data is super messy just redo it all ... I just need to see where players are
+-- leaving"): Schema.Onboarding, 15 hard steps in play order (ledger ob.*), replaces the
+-- 29-step Tutorial funnel on Roblox's Onboarding dashboard and as the session stage
+-- ("Ob:<step>" / "Post" / "Untracked"). Schema.TutorialFunnel stays declared but is not
+-- recorded any more (tf.* keys live in days before this version only); the TutorialExit
+-- custom event is no longer sent. docs/analytics/ONBOARDING_FUNNEL.md.
+Schema.Version = 15
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -65,11 +78,53 @@ function Schema.JourneyKey(day: string, shard: number): string return "j/" .. da
 function Schema.RollupKey(day: string): string return "r/" .. day end
 function Schema.PlayerKey(userId: number): string return "p/" .. userId end
 
--- Roblox auto-completes every earlier onboarding step when a later one is logged, so
--- the Tutorial funnel (below) sends steps strictly in order. A missing hard step is
--- passed over once this many later steps happened (tf.robloxGapFill.NN counts each).
-Schema.RobloxGapRelease = 3
 function Schema.StepCode(index: number): string return string.format("%02d", index) end
+
+-- Version 15 Onboarding funnel (October 24; docs/analytics/ONBOARDING_FUNNEL.md).
+-- Fifteen hard steps in the order they happen to a brand-new player, each a saved or
+-- server fact, counted once per player ever, only for fresh empty-start profiles (a save
+-- carrying introRebirth whose guide had not started when analytics first saw it).
+-- AnalyticsTutorial (the file keeps its schema 11 name) records it and owns Roblox's
+-- Onboarding dashboard (LogOnboardingFunnelStepEvent "NN <label>", fields version,
+-- platform). October 25 (Stevin: "make it simpler to understand where players are
+-- dropping off exactly"; not yet published, so reordered in place): 03-11 are the eight
+-- tutorial cards in order, labelled (n/8), 11 is the tutorial's completion, 12-15 come
+-- after it. Roblox gets a step only once every earlier step is truly reached (no gap
+-- fill), so each dashboard bar is "did this and everything before"; the ledger counts
+-- true reaches even out of order.
+-- Ledger (Schema.LedgerStore, per game version and day), nothing else:
+--   ob.reach.NN             players reaching step NN (once per player, ever)
+--   ob.reach.NN|<platform>  the same split by platform (Desktop, Mobile, Tablet, ...)
+--   ob.t.NN                 histogram: play seconds from first join to step NN
+--   ob.exit.NN              a session ended with NN the player's furthest step
+--                           (00 = none), counted only while step 15 is not reached
+-- Session stage (Analytics:_Stage): "Ob:<step id>" before step 15, "Post" after,
+-- "Untracked" for everyone the funnel does not track.
+Schema.Onboarding = {
+	{id = "Joined", label = "Joined the game", trigger = "PlayerAdded (Analytics:Join)"},
+	{id = "Loaded", label = "Save loaded", trigger = "the profile loaded (Analytics:Loaded)"},
+	{id = "Rolled", label = "Card 1: pulled the lever (1/8)", trigger = "TutorialGuide.RollCount(tutorial) >= 1 (rollCount, or the old rolled flag)"},
+	{id = "ChickenTaken", label = "Card 2: took the chicken (2/8)", trigger = "tutorial.bought"},
+	{id = "Egg1", label = "Card 3: 1st egg clicked", trigger = "tutorial.collectedEggCount >= 1"},
+	{id = "Eggs3", label = "Card 3: 3 eggs clicked (3/8)", trigger = "tutorial.collectedEggCount >= TutorialGuide.EggGoal"},
+	{id = "Sold", label = "Card 4: sold eggs (4/8)", trigger = "tutorial.soldEggs"},
+	{id = "StartClaimed", label = "Card 5: claimed Start (5/8)", trigger = "tutorial.startClaimed"},
+	{id = "PlotExpanded", label = "Card 6: expanded the plot (6/8)", trigger = "Upgrades tree Flock tier >= 1 (Flock Size I)"},
+	{id = "RolledAgain", label = "Card 7: pulled the lever again (7/8)", trigger = "TutorialGuide.RollCount(tutorial) >= 2"},
+	{id = "TutorialDone", label = "Card 8: TUTORIAL DONE (8/8)", trigger = "tutorial.coreDone or guideCompleted (card 8: the second chicken)"},
+	{id = "VacuumBought", label = "After: got the Egg Vacuum", trigger = "Upgrades tree EggVacuum tier >= 1 (the first tip)"},
+	{id = "Rebirth0", label = "After: Rebirth 0 done", trigger = "session.introRebirth == \"done\" (1,700 Coins)"},
+	{id = "CluckCampWon", label = "After: won Cluck Camp", trigger = "firstWins[1]"},
+	{id = "Rebirth1", label = "After: Rebirth 1", trigger = "session.rebirths >= 1"},
+}
+Schema.OnboardingIndex = {} :: {[string]: number}
+for index, step in Schema.Onboarding do
+	assert(#step.label <= 36, "Onboarding label too long: " .. step.id)
+	Schema.OnboardingIndex[step.id] = index
+end
+function Schema.OnboardingName(index: number): string
+	return Schema.StepCode(index) .. " " .. Schema.Onboarding[index].label
+end
 
 -- Recurring funnels (Roblox LogFunnelStepEvent). Onboarding counts as one of
 -- Roblox's 10 funnel dashboards, so at most 9 here.
@@ -103,6 +158,8 @@ for minute = 1, 100 do table.insert(Schema.Playtime, {seconds = minute * 60, lab
 for index = 1, math.min(#Schema.Playtime, 100) do Schema.Funnels.Playtime[index] = Schema.Playtime[index].label end
 function Schema.PlaytimeCode(index: number): string return string.format("%03d", index) end
 
+-- HISTORY, schema 11-14 (not recorded since version 15; the tf.* keys exist only in days
+-- before it and nothing reads them). Declared because names are append-only.
 -- Version 11 Tutorial funnel (later October 21, Stevin: "a complete rework of the
 -- funnels to the tutorial, be VERY detailed"). One ordered funnel that follows a fresh
 -- player through every action of the seven-lesson tutorial (eggs, selling, rolling,
@@ -136,14 +193,14 @@ function Schema.PlaytimeCode(index: number): string return string.format("%03d",
 -- Roblox: LogOnboardingFunnelStepEvent(player, NN, "NN <label>", {version, platform}),
 -- strictly in order (Roblox fills earlier steps itself): soft steps are passed over
 -- once a later step happens; a missing hard step is released after
--- Schema.RobloxGapRelease later steps.
+-- Schema.RobloxGapRelease (3) later steps.
 Schema.TutorialFunnel = {
 	{id = "Joined", kind = "hard", label = "Joined the game",
 		screen = "Loading screen; the player's yard is assigned.",
 		trigger = "PlayerAdded on a server (Analytics:Join).",
 		about = "Every tracked fresh player starts here. 100% by definition; every other rate is read against it."},
 	{id = "Loaded", kind = "hard", label = "Save loaded",
-		screen = "Still loading; the starter save (3 Ducks, 2,400 Coins) is ready.",
+		screen = "Still loading; the starter save (no chickens, 0 Coins since October 23; was 3 Ducks, 2,400 Coins) is ready.",
 		trigger = "DataService loaded the profile and Analytics resolved the ledger profile (Analytics:Loaded).",
 		about = "A drop from Joined is players leaving or failing before their save loads: DataStore errors, slow devices or instant quits. Compare with data.loadFail and load.serverSeconds."},
 	{id = "IntroDone", kind = "hard", label = "Intro film done",
@@ -231,6 +288,29 @@ Schema.TutorialFunnel = {
 	{id = "Rebirth1", kind = "hard", label = "First Rebirth",
 		screen = "Rebirth screen.", trigger = "session.rebirths >= 1.",
 		about = "Long-term retention marker: the player understood the reset loop."},
+	-- Version 13 (October 23 empty start). Appended, so Roblox gets 25-26 only after the
+	-- earlier steps are reached or gap-filled; the ledger's tf.reach.* has them at once.
+	{id = "StartClaimed", kind = "hard", label = "Claimed Start (5/6)",
+		screen = "TUTORIAL 5/6 'Open Upgrades, then: Claim Start!': the centre Start hex is claimable once, free (dark screen, gold ring).",
+		trigger = "tutorial.startClaimed (UpgradeService BuyNode \"Start\"); empty-start saves only (introRebirth set).",
+		about = "Lesson 5: the first menu of the empty start. A drop from Sold to here means the Upgrades button or the Start hex was not found; read with tf.d.25."},
+	{id = "PlotExpanded", kind = "hard", label = "Expanded the plot (6/6)",
+		screen = "TUTORIAL 6/6 'Expand your plot!': Flock Size I (30 Coins) grows the yard one stage.",
+		trigger = "Flock Size tier >= 1 in the Upgrades tree; empty-start saves only (introRebirth set).",
+		about = "Lesson 6, the last one: TutorialComplete (18) follows at once. A drop from StartClaimed means 30 Coins were not on hand or the hex was not found."},
+	{id = "CampTipShown", kind = "soft", label = "Attack tip shown",
+		screen = "TIP 'Send your Army to attack Cluck Camp!' with the beam to the camp, once the Army holds 3 chickens and no camp is won.",
+		trigger = "Client TutorialSignal CampTip.",
+		about = "The post-tutorial attack tip. Read with CluckCampWon (17): the share that sees the tip and then wins Cluck Camp (one basic Chicken since October 23)."},
+	{id = "IntroRebirth", kind = "hard", label = "Rebirth 0 done",
+		screen = "Rebirth screen 'Rebirth 0': 350 Coins, +30 Gems, x1.5 Coins while the rank is 0.",
+		trigger = "session.introRebirth == \"done\" (RebirthService.RebirthIntro).",
+		about = "Drop a Fruit's 'Rebirth LVL 0', targeted at about two minutes of play: tf.t.28 is the play time to it. Compare with Rebirth1 (24) for the reset loop."},
+	-- Version 14 (October 24): a seventh card, pull the lever again, appended.
+	{id = "RolledAgain", kind = "hard", label = "Pulled the lever again (7/7)",
+		screen = "TUTORIAL 7/7 'Pull the lever again!' with the beam to the lever; TutorialComplete (18) and Daily Rewards follow.",
+		trigger = "tutorial.rollCount >= 2 (RollService); empty-start saves only (introRebirth set).",
+		about = "Lesson 7, the last one since October 24. A drop from PlotExpanded means the player did not walk back to the lever; read with tf.d.29."},
 }
 Schema.TutorialFunnelIndex = {} :: {[string]: number}
 for index, step in Schema.TutorialFunnel do
@@ -276,6 +356,8 @@ Schema.Sinks = {
 	Rebirth        = {transaction = "Gameplay", sku = "Rebirth"},
 	-- Version 7: an Upgrades tree node (sku gets ":<nodeId>").
 	BuyUpgrade     = {transaction = "Shop",     sku = "Upgrade"},
+	-- Version 13: the whole wallet removed by Rebirth 0 (RebirthIntro).
+	RebirthIntro   = {transaction = "Gameplay", sku = "Rebirth0"},
 }
 Schema.Rarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret"}
 
@@ -289,6 +371,8 @@ Schema.Features = {
 	UnclaimTerritory = "Territory", Rebirth = "Rebirth",
 	-- Version 7 (October 20 overhaul).
 	BuyUpgrade = "Upgrades", BuyGemUpgrade = "GemUpgrades", SetAutoRebirth = "AutoRebirth",
+	-- Version 13 (October 23 empty start).
+	RebirthIntro = "Rebirth0",
 }
 
 -- Launch sprint ledger names (docs/team/launch). Workers record them through
@@ -333,6 +417,8 @@ Schema.LaunchCounters = {
 	["autoRoll.skip"] = true,     -- Skip on the hit alert
 	-- Version 8, S16 (Playtime Rewards; GameServer emits it).
 	["playtimeReward.claim"] = true, -- playtimeReward.claim.<1..12>: a Playtime Rewards tile claimed
+	-- Version 13 (October 23 empty start; RebirthService.RebirthIntro emits it).
+	["rebirth0.count"] = true,    -- a Rebirth 0 taken (once per new profile)
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {
@@ -614,6 +700,7 @@ Schema.CustomEvents = {
 	"FunnelDrop",     -- value = furthest step index; fields funnel, step id, platform
 	"DeviceProfile",  -- value = memory MB at first report; fields platform, tier, screen class
 	-- Version 12 (replaces OnboardingExit, the retired onboarding funnel's exit).
+	-- Not sent since version 15 (exits are ob.exit.NN in the ledger only); kept, append-only.
 	"TutorialExit",   -- value = seconds since the last Tutorial funnel step; fields "NN <id>", lesson, S1/S2/S3+
 }
 

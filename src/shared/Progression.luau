@@ -52,6 +52,10 @@ end
 local homeCamps = {ranks[1].camps[1], ranks[1].camps[3]}
 homeCamps[1] = table.clone(homeCamps[1])
 homeCamps[1].name = "Cluck Camp"
+-- October 23 empty start (Stevin: three rolled chickens must be enough): one basic
+-- Chicken (Rules.Power 12, was three at 38), so three level-1 chickens "Should win".
+-- Bread Bandits above keeps its three.
+homeCamps[1].roster = {"Duck"}
 homeCamps[2] = table.clone(homeCamps[2])
 homeCamps[2].name = "Fort Roost"
 -- October 8: level-1 garrison (power ~107, was ~146) so about five Uncommon/Rare

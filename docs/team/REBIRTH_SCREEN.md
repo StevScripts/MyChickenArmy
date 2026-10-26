@@ -58,14 +58,47 @@ Deliberate differences (decided earlier or required):
 
 ## Layout
 
-The window is `MenuLayout.Defaults.Rebirth`: 0.86 of the screen wide at 1.94:1.
-Studio may author `StarterGui.PetRollGui.MenuLayouts.Rebirth`, and
-`MenuLayout.CreateControls` adds the Frame. One layout serves every device, so
-phones need the landscape lock.
+The window is `MenuLayout.Defaults.Rebirth`: at most 0.86 wide and 0.74 tall at
+1.94:1, centred at 0.48. Studio may author `StarterGui.PetRollGui.MenuLayouts.Rebirth`
+(set to the same values), and `MenuLayout.CreateControls` adds the Frame. One layout
+serves every device, so phones need the landscape lock.
+
+October 23 containment fix (Stevin: "the rebirth gui is not contained correctly like
+its overlapping with the bottom and isnt like the other GUI's"). The window was
+0.86 × 0.9, so on wide screens (phones, a wide Studio playtest) it ran from 0.05 to
+0.95 of the height. That put it under the Coins counter and Roblox's tool hotbar,
+which stays visible while menus are open. It now spans about 0.11–0.85 on 16:9 and
+phone shapes, like Shop and My Army; the 0.86 width cap only binds on 4:3 tablets.
+At the smaller size, small captions hit the 12 px text floor on phones, so the layout
+changed inside as well:
+- The warning is one line: "You will lose all Coins and Upgrades!". The left column
+  moved up 20 units, and the Gem panel ends level with the Rebirth and Skip buttons.
+- The reward tiles are 250 wide (was 205/210), so "MULTIPLIER" fits.
+- Skip is 360 wide and Rebirth 315 (both were 335), so "KEEP UPGRADES" stays on one line.
+- The find tile is 335 wide (was 195), so "Robo-Cluck" and "Find to Rebirth" fit.
+- In Gem cards the text starts 8 units in (was 16), and the title runs to the inner
+  edge, so "Vacuum Capacity [3/3]" stays on one line.
+These were checked in the UI Lab at Phone, Desktop and Tablet, Rebirth and
+RebirthFirst. The Lab's Phone render is about real phone size (749 × 346 logical px);
+Desktop and Tablet render far below real size in the small Studio viewport.
 
 Element positions are the plan's mock pixels (a 1710 × 883 window) and stay in the
 code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
 `GemUpgradeGrid.luau` (945-pixel panel, 430 × 153 cards, 178-pixel row pitch).
+
+## Rebirth 0 (October 23, owner decision)
+
+Drop a Fruit's first Rebirth is "LVL 0" for about 350 coins at 2:10 in. Ours: a one-time intro
+tier before the ladder. `Config.Rebirth.Intro = {Enabled, Cost=1700, Multiplier=1.5, Gems=30}`.
+While `introRebirth=="pending"` the quote is `intro=true, rank=0, nextRank=0, title "Rebirth 0",
+cost 1700, find=nil, skip=nil, multiplierNext=1.5, gemsNext=30`; before the tutorial completes
+`eligible=false, reason "Finish the tutorial first"`. The screen shows "Rebirth 0", the 1,700 bar
+and three earn tiles (+30 Gems, x1.5 Coins, Keep your chickens), no find tile, no Skip. The
+button sends `RebirthIntro {}`. The transaction resets like a Rebirth (Coins, tree, Feed
+levels, carried eggs) without changing `rebirths`, sets `introRebirth="done"`, grants 30 Gems
+and x1.5 egg Coins while the rank stays 0 (Rebirth 1's x2 replaces it). Old saves have no
+`introRebirth` and never see the intro. Ladder costs and finds for ranks 1–50 are unchanged.
+Analytics counter `rebirth0.count`; tutorial funnel step 28 `IntroRebirth`.
 
 ## Data and requests
 
@@ -79,6 +112,7 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
   icon keys come from `GemUpgradeCatalog`.
 - Requests:
   - `Rebirth {expectedRank}`, or `{expectedRank, useSkip=true}` to spend a credit.
+  - `RebirthIntro {}` for Rebirth 0 (October 23); `timeSkipMinutes`/`timeSkipPending`/`ClaimTimeSkip` were removed Oct 23.
   - `BuyGemUpgrade {upgradeId, expectedLevel, expectedPrice}`.
   - `SetAutoRebirth {enabled}`.
   - `ClaimTimeSkip` (no fields; October 21, P4): pays `state.rebirth.timeSkipPending`
@@ -101,8 +135,8 @@ code as numbers: `RebirthPanel.luau` (`rect`, `EARN`, `RANK`, `GEM_PANEL`) and
   purchase. "Rebirth N" and the Hill chip keep their places above the Coins. S8's
   counter (`HudController:BuildGems/UpdateGems/PlaceGems`) was removed; it is in
   commit ae94c9d.
-- **HUD Rebirth button:** it shows once the Coins reach a quarter of the next cost, or
-  once the player has a rank. Each new rank re-arms the "Rebirth ready" toast.
+- **HUD Rebirth button:** it shows from the start (October 23, Stevin; it used to wait
+  for a quarter of the next cost or a rank). Each new rank re-arms the "Rebirth ready" toast.
 - **Index:** `PetCatalog.RebirthOrder` has been empty since October 21 (no Rebirth
   chickens are granted or offered). The finds are ordinary rollable chickens with their
   normal odds and portraits.

@@ -26,9 +26,10 @@ local function optional(name: string): any
 end
 local Funnels = optional("AnalyticsFunnels")
 local PlayerInfo = optional("AnalyticsPlayer")
--- Version 11: the Tutorial funnel; it owns Roblox's Onboarding dashboard. Version 12:
--- it is the only onboarding funnel and names the session stage.
-local TutorialFunnel = optional("AnalyticsTutorial")
+-- Version 15: the Onboarding funnel (Schema.Onboarding, ledger ob.*); it owns Roblox's
+-- Onboarding dashboard and names the session stage. The module keeps its schema 11
+-- file name.
+local OnboardingFunnel = optional("AnalyticsTutorial")
 
 local Analytics = {}
 Analytics.__index = Analytics
@@ -101,7 +102,7 @@ function Analytics.MergeProfile(old: any, ours: any): any
 	if old.firstPurchase and (not ours.firstPurchase or old.firstPurchase < ours.firstPurchase) then
 		result.firstPurchase = old.firstPurchase
 	end
-	for _, part in {Funnels, PlayerInfo, TutorialFunnel} do
+	for _, part in {Funnels, PlayerInfo, OnboardingFunnel} do
 		if part and part.MergeProfile then pcall(part.MergeProfile, old, ours, result) end
 	end
 	return result
@@ -142,7 +143,7 @@ function Analytics.new(deps: Deps?)
 		local product = ShopCatalog.Products[key]
 		if product and type(product.productId) == "number" and product.productId > 0 then self.productKeys[product.productId] = key end
 	end
-	for _, entry in {{"funnels", Funnels}, {"playerInfo", PlayerInfo}, {"tutorialFunnel", TutorialFunnel}} do
+	for _, entry in {{"funnels", Funnels}, {"playerInfo", PlayerInfo}, {"onboarding", OnboardingFunnel}} do
 		local module = entry[2]
 		if module then
 			local ok, part = pcall(module.new, self)
@@ -232,14 +233,14 @@ function Analytics:_Play(st): number
 	return base + (self.clock() - st.joinedAt)
 end
 
--- "Tut:<furthest Tutorial funnel step>", "Post" or "Untracked" (AnalyticsTutorial).
+-- "Ob:<furthest Onboarding step>", "Post" or "Untracked" (AnalyticsTutorial, version 15).
 function Analytics:_Stage(st): string
-	local part = self.tutorialFunnel
+	local part = self.onboarding
 	if part then
 		local ok, stage = pcall(part.Stage, part, st)
 		if ok and type(stage) == "string" then return stage end
 	end
-	return if st.tracked then "Tut:Joined" else "Untracked"
+	return if st.tracked then "Ob:Joined" else "Untracked"
 end
 
 function Analytics:Join(player: Player, session)
@@ -255,7 +256,7 @@ function Analytics:Join(player: Player, session)
 	self.ledger:Count("players.joinAttempt")
 	self.ledger:Count("play.start")
 	self:_Part(self.funnels, "Join", st)
-	self:_Part(self.tutorialFunnel, "Join", st)
+	self:_Part(self.onboarding, "Join", st)
 	self:_Part(self.playerInfo, "Join", st, player, session)
 end
 
@@ -331,7 +332,7 @@ function Analytics:_Resolve(st, ok: boolean, profile: any, fresh: boolean)
 	if st.tracked then self.ledger:Count("players.join.tracked") end
 	st.ready = true
 	self:_Part(self.funnels, "Profile", st)
-	self:_Part(self.tutorialFunnel, "Profile", st)
+	self:_Part(self.onboarding, "Profile", st)
 	self:_Part(self.playerInfo, "Profile", st)
 end
 
@@ -351,13 +352,13 @@ function Analytics:Observe(session, state)
 	end
 	st.lastState = state
 	self:_Part(self.funnels, "State", st, session, state)
-	self:_Part(self.tutorialFunnel, "State", st, session, state)
+	self:_Part(self.onboarding, "State", st, session, state)
 end
 
 function Analytics:Signal(session, signal: any)
 	local st = self:_State(session)
 	if not st or type(signal) ~= "string" or #signal > 32 then return end
-	self:_Part(self.tutorialFunnel, "Signal", st, signal)
+	self:_Part(self.onboarding, "Signal", st, signal)
 	if signal == "IntroStarted" then
 		st.introStarted = true
 		self.ledger:Count("intro.started")
@@ -886,9 +887,9 @@ end
 
 -- Leaving ------------------------------------------------------------------------
 
--- Furthest Tutorial funnel step (the journey's mx), 0 when unknown.
-local function tutorialFurthest(self: any, st: any): number
-	local part = self.tutorialFunnel
+-- Furthest Onboarding funnel step (the journey's mx), 0 when unknown.
+local function onboardingFurthest(self: any, st: any): number
+	local part = self.onboarding
 	if not part then return 0 end
 	local ok, index = pcall(part.Furthest, part, st)
 	return if ok and type(index) == "number" then index else 0
@@ -919,9 +920,9 @@ function Analytics:Leave(session)
 	self.ledger:Hist("econ.sessionEarned", "cash", st.sessionEarned)
 	if st.rolls > 0 then self.ledger:Hist("roll.perSession", "count", st.rolls) end
 	if st.guideStep and st.guideStepAt then self.ledger:Hist("guide.dwell." .. st.guideStep, "seconds", now - st.guideStepAt) end
-	-- Version 12: tutorial exits (tf.exit.NN, TutorialExit) come from AnalyticsTutorial:Leave.
+	-- Version 15: onboarding exits (ob.exit.NN) come from AnalyticsTutorial:Leave.
 	local stage = self:_Stage(st)
-	local inTutorial = string.sub(stage, 1, 4) == "Tut:"
+	local inOnboarding = string.sub(stage, 1, 3) == "Ob:"
 	local player = st.player
 	self:_Queue(false, "custom:SessionEnded", function()
 		AnalyticsService:LogCustomEvent(player, "SessionEnded", math.floor(seconds), fields(platform, stage, cohort))
@@ -935,15 +936,15 @@ function Analytics:Leave(session)
 	end
 	self:_FlushEconomy(st)
 	self:_Part(self.funnels, "Leave", st, session)
-	self:_Part(self.tutorialFunnel, "Leave", st, session)
+	self:_Part(self.onboarding, "Leave", st, session)
 	self:_Part(self.playerInfo, "Leave", st, session)
-	if inTutorial or self.random() < JOURNEY_SAMPLE then
+	if inOnboarding or self.random() < JOURNEY_SAMPLE then
 		local rejects = {}
 		for action, count in st.rejects do table.insert(rejects, action .. "x" .. count) end
 		self.ledger:Journey({
 			u = st.anon, v = Config.Version, p = platform, n = st.sessionIndex, new = st.isNew == true,
 			tr = st.tracked == true, s = math.floor(seconds), pl = math.floor(self:_Play(st)), stage = stage,
-			st = if st.tf then st.tf.at else nil, ex = st.guideStep, mx = tutorialFurthest(self, st), c = session.coins, pe = session:Count(),
+			st = if st.ob then st.ob.at else nil, ex = st.guideStep, mx = onboardingFurthest(self, st), c = session.coins, pe = session:Count(),
 			r = st.rolls, b = st.buys, er = st.errors, earned = st.sessionEarned, rej = rejects,
 			ping = if st.pingN > 0 then math.floor(st.pingSum / st.pingN) else nil,
 			fps = if st.fpsN > 0 then math.floor(st.fpsSum / st.fpsN) else nil, trail = st.trail,

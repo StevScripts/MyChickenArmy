@@ -23,6 +23,9 @@ local function fixture(userId)
 	local session=Session.new(userId,"Playtime fixture",1)
 	session.loaded=true
 	session.tutorial.bought,session.tutorial.guideCompleted=true,true
+	-- October 23 empty start: a new profile has no chickens; these checks were written
+	-- against the old three-Duck opening, so the fixture keeps that flock (12 Coins/s).
+	for _=1,3 do session:AddPet("Duck",1).investment=0 end
 	return session
 end
 

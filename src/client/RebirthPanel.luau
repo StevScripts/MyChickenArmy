@@ -38,17 +38,25 @@ local ROBUX=utf8.char(0xE002)
 local TILES={
 	Gems={Theme.GemColors.Top,Theme.GemColors.Bottom},
 	Multiplier={Color3.fromRGB(95,207,71),Color3.fromRGB(44,154,39)},
+	-- October 23 Rebirth 0's third tile: the chickens stay.
+	Keep={Color3.fromRGB(63,186,255),Color3.fromRGB(28,128,214)},
 }
+-- Rebirth to Earn tiles (mock pixels): two centred for a normal Rebirth; three for
+-- Rebirth 0 (Gems, Multiplier, Keep your chickens; October 23 empty start).
+local TWO_TILES={{110,270,250,140},{370,270,250,140}}
+local THREE_TILES={{24,270,220,140},{256,270,220,140},{488,270,220,140}}
 local CONFETTI={Color3.fromRGB(255,214,48),Color3.fromRGB(99,239,0),Color3.fromRGB(63,186,255),
 	Color3.fromRGB(255,94,139),Color3.fromRGB(168,94,242)}
 -- Mock pixels of the 1710 x 883 reference window (plan v2 element spec, 1.94:1).
 local W,H=1710,883
 local HEADER=W/Theme.HeaderAspect
 local BODY={0,HEADER,W,H-HEADER}
-local EARN={18,235,695,203}
-local RANK={18,453,695,282}
-local CHICKEN={268,589,195,143}
-local GEM_PANEL={743,158,945,685}
+-- October 23 (Stevin: the screen ran into the bottom): a one-line warning lifts the left
+-- column 20 units and the Gem panel ends level with the buttons, inside the window.
+local EARN={18,215,695,203}
+local RANK={18,433,695,282}
+local CHICKEN={198,569,335,143} -- wide enough for "Find to Rebirth" on phones
+local GEM_PANEL={743,158,945,670}
 local PENDING_SECONDS=10
 -- October 21 game feel (docs/team/GAME_FEEL_20261021.md): an authored cue, or its
 -- fallback until the sound session adds it (UI Lab previews stub audio without Has).
@@ -95,7 +103,8 @@ end
 -- The foundation stub carries only {rank, eligible, reason}; the full quote has
 -- version = 2 (a launch-era quote has kingCleared instead).
 local function full(quote): boolean
-	return type(quote)=="table" and (quote.version==2 or quote.kingCleared~=nil)
+	-- October 23: Rebirth 0's quote (intro) is full too.
+	return type(quote)=="table" and (quote.version==2 or quote.kingCleared~=nil or quote.intro==true)
 end
 
 local function enabled(quote): boolean
@@ -196,7 +205,7 @@ function Panel:Build()
 	panel.Active,panel.ZIndex=true,2
 	panel.Parent,self.panel=frames,panel
 	-- Studio may author PetRollGui.MenuLayouts.Rebirth; the default is the reference
-	-- window, 0.86 of the screen wide at 1.94:1.
+	-- window at 1.94:1, at most 0.86 wide and 0.74 tall (October 23).
 	MenuLayout.Apply(app.gui,"Rebirth",panel)
 	-- Edit previews (UI Lab, menu editor) pass a frame that already has the saved geometry.
 	if app.editPreview then
@@ -239,19 +248,25 @@ end
 
 -- Warning, Rebirth to Earn and the Coins bar with the next Rebirth's chicken.
 function Panel:BuildRewards(main)
-	local warning=rect(label(main,"Warning","You will lose all Coins and Upgrades\nwhen you rebirth!",27,WARNING),18,156,695,70)
+	local warning=rect(label(main,"Warning","You will lose all Coins and Upgrades!",27,WARNING),18,152,695,48)
 	warning.TextWrapped=true
 	local earn=inset(main,"RebirthToEarn",EARN)
 	self.earn=earn
-	rect(label(earn,"Title","Rebirth to Earn:",38),18,243,695,46,EARN)
-	-- October 23 (Stevin): no Time Skip tile; the two rewards sit centred.
-	self.gemsReward=self:Tile(earn,"Gems","GEMS",{153,290,205,140},"Gems")
-	self.multiplier=self:Tile(earn,"Multiplier","MULTIPLIER",{368,290,210,140},nil)
+	rect(label(earn,"Title","Rebirth to Earn:",38),18,223,695,46,EARN)
+	-- October 23 (Stevin): no Time Skip tile; the two rewards sit centred, wide enough
+	-- for "MULTIPLIER" at the readable text floor on phones.
+	self.gemsReward=self:Tile(earn,"Gems","GEMS",TWO_TILES[1],"Gems",Assets.cashEggValue)
+	self.multiplier=self:Tile(earn,"Multiplier","MULTIPLIER",TWO_TILES[2],nil,Assets.cashEggValue)
+	-- Rebirth 0 only (LayoutTiles shows it): the Army keeps its chickens.
+	self.keepReward=self:Tile(earn,"Keep","KEEP YOUR",THREE_TILES[3],nil,Theme.Assets.ArmyHud)
+	self.keepReward.Text="Chickens"
+	self.introLayout=nil
+	self:LayoutTiles(type(self.quote)=="table" and self.quote.intro==true)
 	local rankBox=inset(main,"NextRebirth",RANK)
-	self.rankTitle=rect(label(rankBox,"Title","",48),18,466,695,52,RANK)
+	self.rankTitle=rect(label(rankBox,"Title","",48),18,446,695,52,RANK)
 	-- Same resting rects; the title and Coins line punch from their middles.
 	Theme.Motion:Center(self.rankTitle)
-	local track=rect(Theme.Frame(rankBox,"CostProgress",UDim2.new(),TRACK),78,525,595,56,RANK)
+	local track=rect(Theme.Frame(rankBox,"CostProgress",UDim2.new(),TRACK),78,505,595,56,RANK)
 	track.ZIndex=2
 	Theme.Stroke(track,BLACK,3)
 	local fill=Theme.Frame(track,"Fill",UDim2.fromScale(0,1),WHITE)
@@ -261,14 +276,26 @@ function Panel:BuildRewards(main)
 	self.costText.Position,self.costText.Size=UDim2.fromScale(0.08,0.05),UDim2.fromScale(0.84,0.9)
 	Theme.Motion:Center(self.costText)
 	-- The coin overlaps the bar's left end, as in the reference.
-	local coin=rect(Theme.Image(rankBox,"CostIcon",Theme.Assets.Coin,UDim2.new()),33,503,100,100,RANK)
+	local coin=rect(Theme.Image(rankBox,"CostIcon",Theme.Assets.Coin,UDim2.new()),33,483,100,100,RANK)
 	coin.ZIndex=4
 	Theme.Aspect(coin,1)
 	self:BuildChicken(rankBox)
 end
 
+-- Two tiles for a normal Rebirth, three for Rebirth 0 (the Keep tile shows).
+function Panel:LayoutTiles(intro: boolean)
+	if self.introLayout==intro or not self.gemsReward then return end
+	self.introLayout=intro
+	local boxes=if intro then THREE_TILES else TWO_TILES
+	for index,value in {self.gemsReward,self.multiplier} do
+		local box=boxes[index]
+		rect(value.Parent,box[1],box[2],box[3],box[4],EARN)
+	end
+	self.keepReward.Parent.Visible=intro
+end
+
 -- A Rebirth to Earn tile: uppercase label, icon and big value on a studded card.
-function Panel:Tile(parent,name: string,caption: string,box,gemKey: string?)
+function Panel:Tile(parent,name: string,caption: string,box,gemKey: string?,image: string?)
 	local frame=rect(Theme.Frame(parent,name,UDim2.new(),WHITE),box[1],box[2],box[3],box[4],EARN)
 	local colors=TILES[name]
 	Theme.Gradient(frame,colors[1],colors[2])
@@ -277,7 +304,7 @@ function Panel:Tile(parent,name: string,caption: string,box,gemKey: string?)
 	local own={0,0,box[3],box[4]}
 	rect(label(frame,"Label",caption,20),4,6,box[3]-8,24,own)
 	-- Big icons (owner, October 20); the value overlaps the icon's lower edge, as in the reference.
-	local icon=if gemKey then Theme.GemIcon(frame,"Icon",gemKey,UDim2.new()) else Theme.Image(frame,"Icon",Assets.cashEggValue,UDim2.new())
+	local icon=if gemKey then Theme.GemIcon(frame,"Icon",gemKey,UDim2.new()) else Theme.Image(frame,"Icon",image or Assets.cashEggValue,UDim2.new())
 	rect(icon,(box[3]-96)/2,22,96,96,own)
 	icon.ZIndex=5
 	Theme.Aspect(icon,1)
@@ -302,7 +329,7 @@ function Panel:BuildChicken(rankBox)
 	self.chickenName=rect(label(tile,"Name","",23),4,4,CHICKEN[3]-8,26,own)
 	-- One line each: at the readable floor a long name would stack over the art.
 	self.chickenName.TextWrapped=false
-	local art=rect(Theme.Container(tile,"Art"),47.5,26,100,100,own)
+	local art=rect(Theme.Container(tile,"Art"),(CHICKEN[3]-100)/2,26,100,100,own)
 	art.ZIndex=4
 	Theme.Aspect(art,1)
 	self.chickenRarity=rect(label(tile,"Rarity","",21),4,115,CHICKEN[3]-8,24,own)
@@ -311,14 +338,15 @@ function Panel:BuildChicken(rankBox)
 end
 
 -- Rebirth (one tap, as in the reference) and Skip! KEEP UPGRADES with its Robux tag.
+-- Skip is the wider of the two so "KEEP UPGRADES" stays on one line on phones.
 function Panel:BuildButtons(main)
-	local rebirth=rect(Theme.ActionButton(main,"Rebirth","Rebirth",function() self:PressRebirth() end,GREEN),23,758,335,90)
+	local rebirth=rect(Theme.ActionButton(main,"Rebirth","Rebirth",function() self:PressRebirth() end,GREEN),23,738,315,90)
 	Theme.PadHit(rebirth,1,123/90) -- phone hit area: 48 px tall (123 units)
 	local caption=rebirth.Visual.Caption
 	caption.Position,caption.Size,caption.TextScaled=UDim2.fromScale(0.04,0.1),UDim2.fromScale(0.92,0.8),true
 	caption.TextShadow.Visible=false
 	self.rebirthButton=rebirth
-	local skip=rect(Theme.ActionButton(main,"Skip","Skip!",function() self:PressSkip() end,Theme.Arcade.purple),378,758,335,90)
+	local skip=rect(Theme.ActionButton(main,"Skip","Skip!",function() self:PressSkip() end,Theme.Arcade.purple),353,738,360,90)
 	Theme.PadHit(skip,1,123/90)
 	Theme.ApplyReferenceAccent(skip,ColorSequence.new(Theme.GemColors.SkipTop,Theme.GemColors.SkipBottom))
 	local skipCaption=skip.Visual.Caption
@@ -327,7 +355,7 @@ function Panel:BuildButtons(main)
 	local keep=label(skip.Visual,"KeepUpgrades","KEEP UPGRADES",21,KEEP_GOLD)
 	keep.Position,keep.Size=UDim2.fromScale(0.04,0.64),UDim2.fromScale(0.92,0.3)
 	self.skipButton=skip
-	local tag=rect(Theme.Frame(main,"RobuxTag",UDim2.new(),TAG),612,733,116,48)
+	local tag=rect(Theme.Frame(main,"RobuxTag",UDim2.new(),TAG),612,713,116,48)
 	tag.ZIndex=8
 	tag:SetAttribute("OwnsPopupStyle",true)
 	Theme.Stroke(tag,WHITE,3).Transparency=0.45
@@ -356,9 +384,12 @@ function Panel:RenderPanel()
 	local target=nextRank(quote)
 	local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
 	local gems=tonumber(quote.gemsNext)
+	-- October 23 empty start: Rebirth 0's quote (intro) shows three tiles and its own title.
+	local intro=quote.intro==true
+	self:LayoutTiles(intro)
 	self.gemsReward.Text=if gems then "+"..Theme.Money(gems) else "—"
 	self.multiplier.Text=multiplierText(quote.multiplierNext or quote.multiplierNow)
-	self.rankTitle.Text=Panel.Title(target or rank)
+	self.rankTitle.Text=if intro then "Rebirth 0" else Panel.Title(target or rank)
 	local progress=if cost and cost>0 then math.clamp(coins/cost,0,1) else 1
 	-- The bar fills with the shared Progress (no flash: Coins arrive every packet).
 	Theme.Motion:Progress(self.costFill,progress,.3,false)
@@ -457,7 +488,8 @@ function Panel:PressRebirth()
 		return
 	end
 	local rank=tonumber(quote.rank) or 0
-	local id=self.app:Request("Rebirth",{expectedRank=rank})
+	-- October 23: Rebirth 0 is its own request (RebirthService, introRebirth "pending").
+	local id=if quote.intro==true then self.app:Request("RebirthIntro",{}) else self.app:Request("Rebirth",{expectedRank=rank})
 	if not id then return end
 	self:SetPending(id,rank)
 	Theme.Motion:Pop(self.rebirthButton.Visual,1.06)
@@ -513,8 +545,8 @@ end
 
 -- `receipt` is the Rebirth result's {rank, gems, species, skip, ...} when this packet
 -- carries it (player, Skip credit or Auto Rebirth); otherwise the last quote says
--- what the rank paid.
-function Panel:Celebrate(before,quote,receipt)
+-- what the rank paid. `intro`: Rebirth 0 just completed (its quote was `before`).
+function Panel:Celebrate(before,quote,receipt,intro: boolean?)
 	local rank=tonumber(quote.rank) or 0
 	-- The deep Rebirth boom, then the Fanfare a beat later; the world flashes green
 	-- with a quick zoom (ScreenFeel; the camera stays with the player).
@@ -524,11 +556,13 @@ function Panel:Celebrate(before,quote,receipt)
 	-- "Rebirth N" punches when the rank changes (October 22: no chicken joins; the
 	-- rank's chicken was found beforehand).
 	if self.gui and not self.closing and self.rankTitle then Theme.Motion:Punch(self.rankTitle,1.2,0.32) end
-	local parts={Panel.Title(rank).."!"}
+	local parts={if intro then "Rebirth 0!" else Panel.Title(rank).."!"}
 	if receipt and receipt.skip==true then table.insert(parts,"Upgrades kept") end
 	local gems=tonumber(receipt and receipt.gems) or tonumber(type(before)=="table" and before.gemsNext)
 	if gems and gems>0 then table.insert(parts,"+"..Theme.Gems(gems)) end
-	table.insert(parts,multiplierText(quote.multiplierNow).." egg Coins")
+	-- Rebirth 0 keeps the rank, so its ×1.5 is the multiplier its own quote offered.
+	local multiplier=if intro and type(before)=="table" and before.multiplierNext then before.multiplierNext else quote.multiplierNow
+	table.insert(parts,multiplierText(multiplier).." egg Coins")
 	local unlock=if type(before)=="table" then before.unlockNext else nil
 	if type(unlock)=="table" and unlock.name then table.insert(parts,mutationName(unlock.name).." mutations unlocked") end
 	self.app:Notify(table.concat(parts," · "),true)
@@ -589,8 +623,11 @@ function Panel:Render(state,result)
 	local rank=tonumber(quote.rank) or 0
 	local promoted=self.lastRank~=nil and rank>self.lastRank
 	self.lastRank=rank
+	-- October 23: Rebirth 0 keeps rank 0; its moment is introRebirth turning "done".
+	local introDone=self.lastIntro=="pending" and state.introRebirth=="done"
+	self.lastIntro=state.introRebirth
 	if type(result)=="table" then
-		if result.action=="Rebirth" and self.pending and result.id==self.pending.id then
+		if (result.action=="Rebirth" or result.action=="RebirthIntro") and self.pending and result.id==self.pending.id then
 			self.pending=nil
 			-- AppController shows the server's refusal; the button answers with a shake.
 			if not result.ok and self.rebirthButton then Theme.Motion:Shake(self.rebirthButton.Visual) end
@@ -600,11 +637,12 @@ function Panel:Render(state,result)
 		end
 		if self.grid then self.grid:Receive(result) end
 	end
-	if promoted then
+	if promoted or introDone then
 		self.pending=nil
-		local receipt=if type(result)=="table" and result.action=="Rebirth" and result.ok and type(result.receipt)=="table"
+		local action=if promoted then "Rebirth" else "RebirthIntro"
+		local receipt=if type(result)=="table" and result.action==action and result.ok and type(result.receipt)=="table"
 			then result.receipt else nil
-		self:Celebrate(before,quote,receipt)
+		self:Celebrate(before,quote,receipt,not promoted)
 	end
 	self:RenderPanel()
 end
