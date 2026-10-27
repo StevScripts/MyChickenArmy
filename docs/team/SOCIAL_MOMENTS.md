@@ -134,10 +134,10 @@ Record the date each one is saved here, because the ledger has no setting histor
 1. **Server Fill** (Places > My Chicken Army > Access/Settings): Customize, reserve
    **1** slot for social joins. Server Size stays **6** (`#Config.PlotPositions`; more
    only kicks). If the label differs, pick the option that reserves the fewest slots
-   above 0. Saved: _____
+   above 0. Saved: 2026-10-27 (Stevin)
 2. **Custom matchmaking** (Creator Dashboard > My Chicken Army > Configurations > Custom
    matchmaking > Create Configuration). Preview on the mock servers first; Friends must
-   stay larger than all the others together. Saved: _____
+   stay larger than all the others together. Saved: 2026-10-27 (Stevin; mock preview: fullest server wins)
 
 | Signal | Default | New |
 |---|---|---|
@@ -151,7 +151,7 @@ Record the date each one is saved here, because the ledger has no setting histor
    Targets: alone at join 9.8% → 6% or less; 1-player server-minutes 33.9% → 25% or less.
    Rollback: switch back to Roblox default (one click).
 3. **Description** (Basic Settings), paste as is (fixes "Cash", "Fuse" and "three
-   chickens"; 1 in 200,000 is the Secret threshold). Saved: _____
+   chickens"; 1 in 200,000 is the Secret threshold). Saved: 2026-10-27 (Stevin)
 
 ```
 Pull the lever, find rare chickens and build the biggest chicken Army on the island!
