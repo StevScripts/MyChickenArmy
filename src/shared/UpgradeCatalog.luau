@@ -110,9 +110,13 @@ local families: {Family} = {
 	-- Tier 1 was the Commander guide's protected 1,200-Coin Army Size 4; since the
 	-- October 23 empty start nothing is reserved for it. It opens from Army (Open),
 	-- which always counts as owned, so it needs nothing new.
+	-- October 27 (WS2 retention, docs/team/EARLY_ECONOMY_20261027.md): tier 1 costs 300
+	-- (was 1,200) so the 4th Army slot comes with the Fort Roost stepping stone; tier 2
+	-- stays 6,000 (lead, combined check). Flat for every rank; tier meaning unchanged, so
+	-- no TreeMigrations step.
 	{id = "ArmySize", name = "Army Size", category = "Main", icon = "armySize", field = "capacity", base = Config.StartingSlots,
 		format = "count", unit = "Army slots", description = "Send more chickens into battle.",
-		tiers = tiers({{4, 1200}, {6, 6000}, {8, 25000}, {10, 90000}}),
+		tiers = tiers({{4, 300}, {6, 6000}, {8, 25000}, {10, 90000}}),
 		positions = walk(-1, 2, {"SW", "SW", "NW"}), prerequisite = "OpenArmy"},
 	-- Roll Slots zig-zag right from Start (Stevin: "not a straight line").
 	{id = "RollSlot", name = "Roll Slot", category = "Main", icon = "rollSlots", field = "rollSlotsUnlocked", base = 1,

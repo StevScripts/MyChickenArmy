@@ -247,9 +247,12 @@ function Panel:Build()
 end
 
 -- Warning, Rebirth to Earn and the Coins bar with the next Rebirth's chicken.
+-- October 27 (WS2): Rebirth 0 that keeps the tree (quote.keepTree) warns about Coins only.
+local LOSE_ALL,LOSE_COINS="You will lose all Coins and Upgrades!","You will lose all your Coins!"
 function Panel:BuildRewards(main)
-	local warning=rect(label(main,"Warning","You will lose all Coins and Upgrades!",27,WARNING),18,152,695,48)
+	local warning=rect(label(main,"Warning",LOSE_ALL,27,WARNING),18,152,695,48)
 	warning.TextWrapped=true
+	self.warning=warning
 	local earn=inset(main,"RebirthToEarn",EARN)
 	self.earn=earn
 	rect(label(earn,"Title","Rebirth to Earn:",38),18,223,695,46,EARN)
@@ -388,6 +391,10 @@ function Panel:RenderPanel()
 	local intro=quote.intro==true
 	self:LayoutTiles(intro)
 	self.gemsReward.Text=if gems then "+"..Theme.Money(gems) else "—"
+	-- October 27 (WS2): Rebirth 0 with KeepTree keeps the Upgrades too.
+	local keepTree=intro and quote.keepTree==true
+	self.keepReward.Text=if keepTree then "Chickens & Upgrades" else "Chickens"
+	if self.warning then self.warning.Text=if keepTree then LOSE_COINS else LOSE_ALL end
 	self.multiplier.Text=multiplierText(quote.multiplierNext or quote.multiplierNow)
 	self.rankTitle.Text=if intro then "Rebirth 0" else Panel.Title(target or rank)
 	local progress=if cost and cost>0 then math.clamp(coins/cost,0,1) else 1

@@ -22,7 +22,7 @@
 --    priced at Rules.EggUnitValue(Egg Value tier) * (1 + territory bonus).
 --  * Camp/King/Mission strength: Progression.Roster, KingEncounter.Definition and
 --    OperationCatalog.Power, scaled by RebirthService.EnemyScale(attacker's rank).
---  * Fight decision: TutorialGuide.Difficulty on Rules.Power(session:Lineup()).
+--  * Fight decision: Rules.Power(session:Lineup()) against fixed ratios (assumption 11).
 --
 -- MODELLING ASSUMPTIONS (quote these with any number)
 --  1. Continuous active play, no offline time, no PvP, no other commanders, no Hill
@@ -70,12 +70,19 @@
 --     (PetCatalog.RebirthFinds) in the Index; the player buys it on sight when affordable
 --     (stats.finds) and stats.findWaits counts the seconds each rank spent with the Coins
 --     in hand but the chicken missing.
+-- 11. October 27 retention package (docs/team/EARLY_ECONOMY_20261027.md,
+--     docs/team/RETENTION_PLAN_20261027.md §4): camps fight at Config.CampLadder.Strength
+--     (WS1); a camp or the King is attacked at campRatio (1.3x) and a Mission first clear
+--     or replay at missionRatio (2.0x), explicit so the WS1 odds bands (1.0/1.3) do not
+--     move the results (campRatio=1.0 missionRatio=1.3 attack at the new bands' edges); podium offers of empty-start profiles use Rules.StarterPrice
+--     (WS2; RollService applies it once WS4 merges, starterQuote below covers a branch
+--     without it); Army Size I costs 300 and Rebirth 0 keeps the tree and Feed levels
+--     through the real UpgradeCatalog and RebirthService.
 local Server=game:GetService("ServerStorage").PetRoll
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config=require(Shared.Config)
 local Rules=require(Shared.Rules)
 local Progression=require(Shared.Progression)
-local Guide=require(Shared.TutorialGuide)
 local Tree=require(Shared.UpgradeCatalog)
 local Gems=require(Shared.GemUpgradeCatalog)
 local MutationCatalog=require(Shared.MutationCatalog)
@@ -104,6 +111,9 @@ local PROFILES={
 local DEFAULTS={
 	seeds=1,hours=40,tickSeconds=15,profile="fast",firstSeed=1, -- firstSeed: run seeds firstSeed.. (parallel fits)
 	campSeconds=90,kingSeconds=150,invasionSeconds=150,
+	-- October 27 (assumption 11): attack ratios, the old band edges (camps and the King at
+	-- Close fight 1.3x, Missions at Should win 2.0x).
+	campRatio=1.3,missionRatio=2.0,
 	savingPaybackFraction=0.5,utilityFraction=0.10,savingUtilityFraction=0.04,savingCombatFraction=0.25,
 	-- targetRank: nil plays to Config.Rebirth.MaxRank (50 since October 21; was 30).
 	targetRank=nil,invasionReplays=true,killsPerDefender=1,maxBuysPerTick=60,
@@ -210,8 +220,16 @@ local function lineupInfo(s)
 end
 
 local function enemyScale(s) return Rebirth.EnemyScale(s.rebirths or 0) end
+-- October 27 (WS1): the per-camp strength multiplier, read nil-safe from Progression or Config.
+local function campStrength(index)
+	local strength=(Progression :: any).Strength
+	if type(strength)=="function" then return strength(index) end
+	local ladder=(Config :: any).CampLadder
+	local value=ladder and type(ladder.Strength)=="table" and ladder.Strength[index]
+	return if type(value)=="number" then math.clamp(value,0.05,1) else 1
+end
 local function campPower(s,index)
-	return math.floor(Rules.Power(Progression.Roster(s.promotion,index))*enemyScale(s))
+	return math.floor(Rules.Power(Progression.Roster(s.promotion,index))*enemyScale(s)*campStrength(index))
 end
 -- Mirrors OperationService.Tier (King clear or Rebirth rank; legacy access).
 local function missionTier(s)
@@ -256,10 +274,10 @@ local function nextTarget(state)
 	return best
 end
 
-local function attackable(power,target)
-	local verdict=Guide.Difficulty(power,target.power)
-	if target.kind=="Invasion" then return verdict=="Should win" end
-	return verdict~="Very tough"
+-- October 27 (WS1 §6.1): explicit ratios, the old band edges (Close fight 1.3x for camps
+-- and the King, Should win 2.0x for Missions), so the new bands do not move the results.
+local function attackable(options,power,target)
+	return power>=target.power*(if target.kind=="Invasion" then options.missionRatio else options.campRatio)
 end
 
 local function refreshTerritory(state)
@@ -342,7 +360,7 @@ local function chooseAttack(state,now)
 	if state.deploy or s.armyState~="Home" or #s:Lineup()==0 then return end
 	local power=armyPower(s)
 	local target=nextTarget(state)
-	if target and attackable(power,target) then
+	if target and attackable(options,power,target) then
 		local seconds=if target.kind=="Camp" then options.campSeconds
 			elseif target.kind=="King" then options.kingSeconds else options.invasionSeconds
 		deploy(state,now,target.kind,target,seconds)
@@ -353,7 +371,7 @@ local function chooseAttack(state,now)
 	for id,won in s.research.operationWins do
 		local definition=Operations.Encounters[id]
 		if won and definition and definition.tier<=missionTier(s)
-			and Guide.Difficulty(power,Operations.Power(id))=="Should win" then
+			and power>=Operations.Power(id)*options.missionRatio then
 			local cash=OperationService.Reward(s,id,false)
 			if cash>bestCash then best,bestCash=id,cash end
 		end
@@ -526,7 +544,7 @@ end
 local function context(state)
 	local s,options=state.session,state.options
 	local target=nextTarget(state)
-	local blocked=target~=nil and not attackable(armyPower(s),target) and not target.recapture
+	local blocked=target~=nil and not attackable(options,armyPower(s),target) and not target.recapture
 	local limit=if blocked then options.blockedPaybackSeconds else options.maxPaybackSeconds
 	local saving=false
 	local coins=s.coins
@@ -626,6 +644,20 @@ local function judgeOffers(state,ctx,at)
 	end
 end
 
+-- October 27 (WS2): empty-start profiles' podium quote (Rules.StarterPrice). RollService
+-- prices offers this way once WS4's hunk is merged; an offer still at its list price
+-- (and not the starter or the tutorial ladder's) gets the quote here, so both agree.
+local function starterQuote(s)
+	if s.introRebirth==nil then return end
+	for _,offer in s.offers or {} do
+		local list=Rules.RecruitPrice(offer.species,offer.level)
+		if offer.starter~=true and offer.listPrice==nil and offer.price==list then
+			local price=Rules.StarterPrice(list,s:Count())
+			if price<list then offer.price,offer.listPrice=price,list end
+		end
+	end
+end
+
 local function rollAndBuy(state,ctx,now)
 	local s=state.session
 	local pulls=0
@@ -640,6 +672,7 @@ local function rollAndBuy(state,ctx,now)
 		-- Opening (October 23 empty start): the first lever pull gives the first chicken
 		-- (the starter roll); nothing is earmarked any more (see `tutorial` below).
 		if at>=s.rollReadyAt and state.rolls:Roll(s,at) then
+			starterQuote(s)
 			state.stats.rolls+=1
 			judgeOffers(state,ctx,s.rollRevealAt+0.01)
 		end
@@ -963,7 +996,7 @@ function Simulation.Run(options)
 	local results={options=merged,runs=runs,seconds=os.clock()-started,
 		assumptions="Free player, continuous active play; Flock-only laying with clicked eggs sold every deposit; "
 			.."Gold Rush x2 for 5 of 20 minutes; Playtime Rewards every "..merged.visitMinutes.."-minute visit; "
-			.."fights decided by TutorialGuide.Difficulty and always won; "
+			.."fights at 1.3x (camps, King) or 2.0x (Missions) and always won; "
 			.."greedy payback/power/utility spending; Rebirth as soon as eligible; Gem Upgrades in a fixed priority."}
 	if merged.print then report(results) end
 	return results

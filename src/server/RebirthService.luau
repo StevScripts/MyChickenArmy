@@ -12,6 +12,9 @@
 -- Config.Rebirth.Intro.Cost Coins: the same reset without a rank, Intro.Gems Gems and
 -- x Intro.Multiplier egg income while the rank is 0 (IntroMultiplier). Saves from
 -- before it (introRebirth nil) never see it.
+-- October 27 (WS2 retention, docs/team/EARLY_ECONOMY_20261027.md): with
+-- Config.Rebirth.Intro.KeepTree, Rebirth 0 keeps the Upgrades tree and Feed levels; it
+-- still takes the Coins and carried eggs. Ranks 1-50 are unchanged.
 -- Every number is Config.Rebirth. PlayerSession and BattleService require this
 -- module, so it must never require either of them.
 local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
@@ -208,10 +211,20 @@ local function introQuote(session: any): any
 	elseif not home then reason = ARMY_AWAY
 	end
 	local effects: any = session.researchEffects or {}
-	local resets, keeps = manifest(session)
+	local keepTree = intro.KeepTree == true
+	local resets, keeps
+	if keepTree then
+		-- October 27 (WS2): the lists RebirthIntro applies when it keeps the tree.
+		resets = {"All your Coins", "Carried eggs"}
+		keeps = {"Every chicken and the Index", "Every upgrade in the Upgrades tree",
+			"Chicken levels bought with Chicken Feed", "Gems and Gem Upgrades"}
+	else
+		resets, keeps = manifest(session)
+	end
 	return {
 		version = 2,
 		intro = true,
+		keepTree = keepTree,
 		enabled = rules.Enabled == true,
 		rank = 0,
 		maxRank = rules.MaxRank,
@@ -466,6 +479,7 @@ end
 -- The same reset as a Rebirth (Coins to 0, the tree except Keep Upgrades and
 -- mutationKeep, Feed levels, carried eggs, Gold roll counts, camps released, yard eggs
 -- settled) without changing the rank; then introRebirth = "done" and Intro.Gems Gems.
+-- October 27 (WS2): Intro.KeepTree keeps the whole tree and Feed levels (false = Oct 23).
 -- Returns ok, message and (on success) a receipt {rank = 0, gems, intro = true}.
 function RebirthService.RebirthIntro(session: any, server: any): (boolean, string, any?)
 	if not session or not session.loaded or session.closing or session.saveLost or session.dataReleasing then
@@ -487,9 +501,9 @@ function RebirthService.RebirthIntro(session: any, server: any): (boolean, strin
 	local eggs = server and server.eggs
 	if eggs and eggs.Release then eggs:Release(session) end
 	-- The reset. No yields from here to the save request.
-	session.upgradeTree = keptTree(session)
+	if intro.KeepTree ~= true then session.upgradeTree = keptTree(session) end
 	session.coins = 0
-	resetFeedLevels(session)
+	if intro.KeepTree ~= true then resetFeedLevels(session) end
 	session.eggCarry = {count = 0, value = 0}
 	session.vacuumCargo = {count = 0, value = 0}
 	session.goldRolls = {count = 0}

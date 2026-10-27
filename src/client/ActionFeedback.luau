@@ -304,6 +304,29 @@ function Feedback:SaleDelta(receipt)
 	if hud.FlushFloat then hud:FlushFloat() end
 end
 
+-- October 27 (WS2 retention, docs/team/EARLY_ECONOMY_20261027.md): a purchase that raised
+-- steady income (the server's whole Coins/s before and after) floats a gold "+N Coins/s"
+-- over the Coins readout. Gains within a second add into one float; drops never show.
+-- No sound: the purchase already plays its cue (one emphasis per event).
+function Feedback:IncomeGain(before: any, after: any)
+	if type(before) ~= "number" or type(after) ~= "number" or after <= before then return end
+	self.incomePending = (self.incomePending or 0) + math.floor(after - before + 0.5)
+	if self.incomeQueued then return end
+	self.incomeQueued = true
+	local wait = math.max(0, 1 - (os.clock() - (self.incomeShownAt or -10)))
+	task.delay(wait, function()
+		self.incomeQueued = false
+		local gain = self.incomePending or 0
+		self.incomePending = 0
+		local hud = self.app.hud
+		local readout = hud and hud.cashReadout
+		if not self.alive or gain <= 0 or not readout or not readout.Parent or not readout.Visible then return end
+		self.incomeShownAt = os.clock()
+		Theme.Motion:Float(readout, "+" .. Theme.Coins(gain) .. "/s", UDim2.fromScale(0.6, -0.3),
+			{color = Theme.Colors.coins, size = 24, rise = 0.45, seconds = 1.2, limit = 3})
+	end)
+end
+
 function Feedback:Action(kind)
 	if not self.alive or os.clock() - (self.last[kind] or -10) < 0.2 then return end
 	self.last[kind] = os.clock()
