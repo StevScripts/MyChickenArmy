@@ -18,6 +18,7 @@ local Reinforcements=require(script.Parent.ArmyReinforcements)
 local TerritoryContest=require(script.Parent.TerritoryContest)
 local TerritoryIncome=require(script.Parent.TerritoryIncome)
 local TutorialService=require(script.Parent.TutorialService)
+local CampGuide=require(Shared.CampGuide)
 local BattleService={}
 -- A captured main-route camp or King keeps its flag, but the army only lingers
 -- for the victory moment, then marches home where its chickens lay eggs again.
@@ -45,10 +46,17 @@ local function scaledRoster(roster,scale: number)
  return result
 end
 -- Rules.Power reads species stats, so scaled odds multiply it (hp and damage both scale).
+-- October 27: summed before rounding (Progression.ScaledPower), so Fort Roost reads 64.
 local function scaledPower(roster,scale: number): number
- return math.floor(Rules.Power(roster)*scale)
+ return Progression.ScaledPower(roster,scale)
 end
 BattleService.EnemyScale=enemyScale
+-- October 27 camp ladder (docs/team/CAMP_LADDER_20261027.md): a main-route camp's
+-- garrison also carries its Config.CampLadder strength (Fort Roost x0.60, Ironbeak HQ
+-- x0.55), on every lane alike. Kill Coins follow species and level, so they stay.
+local function campScale(session,index: number): number
+ return enemyScale(session)*Progression.Strength(index)
+end
 
 function BattleService.new(sessions,world)
 	return setmetatable({sessions=sessions,world=world,battles={},campBusy={},campOwners={},releasedTerritories={},departingCamps={},departingSides={},campClearedAt={},campLocations={},funnelFailures={},leftProgress={},
@@ -327,7 +335,7 @@ function BattleService:Unclaim(session,targetId,now)
   -- October 20 (Rebirth v2): camps scale by the attacker's rank, like the King.
   local roster=if location.king then KingEncounter.Definition(battle.promotion,enemyScale(session)).roster
    elseif location.outpost then Progression.OutpostRoster(location.outpost)
-   else scaledRoster(Progression.Roster(battle.lanePromotion or battle.promotion,location.index),enemyScale(session))
+   else scaledRoster(Progression.Roster(battle.lanePromotion or battle.promotion,location.index),campScale(session,location.index))
   battle:CancelAttacks()
   battle.paid,battle.friendlyTerritory,battle.outcome=false,false,nil
   battle.phase=if battle.phase=="Travel" then "Travel" else "Fight"
@@ -364,7 +372,8 @@ function BattleService:Targets(session,now)
    lanePromotion[id]=promotion
    table.insert(targets,{id=id,name=self:TargetName(session,id),kind="Camp",holdBonus=self:HoldBonus(campKey(owner.plotIndex,i)),
     -- October 20 (Rebirth v2): shown at the attacker's rank, the same scale the fight uses.
-    power=scaledPower(Progression.Roster(promotion,i),enemyScale(session)),count=#camp.roster,
+    -- October 27: times the camp's ladder strength (campScale).
+    power=scaledPower(Progression.Roster(promotion,i),campScale(session,i)),count=#camp.roster,
     lanePlot=owner.plotIndex,laneOwnerId=owner.userId,laneOwnerName=if owner==session then nil else owner.name,
     available=false,reason="Ready"})
   end
@@ -769,7 +778,7 @@ function BattleService:Attack(session,targetId,now,keepRoute)
 		name=self:TargetName(session,targetId)
 		if self:TerritoryBlocked(campKey(lanePlot,campTarget),previous) then return false,name.." is occupied." end
 		campIndex=campTarget
-		defenderScale=enemyScale(session) -- October 20 (Rebirth v2): the attacker's rank.
+		defenderScale=campScale(session,campTarget) -- October 20 (Rebirth v2): the attacker's rank; October 27: the camp's strength.
 		defenders=scaledRoster(Progression.Roster(lanePromotion,campTarget),defenderScale)
 		destination=self:CampPosition(campTarget,lanePlot)
 	else return false,"Target does not exist." end
@@ -929,6 +938,8 @@ function BattleService:RewardKills(battle,now)
   if kill.boss and kill.side=="B" and battle.defender==nil then earner.kingBountyPaid=true end
   if amount<=0 then continue end
   amount=earner:Credit(amount,"battle")
+  -- October 27: the attacker's Kill Coins this fight, for the camp defeat line.
+  if kill.side=="B" and earner.userId==battle.attacker then battle.bounty=(battle.bounty or 0)+amount end
   table.insert(battle.coinDrops,{serial=kill.serial,userId=earner.userId,amount=amount,x=kill.x,z=kill.z,at=now})
   if #battle.coinDrops>40 then table.remove(battle.coinDrops,1) end
  end
@@ -959,6 +970,15 @@ function BattleService:RecordFunnel(attacker,battle,outcome,bossDown,now)
  end
 end
 
+-- October 27 (WS7): BattleService.onFirstWin(attacker, campIndex, isKing) is set by
+-- GameServer; nil-safe, and a failing callback never breaks the fight's result.
+function BattleService:NotifyFirstWin(attacker,campIndex: number?,isKing: boolean)
+ local callback=self.onFirstWin
+ if type(callback)~="function" then return end
+ local ok,why=pcall(callback,attacker,campIndex,isKing)
+ if not ok then warn("[BattleService] onFirstWin failed: "..tostring(why)) end
+end
+
 function BattleService:Finish(battle,outcome,now)
 	if battle.paid then return end
  if battle.operationId then return self.operations:Resolve(battle,outcome,now) end
@@ -974,9 +994,13 @@ function BattleService:Finish(battle,outcome,now)
  -- First-win funnel and rewards belong to the commander's own lane.
  local ownLane=attacker~=nil and (battle.campIndex==nil or battle.plotIndex==attacker.plotIndex)
  if attacker and battle.defender==nil and ownLane then self:RecordFunnel(attacker,battle,outcome,bossDown,now) end
+ -- October 27 (WS1/WS7): read before the flags flip below. firstWin feeds onFirstWin.
+ local wonBefore=attacker~=nil and (if battle.isKing then attacker.kingCleared==true
+  elseif battle.campIndex then attacker.firstWins[battle.campIndex]==true else true)
+ local firstWin=false
  if outcome=="A" and attacker and not battle.friendlyTerritory then
   if battle.isKing then
-   if bossDown then attacker.kingCleared=true end
+   if bossDown then firstWin=not wonBefore;attacker.kingCleared=true end
   elseif battle.outpostIndex then
    battle.routeOutposts[battle.outpostIndex]=true
    attacker.frontierWins[battle.outpostIndex]=true
@@ -985,6 +1009,7 @@ function BattleService:Finish(battle,outcome,now)
    battle.routeCamps[battle.campIndex]=true
    if battle.laneOwner then self:RecordLaneWin(attacker,battle.laneOwner,battle.campIndex) end
   elseif battle.campIndex then
+   firstWin=not wonBefore
    battle.routeCamps[battle.campIndex]=true
    attacker.firstWins[battle.campIndex]=true
    attacker.tutorial.wonCamp=true
@@ -1018,6 +1043,8 @@ function BattleService:Finish(battle,outcome,now)
 		battle.routeGoal=nil
 		if battle.campKey then self.departingCamps[battle.campKey]=battle.id end
 	end
+	-- October 27 (WS1): a lost first try at an own-lane camp says what the Army needs.
+	local campLoss=battle.campIndex~=nil and battle.defender==nil and ownLane and not wonBefore and CampGuide.Enabled()
 	if attacker and attacker.outgoing==battle.id then
 		attacker.armyState,attacker.returnAt=if hold then "Deployed" else "Returning",if hold then 0 else now+Config.ReturnSeconds
 		attacker.stationedAt=if hold then battle.name else nil
@@ -1026,6 +1053,7 @@ function BattleService:Finish(battle,outcome,now)
 			elseif hold and battle.autoReturnAt then "You've conquered "..battle.name.."!"..bonusText.." Your army is heading home to lay eggs."
 			elseif hold then "You've conquered "..battle.name.."!"..bonusText
 			elseif outcome=="A" then "Victory at "..battle.name.."!"
+			elseif (outcome=="B" or outcome=="Draw") and campLoss then CampGuide.DefeatText(battle.name,battle.bounty or 0,battle.targetPower or 0)
 			elseif outcome=="B" then "Army defeated. Your chickens respawn at home; send them again whenever you're ready."
 			elseif outcome=="Draw" then "Draw — your chickens are returning home."
 			else outcome.." — returning home. You keep the coins you earned."
@@ -1040,6 +1068,8 @@ function BattleService:Finish(battle,outcome,now)
 		end
 		defender:Touch()
 	end
+	-- October 27 (WS7 social moments): once per player per own-lane camp or King first win.
+	if firstWin and attacker then self:NotifyFirstWin(attacker,battle.campIndex,battle.isKing==true) end
 end
 
 function BattleService:ReconcileIncomeReturns(contestId,now)

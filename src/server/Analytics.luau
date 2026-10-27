@@ -12,6 +12,8 @@ local Shared = game:GetService("ReplicatedStorage").PetRoll.Shared
 local Config = require(Shared.Config)
 local Catalog = require(Shared.PetCatalog)
 local ShopCatalog = require(Shared.ShopCatalog)
+-- Oct 27 WS1: camp readiness (camp.CampN.ready); pure, shared with the guide.
+local CampGuide = require(Shared.CampGuide)
 local Schema = require(script.Parent.AnalyticsSchema)
 local Ledger = require(script.Parent.AnalyticsLedger)
 
@@ -351,6 +353,20 @@ function Analytics:Observe(session, state)
 		st.guideStep, st.guideStepAt = step, now
 	end
 	st.lastState = state
+	-- Oct 27 WS1: the first time this session the Army reads Should win at an unbeaten
+	-- camp after Cluck Camp (CampGuide.Goal of the shown power).
+	local wins = state.firstWins
+	if type(wins) == "table" and wins[1] == true then
+		for index = 2, 3 do
+			local ready = st.campReady or {}
+			if wins[index] == true or ready[index] then continue end
+			if (tonumber(state.power) or 0) >= CampGuide.Goal(CampGuide.EnemyPower(state, index)) then
+				ready[index] = true; st.campReady = ready
+				self.ledger:Count("camp.Camp" .. index .. ".ready")
+				self.ledger:Hist("camp.Camp" .. index .. ".ready.play", "seconds", self:_Play(st))
+			end
+		end
+	end
 	self:_Part(self.funnels, "State", st, session, state)
 	self:_Part(self.onboarding, "State", st, session, state)
 end
@@ -546,6 +562,11 @@ function Analytics:Progress(userId: number, name: string, value: number, step: s
 	self.ledger:Count("camp." .. step .. ".odds." .. tostring(odds or "?") .. "." .. result)
 	self.ledger:Hist("camp." .. step .. "." .. result .. ".seconds", "seconds", value or 0)
 	if not st then return end
+	-- Oct 27 WS1: total play at the first win, and first-session wins.
+	if result == "firstWin" then
+		self.ledger:Hist("camp." .. step .. ".firstWin.play", "seconds", self:_Play(st))
+		if st.sessionIndex == 1 then self.ledger:Count("camp." .. step .. ".firstWin.firstSession") end
+	end
 	self:_Trail(st, step .. ":" .. result)
 	self:_Part(self.funnels, "Progress", st, step, result)
 	self:_Part(self.playerInfo, "Progress", st, step, result)

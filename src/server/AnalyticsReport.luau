@@ -490,7 +490,11 @@ function Report.Summarize(pulled: any, options: Options?)
 		table.insert(camps, {camp = step, attempts = c["camp." .. step .. ".attempt"] or 0,
 			attemptsBeforeWin = c["camp." .. step .. ".attemptBeforeWin"] or 0, firstWins = c["camp." .. step .. ".firstWin"] or 0,
 			fails = c["camp." .. step .. ".fail"] or 0, failReasons = prefixed(c, "camp." .. step .. ".fail."),
-			firstWinSeconds = stat(h["camp." .. step .. ".firstWin.seconds"]), oddsByResult = odds})
+			firstWinSeconds = stat(h["camp." .. step .. ".firstWin.seconds"]), oddsByResult = odds,
+			-- Oct 27 WS1 (schema 16): Should-win reached, play at the first win, first-session wins.
+			ready = c["camp." .. step .. ".ready"] or 0, readyPlay = stat(h["camp." .. step .. ".ready.play"]),
+			firstWinPlay = stat(h["camp." .. step .. ".firstWin.play"]),
+			firstSession = c["camp." .. step .. ".firstWin.firstSession"] or 0})
 	end
 
 	local features = {}
@@ -537,6 +541,8 @@ function Report.Summarize(pulled: any, options: Options?)
 			serverMinutes = c["server.minutes"] or 0},
 		daily = daily, onboarding = onboarding, cohorts = cohorts,
 		guideDwell = dwell, intro = prefixed(c, "intro."), economy = economy, rolls = rolls, camps = camps,
+		-- Oct 27 WS1: the below-even camp warning shown / overridden (BaseController signals).
+		campWarnings = {warned = c["ui.AttackWarned"] or 0, anyway = c["ui.AttackAnyway"] or 0},
 		features = features, robux = robux, platforms = platforms, screens = prefixed(c, "client.screen."),
 		perf = perf, health = health, loop = prefixed(c, "loop."),
 		-- Version 5 sections.

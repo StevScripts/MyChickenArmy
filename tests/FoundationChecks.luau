@@ -147,6 +147,11 @@ function Checks.Run()
   -- October 23 empty start: Cluck Camp is one basic Chicken (power 12), so three rolled
   -- chickens read "Should win"; Fort Roost and Hen House are unchanged.
   assert(table.concat(camps,",")=="12,106,192","Camps "..table.concat(camps,",")) -- October 26: camp guards copy the old stats
+  -- October 27 camp ladder (Config.CampLadder.Strength): the guards keep those stats; the
+  -- fight and the shown power carry the strength (Fort Roost x0.60, Ironbeak HQ x0.55).
+  local fought={}
+  for i=1,3 do fought[i]=Progression.CampPower(i) end
+  assert(table.concat(fought,",")=="12,64,105","Camp ladder "..table.concat(fought,","))
   local k=King.Definition(4)
   assert(k.power==497 and k.roster[1].combatStats.hp==2800 and k.roster[1].combatStats.damage==32)
   local same=King.Definition(4,Rebirth.EnemyScale(0))

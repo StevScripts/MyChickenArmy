@@ -8,6 +8,11 @@ enemy-only chickens built for them, like the Mission sites' Loyalists
 (`LOYALIST_GUARDS.md`). Each copies the stats of the guard it replaced, so every camp fight
 keeps its exact strength (`Rules.Power` 12 / 106 / 192, `tests/FoundationChecks`).
 
+**October 27 (retention package, WS1):** the guards' stats, models and names are unchanged;
+a separate per-camp strength (`Config.CampLadder.Strength`, `Progression.Strength`) scales the
+fight and the power shown for it: Fort Roost x0.60 = 64, Ironbeak HQ x0.55 = 105, Cluck Camp
+x1. `{1, 1, 1}` restores the numbers above. See `CAMP_LADDER_20261027.md`.
+
 | Camp | Theme | Guards (stats of) |
 |---|---|---|
 | Fort Roost | frontier timber fort: pine green, timber, straw | Roost Warden (Robo-Cluck `Bucket`), Roost Archer (Mushroom `Sailor`), 2× Roost Recruit (Brown Chicken `Mallard`) |
