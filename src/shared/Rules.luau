@@ -61,6 +61,19 @@ function Rules.RecruitPrice(species: string, level: number?): number
 	return Catalog[species].price * 2 ^ (rank - 1)
 end
 
+-- October 27 (WS2): a new profile's podium quote (Config.Economy.StarterPrices). `listPrice`
+-- is Rules.RecruitPrice; `owned` the chickens owned when the offer is rolled. Pure, so the
+-- simulation and checks share it.
+function Rules.StarterPrice(listPrice: number, owned: number): number
+	local s = Config.Economy.StarterPrices
+	if type(s) ~= "table" or s.Enabled ~= true or listPrice <= 0 then return listPrice end
+	local full = math.max(3, s.FullAt or 20)
+	local f = (s.Fraction or 1) + (1 - (s.Fraction or 1)) * math.clamp(((owned or 0) - 2) / (full - 2), 0, 1)
+	if f >= 1 then return listPrice end
+	local step = math.max(1, s.Step or 5)
+	return math.min(listPrice, math.max(s.Floor or 0, math.ceil(listPrice * f / step) * step))
+end
+
 -- Three copies are already committed; the additional cash sink scales with
 -- species and input level, never the player's wallet or earnings upgrades.
 function Rules.MergePrice(species: string, level: number): number
