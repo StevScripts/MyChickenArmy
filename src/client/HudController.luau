@@ -526,7 +526,9 @@ function Hud:UpdateRebirth(state)
 	self.lastIntro=state.introRebirth
 	local intro=quote.intro==true
 	local guideDone=type(state.tutorial)=="table" and state.tutorial.guideCompleted==true
-	self:UpdateRebirthProgress(showIcon and intro and guideDone and quote.eligible~=true,quote)
+	-- October 26 (Stevin): the % tag shows on the way to every Rebirth, not only Rebirth 0.
+	local cost=tonumber(quote.cost)
+	self:UpdateRebirthProgress(showIcon and quote.eligible~=true and cost~=nil and cost>0 and (guideDone or not intro),quote)
 	-- Never while the HUD is quiet; Rebirth 0 after the tutorial has its own tip card
 	-- (TutorialGuide "Rebirth is ready!"), so it gets no toast as well.
 	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown and not self.quiet
@@ -537,9 +539,10 @@ function Hud:UpdateRebirth(state)
 	end
 end
 
--- October 23 empty start (the reference's Rebirth progress): while Rebirth 0 is on
--- its way, the Rebirth button wears its Coins progress as "42%" at its top-left
--- corner, opposite the red "!" that replaces it once it is affordable.
+-- October 23 empty start (the reference's Rebirth progress): while the next Rebirth is
+-- on its way (every rank since October 26), the Rebirth button wears its Coins progress
+-- as "42%" at its top-left corner, opposite the red "!" that replaces it once it is
+-- ready. Coins covered but the rank's chicken not found yet reads "100%".
 function Hud:UpdateRebirthProgress(shown: boolean,quote)
 	local tag=self.rebirthProgress
 	if not tag then
@@ -557,7 +560,7 @@ function Hud:UpdateRebirthProgress(shown: boolean,quote)
 	end
 	if shown then
 		local cost,coins=tonumber(quote.cost),tonumber(quote.coins) or 0
-		local percent=if cost and cost>0 then math.clamp(math.floor(coins/cost*100),0,99) else 0
+		local percent=if not cost or cost<=0 then 0 elseif coins>=cost then 100 else math.clamp(math.floor(coins/cost*100),0,99)
 		self.rebirthProgressText.Text=percent.."%"
 	end
 	if tag.Visible~=shown then

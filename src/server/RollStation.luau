@@ -293,6 +293,9 @@ function RollStation:Sync(session)
 	-- the reveal saw "Pull lever" instead of the chicken (25% of live stalls re-pulled).
 	local t=session.tutorial
 	self.tutorialHold=type(t)=="table" and t.guideCompleted~=true and t.guideSkipped~=true and t.coreDone~=true
+	-- October 27 (live 1.25.0 data, TUTORIAL_FIXES_20261027.md): card 1's "Pull lever"
+	-- reaches the spawn, 11 studs away, until the tutorial's first pull.
+	self.firstPull=self.tutorialHold and t.rolled~=true
  self.offerAdvice,self.offerImprovesArmy="",false
  local offer=if self.loaded then session.offers and session.offers[self.slot] else nil
  if offer then self.offerAdvice,self.offerImprovesArmy=session:OfferAdvice(offer.species,offer.level) end
@@ -341,6 +344,10 @@ function RollStation:Step(now, force)
 	local hold = self.tutorialHold == true and self.offer ~= nil and (self.offer.price or 0) <= (self.coins or 0)
 	local canRoll, canBuy = self.loaded and now >= self.readyAt and not hold, self.loaded and self.offer ~= nil and not rolling
 	if self.rollPrompt and self.rollPrompt.Enabled~=canRoll then self.rollPrompt.Enabled=canRoll end
+	-- BaseController reads FirstPull to give E to the lever, not the nearer empty podium.
+	local rollReach = if self.firstPull then 13 else 8
+	if self.rollPrompt and self.rollPrompt.MaxActivationDistance ~= rollReach then self.rollPrompt.MaxActivationDistance = rollReach end
+	if self.model:GetAttribute("FirstPull") ~= (self.firstPull or nil) then self.model:SetAttribute("FirstPull", self.firstPull or nil) end
 	if self.buyPrompt.Enabled ~= canBuy then self.buyPrompt.Enabled = canBuy end
 	-- Held, the chicken's prompt reaches the lever so the player need not walk to find it;
 	-- BaseController reads TutorialHold to give E to the chicken, not the lever.

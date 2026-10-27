@@ -410,6 +410,19 @@ Catalog.Loyalists = {
  {"LoyalThunderGuard","King's Thunder Guard","StormDuck",{255,226,70}},
  {"LoyalArmadaKing","Armada King","Duck",{236,186,58}},
 }
+-- October 26 (Stevin): the main-route camps get their own guards too ("Cluck Camp can
+-- just be the normal white chickens but the rest should be custom"). Same rules as the
+-- Loyalists below: enemy only, each a copy of the guard it replaced, so every camp fight
+-- keeps its strength. Art: assets/camp-guards-20261026/ (Progression rosters).
+Catalog.CampGuards = {
+ {"CampRoostWarden","Roost Warden","Bucket",{52,112,64}},
+ {"CampRoostArcher","Roost Archer","Sailor",{112,150,72}},
+ {"CampRoostRecruit","Roost Recruit","Mallard",{60,92,150}},
+ {"CampIronGrunt","Ironbeak Grunt","Bucket",{98,112,62}},
+ {"CampIronSapper","Ironbeak Sapper","Sailor",{246,140,30}},
+ {"CampIronMajor","Ironbeak Major","Viking",{70,80,44}},
+}
+for _, entry in Catalog.CampGuards do table.insert(Catalog.Loyalists, entry) end
 for _, entry in Catalog.Loyalists do
  local definition = table.clone(Catalog[entry[3]])
  definition.name, definition.weight, definition.color = entry[2], 0, entry[4]

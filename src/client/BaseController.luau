@@ -234,6 +234,12 @@ function BaseController:RollPromptChoice(station)
 		self.rollPromptPlot,self.rollPromptChoice=plot,"BuyPrompt"
 		return if station==primary then "BuyPrompt" else nil
 	end
+	-- October 27: until the tutorial's first pull, E is the lever's from the spawn
+	-- (RollStation FirstPull); the podium is nearer there but still empty.
+	if primary:GetAttribute("FirstPull")==true then
+		self.rollPromptPlot,self.rollPromptChoice=plot,"RollPrompt"
+		return if station==primary then "RollPrompt" else nil
+	end
 	local rollDistance=distance(lever)
 	local choice=if rollDistance<=best then "RollPrompt" else "BuyPrompt"
 	if self.rollPromptPlot==plot then
@@ -584,7 +590,8 @@ function BaseController:UpdateObjective()
  local plot=world:FindFirstChild("Plot"..state.plotIndex)
  local lane=world:FindFirstChild("Lane"..state.plotIndex)
  if guidance then
-  if guidance.target=="Camp1" then target=lane and lane:FindFirstChild("Camp1")
+  local campIndex=tonumber(string.match(tostring(guidance.target),"^Camp(%d)$"))
+  if campIndex then target=lane and lane:FindFirstChild("Camp"..campIndex)
   elseif guidance.target=="EggDeposit" then target=plot and plot:FindFirstChild("sellpart",true)
   elseif guidance.target=="EggCash" then
    local board=world:FindFirstChild("EggCollectionBoard") or (plot and plot:FindFirstChild("EggCollectionBoard",true))
@@ -622,6 +629,16 @@ function BaseController:UpdateObjective()
   waiting=site and site.PrimaryPart and site.PrimaryPart:FindFirstChild("Marker")
   if waiting then target=waiting end
  end
+ -- October 26 (Stevin): once Cluck Camp is won, a NEXT marker stays over the next camp
+ -- on the route until it is won (its tip card shows for a few seconds; this does not).
+ local nextCamp=nil
+ if not guidance and not waiting then
+  nextCamp=Guide.NextCamp(state)
+  target=if nextCamp then lane and lane:FindFirstChild("Camp"..nextCamp) else nil
+  if not target then nextCamp=nil end
+ end
+ local campIndex=guidance and tonumber(string.match(tostring(guidance.target),"^Camp(%d)$")) or nextCamp
+ local campName=campIndex and Progression.Camps(1)[campIndex] and Progression.Camps(1)[campIndex].name
  -- October 24: card 7 ("Pull the lever again!") points at the lever even with a chicken
  -- waiting on the podium; buying it is the player's call.
  local lever=guidance~=nil and guidance.id=="RollAgain"
@@ -631,8 +648,10 @@ function BaseController:UpdateObjective()
  self.objective.Adornee=anchor
  local waitLeft=waiting and tracker and tracker:Remaining(nextMission.id)
  self.objectiveCaption.Text=if waiting then (if waitLeft then ("ATTACK %d:%02d"):format(waitLeft//60,waitLeft%60) else "ATTACK")
+  elseif nextCamp and campName then "NEXT: "..string.upper(campName)
   elseif not guidance then "NEXT" elseif guidance.target=="RollStation" then (if state.offer and not lever then "BUY CHICKEN" else "ROLL")
-  elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS" else "CLUCK CAMP"
+  elseif guidance.target=="Yard" then "COLLECT EGGS" elseif guidance.target=="EggDeposit" then "SELL EGGS"
+  elseif campName then string.upper(campName) else "CLUCK CAMP"
  -- Pop on a new goal only; the ticking countdown digits are ignored.
  local captionKey=self.objectiveCaption.Text:gsub("[%d:]","")
  if self.objectiveKey and captionKey~=self.objectiveKey then Theme.Motion:PopScale(self.objectiveCaption,1.15) end

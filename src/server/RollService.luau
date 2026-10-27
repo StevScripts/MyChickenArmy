@@ -60,7 +60,10 @@ function RollService:Roll(session, now: number)
 	-- manual or Auto Roll, is special and every podium on it rolls with extra Luck.
 	local special = if starter then nil else GoldRolls.Advance(session.goldRolls, session.researchEffects)
 	if special then researchLuck = (1 + researchLuck) * GoldRolls.Luck(special) - 1 end
-	local duration = Config.RollRevealSeconds / (1 + (session.researchEffects.rollingSpeed or 0))
+	-- October 27 (live data, TUTORIAL_FIXES_20261027.md): card-2 quitters left during the
+	-- first reveal, whose result is fixed, so the free starter lands in StarterRevealSeconds.
+	local duration = if starter then Config.StarterRevealSeconds or Config.RollRevealSeconds
+		else Config.RollRevealSeconds / (1 + (session.researchEffects.rollingSpeed or 0))
 	local debugRoll = session.debugNext ~= nil or session.debugRandom ~= nil
 	-- Only verified restricted owners advance the disclosed fixed offer schedule.
 	-- Debug rolls, cooldown failures and unverified ownership cannot consume progress.

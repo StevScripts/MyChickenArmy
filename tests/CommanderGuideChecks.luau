@@ -161,7 +161,7 @@ function Checks.Run()
 		assert(order=="Roll,Recruit,Collect,Sell,Start,Expand,RollAgain,Recruit2",order)
 		assert(Guide.Version=="empty-8-recruit" and Guide.CompleteText=="Your yard is up and running. Keep collecting!","Version and payoff")
 		local ladder,favor=Config.Economy.StarterLadder,Config.Economy.FavoredRolls
-		assert(#ladder==2 and ladder[1].species=="Duck" and ladder[1].price==0 and ladder[2].species=="Duck" and ladder[2].price==150,"Starter ladder")
+		assert(#ladder==2 and ladder[1].species=="Duck" and ladder[1].price==0 and ladder[2].species=="Duck" and ladder[2].price==20,"Starter ladder")
 		assert(favor.rolls==5 and favor.chance==0.6 and favor.species=="Duck","Favoured pulls")
 		return "No vacuum or Camp lessons; the second chicken ends it"
 	end)
@@ -193,6 +193,28 @@ function Checks.Run()
 		return "Complete card, then nothing"
 	end)
 
+	test("Tip: after Cluck Camp, a timed card names the next camp on the route until it is won",function()
+		local state=afterGuide()
+		state.tools.eggVacuum,state.tutorial.vacuumEggCount,state.tutorial.vacuumSold=true,10,true
+		state.firstWins={}
+		assert(Guide.NextCamp(state)==nil,"Nothing before Cluck Camp")
+		state.firstWins={true}
+		assert(Guide.NextCamp(state)==2,"Fort Roost next")
+		local card=Guide.Resolve(state)
+		tipIs(card,"TipNextCamp2","Next up: conquer Fort Roost!",1,1,"NextCamp")
+		assert(card.target=="Camp2" and card.seconds==Guide.NextCampTipSeconds,"Camp2 target, timed")
+		expect(Guide.Resolve(state,nil,{TipNextCamp2=true}),"Complete",nil,"Gone for the visit once timed out")
+		state.firstWins={true,true}
+		tipIs(Guide.Resolve(state,nil,{TipNextCamp2=true}),"TipNextCamp3","Next up: conquer Ironbeak HQ!",1,1,"NextCamp")
+		state.firstWins={true,true,true}
+		assert(Guide.NextCamp(state)==nil,"Route done")
+		expect(Guide.Resolve(state),"Complete",nil,"No card after the route")
+		local chain
+		for _,tip in Guide.Tips do if tip.id=="NextCamp" then chain=tip end end
+		assert(chain and chain.quietEnd==true and Guide.Tips[#Guide.Tips]==chain,"Last chain, no payoff on timeout")
+		return "Fort Roost, then Ironbeak HQ"
+	end)
+
 	test("The egg hint stays after the tutorial until the vacuum, for empty-start profiles only",function()
 		local state=afterGuide()
 		assert(Guide.EggHint(state,Guide.Facts(state)),"On after the guide")
@@ -207,46 +229,51 @@ function Checks.Run()
 		return "On until the vacuum; empty-start saves only"
 	end)
 
-	test("Tip: the free Egg Vacuum after 12 more eggs by hand since the tutorial, six cards, done once the eggs are sold",function()
+	test("Tip: the free Egg Vacuum right after the tutorial, counting 12 more eggs by hand, seven cards, done once the eggs are sold",function()
 		local state=afterGuide()
 		-- The tutorial completed at 4 eggs by hand (TutorialService saves eggsAtComplete).
-		state.tutorial.eggsAtComplete,state.tutorial.collectedEggCount=4,15
-		expect(Guide.Resolve(state),"Complete",nil,"Eleven more eggs is one short")
+		-- October 27: the chain starts at completion with the count on its first card.
+		state.tutorial.eggsAtComplete,state.tutorial.collectedEggCount=4,4
+		local eggs=Guide.Resolve(state)
+		tipIs(eggs,"TipVacuumEggs","Collect eggs for an Egg Vacuum! (0/12)",1,7,"Vacuum")
+		assert(eggs.target=="Yard","The count card points at the eggs")
+		state.tutorial.collectedEggCount=15
+		tipIs(Guide.Resolve(state),"TipVacuumEggs","Collect eggs for an Egg Vacuum! (11/12)",1,7,"Vacuum","Eleven more eggs is one short")
 		state.tutorial.collectedEggCount=16
 		state.upgradeTree.nodes.EggVacuum={status="Locked",price=0}
 		expect(Guide.Resolve(state),"Complete",nil,"Not while the offer is locked")
 		state.upgradeTree.nodes.EggVacuum={status="Available",price=0}
 		local buy=Guide.Resolve(state)
-		tipIs(buy,"TipVacuum","Claim your Egg Vacuum!",3,6,"Vacuum")
-		assert(buy.target=="Upgrades" and buy.node=="EggVacuum" and buy.outside=="Open Upgrades for an Egg Vacuum!" and buy.outsideIndex==1
-			and buy.wrongTab=="Open the Tools category!" and buy.wrongTabIndex==2,"Buy card lines")
+		tipIs(buy,"TipVacuum","Claim your Egg Vacuum!",4,7,"Vacuum")
+		assert(buy.target=="Upgrades" and buy.node=="EggVacuum" and buy.outside=="Open Upgrades for an Egg Vacuum!" and buy.outsideIndex==2
+			and buy.wrongTab=="Open the Tools category!" and buy.wrongTabIndex==3,"Buy card lines")
 		-- Without the server's offer in the snapshot the tip shows too (the vacuum is free); a
 		-- save finished before the counter existed counts from the lesson's 3 eggs.
 		local bare=afterGuide();bare.upgradeTree.nodes.EggVacuum=nil;bare.coins=0;bare.tutorial.collectedEggCount=15
-		tipIs(Guide.Resolve(bare),"TipVacuum","Claim your Egg Vacuum!",3,6,"Vacuum","No offer in the snapshot, 12 more eggs")
+		tipIs(Guide.Resolve(bare),"TipVacuum","Claim your Egg Vacuum!",4,7,"Vacuum","No offer in the snapshot, 12 more eggs")
 		assert(Guide.VacuumTipEggs==12 and Tree.Price("EggVacuum",1,0)==0,"Free vacuum, 12 more eggs")
 		assert(Guide.EggsAtComplete({})==3 and Guide.EggsAtComplete({eggsAtComplete=4})==4,"Eggs at completion")
 		state.tools.eggVacuum=true
 		local use=Guide.Resolve(state)
-		tipIs(use,"TipVacuumUse","Walk near eggs to vacuum them up! (0/10)",5,6,"Vacuum")
-		assert(use.target=="VacuumTool" and use.outside=="Equip your Egg Vacuum!" and use.outsideIndex==4,"Equip words")
+		tipIs(use,"TipVacuumUse","Walk near eggs to vacuum them up! (0/10)",6,7,"Vacuum")
+		assert(use.target=="VacuumTool" and use.outside=="Equip your Egg Vacuum!" and use.outsideIndex==5,"Equip words")
 		state.tools.vacuum={count=25,capacity=25}
 		local full=Guide.Resolve(state)
-		tipIs(full,"TipVacuumUse","Vacuum full! Sell your eggs on the green pad!",5,6,"Vacuum")
+		tipIs(full,"TipVacuumUse","Vacuum full! Sell your eggs on the green pad!",6,7,"Vacuum")
 		assert(full.target=="EggDeposit","Full vacuum goes to the pad")
 		state.tools.vacuum={count=5,capacity=25}
 		state.tutorial.vacuumEggCount=7
-		tipIs(Guide.Resolve(state),"TipVacuumUse","Walk near eggs to vacuum them up! (7/10)",5,6,"Vacuum")
+		tipIs(Guide.Resolve(state),"TipVacuumUse","Walk near eggs to vacuum them up! (7/10)",6,7,"Vacuum")
 		expect(Guide.Resolve(state,nil,{TipVacuumUse=true}),"Complete",nil,"A dismissed card stays away")
 		-- October 25 (Stevin): the chain ends by selling the vacuumed eggs on the pad.
 		state.tutorial.vacuumEggCount=10
 		local sell=Guide.Resolve(state)
-		tipIs(sell,"TipVacuumSell","Sell your eggs on the green pad!",6,6,"Vacuum")
+		tipIs(sell,"TipVacuumSell","Sell your eggs on the green pad!",7,7,"Vacuum")
 		assert(sell.target=="EggDeposit","The last card points at the pad")
 		state.tutorial.vacuumSold=true
 		expect(Guide.Resolve(state),"Complete",nil,"Learned once the eggs are sold")
 		assert(Guide.VacuumTipGoal==10 and Guide.VacuumGoal==20,"Tip knobs; the saved goal stays 20 for the funnel")
-		return "Free vacuum after 12 more eggs: claim, equip, 10 vacuumed, sold"
+		return "Count 12 eggs, claim, equip, 10 vacuumed, sold"
 	end)
 
 	test("Tips: Rebirth 0 at 1,700 Coins, then its Gem card; the first Camp once settled with 3 chickens; Rebirth first",function()
@@ -445,7 +472,7 @@ function Checks.Run()
 		local first,opening=route()
 		expect(first,"Roll","Pull the lever for a chicken!")
 		assert(opening.rebirth.intro==true and opening.rebirth.cost==1700 and opening.rebirth.eligible==false,"Rebirth 0 quoted from the start")
-		-- The real lever: the free starter Chicken, then the second Chicken at 150.
+		-- The real lever: the free starter Chicken, then the second Chicken at 20.
 		assert(rolls:Roll(s,0))
 		assert(s.offer and s.offer.species=="Duck" and s.offer.price==0 and s.tutorial.rollCount==1,"Starter roll")
 		expect((route()),"Recruit","Grab your chicken!")
@@ -473,16 +500,16 @@ function Checks.Run()
 		assert(s:LaySeconds(1)==1 and Config.TutorialEggLaySeconds==1,"Tutorial lay seconds "..tostring(s:LaySeconds(1)))
 		expect((route()),"RollAgain","Roll another chicken!")
 		assert(rolls:Roll(s,200))
-		assert(s.offer and s.offer.species=="Duck" and s.offer.price==150 and s.tutorial.rollCount==2,"Second pull: the basic Chicken at 150, got "..tostring(s.offer and s.offer.species).." "..tostring(s.offer and s.offer.price))
-		-- Short of the 150: the card sends the player to the eggs (the pad arrow once the bag covers it).
-		expect((route()),"RecoverCollect","Collect eggs worth 148 more Coins","Short of the second Chicken")
-		s.coins=150
+		assert(s.offer and s.offer.species=="Duck" and s.offer.price==20 and s.tutorial.rollCount==2,"Second pull: the basic Chicken at 20, got "..tostring(s.offer and s.offer.species).." "..tostring(s.offer and s.offer.price))
+		-- Short of the 20: the card sends the player to the eggs (the pad arrow once the bag covers it).
+		expect((route()),"RecoverCollect","Collect eggs worth 18 more Coins","Short of the second Chicken")
+		s.coins=20
 		local buy2,mid=route()
 		expect(buy2,"BuyChicken","Buy the chicken!")
 		service2:Observe(s,mid)
 		assert(not s.tutorial.guideCompleted,"Not complete before the recruit")
 		assert(rolls:Buy(s,s.offer.id,300))
-		assert(s:Count()==2 and s.coins==0,"Second chicken for 150")
+		assert(s:Count()==2 and s.coins==0,"Second chicken for 20")
 		local done,final=route()
 		expect(done,"Complete",Guide.CompleteText)
 		assert(Guide.Facts(final).Core,"Core done")
@@ -502,16 +529,16 @@ function Checks.Run()
 		assert(chickens>=2,"Favoured pulls landed "..chickens.." Chickens of 5")
 		local back=Session.new(-9403,"Starter reload",1)
 		assert(back:LoadData(s:ToData()) and back.tutorial.rollCount==7 and back.tutorial.eggsAtComplete==3,"rollCount and eggsAtComplete save")
-		-- The vacuum tip after 12 more eggs by hand; nothing before it.
+		-- The vacuum tip counts 12 more eggs by hand from completion (October 27), then offers it.
 		s.tutorial.collectedEggCount=14
-		expect((route()),"Complete",Guide.CompleteText,"Eleven more eggs: no tip yet")
+		expect((route()),"TipVacuumEggs","Collect eggs for an Egg Vacuum! (11/12)","Eleven more eggs: the count card")
 		s.tutorial.collectedEggCount=15
 		expect((route()),"TipVacuum","Claim your Egg Vacuum!","12 more eggs: the vacuum tip")
 		s.coins=1700
 		local tipCard,ready=route()
 		assert(ready.rebirth.eligible==true,"Rebirth 0 eligible: "..tostring(ready.rebirth.reason))
 		expect(tipCard,"TipRebirth","Tap Rebirth! Coins & Upgrades reset, but you keep ×1.5 Coins forever!","Rebirth 0 tip at 1,700")
-		return "Two chickens for 0 + 150; complete on the recruit; favoured pulls; the vacuum and Rebirth 0 tips follow"
+		return "Two chickens for 0 + 20; complete on the recruit; favoured pulls; the vacuum and Rebirth 0 tips follow"
 	end)
 
 	local passed=0

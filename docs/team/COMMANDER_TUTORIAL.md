@@ -4,8 +4,8 @@
 
 **October 25 (Stevin, from his playtest notes):**
 - **Card 7 "Roll another chicken!", card 8 recruits it.** The second pull keeps the basic
-  Chicken on the first podium at 150 Coins (`Config.Economy.StarterLadder`: Chicken free,
-  then Chicken 150; `RollService`). Whenever the Coins are short of the podium's price, the
+  Chicken on the first podium at 20 Coins (150 until Oct 26) (`Config.Economy.StarterLadder`: Chicken free,
+  then Chicken 20, about five tutorial eggs; `RollService`). Whenever the Coins are short of the podium's price, the
   card becomes the earn step: "Collect eggs worth N more Coins" (arrow to the yard), then
   "Sell your eggs on the green pad!" (arrow to the pad) once the bag covers it, then back to
   the podium ("Buy the chicken!"). The tutorial completes on that recruit, not on the pull;
@@ -69,7 +69,7 @@ stays as the cohort marker; `introRebirth="pending"` is new.
 5. Open Upgrades! → Claim Start! (the centre hex is claimable once, free; `tutorial.startClaimed`)
 6. Expand your plot! (Flock Size I, 10 Coins since Oct 24; it now grows the yard one stage)
 7. Roll another chicken! (Oct 24–25)
-8. Buy the chicken! (Oct 25: the basic Chicken at 150; short of it, collect and sell first)
+8. Buy the chicken! (Oct 25: the basic Chicken at 20 (about five eggs); short of it, collect and sell first)
 → "TUTORIAL COMPLETE! Your yard is up and running. Keep collecting!" Daily Rewards opens
 after it (Day 1 is half a minute of income with a 60-Coin floor).
 
@@ -1063,6 +1063,20 @@ card said "Tap your eggs". Two rules, both built:
   to 12 studs, names it "Take <chicken>" when free, and sets `TutorialHold` on the
   station; `BaseController:RollPromptChoice` then gives E to the chicken even at the
   lever (schema 14 data: 12% left between the pull and the take, 25% of them re-pulled).
+- **Leave Upgrades for a world card (October 27, live `1.25.0-eight-cards` journeys).**
+  After Flock Size I the tree stays open and hides the card, and cards 7/8 point at the
+  lever: card 7→8 lost 12% (step 10→11), many of those exits sitting in Upgrades with
+  Coins to spare. A core card aimed at the world now dims and rings the tree's Exit while the tree
+  is open (`CommanderGuide`); tip chains leave a player browsing Upgrades alone.
+- **The first minute (October 27, `TUTORIAL_FIXES_20261027.md`, build
+  `1.26.0-first-minute`).** The spawn faces between the lever and the first podium
+  (`WorldService:SpawnFrame`), so the avatar no longer hides the 2-stud lever on card 1;
+  until the tutorial's first pull the lever prompt reaches 13 studs (spawn is 11 away;
+  8 after), the station's `FirstPull` attribute gives E to the lever over the nearer
+  empty podium (`BaseController:RollPromptChoice`), and card 1 stays up beside the prompt. The free first chicken reveals in `Config.StarterRevealSeconds` (1.5 s; later
+  pulls keep 4 s). The Vacuum tip chain starts at completion with a count card, "Collect
+  eggs for an Egg Vacuum! (n/12)" (TIP 1/7), then the claim card at 12 eggs as before.
+  Daily Rewards still opens at completion (Stevin kept it).
 
 `Config.Version` is `1.21.1-opening` so the ledger separates this build from
 `1.21.0-overhaul`: compare exits at tutorial step 04 and survival at one minute.

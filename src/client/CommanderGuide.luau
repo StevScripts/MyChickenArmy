@@ -422,7 +422,10 @@ function Commander:Update()
 	for _,chain in Guide.Tips do
 		if self.tipSeen[chain.id] and not self.tipPaid[chain.id] and not self:Celebrating() then
 			local ended=chain.done(facts,state)
-			for _,card in chain.cards do if card.seconds and skip[card.id] then ended=true end end
+			-- quietEnd chains (the next-camp reminder) pay off only when learned, not on a timeout.
+			if not chain.quietEnd then
+				for _,card in chain.cards do if card.seconds and skip[card.id] then ended=true end end
+			end
 			if ended then
 				self.tipPaid[chain.id]=true;self.celebrate=true
 				self:Payoff(chain.payoff,"TIP • COMPLETE!",TIP_PAYOFF_SECONDS)
@@ -518,6 +521,9 @@ function Commander:Update()
 	-- Notices no longer hide the card; AppController:NoticePosition places them below it.
 	-- Menu lessons stay on screen over their menu, above the dimmed screen (the reference).
 	local menuLesson=current.outside~=nil
+	-- October 27: card 1's lever prompt reaches the spawn (RollStation FirstPull), so the
+	-- first card stays up beside it instead of leaving the first screen without words.
+	if id=="Roll" then atTarget=false end
 	local visible=(menuLesson or (not app.panel.Visible and not inTree)) and not blocked and not atTarget
 	self:SetInstruction(text,visible and self.pendingType)
 	self.tag.Text=if current.tag and index then current.tag.." • "..index.."/"..current.total
@@ -591,6 +597,11 @@ function Commander:Update()
 		else
 			target=if app.panel.Visible or inTree then nil else app.hud.reenlist
 		end
+	elseif inTree and where and not current.chain then
+		-- October 27 (live journeys): card 7/8 quitters sat in Upgrades after Flock Size I
+		-- while the card pointed at the lever; a tutorial card aimed at the world rings the
+		-- tree's exit first (tips leave a player browsing Upgrades alone).
+		target,dim=exit,true
 	end
 	-- Over the Rebirth screen the card, the dim and the ring draw above it.
 	local over=inRebirth and (where=="Rebirth" or where=="Gems") and target~=nil

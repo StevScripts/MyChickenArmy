@@ -251,6 +251,15 @@ function WorldService:SpawnFrame(index: number): CFrame
 		local target=if yard and yard:IsA("BasePart") then yard.Position
 			elseif yard and yard:IsA("Model") then yard:GetPivot().Position
 			else self:PlotFrame(index).Position
+		-- October 27 (live data, TUTORIAL_FIXES_20261027.md): the yard sat straight behind
+		-- the lever, so the avatar hid it on card 1. Face between the lever and the first
+		-- podium: the lever shows left of the avatar, the podium right, the yard ahead.
+		local station=record.folder:FindFirstChild("RollStation")
+		local lever=station and station:FindFirstChild("LeverBase")
+		local podium=station and station:FindFirstChild("Podium")
+		if lever and podium and lever:IsA("BasePart") and podium:IsA("BasePart") then
+			target=(lever.Position+podium.Position)/2
+		end
 		local at=spawn.Position
 		local flat=Vector3.new(target.X,at.Y,target.Z)
 		if (flat-at).Magnitude>1 then return CFrame.lookAt(at,flat) end

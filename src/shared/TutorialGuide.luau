@@ -3,6 +3,7 @@
 local Config = require(script.Parent.Config)
 local Currency = require(script.Parent.CurrencyLimits)
 local Tree = require(script.Parent.UpgradeCatalog)
+local Progression = require(script.Parent.Progression)
 local Guide = {}
 -- Latest October 21 (Stevin: "keep the tutorial as SHORT as possible"): only the three
 -- systems a new player needs, as one numbered list "TUTORIAL • n/7": click eggs and
@@ -20,7 +21,7 @@ local Guide = {}
 -- Camp and Rebirth 0 follow as tips ("TIP • n/N", Guide.Tips) once it is done.
 -- October 24 (Stevin): a seventh card, pull the lever again; eggs lay every second until
 -- the tutorial completes (PlayerSession.LaySeconds). October 25 (Stevin): card 7 "Roll
--- another chicken!" keeps the basic Chicken on the podium at 150 Coins
+-- another chicken!" keeps the basic Chicken on the podium at 20 Coins
 -- (Config.Economy.StarterLadder, RollService) and card 8 recruits it, with the arrow to
 -- the eggs and the pad whenever the Coins are short; the tutorial completes on that
 -- recruit, then Daily Rewards opens. The next five pulls favour the basic Chicken.
@@ -43,8 +44,9 @@ Guide.Milestones = {"Roll", "Recruit", "Collect", "Sell", "Start", "Expand", "Ro
 -- The last card, also the payoff line with the confetti (CommanderGuide).
 Guide.CompleteText = "Your yard is up and running. Keep collecting!"
 -- Tips (October 23; retimed October 24-25, Stevin). The Egg Vacuum is free and its tip
--- shows once the player has collected VacuumTipEggs more eggs by hand after the tutorial
--- completed (tutorial.eggsAtComplete, set by TutorialService; never shown), then it counts
+-- offers it once the player has collected VacuumTipEggs more eggs by hand after the tutorial
+-- completed (tutorial.eggsAtComplete, set by TutorialService; counted on the chain's first
+-- card since October 27), then it counts
 -- VacuumTipGoal vacuumed eggs (the saved count still runs to VacuumGoal for the funnel)
 -- and ends with the sale of those eggs on the pad (tutorial.vacuumSold). The Camp tip waits
 -- for an Army of ArmyTipSize and a player a little settled in: VacuumGoal eggs vacuumed, or
@@ -144,7 +146,7 @@ function Guide.Facts(state)
 		Expand = if tier ~= nil then tier >= 1 else (flock == nil or flock >= 4),
 		-- October 24: card 7, the lever pulled a second time (the offer may stay on the podium).
 		RollAgain = Guide.RollCount(t) >= 2,
-		-- October 25: card 8, the second chicken (the basic Chicken at 150, RollService).
+		-- October 25: card 8, the second chicken (the basic Chicken at 20, RollService).
 		Recruit2 = #(state.pets or {}) >= 2,
 		Grow = #(state.pets or {}) >= 4,
 		-- Flock Size I: four chickens lay (it starts at 3). A snapshot without it never blocks.
@@ -340,15 +342,39 @@ local REBIRTH_CARDS = {
 REBIRTH_CARDS.Gems.seconds = Guide.GemTipSeconds
 local ATTACK_CARDS = {Attack = tipCard("TipAttack", "Send your Army to attack Cluck Camp!", 1, "Camp1")}
 local VACUUM_CARDS = {
-	Buy = tipCard("TipVacuum", "Claim your Egg Vacuum!", 3, "Upgrades", "EggVacuum",
-		"Open Upgrades for an Egg Vacuum!", 1, "Open the Tools category!", 2),
+	-- October 27 (live data, TUTORIAL_FIXES_20261027.md): most finishers left within 20 s,
+	-- with no card for the VacuumTipEggs wait. The wait is the chain's first card; its text
+	-- gains the count "(n/12)".
+	Eggs = tipCard("TipVacuumEggs", "Collect eggs for an Egg Vacuum!", 1, "Yard"),
+	Buy = tipCard("TipVacuum", "Claim your Egg Vacuum!", 4, "Upgrades", "EggVacuum",
+		"Open Upgrades for an Egg Vacuum!", 2, "Open the Tools category!", 3),
 	-- Its text gains the count "(n/10)".
-	Use = tipCard("TipVacuumUse", "Walk near eggs to vacuum them up!", 5, "VacuumTool", nil, "Equip your Egg Vacuum!", 4),
+	Use = tipCard("TipVacuumUse", "Walk near eggs to vacuum them up!", 6, "VacuumTool", nil, "Equip your Egg Vacuum!", 5),
 	-- A full vacuum stops pulling eggs in: sell, then keep going.
-	Full = tipCard("TipVacuumUse", "Vacuum full! Sell your eggs on the green pad!", 5, "EggDeposit"),
+	Full = tipCard("TipVacuumUse", "Vacuum full! Sell your eggs on the green pad!", 6, "EggDeposit"),
 	-- October 25 (Stevin): the chain ends by selling what was vacuumed.
-	Sell = tipCard("TipVacuumSell", "Sell your eggs on the green pad!", 6, "EggDeposit"),
+	Sell = tipCard("TipVacuumSell", "Sell your eggs on the green pad!", 7, "EggDeposit"),
 }
+
+-- October 26 (Stevin): once Cluck Camp is won, point at the next camp on the route.
+-- A timed card per camp (NextCampTipSeconds, once a visit, no payoff when it times
+-- out); BaseController keeps a NEXT marker over that camp until it is won.
+Guide.NextCampTipSeconds = 10
+local NEXT_CAMP_CARDS = {}
+for index = 2, #Progression.Camps(1) do
+	local card = tipCard("TipNextCamp" .. index, "Next up: conquer " .. Progression.Camps(1)[index].name .. "!", 1, "Camp" .. index)
+	card.seconds = Guide.NextCampTipSeconds
+	NEXT_CAMP_CARDS[index] = card
+end
+-- The first main-route camp not won yet after Cluck Camp, or nil.
+function Guide.NextCamp(state: any): number?
+	local wins = state.firstWins
+	if type(wins) ~= "table" or wins[1] ~= true then return nil end
+	for index = 2, #Progression.Camps(1) do
+		if wins[index] ~= true then return index end
+	end
+	return nil
+end
 
 local function gemsSpent(state: any): boolean
 	return (tonumber(state.gemsEarned) or 0) > (tonumber(state.gems) or 0)
@@ -381,22 +407,30 @@ local TIPS: {any} = {
 		end,
 		done = function(f: any, _state: any): boolean return f.Win == true end,
 		card = function(_f: any, _state: any): any return table.clone(ATTACK_CARDS.Attack) end},
-	{id = "Vacuum", payoff = "Vacuum learned!", total = 6, cards = VACUUM_CARDS,
+	{id = "Vacuum", payoff = "Vacuum learned!", total = 7, cards = VACUUM_CARDS,
 		when = function(_f: any, state: any): boolean
 			local t: any, tools = state.tutorial or {}, state.tools
 			if t.guideCompleted ~= true or type(tools) ~= "table" then return false end
 			if tools.eggVacuum == true then return true end
 			if t.vacuumUsed == true then return false end
-			-- October 25 (Stevin): VacuumTipEggs more eggs by hand since the tutorial completed
-			-- (never told to the player); the free vacuum's offer reads Available.
+			-- The free vacuum's offer reads Available. October 27: the chain starts at
+			-- completion with the VacuumTipEggs count (October 25 kept it untold).
 			local offer = nodeOffer(state, "EggVacuum")
-			return Guide.EggsCollected(t) >= Guide.EggsAtComplete(t) + Guide.VacuumTipEggs
-				and (offer == nil or offer.status == "Available")
+			return offer == nil or offer.status == "Available"
 		end,
 		done = function(_f: any, state: any): boolean return (state.tutorial or {}).vacuumSold == true end,
 		card = function(_f: any, state: any): any
 			local tools, t = state.tools, state.tutorial or {}
-			if tools.eggVacuum ~= true then return table.clone(VACUUM_CARDS.Buy) end
+			if tools.eggVacuum ~= true then
+				-- October 25 (Stevin): VacuumTipEggs more eggs by hand since the tutorial completed.
+				local since = Guide.EggsCollected(t) - Guide.EggsAtComplete(t)
+				if since < Guide.VacuumTipEggs then
+					local card: any = table.clone(VACUUM_CARDS.Eggs)
+					card.text ..= " (" .. math.max(0, since) .. "/" .. Guide.VacuumTipEggs .. ")"
+					return card
+				end
+				return table.clone(VACUUM_CARDS.Buy)
+			end
 			-- The eggs are in: sell them (the chain's last card).
 			if Guide.VacuumEggCount(t) >= Guide.VacuumTipGoal then return table.clone(VACUUM_CARDS.Sell) end
 			local vacuum = tools.vacuum
@@ -408,6 +442,13 @@ local TIPS: {any} = {
 			card.text ..= " (" .. count .. "/" .. Guide.VacuumTipGoal .. ")"
 			return card
 		end},
+	-- Last, so it never interrupts another chain. quietEnd: a timed-out card is no payoff.
+	{id = "NextCamp", payoff = "Camp captured!", total = 1, cards = NEXT_CAMP_CARDS, quietEnd = true,
+		when = function(_f: any, state: any): boolean
+			return (state.tutorial or {}).guideCompleted == true and Guide.NextCamp(state) ~= nil
+		end,
+		done = function(_f: any, state: any): boolean return Guide.NextCamp(state) == nil end,
+		card = function(_f: any, state: any): any return table.clone(NEXT_CAMP_CARDS[Guide.NextCamp(state) :: number]) end},
 }
 Guide.Tips = TIPS
 
@@ -478,7 +519,7 @@ local function resolve(state, input: string?, t, f, skip: {[string]: boolean}?):
 	-- Lesson 7 (October 24-25): roll once more ("Roll another chicken!", Stevin's words).
 	if not f.RollAgain then return step("RollAgain", "Roll another chicken!", "RollStation") end
 	-- Lesson 8 (October 25, Stevin): recruit it; the lever put the basic Chicken on the podium
-	-- at 150 (RollService). Short of the price, the arrow goes to the eggs and the pad first
+	-- at 20 (RollService). Short of the price, the arrow goes to the eggs and the pad first
 	-- (earn), then back to the podium. The tutorial completes on this recruit.
 	return nextChicken(state)
 end

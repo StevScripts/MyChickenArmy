@@ -4,9 +4,10 @@ local Economy = {
 	RecruitPaybackSeconds = 600,
 	StarterRecruitPrice = 0, -- October 21 (Stevin): the guide's first roll is FREE, like the reference.
 	-- October 25 (Stevin): the tutorial's two pulls land the basic Chicken: the free starter
-	-- roll, then the second one at 150 Coins on card 8 (the lever keeps it on the podium
-	-- until the guide completes, RollService).
-	StarterLadder = {{species = "Duck", price = 0}, {species = "Duck", price = 150}},
+	-- roll, then the second one on card 8 (the lever keeps it on the podium
+	-- until the guide completes, RollService). October 26 (Stevin): 20 Coins, about five
+	-- one-Duck tutorial eggs (4 Coins each) after Flock Size I; was 150 (~37 eggs, boring).
+	StarterLadder = {{species = "Duck", price = 0}, {species = "Duck", price = 20}},
 	-- Then the next FavoredRolls.rolls pulls after the tutorial put the basic Chicken on the
 	-- first podium with this chance (normal price), so the first Army fills with chickens
 	-- the player can afford; the other podiums and later pulls draw normally.
@@ -47,7 +48,7 @@ local Config = {
 	-- set it back to true to bring the film (and Settings > Replay Intro) back.
 	Features = {Merging = false, AutoMerging = false, IntroCutscene = false, ChickenCashUpgrades = true},
 	Economy = Economy,
- Version="1.25.0-eight-cards", GameTitle="My Chicken Army!",
+ Version="1.26.0-first-minute", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's
  -- arena (Config.Hill). Only one site exists; its internal key stays "income:1".
  -- Rate is unused while the Hill is enabled: HillService pays the holder's boost.
@@ -141,6 +142,9 @@ local Config = {
  -- Oct 20 (Stevin): a roll lasts about as long as Drop a Fruit's (~3.9 s; was 2.4).
  -- Roll Speed divides it (RollService).
  RollRevealSeconds=4,RollInteractDistance=14,
+ -- Oct 27 (live data, TUTORIAL_FIXES_20261027.md): the empty start's free first chicken
+ -- (always the basic Chicken) reveals faster; every later pull keeps RollRevealSeconds.
+ StarterRevealSeconds=1.5,
  -- Pre-October 20 Auto Roll stop names, kept only so AutoRollRules.Read converts old saves.
  AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic","Secret"},
  -- October 20 Auto Roll panel (S12b, Stevin: Drop a Fruit's board 1:1; AutoRollRules.luau).

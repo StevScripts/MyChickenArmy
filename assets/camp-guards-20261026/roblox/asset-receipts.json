@@ -1,0 +1,8 @@
+{
+ "CampRoostWarden": {"mesh": 105442082996123, "image": 78011896316605},
+ "CampRoostArcher": {"mesh": 106181413267991, "image": 123930114787350},
+ "CampRoostRecruit": {"mesh": 81474870824596, "image": 75422409103492},
+ "CampIronGrunt": {"mesh": 104371521614311, "image": 93950237391088},
+ "CampIronSapper": {"mesh": 96892583782923, "image": 128262572541333},
+ "CampIronMajor": {"mesh": 96670771376711, "image": 124686527563234}
+}

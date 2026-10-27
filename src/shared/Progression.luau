@@ -55,13 +55,21 @@ homeCamps[1].name = "Cluck Camp"
 -- October 23 empty start (Stevin: three rolled chickens must be enough): one basic
 -- Chicken (Rules.Power 12, was three at 38), so three level-1 chickens "Should win".
 -- Bread Bandits above keeps its three.
+-- October 26 (Stevin: "make unique chickens for each of the camps ... Cluck Camp can just
+-- be the normal white chickens but the rest should be custom"): Fort Roost and Ironbeak HQ
+-- are guarded by their own enemy-only chickens (PetCatalog.CampGuards), each a copy of the
+-- guard it replaced, so every fight keeps its exact strength (12, 106, 192). The King is
+-- unchanged.
 homeCamps[1].roster = {"Duck"}
 homeCamps[2] = table.clone(homeCamps[2])
 homeCamps[2].name = "Fort Roost"
 -- October 8: level-1 garrison (power ~107, was ~146) so about five Uncommon/Rare
--- level-1 chickens can take it. Ironbeak HQ and the King are unchanged.
-homeCamps[2].roster = {{species="Bucket",level=1},{species="Sailor",level=1},{species="Mallard",level=1},{species="Mallard",level=1}}
-homeCamps[3] = {name="Ironbeak HQ",roster={{species="Bucket",level=2},{species="Bucket",level=2},{species="Sailor",level=2},{species="Viking",level=1}}}
+-- level-1 chickens can take it. October 26: Roost Warden, Archer and two Recruits (stats
+-- of Robo-Cluck, Mushroom and the Brown Chicken).
+homeCamps[2].roster = {{species="CampRoostWarden",level=1},{species="CampRoostArcher",level=1},{species="CampRoostRecruit",level=1},{species="CampRoostRecruit",level=1}}
+-- October 26: two Ironbeak Grunts, a Sapper and the Major (stats of two Robo-Clucks, a
+-- Mushroom and a Crystal Chicken).
+homeCamps[3] = {name="Ironbeak HQ",roster={{species="CampIronGrunt",level=2},{species="CampIronGrunt",level=2},{species="CampIronSapper",level=2},{species="CampIronMajor",level=1}}}
 local outposts = {}
 for i, source in {{2,1},{2,3},{3,1},{3,3},{4,1},{4,2}} do
  local definition = table.clone(ranks[source[1]].camps[source[2]])

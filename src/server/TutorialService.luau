@@ -180,7 +180,7 @@ function Tutorial:Observe(session, state)
 	if (facts.Core or facts.Win) and not session.tutorial.guideCompleted then
 		session.tutorial.guideCompleted=true; session:Touch();state.tutorial.guideCompleted=true
 		-- October 25 (Stevin): the Egg Vacuum tip waits for Guide.VacuumTipEggs more eggs by
-		-- hand from here (never shown to the player); saved with the tutorial flags.
+		-- hand from here (counted on its first card since October 27); saved with the tutorial flags.
 		session.tutorial.eggsAtComplete=Guide.EggsCollected(session.tutorial)
 		state.tutorial.eggsAtComplete=session.tutorial.eggsAtComplete
 		r.completedAt=now

@@ -95,17 +95,18 @@ Details: `docs/team/OVERHAUL_PLAN_20261020.md` and `docs/team/OVERHAUL_CONTRACT_
   hex, red "!" and green "Claim", never "FREE", until it is claimed), expand the plot
   (Flock Size I, 10 Coins, grows the yard one stage; the map does not pan to its hex),
   "Roll another chicken!", buy it. The second pull keeps the basic Chicken on the podium
-  at 150 (`Config.Economy.StarterLadder`); short of a price, the card arrows to the eggs
+  at 20, about five eggs (`Config.Economy.StarterLadder`; was 150); short of a price, the card arrows to the eggs
   and the pad first; the tutorial completes on that recruit, not the pull. The next five
   pulls favour the basic Chicken at 60% (`Config.Economy.FavoredRolls`). Eggs lay every
   second until the tutorial completes (`Config.TutorialEggLaySeconds`; Coins/sec unchanged).
   Every ready egg wears a mouse "Click" badge (hand "Tap" on touch) from the egg lesson
   until the Egg Vacuum is owned. The tutorial ends with the second chicken; no camp, no
   vacuum, no film. Then tip chains "TIP • n/N" (dim + ring, chain payoff "TIP • COMPLETE!"):
-  the Egg Vacuum (free, always; "Claim" in the tree) after 12 more eggs by hand, ending
+  the Egg Vacuum (free, always; "Claim" in the tree) after 12 more eggs by hand (since
+  Oct 27 the chain starts at completion with "Collect eggs for an Egg Vacuum! (n/12)"), ending
   with "Sell your eggs on the green pad!"; attack Cluck Camp once the Army
   holds 3 chickens and the player is a little settled in (a load of vacuumed eggs sold, or
-  60 eggs by hand; Cluck Camp is one basic Chicken, so three read "Should win"); **Rebirth 0**
+  60 eggs by hand; Cluck Camp is one basic Chicken, so three read "Should win"; Fort Roost and Ironbeak HQ have their own enemy-only guards since Oct 26, `docs/team/CAMP_GUARDS.md`); **Rebirth 0**
   (1,700 Coins since Oct 25, was 350; no find, +30 Gems, x1.5 eggs while rank 0, keeps chickens) once the
   tutorial is done and Coins reach 1,700. No "FREE" wording. Menu
   cards darken the screen around their control with a gold ring; the egg card lights one
