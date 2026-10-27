@@ -27,11 +27,13 @@ local function scaled(class: string, name: string, value, ratio: number)
 	return value
 end
 
-function RareVFX.new(model: Model)
+-- October 27 (WS6): `attr` is DuckAnimator's cached GetAttribute for this model.
+function RareVFX.new(model: Model, attr: ((string) -> any)?)
 	if Presets.Enabled == false then return nil end
 	local preset = Presets.Species[model:GetAttribute("Species")]
 	if not preset then return nil end
-	return setmetatable({model = model, preset = preset, instances = {}, hosts = {}, visible = false, nextUpdate = 0}, RareVFX)
+	return setmetatable({model = model, preset = preset, instances = {}, hosts = {}, visible = false, nextUpdate = 0,
+		attr = attr or function(name: string): any return model:GetAttribute(name) end, rateScale = 1}, RareVFX)
 end
 
 function RareVFX:_attach(root: BasePart): boolean
@@ -64,6 +66,17 @@ function RareVFX:_attach(root: BasePart): boolean
 	return true
 end
 
+-- October 27 (WS6): PerfTier's fxRateScale on every emitter's authored Rate.
+function RareVFX:_rate(scale: number)
+	self.rateScale = scale
+	for i, node in self.preset.nodes do
+		if node.class ~= "ParticleEmitter" then continue end
+		for _, property in node.properties do
+			if property[1] == "Rate" then self.instances[i].Rate = property[2] * scale end
+		end
+	end
+end
+
 function RareVFX:_scale(ratio: number)
 	self.ratio = ratio
 	for i, node in self.preset.nodes do
@@ -74,9 +87,13 @@ function RareVFX:_scale(ratio: number)
 			if value ~= original or ratio == 1 then item[name] = value end
 		end
 	end
+	if self.rateScale ~= 1 then self:_rate(self.rateScale) end
 end
 
-function RareVFX:Step(now: number, reduced: boolean, camera: Camera?, _textureTier: string?, cullDistance: number?)
+-- October 27 (WS6): fxAllowed=false (outside PerfTier's nearest-chickens particle
+-- budget) hides the effect like distance does; rateScale scales emitter rates.
+function RareVFX:Step(now: number, reduced: boolean, camera: Camera?, _textureTier: string?, cullDistance: number?,
+	fxAllowed: boolean?, rateScale: number?)
 	if now < self.nextUpdate then return end
 	self.nextUpdate = now + 1 / 20
 	local model = self.model
@@ -90,10 +107,13 @@ function RareVFX:Step(now: number, reduced: boolean, camera: Camera?, _textureTi
 		self:Destroy()
 		if not self:_attach(root) then return end
 	end
-	local ratio = (model:GetAttribute("Size") or self.preset.referenceSize) / self.preset.referenceSize
+	local attr = self.attr
+	local ratio = (attr("Size") or self.preset.referenceSize) / self.preset.referenceSize
 	if ratio ~= self.ratio then self:_scale(ratio) end
-	local visible = not reduced and not model:GetAttribute("ReducedMotion")
-		and not model:GetAttribute("Defeated") and not model:GetAttribute("PresentationHidden")
+	local scale = rateScale or 1
+	if scale ~= self.rateScale then self:_rate(scale) end
+	local visible = not reduced and not attr("ReducedMotion") and fxAllowed ~= false
+		and not attr("Defeated") and not attr("PresentationHidden")
 		and root.LocalTransparencyModifier < 0.5
 		and camera ~= nil and (camera.CFrame.Position - root.Position).Magnitude <= (cullDistance or Presets.CullDistance)
 	if visible ~= self.visible then
@@ -112,7 +132,7 @@ function RareVFX:Destroy()
 	for _, item in self.instances do item:Destroy() end
 	table.clear(self.instances)
 	table.clear(self.hosts)
-	self.root, self.ratio, self.visible = nil, nil, false
+	self.root, self.ratio, self.visible, self.rateScale = nil, nil, false, 1
 end
 
 return RareVFX

@@ -12,11 +12,18 @@ local ScriptContext = game:GetService("ScriptContext")
 local Stats = game:GetService("Stats")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalizationService = game:GetService("LocalizationService")
+local PerfTier = require(script.Parent.PerfTier)
 
 local AnalyticsClient = {}
 local REPORT_SECONDS = 60
-local FIRST_REPORT_SECONDS = 8
+-- October 27 (WS6, docs/team/MOBILE_PERFORMANCE_20261027.md): the bootstrap starts this
+-- before the app, and the first report goes at 4 s (was 8), so a player who leaves
+-- during loading still reports a platform. That first window is the "load" window;
+-- the veil lifting (VeilLifted) restarts the window so later reports measure play.
+local FIRST_REPORT_SECONDS = 4
 local MAX_ERROR_KINDS = 5
+local HITCH_SECONDS = 0.1 -- a frame longer than this is a hitch
+local FRAME_BIN_MS, FRAME_BINS = 4, 64 -- frame-time histogram for the p90 (0-256 ms)
 
 -- Client UI events. Mirrors src/server/AnalyticsSchema.luau (Schema.ClientEvents,
 -- Schema.Menus, ClientEventsPerMinute, ClientEventBatch); that module lives in
@@ -27,6 +34,8 @@ local EVENT_KINDS: {[string]: string} = {
 	["idle.start"] = "none", ["idle.end"] = "none", ["setting"] = "free", ["hint.shown"] = "free",
 	["hint.closed"] = "free", ["load.phase"] = "free", ["leaderboard.view"] = "free",
 	["camera.zoom"] = "none", ["chat.sent"] = "none", ["emote"] = "none", ["menu.blocked"] = "menu",
+	-- October 27 (schema 16, retention package): WS3's Coins gate and WS7's social moments.
+	["coins.gated"] = "free", ["moment.seen"] = "free", ["moment.missed"] = "free", ["invite.sent"] = "free",
 }
 local MENUS: {[string]: boolean} = {
 	Army = true, Shop = true, Index = true, Upgrades = true, Fuse = true, Settings = true, Odds = true,
@@ -44,6 +53,9 @@ local GUID = "{?" .. H4 .. H4 .. "%-" .. H4 .. "%-" .. H4 .. "%-" .. H4 .. "%-" 
 local queue: {{n: string, d: string?, v: number?}} = {}
 local remoteRef: RemoteEvent? = nil
 local rateStart, rateCount = os.clock(), 0
+-- October 27 (WS6): the measuring window (reset by each report and by VeilLifted).
+local resetWindow: (() -> ())? = nil
+local veilLifted, firstSent = false, false
 
 local function platform(): string
 	if GuiService:IsTenFootInterface() then return "Console" end
@@ -141,6 +153,15 @@ function AnalyticsClient.Track(name: string, detail: string?, value: number?)
 	end)
 end
 
+-- October 27 (WS6): LoadingController calls this as the veil lifts. Once the first
+-- (load) report is out, the window restarts so the next report is play only.
+function AnalyticsClient.VeilLifted()
+	if veilLifted then return end
+	veilLifted = true
+	local reset = resetWindow
+	if firstSent and reset then reset() end
+end
+
 function AnalyticsClient.Start()
 	local remotes = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Remotes", 60)
 	local remote = remotes and remotes:WaitForChild("RequestAction", 60)
@@ -163,20 +184,53 @@ function AnalyticsClient.Start()
 	-- FPS: average over the report window and the worst one-second window.
 	local frames, windowFrames, windowStart, worst = 0, 0, os.clock(), math.huge
 	local windowAt = os.clock()
-	RunService.Heartbeat:Connect(function()
+	-- October 27 (WS6): hitches, a frame-time histogram (p90) and window focus.
+	local hitches, bins, binTotal = 0, table.create(FRAME_BINS, 0), 0
+	local focused, focusLost = true, false
+	pcall(function()
+		UserInputService.WindowFocusReleased:Connect(function() focused, focusLost = false, true end)
+		UserInputService.WindowFocused:Connect(function() focused = true end)
+	end)
+	RunService.Heartbeat:Connect(function(dt)
 		frames += 1; windowFrames += 1
+		if dt > HITCH_SECONDS and dt <= 1 then hitches += 1 end
+		local bin = math.clamp(math.floor(dt * 1000 / FRAME_BIN_MS) + 1, 1, FRAME_BINS)
+		bins[bin] += 1; binTotal += 1
 		local now = os.clock()
 		if now - windowAt >= 1 then
 			worst = math.min(worst, windowFrames / (now - windowAt))
 			windowFrames, windowAt = 0, now
 		end
 	end)
+	local function frameP90(): number?
+		if binTotal < 10 then return nil end
+		local running = 0
+		for index, count in bins do
+			running += count
+			if running >= binTotal * 0.9 then return index * FRAME_BIN_MS end
+		end
+		return FRAME_BINS * FRAME_BIN_MS
+	end
+	resetWindow = function()
+		frames, windowStart, worst = 0, os.clock(), math.huge
+		windowFrames, windowAt = 0, os.clock()
+		hitches, binTotal = 0, 0
+		table.clear(bins); for index = 1, FRAME_BINS do bins[index] = 0 end
+		focusLost = not focused
+	end
 	local function send(first: boolean)
 		local now = os.clock()
 		local elapsed = math.max(0.001, now - windowStart)
 		local report: {[string]: any} = {fps = frames / elapsed, fpsMin = if worst < math.huge then worst else nil}
 		local okMem, mem = pcall(function() return Stats:GetTotalMemoryUsageMb() end)
 		if okMem then report.memMb = mem end
+		-- October 27 (WS6): which window this is, the PerfTier state and frame pacing.
+		report.window = if first or not veilLifted then "load" else "play"
+		report.hitches, report.focusLost, report.frameMsP90 = hitches, focusLost, frameP90()
+		pcall(function()
+			local stats = PerfTier.Stats()
+			report.tier, report.critical, report.demotions = stats.tier, stats.critical, stats.demotions
+		end)
 		if first then
 			local camera = workspace.CurrentCamera
 			local size = if camera then camera.ViewportSize else Vector2.new(0, 0)
@@ -191,7 +245,9 @@ function AnalyticsClient.Start()
 			report.errors = list
 			table.clear(errors); table.clear(errorOrder)
 		end
-		frames, windowStart, worst = 0, now, math.huge
+		local reset = resetWindow
+		if reset then reset() end
+		firstSent = firstSent or first
 		remote:FireServer({action = "ClientReport", id = 0, report = report})
 	end
 	task.delay(FIRST_REPORT_SECONDS, function()

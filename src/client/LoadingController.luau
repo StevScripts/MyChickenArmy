@@ -1,20 +1,35 @@
 --!strict
 -- A world-backed loading veil that preloads the opening assets.
+-- October 27 (WS6, docs/team/MOBILE_PERFORMANCE_20261027.md): a lighter load path. No
+-- music (it streams when it first plays) and no HUD until the tutorial is done (the
+-- tutorial hides it anyway); the guide card, the roll station and the flock instead of
+-- the whole plot; one PreloadAsync request instead of serial batches of eight; the veil
+-- lifts at most Config.Performance.VeilCapSeconds after the profile is ready (the
+-- preload carries on behind it); SKIP shows after 4 s; phones and the low tier park the
+-- camera over the player's plot instead of orbiting the whole island, and streaming
+-- centres on that plot. Load phases go to analytics (load.phase profile/assets/timeout).
 local ContentProvider = game:GetService("ContentProvider")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local MapLayout = require(Shared:WaitForChild("MapLayout"))
 local Theme = require(script.Parent.UITheme)
+local PerfTier = require(script.Parent.PerfTier)
+local AnalyticsClient = require(script.Parent.AnalyticsClient)
 
 local LoadingController = {}
 LoadingController.__index = LoadingController
 
 local LOGO = "rbxassetid://109846889640981"
-local SKIP_AFTER = 7
-local PRELOAD_BATCH = 8
+local SKIP_AFTER = 4
+-- Seconds the veil may wait for the preload once the profile is ready (nil: the whole preload).
+local VEIL_CAP: number? = ((Config :: any).Performance or {}).VeilCapSeconds
+-- The parked loading view: this far out from the plot (away from the island centre) and up.
+local PARK_OUT, PARK_UP = 70, 55
 local ORBIT_SECONDS = 36
 local ORBIT_RADIUS = Config.Map.IslandRadius * 1.5
 local ORBIT_HEIGHT = Config.Map.IslandRadius * 0.95
@@ -57,18 +72,32 @@ local function openingAssets(gui: ScreenGui, state, intro): {Instance}
 	end
 	addTree(gui:FindFirstChild("LoadingOverlay"))
 	local shell = gui:FindFirstChild("Shell")
-	if shell then addTree(shell:FindFirstChild("HUD")) end
+	-- October 27 (WS6): the guide card always; the HUD only once the tutorial is over
+	-- (during it the screen shows only the card, Oct 25 rule).
+	local other = shell and shell:FindFirstChild("OTHER")
+	if other then addTree(other:FindFirstChild("CommanderGuide")) end
+	local tutorial = if type(state.tutorial) == "table" then state.tutorial else {}
+	local inTutorial = tutorial.starterArmy == true and tutorial.guideCompleted ~= true and tutorial.coreDone ~= true
+	if shell and not inTutorial then addTree(shell:FindFirstChild("HUD")) end
 	local library = SoundService:FindFirstChild("MyChickenArmyAudio")
 		or SoundService:WaitForChild("MyChickenArmyAudio", 2)
 	if library then
-		for _, name in {"Music", "Collection", "Rolling", "UI"} do
+		-- October 27 (WS6): no "Music" (549 s of songs); AudioController loads the first
+		-- song when it plays, after the veil.
+		for _, name in {"Collection", "Rolling", "UI"} do
 			addTree(library:FindFirstChild(name, true))
 		end
 		if intro and intro.eligible then addTree(library:FindFirstChild("Intro")) end
 	end
 	local world = workspace:FindFirstChild("PetRollWorld")
 	if world and type(state.plotIndex) == "number" then
-		addTree(world:FindFirstChild("Plot" .. state.plotIndex))
+		-- October 27 (WS6): the roll station(s) and the flock, not every decor part.
+		local plot = world:FindFirstChild("Plot" .. state.plotIndex)
+		if plot then
+			for _, child in plot:GetChildren() do
+				if child.Name == "RollStation" or child.Name == "Pets" or child:GetAttribute("IsRollStation") then addTree(child) end
+			end
+		end
 		if intro and intro.eligible then
 			addTree(world:FindFirstChild("Lane" .. state.plotIndex))
 			addTree(world:FindFirstChild("KingArena"))
@@ -77,16 +106,48 @@ local function openingAssets(gui: ScreenGui, state, intro): {Instance}
 	return assets
 end
 
+-- October 27 (WS6): phones and the low tier skip the orbit (it framed the whole map,
+-- every emitter and the full shadow pass); the logo still breathes over the blur.
+local function parked(): boolean
+	return PerfTier.Get() == "low" or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled)
+end
+
+-- Stream around the player's own plot once it is known (the island centre before).
+function LoadingController:StreamAround(position: Vector3)
+	task.spawn(function()
+		pcall(function() Players.LocalPlayer:RequestStreamAroundAsync(position, 4) end)
+	end)
+end
+
+-- One still, high three-quarter view of the player's plot, from beyond it toward the
+-- island centre. Before the state arrives the camera stays on the character.
+function LoadingController:ParkCamera(plotIndex: number)
+	if self.parkedAt == plotIndex or self.closing then return end
+	local camera = workspace.CurrentCamera
+	if not camera then return end
+	self.parkedAt = plotIndex
+	self.cameraFov = self.cameraFov or camera.FieldOfView
+	local plot = MapLayout.HomeFrame(plotIndex).Position
+	local outward = Vector3.new(plot.X, 0, plot.Z)
+	outward = if outward.Magnitude > 1 then outward.Unit else Vector3.new(0, 0, 1)
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = 70
+	camera.CFrame = CFrame.lookAt(plot + outward * PARK_OUT + Vector3.new(0, PARK_UP, 0), plot)
+	camera.Focus = CFrame.new(plot)
+end
+
 -- The loading logo sits over the real island, so give it a slow aerial view
 -- instead of leaving the camera on the newly spawned character.
 function LoadingController:StartOrbit()
-	if self.orbitAngle then return end
+	if self.orbitAngle or self.staticView then return end
 	local camera = workspace.CurrentCamera
 	if not camera then return end
+	if parked() then
+		self.staticView = true
+		return
+	end
 	self.cameraFov = camera.FieldOfView
-	task.spawn(function()
-		pcall(function() Players.LocalPlayer:RequestStreamAroundAsync(Vector3.new(0, 2, 0), 4) end)
-	end)
+	self:StreamAround(Vector3.new(0, 2, 0))
 	local angle = Instance.new("NumberValue")
 	angle.Value = 0
 	self.orbitAngle = angle
@@ -244,18 +305,20 @@ function LoadingController:StartPreload(state)
 		local assets = openingAssets(self.gui, state, self.app.intro)
 		local total = #assets
 		self:SetProgress(0, total)
-		for first = 1, total, PRELOAD_BATCH do
-			if self.closing or self.skipRequested then return end
-			local batch = {}
-			for index = first, math.min(first + PRELOAD_BATCH - 1, total) do
-				table.insert(batch, assets[index])
-			end
-			local ok, err = pcall(function() ContentProvider:PreloadAsync(batch) end)
-			if not ok then warn("[LoadingController] Preload failed: " .. tostring(err)) end
-			self:SetProgress(math.min(first + #batch - 1, total), total)
-		end
+		-- October 27 (WS6): one request for everything (was serial batches of eight, one
+		-- round trip each); the callback runs per content id as each one settles.
+		local done = 0
+		local ok, err = pcall(function()
+			ContentProvider:PreloadAsync(assets, function()
+				done = math.min(done + 1, total)
+				self:SetProgress(done, total)
+			end)
+		end)
+		if not ok then warn("[LoadingController] Preload failed: " .. tostring(err)) end
+		self:SetProgress(total, total)
 		if self.closing or self.skipRequested then return end
 		self.assetsReady = true
+		AnalyticsClient.Track("load.phase", "assets", time())
 		self:MaybeDismiss()
 	end)
 end
@@ -291,8 +354,26 @@ function LoadingController:Bind(app)
 end
 
 function LoadingController:ConsiderState(state)
+	-- October 27 (WS6): stream (and on phones/low, park the camera) around the own plot.
+	if type(state.plotIndex) == "number" and not self.closing and self.streamedPlot ~= state.plotIndex then
+		self.streamedPlot = state.plotIndex
+		self:StreamAround(MapLayout.HomeFrame(state.plotIndex).Position)
+		if self.staticView then self:ParkCamera(state.plotIndex) end
+	end
 	local saveStatus = state.saveStatus
 	if saveStatus == "saved" or saveStatus == "studio-session" then
+		if not self.profileReady then
+			AnalyticsClient.Track("load.phase", "profile", time())
+			-- October 27 (WS6): the veil waits at most VEIL_CAP more seconds for the preload.
+			if VEIL_CAP then
+				task.delay(VEIL_CAP, function()
+					if self.closing or self.failed or self.assetsReady then return end
+					self.assetsTimedOut = true
+					AnalyticsClient.Track("load.phase", "timeout", time())
+					self:MaybeDismiss()
+				end)
+			end
+		end
 		self.profileReady = true
 		self:MaybeDismiss()
 		if not self.closing then self:StartPreload(state) end
@@ -304,7 +385,8 @@ function LoadingController:ConsiderState(state)
 end
 
 function LoadingController:MaybeDismiss()
-	if self.closing or self.failed or not self.profileReady or not (self.assetsReady or self.skipRequested) then return end
+	if self.closing or self.failed or not self.profileReady
+		or not (self.assetsReady or self.skipRequested or self.assetsTimedOut) then return end
 	self.closing = true
 	self.status.Text = if self.skipRequested then "Continuing…" else "Ready!"
 	self:Dismiss()
@@ -327,6 +409,8 @@ function LoadingController:Dismiss()
 	local shell = self.gui:FindFirstChild("Shell")
 	if shell then shell.Visible = not playing end
 	self.app:SetMenuBlur("loading", false)
+	-- October 27 (WS6): the next performance report measures play, not loading.
+	AnalyticsClient.VeilLifted()
 	-- October 21 game feel: the veil lifts with a cue and the logo swells as it fades.
 	self.app:Cue("MenuClose")
 	Theme.Motion:StopBreathe(self.logo)

@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local Debris = game:GetService("Debris")
 local Feel = require(game:GetService("ReplicatedStorage").PetRoll.Shared.CollectionFeel).CoinBurst
 local Theme = require(script.Parent.UITheme)
+local PerfTier = require(script.Parent.PerfTier)
 local CoinBurst = {}
 CoinBurst.__index = CoinBurst
 
@@ -71,7 +72,11 @@ function CoinBurst.Play(self: Burst, origin: Vector3, value: number, eggs: numbe
 	local root = playerRoot()
 	if value <= 0 or not root or (root.Position - origin).Magnitude > Feel.MaxDistance then return false end
 	local onPhone = phone()
-	local room = (if onPhone then Feel.PhoneMaxActive else Feel.MaxActive) - self.active
+	-- October 27 (WS6): PerfTier's coinsMaxActive caps the coins alive at once too (low 8,
+	-- mid 14, high 28); the rest of the value counts in at once, as before.
+	local maxActive = if onPhone then Feel.PhoneMaxActive else Feel.MaxActive
+	if PerfTier.Enabled() then maxActive = math.min(maxActive, PerfTier.Budget().coinsMaxActive) end
+	local room = maxActive - self.active
 	local count = math.min(math.max(Feel.MinCoins, eggs), if onPhone then Feel.PhoneMaxCoins else Feel.MaxCoins,
 		room, math.max(1, math.floor(value)))
 	if count < 1 then return false end

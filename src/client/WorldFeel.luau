@@ -9,6 +9,7 @@ local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.UITheme)
+local PerfTier = require(script.Parent.PerfTier)
 local WorldFeel = {}
 WorldFeel.__index = WorldFeel
 
@@ -26,7 +27,7 @@ local function sequence(color)
 end
 
 function WorldFeel.new(app)
-	return setmetatable({app = app, alive = false, active = 0, folder = nil,
+	return setmetatable({app = app, alive = false, active = 0, folder = nil, beacon = nil :: Part?,
 		highlights = setmetatable({}, {__mode = "k"})}, WorldFeel)
 end
 
@@ -38,7 +39,10 @@ function WorldFeel:Start()
 	self.folder = folder
 end
 
+-- October 27 (WS6): the PerfTier budget (low 8, mid 14, high 28); with tiers off the
+-- old rule (touch 14, else 28) stays.
 function WorldFeel:Limit()
+	if PerfTier.Enabled() then return PerfTier.Budget().worldFeelLimit end
 	return if touchOnly() then 14 else 28
 end
 
@@ -238,6 +242,36 @@ function WorldFeel:Celebrate(position: Vector3, color: Color3?, size: number?)
 	local tint = color or Theme.Colors.gold
 	self:Burst(position, {color = tint, count = 8 + 8 * s, size = 0.35 + 0.15 * s, speed = {4, 6 + 3 * s}})
 	self:Ring(position - Vector3.new(0, 2, 0), {color = tint, radius = 2 + 2 * s, seconds = 0.4 + 0.1 * s})
+end
+
+-- October 27 (WS6, for WS7's server moments, docs/team/retention-20261027/WS7-social.md
+-- §3.2): a far light beam over a point (another player's plot) seen across the island.
+-- One client-local anchored Neon cylinder (2 x 140 studs, no collision, query, touch or
+-- shadow) that fades in and back out with one tween, plus the positioned "RareFind"
+-- cue (silent if missing or too far). It skips Near but takes a WorldFeel slot;
+-- reduced motion shows it still. At most one at a time; PerfTier's budget can turn
+-- it off (beacon=false while critical). Returns the part (nil when skipped).
+local BEACON_HEIGHT, BEACON_WIDTH, BEACON_PEAK = 140, 2, 0.35
+function WorldFeel:Beacon(position: Vector3, color: Color3?, seconds: number?)
+	local life = math.max(0.5, seconds or 10)
+	if not self.alive or PerfTier.Budget().beacon == false then return nil end
+	if self.beacon and self.beacon.Parent then return nil end
+	if not self:Take(life) then return nil end
+	local part = self:Anchor("FeelBeacon", position + Vector3.new(0, BEACON_HEIGHT / 2, 0), life + 0.1)
+	part.Shape = Enum.PartType.Cylinder
+	part.Size = Vector3.new(BEACON_HEIGHT, BEACON_WIDTH, BEACON_WIDTH)
+	-- A cylinder's axis is its X; stand it up.
+	part.CFrame = CFrame.new(part.Position) * CFrame.Angles(0, 0, math.pi / 2)
+	part.Material, part.Color = Enum.Material.Neon, color or Theme.Colors.gold
+	self.beacon = part
+	if self.app.reducedMotion then
+		part.Transparency = BEACON_PEAK
+	else
+		TweenService:Create(part, TweenInfo.new(life / 2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true),
+			{Transparency = BEACON_PEAK}):Play()
+	end
+	self:Sound("RareFind", position)
+	return part
 end
 
 function WorldFeel:Clear()

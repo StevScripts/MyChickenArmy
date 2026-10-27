@@ -256,18 +256,25 @@ function EggView:SetValue(value,count)
  self.valueLabel.Text=worth(value)
 end
 
+-- October 27 (WS6): the facing turns in 5-degree steps and an egg whose position,
+-- size, tilt and step all match its last write skips the CFrame write (a parked
+-- egg costs a few vector operations per refresh).
+local YAW_STEP=math.rad(5)
 function EggView:Set(position,scale,tilt,_yaw)
  local body=self.body
  if body then
   scale=math.max(scale,0.001)
+  local camera=workspace.CurrentCamera
+  local look=if camera then (camera.CFrame.Position-position)*Vector3.new(1,0,1) else Vector3.zero
+  if look.Magnitude<0.01 then look=Vector3.new(0,0,-1) end
+  local bucket=math.floor(math.atan2(look.X,look.Z)/YAW_STEP+0.5)
+  if position==self.position and bucket==self.yawBucket and tilt==self.tilt and math.abs(scale-self.scale)<=0.005 then return end
+  self.yawBucket,self.tilt=bucket,tilt
   if math.abs(scale-self.scale)>0.005 then
    body.Size=self.base*scale
    if self.glow then self.glow.Size=self.glowBase*scale end
    self.scale=scale
   end
-  local camera=workspace.CurrentCamera
-  local look=if camera then (camera.CFrame.Position-position)*Vector3.new(1,0,1) else Vector3.zero
-  if look.Magnitude<0.01 then look=Vector3.new(0,0,-1) end
   local cf=CFrame.lookAt(position,position+look)*CFrame.Angles(0,0,tilt or 0)*FRONT
    *CFrame.Angles(0,self.twist,0)*CFrame.new(0,-self.half,0) -- bottom stays put as it scales
   body.CFrame=cf

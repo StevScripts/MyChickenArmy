@@ -731,6 +731,11 @@ function Analytics:ClientReport(session, report: any)
 		for _, flag in {"touch", "keyboard", "gamepad"} do
 			if report[flag] == true then self.ledger:Count("client.input." .. flag) end
 		end
+		-- Oct 27 WS6: load phases that arrived before the platform was known.
+		for _, entry in st.loadPending or {} do
+			self.ledger:Hist("ui.load." .. entry[1] .. "|" .. st.platform, "seconds", entry[2])
+		end
+		st.loadPending = nil
 	end
 	local platform = st.platform
 	local fps, fpsMin, mem = finite(report.fps, 0, 1000), finite(report.fpsMin, 0, 1000), finite(report.memMb, 0, 100000)
@@ -748,6 +753,39 @@ function Analytics:ClientReport(session, report: any)
 				AnalyticsService:LogCustomEvent(player, "ClientPerf", math.floor(fps), fields(platform, bucket, Config.Version))
 			end)
 		end
+	end
+	-- Oct 27 WS6 (schema 16, docs/team/MOBILE_PERFORMANCE_20261027.md): load vs play
+	-- windows, the PerfTier tier, hitches and the p90 frame time. A window that lost
+	-- focus (backgrounded app) stays out of the window/tier FPS histograms.
+	local perfTier = if type(report.tier) == "string" and table.find(Schema.PerfTiers, report.tier) then report.tier else nil
+	if perfTier then
+		if not st.perfTier then self.ledger:Count("perf.tier." .. perfTier .. "|" .. platform) end
+		st.perfTier = perfTier
+	end
+	if report.focusLost == true then
+		st.focusLost = true
+		self.ledger:Count("perf.focusLost|" .. platform)
+	elseif fps then
+		if report.window == "load" then
+			self.ledger:Hist("perf.fpsLoad|" .. platform, "fps", fps)
+			if st.fpsLoad == nil then st.fpsLoad = fps end
+		elseif report.window == "play" then
+			self.ledger:Hist("perf.fpsPlay|" .. platform, "fps", fps)
+			st.fpsPlaySum = (st.fpsPlaySum or 0) + fps
+			st.fpsPlayN = (st.fpsPlayN or 0) + 1
+		end
+		if perfTier then self.ledger:Hist("perf.fps.perfTier." .. perfTier, "fps", fps) end
+	end
+	local hitches, frameMs = finite(report.hitches, 0, 100000), finite(report.frameMsP90, 0, 10000)
+	if hitches then self.ledger:Hist("perf.hitches|" .. platform, "count", hitches) end
+	if frameMs and report.focusLost ~= true then self.ledger:Hist("perf.frameMsP90|" .. platform, "frameMs", frameMs) end
+	if (finite(report.demotions, 0, 100) or 0) > 0 and not st.perfDemoted then
+		st.perfDemoted = true
+		self.ledger:Count("perf.demoted|" .. platform)
+	end
+	if report.critical == true and not st.perfCritical then
+		st.perfCritical = true
+		self.ledger:Count("perf.critical|" .. platform)
 	end
 	if type(report.errors) == "table" then
 		local total = 0
@@ -833,6 +871,15 @@ function Analytics:_UiEvent(st, name: string, detail: string?, value: number?)
 	elseif name == "load.phase" then
 		if string.match(detail :: string, "^[%w_]+$") and #(detail :: string) <= 16 then
 			ledger:Hist("ui.load." .. (detail :: string), "seconds", value or 0)
+			-- Oct 27 WS6: also by platform (buffered until the first report names it);
+			-- the veil-lift time goes on the journey (lr).
+			if detail == "ready" then st.loadReady = value or 0 end
+			if st.platform ~= "Unknown" then
+				ledger:Hist("ui.load." .. (detail :: string) .. "|" .. st.platform, "seconds", value or 0)
+			elseif #(st.loadPending or {}) < 8 then
+				st.loadPending = st.loadPending or {}
+				table.insert(st.loadPending, {detail :: string, value or 0})
+			end
 		end
 	elseif name == "leaderboard.view" then
 		ledger:Top("ui.leaderboard.view", detail :: string)
@@ -1042,6 +1089,12 @@ function Analytics:Leave(session)
 			fps = if st.fpsN > 0 then math.floor(st.fpsSum / st.fpsN) else nil, trail = st.trail,
 			-- Oct 27 WS7: server size at join and friends in the server (schema 16).
 			sv = st.serverSizeAtJoin, fr = if type(st.ap) == "table" then st.ap.friends else nil,
+			-- Oct 27 WS6: load-window FPS, mean play-window FPS, last PerfTier tier, focus
+			-- lost in any window, veil-lift seconds.
+			fl = if st.fpsLoad then math.floor(st.fpsLoad) else nil,
+			fp = if (st.fpsPlayN or 0) > 0 then math.floor(st.fpsPlaySum / st.fpsPlayN) else nil,
+			tier = st.perfTier, fo = if st.focusLost then true else nil,
+			lr = if st.loadReady then math.floor(st.loadReady * 10 + 0.5) / 10 else nil,
 		})
 	end
 	if st.profile then

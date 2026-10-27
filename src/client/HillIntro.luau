@@ -18,6 +18,7 @@ local Shared = ReplicatedStorage:WaitForChild("PetRoll"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local MapLayout = require(Shared.MapLayout)
 local Theme = require(script.Parent.UITheme)
+local PerfTier = require(script.Parent.PerfTier)
 
 local HillIntro = {}
 HillIntro.__index = HillIntro
@@ -133,6 +134,7 @@ function HillIntro:Run()
 	self.app:Request("TutorialSignal", {signal = "HillIntroStarted"})
 	self:Lock()
 	self:SetVFX(true)
+	self:BudgetVFX() -- October 27 (WS6): the film always shows the sparks
 	self:Film(scene)
 end
 
@@ -238,6 +240,39 @@ function HillIntro:SetVFX(on: boolean)
 		return
 	end
 	self.vfx = vfx
+	-- October 27 (WS6): the PerfTier budget for the Hill sparks (210/s authored): emitter
+	-- rates scale by fxRateScale, and on the low tier they pause while the camera is
+	-- more than hillVfxRadius studs from the arena (never during the film). Checked once
+	-- a second while the effect stands.
+	self.vfxRates, self.vfxFar, self.vfxScale = {}, nil, nil
+	for _, item in vfx:GetDescendants() do
+		if item:IsA("ParticleEmitter") then self.vfxRates[item] = {rate = item.Rate, enabled = item.Enabled} end
+	end
+	self:BudgetVFX()
+	task.spawn(function()
+		while self.vfx == vfx do
+			task.wait(1)
+			if self.vfx == vfx then pcall(self.BudgetVFX, self) end
+		end
+	end)
+end
+
+function HillIntro:BudgetVFX()
+	if not self.vfx or not self.vfxRates then return end
+	local budget = PerfTier.Budget()
+	local radius = budget.hillVfxRadius
+	local camera = workspace.CurrentCamera
+	local far = radius ~= nil and not self.playing and camera ~= nil
+		and (camera.CFrame.Position - arenaCenter()).Magnitude > radius
+	local scale = budget.fxRateScale
+	if far == self.vfxFar and scale == self.vfxScale then return end
+	self.vfxFar, self.vfxScale = far, scale
+	for emitter, saved in self.vfxRates do
+		if not emitter.Parent then continue end
+		emitter.Rate = saved.rate * scale
+		emitter.Enabled = saved.enabled and not far
+		if far then emitter:Clear() end
+	end
 end
 
 -- Camera ------------------------------------------------------------------

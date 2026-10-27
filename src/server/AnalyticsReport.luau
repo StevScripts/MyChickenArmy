@@ -252,7 +252,10 @@ local function uiSection(c: {[string]: number}, h: {[string]: any}, t: {[string]
 	end
 	table.sort(menus, function(a, b) return a.opens > b.opens end)
 	local loadPhases = {}
-	for phase, hist in prefixed(h, "ui.load.") do loadPhases[phase] = stat(hist) end
+	-- Oct 27 WS6: "<phase>|<platform>" keys go to the perf block's loadByPlatform.
+	for phase, hist in prefixed(h, "ui.load.") do
+		if not string.find(phase, "|", 1, true) then loadPhases[phase] = stat(hist) end
+	end
 	local bought, cancel = c["ui.prompt.bought"] or 0, c["ui.prompt.cancel"] or 0
 	return {
 		menus = menus, clicks = c["ui.click"] or 0, topClicks = sortedTop(t["ui.click"], 30),
@@ -552,8 +555,35 @@ function Report.Summarize(pulled: any, options: Options?)
 	for name, hist in h do
 		local metric, platform = string.match(name, "^([%w%.]+)|(%w+)$")
 		if metric and platform and (metric == "perf.fps" or metric == "perf.fpsMin" or metric == "perf.memMb"
-			or metric == "net.pingMs" or metric == "session.seconds") then
+			or metric == "net.pingMs" or metric == "session.seconds"
+			-- Oct 27 WS6 (schema 16): load/play windows, hitches, p90 frame time.
+			or metric == "perf.fpsLoad" or metric == "perf.fpsPlay" or metric == "perf.hitches"
+			or metric == "perf.frameMsP90") then
 			perf[metric .. "|" .. platform] = stat(hist)
+		end
+	end
+	-- Oct 27 WS6: PerfTier mix by platform, FPS by tier and load phases by platform.
+	local perfTiers = {byPlatform = {}, fps = {}, demoted = prefixed(c, "perf.demoted|"),
+		critical = prefixed(c, "perf.critical|"), focusLost = prefixed(c, "perf.focusLost|"), loadByPlatform = {}}
+	for _, tier in Schema.PerfTiers or {} do
+		for platform, n in prefixed(c, "perf.tier." .. tier .. "|") do
+			perfTiers.byPlatform[platform] = perfTiers.byPlatform[platform] or {}
+			perfTiers.byPlatform[platform][tier] = n
+		end
+		if h["perf.fps.perfTier." .. tier] then perfTiers.fps[tier] = stat(h["perf.fps.perfTier." .. tier]) end
+	end
+	for name, hist in prefixed(h, "ui.load.") do
+		local phase, platform = string.match(name, "^([%w_]+)|(%w+)$")
+		if phase and platform then
+			perfTiers.loadByPlatform[platform] = perfTiers.loadByPlatform[platform] or {}
+			local s = stat(hist)
+			local over10, total = 0, 0
+			for label, count in hist do
+				total += count
+				if edge(label) > 10 then over10 += count end -- buckets past "le10": over 10 s
+			end
+			s.over10Pct = pct(over10, total)
+			perfTiers.loadByPlatform[platform][phase] = s
 		end
 	end
 
@@ -584,6 +614,7 @@ function Report.Summarize(pulled: any, options: Options?)
 		campWarnings = {warned = c["ui.AttackWarned"] or 0, anyway = c["ui.AttackAnyway"] or 0},
 		features = features, robux = robux, platforms = platforms, screens = prefixed(c, "client.screen."),
 		perf = perf, health = health, loop = prefixed(c, "loop."),
+		perfTiers = perfTiers, -- Oct 27 WS6
 		-- Version 5 sections.
 		featureFunnels = featureFunnels(c, h, total.x), ui = uiSection(c, h, total.t),
 		segments = segmentsSection(c, h, total.t), stateSnapshots = stateSection(h),
@@ -629,6 +660,15 @@ function Report.Flags(s: any)
 		if string.sub(key, 1, 9) == "perf.fps|" and value.n >= 20 and value.p50 and (tonumber(string.match(value.p50, "%d+")) or 60) <= 30 then
 			flag("medium", "performance", "Median FPS on " .. string.sub(key, 10) .. " is " .. value.p50 .. ".")
 		end
+	end
+	-- Oct 27 WS6: phones in play (not loading) at 30 FPS or less, and slow veils on phones.
+	local mobilePlay = s.perf["perf.fpsPlay|Mobile"]
+	if mobilePlay and mobilePlay.n >= 20 and mobilePlay.p50 and edge(mobilePlay.p50) <= 30 then
+		flag("high", "performance", "Median play-window FPS on Mobile is " .. mobilePlay.p50 .. " (n " .. mobilePlay.n .. ").")
+	end
+	local mobileReady = s.perfTiers and s.perfTiers.loadByPlatform.Mobile and s.perfTiers.loadByPlatform.Mobile.ready
+	if mobileReady and mobileReady.n >= 20 and (mobileReady.over10Pct or 0) > 10 then
+		flag("medium", "performance", mobileReady.over10Pct .. "% of Mobile loading veils lift after more than 10 s (n " .. mobileReady.n .. ").")
 	end
 	if (s.health.meta.robloxDropped or 0) > 0 then
 		flag("low", "analytics", s.health.meta.robloxDropped .. " Roblox analytics events dropped by the rate limiter.")
