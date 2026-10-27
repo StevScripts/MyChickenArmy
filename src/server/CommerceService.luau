@@ -20,6 +20,18 @@ local function packIncome(session): number?
 	return if type(session.PackIncome)=="function" then session:PackIncome() else nil
 end
 
+-- October 27 (WS3): the Coins-shortfall gate's runtime log, per session object and never
+-- saved: auto-prompts opened this session and the server time the next one may open.
+local function promptLog(session)
+	local log = session.coinsPromptLog
+	if type(log) ~= "table" then log = {count = 0, readyAt = 0}; session.coinsPromptLog = log end
+	return log
+end
+
+local function playSeconds(session): number
+	return if type(session.PlaySeconds) == "function" then session:PlaySeconds() else tonumber(session.playSeconds) or 0
+end
+
 local function configured(id)
 	return type(id) == "number" and id > 0 and id < math.huge and id % 1 == 0
 end
@@ -41,6 +53,7 @@ function CommerceService.new(dependencies)
 		catalog = dependencies.catalog or ShopCatalog,
 		clock = dependencies.clock or os.clock,
 		delay = dependencies.delay or task.delay,
+		serverNow = dependencies.serverNow,
 		records = {}, destroyed = false,
 	}, CommerceService)
 	self.connection = self.marketplace.PromptGamePassPurchaseFinished:Connect(function(player, passId, wasPurchased)
@@ -280,6 +293,45 @@ function CommerceService:_GiftRetiredPasses(record)
 	end
 end
 
+-- The shared clock of the Coins-shortfall gate (the client's mirror compares readyAt
+-- with its own workspace:GetServerTimeNow()).
+function CommerceService:_ServerNow(): number
+	return if self.serverNow then self.serverNow() else workspace:GetServerTimeNow()
+end
+
+-- October 27 (WS3, live 1.25.0 data: 2,429 Coins-pack auto-prompts, 3 bought; 6.6 a
+-- prompted player; 75% before minute 7.5 of play). Whether a Coins shortfall of `need`
+-- may open Roblox's checkout for a Coins pack (October 23 rule). Returns the first
+-- failing reason: Off, Tutorial, New (under Config.CoinsPrompt.MinPlaySeconds of play
+-- and no Rebirth 1), Cap (SessionCap auto-prompts this session), Cooldown, Small (steady
+-- income covers the gap within MinShortfallIncomeSeconds), Test (a test session never
+-- checks out; checked last so Studio shows the real reason); else true, "Open" (or
+-- "Legacy": Mode "Legacy" is the exact October 23 gate, tutorial + 2,000 Coins earned).
+-- `need` nil checks everything but Small. docs/team/COINS_SHORTFALL_PROMPT.md "Gate".
+function CommerceService:CoinsPromptGate(session, need: number?, now: number?): (boolean, string)
+	local cfg = (Config :: any).CoinsPrompt or {}
+	local mode = cfg.Mode or "Gated"
+	if mode == "Off" then return false, "Off" end
+	local tutorial = session.tutorial
+	if type(tutorial) ~= "table" or tutorial.guideCompleted ~= true then return false, "Tutorial" end
+	if mode == "Legacy" then
+		if (session.passiveEarned or 0) + (session.battleEarned or 0) < (cfg.LegacyEarned or 2000) then return false, "Tutorial" end
+		if self:TestAllowed(session) then return false, "Test" end
+		return true, "Legacy"
+	end
+	if (session.rebirths or 0) < (cfg.MinRebirths or 1) and playSeconds(session) < (cfg.MinPlaySeconds or 600) then
+		return false, "New"
+	end
+	local log = promptLog(session)
+	if log.count >= (cfg.SessionCap or 2) then return false, "Cap" end
+	if (now or self:_ServerNow()) < log.readyAt then return false, "Cooldown" end
+	if type(need) == "number" and need < (packIncome(session) or 0) * (cfg.MinShortfallIncomeSeconds or 0) then
+		return false, "Small"
+	end
+	if self:TestAllowed(session) then return false, "Test" end
+	return true, "Open"
+end
+
 function CommerceService:Snapshot(session)
 	local record = self.records[session.userId]
 	local owned = {}
@@ -291,7 +343,13 @@ function CommerceService:Snapshot(session)
 	for key, product in self.catalog.Products do
 		if product.coins and not product.crates then cashPacks[key] = ShopCatalog.CashPackAmount(product, income) end
 	end
-	return {owned = owned, ready = active and (record.ready == true or record.testPreset ~= nil) or false,
+	-- October 27 (WS3): a mirror of the Coins-shortfall gate for the client's local
+	-- pre-checks (Upgrades hexes, the world board); the server stays the authority.
+	local cfg = (Config :: any).CoinsPrompt or {}
+	local eligible, reason = self:CoinsPromptGate(session, nil)
+	local coinsPrompt = {eligible = eligible, reason = reason, readyAt = promptLog(session).readyAt, income = income or 0,
+		minShortfallSeconds = cfg.MinShortfallIncomeSeconds or 0, hintSeconds = cfg.ShopHintIncomeSeconds or 300}
+	return {owned = owned, coinsPrompt = coinsPrompt, ready = active and (record.ready == true or record.testPreset ~= nil) or false,
 		testAllowed = testing == true, testPreset = if testing then record.testPreset or "Account" else nil,
 		checking = active and (record.busy or record.scheduled) == true or false,
 		automatic=table.clone(session.commerceAutomatic),crateCredits=session.crateCredits,
@@ -315,9 +373,22 @@ function CommerceService:SetAutomatic(session,key,enabled)
  return true,definition.name..(if enabled then " on." else " off.")
 end
 
-function CommerceService:PreparePurchase(player,session,key,productReady,_jobId)
+-- October 27 (WS3): `source` "Shortfall" marks the client's automatic Coins-shortfall
+-- checkout (BuyCoins) for `need` Coins. It passes CoinsPromptGate again, buys only Coins
+-- packs and, once every other check passes, counts toward the session cap and cooldown.
+-- Any other source (the Shop, HUD offers) is never gated.
+function CommerceService:PreparePurchase(player,session,key,productReady,_jobId,source,need)
  if self:TestAllowed(session) then return false,"Purchases are disabled in a test session." end
  if type(key)~="string" or #key>48 then return false,"Unknown shop item." end
+ local shortfall=source=="Shortfall"
+ local now=if shortfall then self:_ServerNow() else 0
+ if shortfall then
+  local amount=tonumber(need)
+  amount=if amount and amount==amount then math.clamp(amount,0,Currency.MaxCoins) else nil
+  local pack=self.catalog.Products and self.catalog.Products[key]
+  if not pack or not pack.coins or pack.crates then return false,"Not enough coins." end
+  if not self:CoinsPromptGate(session,amount,now) then return false,"Not enough coins." end
+ end
  -- October 20 Rebirth Skip: the client asks for "RebirthSkip"; the next rank picks the band.
  if key=="RebirthSkip" then
   local rank=(session.rebirths or 0)+1
@@ -355,6 +426,11 @@ function CommerceService:PreparePurchase(player,session,key,productReady,_jobId)
   if not record.policyReady then return false,"Please wait while purchase availability is checked." end
   local guaranteed=key=="DoubleLuck" and self.catalog.RestrictedTreatment=="GuaranteedOffers"
   if not record.paidRandomAllowed and not guaranteed then return false,"This random purchase is unavailable for your account." end
+ end
+ if shortfall then
+  local log,cfg=promptLog(session),(Config :: any).CoinsPrompt or {}
+  log.count+=1
+  log.readyAt=now+(cfg.CooldownSeconds or 0)
  end
  return true,"",{key=key,kind=if definition.passId then "Pass" else "Product",id=definition.passId or definition.productId}
 end

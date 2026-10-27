@@ -168,8 +168,15 @@ function Board:Purchase(key)
 	if not offer.unlocked then self:Reject(key); self.app:Notify(offer.requirement, false); return end
 	if state.coins < offer.price then
 		-- October 23: short of Coins opens the closest Coins pack's checkout instead.
-		if not (self.app.commerce and self.app.commerce:BuyCoins(math.ceil(offer.price - state.coins), "Not enough coins for this upgrade.")) then
-			self:Reject(key); self.app:Notify("Not enough coins for this upgrade.", false)
+		-- October 27 (WS3): only when the Coins-shortfall gate allows it; otherwise the
+		-- card's reject and the inline "You need N more Coins" hint.
+		local short = math.ceil(offer.price - state.coins)
+		local commerce = self.app.commerce
+		if not commerce then self:Reject(key); self.app:Notify("Not enough coins for this upgrade.", false); return end
+		local offered, reason = commerce:BuyCoins(short, "Not enough coins for this upgrade.", "Board")
+		if not offered then
+			self:Reject(key)
+			commerce:HeldBack(short, "Board", nil, reason)
 		end
 		return
 	end

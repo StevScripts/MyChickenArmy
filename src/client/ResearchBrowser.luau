@@ -945,7 +945,15 @@ function Browser:Receive(state,result)
 		local info=self:Info(id)
 		if message:lower():find("^not enough coins") and info and type(info.price)=="number" then message=self:Shortfall(info) end
 		-- October 23: short of Coins opens the closest Coins pack's checkout instead.
-		if not (type(result.needCoins)=="number" and self.app.commerce and self.app.commerce:BuyCoins(result.needCoins,message)) then self:Refuse(message,id) end
+		-- October 27 (WS3): only when the server's gate allows it (needCoins); otherwise the
+		-- refusal says how to earn the rest (CommerceController:ShortText).
+		local commerce=self.app.commerce
+		local short=if commerce and type(result.shortCoins)=="number" and not (info and (info.requirement or "")~="") then result.shortCoins else nil
+		if short then message=commerce:ShortText(short) end
+		if not (type(result.needCoins)=="number" and commerce and commerce:BuyCoins(result.needCoins,message,"BuyUpgrade")) then
+			self:Refuse(message,id)
+			if short then commerce:HeldBack(short,"BuyUpgrade",nil,result.coinsGate,{silent=true}) end
+		end
 	end
 	return true
 end
@@ -1239,8 +1247,16 @@ function Browser:Activate(id)
 	elseif info.status=="Available" and type(info.price)=="number" then self:Purchase(id,info.price)
 	elseif info.status=="Unaffordable" then
 		-- October 23: short of Coins opens the closest Coins pack's checkout instead.
-		local short=if type(info.price)=="number" and (info.requirement or "")=="" then info.price-self.coins else 0
-		if not (short>0 and self.app.commerce and self.app.commerce:BuyCoins(math.ceil(short),self:Shortfall(info))) then self:Refuse(self:Shortfall(info),id) end
+		-- October 27 (WS3): only when the Coins-shortfall gate allows it; otherwise the rim
+		-- flash with the earn() hint, and maybe the once-a-session Shop glow.
+		local short=if type(info.price)=="number" and (info.requirement or "")=="" then math.ceil(info.price-self.coins) else 0
+		local commerce=if short>0 then self.app.commerce else nil
+		local offered,reason=false,nil
+		if commerce then offered,reason=commerce:BuyCoins(short,self:Shortfall(info),"Tree") end
+		if not offered then
+			self:Refuse(if commerce then commerce:ShortText(short) else self:Shortfall(info),id)
+			if commerce then commerce:HeldBack(short,"Tree",nil,reason,{silent=true}) end
+		end
 	else
 		local prerequisite=node.prerequisite and View.Nodes[node.prerequisite]
 		self:Refuse(if prerequisite then "Buy "..prerequisite.name.." first" else "Not available yet",id)
