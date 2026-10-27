@@ -1019,6 +1019,8 @@ function Analytics:Leave(session)
 			r = st.rolls, b = st.buys, er = st.errors, earned = st.sessionEarned, rej = rejects,
 			ping = if st.pingN > 0 then math.floor(st.pingSum / st.pingN) else nil,
 			fps = if st.fpsN > 0 then math.floor(st.fpsSum / st.fpsN) else nil, trail = st.trail,
+			-- Oct 27 WS7: server size at join and friends in the server (schema 16).
+			sv = st.serverSizeAtJoin, fr = if type(st.ap) == "table" then st.ap.friends else nil,
 		})
 	end
 	if st.profile then

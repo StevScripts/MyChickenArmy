@@ -22,7 +22,8 @@ end
 function HillService.new(battles,world,sessions,now)
  local self=setmetatable({battles=battles,world=world,sessions=sessions,random=Random.new(),
   phase="Break",endsAt=(now or os.clock())+Config.Hill.FirstBreakSeconds,round=0,
-  seconds={},holderId=nil,heldSince=0,deliverAt=0,lastWinner=nil,entered={},intro={},analytics=nil::any},HillService)
+  seconds={},holderId=nil,heldSince=0,deliverAt=0,lastWinner=nil,entered={},intro={},analytics=nil::any,
+  social=nil::any},HillService) -- October 27 (WS7): GameServer sets social (SocialService)
  battles.hill=self
  return self
 end
@@ -143,6 +144,15 @@ function HillService:Close(now)
    session.banner=if winner then winner.name.." won the Hill round." else "The Hill round ended."
    session:Touch()
   end
+ end
+ -- October 27 (WS7, SOCIAL_MOMENTS.md): everyone else in the server sees the winner as a
+ -- chat line; participants already get the round result above.
+ if ready(winner) and self.social then
+  local participants={}
+  for userId in self.sessions do
+   if (self.seconds[userId] or 0)>0 or self.entered[userId]==self.round then participants[userId]=true end
+  end
+  self.social:Moment(winner,"hill",{exclude=participants})
  end
  table.clear(self.seconds)
 end
