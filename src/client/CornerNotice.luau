@@ -8,6 +8,7 @@
 -- slides back out. One at a time; later ones queue. Display only.
 --   app.cornerNotice:Show({title=string, body=string?, icon=imageId, tag="New!"?})
 local Theme=require(script.Parent.UITheme)
+local Config=require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local Notice={}
 Notice.__index=Notice
 
@@ -67,7 +68,31 @@ function Notice:Build(spec)
 	return strip,content,icon,rays
 end
 
+-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): one emphasis at a time. The
+-- next strip waits (re-checking every half second, keeping its place at the queue head)
+-- while a menu, popup or film is open (app:ModalBusy) or a guide payoff or HUD reveal is
+-- playing (app:BeatBusy). Config.Guide.ModalQueue = false shows them as before.
+local WAIT_SECONDS=0.5
+function Notice:Waiting(): boolean
+	local app=self.app
+	local guide=(Config :: any).Guide
+	if type(guide)=="table" and guide.ModalQueue==false then return false end
+	return (app.ModalBusy~=nil and app:ModalBusy()) or (app.BeatBusy~=nil and app:BeatBusy())
+end
+
 function Notice:Next()
+	if not self.alive then self.current=nil;return end
+	if #self.queue>0 and self:Waiting() then
+		self.current=nil
+		if not self.waitScheduled then
+			self.waitScheduled=true
+			task.delay(WAIT_SECONDS,function()
+				self.waitScheduled=false
+				if self.alive and not self.current then self:Next() end
+			end)
+		end
+		return
+	end
 	local spec=table.remove(self.queue,1)
 	if not spec or not self.alive then self.current=nil;return end
 	local strip,content,icon,rays=self:Build(spec)

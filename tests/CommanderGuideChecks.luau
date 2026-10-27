@@ -33,11 +33,11 @@ end
 local function opening()
 	return {saveStatus="ready",armyState="Home",coins=0,capacity=3,selectedCount=0,flock={size=3},
 		tutorial={starterArmy=true,guideStarted=true,collectedEggCount=0,startClaimed=false,rollCount=0},pets={},
-		starterCashReserve=0,starterArmyReserve=0,starterRecruitPrice=0,eggs={carriedValue=0},nextSlot={capacity=4,price=1200,tier=1},
+		starterCashReserve=0,starterArmyReserve=0,starterRecruitPrice=0,eggs={carriedValue=0},nextSlot={capacity=4,price=300,tier=1},
 		tools={eggVacuum=false,chickenFeed=false,vacuum={count=0,capacity=25}},
 		introRebirth="pending",rebirth={intro=true,rank=0,cost=1700,eligible=false},gems=0,gemsEarned=0,
 		upgradeTree={families={},nodes={Start={status="Claim",claimable=true,price=0},Flock1={status="Available",price=10},
-			ArmySize1={status="Available",price=1200},EggVacuum={status="Available",price=0}}}}
+			ArmySize1={status="Available",price=300},EggVacuum={status="Available",price=0}}}}
 end
 
 -- A player who finished the eight lessons (two chickens, Flock Size I, two pulls, nothing pending).
@@ -53,6 +53,34 @@ local function afterGuide()
 end
 
 -- A tip card's place and chain.
+-- October 27 (WS5): run `fn` with Config.Guide switched as given, then restore it.
+local function withGuide(values,fn)
+	local guide=Config.Guide
+	local saved={}
+	for key,value in values do saved[key]=guide[key];guide[key]=value end
+	local ok,result=pcall(fn)
+	for key in values do guide[key]=saved[key] end
+	if not ok then error(result,0) end
+	return result
+end
+-- The timed "Next up" card instead of WS1's readiness card (Config.CampLadder.ReadinessTip),
+-- so these checks read the same with or without CampGuide in the place.
+local function timedCamp(fn)
+	return function()
+		local ladder=(Config :: any).CampLadder
+		local saved=if type(ladder)=="table" then ladder.ReadinessTip else nil
+		if type(ladder)=="table" then ladder.ReadinessTip=false end
+		local ok,result=pcall(fn)
+		if type(ladder)=="table" then ladder.ReadinessTip=saved end
+		if not ok then error(result,0) end
+		return result
+	end
+end
+-- The 1.26 expectations, frozen: every new Config.Guide switch off.
+local function legacy(fn)
+	return timedCamp(function() return withGuide({Goals=false,ArmyTips=false,Rebuild=false,Grow=false},fn) end)
+end
+
 local function tipIs(card,id,text,index,total,chain,why)
 	expect(card,id,text,why)
 	assert(card.tag=="TIP" and card.index==index and card.total==total and card.chain==chain,
@@ -176,7 +204,7 @@ function Checks.Run()
 		return "Returning beats outgoing"
 	end)
 
-	test("After the tutorial there are no instructions until a tip is ready",function()
+	test("Flags off (1.26): after the tutorial there are no instructions until a tip is ready",legacy(function()
 		local state=afterGuide()
 		state.tools.eggVacuum,state.tutorial.vacuumEggCount,state.tutorial.vacuumSold=true,10,true -- the vacuum learned
 		expect(Guide.Resolve(state),"Complete",Guide.CompleteText,"Only the completion card")
@@ -191,9 +219,9 @@ function Checks.Run()
 		legacy.coins,legacy.rebirth=1700,{intro=true,eligible=true}
 		assert(Guide.Resolve(legacy)==nil,"An established player gets no tips either")
 		return "Complete card, then nothing"
-	end)
+	end))
 
-	test("Tip: after Cluck Camp, a timed card names the next camp on the route until it is won",function()
+	test("Flags off (1.26): after Cluck Camp, a timed card names the next camp on the route until it is won",legacy(function()
 		local state=afterGuide()
 		state.tools.eggVacuum,state.tutorial.vacuumEggCount,state.tutorial.vacuumSold=true,10,true
 		state.firstWins={}
@@ -211,9 +239,10 @@ function Checks.Run()
 		expect(Guide.Resolve(state),"Complete",nil,"No card after the route")
 		local chain
 		for _,tip in Guide.Tips do if tip.id=="NextCamp" then chain=tip end end
-		assert(chain and chain.quietEnd==true and Guide.Tips[#Guide.Tips]==chain,"Last chain, no payoff on timeout")
+		-- October 27: the Camp slot comes before Grow and the GOAL cards (both off here).
+		assert(chain and chain.quietEnd==true and Guide.Tips[5]==chain,"Camp slot, no payoff on timeout")
 		return "Fort Roost, then Ironbeak HQ"
-	end)
+	end))
 
 	test("The egg hint stays after the tutorial until the vacuum, for empty-start profiles only",function()
 		local state=afterGuide()
@@ -229,7 +258,7 @@ function Checks.Run()
 		return "On until the vacuum; empty-start saves only"
 	end)
 
-	test("Tip: the free Egg Vacuum right after the tutorial, counting 12 more eggs by hand, seven cards, done once the eggs are sold",function()
+	test("Flags off (1.26): the free Egg Vacuum right after the tutorial, counting 12 more eggs by hand, seven cards, done once the eggs are sold",legacy(function()
 		local state=afterGuide()
 		-- The tutorial completed at 4 eggs by hand (TutorialService saves eggsAtComplete).
 		-- October 27: the chain starts at completion with the count on its first card.
@@ -274,9 +303,9 @@ function Checks.Run()
 		expect(Guide.Resolve(state),"Complete",nil,"Learned once the eggs are sold")
 		assert(Guide.VacuumTipGoal==10 and Guide.VacuumGoal==20,"Tip knobs; the saved goal stays 20 for the funnel")
 		return "Count 12 eggs, claim, equip, 10 vacuumed, sold"
-	end)
+	end))
 
-	test("Tips: Rebirth 0 at 1,700 Coins, then its Gem card; the first Camp once settled with 3 chickens; Rebirth first",function()
+	test("Flags off (1.26): Rebirth 0 at 1,700 Coins, then its Gem card; the first Camp once settled with 3 chickens; Rebirth first",legacy(function()
 		local state=afterGuide()
 		state.pets={{id="a"},{id="b"},{id="c"}};state.selectedCount=3
 		-- Three chickens alone bring the vacuum tip; the Camp waits until a little settled in.
@@ -319,7 +348,7 @@ function Checks.Run()
 		state.introRebirth,state.coins,state.rebirth=nil,1700,{rank=0,nextRank=1,cost=50000,eligible=false}
 		expect(Guide.Resolve(state),"Complete",nil,"No Rebirth 0 for older saves")
 		return "Rebirth > Camp > Vacuum; each chain ends when learned"
-	end)
+	end))
 
 	test("The Egg Vacuum is a free Tools node that a session claims, with 0 Coins",function()
 		local node=Tree.Nodes.EggVacuum
@@ -539,6 +568,212 @@ function Checks.Run()
 		assert(ready.rebirth.eligible==true,"Rebirth 0 eligible: "..tostring(ready.rebirth.reason))
 		expect(tipCard,"TipRebirth","Tap Rebirth! Coins & Upgrades reset, but you keep ×1.5 Coins forever!","Rebirth 0 tip at 1,700")
 		return "Two chickens for 0 + 20; complete on the recruit; favoured pulls; the vacuum and Rebirth 0 tips follow"
+	end)
+
+	-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): the goal ladder.
+	local function onScreen(state,why,skip)
+		local card=Guide.Resolve(state,nil,skip)
+		assert(card and card.id~="Complete",why..": "..(if card then card.id else "nothing"))
+		assert(Guide.CardIds[card.id],why..": "..card.id.." missing from CardIds")
+		return card
+	end
+	local function quote(state,fields)
+		state.rebirth={rank=0,nextRank=1,cost=50000,eligible=false,
+			find={species="Ironbeak",name="Ironbeak Chicken",rarity="Uncommon",found=false}}
+		for key,value in fields or {} do state.rebirth[key]=value end
+	end
+
+	test("Goal ladder: a card is always on screen from completion until Rebirth 1",timedCamp(function()
+		local state=afterGuide()
+		state.tutorial.eggsAtComplete,state.tutorial.collectedEggCount=3,3
+		onScreen(state,"Completion: the vacuum count")
+		state.tutorial.collectedEggCount=15
+		onScreen(state,"The vacuum claim")
+		state.tools.eggVacuum,state.upgradeTree.nodes.EggVacuum=true,{status="Owned"}
+		onScreen(state,"Vacuum use")
+		state.tutorial.vacuumEggCount=10
+		onScreen(state,"Vacuum sell")
+		state.tutorial.vacuumSold=true
+		-- Gap A (live: 26% of these left): two chickens, the Army count card.
+		local roll=onScreen(state,"Two chickens, no offer")
+		tipIs(roll,"TipArmyRoll","Roll a chicken for your Army! (2/3)",1,3,"Attack")
+		assert(roll.target=="RollStation","Roll card points at the lever")
+		state.offer={species="Duck",price=150};state.coins=110
+		local short=onScreen(state,"Offer short")
+		tipIs(short,"RecoverCollect","Collect eggs worth 40 more Coins",1,3,"Attack")
+		state.eggs.carriedValue=50
+		tipIs(onScreen(state,"Bag covers it"),"RecoverSell","Sell your eggs on the green pad!",1,3,"Attack")
+		state.eggs.carriedValue,state.coins=0,150
+		tipIs(onScreen(state,"Affordable"),"TipArmyBuy","Buy the chicken!",1,3,"Attack")
+		state.offer,state.coins=nil,0
+		state.pets={{id="a"},{id="b"},{id="c"}};state.selectedCount=3
+		local ready=onScreen(state,"Three chickens, not settled")
+		tipIs(ready,"TipArmyReady","Vacuum eggs to get ready for battle! (10/20)",2,3,"Attack")
+		assert(ready.target=="VacuumTool" and ready.outside=="Equip your Egg Vacuum!","Ready card lines")
+		state.tutorial.vacuumEggCount=12
+		tipIs(onScreen(state,"Twelve"),"TipArmyReady","Vacuum eggs to get ready for battle! (12/20)",2,3,"Attack")
+		state.tutorial.vacuumEggCount=20
+		local attack=onScreen(state,"Settled")
+		tipIs(attack,"TipAttack","Send your Army to attack Cluck Camp!",3,3,"Attack")
+		assert(attack.target=="Camp1","Attack points at Cluck Camp")
+		state.firstWins,state.campsWon={true},1
+		onScreen(state,"Cluck Camp won: the Camp slot")
+		state.coins=900
+		local goal=onScreen(state,"Next camp timed out",{TipNextCamp2=true})
+		expect(goal,"GoalRebirth0","Reach 1,700 Coins for Rebirth 0! (900/1,700)")
+		assert(goal.tag=="GOAL" and goal.total==nil and goal.target==nil and goal.chain=="Goal","GOAL card shape")
+		state.coins,state.rebirth=1700,{intro=true,rank=0,cost=1700,eligible=true}
+		tipIs(onScreen(state,"Rebirth 0 affordable",{TipNextCamp2=true}),"TipRebirth",nil,2,3,"Rebirth")
+		-- Rebirth 0 (KeepTree: the vacuum and Flock Size I stay).
+		state.introRebirth,state.coins,state.gems,state.gemsEarned="done",0,30,30
+		quote(state)
+		tipIs(onScreen(state,"Gems unspent",{TipNextCamp2=true}),"TipGems",nil,3,3,"Rebirth")
+		state.gems=0
+		state.upgradeTree.nodes.ArmySize1={status="Unaffordable",price=300} -- 0 Coins
+		local find=onScreen(state,"Gems spent",{TipNextCamp2=true})
+		expect(find,"GoalFind","Find an Ironbeak Chicken for Rebirth 1!")
+		assert(find.tag=="GOAL" and find.target=="RollStation","The find points at the lever")
+		-- A tree reset (Rebirth 1+, or KeepTree off) took the vacuum and Flock Size I.
+		state.tools.eggVacuum=false;state.upgradeTree.nodes.EggVacuum={status="Available",price=0}
+		state.upgradeTree.families.Flock=nil;state.flock={size=3};state.upgradeTree.nodes.Flock1={status="Unaffordable",price=10}
+		local rebuild=onScreen(state,"Rebuild",{TipNextCamp2=true})
+		tipIs(rebuild,"TipRebuildVacuum","Claim your Egg Vacuum again!",1,2,"Rebuild")
+		assert(rebuild.node=="EggVacuum" and rebuild.outside=="Open Upgrades for an Egg Vacuum!"
+			and rebuild.wrongTab=="Open the Tools category!","Rebuild vacuum lines")
+		state.tools.eggVacuum=true;state.upgradeTree.nodes.EggVacuum={status="Owned"}
+		tipIs(onScreen(state,"Flock short",{TipNextCamp2=true}),"RecoverCollect","Collect eggs worth 10 more Coins",2,2,"Rebuild")
+		state.coins=12;state.upgradeTree.nodes.Flock1={status="Available",price=10}
+		local flock=onScreen(state,"Flock affordable",{TipNextCamp2=true})
+		tipIs(flock,"TipRebuildFlock","Expand your plot again!",2,2,"Rebuild")
+		assert(flock.node=="Flock1" and flock.outside=="Open Upgrades!" and flock.wrongTab=="Open the Main category!","Rebuild flock lines")
+		state.upgradeTree.families.Flock=1;state.flock={size=4};state.upgradeTree.nodes.Flock1={status="Owned"}
+		state.coins=2
+		-- Grow: the starter upgrades as each becomes affordable, in Config.Guide.GrowNodes order.
+		state.upgradeTree.nodes.EggSpeed1={status="Unaffordable",price=400}
+		state.upgradeTree.nodes.EggValue1={status="Unaffordable",price=600}
+		state.upgradeTree.nodes.ArmySize1={status="Unaffordable",price=300}
+		expect(onScreen(state,"Nothing affordable: the find",{TipNextCamp2=true}),"GoalFind",nil,"Nothing affordable")
+		state.coins=450
+		state.upgradeTree.nodes.EggSpeed1.status,state.upgradeTree.nodes.ArmySize1.status="Available","Available"
+		local grow=onScreen(state,"Grow",{TipNextCamp2=true})
+		tipIs(grow,"TipGrowEggSpeed1","Buy Egg Speed I!",1,3,"Grow")
+		assert(grow.target=="Upgrades" and grow.node=="EggSpeed1" and grow.outside=="Open Upgrades!"
+			and grow.wrongTab=="Open the Main category!","Grow lines")
+		state.upgradeTree.nodes.EggSpeed1={status="Owned"}
+		tipIs(onScreen(state,"Grow skips owned",{TipNextCamp2=true}),"TipGrowArmySize1","Buy Army Size I!",3,3,"Grow")
+		state.upgradeTree.nodes.ArmySize1={status="Owned"}
+		expect(onScreen(state,"Egg Value I unaffordable",{TipNextCamp2=true}),"GoalFind",nil,"Egg Value I unaffordable")
+		state.rebirth.find.found=true;state.coins=6000
+		expect(onScreen(state,"Find owned",{TipNextCamp2=true}),"GoalRebirthCoins","Reach 50,000 Coins for Rebirth 1! (12%)")
+		state.coins,state.rebirth.eligible=50000,true
+		state.upgradeTree.nodes.EggValue1={status="Owned"}
+		expect(onScreen(state,"Rebirth 1 ready",{TipNextCamp2=true}),"GoalRebirthReady","Rebirth 1 is ready! Open Rebirth!")
+		-- Rebirth 1: the ladder ends (the HUD's Rebirth progress takes over).
+		state.rebirth={rank=1,nextRank=2,cost=1000000,eligible=false}
+		state.coins=0
+		expect(Guide.Resolve(state,nil,{TipNextCamp2=true}),"Complete",nil,"Nothing after Rebirth 1")
+		return "Vacuum, Army 2/3, buy, settle 12/20, attack, GOAL, Rebirth 0, Gems, find, Rebuild, Grow, Coins, ready"
+	end))
+
+	test("Goal ladder: priority, opt-outs and the CardIds set",timedCamp(function()
+		-- The Vacuum chain comes before the Attack chain now (October 24's settled 60 eggs by hand).
+		local state=afterGuide()
+		state.tutorial.collectedEggCount,state.tutorial.eggsAtComplete=60,3
+		state.pets={{id="a"},{id="b"},{id="c"}};state.selectedCount=3
+		expect(Guide.Resolve(state),"TipVacuum",nil,"Vacuum before the Camp")
+		withGuide({ArmyTips=false},function()
+			expect(Guide.Resolve(state),"TipAttack",nil,"1.26 order: settled Camp before the vacuum")
+		end)
+		-- Goal hints off (Settings): the October 24 Camp card alone and no GOAL cards.
+		local hidden=afterGuide()
+		hidden.tools.eggVacuum,hidden.tutorial.vacuumEggCount,hidden.tutorial.vacuumSold=true,10,true
+		hidden.tutorial.goalsHidden=true
+		expect(Guide.Resolve(hidden),"Complete",nil,"Goal hints off")
+		hidden.pets={{id="a"},{id="b"},{id="c"}};hidden.selectedCount=3;hidden.tutorial.vacuumEggCount=20
+		tipIs(Guide.Resolve(hidden),"TipAttack","Send your Army to attack Cluck Camp!",1,1,"Attack","Old Camp card")
+		-- A save without the empty start (introRebirth nil) gets none of the extras.
+		local older=afterGuide()
+		older.tools.eggVacuum,older.tutorial.vacuumEggCount,older.tutorial.vacuumSold=true,10,true
+		older.introRebirth=nil
+		expect(Guide.Resolve(older),"Complete",nil,"Older saves")
+		-- Config switches, one at a time.
+		local after=afterGuide()
+		after.tools.eggVacuum,after.tutorial.vacuumEggCount,after.tutorial.vacuumSold=true,20,true
+		after.firstWins,after.campsWon,after.pets,after.selectedCount={true},1,{{id="a"},{id="b"},{id="c"}},3
+		expect(Guide.Resolve(after,nil,{TipNextCamp2=true}),"GoalRebirth0")
+		withGuide({Goals=false},function() expect(Guide.Resolve(after,nil,{TipNextCamp2=true}),"Complete",nil,"Goals off") end)
+		withGuide({GoalUntilRank=0},function() expect(Guide.Resolve(after,nil,{TipNextCamp2=true}),"Complete",nil,"GoalUntilRank 0") end)
+		for _,id in {"TipArmyRoll","TipArmyBuy","TipArmyReady","TipAttack","TipRebuildVacuum","TipRebuildFlock","TipGrowEggSpeed1",
+			"TipGrowEggValue1","TipGrowArmySize1","GoalRebirth0","GoalFind","GoalRebirthCoins","GoalRebirthReady","TipNextCamp2",
+			"TipVacuumEggs","TipGems","Complete","RecoverCollect"} do
+			assert(Guide.CardIds[id],id.." missing")
+		end
+		local order={}
+		for _,chain in Guide.Tips do table.insert(order,chain.id) end
+		assert(table.concat(order,",")=="Rebirth,Vacuum,Rebuild,Attack,NextCamp,Grow,Goal",table.concat(order,","))
+		local grow=table.concat(Config.Guide.GrowNodes,",")
+		assert(grow=="EggSpeed1,EggValue1,ArmySize1",grow)
+		return "Vacuum > Attack; hints off; older saves; switches"
+	end))
+
+	test("Camp slot: WS1's CampGuide card keeps its tag, power bar and ids",function()
+		local module=Shared:FindFirstChild("CampGuide")
+		if not module then return "CampGuide not in this build (the timed card is the fallback)" end
+		local CampGuide=require(module)
+		local ladder=(Config :: any).CampLadder
+		local saved=ladder.ReadinessTip
+		ladder.ReadinessTip=true
+		local ok,result=pcall(function()
+			local state=afterGuide()
+			state.tools.eggVacuum,state.tutorial.vacuumEggCount,state.tutorial.vacuumSold=true,20,true
+			state.firstWins,state.campsWon,state.pets,state.selectedCount={true},1,{{id="a"},{id="b"},{id="c"}},3
+			state.power=20
+			local card=onScreen(state,"Camp slot")
+			assert(card.chain=="NextCamp" and string.sub(card.tag,1,5)=="NEXT:","Provider tag kept: "..tostring(card.tag))
+			assert(type(card.progress)=="table" and tonumber(card.progress.goal),"Power bar")
+			for _,id in CampGuide.Ids do assert(Guide.CardIds[id],id.." missing from CardIds") end
+			assert(Guide.CloseFightRatio==CampGuide.EvenRatio and Guide.ShouldWinRatio==CampGuide.ReadyRatio,"Bands follow CampGuide")
+			return card.id.." · "..card.tag.." · "..tostring(card.progress.label)
+		end)
+		ladder.ReadinessTip=saved
+		if not ok then error(result,0) end
+		return result
+	end)
+
+	test("HUD reveal: each piece's moment, everything at the cap, with the switch off or for older saves",function()
+		local state=afterGuide()
+		state.discovered={Duck=true};state.passiveEarned,state.battleEarned=0,0
+		local facts=Guide.Facts(state)
+		local r=Guide.HudReveal(state,facts,0,60)
+		assert(r.Army and r.Rebirth and r.Settings,"At completion")
+		for _,key in {"Playtime","Index","FreeGift","Shop","GoldRush","Boosts","FriendBoost"} do assert(not r[key],key.." at completion") end
+		state.tutorial.vacuumSold=true
+		assert(Guide.HudReveal(state,facts,30,90).Playtime,"Playtime after the vacuum chain")
+		state.tutorial.vacuumSold=nil
+		assert(Guide.HudReveal(state,facts,150,200).Playtime,"Playtime at 150 s")
+		state.discovered.Bee=true
+		assert(Guide.HudReveal(state,facts,10,70).Index,"Index with a second species")
+		state.discovered.Bee=nil
+		assert(Guide.HudReveal(state,facts,10,300).FreeGift,"Free Gift at 5 minutes of the visit")
+		state.passiveEarned=Config.Guide.ShopRevealEarned
+		local shop=Guide.HudReveal(state,facts,10,70)
+		assert(shop.Shop and not shop.GoldRush,"Shop at 2,000 Coins earned")
+		state.passiveEarned=0
+		local late=Guide.HudReveal(state,facts,360,400)
+		assert(late.Shop and late.GoldRush and late.Boosts and late.FriendBoost,"Six minutes after")
+		state.introRebirth="done"
+		local intro=Guide.HudReveal(state,facts,10,70)
+		assert(intro.Shop and intro.GoldRush and intro.Boosts and intro.FreeGift,"After Rebirth 0")
+		state.introRebirth="pending"
+		state.firstWins={true}
+		assert(Guide.HudReveal(state,Guide.Facts(state),10,70).FriendBoost and Guide.HudReveal(state,Guide.Facts(state),10,70).Index,"Cluck Camp won")
+		state.firstWins=nil
+		local function every(reveal) for _,key in Guide.HudRevealKeys do if not reveal[key] then return false end end return true end
+		assert(every(Guide.HudReveal(state,facts,Config.Guide.RevealAllSeconds,500)),"All at the cap")
+		withGuide({HudReveal=false},function() assert(every(Guide.HudReveal(state,facts,0,0)),"Switch off") end)
+		state.introRebirth=nil
+		assert(every(Guide.HudReveal(state,facts,0,0)),"Older saves")
+		return "Playtime, Index, Free Gift, Shop, Gold Rush, boosts, Friend Boost; cap"
 	end)
 
 	local passed=0

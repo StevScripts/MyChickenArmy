@@ -4,7 +4,24 @@ local Config = require(script.Parent.Config)
 local Currency = require(script.Parent.CurrencyLimits)
 local Tree = require(script.Parent.UpgradeCatalog)
 local Progression = require(script.Parent.Progression)
+local PetCatalog = require(script.Parent.PetCatalog)
 local Guide = {}
+-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): the camp readiness card
+-- (WS1, docs/team/CAMP_LADDER_20261027.md) fills the Camp slot when its module ships;
+-- without it the timed "Next up" card stays.
+local CampGuide: any = nil
+do
+	local module = script.Parent:FindFirstChild("CampGuide")
+	if module then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then CampGuide = result end
+	end
+end
+-- Config.Guide, read on every call so a switch flipped in Studio applies at once.
+local function settings(): any
+	local value = (Config :: any).Guide
+	return if type(value) == "table" then value else {}
+end
 -- Latest October 21 (Stevin: "keep the tutorial as SHORT as possible"): only the three
 -- systems a new player needs, as one numbered list "TUTORIAL • n/7": click eggs and
 -- sell them, roll a chicken, then claim, use and sell with the Egg Vacuum. The guide
@@ -280,8 +297,10 @@ end
 -- Army power vs a garrison's power (Rules.PetPower sums). Defenders respawn every
 -- 10-15s and capture needs every guard down at once, so an even match usually
 -- loses: below 1.3x reads Very tough, 1.3-2x a Close fight, 2x+ Should win.
-Guide.CloseFightRatio = 1.3
-Guide.ShouldWinRatio = 2
+-- October 27 (WS1 camp ladder): the bands follow CampGuide's EvenRatio/ReadyRatio (1.0 /
+-- 1.3) once that module ships.
+Guide.CloseFightRatio = if CampGuide and type(CampGuide.EvenRatio) == "number" then CampGuide.EvenRatio else 1.3
+Guide.ShouldWinRatio = if CampGuide and type(CampGuide.ReadyRatio) == "number" then CampGuide.ReadyRatio else 2
 function Guide.Difficulty(power, enemyPower)
 	if (enemyPower or 0) <= 0 then return "Undefended" end
 	local ratio = (power or 0) / enemyPower
@@ -340,7 +359,87 @@ local REBIRTH_CARDS = {
 	Gems = tipCard("TipGems", "Pick a Gem Upgrade. They never reset!", 3, "Gems"),
 }
 REBIRTH_CARDS.Gems.seconds = Guide.GemTipSeconds
-local ATTACK_CARDS = {Attack = tipCard("TipAttack", "Send your Army to attack Cluck Camp!", 1, "Camp1")}
+-- October 27 (WS5, live journeys: 72% of the players who left after the vacuum owned two
+-- chickens and nothing named the third): the Camp tip's wait is on screen, "TIP • n/3".
+-- 1: a chicken for the Army while it holds fewer than ArmyTipSize (the lever, the buy, or
+-- the eggs and the pad for its Coins); 2: the settle wait as a count; 3: the attack.
+-- Saves without the empty start, Goal hints off or Config.Guide.ArmyTips = false keep the
+-- October 24 card alone (TIP • 1/1, once the Army holds three and is settled).
+local ATTACK_CARDS = {
+	Attack = tipCard("TipAttack", "Send your Army to attack Cluck Camp!", 1, "Camp1"),
+	Roll = tipCard("TipArmyRoll", "Roll a chicken for your Army!", 1, "RollStation"),
+	Buy = tipCard("TipArmyBuy", "Buy the chicken!", 1, "RollStation"),
+	-- Three chickens owned but not all in the Army (a hand-picked Army).
+	Equip = tipCard("TipArmyEquip", "Equip Best in My Army!", 1, nil),
+	-- Its text gains the count "(n/20)"; with the vacuum not in hand the line says to equip it.
+	Ready = tipCard("TipArmyReady", "Vacuum eggs to get ready for battle!", 2, "VacuumTool", nil, "Equip your Egg Vacuum!", 2),
+	ReadyFull = tipCard("TipArmyReady", "Vacuum full! Sell your eggs on the green pad!", 2, "EggDeposit"),
+	-- No vacuum (a Rebirth took it before the Rebuild card): eggs by hand count the same.
+	ReadyHand = tipCard("TipArmyReady", "Collect eggs to get ready for battle!", 2, "Yard"),
+}
+Guide.ArmyChainTotal = 3
+
+-- October 27 (WS5): after a Rebirth that took the Egg Vacuum or Flock Size I (Rebirth 1 and
+-- up, or Rebirth 0 when Config.Rebirth.Intro.KeepTree is off), claim them again.
+local REBUILD_CARDS = {
+	Vacuum = tipCard("TipRebuildVacuum", "Claim your Egg Vacuum again!", 1, "Upgrades", "EggVacuum",
+		"Open Upgrades for an Egg Vacuum!", 1, "Open the Tools category!", 1),
+	Flock = tipCard("TipRebuildFlock", "Expand your plot again!", 2, "Upgrades", "Flock1", "Open Upgrades!", 2, MAIN_TAB, 2),
+}
+
+-- The rebirth rank in the snapshot (state.rebirth.rank), 0 without one.
+local function rank(state: any): number
+	local quote = state.rebirth
+	return if type(quote) == "table" then tonumber(quote.rank) or 0 else 0
+end
+
+-- October 27 (WS5): the post-tutorial extras (the Army count cards, Rebuild, Grow and GOAL)
+-- are for empty-start profiles (introRebirth set) with Goal hints on (Settings,
+-- tutorial.goalsHidden). The GOAL cards and Grow also stop at Config.Guide.GoalUntilRank.
+local function extrasAllowed(state: any): boolean
+	return state.introRebirth ~= nil and (state.tutorial or {}).goalsHidden ~= true
+end
+local function goalsOn(state: any): boolean
+	local guide = settings()
+	return guide.Goals ~= false and extrasAllowed(state) and rank(state) < (tonumber(guide.GoalUntilRank) or 1)
+end
+local function armyTipsOn(state: any): boolean
+	return settings().ArmyTips ~= false and extrasAllowed(state)
+end
+-- A Rebirth has been taken (Rebirth 0 or a rank).
+local function rebirthed(state: any): boolean
+	return state.introRebirth == "done" or rank(state) >= 1
+end
+
+-- Coins earned in all (eggs and battles): the Shop reveal reads it (Config.Guide.ShopRevealEarned).
+function Guide.CoinsEarned(state: any): number
+	return (tonumber(state.passiveEarned) or 0) + (tonumber(state.battleEarned) or 0)
+end
+
+-- The settle wait as eggs: vacuumed eggs (to VacuumGoal), or eggs by hand scaled so
+-- ArmyTipEggs reads as the same VacuumGoal.
+function Guide.SettleCount(tutorial: any): number
+	local byHand = math.floor(Guide.EggsCollected(tutorial) * Guide.VacuumGoal / Guide.ArmyTipEggs)
+	return math.clamp(math.max(Guide.VacuumEggCount(tutorial), byHand), 0, Guide.VacuumGoal)
+end
+
+local function vacuumOwned(state: any): boolean
+	local tools = state.tools
+	return type(tools) == "table" and tools.eggVacuum == true
+end
+local function flockBought(state: any): boolean
+	local tier = flockTier(state)
+	if tier ~= nil then return tier >= 1 end
+	local size = flockSize(state)
+	return size == nil or size >= 4
+end
+
+-- An earn() step numbered inside a tip chain.
+local function earnTip(state: any, price: number?, index: number): any
+	local card: any = earn(state, price)
+	card.index = index
+	return card
+end
 local VACUUM_CARDS = {
 	-- October 27 (live data, TUTORIAL_FIXES_20261027.md): most finishers left within 20 s,
 	-- with no card for the VacuumTipEggs wait. The wait is the chain's first card; its text
@@ -399,14 +498,65 @@ local TIPS: {any} = {
 	{id = "Attack", payoff = "Camp captured!", total = 1, cards = ATTACK_CARDS,
 		when = function(f: any, state: any): boolean
 			local t: any = state.tutorial or {}
+			if t.guideCompleted ~= true or f.Win then return false end
+			-- October 27: the count cards start once the Vacuum chain is done (it comes first).
+			if armyTipsOn(state) then return true end
 			local army = tonumber(state.selectedCount) or #(state.selectedIds or {})
 			-- October 24 (Stevin): not right after the vacuum, once the player is a little
 			-- settled: a load of vacuumed eggs sold, or ArmyTipEggs eggs by hand.
 			local settled = Guide.VacuumEggCount(t) >= Guide.VacuumGoal or Guide.EggsCollected(t) >= Guide.ArmyTipEggs
-			return t.guideCompleted == true and not f.Win and army >= Guide.ArmyTipSize and settled
+			return army >= Guide.ArmyTipSize and settled
 		end,
 		done = function(f: any, _state: any): boolean return f.Win == true end,
-		card = function(_f: any, _state: any): any return table.clone(ATTACK_CARDS.Attack) end},
+		card = function(_f: any, state: any): any
+			if not armyTipsOn(state) then return table.clone(ATTACK_CARDS.Attack) end
+			local t: any = state.tutorial or {}
+			local army = tonumber(state.selectedCount) or #(state.selectedIds or {})
+			local card: any
+			if army < Guide.ArmyTipSize then
+				local owned = #(state.pets or {})
+				local offer = state.offer
+				if owned >= Guide.ArmyTipSize then
+					card = table.clone(ATTACK_CARDS.Equip)
+				elseif not offer then
+					card = table.clone(ATTACK_CARDS.Roll)
+					card.text ..= " (" .. army .. "/" .. Guide.ArmyTipSize .. ")"
+				elseif (offer.price or 0) > (state.coins or 0) then
+					card = earnTip(state, offer.price, 1)
+				else
+					card = table.clone(ATTACK_CARDS.Buy)
+				end
+			elseif Guide.SettleCount(t) < Guide.VacuumGoal then
+				local vacuum = (state.tools or {}).vacuum
+				if not vacuumOwned(state) then card = table.clone(ATTACK_CARDS.ReadyHand)
+				elseif type(vacuum) == "table" and (vacuum.capacity or 0) > 0 and (vacuum.count or 0) >= vacuum.capacity then
+					card = table.clone(ATTACK_CARDS.ReadyFull)
+				else card = table.clone(ATTACK_CARDS.Ready) end
+				if card.target ~= "EggDeposit" then
+					card.text ..= " (" .. Guide.SettleCount(t) .. "/" .. Guide.VacuumGoal .. ")"
+				end
+			else
+				card = table.clone(ATTACK_CARDS.Attack)
+				card.index = 3
+			end
+			card.total = Guide.ArmyChainTotal
+			return card
+		end},
+	-- October 27 (WS5): Rebuild, after a Rebirth that left the vacuum or Flock Size I unowned.
+	{id = "Rebuild", payoff = "Yard rebuilt!", total = 2, cards = REBUILD_CARDS,
+		when = function(_f: any, state: any): boolean
+			local t: any = state.tutorial or {}
+			return settings().Rebuild ~= false and extrasAllowed(state) and t.guideCompleted == true
+				and t.vacuumSold == true and rebirthed(state) and type(state.tools) == "table"
+		end,
+		done = function(_f: any, state: any): boolean return vacuumOwned(state) and flockBought(state) end,
+		card = function(_f: any, state: any): any
+			if not vacuumOwned(state) then return table.clone(REBUILD_CARDS.Vacuum) end
+			local offer = nodeOffer(state, "Flock1")
+			local price = if offer and offer.status ~= "Owned" and type(offer.price) == "number" then offer.price else nil
+			if price and price > (state.coins or 0) then return earnTip(state, price, 2) end
+			return table.clone(REBUILD_CARDS.Flock)
+		end},
 	{id = "Vacuum", payoff = "Vacuum learned!", total = 7, cards = VACUUM_CARDS,
 		when = function(_f: any, state: any): boolean
 			local t: any, tools = state.tutorial or {}, state.tools
@@ -443,31 +593,219 @@ local TIPS: {any} = {
 			return card
 		end},
 	-- Last, so it never interrupts another chain. quietEnd: a timed-out card is no payoff.
+	-- October 27: the Camp slot. WS1's CampGuide (when it ships) names the next camp only
+	-- once the Army can take it, else the cheapest step to more power, persistent, with a
+	-- tag and a power bar (card.progress); without it, the October 26 timed card.
 	{id = "NextCamp", payoff = "Camp captured!", total = 1, cards = NEXT_CAMP_CARDS, quietEnd = true,
-		when = function(_f: any, state: any): boolean
+		when = function(f: any, state: any): boolean
+			if CampGuide and CampGuide.When then
+				local ok, when = pcall(CampGuide.When, state, f)
+				if ok and when then return true end
+			end
 			return (state.tutorial or {}).guideCompleted == true and Guide.NextCamp(state) ~= nil
 		end,
 		done = function(_f: any, state: any): boolean return Guide.NextCamp(state) == nil end,
-		card = function(_f: any, state: any): any return table.clone(NEXT_CAMP_CARDS[Guide.NextCamp(state) :: number]) end},
+		card = function(f: any, state: any): any
+			if CampGuide and CampGuide.When and CampGuide.Card then
+				local ok, when = pcall(CampGuide.When, state, f)
+				local shown, card = false, nil
+				if ok and when then shown, card = pcall(CampGuide.Card, state, f) end
+				if shown and type(card) == "table" then return card end
+			end
+			local index = Guide.NextCamp(state)
+			return if index and NEXT_CAMP_CARDS[index] then table.clone(NEXT_CAMP_CARDS[index]) else nil
+		end},
 }
-Guide.Tips = TIPS
 
--- The first tip to show now (its card with tag "TIP", index, total and chain), or nil.
--- `skip` holds card ids the client has dismissed (CommanderGuide's timed cards).
+-- The node the Camp card points at now (WS1's Army Size step), so Grow never doubles it.
+local function campNode(state: any, f: any): string?
+	if not (CampGuide and CampGuide.When and CampGuide.Card) then return nil end
+	local ok, when = pcall(CampGuide.When, state, f)
+	if not (ok and when) then return nil end
+	local shown, card = pcall(CampGuide.Card, state, f)
+	return if shown and type(card) == "table" and type(card.node) == "string" then card.node else nil
+end
+
+-- October 27 (WS5): Grow, after Rebirth 0: buy each starter upgrade in
+-- Config.Guide.GrowNodes ("Buy Egg Speed I!") as it becomes affordable, "TIP • n/3".
+local GROW_CARDS: {[string]: any} = {}
+local function growNodes(): {string}
+	local list = settings().GrowNodes
+	local nodes = {}
+	if type(list) == "table" then
+		for _, id in list do if type(id) == "string" and Tree.Nodes[id] then table.insert(nodes, id) end end
+	end
+	return nodes
+end
+for index, id in growNodes() do
+	local node = Tree.Nodes[id]
+	local tab = if node.category == "Main" then MAIN_TAB else "Open the " .. node.category .. " category!"
+	GROW_CARDS[id] = tipCard("TipGrow" .. id, "Buy " .. node.name .. "!", index, "Upgrades", id, "Open Upgrades!", index, tab, index)
+end
+table.insert(TIPS, {id = "Grow", payoff = "Upgrades learned!", total = #growNodes(), cards = GROW_CARDS,
+	when = function(_f: any, state: any): boolean
+		return settings().Grow ~= false and goalsOn(state) and (state.tutorial or {}).guideCompleted == true
+			and state.introRebirth == "done"
+	end,
+	done = function(_f: any, state: any): boolean
+		for _, id in growNodes() do
+			local offer = nodeOffer(state, id)
+			if not offer or offer.status ~= "Owned" then return false end
+		end
+		return true
+	end,
+	card = function(f: any, state: any): any
+		local list = growNodes()
+		local skipNode = campNode(state, f)
+		for index, id in list do
+			local offer = nodeOffer(state, id)
+			if id ~= skipNode and offer and offer.status == "Available" then
+				local card = table.clone(GROW_CARDS[id] or tipCard("TipGrow" .. id, "Buy " .. Tree.Nodes[id].name .. "!",
+					index, "Upgrades", id, "Open Upgrades!", index, MAIN_TAB, index))
+				card.total = #list
+				return card
+			end
+		end
+		return nil
+	end})
+
+-- October 27 (WS5): GOAL cards, the long bar until Config.Guide.GoalUntilRank (Rebirth 1):
+-- the Coins for Rebirth 0, then the chicken to find for the next Rebirth, then its Coins.
+-- Tag "GOAL", no count; CommanderGuide keeps them on screen for the first
+-- GoalAlwaysSeconds of a visit, then lets them peek.
+local GOAL_IDS = {"GoalRebirth0", "GoalFind", "GoalRebirthCoins", "GoalRebirthReady"}
+local function goal(id: string, text: string, target: string?): any
+	local card: any = step(id, text, target)
+	card.tag = "GOAL"
+	return card
+end
+local function article(name: string): string
+	return (if string.find(string.sub(name, 1, 1), "[AEIOUaeiou]") then "an " else "a ") .. name
+end
+function Guide.GoalCard(state: any): any
+	local quote: any = if type(state.rebirth) == "table" then state.rebirth else {}
+	local coins = math.max(0, math.floor(tonumber(state.coins) or 0))
+	if state.introRebirth == "pending" then
+		local cost = tonumber(quote.cost) or introCost()
+		local card = goal("GoalRebirth0", "Reach " .. Currency.Grouped(cost) .. " Coins for Rebirth 0! ("
+			.. Currency.Grouped(math.min(coins, cost)) .. "/" .. Currency.Grouped(cost) .. ")")
+		card.fraction = if cost > 0 then math.min(1, coins / cost) else 1
+		return card
+	end
+	local nextRank = tonumber(quote.nextRank) or rank(state) + 1
+	-- The server's quote names the chicken to find (RebirthService, ranks 1..FindRanks).
+	local find = quote.find
+	local species = if type(find) == "table" then find.species else nil
+	local found = if type(find) == "table" then find.found == true else true
+	if species == nil and nextRank <= (tonumber((Config.Rebirth :: any).FindRanks) or 0) then
+		species = PetCatalog.RebirthFinds[nextRank]
+		found = species == nil or (type(state.discovered) == "table" and state.discovered[species] == true)
+	end
+	if species and not found then
+		local definition = PetCatalog[species]
+		local name = if type(find) == "table" and type(find.name) == "string" then find.name
+			elseif type(definition) == "table" and type(definition.name) == "string" then definition.name else tostring(species)
+		return goal("GoalFind", "Find " .. article(name) .. " for Rebirth " .. nextRank .. "!", "RollStation")
+	end
+	local cost = tonumber(quote.cost)
+	if not cost or cost <= 0 then return nil end
+	if quote.eligible == true then return goal("GoalRebirthReady", "Rebirth " .. nextRank .. " is ready! Open Rebirth!") end
+	local percent = if coins >= cost then 100 else math.clamp(math.floor(coins / cost * 100), 0, 99)
+	local card = goal("GoalRebirthCoins", "Reach " .. Currency.Grouped(cost) .. " Coins for Rebirth " .. nextRank .. "! (" .. percent .. "%)")
+	-- CommanderGuide peeks a GOAL card again at each quarter of the way.
+	card.fraction = math.min(1, coins / cost)
+	return card
+end
+-- No payoff: it ends at Rebirth 1, when the HUD's Rebirth progress takes over.
+table.insert(TIPS, {id = "Goal", tag = "GOAL", total = nil, cards = {}, quietEnd = true,
+	when = function(_f: any, state: any): boolean
+		return goalsOn(state) and (state.tutorial or {}).guideCompleted == true
+	end,
+	done = function(_f: any, _state: any): boolean return false end,
+	card = function(_f: any, state: any): any return Guide.GoalCard(state) end})
+
+-- October 27 (WS5) priority: Rebirth, Vacuum, Rebuild, Attack, Camp, Grow, GOAL (first
+-- match wins). Profiles without the Army count cards keep the October 24 order, where the
+-- settled Camp tip came before the Egg Vacuum.
+local chains: {[string]: any} = {}
+for _, chain in TIPS do chains[chain.id] = chain end
+Guide.Tips = {chains.Rebirth, chains.Vacuum, chains.Rebuild, chains.Attack, chains.NextCamp, chains.Grow, chains.Goal}
+local LEGACY_ORDER: {any} = {chains.Rebirth, chains.Attack, chains.Vacuum, chains.Rebuild, chains.NextCamp, chains.Grow, chains.Goal}
+
+-- Every card id Guide.Resolve can return (analytics validates the client's Card signal).
+Guide.CardIds = {}
+for _, id in {"Complete", "Defend", "Return", "Battle", "RecoverCollect", "RecoverSell", "Roll", "Recruit", "Grow",
+	"Collect", "Sell", "Start", "Expand", "RollAgain", "RollMore", "BuyChicken"} do Guide.CardIds[id] = true end
+for _, cards: any in {REBIRTH_CARDS, ATTACK_CARDS, VACUUM_CARDS, REBUILD_CARDS, NEXT_CAMP_CARDS, GROW_CARDS} do
+	for _, card: any in cards do Guide.CardIds[card.id] = true end
+end
+for _, id in GOAL_IDS do Guide.CardIds[id] = true end
+if CampGuide and type(CampGuide.Ids) == "table" then
+	for _, id in CampGuide.Ids do if type(id) == "string" then Guide.CardIds[id] = true end end
+end
+
+-- The first tip to show now (its card with tag "TIP" or its own, index, total and chain),
+-- or nil. `skip` holds card ids the client has dismissed (CommanderGuide's timed cards).
 local function tip(state: any, f: any, skip: {[string]: boolean}?): any
 	local away = state.incoming or state.outgoing
 		or (state.armyState ~= nil and state.armyState ~= "Home" and state.armyState ~= "Following")
 	if away then return nil end
-	for _, chain in Guide.Tips do
+	local order: {any} = if armyTipsOn(state) then Guide.Tips else LEGACY_ORDER
+	for _, chain in order do
 		if not chain.done(f, state) and chain.when(f, state) then
 			local card = chain.card(f, state)
-			if not (skip and skip[card.id]) then
-				card.tag, card.total, card.chain = "TIP", chain.total, chain.id
+			if card and not (skip and skip[card.id]) then
+				card.tag = card.tag or chain.tag or "TIP"
+				if card.total == nil then card.total = chain.total end
+				card.chain = chain.id
 				return card
 			end
 		end
 	end
 	return nil
+end
+
+-- October 27 (WS5): the progressive HUD reveal after the tutorial (HudController's "post"
+-- stage; same positions, timing only). Pure: the snapshot, the facts, the client's seconds
+-- since it saw the tutorial complete this visit and the visit's seconds. Every key is true
+-- with Config.Guide.HudReveal off, after RevealAllSeconds, or for saves without the empty
+-- start. WS7 may supply RevealHooks.FriendBoost(state, facts, sinceCore): boolean.
+Guide.HudRevealKeys = {"Army", "Rebirth", "Settings", "Playtime", "Index", "FreeGift", "Shop", "GoldRush", "Boosts", "FriendBoost"}
+Guide.RevealHooks = {} :: {[string]: (any, any, number) -> boolean}
+function Guide.HudReveal(state: any, facts: any, sinceCore: number, visitSeconds: number): {[string]: boolean}
+	local guide = settings()
+	local reveal: {[string]: boolean} = {}
+	local all = guide.HudReveal == false or state.introRebirth == nil
+		or sinceCore >= (tonumber(guide.RevealAllSeconds) or 480)
+	if all then
+		for _, key in Guide.HudRevealKeys do reveal[key] = true end
+		return reveal
+	end
+	local t: any = state.tutorial or {}
+	facts = facts or {}
+	local introDone = state.introRebirth == "done" or rank(state) >= 1
+	local species = 0
+	for _, seen in (if type(state.discovered) == "table" then state.discovered else {}) do if seen then species += 1 end end
+	local boosts = state.boosts
+	local boosted = type(boosts) == "table" and type(boosts.running) == "table" and next(boosts.running) ~= nil
+	local late = sinceCore >= 360
+	reveal.Army, reveal.Rebirth, reveal.Settings = true, true, true
+	-- After the Egg Vacuum chain (its sale), or 2.5 minutes after the tutorial.
+	reveal.Playtime = t.vacuumSold == true or sinceCore >= 150
+	-- With the first new chicken, the first Camp, or 5 minutes after.
+	reveal.Index = species >= 2 or facts.Win == true or sinceCore >= 300
+	-- Its own 5-minute claim, or once Rebirth 0 is done.
+	reveal.FreeGift = visitSeconds >= 300 or introDone
+	reveal.Shop = Guide.CoinsEarned(state) >= (tonumber(guide.ShopRevealEarned) or 2000) or introDone or late
+	reveal.GoldRush = introDone or boosted or late
+	reveal.Boosts = reveal.GoldRush
+	reveal.FriendBoost = facts.Win == true or (tonumber(state.friendBoost) or 0) > 0 or late
+	local hook = Guide.RevealHooks.FriendBoost
+	if hook then
+		local ok, shown = pcall(hook, state, facts, sinceCore)
+		if ok and shown then reveal.FriendBoost = true end
+	end
+	return reveal
 end
 
 local function resolve(state, input: string?, t, f, skip: {[string]: boolean}?): any

@@ -1,5 +1,43 @@
 # Commander Cluck tutorial — October 3, 2026
 
+## After the tutorial: goal ladder and HUD reveal, October 27 (retention package)
+
+The eight cards are unchanged. What follows them is new. The full contract is
+`docs/team/POST_TUTORIAL_FLOW_20261027.md`.
+
+- **A card on screen until Rebirth 1.** The tip chains are, in priority order:
+  1. Rebirth.
+  2. Vacuum.
+  3. Rebuild: re-claim the vacuum and Flock Size I after a Rebirth that took them.
+  4. Attack, now "TIP • n/3": a chicken for the Army "(2/3)", then the settle wait as a count
+     "(12/20)", then the attack.
+  5. Camp: WS1's readiness card when `CampGuide` ships (tag "NEXT: FORT ROOST" and the
+     ARMY power bar); without it, the timed "Next up" card.
+  6. Grow: Egg Speed I, Egg Value I, Army Size I after Rebirth 0, each as it becomes
+     affordable.
+  7. GOAL cards: the Coins for Rebirth 0, then the Rebirth 1 find, then its Coins.
+
+  GOAL cards stay on screen for the first 15 minutes of a visit, then peek. Settings
+  "Goal hints" (`tutorial.goalsHidden`) turns off Rebuild, Grow, GOAL and the Army count
+  cards. Every switch is in `Config.Guide`.
+- **Payoff, Daily, first tip.** Day 1 is granted the moment the tutorial completes. Its
+  popup opens when the 4 s payoff ends, and the first tip waits for it. Daily never closes
+  an open menu; it waits for it to close, for up to 45 s.
+- **The HUD comes in piece by piece.** This partly reverses the Oct 25 "everything once
+  the tutorial is over".
+  - At completion: My Army, Rebirth and Settings.
+  - Then, each with a pop and a "NEW!" tag: Playtime after the Vacuum chain, Index with
+    the first new chicken, Free Gift at 5 minutes, Shop at 2,000 Coins earned or Rebirth 0,
+    Gold Rush and the boosts after Rebirth 0.
+  - Everything by 8 minutes after completion. Returning players see it all.
+  - `Config.Guide.HudReveal = false` restores the Oct 25 behaviour.
+- **Rebirth 0 keeps the tree (WS2, `Config.Rebirth.Intro.KeepTree`).** The vacuum and
+  Flock Size I no longer vanish after Rebirth 0. The Rebuild card covers Rebirth 1 and up,
+  where the tree still resets.
+- **Favoured pulls are 3 × 50% (WS4, `Config.Economy.FavoredRolls`).** They were 5 × 60%,
+  as written below. WS4's Lucky Start forces an Uncommon at post-tutorial pull 2 and a Rare
+  at pull 8. The card copy reads the live offer, so nothing in the guide depends on it.
+
 ## Empty start, eight cards, tips and Rebirth 0: October 23–25 (supersedes everything below)
 
 **October 25 (Stevin, from his playtest notes):**

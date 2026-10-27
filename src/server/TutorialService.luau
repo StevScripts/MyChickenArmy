@@ -15,7 +15,11 @@ local signals = {Ready=true, Skip=true, Resume=true, Help=true, Finish=true,
 	IntroStarted=true, IntroFinished=true, IntroSkipped=true, HillIntroStarted=true, HideGoals=true, ShowGoals=true,
 	TreeOpen=true, TreeClose=true, ArmyOpen=true, ArmyClose=true, NodeInspect=true, ToolsOpen=true, VacuumEquip=true,
 	-- October 23 empty start: the post-tutorial Cluck Camp attack tip appeared.
-	CampTip=true}
+	CampTip=true,
+	-- October 27 (WS1 camp ladder): the first attack below even odds warned, then went anyway.
+	AttackWarned=true, AttackAnyway=true,
+	-- October 27 (WS5): the card on screen and each HUD reveal; analytics only (Analytics:Signal).
+	Card=true, Reveal=true}
 local inputs = {Keyboard=true, Touch=true, Gamepad=true}
 -- Eggs wait for the first-visit film: a long allowance while the client loads,
 -- then a film-length one once it reports the film started.
@@ -176,6 +180,11 @@ function Tutorial:Observe(session, state)
 	-- also completes it.
 	if facts.Core and not session.tutorial.coreDone then
 		session.tutorial.coreDone=true;session:Touch();state.tutorial.coreDone=true
+		-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): Day 1 is granted on the
+		-- next server step instead of the 10 s Daily cadence, so its popup opens right after
+		-- the 4 s payoff (payoff, Daily, first tip). Session-only; GameServer clears it.
+		local guide: any = (Config :: any).Guide
+		if type(guide) ~= "table" or guide.DailyAtCore ~= false then session.dailyCheckDue = true end
 	end
 	if (facts.Core or facts.Win) and not session.tutorial.guideCompleted then
 		session.tutorial.guideCompleted=true; session:Touch();state.tutorial.guideCompleted=true
@@ -213,6 +222,8 @@ end
 function Tutorial:Signal(session, signal, input)
 	local r = self.records[session.userId]
 	if not r or not r.initialized or not signals[signal] then return end
+	-- October 27 (WS5): analytics-only signals (post.card.*, hud.reveal.*); nothing to save here.
+	if signal=="Card" or signal=="Reveal" then return end
 	local now = os.clock()
 	if now-(r.lastSignals[signal] or -math.huge)<1 then return end
 	r.lastSignals[signal]=now

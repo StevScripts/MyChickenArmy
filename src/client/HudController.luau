@@ -497,7 +497,8 @@ function Hud:UpdateRebirth(state)
 	local rank=tonumber(quote.rank) or 0
 	-- October 23 (Stevin): the icon shows from the start (was: once the Coins reach a
 	-- quarter of the next Rebirth or a rank is earned).
-	local showIcon=quote.enabled~=false and not self.quiet -- October 23: hidden while the HUD is quiet (lessons 1-2)
+	-- October 23: hidden while the HUD is quiet (lessons 1-2); October 27: until revealed after the tutorial.
+	local showIcon=quote.enabled~=false and self:Revealed("Rebirth")
 	if self.reenlist.Visible~=showIcon then
 		self.reenlist.Visible=showIcon;self:PlaceRebirth()
 		-- Grow in only when it newly unlocks this session, not on the first packet.
@@ -515,7 +516,7 @@ function Hud:UpdateRebirth(state)
 	local introDone=rank==0 and state.introRebirth=="done"
 	self.rank.Text=if introDone then "Rebirth 0" else RebirthPanel.Title(rank)
 	-- The Hill countdown chip uses the same spot above the coin readout.
-	self.rank.Visible=(rank>=1 or introDone) and not self.quiet and not (self.hill and self.hill.waitingShown)
+	self.rank.Visible=(rank>=1 or introDone) and self:Revealed("Rebirth") and not (self.hill and self.hill.waitingShown)
 	-- Rebirths come often now, so each new rank re-arms the "Rebirth ready" toast.
 	if self.lastRank and rank>self.lastRank then Theme.Motion:PopScale(self.rank,1.15);self.rebirthToastShown=false end
 	self.lastRank=rank
@@ -531,7 +532,7 @@ function Hud:UpdateRebirth(state)
 	self:UpdateRebirthProgress(showIcon and quote.eligible~=true and cost~=nil and cost>0 and (guideDone or not intro),quote)
 	-- Never while the HUD is quiet; Rebirth 0 after the tutorial has its own tip card
 	-- (TutorialGuide "Rebirth is ready!"), so it gets no toast as well.
-	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown and not self.quiet
+	if quote.eligible==true and quote.enabled~=false and not self.rebirthToastShown and self:Revealed("Rebirth")
 		and not (intro and guideDone) then
 		self.rebirthToastShown=true
 		local nextTitle=if intro then "Rebirth 0" else RebirthPanel.Title(rank+1)
@@ -628,32 +629,69 @@ end
 -- Playtime, Gold Rush, boosts, Rally …), waits in a hidden holder, so nobody's own
 -- Visible toggles are fought. CommanderGuide drives it. `quiet` stays true for the
 -- whole tutorial: Rebirth, Free Gift, the offer, the Upgrades badge and boosts read it.
-function Hud:SetTutorialStage(stage: string?)
-	if self.tutorialStage==stage then return end
+-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): stage "post" follows the
+-- tutorial while the HUD comes in piece by piece. `reveal` (CommanderGuide, from
+-- TutorialGuide.HudReveal) names the pieces already in; the hold keeps only the named
+-- children below whose key is not, and releases everything else. Positions never change.
+-- `quiet` is off in "post"; Hud:Revealed(key) answers per piece (also for WS3's
+-- HintShop, GoldRushController and BoostReadout). app:TutorialComplete() (AppController)
+-- says whether the tutorial itself is done.
+local HOLD_KEYS={Navigation="Army",RebirthCorner="Rebirth",Topbar="Settings",PlaytimeTopbar="Playtime",
+	GoldRushChip="GoldRush",BoostSlot="Boosts",FreeGiftCorner="FreeGift",ChickenOfferCorner="FreeGift"}
+
+function Hud:Revealed(key: string): boolean
+	if self.tutorialStage==nil then return true end
+	return self.tutorialStage=="post" and self.revealed~=nil and self.revealed[key]==true
+end
+
+function Hud:SetTutorialStage(stage: string?, reveal: {[string]: boolean}?)
+	local post=stage=="post"
+	local signature=""
+	if post then
+		local keys={}
+		for key,on in reveal or {} do if on then table.insert(keys,key) end end
+		table.sort(keys)
+		signature=table.concat(keys,",")
+	end
+	if self.tutorialStage==stage and (not post or signature==self.revealSignature) then return end
 	local was=self.tutorialStage
 	self.tutorialStage=stage
-	self.quiet=stage~=nil
+	self.revealed=if post then table.clone(reveal or {}) else nil
+	self.revealSignature=signature
+	self.quiet=stage~=nil and not post
 	local layer=self.cashReadout.Parent :: Instance
+	local function held(child: Instance): boolean
+		if child==self.tutorialHold or child==self.cashReadout or child==self.shortcuts or not child:IsA("GuiObject") then return false end
+		if self.tutorialStage~="post" then return self.tutorialStage~=nil end
+		local key=HOLD_KEYS[child.Name]
+		return key~=nil and not (self.revealed or {})[key]
+	end
 	if stage and not self.tutorialHold then
 		local hold=Theme.Container(layer,"TutorialHold")
 		hold.Visible=false
 		self.tutorialHold=hold
-		local function park(child: Instance)
-			if child~=hold and child~=self.cashReadout and child~=self.shortcuts and child:IsA("GuiObject") then child.Parent=hold end
-		end
-		for _,child in layer:GetChildren() do park(child) end
-		self.tutorialHoldAdded=layer.ChildAdded:Connect(function(child) task.defer(park,child) end)
-	elseif not stage and self.tutorialHold then
+		self.tutorialHoldAdded=layer.ChildAdded:Connect(function(child)
+			task.defer(function() if self.tutorialHold and child.Parent==layer and held(child) then child.Parent=self.tutorialHold end end)
+		end)
+	end
+	if self.tutorialHold then
+		local hold=self.tutorialHold
+		for _,child in hold:GetChildren() do if not held(child) then child.Parent=layer end end
+		for _,child in layer:GetChildren() do if held(child) then child.Parent=hold end end
+	end
+	if not stage and self.tutorialHold then
 		if self.tutorialHoldAdded then self.tutorialHoldAdded:Disconnect();self.tutorialHoldAdded=nil end
 		for _,child in self.tutorialHold:GetChildren() do child.Parent=layer end
 		self.tutorialHold:Destroy();self.tutorialHold=nil
 	end
 	local cashShown=stage~="bare"
 	local shortcuts=self.shortcuts
-	local shown={Shop=stage==nil,Index=stage==nil,Upgrades=stage==nil or stage=="upgrades"}
-	self.friendBoostSlot.Visible=stage==nil
+	local shown={Shop=stage==nil or (post and self:Revealed("Shop")),Index=stage==nil or (post and self:Revealed("Index")),
+		Upgrades=stage==nil or stage=="upgrades" or post}
+	self.friendBoostSlot.Visible=stage==nil or (post and self:Revealed("FriendBoost"))
 	-- Each piece that comes in pops in; the first load (was == nil and stage set) does not.
-	local reveal=was~=nil
+	-- In "post" the piece's own reveal (Hud:Reveal) pops it, with its NEW! tag.
+	local reveal=was~=nil and was~="post"
 	if self.cashReadout.Visible~=cashShown then
 		self.cashReadout.Visible=cashShown
 		if cashShown and reveal then
@@ -683,10 +721,76 @@ function Hud:SetTutorialStage(stage: string?)
 	end
 end
 
+-- October 27 (WS5): a piece of the HUD arrives after the tutorial: it pops in, gets one
+-- Badge cue and (for the buttons) a small yellow "NEW!" tag on its top-left corner that
+-- pings until the first press or for NEW_TAG_SECONDS. Scale only; no position changes.
+-- Reduced motion keeps the tag still (UIMotion skips the pop and the ping).
+local NEW_TAG_SECONDS=30
+local NEW_TAG_COLOR=Color3.fromRGB(255,221,46)
+function Hud:RevealTarget(key: string): (any, any)
+	local app=self.app
+	if key=="Army" then return self.army.Visual,nil
+	elseif key=="Rebirth" then return self.reenlist.Visual,nil
+	elseif key=="Settings" then return self.settingsFace,nil
+	elseif key=="Shop" or key=="Index" then
+		local button=self.shortcuts:FindFirstChild(key) :: any
+		return if button then button.Visual else nil,button
+	elseif key=="Playtime" then
+		local panel=app.playtimePanel
+		return if panel then panel.button else nil,if panel then panel.button else nil
+	elseif key=="FreeGift" then
+		local button=if self.freeGift.Visible then self.freeGift elseif self.offer.Visible then self.offer else nil
+		return if button then button.Visual else nil,button
+	elseif key=="GoldRush" then
+		local chip=app.goldRush and app.goldRush.chip
+		return chip,chip
+	elseif key=="Boosts" then return self.boostSlot,nil
+	elseif key=="FriendBoost" then return self.friendBoostSlot,nil
+	end
+	return nil,nil
+end
+
+function Hud:Reveal(key: string)
+	local visual,button=self:RevealTarget(key)
+	if key=="Playtime" and self.app.playtimePanel then self.app.playtimePanel:Step(true) end
+	if not visual then return end
+	Theme.Motion:PopScale(visual,0.6,0.3)
+	self.app:Cue("Badge","Pop")
+	if not button then return end
+	local old=visual:FindFirstChild("NewTag")
+	if old then old:Destroy() end
+	local tag=Theme.Display(visual,"NewTag","NEW!",22,NEW_TAG_COLOR)
+	tag.AnchorPoint,tag.Position,tag.Size,tag.ZIndex=Vector2.new(0,0),UDim2.fromScale(0,-0.05),UDim2.fromScale(0.6,0.24),9
+	tag.TextScaled,tag.TextXAlignment=true,Enum.TextXAlignment.Center
+	Theme.Motion:Ping(tag,1.6)
+	local connection
+	local function clear()
+		if connection then connection:Disconnect();connection=nil end
+		if tag.Parent then Theme.Motion:StopLoop(tag,"ping");tag:Destroy() end
+	end
+	connection=button.Activated:Connect(clear)
+	task.delay(NEW_TAG_SECONDS,clear)
+end
+
+-- WS3 (docs/team/COINS_SHORTFALL_PROMPT.md): a short glow on the Shop button for a big
+-- Coins gap, never a checkout. False (nothing shown) until the Shop is revealed.
+function Hud:HintShop(seconds: number): boolean
+	if not self:Revealed("Shop") then return false end
+	local button=self.shortcuts:FindFirstChild("Shop") :: any
+	if self.quiet or not button or not button.Visible then return false end
+	Theme.Motion:Glow(button.Visual,Theme.Colors.coins,3)
+	Theme.Motion:Bob(button.Visual,0.04,0.8)
+	self.shopHintUntil=os.clock()+20
+	task.delay(math.max(0,seconds),function()
+		if button.Parent then Theme.Motion:StopGlow(button.Visual);Theme.Motion:StopBob(button.Visual) end
+	end)
+	return true
+end
+
 -- Shown until the free chicken is claimed; breathes to invite a tap.
 function Hud:UpdateFreeGift(state)
 	local gift=state.freeGift
-	local shown=type(gift)=="table" and gift.enabled==true and gift.claimed~=true and not self.quiet
+	local shown=type(gift)=="table" and gift.enabled==true and gift.claimed~=true and self:Revealed("FreeGift")
 	if shown==(self.freeGiftShown==true) then return end
 	self.freeGiftShown=shown
 	self.freeGift.Visible=shown
@@ -750,7 +854,7 @@ function Hud:UpdateChickenOffer(state)
 	local step=tonumber(state.chickenOfferStep) or 0
 	local key=ShopCatalog.ChickenOfferOrder[step+1]
 	local product=key and ShopCatalog.Products[key]
-	local shown=giftDone and product~=nil and not self.quiet
+	local shown=giftDone and product~=nil and self:Revealed("FreeGift")
 	-- A step bought this session: celebrate, then show the next offer.
 	if self.offerStep~=nil and step>self.offerStep then
 		local bought=ShopCatalog.Products[ShopCatalog.ChickenOfferOrder[step]]

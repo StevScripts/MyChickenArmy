@@ -23,14 +23,25 @@ local TIP_PAYOFF_SECONDS = 4
 -- Rebirth screen (ZIndex 30) the Rebirth tip lifts both above it.
 local CARD_Z, POINTER_Z, OVER_MENU_Z = 25, 24, 32
 local TAP_WORD = {Touch="TAP!", Gamepad="R2!", Keyboard="CLICK!"}
+-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): Config.Guide, read live.
+local Config = require(game.ReplicatedStorage.PetRoll.Shared.Config)
+local function guideSettings(): any
+	local value = (Config :: any).Guide
+	return if type(value) == "table" then value else {}
+end
+-- The Card analytics signal goes out at most once a second (the last change follows).
+local CARD_SIGNAL_SECONDS = 1
 local Commander = {}
 Commander.__index = Commander
 
 function Commander.new(app)
 	-- October 23 tips: chains seen this visit, chains paid off, when each timed card first
 	-- showed, and the card ids dismissed (Guide.Resolve skips them).
+	-- October 27 (WS5): the beat queue (payoffs, HUD reveals and other features' big
+	-- moments, one at a time), the HUD keys revealed so far, and the GOAL card's peeks.
 	local self = setmetatable({app=app, connections={}, sent={}, prompts={}, alive=true,wasTree=false,wasArmy=false,
-		tipSeen={}, tipPaid={}, tipShownAt={}, tipSkip={}}, Commander)
+		tipSeen={}, tipPaid={}, tipShownAt={}, tipSkip={}, beats={}, queuedReveals={}, visitStart=os.clock(),
+		lastActionAt=os.clock(), peekUntil=0}, Commander)
 	local root = Theme.InsetContainer(app.other, "CommanderGuide", Enum.ScreenInsets.CoreUISafeInsets)
 	root.ZIndex, root.Visible = CARD_Z, false
 	self.root = root
@@ -54,6 +65,17 @@ function Commander.new(app)
 	self.portrait=Theme.Image(card,"Commander",Theme.Assets.Commander,UDim2.fromScale(.165,1.15),UDim2.fromScale(0,-.015))
 	Theme.Aspect(self.portrait,1)
 	self.portrait.ZIndex=4
+	-- October 27 (WS1 camp readiness card, rendered here): a thin bar under the line for a
+	-- card's `progress` ({value, goal, label}, e.g. "ARMY 38 / 64"). Scale only.
+	local power=Theme.Frame(card,"Power",UDim2.fromScale(.795,.09),Theme.Arcade.border)
+	power.Position,power.BackgroundTransparency,power.ZIndex,power.Visible=UDim2.fromScale(.18,.86),.2,5,false
+	Theme.Round(power,nil).CornerRadius=UDim.new(.5,0)
+	local fill=Theme.Frame(power,"Fill",UDim2.fromScale(0,1),Theme.Arcade.gold)
+	fill.ZIndex=6
+	Theme.Round(fill,nil).CornerRadius=UDim.new(.5,0)
+	local powerLabel=Theme.Label(power,"Label","",14,Color3.new(1,1,1))
+	powerLabel.Size,powerLabel.TextScaled,powerLabel.ZIndex,powerLabel.TextXAlignment=UDim2.fromScale(1,1),true,7,Enum.TextXAlignment.Center
+	self.power,self.powerFill,self.powerLabel=power,fill,powerLabel
 	Theme.ScaleText(card)
 	self.instructionLimits={}
 	for _,label in {self.instruction,self.instruction.TextFace,self.instruction.TextShadow} do
@@ -72,6 +94,14 @@ function Commander.new(app)
 	table.insert(self.connections,ProximityPromptService.PromptHidden:Connect(function(prompt)
 		self.prompts[prompt]=nil;self:Update()
 	end))
+	-- October 27: the HUD reveal clock and the GOAL card's peeks run between snapshots,
+	-- once a second while either needs it (self.ticking, set by Update).
+	task.spawn(function()
+		while self.alive do
+			task.wait(1)
+			if self.alive and self.ticking then self:Update() end
+		end
+	end)
 	return self
 end
 
@@ -222,6 +252,43 @@ function Commander:Payoff(text:string,tag:string,seconds:number)
 	task.delay(seconds+.05,function() if self.alive then self:Update() end end)
 end
 
+-- October 27 (WS5, GAME_FEEL's one emphasis per event): a small beat queue. A queued beat
+-- (a HUD reveal) runs `fn` once nothing modal is open (app:ModalBusy) and the beat before
+-- it is over, then holds the stage for `seconds`. Without `fn` it is another feature's
+-- moment playing now (app:Beat, e.g. WS4's rare reveal): cards and reveals wait it out.
+-- The tutorial's payoff and each "TIP • COMPLETE!" count as beats (Celebrating).
+function Commander:Beat(name:string,seconds:number,fn:(()->())?)
+	if fn==nil then
+		self.holdUntil=math.max(self.holdUntil or 0,os.clock()+seconds)
+		task.delay(seconds+.05,function() if self.alive then self:Update() end end)
+		return
+	end
+	table.insert(self.beats,{name=name,seconds=seconds,fn=fn})
+	self:PumpBeats()
+end
+
+function Commander:BeatBusy():boolean
+	local now=os.clock()
+	return self:Celebrating() or now<(self.holdUntil or 0) or now<(self.beatUntil or 0)
+end
+
+function Commander:PumpBeats()
+	if #self.beats==0 or self:BeatBusy() or not self.alive then return end
+	local app=self.app
+	if app.ModalBusy and app:ModalBusy() then
+		if not self.beatRetry then
+			self.beatRetry=true
+			task.delay(.5,function() self.beatRetry=false;if self.alive then self:PumpBeats() end end)
+		end
+		return
+	end
+	local beat:any=table.remove(self.beats,1)
+	self.beatUntil=os.clock()+beat.seconds
+	local ok,why=pcall(beat.fn)
+	if not ok then warn("[CommanderGuide] beat "..beat.name..": "..tostring(why)) end
+	task.delay(beat.seconds+.05,function() if self.alive then self:PumpBeats();self:Update() end end)
+end
+
 function Commander:CelebrateCore()
 	self:Payoff(Guide.CompleteText,"TUTORIAL COMPLETE!",CORE_SECONDS)
 	self.app.audio:Play("SkillTreeResearchCompleted",nil,{noFallback=true,cooldown=.3})
@@ -265,6 +332,91 @@ end
 
 function Commander:Signal(signal)
 	self.app:Request("TutorialSignal",{signal=signal,input=self:InputKind()})
+end
+
+-- October 27 (WS5, analytics post.card.*): the card the player actually sees after the
+-- tutorial: its id, "Hidden" while one waits behind a menu, a popup or a GOAL peek, "None"
+-- without one. At most one signal a second; the last change follows the throttle.
+function Commander:ReportCard(id:string)
+	if id==self.cardReported then self.cardPending=nil;return end
+	self.cardPending=id
+	local now=os.clock()
+	local wait=(self.cardSentAt or -math.huge)+CARD_SIGNAL_SECONDS-now
+	if wait>0 then
+		if not self.cardTimer then
+			self.cardTimer=true
+			task.delay(wait,function()
+				self.cardTimer=false
+				if self.alive and self.cardPending then self:ReportCard(self.cardPending) end
+			end)
+		end
+		return
+	end
+	self.cardReported,self.cardPending,self.cardSentAt=id,nil,now
+	self.app:Request("TutorialSignal",{signal="Card",card=id})
+end
+
+-- October 27 (WS5): the progressive HUD reveal after the tutorial (TutorialGuide.HudReveal;
+-- Hud's "post" stage keeps every position, only the timing changes). What is due when the
+-- tutorial completes (My Army, Rebirth, Settings) comes in with the payoff; each later
+-- piece is a beat of its own, BeatGapSeconds apart, with a pop and a "NEW!" tag (Hud:Reveal).
+-- Returning players (completed before this visit), older saves and
+-- Config.Guide.HudReveal = false see everything at once, as before.
+function Commander:HudStage(state:any,facts:any,inTutorial:boolean,tutorialStage:string?):string?
+	if inTutorial then return tutorialStage end
+	local hud=self.app.hud
+	if self.completedBeforeVisit or self.revealDone or guideSettings().HudReveal==false or state.introRebirth==nil
+		or not (hud and hud.Reveal) then
+		return nil
+	end
+	local now=os.clock()
+	self.coreSeenAt=self.coreSeenAt or now
+	local reveal=Guide.HudReveal(state,facts,now-self.coreSeenAt,now-self.visitStart)
+	if not self.shownReveal then
+		self.shownReveal={}
+		for key,on in reveal do if on then self.shownReveal[key]=true end end
+	end
+	local gap=tonumber(guideSettings().BeatGapSeconds) or 1.5
+	local all=true
+	for _,key in Guide.HudRevealKeys do
+		if not self.shownReveal[key] then
+			all=false
+			if reveal[key] and not self.queuedReveals[key] then
+				self.queuedReveals[key]=true
+				self:Beat("reveal:"..key,gap,function()
+					self.shownReveal[key]=true
+					local current=self.app.hud
+					if current and current.SetTutorialStage then current:SetTutorialStage("post",self.shownReveal) end
+					if current and current.Reveal then current:Reveal(key) end
+					self.app:Request("TutorialSignal",{signal="Reveal",card=key})
+				end)
+			end
+		end
+	end
+	if all then self.revealDone=true;return nil end
+	return "post"
+end
+
+-- October 27 (WS5): GOAL cards stay on screen for the first GoalAlwaysSeconds of a visit;
+-- after that they peek for GoalPeekSeconds when they first appear, when their progress
+-- crosses a quarter, and once after GoalIdleSeconds without progress. True = hide it now.
+function Commander:GoalHidden(current:any):boolean
+	if not (current and current.tag=="GOAL") then self.goalId,self.goalQuarter=nil,nil;return false end
+	local guide=guideSettings()
+	local now=os.clock()
+	local quarter=if type(current.fraction)=="number" then math.floor(math.clamp(current.fraction,0,1)*4) else nil
+	local hidden=false
+	if now-self.visitStart>=(tonumber(guide.GoalAlwaysSeconds) or 900) then
+		local peek=tonumber(guide.GoalPeekSeconds) or 10
+		if current.id~=self.goalId or (quarter and self.goalQuarter and quarter>self.goalQuarter) then
+			self.peekUntil=now+peek
+		elseif not self.idlePeeked and now-self.lastActionAt>=(tonumber(guide.GoalIdleSeconds) or 25) then
+			self.idlePeeked,self.peekUntil=true,now+peek
+		end
+		hidden=now>=self.peekUntil
+	end
+	self.goalId,self.goalQuarter=current.id,quarter
+	return hidden
 end
 
 function Commander:ClearFocus()
@@ -378,8 +530,12 @@ function Commander:Update()
 		self.completedBeforeVisit=(state.tutorial or {}).guideCompleted==true
 	end
 	-- October 21: Daily Rewards now opens mid-guide; its popup is never dimmed or covered.
+	-- October 27 (WS5): payoff, then Daily, then the first tip: while Daily is about to open
+	-- (it waits out the payoff), the next card waits too, so it never types under the popup.
+	local daily=app.dailyReward
+	local dailyDue=daily~=nil and daily.Due~=nil and daily:Due() and not self:Celebrating()
 	local blocked=app.dialogueActive or (app.offlineCash and app.offlineCash.gui~=nil) or (app.intro~=nil and app.intro:Pending())
-		or (app.dailyReward~=nil and app.dailyReward.gui~=nil) or (app.marchFilm~=nil and app.marchFilm.playing)
+		or (daily~=nil and daily.gui~=nil) or (app.marchFilm~=nil and app.marchFilm.playing) or dailyDue
 	local character=Players.LocalPlayer.Character
 	if not self.ready and not blocked and character and character:FindFirstChild("HumanoidRootPart") then
 		self.ready=true;self:Signal("Ready")
@@ -427,8 +583,12 @@ function Commander:Update()
 				for _,card in chain.cards do if card.seconds and skip[card.id] then ended=true end end
 			end
 			if ended then
-				self.tipPaid[chain.id]=true;self.celebrate=true
-				self:Payoff(chain.payoff,"TIP • COMPLETE!",TIP_PAYOFF_SECONDS)
+				self.tipPaid[chain.id]=true
+				-- October 27: the GOAL chain has no payoff (it ends at Rebirth 1).
+				if chain.payoff then
+					self.celebrate=true
+					self:Payoff(chain.payoff,"TIP • COMPLETE!",TIP_PAYOFF_SECONDS)
+				end
 			end
 		end
 	end
@@ -459,7 +619,19 @@ function Commander:Update()
 		and not self.completedBeforeVisit
 	local hudStage=if not inTutorial then nil elseif lessonIndex>=5 then "upgrades"
 		elseif facts.Sell or (tonumber(state.coins) or 0)>0 then "coins" else "bare"
-	if app.hud and app.hud.SetTutorialStage then app.hud:SetTutorialStage(hudStage) end
+	-- October 27 (WS5): after the tutorial the HUD comes in piece by piece ("post").
+	hudStage=self:HudStage(state,facts,inTutorial,hudStage)
+	if app.hud and app.hud.SetTutorialStage then
+		app.hud:SetTutorialStage(hudStage,if hudStage=="post" then self.shownReveal else nil)
+	end
+	-- Meaningful progress (Coins, chickens, eggs, pulls) restarts the GOAL card's idle clock.
+	local progressKey=table.concat({tostring(state.coins),tostring(#(state.pets or {})),tostring(tutorial.collectedEggCount),
+		tostring(tutorial.vacuumEggCount),tostring(tutorial.rollCount),tostring((state.eggs or {}).carriedValue)},"|")
+	if progressKey~=self.progressKey then self.progressKey,self.lastActionAt,self.idlePeeked=progressKey,os.clock(),false end
+	local goalHidden=self:GoalHidden(current)
+	local reporting=tutorial.guideCompleted==true
+	self.ticking=hudStage=="post" or #self.beats>0 or (current~=nil and current.tag=="GOAL")
+	self:PumpBeats()
 	-- October 24 (Stevin): the egg hint (the lit egg with its tapping hand, the Click badge
 	-- on every other ready egg) follows the shared rule TutorialGuide.EggHint: on from the
 	-- first chicken through the tutorial and the first tips until the Egg Vacuum is owned,
@@ -473,6 +645,7 @@ function Commander:Update()
 	end
 	if not current then
 		self.pendingType=false;self:CancelTypewriter()
+		if reporting then self:ReportCard("None") end
 		self.root.Visible=false;self:ClearFocus();self:Present(false);return
 	end
 	local id=current.id
@@ -525,9 +698,28 @@ function Commander:Update()
 	-- first card stays up beside it instead of leaving the first screen without words.
 	if id=="Roll" then atTarget=false end
 	local visible=(menuLesson or (not app.panel.Visible and not inTree)) and not blocked and not atTarget
+	-- October 27 (WS5): a GOAL card between its peeks stays hidden, and a new card waits
+	-- for a running beat (a HUD reveal, another feature's big moment) before it types.
+	if goalHidden or (self.pendingType and self:BeatBusy() and not self:Celebrating()) then visible=false end
 	self:SetInstruction(text,visible and self.pendingType)
-	self.tag.Text=if current.tag and index then current.tag.." • "..index.."/"..current.total
+	-- TIP and TUTORIAL cards carry "• n/N"; GOAL and a provider's own tag ("NEXT: FORT ROOST") do not.
+	local counted=current.tag=="TIP" or current.tag=="TUTORIAL"
+	self.tag.Text=if current.tag and index and current.total and counted then current.tag.." • "..index.."/"..current.total
 		elseif current.tag then current.tag elseif id=="Complete" then "TUTORIAL COMPLETE!" else ""
+	-- October 27 (WS1's readiness card): its power bar, filled toward the goal.
+	local progress=current.progress
+	local goal=if type(progress)=="table" then tonumber(progress.goal) else nil
+	self.power.Visible=goal~=nil and goal>0
+	if goal and goal>0 then
+		local fraction=math.clamp((tonumber(progress.value) or 0)/goal,0,1)
+		self.powerLabel.Text=if type(progress.label)=="string" then progress.label
+			else "ARMY "..math.floor(tonumber(progress.value) or 0).." / "..math.floor(goal)
+		if fraction~=self.powerFraction then
+			self.powerFraction=fraction
+			Theme.Motion:Progress(self.powerFill,fraction,.25,false :: any)
+		end
+	end
+	if reporting then self:ReportCard(if visible then id else "Hidden") end
 	if visible then self.pendingType=false end
 	self:Present(visible,changed)
 	if visible and self.celebrate then self.celebrate=false;self:Celebrate() end
@@ -553,8 +745,8 @@ function Commander:Update()
 	elseif lessonNode and self.centered~=lessonNode and app.research.nodes[lessonNode]
 		and lessonView and lessonView.category==(app.research.category or "Main")
 		-- October 25 (Stevin): the plot lesson (card 6) leaves the map where it is and only
-		-- rings its hex; the map does not pan to it.
-		and current.id~="Expand" then
+		-- rings its hex; the map does not pan to it (October 27: nor the Rebuild card's).
+		and current.id~="Expand" and current.node~="Flock1" then
 		self.centered=lessonNode
 		app.research:Center(lessonNode)
 		if UserInputService.GamepadEnabled then app.research:Select(lessonNode,true);GuiService.SelectedObject=app.research.nodes[lessonNode].button end
@@ -568,11 +760,13 @@ function Commander:Update()
 	local target,placement
 	local where=current.target
 	-- Menu lessons dim the screen around their control (October 23: and the Rebirth tips).
-	local dim=where=="Upgrades" or where=="VacuumTool" or id=="Select" or id=="Deploy" or where=="Rebirth" or where=="Gems"
+	-- October 27: the Army's "Equip Best" cards (WS5's TipArmyEquip, WS1's TipCampEquip) ring like Select.
+	local equip=id=="Select" or id=="TipArmyEquip" or id=="TipCampEquip"
+	local dim=where=="Upgrades" or where=="VacuumTool" or equip or id=="Deploy" or where=="Rebirth" or where=="Gems"
 	local exit=app.research.exit or app.research.root:FindFirstChild("Exit",true)
 	if blocked then
 		target=nil
-	elseif id=="Select" then
+	elseif equip then
 		target=if inTree then exit elseif inArmy then app.chickenBrowser.best elseif not app.panel.Visible then app.hud.army else nil
 	elseif id=="Deploy" then
 		-- October 20 launch review: 60% of Deploy quitters were still inside Upgrades.

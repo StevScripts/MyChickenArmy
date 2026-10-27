@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.UITheme)
 local MenuLayout = require(script.Parent.MenuLayout)
 local ShopArt = require(script.Parent.ShopPreviewArt)
+local Config = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Config)
 local Controller = {}
 Controller.__index = Controller
 
@@ -99,6 +100,7 @@ function Controller:Render(state, _result)
 	if type(granted)~="table" or type(granted.day)~="number" then return end
 	if granted.day==self.shownDay or (self.pending and self.pending.day==granted.day) then return end
 	self.pending = table.clone(granted)
+	self.pendingAt = os.clock()
 	self:TryShow()
 end
 
@@ -117,8 +119,29 @@ function Controller:Blocked(): boolean
 	if offline and offline.gui~=nil then self.receiptAt = os.clock();return true end
 	if self.receiptAt and os.clock()-self.receiptAt<AFTER_RECEIPT_SECONDS then return true end
 	-- October 21: Day 1 opens right after the guide's core payoff, not over it.
-	if app.commander and app.commander:Celebrating() then return true end
-	return app.intro~=nil and app.intro:Pending()
+	-- October 27 (WS5): and after any running beat (a payoff, a HUD reveal, a big moment).
+	if app.BeatBusy then
+		if app:BeatBusy() then return true end
+	elseif app.commander and app.commander:Celebrating() then return true end
+	if app.intro~=nil and app.intro:Pending() then return true end
+	-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): never close the player's
+	-- menu or film: wait while one is open, up to Config.Guide.DailyWaitMaxSeconds, then
+	-- open as before (Show closes the other menus).
+	local guide: any = (Config :: any).Guide or {}
+	self.modalWait = false
+	if guide.ModalQueue ~= false and app.ModalBusy and app:ModalBusy()
+		and os.clock()-(self.pendingAt or 0) < (tonumber(guide.DailyWaitMaxSeconds) or 45) then
+		self.modalWait = true
+		return true
+	end
+	return false
+end
+
+-- October 27 (WS5): a granted day is about to open (nothing but the payoff or a short
+-- beat holds it). CommanderGuide keeps its next card back until the popup is up, so the
+-- order on screen is payoff, Daily, first tip. False while it waits for a menu to close.
+function Controller:Due(): boolean
+	return self.alive == true and self.pending ~= nil and self.gui == nil and self.modalWait ~= true
 end
 
 function Controller:TryShow()

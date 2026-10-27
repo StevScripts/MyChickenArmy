@@ -132,6 +132,35 @@ the schema 14 build 04 lost 12% because the lever's prompt hid the chicken's, fi
 October 25 in `RollStation`); 07 is the first payoff; 12 is the first tip; 14 shows whether
 the Army loop is found (the Attack tip waits for three chickens); 15 is the long-term marker.
 
+## Post-tutorial (schema 16, October 27)
+
+After step 11 the funnel shows only how far a player got. It does not show what was on
+their screen when they left. Since October 27 the ledger also records that (WS5,
+`docs/team/POST_TUTORIAL_FLOW_20261027.md`):
+
+- **Visible card.** The client sends a `Card` signal whenever the card it shows changes.
+  The value is the card id (`TutorialGuide.CardIds`), "Hidden" while it waits behind a
+  menu, popup or GOAL peek, or "None". It is sent only once the tutorial is done, at most
+  once a second. The server records `post.card.enter.<id>` and
+  `post.card.dwell.<id>` (seconds), plus a `card:<id>` trail entry. Unknown ids read
+  "Other". (The server's resolved step, journey `ex`, still ignores the client's timed
+  cards. Use `cv` instead.)
+- **Exits.** At leave, a finisher (stage Ob:* or Post) counts `post.exit.<card on screen>`.
+  With None/Hidden it also counts `post.exit.gap` (seconds without a card).
+  `post.sessionAfterCore` is the seconds played after completing in this session.
+- **HUD reveals.** Each piece revealed after the tutorial counts `hud.reveal.<key>`. Its
+  first press after that records `hud.firstClick.<key>` (from `ui.click` "Hud/<Button>").
+- **Journeys** gain these fields:
+  - `tl`: the last 15 trail entries, kept past the 60-entry cap that cut 269 of 281 Cluck
+    Camp winners' trails.
+  - `cv` and `cs`: the card at leave and the seconds on it.
+  - `hr`: the reveal codes (P Playtime, I Index, S Shop, F Free Gift, G Gold Rush,
+    B boosts, FB Friend Boost).
+
+Read them with `AnalyticsReport.PostText({days = 2, env = "live"})`, or `Summary().post`.
+The "post" flag names the card with the most exits per entry, and fires when more than
+25% of finisher exits had no card.
+
 ## Rules
 
 Analytics names are append-only: new steps go at the end with a `Schema.Version` bump;
