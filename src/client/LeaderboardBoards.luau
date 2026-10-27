@@ -25,6 +25,7 @@ local STYLE = {
 	-- October 15: the third board on every plot.
 	RobuxSpent = {model = "Leaderboard3", surface = "MostRobux", color = Theme.PageColors.Shop, icon = Theme.Assets.Shop, valueColor = Theme.Arcade.green, money = true},
 }
+local BUILD_DISTANCE = 200 -- October 27 (WS6): studs from the camera at which a board is built
 local MEDALS = {Theme.Arcade.gold, Color3.fromRGB(198, 208, 220), Color3.fromRGB(219, 134, 64)}
 
 local function frame(parent: Instance, name: string, position: UDim2, size: UDim2, color: Color3?, transparency: number?)
@@ -62,7 +63,8 @@ local function formatValue(style, value: number): string
 end
 
 function Boards.new(app)
-	local self = setmetatable({app = app, views = {}, data = {}, thumbs = {}, connections = {}}, Boards)
+	local self = setmetatable({app = app, views = {}, data = {}, thumbs = {}, connections = {},
+		pending = {} :: {[BasePart]: string}, destroyed = false}, Boards)
 	task.spawn(function() self:Start() end)
 	return self
 end
@@ -86,14 +88,28 @@ function Boards:Start()
 	for _, value in folder:GetChildren() do watch(value) end
 	table.insert(self.connections, folder.ChildAdded:Connect(watch))
 	-- Boards stream in and out with the map; attach to each Screen as it appears.
+	-- October 27 (WS6, docs/team/MOBILE_PERFORMANCE_20261027.md): a board is built the
+	-- first time the camera comes within BUILD_DISTANCE of it (checked once a second),
+	-- not all 18 (about 5,400 GUI instances) at boot. Built boards stay.
 	local function consider(item: Instance)
 		if item.Name ~= "Screen" or not item:IsA("BasePart") or not item.Parent then return end
 		for key, style in STYLE do
-			if item.Parent.Name == style.model then self:Attach(key, item) end
+			if item.Parent.Name == style.model and not self.views[item] then self.pending[item] = key end
 		end
 	end
 	for _, item in workspace:GetDescendants() do consider(item) end
 	table.insert(self.connections, workspace.DescendantAdded:Connect(consider))
+	while not self.destroyed do
+		local camera = workspace.CurrentCamera
+		for screen, key in self.pending do
+			if not screen:IsDescendantOf(workspace) then self.pending[screen] = nil
+			elseif camera and (camera.CFrame.Position - screen.Position).Magnitude <= BUILD_DISTANCE then
+				self.pending[screen] = nil
+				pcall(self.Attach, self, key, screen)
+			end
+		end
+		task.wait(1)
+	end
 end
 
 function Boards:Attach(key: string, screen: BasePart)
@@ -227,6 +243,8 @@ function Boards:Render(view: any)
 end
 
 function Boards:Destroy()
+	self.destroyed = true
+	table.clear(self.pending)
 	for _, connection in self.connections do connection:Disconnect() end
 	for _, view in self.views do view.gui:Destroy() end
 	table.clear(self.views)

@@ -56,6 +56,7 @@ local GalaxyCrateVisuals = require(script.Parent.GalaxyCrateVisuals)
 -- October 21 game feel: shared camera and world punctuation (docs/team/GAME_FEEL_20261021.md).
 local ScreenFeel = require(script.Parent.ScreenFeel)
 local WorldFeel = require(script.Parent.WorldFeel)
+local PerfTier = require(script.Parent.PerfTier) -- Oct 27 WS6: performance tier budgets
 local AppController = {}
 AppController.__index = AppController
 local C = Theme.Colors
@@ -414,6 +415,9 @@ function AppController:SetMenuBlur(owner, visible)
 	self.menuBlurOwners[owner] = if visible then true else nil
 	if not self.alive then return end
 	local target = if next(self.menuBlurOwners) then 18 else 0
+	-- Oct 27 WS6: the low tier skips the full-screen menu blur (the menus' own dim
+	-- stays); the loading veil keeps its blur. Owners are still tracked.
+	if target > 0 and not self.menuBlurOwners.loading and PerfTier.Budget().menuBlur == false then target = 0 end
 	if not self.menuBlur then
 		if target == 0 then return end
 		local blur = Instance.new("BlurEffect")

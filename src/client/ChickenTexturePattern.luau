@@ -21,7 +21,27 @@ local function noise(u: number, v: number, period: number, seed: number): number
 	return (a+(b-a)*fx)*(1-fy)+(c+(d-c)*fx)*fy
 end
 
+-- October 27 (WS6 P8, docs/team/MOBILE_PERFORMANCE_20261027.md): the same 512-square
+-- fields pre-baked as uploaded images skip the Luau bake (about 0.5 s on a Mac, seconds
+-- on a phone). Nil until Stevin uploads them; a missing, failed or wrong-sized image
+-- falls back to the bake below.
+Pattern.ImageIds={Galaxy=nil::string?,Rainbow=nil::string?}
+
+local function prebaked(appearance: string): EditableImage?
+	local id=(Pattern.ImageIds::any)[appearance]
+	if type(id)~="string" or id=="" then return nil end
+	local ok,image=pcall(function() return AssetService:CreateEditableImageAsync(Content.fromUri(id)) end)
+	if not ok or not image then return nil end
+	if image.Size~=Vector2.new(EDGE,EDGE) then image:Destroy();return nil end
+	return image
+end
+
 function Pattern.Create(appearance: string, current: () -> boolean): EditableImage?
+	local baked=prebaked(appearance)
+	if baked then
+		if current() then return baked end
+		baked:Destroy();return nil
+	end
 	local pixels=buffer.create(EDGE*EDGE*4)
 	for y=0,EDGE-1 do
 		local v=y/EDGE

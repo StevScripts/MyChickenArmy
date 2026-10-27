@@ -1,6 +1,9 @@
 --!strict
 -- Client presentation budget only. DuckAnimator supplies the existing frame clock;
 -- the mask controller separately limits the number of selected chickens to one.
+-- October 27 (WS6): Automatic never rises above the PerfTier texture ceiling
+-- (low static, mid animated, high masked); explicit graphics levels are unchanged.
+local PerfTier = require(script.Parent.PerfTier)
 local Quality = {}
 Quality.__index = Quality
 
@@ -41,11 +44,18 @@ function Quality.NewState(savedLevel: number): State
 		average = nil, badSeconds = 0, goodSeconds = 0}
 end
 
-function Quality.Advance(state: State, dt: number): Tier
+function Quality.Advance(state: State, dt: number, limit: number?): Tier
 	-- Explicit graphics settings are a choice, not a fluctuating FPS budget.
 	-- Studio/background throttling previously kept replacing the material even
 	-- at level 10. Only Automatic samples performance to choose its tier.
 	if not state.automatic then return TIERS[state.tier] end
+	-- October 27 (WS6): the PerfTier ceiling caps Automatic without counting as a
+	-- failed tier, so the texture climbs again when the device tier does.
+	local ceiling = math.min(state.ceiling, limit or 3)
+	if state.tier > ceiling then
+		state.tier = ceiling
+		state.badSeconds, state.goodSeconds = 0, 0
+	end
 	if dt ~= dt or dt <= 0 then return TIERS[state.tier] end
 	if dt > 1 then
 		-- A suspended/backgrounded app supplies no useful rendering observation.
@@ -67,7 +77,7 @@ function Quality.Advance(state: State, dt: number): Tier
 			state.ceiling = state.tier
 			state.badSeconds = 0
 		end
-	elseif state.tier < state.ceiling and average <= GOOD_FRAME[state.tier] then
+	elseif state.tier < ceiling and average <= GOOD_FRAME[state.tier] then
 		state.goodSeconds += elapsed
 		state.badSeconds = 0
 		if state.goodSeconds >= PROMOTE_SECONDS[state.tier] then
@@ -127,7 +137,9 @@ function Quality.new(settings: any?, inputService: any?)
 end
 
 function Quality.Step(self: any, dt: number): Tier
-	if not self.destroyed and self.focused then Quality.Advance(self.state, dt) end
+	if not self.destroyed and self.focused then
+		Quality.Advance(self.state, dt, PerfTier.TextureCeilings[PerfTier.Budget().textureCeiling])
+	end
 	return self:GetTier()
 end
 

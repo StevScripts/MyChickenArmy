@@ -29,6 +29,7 @@ local EggBackStack=require(script.Parent.EggBackStack)
 local VacuumController=require(script.Parent.VacuumController)
 local AutoVacuumController=require(script.Parent.AutoVacuumController)
 local Theme=require(script.Parent.UITheme)
+local PerfTier=require(script.Parent.PerfTier)
 local Eggs={}
 Eggs.__index=Eggs
 -- Presentation-only budgets; collection distance and server timing stay in Config.
@@ -48,6 +49,7 @@ local TAP_SECONDS,TAP_PIXELS=0.35,14 -- Longer or farther touches are camera dra
 local CONFIRM_SECONDS=1.2 -- An unconfirmed click drops its egg back after this.
 local GAMEPAD_REPEAT=0.2 -- Holding R2 grabs the next nearest egg this often.
 local TOO_FAR_SECONDS=0.9
+local PARK_REFRESH=0.5 -- October 27 (WS6): a parked egg re-faces the camera this often
 local VACUUM_RING=Color3.fromRGB(150,214,255)
 -- October 21 tutorial (Stevin, like Drop a Fruit's "Tap your fruits" step): during the
 -- guide's egg lesson the egg to click glows and the hand cursor taps it.
@@ -664,6 +666,7 @@ function Eggs:Step(now)
   self.tooFar.Enabled=false;self.tooFar.Adornee=nil
  end
  local camera=workspace.CurrentCamera
+ local budget=PerfTier.Budget()
  self:StepCaptions(root,camera,now)
  -- The held vacuum is "sucking" while it has room and an egg is flying into it or
  -- a settled one sits inside its reach; VacuumController hums and shimmers meanwhile.
@@ -733,9 +736,17 @@ function Eggs:Step(now)
    local grow=Feel.Feel.LayPopFrom+(1-Feel.Feel.LayPopFrom)*backOut(t)
    view:Set(position,size*grow,math.sin(t*math.pi)*0.35,view.seed)
   else
-   local bob=if self.app.reducedMotion then 0 else math.sin(age*2.6+view.seed)*0.07
-   local pop:number=self:HoverPop(view)
-   view:Set(view.ground+Vector3.new(0,bob+pop*HOVER_LIFT,0),size*(1+pop*HOVER_SCALE),0,view.seed)
+   -- October 27 (WS6): settled eggs bob at PerfTier's eggHz inside eggBobRadius of the
+   -- camera; farther ones park without a bob and refresh their facing twice a second.
+   -- The hovered egg, flights and lay pops keep every frame (they are the feel).
+   local hovered=view==self.hoverView or view==self.leaveView
+   if hovered or now>=(view.nextBobAt or 0) then
+    local near=camera==nil or (camera.CFrame.Position-view.ground).Magnitude<=budget.eggBobRadius
+    view.nextBobAt=now+(if near then 1/budget.eggHz else PARK_REFRESH)
+    local bob=if self.app.reducedMotion or not near then 0 else math.sin(age*2.6+view.seed)*0.07
+    local pop:number=self:HoverPop(view)
+    view:Set(view.ground+Vector3.new(0,bob+pop*HOVER_LIFT,0),size*(1+pop*HOVER_SCALE),0,view.seed)
+   end
   end
  end
  self.vacuum:SetActive(sucking)

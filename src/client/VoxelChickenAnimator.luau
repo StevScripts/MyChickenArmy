@@ -15,7 +15,7 @@ type State = {
 	serials: {[string]: any}, cues: {[string]: Cue}, localAttack: any,
 	lastStep: number?, base: string, baseTime: number, mode: string?,
 	transitionAt: number, transition: {CFrame}, defeatAt: number?,
-	sleeping: boolean, destroyed: boolean,
+	sleeping: boolean, destroyed: boolean, attr: (string) -> any,
 }
 type Controller = typeof(setmetatable({} :: State, VoxelChickenAnimator))
 
@@ -27,8 +27,8 @@ local CUE_PRIORITY = {"Hit", "Attack", "Victory"}
 -- Victory pose; a cluck is sound only (CombatEffects.Conquer).
 local ACTION_CLIPS: {[string]: string} = {Peck = "Attack", Hop = "Victory"}
 
-local function numericAttribute(model: Model, name: string, fallback: number): number
-	local value = model:GetAttribute(name)
+local function numericAttribute(attr: (string) -> any, name: string, fallback: number): number
+	local value = attr(name)
 	return if typeof(value) == "number" and value == value and math.abs(value) < math.huge then value else fallback
 end
 
@@ -67,8 +67,11 @@ local function sample(clip: Clip, time: number): (Frame, Frame, number)
 	return first, second, math.clamp((at - first.time) / math.max(second.time - first.time, 0.0001), 0, 1)
 end
 
-function VoxelChickenAnimator.new(model: Model): Controller?
+-- October 27 (WS6): `attr` is DuckAnimator's cached GetAttribute for this model (the
+-- hot path reads about ten attributes a step); without it the model is read directly.
+function VoxelChickenAnimator.new(model: Model, attr: ((string) -> any)?): Controller?
 	if model:GetAttribute("ChickenVisualV3") ~= true then return nil end
+	local read: (string) -> any = attr or function(name: string): any return model:GetAttribute(name) end
 	local phase = 0
 	for i = 1, #model.Name do phase += string.byte(model.Name, i) * 0.071 end
 	local state: State = {model = model, bones = {}, mirrors = {}, original = {}, poses = {}, data = nil,
@@ -78,7 +81,7 @@ function VoxelChickenAnimator.new(model: Model): Controller?
 			ActionSerial = model:GetAttribute("ActionSerial") or 0},
 		cues = {}, localAttack = model:GetAttribute("LocalAttackAt"), lastStep = nil,
 		base = "Idle", baseTime = phase, mode = nil, transitionAt = 0, transition = {},
-		defeatAt = nil, sleeping = false, destroyed = false}
+		defeatAt = nil, sleeping = false, destroyed = false, attr = read}
 	return setmetatable(state, VoxelChickenAnimator)
 end
 
@@ -133,10 +136,10 @@ end
 
 function VoxelChickenAnimator._events(self: Controller, now: number, allow: boolean)
 	for attribute, name in EVENTS do
-		local serial = self.model:GetAttribute(attribute) or 0
+		local serial = self.attr(attribute) or 0
 		if serial ~= self.serials[attribute] then
 			self.serials[attribute] = serial
-			local started = self.model:GetAttribute("AttackStartedAt")
+			local started = self.attr("AttackStartedAt")
 			local age = if name == "Attack" and typeof(started) == "number"
 				then math.max(0, workspace:GetServerTimeNow() - started) else 0
 			if allow and (name ~= "Attack" or age < 0.75) then
@@ -144,19 +147,19 @@ function VoxelChickenAnimator._events(self: Controller, now: number, allow: bool
 			end
 		end
 	end
-	local actionSerial = self.model:GetAttribute("ActionSerial") or 0
+	local actionSerial = self.attr("ActionSerial") or 0
 	if actionSerial ~= self.serials.ActionSerial then
 		self.serials.ActionSerial = actionSerial
-		local action = self.model:GetAttribute("Action")
+		local action = self.attr("Action")
 		local name = if typeof(action) == "string" then ACTION_CLIPS[action] else nil
-		local started = self.model:GetAttribute("ActionStartedAt")
+		local started = self.attr("ActionStartedAt")
 		local age = if typeof(started) == "number" then math.max(0, workspace:GetServerTimeNow() - started) else 0
 		if allow and name and age < 0.75 then self.cues[name] = {name = name, started = now - age} end
 	end
-	local localAttack = self.model:GetAttribute("LocalAttackAt")
+	local localAttack = self.attr("LocalAttackAt")
 	if localAttack ~= self.localAttack then
 		self.localAttack = localAttack
-		if allow and localAttack ~= nil and self.model:GetAttribute("AttackSerial") == nil then
+		if allow and localAttack ~= nil and self.attr("AttackSerial") == nil then
 			self.cues.Attack = {name = "Attack", started = now}
 		end
 	end
@@ -173,15 +176,17 @@ end
 function VoxelChickenAnimator.Step(self: Controller, now: number, reduced: boolean?, camera: Camera?)
 	if self.destroyed then return end
 	local model = self.model
-	local dt = if self.lastStep then math.clamp(now - self.lastStep, 0, 0.15) else 0
+	-- October 27 (WS6): DuckAnimator may step a far or off-screen rig at 2-5 Hz; the
+	-- wider clamp keeps its clip advancing at about the right speed.
+	local dt = if self.lastStep then math.clamp(now - self.lastStep, 0, 0.25) else 0
 	self.lastStep = now
-	local defeated = model:GetAttribute("Defeated") == true
+	local defeated = self.attr("Defeated") == true
 	if defeated then self.defeatAt = self.defeatAt or now else self.defeatAt = nil end
 	local root = model.PrimaryPart
 	local view = camera or workspace.CurrentCamera
 	local distant = root ~= nil and view ~= nil and (view.CFrame.Position - root.Position).Magnitude > 170
-	local paused = model:GetAttribute("PresentationHidden") == true or reduced == true
-		or model:GetAttribute("ReducedMotion") == true or distant
+	local paused = self.attr("PresentationHidden") == true or reduced == true
+		or self.attr("ReducedMotion") == true or distant
 	self:_events(now, not paused and not defeated)
 	if not self.data then
 		if now < self.retryAt then return end
@@ -203,9 +208,9 @@ function VoxelChickenAnimator.Step(self: Controller, now: number, reduced: boole
 	self.sleeping = false
 	local data = self.data :: ClipSet
 	local velocity = if root then root.AssemblyLinearVelocity else Vector3.zero
-	local speed = if model:GetAttribute("DuckRig") == true
-		then Vector3.new(velocity.X, 0, velocity.Z).Magnitude else numericAttribute(model, "PreviewSpeed", 0)
-	local moving = model:GetAttribute("MovementBlocked") ~= true and (speed > 0.45 or model:GetAttribute("Moving") == true)
+	local speed = if self.attr("DuckRig") == true
+		then Vector3.new(velocity.X, 0, velocity.Z).Magnitude else numericAttribute(self.attr, "PreviewSpeed", 0)
+	local moving = self.attr("MovementBlocked") ~= true and (speed > 0.45 or self.attr("Moving") == true)
 	local base = if moving and data.clips.Walk then "Walk" else "Idle"
 	if base ~= self.base then self.base, self.baseTime = base, 0 end
 	local rate = if base == "Walk" then math.clamp((if speed > 0.45 then speed else 3) / 4, 0.65, 2.4) else 1
@@ -230,8 +235,8 @@ function VoxelChickenAnimator.Step(self: Controller, now: number, reduced: boole
 	end
 	local first, second, alpha = sample(data.clips[name], at)
 	local blend = math.clamp((now - self.transitionAt) / (if name == "Hit" or name == "Attack" then 0.035 else 0.12), 0, 1)
-	local unitScale = math.max(0.0001, numericAttribute(model, "ClipUnitScale", 1))
-	local scale = math.max(0.0001, numericAttribute(model, "ClipScale", 1)) * unitScale
+	local unitScale = math.max(0.0001, numericAttribute(self.attr, "ClipUnitScale", 1))
+	local scale = math.max(0.0001, numericAttribute(self.attr, "ClipScale", 1)) * unitScale
 	for i, bone in self.bones do
 		if bone.Parent then
 			local pose = first.poses[i]:Lerp(second.poses[i], alpha)

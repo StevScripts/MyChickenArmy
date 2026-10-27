@@ -94,11 +94,11 @@ local function multiply(a: Color3, b: Color3): Color3
 	return Color3.new(a.R * b.R, a.G * b.G, a.B * b.B)
 end
 
-local function mutationOf(model: Model): string?
-	local id = model:GetAttribute("Mutation")
+local function mutationOf(model: Model, attr: (string) -> any): string?
+	local id = attr("Mutation")
 	if Mutations.IsValid(id) then return id end
 	if next(ownedMutations) == nil then return nil end
-	local petId, owner = model:GetAttribute("PetId"), model:GetAttribute("OwnerUserId")
+	local petId, owner = attr("PetId"), attr("OwnerUserId")
 	local player = Players.LocalPlayer
 	if type(petId) ~= "string" or not player or owner ~= player.UserId then return nil end
 	return ownedMutations[petId]
@@ -163,9 +163,11 @@ local function fainter(sequence: NumberSequence): NumberSequence
 	return NumberSequence.new(keys)
 end
 
-function Special.new(model: Model, audio: any?)
+-- October 27 (WS6): `attr` is DuckAnimator's cached GetAttribute for this model.
+function Special.new(model: Model, audio: any?, attr: ((string) -> any)?)
 	if model:GetAttribute("ChickenVisualV3") ~= true and model:GetAttribute("GalaxyDragonAnimation") ~= true then return nil end
 	return setmetatable({model = model, audio = audio, sound = nil, appearance = nil, body = nil, root = nil,
+		attr = attr or function(name: string): any return model:GetAttribute(name) end, rateScale = 1,
 		anchors = {}, emitters = {}, lights = {}, imported = {}, visible = false, destroyed = false,
 		nextUpdate = 0, phase = phaseFor(model.Name), unit = 0, lastBurst = nil,
 		galaxy = nil, rainbow = nil, ownsGlitch = false,
@@ -195,7 +197,7 @@ end
 
 function Special._burst(self: any, visible: boolean)
 	for attribute, event in BURST_EVENTS do
-		local serial = self.model:GetAttribute(attribute) or 0
+		local serial = self.attr(attribute) or 0
 		if serial ~= self.serials[attribute] then
 			self.serials[attribute] = serial
 			if visible then
@@ -249,7 +251,7 @@ end
 
 function Special._clear(self: any)
 	if self.sound then self.sound:Destroy();self.sound=nil end
-	self:_calm(false)
+	self:_rates(false, 1)
 	self:_pulse(false)
 	table.clear(self.pulses)
 	for _, record in self.bursts do if record.instance.Parent then record.instance:Clear() end end
@@ -498,17 +500,20 @@ end
 
 -- Plain property swap; no per-frame work. Size is left alone because ScaleTo
 -- owns it on imported emitters and _place owns it on generated ones.
-function Special._calm(self: any, calm: boolean)
-	if calm == self.calm then return end
-	self.calm = calm
+-- October 27 (WS6): `scale` is PerfTier's fxRateScale (low 0.5, mid 0.75), on top of
+-- the calm Giant rate; transparency only follows calm.
+function Special._rates(self: any, calm: boolean, scale: number)
+	if calm == self.calm and scale == self.rateScale then return end
+	self.calm, self.rateScale = calm, scale
+	local factor = (if calm then CALM_RATE else 1) * scale
 	for effect, saved in self.authored do
 		if effect.Parent then
-			effect.Rate = if calm then saved.rate * CALM_RATE else saved.rate
+			effect.Rate = saved.rate * factor
 			effect.Transparency = if calm then fainter(saved.transparency) else saved.transparency
 		end
 	end
 	for _, record in self.emitters do
-		record.instance.Rate = if calm then record.rate * CALM_RATE else record.rate
+		record.instance.Rate = record.rate * factor
 		record.instance.Transparency = if calm then fainter(record.transparency) else record.transparency
 	end
 end
@@ -535,23 +540,28 @@ function Special._visible(self: any, visible: boolean)
 	end
 end
 
-function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?, textureTier: string?, cullDistance: number?)
+-- October 27 (WS6): fxAllowed=false (outside PerfTier's nearest-chickens particle budget)
+-- turns the particles, beams and lights off like distance does; the animated texture
+-- and the mutation tint stay. rateScale scales every emitter's authored rate.
+function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?, textureTier: string?, cullDistance: number?,
+	fxAllowed: boolean?, rateScale: number?)
 	if self.destroyed then return end
 	local model = self.model
 	if not model.Parent then self:Destroy(); return end
-	local dragon = model:GetAttribute("GalaxyDragonAnimation") == true
+	local attr = self.attr
+	local dragon = attr("GalaxyDragonAnimation") == true
 	local body, root = model:FindFirstChild(if dragon then "DragonChickenMesh" else "Body"), model.PrimaryPart
 	if not body or not body:IsA("MeshPart") or not root then self:_clear(); return end
 	-- The dragon uses only its authored VFX; its native animation and material
 	-- remain with their existing owners, without generated auras or textures.
-	local appearance = if dragon then "" else model:GetAttribute("Appearance") or ""
-	local mutation = mutationOf(model)
+	local appearance = if dragon then "" else attr("Appearance") or ""
+	local mutation = mutationOf(model, attr)
 	if self.body ~= body or self.root ~= root or self.appearance ~= appearance or self.mutation ~= mutation then
 		self:_clear()
 		self:_attach(body, root, appearance, mutation)
 	end
-	local textureVisible = not reduced and model:GetAttribute("ReducedMotion") ~= true
-		and model:GetAttribute("Defeated") ~= true and model:GetAttribute("PresentationHidden") ~= true
+	local textureVisible = not reduced and attr("ReducedMotion") ~= true
+		and attr("Defeated") ~= true and attr("PresentationHidden") ~= true
 		and root.LocalTransparencyModifier < 0.5 and body.LocalTransparencyModifier < 0.5
 		and body.Transparency < 0.98 and camera ~= nil
 		and (camera.CFrame.Position - root.Position).Magnitude <= CULL_DISTANCE
@@ -579,8 +589,8 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 	-- their existing inexpensive 20 Hz updates.
 	if now < self.nextUpdate then return end
 	self.nextUpdate = now + UPDATE_INTERVAL
-	local visible = not reduced and model:GetAttribute("ReducedMotion") ~= true
-		and model:GetAttribute("Defeated") ~= true and model:GetAttribute("PresentationHidden") ~= true
+	local visible = not reduced and attr("ReducedMotion") ~= true and fxAllowed ~= false
+		and attr("Defeated") ~= true and attr("PresentationHidden") ~= true
 		and root.LocalTransparencyModifier < 0.5
 		-- Glitch's breakup owns a local alpha; do not mistake that alpha for
 		-- respawn hiding. Its mesh controller separately checks external alpha.
@@ -588,9 +598,9 @@ function Special.Step(self: any, now: number, reduced: boolean, camera: Camera?,
 		and body.Transparency < 0.98 and camera ~= nil
 		-- Particles follow the graphics-quality distance; animated textures above keep 110.
 		and (camera.CFrame.Position - root.Position).Magnitude <= (cullDistance or CULL_DISTANCE)
-	if appearance == "Glitch" and model:GetAttribute("GlitchMeshStatus") ~= "ready" then visible = false end
-	local giant = model:GetAttribute("GiantSize")
-	self:_calm(type(giant) == "number" and giant > 0 and model:GetAttribute("BattleId") == nil)
+	if appearance == "Glitch" and attr("GlitchMeshStatus") ~= "ready" then visible = false end
+	local giant = attr("GiantSize")
+	self:_rates(type(giant) == "number" and giant > 0 and attr("BattleId") == nil, rateScale or 1)
 	-- Only nearby visible VFX get spatial audio. Empty authored IDs are silent.
 	if self.audio and not dragon then
 		local audible=visible and (camera.CFrame.Position-root.Position).Magnitude<=42
