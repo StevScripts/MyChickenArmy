@@ -48,6 +48,9 @@ local DAILY_CHECK_SECONDS=10
 -- October 20 click/tap egg pickups get a gate of their own (burst, per second), so
 -- clicking never spends the gameplay action tokens.
 local COLLECT_BURST,COLLECT_RATE=8,6
+-- Oct 27 WS2: Coins purchases that can raise steady income (reply `income`, econ.* analytics).
+local ECON_BUYS={Buy=true,BuyUpgrade=true,FeedChicken=true,UpgradeChicken=true,RebirthIntro=true,Expand=true,Income=true,Luck=true}
+local ECON_MARKS={{key="m5",seconds=300},{key="m10",seconds=600},{key="m20",seconds=1200}}
 
 function GameServer.new()
 	local self=setmetatable({sessions={},connections={},playerConnections={},limits={},stepAccumulator=0,
@@ -214,6 +217,8 @@ function GameServer:Handle(player,request)
 	local recapBefore=#(session.researchRecap or {})
 	local selectionBefore=if action=="SetArmy" or action=="SelectBest" then table.concat(session:BestPetIds(),":") else nil
 	session.coinShortfall=nil
+	-- Oct 27 WS2: steady Coins/s before a Coins purchase, for the reply's "+N Coins/s".
+	local incomeBefore=if ECON_BUYS[action] then DailyService.SteadyIncome(session) else nil
 	if action=="Sync" then
 		local sync=self.syncs[player.UserId] or {readyAt=0};self.syncs[player.UserId]=sync
 		if now<sync.readyAt then sync.pending=request.id;return end
@@ -408,6 +413,10 @@ function GameServer:Handle(player,request)
 	self.tutorial:Action(session,reported,ok,balanceBefore,request,selectionBefore)
 	self.analytics:Action(session,reported,ok,message,balanceBefore,request,{petId=petId,crate=crate,purchase=purchase})
 	if ok then session.lastResult=message;session:Touch() end
+	-- Oct 27 WS2: whole steady Coins/s before and after a Coins purchase; econ.buyGap.
+	local income=if ok and incomeBefore and session.coins<balanceBefore then {before=math.floor(incomeBefore+0.5),
+		after=math.floor(DailyService.SteadyIncome(session)+0.5)} else nil
+	if income then pcall(self.EconPurchase,self,session) end
 	if ok and (action=="Buy" or action=="Expand") then
 		self.telemetry:Record("ArmyGrowth",{userId=session.userId,action=action,
 			assignment=recruit and recruit.assignment,selectedBefore=selectedBefore,selectedAfter=#session:BestPetIds(),
@@ -435,7 +444,8 @@ function GameServer:Handle(player,request)
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
 	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift,needCoins=needCoins,
-		shortCoins=shortCoins,coinsGate=coinsGate}) -- Oct 27 WS3
+		shortCoins=shortCoins,coinsGate=coinsGate, -- Oct 27 WS3
+		income=income}) -- Oct 27 WS2
 end
 
 -- Observation only: what a pull put on the podiums, manual or Auto Roll (October 20, S12).
@@ -457,6 +467,49 @@ function GameServer:CountRecruit(session,recruit)
 	if offer.mutation then self.analytics:LaunchCount(session,"mutation.buy."..offer.mutation) end
 	if offer.event then self.analytics:LaunchCount(session,"event.buy."..offer.species) end
 	if offer.rebirthChicken then self.analytics:LaunchCount(session,"rebirthChicken.bought") end
+	-- Oct 27 WS2: a recruit bought at a starter price (RollService carries listPrice when discounted).
+	local list,price=tonumber(offer.listPrice),tonumber(offer.price)
+	if list and price and list>price then
+		self.analytics:LaunchCount(session,"econ.starterRecruit")
+		self.analytics:LaunchCount(session,"econ.starterSaved",math.floor(list-price))
+	end
+end
+
+-- Oct 27 WS2 (observation only; docs/team/EARLY_ECONOMY_20261027.md): empty-start
+-- profiles' first 20 minutes of play. A Coins purchase records the seconds since the
+-- previous one (econ.buyGap.early ≤ 600 s of play, .mid to 1,200 s) and counts toward
+-- econ.buys.m10. Session-only fields; nothing is saved.
+function GameServer:EconPurchase(session)
+	if session.introRebirth==nil then return end
+	local play=self.analytics:PlaySeconds(session)
+	if not play or play>1200 then return end
+	local now=os.clock()
+	if session.econLastBuyAt then
+		self.analytics:LaunchHist(session,"econ.buyGap."..(if play<=600 then "early" else "mid"),math.floor(now-session.econLastBuyAt))
+	end
+	session.econLastBuyAt=now
+	if play<=600 then session.econBuys=(session.econBuys or 0)+1 end
+end
+
+-- Oct 27 WS2 (observation only): steady Coins/s when total play first passes 5, 10 and
+-- 20 minutes (econ.rate.m5/m10/m20) and the Coins purchases made by 10 minutes
+-- (econ.buys.m10), once a session each, empty-start profiles only.
+function GameServer:EconMarks(session)
+	if session.introRebirth==nil or (session.econMarks and session.econMarks.m20) then return end
+	local play=self.analytics:PlaySeconds(session)
+	if not play then return end
+	local marks:any=session.econMarks or {start=play};session.econMarks=marks
+	for _,mark in ECON_MARKS do
+		if play>=mark.seconds and not marks[mark.key] then
+			marks[mark.key]=true
+			-- Only a mark this session crossed (a rejoin never records one twice); the
+			-- purchase count only from a session that began at the first minute of play.
+			if marks.start<mark.seconds then
+				self.analytics:LaunchHist(session,"econ.rate."..mark.key,math.floor(DailyService.SteadyIncome(session)+0.5))
+				if mark.key=="m10" and marks.start<60 then self.analytics:LaunchHist(session,"econ.buys.m10",session.econBuys or 0) end
+			end
+		end
+	end
 end
 
 -- Observation only: a request dropped by the action rate limit, at most once per 10 s per player.
@@ -714,6 +767,7 @@ function GameServer:Step(dt)
 					self.analytics:ServerEvent(session,"plot.buildDone",session.plotSizeLevel)
 				end
 				pcall(self.ObserveDeposits,self,session,now)
+				pcall(self.EconMarks,self,session) -- Oct 27 WS2
 				self.world:SyncPlotBuild(session,wallTime)
 			end
 		end

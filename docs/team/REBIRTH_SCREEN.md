@@ -100,6 +100,17 @@ and x1.5 egg Coins while the rank stays 0 (Rebirth 1's x2 replaces it). Old save
 `introRebirth` and never see the intro. Ladder costs and finds for ranks 1–50 are unchanged.
 Analytics counter `rebirth0.count`; tutorial funnel step 28 `IntroRebirth`.
 
+**October 27 (retention WS2, `docs/team/EARLY_ECONOMY_20261027.md`): Rebirth 0 keeps the
+Upgrades tree and Feed levels** (`Config.Rebirth.Intro.KeepTree = true`). It still costs 1,700,
+sets Coins to 0, empties carried eggs and vacuum cargo, resets Gold roll counts, releases camps,
+grants 30 Gems and x1.5. The Egg Vacuum, Flock Size I and anything else bought before it stay,
+so the x1.5 is a real gain (the old reset dropped the 4th layer: 16 Coins/s became 18, not 24).
+The quote carries `keepTree = true`, `resets = {"All your Coins", "Carried eggs"}` and `keeps =
+{"Every chicken and the Index", "Every upgrade in the Upgrades tree", "Chicken levels bought with
+Chicken Feed", "Gems and Gem Upgrades"}`; the screen's third tile reads "KEEP YOUR / Chickens &
+Upgrades" and the warning "You will lose all your Coins!". Ranks 1–50 still reset the run.
+`KeepTree = false` restores the October 23 reset exactly.
+
 ## Data and requests
 
 - `state.rebirth` (contract §7). Used fields: `version`, `rank`, `nextRank`, `cost`,

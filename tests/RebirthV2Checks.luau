@@ -76,6 +76,17 @@ local function setTree(session,tree)
 	session:RefreshEffects()
 end
 
+-- October 27 (WS2): runs fn with Config.Rebirth.Intro.KeepTree set, then restores it.
+local function withKeepTree(value,fn)
+	local intro=Config.Rebirth.Intro
+	local before=intro.KeepTree
+	intro.KeepTree=value
+	local ok,result=pcall(fn)
+	intro.KeepTree=before
+	if not ok then error(result,0) end
+	return result
+end
+
 function Checks.Run()
 	local results={}
 	local function test(name,fn)
@@ -175,7 +186,8 @@ function Checks.Run()
 		return "No reserve, Start claim, quotes and order hold"
 	end)
 
-	test("Rebirth 0: pending on a new profile, 1,700 Coins after the tutorial, +30 Gems, x1.5 eggs until Rebirth 1",function()
+	-- October 27 (WS2): the Oct 23 reset is KeepTree = false; the next test covers KeepTree.
+	test("Rebirth 0 (KeepTree off): pending on a new profile, 1,700 Coins after the tutorial, +30 Gems, x1.5 eggs until Rebirth 1",function() return withKeepTree(false,function()
 		local intro=Config.Rebirth.Intro
 		assert(intro.Enabled==true and intro.Cost==1700 and intro.Multiplier==1.5 and intro.Gems==30,"Intro settings")
 		local s=Session.new(-9304,"Rebirth 0 fixture",1)
@@ -233,7 +245,48 @@ function Checks.Run()
 		local junk=Session.new(-9304,"Junk reload",1)
 		assert(junk:LoadData(saved) and junk.introRebirth==nil,"Junk reads as legacy")
 		return "Rebirth 0: 1,700 Coins, +30 Gems, x1.5 eggs until Rebirth 1"
-	end)
+	end) end)
+
+	-- October 27 (WS2 retention, docs/team/EARLY_ECONOMY_20261027.md): Rebirth 0 keeps the
+	-- Upgrades tree and Feed levels; it still takes the Coins and carried eggs, pays +30
+	-- Gems and x1.5. Rebirth 1 still resets the tree.
+	test("Rebirth 0 KeepTree: the tree, Feed levels and the vacuum stay; Coins, eggs and cargo go",function() return withKeepTree(true,function()
+		assert(Config.Rebirth.Intro.KeepTree==true,"KeepTree")
+		local s=Session.new(-9305,"Rebirth 0 keep fixture",1)
+		s.loaded=true
+		s.tutorial.guideCompleted=true
+		local duck=s:AddPet("Duck",1)
+		for _=1,3 do s:AddPet("Duck",1) end
+		setTree(s,{Flock=1,EggVacuum=1,ArmySize=1,EggSpeed=1,ChickenFeed=1})
+		duck.level,duck.cashLevels=2,1
+		local investment=duck.investment
+		s.coins=2000
+		s.eggCarry={count=12,value=300}
+		s.vacuumCargo={count=4,value=80}
+		local quote=Rebirth.Quote(s)
+		assert(quote.intro==true and quote.keepTree==true and quote.eligible,"Quote: "..tostring(quote.reason))
+		assert(#quote.resets==2 and quote.resets[1]=="All your Coins" and quote.resets[2]=="Carried eggs","Resets list")
+		assert(table.find(quote.keeps,"Every upgrade in the Upgrades tree")
+			and table.find(quote.keeps,"Chicken levels bought with Chicken Feed"),"Keeps list")
+		local flock,capacity=s.researchEffects.flockSize,s.capacity
+		local ok,message,receipt=Rebirth.RebirthIntro(s,NO_SERVER)
+		assert(ok and receipt.gems==30 and receipt.intro==true,message)
+		assert(s.coins==0 and s.gems==30 and s.introRebirth=="done","Coins and Gems")
+		assert(s.eggCarry.count==0 and s.eggCarry.value==0 and s.vacuumCargo.count==0 and s.vacuumCargo.value==0,"Eggs and cargo")
+		assert(levelsText(s.upgradeTree)=="ArmySize=1, ChickenFeed=1, EggSpeed=1, EggVacuum=1, Flock=1",
+			"Tree: "..levelsText(s.upgradeTree))
+		assert(s.researchEffects.flockSize==flock and s.capacity==capacity and capacity==4,"Flock "..tostring(s.researchEffects.flockSize))
+		assert(duck.level==2 and duck.cashLevels==1 and duck.investment==investment,"Feed level kept")
+		near(Rebirth.IntroMultiplier(s),1.5,"x1.5")
+		-- Rebirth 1 is unchanged: the run resets.
+		s.discovered.Ironbeak=true
+		s.coins=50000
+		ok,message=Rebirth.Rebirth(s,0,NO_SERVER,false)
+		assert(ok,message)
+		assert(Tree.Tier(s.upgradeTree,"Flock")==0 and Tree.Tier(s.upgradeTree,"EggVacuum")==0 and duck.cashLevels==nil,
+			"Rebirth 1 reset left: "..levelsText(s.upgradeTree))
+		return "Rebirth 0 keeps the tree and Feed; Rebirth 1 resets"
+	end) end)
 
 	test("Rebirth 1 resets the run and pays Gems, no Time Skip Coins (no chicken); progress stays",function()
 		local s=fixture(-9302)

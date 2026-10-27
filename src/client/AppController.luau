@@ -1070,6 +1070,8 @@ function AppController:Receive(packet)
 		if result.ok and result.action == "Promote" then self.feedback:Action("Promote") end
 		if result.ok and (result.action == "Income" or result.action == "Luck" or result.action == "Expand") then self.feedback:Action(result.action) end
 		if result.ok and result.action == "Attack" then self:ClosePanel() end
+		-- Oct 27 WS2: a purchase that raised steady income floats "+N Coins/s".
+		if result.ok and type(result.income)=="table" then self.feedback:IncomeGain(result.income.before,result.income.after) end
 	end
 	local count, limit, capacity, selectedCount, deployedCount = self:Counts()
 	-- October 21 game feel: the result tells the HUD whether a Coins gain is a receipt
