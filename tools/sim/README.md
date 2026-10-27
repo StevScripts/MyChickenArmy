@@ -72,3 +72,12 @@ simulation's own Gold Rush model does not double count.
   Mega Luck IV, all podiums…). The October 22 "unlock-everything" tables in
   `REBIRTH_PACING_20261021.md` come from it (3 fast, 2 casual, 3 daily 45-min and 2 daily
   2-hour seeds with `traceEvery=60`).
+- `first_session_probe.luau profile=typical|engaged [seeds=30 minutes=30]` — the October 27
+  first-session agent (WS2): Coins/s, purchase gaps, tree milestones and the first Fort
+  Roost win for the retention package (`docs/team/EARLY_ECONOMY_20261027.md`).
+- `camp_probe.luau` — real `Battle.luau` fights against the camp ladder's strengths and an
+  early-Army model (`docs/team/CAMP_LADDER_20261027.md`).
+- `discovery_probe.luau trials=6000 pulls=40 [slots=1]` — first Uncommon/Rare pull and new
+  species per pull with and without Lucky Start (`docs/team/LUCKY_START_20261027.md`).
+- `perf_tier_probe.luau` — PerfTier's pure tier state machine and budget table.
+

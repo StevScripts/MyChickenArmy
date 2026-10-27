@@ -138,6 +138,53 @@ upgrade board) shows no error: Roblox's purchase prompt opens directly for the s
 Coins pack covering the shortfall (the biggest if none does), with no menu first. Server
 replies carry `needCoins`; `CommerceController:BuyCoins` picks the pack. Test sessions
 keep the old message. See `docs/team/COINS_SHORTFALL_PROMPT.md`.
+October 27 (retention package, live data: 2,429 auto-prompts, 3 bought) gates it:
+the checkout opens only after 10 minutes of total play or Rebirth 1, with the tutorial
+done, at most 2 a session, 10 minutes apart, never when steady income covers the gap
+within 60 s. Otherwise an info toast "You need N more Coins! Collect eggs and sell them
+on the green pad." and the podium prompt reads "Need N more Coins" with a 0.5 s hold.
+Replies carry `needCoins` only when `CommerceService:CoinsPromptGate` allows (always
+`shortCoins`, `coinsGate`). `Config.CoinsPrompt.Mode = "Legacy"` restores October 23.
+
+## Retention package (October 27, 2026; Stevin: "fix ALL of these issues")
+Built from `docs/team/RETENTION_PLAN_20261027.md` (seven streams, research in
+`docs/team/retention-20261027/`), build `1.27.0-retention`, analytics schema 16. Each
+change has a Config switch back; never remove one without the live comparison the plan's
+section 9 describes.
+- **Camp ladder:** Fort Roost fights at x0.60 (power 106 -> 64) and Ironbeak HQ x0.55
+  (192 -> 105), `Config.CampLadder.Strength` (supersedes the Oct 26 "guards keep exact
+  strength" for the shown and fought power; guard models, names and Kill Coins are
+  unchanged). Odds bands are Very tough <1.0, Close fight 1.0-1.3, Should win >=1.3. The
+  next-camp card waits for a ready Army and otherwise names the cheapest power step with
+  an "ARMY 38 / 84" bar (`src/shared/CampGuide.luau`); below even odds the first attack
+  warns and the prompt reads "Attack anyway" for 5 s. Live rule: median first Fort Roost
+  win before minute 8 -> 0.70, after minute 13 -> 0.50. `docs/team/CAMP_LADDER_20261027.md`.
+- **Early economy:** empty-start profiles see podium offers at a starter price, 25% of the
+  catalog quote at 2 chickens rising to 100% at 20 (`Rules.StarterPrice`,
+  `Config.Economy.StarterPrices`; never below 150, list price struck through). Catalog
+  prices are untouched. Rebirth 0 keeps the Upgrades tree and Feed levels
+  (`Rebirth.Intro.KeepTree`; supersedes the Oct 23 tree reset). Army Size I costs 300
+  (II stays 6,000; still flat for every rank). `docs/team/EARLY_ECONOMY_20261027.md`.
+- **Rolls:** FavoredRolls is 3 pulls x 50% (was 5 x 60%, Oct 25). Lucky Start
+  (`Config.LuckyStart`, saved `luckyStart`, empty-start profiles only): post-tutorial pull
+  2 shows an Uncommon and pull 8 a Rare, at most two of each, inside 40 pulls; long-run
+  rarity shares, the Luck window and every "1 in X" are unchanged. Podiums tag chickens
+  missing from the Index "NEW!" and show the advice line. `docs/team/LUCKY_START_20261027.md`.
+- **After the tutorial (supersedes the Oct 25 "everything once the tutorial is over"):**
+  a goal card is always on screen until Rebirth 1 (Rebirth, Vacuum, Rebuild, Attack, Camp,
+  Grow, GOAL), with a Settings "Goal hints" toggle. HUD buttons keep their positions but
+  appear one at a time (Army, Rebirth, Settings at completion ... everything by 8 minutes;
+  `Config.Guide.HudReveal`). Daily stays at completion, opens after the payoff, and waits
+  for an open menu. `docs/team/POST_TUTORIAL_FLOW_20261027.md`.
+- **Performance:** `PerfTier` picks low/mid/high from measured FPS and device class; far
+  and off-screen chickens animate at lower rates (the nearest always at full rate), the
+  loading veil lifts at most 4 s after the profile is ready (`Config.Performance`).
+  Budgets reduce counts and rates, never remove an effect class.
+  `docs/team/MOBILE_PERFORMANCE_20261027.md` (with Stevin's Studio checklist).
+- **Social:** other players' firsts in the same server (Rare+ finds, Fort Roost/Ironbeak
+  HQ/King, Rebirth N, Hill) as a chat line; Epic+ and the King also a toast with Visit and
+  a beacon; never during the viewer's tutorial; one invite prompt per session
+  (`Config.Social`). `docs/team/SOCIAL_MOMENTS.md`.
 
 ## One egg is one egg (October 21, owner decision)
 Each chicken lays one real egg every `Config.EggLaySeconds` (Egg Speed shortens it,

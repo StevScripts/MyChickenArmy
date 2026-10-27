@@ -542,3 +542,35 @@ Everything about it, including the steps whose drop matters, is in
   buckets until it is updated.
 - Verified 2026-10-24 headless (Lune harness): `tests/AnalyticsChecks.luau` 15/15. Not
   exercised: a Studio playtest or live Roblox sends.
+
+## 16. Version 16: the retention package (October 27, 2026)
+
+Build `1.27.0-retention`; `docs/team/RETENTION_PLAN_20261027.md` section 9 lists every
+metric with its 1.25.0 baseline and target. Compare by `version`, new profiles, equal
+ranges. New names (all in `AnalyticsSchema.luau`):
+- Camps: `camp.CampN.ready` / `.ready.play`, `camp.<step>.firstWin.play` /
+  `.firstSession`, `ui.AttackWarned` / `ui.AttackAnyway`; `Summary().camps` and
+  `campWarnings`.
+- Early economy: `econ.starterRecruit`, `econ.starterSaved`, `econ.buyGap.early|mid`,
+  `econ.rate.m5|m10|m20` (bucket `rate`), `econ.buys.m10`.
+- Coins prompt: `shop.short.<source>`, `shop.auto.gated.<reason>`, `shop.auto.prompt`,
+  `shop.auto.playSeconds`, `shop.<auto|intent>.result.*` / `.quit60`,
+  `robux.buy.<key>.playSeconds` / `.auto|.intent`, client `coins.gated`;
+  `Summary().coinsPrompt`.
+- Rolls: `luckyStart.forced.<Uncommon|Rare><n>`, `luckyStart.bought.*`,
+  `luckyStart.guard.shown|rolledPast`, `roll.new.offer|bought`, `index.first.<rarity>`,
+  `index.firstSeconds.<rarity>`, Roll funnel steps UncommonOrBetter / Found5 /
+  LuckyRareSeen, snapshot `indexFound`.
+- After the tutorial: journey `tl` (the last 15 trail entries past the 60-event cap),
+  `cv`/`cs` (the card on screen at leave and its seconds), `hr` (HUD reveals);
+  `post.card.enter.*`, `post.card.dwell.*`, `post.exit.*`, `post.exit.gap`,
+  `post.sessionAfterCore`, `hud.reveal.*`, `hud.firstClick.*`; `Report.PostText`.
+- Performance windows: `perf.fpsLoad|<platform>`, `perf.fpsPlay|<platform>` (the old
+  `perf.fps|` is unchanged), `perf.fps.perfTier.<tier>`, `perf.tier.<tier>|`,
+  `perf.demoted|`, `perf.critical|`, `perf.hitches|`, `perf.focusLost|`,
+  `perf.frameMsP90|`, `ui.load.<phase>|<platform>`; journey `fl`/`fp`/`tier`/`fo`/`lr`;
+  `Summary().perfTiers` and two Mobile flags.
+- Social: server events `social.moment`, `social.visit`, `invite.prompt`; client
+  `moment.seen`, `moment.missed`, `invite.sent`; the Social funnel;
+  `seg.join.invite|notification`; journey `sv`, `fr`.
+
