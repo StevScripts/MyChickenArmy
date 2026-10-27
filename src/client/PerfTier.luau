@@ -58,7 +58,7 @@ local PHONE_SHORT_SIDE = 700    -- AnalyticsClient's Mobile/Tablet split
 
 -- Budget table (plan §4.1). High keeps today's values wherever today had one
 -- (WorldFeel 28, coins 28, particle cull up to the quality setting's 400 studs).
-local BUDGETS: {[Tier]: Budget} = {
+local BUDGETS: {[string]: Budget} = {
 	low = {animFullRadius = 30, animMidRadius = 70, animMidHz = 15, animFarRadius = 120, animFarHz = 5,
 		animFullMax = 10, offscreenHz = 2, fxMaxChickens = 6, fxCull = 70, fxRateScale = 0.5,
 		eggBobRadius = 40, eggHz = 20, podiumOtherPlotHz = 4, worldFeelLimit = 8, coinsMaxActive = 8,
@@ -223,7 +223,7 @@ PerfTier.Changed = {
 
 local function fire()
 	local tier = PerfTier.Get()
-	for _, callback in table.clone(listeners) do task.spawn(callback, tier) end
+	for _, callback in table.clone(listeners) do task.spawn(callback :: any, tier) end
 end
 
 -- Low-tier render budget (plan §4.10, kept here so AppController stays a one-hunk
