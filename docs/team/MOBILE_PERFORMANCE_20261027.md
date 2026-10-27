@@ -203,3 +203,18 @@ In Edit, then save; publish only on his own request with "Migrate To Latest Upda
 6. Later (after P7 ships and is tested): `StreamingTargetRadius 512`, `StreamingMinRadius 128`,
    chicken models `ModelStreamingMode Atomic`; test 6 players on opposite plots first.
 7. Upload the two pre-baked 512 × 512 pattern images (P8) and send the ids.
+
+## Done in Studio (October 27, lead, on Stevin's request)
+
+- Shadows: `CastShadow=false` on 5,942 of the map's 8,471 shadow-casting parts (every part
+  under 2 studs, parts under 6 studs outside trees, Decor props under 12 studs outside trees,
+  and anything named fence/rail/grass/trim/flower/bush). Trees and large structures keep their
+  shadows (2,529 parts). One ChangeHistory waypoint; undo restores it.
+- Reference GUIs: `StarterGui.GUI` and `StarterGui.MainGUI` (3,744 instances, all 15 scripts
+  disabled, no code reads them) moved to `ServerStorage.UIReference`.
+- Not done, on purpose: the stud Textures (1,844 parts, 2,076 Textures) are 80%-transparent
+  dark overlays tiled 4–8 studs per part; a MaterialVariant cannot reproduce a translucent
+  overlay without new art, so the swap would visibly change the island. Needs an art call.
+- Lights: the edit-time map has no lights; the runtime ones come from chicken/VFX templates.
+  Nothing trimmed.
+- Hill sparks template rate is 150/s (not 210); PerfTier scales it by tier.

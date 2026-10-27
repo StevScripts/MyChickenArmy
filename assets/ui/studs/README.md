@@ -2,7 +2,7 @@
 
 ## October 15, 2026 — current (owner decision)
 
-The owner replaced the generated sheet with the stud tile from their `StarterGui.GUI.FRAMES`
+The owner replaced the generated sheet with the stud tile from their GUI.FRAMES reference (now `ServerStorage.UIReference.GUI.FRAMES`)
 reference GUI: Roblox image **85697657610499**, a 4×4 block of beveled square studs. The
 reference applies it with `ScaleType.Tile` at about 80% transparency (88–90% on buttons).
 `UITheme.Studs`/`BindStudTexture` now tile it (`STUD_TILES = 6` per square, i.e. the previous
