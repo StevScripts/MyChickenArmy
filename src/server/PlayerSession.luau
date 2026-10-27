@@ -23,6 +23,7 @@ local RebirthChickens = require(script.Parent.RebirthChickens)
 local EconomyMigration = require(script.Parent.EconomyMigration)
 local TreeMigrations = require(script.Parent.TreeMigrations)
 local PlaytimeService = require(script.Parent.PlaytimeService)
+local LuckyStart = require(script.Parent.LuckyStart)
 local PlayerSession = {}
 PlayerSession.__index = PlayerSession
 -- Saved eggCarry bound. EggService stops pickups before reaching it; older servers reject above it.
@@ -82,6 +83,9 @@ function PlayerSession:Reset()
 	-- October 21: lifetime eggs into the held Egg Vacuum; opens the Auto Vacuum hex.
 	self.vacuumedEggs = 0
 	self.goldRolls = {count=0}
+	-- October 27 Lucky Start (LuckyStart.luau): post-tutorial pulls and the next guaranteed
+	-- Uncommon/Rare. Saved, additive; only empty-start profiles ever use it.
+	self.luckyStart = LuckyStart.Fresh()
 	-- October 20 Playtime Rewards (S16, PlaytimeService): this visit's clock, claims and
 	-- timed boosts. Live only, never saved; a new visit (or a reset) starts over.
 	self.playtime,self.playtimeBoosts = nil,nil
@@ -714,13 +718,28 @@ function PlayerSession:GlobalUpgrade(kind: string)
 	return {price=price,unlocked=true,requirement=""}
 end
 
--- Compare a reveal to the Army the player picked, the same rule as Auto Roll's
--- Army-upgrade stop: an open slot counts only while the Army is automatic, where a
--- recruit joins it. Pass BestPetIds when advising several offers.
-function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?, army: {string}?): (string, boolean)
+-- October 27 (WS4, LUCKY_START_20261027.md): the podium's advice line, Flock first
+-- because eggs are the core loop. A chicken that would lay (the Flock has room, or it
+-- beats the weakest layer) reads "+18 Coins/s in your Flock"; else the Army rule Auto
+-- Roll's Army-upgrade stop uses (an open slot counts only while the Army is automatic,
+-- where a recruit joins it); else its own rate. Returns (text, good). Pass BestPetIds
+-- and FlockIds when advising several offers.
+function PlayerSession:OfferAdvice(species: string, level: number?, mutation: string?, army: {string}?, flock: {string}?): (string, boolean)
+	local rate=self:DisplayedPetIncome(species,1,level,mutation)
+	local layers=flock or self:FlockIds()
+	local gain=rate
+	if #layers>=self:FlockSize() then
+		local weakest=math.huge
+		for _,id in layers do
+			local pet=self.pets[id]
+			if pet then weakest=math.min(weakest,self:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation)) end
+		end
+		gain=if weakest<math.huge then rate-weakest else rate
+	end
+	if gain>=1 then return "+"..Currency.Rate(gain).."/s in your Flock",true end
 	local picked=army or self:BestPetIds()
 	if #picked==0 or (self.armySelection==nil and #picked<self:Capacity()) then
-		return "Fills an army slot",true
+		return "Fills an Army slot",true
 	end
 	local weakest=math.huge
 	for _,id in picked do
@@ -728,10 +747,9 @@ function PlayerSession:OfferAdvice(species: string, level: number?, mutation: st
 		if pet then weakest=math.min(weakest,Rules.PetPower(pet.species,pet.stars,pet.level,pet.giantSize)) end
 	end
 	if Rules.PetPower(species,1,level)>weakest then
-		return "Makes your army stronger",true
+		return "Makes your Army stronger",true
 	end
-	local income=self:DisplayedPetIncome(species,1,level,mutation)
-	return "Lays eggs worth "..Currency.Rate(income).."/s in your Flock",false
+	return "Lays "..Currency.Rate(rate).."/s",false
 end
 
 -- Snapshot entries for every chicken. An entry is rebuilt only when a value shown
@@ -818,7 +836,7 @@ function PlayerSession:Snapshot(now: number)
 		local value=self.offers and self.offers[slot]
 		if value then
 			local offer=table.clone(value);offer.slot=slot
-			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation,best)
+			offer.advice,offer.improvesArmy=self:OfferAdvice(offer.species,offer.level,offer.mutation,best,flock)
 			table.insert(offers,offer)
 		end
 	end
@@ -869,6 +887,8 @@ function PlayerSession:Snapshot(now: number)
 		rebirth=RebirthService.Quote(self),giantPity=self.giantPity or 0,
 		-- October 23 Rebirth 0: nil (older save, never offered), "pending" or "done".
 		introRebirth=self.introRebirth,
+		-- October 27 Lucky Start: {kind, left} for the lever counter, nil when nothing is promised.
+		luckyStart=LuckyStart.State(self),
 		-- playSeconds is the total at server time `playedAt`; the popup counts on from it.
 		freeGift={enabled=Config.FreeGift.Enabled==true,claimed=self.freeGiftClaimed==true,species=Config.FreeGift.Species,groupId=Config.FreeGift.GroupId,
 			minPlaySeconds=Config.FreeGift.MinPlaySeconds or 0,playSeconds=self:PlaySeconds(),playedAt=workspace:GetServerTimeNow()},
@@ -911,6 +931,7 @@ function PlayerSession:ToData()
 		flockSelection=if self.flockSelection then table.clone(self.flockSelection) else nil,
 		eggVacuum=self.eggVacuum==true,vacuumCargo=table.clone(self.vacuumCargo),goldRolls=table.clone(self.goldRolls),
 		vacuumedEggs=self.vacuumedEggs, -- October 21, additive; missing means 0.
+		luckyStart=table.clone(self.luckyStart), -- October 27 Lucky Start, additive; missing reads fresh.
 		eggCarry=table.clone(self.eggCarry),enemyKills=self.enemyKills,robuxSpent=self.robuxSpent,
 		eggProcessor=EggProcessor.Copy(self.eggProcessor),
 		offlineCash=table.clone(self.offlineCash),
@@ -1385,6 +1406,8 @@ function PlayerSession:LoadData(data)
 	-- S12b: one pull count per machine (count = Gold, diamond, prism); missing means 0.
 	local goldRolls:any=if type(data.goldRolls)=="table" then data.goldRolls else {}
 	self.goldRolls={count=readCount(goldRolls.count,1e6),diamond=readCount(goldRolls.diamond,1e6),prism=readCount(goldRolls.prism,1e6)}
+	-- October 27 Lucky Start: additive and lenient (LuckyStart.Read never rejects a save).
+	self.luckyStart=LuckyStart.Read(data.luckyStart)
 	self.plotBuild=nil
 	self.eggCarry={count=carryCount,value=carryValue};self.enemyKills=enemyKills;self.robuxSpent=robuxSpent
 	self.eggProcessor=processor

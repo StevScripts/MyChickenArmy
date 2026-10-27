@@ -13,6 +13,7 @@ local MenuLayout=require(script.Parent.MenuLayout)
 local Shared=game:GetService("ReplicatedStorage").PetRoll.Shared
 local Catalog=require(Shared.PetCatalog)
 local Config=require(Shared.Config)
+local IndexProgress=require(Shared.IndexProgress)
 local Mutations=require(Shared.MutationCatalog)
 local Portraits=require(script.Parent.ChickenPortraits)
 local Browser={}
@@ -429,7 +430,8 @@ function Browser:Render(_force)
 	end
 	-- Event-only chickens (Catalog .limited) appear only while their event runs or once
 	-- found; chickens retired from the roll pool (.vaulted, October 22) only once found.
-	-- Otherwise they are hidden and not counted.
+	-- Otherwise they are hidden and not counted. October 27 (WS4): the rule lives in
+	-- IndexProgress, shared with the "NEW CHICKEN! … · Index 4/83" receipt.
 	local eventOn=Config.Event and Config.Event.Enabled==true
 	local everFound={}
 	if type(state.discovered)=="table" then for species,value in state.discovered do everFound[species]=value==true end end
@@ -437,8 +439,7 @@ function Browser:Render(_force)
 	local shown,total,collected={},0,0
 	local sectionFound,sectionTotal={},{}
 	for _,species in ORDER do
-		local definition=Catalog[species]
-		local visible=everFound[species]==true or not (definition.vaulted or (definition.limited and not eventOn))
+		local visible=IndexProgress.Visible(species,everFound[species]==true,eventOn)
 		shown[species]=visible
 		self.cards[species].root.Visible=visible
 		if visible then
