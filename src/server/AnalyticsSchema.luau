@@ -434,7 +434,7 @@ Schema.LaunchCounters = {
 	-- Version 16 (October 27 retention package; docs/team/RETENTION_PLAN_20261027.md).
 	["econ.starterRecruit"] = true, -- WS2: a recruit bought at a starter price
 	["econ.starterSaved"] = true,   -- WS2: n = Coins under the list price
-	["luckyStart.forced"] = true,   -- WS4: luckyStart.forced.<Uncommon|Rare>.<1|2>
+	["luckyStart.forced"] = true,   -- WS4: luckyStart.forced.<Uncommon|Rare><1|2> (one suffix: Rare1, Uncommon2)
 	["luckyStart.bought"] = true,   -- WS4: luckyStart.bought.<Uncommon|Rare>
 	["luckyStart.guard"] = true,    -- WS4: luckyStart.guard.<shown|rolledPast>
 	["roll.new"] = true,            -- WS4: roll.new.<offer|bought>: a chicken missing from the Index

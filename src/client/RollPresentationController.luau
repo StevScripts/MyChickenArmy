@@ -52,9 +52,11 @@ local function touchOnly()
 	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 end
 
--- A special pull's glow; the Prism glow cycles through the rainbow.
-local function specialColor(kind: string?, now: number): Color3
+-- A special pull's glow; the Prism glow cycles through the rainbow. October 27: a Lucky
+-- Start pull glows in its rarity's colour.
+local function specialColor(kind: string?, now: number, lucky: string?): Color3
 	if kind == "Prism" then return Color3.fromHSV((now * 0.45) % 1, 0.55, 1) end
+	if kind == "Lucky" then return (lucky and UIColors.Rarities[lucky]) or GOLD end
 	return (kind and GoldRolls.Colors[kind]) or GOLD
 end
 
@@ -107,16 +109,18 @@ end
 -- UI confetti (bigger from Mythic) on manual pulls; Auto Roll's hit banner already
 -- throws its own, so only one confetti ever runs. Epic and up add ScreenFeel:Celebrate
 -- when the roll camera is not already presenting the reveal and the podium is within
--- 30 studs.
+-- 30 studs. October 27 (WS4): so does the first Rare (a rarity never owned before), and
+-- a first reveal from Rare up asks the guide to wait (app:Beat, WS5) while it plays.
 function RollPresentationController:Celebrate(reveal, cameraHandles: boolean, autoOn: boolean)
  local app=self.app
  local rank=reveal.rank or 1
+ if reveal.first and rank>=3 and (app :: any).Beat then (app :: any):Beat("rare",2.5) end
  if rank>=5 and app.gui and not autoOn then
   local count=if rank>=6 then (if touchOnly() then 24 else 44) else nil
   Theme.Motion:Confetti(app.gui,{origin=UDim2.fromScale(0.5,0.12),spread=0.6,count=count,
    colors={reveal.color,GOLD,Color3.new(1,1,1)}})
  end
- if rank>=4 and not cameraHandles and app.screenFeel and reveal.position then
+ if (rank>=4 or (rank==3 and reveal.first)) and not cameraHandles and app.screenFeel and reveal.position then
   local character=Players.LocalPlayer.Character
   local root=character and character:FindFirstChild("HumanoidRootPart")
   if root and (root.Position-reveal.position).Magnitude<=30 then
@@ -388,7 +392,9 @@ function RollPresentationController:ShowBadge(record, mutation, animate)
 end
 
 -- October 20 Gold rolls: "Gold roll · 2x Luck" over each podium of a special pull,
--- from the lever until just after the reveal. TweenService pops it in.
+-- from the lever until just after the reveal. TweenService pops it in. October 27
+-- (WS4): kind "Lucky" is the Lucky Start pull, "Lucky roll · Rare!" in the rarity's
+-- colour with the Luck clover (record.lucky holds the rarity).
 function RollPresentationController:ShowSpecialTag(record, kind: string)
  local tag=record.specialTag
  if not tag then
@@ -414,9 +420,15 @@ function RollPresentationController:ShowSpecialTag(record, kind: string)
   tag={gui=gui,scale=scale,icon=icon,label=label,tween=nil::Tween?}
   record.specialTag=tag
  end
- tag.icon.Image=GoldRolls.Icons[kind] or ""
- tag.label.Text=kind.." roll · "..GoldRolls.Luck(kind).."x Luck"
- tag.label.TextColor3=GoldRolls.Colors[kind] or GOLD
+ local color=if kind=="Lucky" then specialColor(kind,0,record.lucky) else GoldRolls.Colors[kind] or GOLD
+ if kind=="Lucky" then
+  tag.icon.Image=((Config :: any).LuckyStart or {}).Icon or ""
+  tag.label.Text="Lucky roll · "..tostring(record.lucky).."!"
+ else
+  tag.icon.Image=GoldRolls.Icons[kind] or ""
+  tag.label.Text=kind.." roll · "..GoldRolls.Luck(kind).."x Luck"
+ end
+ tag.label.TextColor3=color
  tag.gui.Enabled=true
  if tag.tween then tag.tween:Cancel() end
  if self.app.reducedMotion then tag.scale.Scale=1;return end
@@ -426,7 +438,7 @@ function RollPresentationController:ShowSpecialTag(record, kind: string)
  -- Oct 21 game feel: a shimmer burst in the machine's colour as the tag pops.
  local feel=self.app.worldFeel
  if feel then
-  feel:Burst(record.top.Position+Vector3.new(0,7.6,0),{color=GoldRolls.Colors[kind] or GOLD,count=14,size=0.4,
+  feel:Burst(record.top.Position+Vector3.new(0,7.6,0),{color=color,count=14,size=0.4,
    speed={2,5},spread=180,gravity=-2,light=0.9,range=FEEL_RANGE})
  end
  local shimmer=self:Cue("Shimmer","RollReveal")
@@ -564,6 +576,10 @@ function RollPresentationController:StepRecord(record, now)
   self:HideBadge(record)
   local special=station:GetAttribute("RollSpecial")
   record.special=if rollId and type(special)=="string" and GoldRolls.Colors[special] then special else nil
+  -- October 27 Lucky Start: the forced rarity on podium 1 shows "Lucky roll · Rare!".
+  local lucky: any=station:GetAttribute("RollLucky")
+  record.lucky=if rollId and (lucky=="Uncommon" or lucky=="Rare") then lucky else nil
+  if record.lucky then record.special="Lucky" :: any end
   if record.special and elapsed<duration+SPECIAL_TAG_HOLD then self:ShowSpecialTag(record,record.special)
   else self:HideSpecialTag(record) end
  end
@@ -620,7 +636,7 @@ function RollPresentationController:StepRecord(record, now)
   local beatAge=if stage>0 then elapsed-BEATS[stage]*duration else 0
   local pulse=math.max(0,1-beatAge/0.18)
   -- A special pull glows in its own color, brighter, on every podium.
-  local glow=if record.special then specialColor(record.special,now) else GOLD
+  local glow=if record.special then specialColor(record.special,now,record.lucky) else GOLD
   local rest=if record.special then glow:Lerp(Color3.new(0,0,0),0.35) else BLUE
   local strength=if record.special then 1.8 else 1
   record.top.Color=glow:Lerp(rest,0.25*(1-pulse))
@@ -648,8 +664,25 @@ function RollPresentationController:StepRecord(record, now)
    if fresh then
     self:Sound(record,"Pop",1.12,0.45,0.35)
     -- The roll camera reveals with the rarest chicken appearing on your podiums.
-    if station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId and (not self.reveal or rank>self.reveal.rank) then
-     self.reveal={rank=rank,color=UIColors.Rarities[def.rarity],position=record.foot}
+    -- October 27 (WS4): on your own podium, a chicken missing from your Index floats a gold
+    -- "NEW!" with the Badge cue; the first of a rarity never owned is flagged for Celebrate.
+    local own=station:GetAttribute("OwnerId")==Players.LocalPlayer.UserId
+    local discovered: {[string]: any}=(self.app.state and self.app.state.discovered) or {}
+    local first=false
+    if own and discovered[species]~=true then
+     if ((Config :: any).Discovery or {}).NewTag==true then
+      local feel=self.app.worldFeel
+      if feel then feel:Text(record.foot+Vector3.new(0,5.5,0),"NEW!",{color=GOLD,size=34}) end
+      local badge=self:Cue("Badge")
+      if badge then self:Sound(record,badge,1,0.4,nil) end
+     end
+     first=true
+     for id,found in discovered do
+      if found==true and Catalog[id] and Catalog[id].rarity==def.rarity then first=false;break end
+     end
+    end
+    if own and (not self.reveal or rank>self.reveal.rank) then
+     self.reveal={rank=rank,color=UIColors.Rarities[def.rarity],position=record.foot,first=first}
     end
    end
   end
@@ -658,9 +691,11 @@ function RollPresentationController:StepRecord(record, now)
   if not record.finishPlayed and age>=0.16 then
    record.finishPlayed=true
    self:Sound(record,"RollLand",1.4,0.22,0.22)
-   -- Epic and up play their tier's stinger (RollRare until it is authored).
+   -- Epic and up play their tier's stinger (RollRare until it is authored); October 27
+   -- (WS4): a Rare plays RollRare, so rarer reads rarer.
    local stinger=if rank>=4 then self:Cue(TIER_CUES[rank] or "RollSecret","RollRare") else "RollReveal"
-   if stinger then self:Sound(record,stinger,if rank>=5 then 1.12 else 1,if rank>=4 then 0.5 else 0.32,nil) end
+   if rank==3 then stinger=self:Cue("RollRare","RollReveal") end
+   if stinger then self:Sound(record,stinger,if rank>=5 then 1.12 else 1,if rank>=3 then 0.5 else 0.32,nil) end
    if record.burst and not reduced then
     record.burst.Color=ColorSequence.new(tint,GOLD)
     record.burst:Emit(if rank>=4 then 26 else 12)

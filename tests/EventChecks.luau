@@ -32,6 +32,7 @@ end
 local function rollerSession(id)
  local s=Session.new(id,"Event",1);s.loaded=true
  s.tutorial.guideCompleted=true;s.tutorial.bought=true
+ s.introRebirth=nil -- Oct 27: catalog prices (StarterPrices only quote empty-start profiles)
  s.rollSlotCount=Config.RollSlotsUnlocked
  return s
 end

@@ -24,6 +24,7 @@ end
 local function baselineSession()
  local s=Session.new(-951,"Base",1);s.loaded=true
  s.tutorial.guideCompleted=true;s.tutorial.bought=true
+ s.introRebirth=nil -- Oct 27: a pre-empty-start profile, so podiums quote catalog prices (no StarterPrices)
  for id in s.pets do s.pets[id]=nil end
  local a=s:AddPet("Knight",1);a.level=3
  local b=s:AddPet("Dragon",1);b.level=2

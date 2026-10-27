@@ -351,6 +351,14 @@ local function actionImpl(self: any, st: any, session: any, action: any, ok: any
 		if rank >= RarityRank.Rare then named(self, st, "Roll", "RareOrBetter") end
 		if rank >= RarityRank.Epic then named(self, st, "Roll", "EpicOrBetter") end
 		if rank >= RarityRank.Legendary then named(self, st, "Roll", "LegendaryOrBetter") end
+		-- Oct 27 WS4: an Uncommon+ recruit, and 5 different chickens in the Index.
+		if rank >= RarityRank.Uncommon then named(self, st, "Roll", "UncommonOrBetter") end
+		local discovered = if type(session) == "table" then session.discovered else nil
+		if type(discovered) == "table" then
+			local found = 0
+			for _, value in discovered do if value == true then found += 1 end end
+			if found >= 5 then named(self, st, "Roll", "Found5") end
+		end
 	elseif UpgradeActions[action] then
 		addCounter(self, st, "upgrades", 1)
 	elseif action == "UpgradeChicken" then
@@ -473,6 +481,9 @@ local function serverImpl(self: any, st: any, name: any, detail: any)
 	elseif startsWith(name, "goldRoll.pull.") then
 		local kind = string.sub(name, #"goldRoll.pull." + 1)
 		if kind == "Gold" or kind == "Diamond" or kind == "Prism" then named(self, st, "GoldRolls", kind .. "Roll") end
+	elseif startsWith(name, "luckyStart.forced.Rare") then
+		-- Oct 27 WS4: a Lucky Start Rare reached the podium (luckyStart.forced.Rare<n>).
+		named(self, st, "Roll", "LuckyRareSeen")
 	elseif startsWith(name, "mutation.offer.") then
 		named(self, st, "Mutations", "Offered")
 	elseif startsWith(name, "mutation.buy.") then

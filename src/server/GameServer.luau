@@ -318,7 +318,11 @@ function GameServer:Handle(player,request)
 		if not self.world:CanUseStation(player,session,request.stationIndex,action,request.offerId) then
 			message="Walk up to your own roll machine."
 		elseif action=="Roll" then
-			ok,message=self.rolls:Roll(session,now)
+			-- Oct 27 WS4: a lever request is manual (the Lucky Start roll-past guard); count its use.
+			local warned=session.rollPastWarned
+			ok,message=self.rolls:Roll(session,now,true)
+			if not ok and session.rollPastWarned~=warned then self.analytics:LaunchCount(session,"luckyStart.guard.shown") end
+			if ok and warned~=nil then self.analytics:LaunchCount(session,"luckyStart.guard.rolledPast") end
 			if ok then self:CountOffers(session) end
 		else
 			local battle=self.battles.battles[session.outgoing]
@@ -471,6 +475,13 @@ function GameServer:CountOffers(session)
 		if offer.mutation then self.analytics:LaunchCount(session,"mutation.offer."..offer.mutation) end
 		if offer.event then self.analytics:LaunchCount(session,"event.offer."..offer.species) end
 		if offer.rebirthChicken then self.analytics:LaunchCount(session,"rebirthChicken.offered") end
+		-- Oct 27 WS4: Lucky Start forced offers (luckyStart.forced.<kind><n>, e.g. Rare1; one
+		-- suffix, as launch names allow) and Index-new offers.
+		local lucky=session.luckyStart
+		if offer.lucky and type(lucky)=="table" then
+			self.analytics:LaunchCount(session,"luckyStart.forced."..offer.lucky..tostring(if offer.lucky=="Rare" then lucky.firesR else lucky.firesU))
+		end
+		if offer.new then self.analytics:LaunchCount(session,"roll.new.offer") end
 		special=special or offer.special
 	end
 	if special then self.analytics:LaunchCount(session,"goldRoll.pull."..special) end
@@ -488,6 +499,16 @@ function GameServer:CountRecruit(session,recruit)
 	if list and price and list>price then
 		self.analytics:LaunchCount(session,"econ.starterRecruit")
 		self.analytics:LaunchCount(session,"econ.starterSaved",math.floor(list-price))
+	end
+	-- Oct 27 WS4: Lucky Start buys, first finds and the play time of each rarity's first find.
+	if offer.lucky then self.analytics:LaunchCount(session,"luckyStart.bought."..offer.lucky) end
+	if recruit.firstFind then
+		self.analytics:LaunchCount(session,"roll.new.bought")
+		local rarity=offer.rarity
+		if type(rarity)=="string" and self.analytics:LaunchFirst(session,"index.first."..rarity) then
+			local play=self.analytics:PlaySeconds(session)
+			if play then self.analytics:LaunchHist(session,"index.firstSeconds."..rarity,play) end
+		end
 	end
 end
 

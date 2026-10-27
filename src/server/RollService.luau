@@ -9,8 +9,11 @@ local Currency = require(Shared.CurrencyLimits)
 local AutoRollRules = require(Shared.AutoRollRules)
 local GoldRolls = require(Shared.GoldRolls)
 local TutorialGuide = require(Shared.TutorialGuide)
+local UpgradeCatalog = require(Shared.UpgradeCatalog)
+local IndexProgress = require(Shared.IndexProgress)
 local EventService = require(script.Parent.EventService)
 local RebirthChickens = require(script.Parent.RebirthChickens)
+local LuckyStart = require(script.Parent.LuckyStart)
 local RollService = {}
 RollService.__index = RollService
 
@@ -45,11 +48,22 @@ local function favoredSpecies(session, rng): string?
 	return favor.species
 end
 
-function RollService:Roll(session, now: number)
+-- `manual` (GameServer's lever request) arms the October 27 roll-past guard; Auto Roll
+-- never passes it (it has its own holds).
+function RollService:Roll(session, now: number, manual: boolean?)
 	if now < session.rollReadyAt then return false, "Roll ready in " .. math.max(1, math.ceil(session.rollReadyAt - now)) .. "s." end
+	-- October 27 (WS4, LUCKY_START_20261027.md): the first manual pull past a Lucky Start
+	-- offer, a Rare+ during Lucky Start or the next Rebirth's find is refused once per
+	-- offer; the next pull rolls. rollPastWarned is live only.
+	if manual then
+		local keep = LuckyStart.GuardOffer(session)
+		if keep and session.rollPastWarned ~= keep.id then
+			session.rollPastWarned = keep.id
+			return false, LuckyStart.GuardText(keep)
+		end
+	end
 	local starter = session:StarterRecruitPending()
 	local ladder = if starter then nil else ladderStep(session)
-	local favored = if starter or ladder then nil else favoredSpecies(session, session.debugRandom or self.random)
 	-- Rank metadata remains compatible with saved sessions; rolls use the full roster.
 	session.recruitTier=session.promotion
 	local rng = session.debugRandom or self.random
@@ -68,6 +82,13 @@ function RollService:Roll(session, now: number)
 	-- Only verified restricted owners advance the disclosed fixed offer schedule.
 	-- Debug rolls, cooldown failures and unverified ownership cannot consume progress.
 	local guaranteed = if not debugRoll and not starter then session:AdvanceGuaranteedLuck() else nil
+	-- October 27 Lucky Start: after the StarterLadder and the paid guarantee, before the
+	-- favoured basic Chicken. A paid guarantee taking the pull makes it wait one pull.
+	local lucky = if not starter and not ladder and not guaranteed and session.debugNext == nil
+		and LuckyStart.Active(session) then LuckyStart.Due(session) else nil
+	local luckySpecies = if lucky then LuckyStart.Draw(session, rng, lucky, paidLuck, researchLuck) else nil
+	local luckyKind: string? = if luckySpecies then lucky else nil
+	local favored = if starter or ladder or luckySpecies then nil else favoredSpecies(session, rng)
 	local offers={}
 	local odds=Rules.Odds(session.luck,session.recruitTier,paidLuck,researchLuck)
 	local count=if starter then 1 else math.clamp(session.rollSlotCount or 1,1,Config.RollSlotsUnlocked)
@@ -75,7 +96,7 @@ function RollService:Roll(session, now: number)
 	local mutationChance=1+(session.researchEffects.mutationLuck or 0)
 	for slot=1,count do
 		-- The disclosed guarantee advances once per lever pull, not once per display.
-		local forced=if slot==1 then session.debugNext or (ladder and ladder.species) or favored or guaranteed else nil
+		local forced=if slot==1 then session.debugNext or (ladder and ladder.species) or guaranteed or luckySpecies or favored else nil
 		local species=if starter then "Duck" else forced or Rules.Draw(session.luck,rng:NextNumber(),session.recruitTier,paidLuck,researchLuck)
 		-- Launch hooks: never the starter or a forced first slot.
 		local drawn=species
@@ -89,17 +110,31 @@ function RollService:Roll(session, now: number)
 			if rebirthChicken then event=false end
 		end
 		local level=if starter then 1 else Rules.RecruitLevel(session.pets,species,session.promotion)
+		-- October 27 (WS2 starter prices, EARLY_ECONOMY_20261027.md): an empty-start profile's
+		-- podium quotes a share of the catalog price (Rules.StarterPrice); listPrice is kept
+		-- for the struck-through price on the podium. The free starter and the ladder keep theirs.
+		local list=Rules.RecruitPrice(species,level)
+		local ladderPrice=slot==1 and ladder~=nil and type(ladder.price)=="number"
+		local price=if starter then Config.Economy.StarterRecruitPrice
+			elseif ladderPrice then ladder.price
+			elseif session.introRebirth~=nil then Rules.StarterPrice(list,session:Count()) else list
+		local luckySlot=slot==1 and luckySpecies~=nil
 		offers[slot]={id=HttpService:GenerateGUID(false),slot=slot,species=species,debug=debugRoll,
-			level=level,price=if starter then Config.Economy.StarterRecruitPrice
-				elseif slot==1 and ladder and type(ladder.price)=="number" then ladder.price else Rules.RecruitPrice(species,level),tier=session.recruitTier,starter=starter,
+			level=level,price=price,listPrice=if price<list and not starter and not ladderPrice then list else nil,
+			tier=session.recruitTier,starter=starter,
 			luck=session.luck,paidLuck=paidLuck,researchLuck=researchLuck,duration=duration,guaranteed=slot==1 and guaranteed~=nil,
-			chance=if starter or (slot==1 and guaranteed) then 1 elseif event then Config.Event.OfferChance else odds[species],
-			event=event or nil,rebirthChicken=rebirthChicken or nil,special=special}
+			chance=if starter or (slot==1 and guaranteed) or luckySlot then 1 elseif event then Config.Event.OfferChance else odds[species],
+			event=event or nil,rebirthChicken=rebirthChicken or nil,special=special,
+			-- October 27 (WS4): new = missing from the Index; lucky = the Lucky Start rarity.
+			new=if not starter and not session.discovered[species] then true else nil,
+			lucky=if luckySlot then luckyKind else nil}
 		-- October 20 tree v2 (S9c): mutations open in the Upgrades tree; mutationKeep keeps rank unlocks.
 		if not starter then offers[slot].mutation=MutationCatalog.Roll(rng,math.max(session.researchEffects.mutations or 0,session.mutationKeep or 0),mutationChance) end
 	end
 	session.offers,session.offer=offers,offers[1]
 	session.debugNext=nil
+	if not starter then LuckyStart.Record(session,offers,luckyKind) end
+	session.rollPastWarned=nil
 	session.tutorial.rolled=true
 	-- October 24: card 7 ("Pull the lever again!") counts pulls; saved up to the limit.
 	session.tutorial.rollCount=math.min((tonumber(session.tutorial.rollCount) or 0)+1,TutorialGuide.RollCountLimit)
@@ -268,6 +303,8 @@ function RollService:Buy(session, offerId, now: number?, context)
 	local canSpend,reason=session:CanSpendCash(price,if starter then "StarterRecruit" else nil)
 	if not canSpend then return false,reason end
 	local before=session:BestPetIds()
+	-- October 27 (WS4/WS7): a chicken missing from the Index until this recruit.
+	local firstFind=not session.discovered[species]
 	-- This transaction does not yield: an offer cannot be bought twice.
 	session.coins -= price
  session.tutorial.bought=true
@@ -287,18 +324,26 @@ function RollService:Buy(session, offerId, now: number?, context)
 	-- October 20 Flock (S10): only Flock chickens lay; one that goes to storage lays
 	-- nothing. Before S10's FlockIds exists, every chicken lays.
 	local laying=if session.FlockIds then table.find(session:FlockIds(),pet.id)~=nil else true
-	local status=if not selected and not laying then "In storage."
+	-- October 27 (WS2): say how a stored chicken starts laying while a Flock Size tier is left.
+	local flockFamily=UpgradeCatalog.Families.Flock
+	local nextFlockTier=flockFamily~=nil and UpgradeCatalog.Tier(session.upgradeTree,"Flock")<#flockFamily.tiers
+	local status=if not selected and not laying then (if nextFlockTier then "In storage. Grow your Flock in Upgrades so it lays eggs." else "In storage.")
 		elseif not selected then "Flock · eggs +"..Currency.Rate(session:DisplayedPetIncome(pet.species,pet.stars,pet.level,pet.mutation)).."/s at your base."
 		elseif session.armyState=="Returning" then "Ready when your army gets home."
 		elseif session:IsArmyLocked() and pending then "Joining your army on foot."
 		elseif session:IsArmyLocked() then "Ready for your next deployment."
 		elseif assignment=="Added" then "Army "..#before.." → "..#after.."."
 		else "Your army got stronger."
+	-- October 27 (WS4): the Index count after this recruit, for the "NEW CHICKEN!" toast.
+	local found,total=IndexProgress.Count(session.discovered)
 	return true, "Bought " .. Catalog[species].name .. " Lv " .. level .. ". "..status, pet.id, {
 		assignment=assignment,selectedBefore=#before,selectedAfter=#after,
 		pendingBattleId=pending,deferredUntilContestEnds=false,
-		-- Analytics only (GameServer:CountRecruit): what kind of offer this was.
-		offer={species=species,mutation=offer.mutation,event=offer.event,rebirthChicken=offer.rebirthChicken,special=offer.special},
+		firstFind=firstFind or nil,found=found,total=total,
+		-- Analytics (GameServer:CountRecruit) and Server Moments (WS7): what kind of offer
+		-- this was; listPrice/price for starter-price buys (WS2).
+		offer={species=species,mutation=offer.mutation,event=offer.event,rebirthChicken=offer.rebirthChicken,special=offer.special,
+			lucky=offer.lucky,new=offer.new,firstFind=firstFind or nil,rarity=Catalog[species].rarity,price=price,listPrice=offer.listPrice},
 	}
 end
 

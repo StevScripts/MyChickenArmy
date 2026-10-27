@@ -325,8 +325,18 @@ function AppController:TrackRecruit(result)
 		-- Preserve identity and assignment if a very narrow viewport cannot fit the optional rate.
 		if EggFeedback.Width(identity,self.toast.TextSize)>width then identity=name end
 	end
-	local text=identity.."\n"..classification
-	self:Notify(text, true)
+	-- Oct 27 WS4: a chicken new to the Index gets its own toast with the Index count
+	-- (RollService:Buy's firstFind/found/total), the Jingle and a gold pulse.
+	if recruit.firstFind == true and type(recruit.found) == "number" and type(recruit.total) == "number" then
+		self:Notify("NEW CHICKEN! " .. name .. " · Index " .. recruit.found .. "/" .. recruit.total .. "\n" .. classification, "event")
+		self:Cue("Jingle", "Badge", nil, {voiceKey = "NewChicken", cooldown = 0.5})
+		self.base:PetPulse(id, C.gold)
+		local hud = self.hud :: any
+		if hud and hud.PingIndex then hud:PingIndex() end
+	else
+		local text=identity.."\n"..classification
+		self:Notify(text, true)
+	end
 	self.feedback:Action("Buy")
 	-- Bound presentation history independently of inventory size.
 	local count, oldestId, oldest = 0, nil, math.huge

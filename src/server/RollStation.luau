@@ -10,6 +10,7 @@ local UIColors = require(Shared.UIColors)
 local Currency = require(Shared.CurrencyLimits)
 local GoldRolls = require(Shared.GoldRolls)
 local Builder = require(script.Parent.WorldBuilder)
+local LuckyStart = require(script.Parent.LuckyStart)
 local RollStation = {}
 RollStation.__index = RollStation
 local colors = Builder.Palette
@@ -29,7 +30,8 @@ local function offerLabel(parent, frame)
 	local anchor = Builder.Part(parent, "OfferLabelAnchor", Vector3.one, frame * CFrame.new(0, 6, -3.5), colors.white, false)
 	anchor.Transparency, anchor.CanQuery, anchor.CastShadow = 1, false, false
 	local gui = Instance.new("BillboardGui")
-	gui.Name, gui.Size = "OfferLabel", UDim2.fromOffset(340, 96)
+	-- October 27 (WS4): a fourth line under the price, the advice ("+18 Coins/s in your Flock").
+	gui.Name, gui.Size = "OfferLabel", UDim2.fromOffset(340, 120)
 	gui.AlwaysOnTop, gui.MaxDistance, gui.StudsOffset = true, 38, Vector3.new(0, 0, 0)
 	gui.LightInfluence, gui.Enabled, gui.Parent = 0, false, anchor
 	local function line(name, top, height, textSize)
@@ -60,13 +62,23 @@ local function offerLabel(parent, frame)
 	price.Position, price.Size, price.AutomaticSize = UDim2.new(), UDim2.fromScale(0, 1), Enum.AutomaticSize.X
 	price.TextColor3 = UIColors.Coins
 	price:GetPropertyChangedSignal("Text"):Connect(function() coin.Visible = price.Text ~= "" end)
-	return gui, line("Text", 0, 34, 28), line("Rarity", 36, 28, 21), price
+	-- October 27 (WS2 starter prices): the catalog price, struck through, after a starter quote.
+	local listPrice = line("ListPrice", 0, 30, 20)
+	listPrice.Parent, listPrice.LayoutOrder, listPrice.RichText = priceRow, 3, true
+	listPrice.Position, listPrice.Size, listPrice.AutomaticSize = UDim2.new(), UDim2.fromScale(0, 1), Enum.AutomaticSize.X
+	listPrice.TextColor3 = UIColors.Muted
+	local rarity = line("Rarity", 36, 28, 21)
+	rarity.RichText = true
+	return gui, line("Text", 0, 34, 28), rarity, price, line("Advice", 96, 24, 18), listPrice, priceRow, coin
 end
 
 -- October 20 Gold rolls (S12, S12b): the machine's counters from Stevin's Drop a Fruit
 -- recording, one row per owned machine ("6 Rolls Left" over "98 Rolls Left"), floating
 -- over the lever machine for every viewer. Rows stack up from the bottom.
-local COUNTER_HEIGHT = 4.2
+-- October 27 (WS4): room for a fourth row, the Lucky Start countdown, on top; each row
+-- keeps its 4.2 / 3 studs.
+local COUNTER_ROWS = #GoldRolls.Kinds + 1
+local COUNTER_HEIGHT = 4.2 / 3 * COUNTER_ROWS
 local function rollCounters(parent, position)
 	local anchor = Builder.Part(parent, "GoldCounterAnchor", Vector3.one, CFrame.new(position), colors.white, false)
 	anchor.Transparency, anchor.CanQuery, anchor.CastShadow = 1, false, false
@@ -76,12 +88,14 @@ local function rollCounters(parent, position)
 	gui.Enabled, gui.Parent = false, anchor
 	local list = Instance.new("UIListLayout")
 	list.SortOrder, list.VerticalAlignment = Enum.SortOrder.LayoutOrder, Enum.VerticalAlignment.Bottom
-	list.HorizontalAlignment, list.Padding, list.Parent = Enum.HorizontalAlignment.Center, UDim.new(0.03, 0), gui
+	list.HorizontalAlignment, list.Padding, list.Parent = Enum.HorizontalAlignment.Center, UDim.new(0.09 / COUNTER_ROWS, 0), gui
 	local rows = {}
-	for index, kind in GoldRolls.Kinds do
+	local kinds = table.clone(GoldRolls.Kinds)
+	table.insert(kinds, "Lucky")
+	for index, kind in kinds do
 		local row = Instance.new("Frame")
-		row.Name, row.LayoutOrder, row.BackgroundTransparency = kind, index, 1
-		row.Size, row.Visible, row.Parent = UDim2.fromScale(1, 0.31), false, gui
+		row.Name, row.LayoutOrder, row.BackgroundTransparency = kind, if kind == "Lucky" then 0 else index, 1
+		row.Size, row.Visible, row.Parent = UDim2.fromScale(1, 0.93 / COUNTER_ROWS), false, gui
 		local bar = Instance.new("Frame")
 		bar.Name, bar.AnchorPoint, bar.Position = "Bar", Vector2.new(1, 0.5), UDim2.fromScale(1, 0.5)
 		bar.Size, bar.BackgroundColor3, bar.BackgroundTransparency = UDim2.fromScale(0.84, 0.8), Color3.new(0, 0, 0), 0.4
@@ -198,14 +212,21 @@ function RollStation.new(parent, frame, index, onAction, slot, display)
 	model:SetAttribute("DisplayFrame",self.frame);model:SetAttribute("DisplayFoot",self.foot)
 	model:SetAttribute("LeverPivot",self.leverPivot)
 	model:SetAttribute("LeverArmRest",self.armRest);model:SetAttribute("LeverHandleRest",self.knobRest)
-	self.offerGui, self.label, self.rarityLabel, self.priceLabel = offerLabel(model, if parent:GetAttribute("AuthoredPlot") then self.frame*CFrame.new(0,-1.5,3.5) else frame)
+	local priceRow, coinIcon
+	self.offerGui, self.label, self.rarityLabel, self.priceLabel, self.adviceLabel, self.listLabel, priceRow, coinIcon =
+		offerLabel(model, if parent:GetAttribute("AuthoredPlot") then self.frame*CFrame.new(0,-1.5,3.5) else frame)
 	if #RollStation.DisplayAnchors(parent)>1 then
 		-- World-sized labels stay inside their neighboring podium's footprint.
-		self.offerGui.Size=UDim2.fromScale(5.6,1.8)
-		self.label.Position,self.label.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,0.38)
-		self.rarityLabel.Position,self.rarityLabel.Size=UDim2.fromScale(0,0.39),UDim2.fromScale(1,0.3)
-		self.priceLabel.Position,self.priceLabel.Size=UDim2.fromScale(0,0.69),UDim2.fromScale(1,0.31)
+		-- October 27 (WS4): four lines (name, rarity, price, advice) in a taller tag.
+		self.offerGui.Size=UDim2.fromScale(5.6,2.2)
+		self.label.Position,self.label.Size=UDim2.fromScale(0,0),UDim2.fromScale(1,0.3)
+		self.rarityLabel.Position,self.rarityLabel.Size=UDim2.fromScale(0,0.3),UDim2.fromScale(1,0.22)
+		priceRow.Position,priceRow.Size=UDim2.fromScale(0,0.52),UDim2.fromScale(1,0.26)
+		coinIcon.Size,coinIcon.SizeConstraint=UDim2.fromScale(1,1),Enum.SizeConstraint.RelativeYY
+		self.priceLabel.Size,self.listLabel.Size=UDim2.fromScale(0,1),UDim2.fromScale(0,1)
+		self.adviceLabel.Position,self.adviceLabel.Size=UDim2.fromScale(0,0.78),UDim2.fromScale(1,0.22)
 		self.label.TextScaled,self.rarityLabel.TextScaled,self.priceLabel.TextScaled=true,true,true
+		self.adviceLabel.TextScaled,self.listLabel.TextScaled=true,true
 	end
 	-- The cylinder is rotated, so world-space emission uses a separate upright anchor.
 	local emitterAnchor = Builder.Part(model, "EffectAnchor", Vector3.one, CFrame.new(self.foot + Vector3.new(0, 0.6, 0)), colors.white, false)
@@ -298,16 +319,29 @@ function RollStation:Sync(session)
 	self.firstPull=self.tutorialHold and t.rolled~=true
  self.offerAdvice,self.offerImprovesArmy="",false
  local offer=if self.loaded then session.offers and session.offers[self.slot] else nil
- if offer then self.offerAdvice,self.offerImprovesArmy=session:OfferAdvice(offer.species,offer.level) end
+ if offer then self.offerAdvice,self.offerImprovesArmy=session:OfferAdvice(offer.species,offer.level,offer.mutation) end
+	-- October 27 (WS4): "NEW!" before the rarity while the chicken is missing from the Index.
+	local discovery=(Config :: any).Discovery or {}
+	self.offerNew=discovery.NewTag==true and offer~=nil and not offer.starter and session.discovered[offer.species]~=true
+	self.adviceOn=discovery.Advice==true
 	if self.counterGui then
 		local counters=GoldRolls.Counters(session.goldRolls,session.researchEffects)
-		self.counterGui.Enabled=self.loaded and #counters>0
+		-- October 27 Lucky Start: "Rare in 6 Rolls" on top while a guarantee is pending.
+		local lucky=if self.loaded then LuckyStart.State(session) else nil
+		self.counterGui.Enabled=self.loaded and (#counters>0 or lucky~=nil)
 		local shown={}
 		for _,counter in counters do
 			local row=self.counterRows[counter.kind]
 			shown[counter.kind]=true
 			row.icon.Image=GoldRolls.Icons[counter.kind] or ""
 			row.label.Text=GoldRolls.Text(counter)
+		end
+		local luckyRow=self.counterRows.Lucky
+		if lucky and luckyRow then
+			shown.Lucky=true
+			luckyRow.icon.Image=((Config :: any).LuckyStart or {}).Icon or ""
+			luckyRow.label.Text=LuckyStart.CounterText(lucky)
+			luckyRow.label.TextColor3=UIColors.Rarities[lucky.kind] or UIColors.Text
 		end
 		for kind,row in self.counterRows do row.row.Visible=shown[kind]==true end
 	end
@@ -334,6 +368,8 @@ function RollStation:Sync(session)
 	self.model:SetAttribute("PendingSpecies", if self.offer then self.offer.species else nil)
 	-- October 20 Gold rolls: the special pull's kind, on every podium it rolled.
 	self.model:SetAttribute("RollSpecial", if self.offer then self.offer.special else nil)
+	-- October 27 Lucky Start: the forced rarity ("Uncommon"/"Rare") for the "Lucky roll" tag.
+	self.model:SetAttribute("RollLucky", if self.offer then self.offer.lucky else nil)
 	if self.pet then self.pet:Destroy(); self.pet = nil end
 	self:Step(os.clock(), true)
 end
@@ -367,6 +403,7 @@ function RollStation:Step(now, force)
 	self.offerGui.Enabled = canBuy or idle
 	if rolling then
 		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
+		self.adviceLabel.Text, self.listLabel.Text = "", ""
 	elseif self.offer then
 		local def = Catalog[self.offer.species]
 		local level = self.offer.level or 1
@@ -381,19 +418,36 @@ function RollStation:Step(now, force)
 		self.label.Text = def.name
 		-- October 15: the rarity plus its zero-Luck odds, e.g. "Mythic · 1 in 19,000".
 		local oneIn = Catalog.OneInText(self.offer.species)
-		self.rarityLabel.Text = if oneIn then def.rarity .. " · " .. oneIn else def.rarity
+		-- October 27 (WS4): "NEW!  Common · 1 in 17" (NEW! in gold) for a chicken missing from the Index.
+		self.rarityLabel.Text = (if self.offerNew then '<font color="#FFD630">NEW!</font>  ' else "")
+			.. (if oneIn then def.rarity .. " · " .. oneIn else def.rarity)
 		self.rarityLabel.TextColor3 = UIColors.Rarities[def.rarity] or UIColors.Text
 		-- October 21: the guide's starter roll costs nothing; its tag shows no price
 		-- (Stevin: no "FREE" wording).
 		self.priceLabel.Text = if price <= 0 then "" else commas(price)
+		-- October 27 (WS2): a starter quote shows the catalog price struck through after it.
+		local listPrice = self.offer.listPrice
+		self.listLabel.Text = if type(listPrice) == "number" and listPrice > price and price > 0 then "<s>" .. commas(listPrice) .. "</s>" else ""
+		-- October 27 (WS4): the advice line; green when it helps the Flock or the Army.
+		self.adviceLabel.Text = if self.adviceOn then self.offerAdvice or "" else ""
+		self.adviceLabel.TextColor3 = if self.offerImprovesArmy then UIColors.Money else UIColors.Muted
+		-- October 27 (WS3, COINS_SHORTFALL_PROMPT.md): while unaffordable the prompt says what
+		-- is missing and needs a 0.5 s hold, so a stray E press (the lever also uses E) no
+		-- longer fires a Buy; affordable, the usual text with no hold.
+		local short = price - (self.coins or 0)
+		local unaffordable = short > 0 and not self.storageFull
 		local promptText = if self.storageFull then "Storage full · sell in My Army"
 			elseif price <= 0 then "Take " .. def.name
+			elseif unaffordable then "Need " .. Currency.Grouped(short) .. " more " .. (if short == 1 then "Coin" else "Coins")
 			else "Buy " .. def.name .. " · " .. Currency.Text(price)
 		if self.buyPrompt.ActionText ~= promptText then self.buyPrompt.ActionText = promptText end
+		local holdSeconds = if unaffordable then (((Config :: any).CoinsPrompt or {}).UnaffordableHoldSeconds or 0.5) else 0
+		if self.buyPrompt.HoldDuration ~= holdSeconds then self.buyPrompt.HoldDuration = holdSeconds end
 		self.top.Color = tint
 
 	else
 		self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = if idle then "Pull the lever to roll" else "", "", ""
+		self.adviceLabel.Text, self.listLabel.Text = "", ""
 		self.top.Color, self.light.Brightness = Color3.fromRGB(67, 181, 222), 0
 	end
 
@@ -408,9 +462,10 @@ function RollStation:Clear()
 	self.offerGui.Enabled = false
 	if self.counterGui then self.counterGui.Enabled = false end
 	self.label.Text, self.rarityLabel.Text, self.priceLabel.Text = "", "", ""
+	self.adviceLabel.Text, self.listLabel.Text, self.buyPrompt.HoldDuration = "", "", 0
 	self.top.Color = Color3.fromRGB(67, 181, 222)
 	if self.arm and self.knob then self.arm.CFrame,self.knob.CFrame=self.leverPivot*self.armRest,self.leverPivot*self.knobRest end
-	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck", "RollSpecial"} do self.model:SetAttribute(name, nil) end
+	for _, name in {"OwnerId", "OwnerUserId", "RevealedOfferId", "RevealedSpecies", "RevealedMutation", "PendingSpecies", "RollStage", "RollId", "RollStartedAt", "RollDuration", "RollPaidLuck", "RollResearchLuck", "RollSeed", "RollTier", "RollLuck", "RollSpecial", "RollLucky"} do self.model:SetAttribute(name, nil) end
 	self.model:SetAttribute("Rolling", false)
 end
 
