@@ -423,6 +423,12 @@ function Analytics:Action(session, action: string, ok: boolean, message: any, be
 	local st = self:_State(session)
 	if not st or action == "Sync" or action == "TutorialSignal" or action == "ClientReport" or action == "ClientEvents" then return end
 	local info = extra or {}
+	-- Oct 27 WS3: the client sends RefreshShop the moment a Roblox checkout closes, sooner
+	-- than the batched prompt.result, so a quick quit after a cancel is still seen.
+	if action == "RefreshShop" and st.openPrompt then
+		st.promptClosed = {key = st.openPrompt.key, auto = st.openPrompt.auto, at = self.clock(), cancel = true}
+		st.openPrompt = nil
+	end
 	self:_ActionCore(st, session, action, ok, message, before, request, info)
 	st.lastAction = action
 	self:_Part(self.funnels, "Action", st, session, action, ok, message, request or {}, info)
@@ -464,6 +470,14 @@ function Analytics:_ActionCore(st, session, action: string, ok: boolean, message
 		local id = game:GetService("HttpService"):GenerateGUID(false)
 		st.shopFunnel[key] = id
 		self.ledger:Count("shop.prompt." .. key)
+		-- Oct 27 WS3: the automatic Coins-shortfall checkout (source "Shortfall") vs a chosen buy.
+		local auto = type(request) == "table" and request.source == "Shortfall"
+		st.openPrompt = {key = key, auto = auto}
+		if auto then
+			self.ledger:Count("shop.auto.prompt")
+			self.ledger:Count("shop.auto.prompt." .. key)
+			self.ledger:Hist("shop.auto.playSeconds", "seconds", self:_Play(st))
+		end
 		local player = st.player
 		self:_Queue(false, "funnel:Shop:Prompted", function()
 			AnalyticsService:LogFunnelStepEvent(player, "Shop", id, 1, "Prompted", fields(key))
@@ -619,6 +633,15 @@ function Analytics:_Purchase(st, kind: string, key: string, price: number, actua
 	self.ledger:Count("robux.estimate", price)
 	local stage = self:_Stage(st)
 	self.ledger:Count("robux.stage." .. (if stage == "Post" then "Post" elseif stage == "Untracked" then "Untracked" else "Tutorial"))
+	-- Oct 27 WS3: who buys what, when (lifetime play), and whether a shortfall auto-prompt opened it.
+	local opened = if st.openPrompt and st.openPrompt.key == key then st.openPrompt
+		elseif st.promptClosed and st.promptClosed.key == key then st.promptClosed else nil
+	self.ledger:Hist("robux.buy." .. key .. ".playSeconds", "seconds", self:_Play(st))
+	self.ledger:Count("robux.buy." .. key .. (if opened and opened.auto then ".auto" else ".intent"))
+	if opened then
+		st.openPrompt = nil
+		st.promptClosed = {key = key, auto = opened.auto, at = self.clock(), cancel = false}
+	end
 	if profile then
 		profile.purchases = (profile.purchases or 0) + 1
 		profile.robux = (profile.robux or 0) + price
@@ -762,6 +785,22 @@ function Analytics:_UiEvent(st, name: string, detail: string?, value: number?)
 		local result = string.match(detail :: string, ":(%a+)$")
 		if result == "bought" then ledger:Count("ui.prompt.bought") elseif result == "cancel" then ledger:Count("ui.prompt.cancel") end
 		ledger:Top("ui.prompt.result", detail :: string)
+		-- Oct 27 WS3: the result of the checkout this session prepared, auto-prompt or chosen.
+		local key = string.match(detail :: string, "^([^:]+):")
+		local prompt = if st.openPrompt and st.openPrompt.key == key then st.openPrompt
+			elseif st.promptClosed and st.promptClosed.key == key and not st.promptClosed.counted then st.promptClosed else nil
+		if prompt and (result == "bought" or result == "cancel") then
+			ledger:Count("shop." .. (if prompt.auto then "auto" else "intent") .. ".result." .. result)
+			local closed = st.promptClosed
+			if prompt == st.openPrompt then
+				st.openPrompt = nil
+				st.promptClosed = {key = key, auto = prompt.auto, at = self.clock(), cancel = result == "cancel", counted = true}
+			elseif closed then
+				closed.counted = true
+				-- A purchase granted in the meantime already marked it bought.
+				if result == "bought" then closed.cancel = false end
+			end
+		end
 	elseif name == "idle.start" then
 		ledger:Count("ui.idle.n")
 	elseif name == "idle.end" then
@@ -778,7 +817,34 @@ function Analytics:_UiEvent(st, name: string, detail: string?, value: number?)
 		ledger:Top("ui.leaderboard.view", detail :: string)
 	elseif name == "camera.zoom" or name == "chat.sent" or name == "emote" then
 		ledger:Count("ui." .. name, math.max(1, math.floor(value or 1)))
+	elseif name == "coins.gated" then
+		-- Oct 27 WS3: the client decided a Coins-shortfall checkout alone: "<source>:<reason>".
+		local source, reason = string.match(detail :: string, "^(%w+):(%w+)$")
+		if source then self:_CoinsGated(source, reason, true) end
 	end
+end
+
+-- Oct 27 WS3 (docs/team/COINS_SHORTFALL_PROMPT.md "Analytics"): shop.short.<source> for each
+-- Coins shortfall, shop.auto.gated.<reason> when the checkout was held back. Server replies
+-- count both here; the client's coins.gated counts the shortfall only for its own
+-- pre-checks (Tree, Board), whose shortfalls never reached the server.
+local SHORT_SOURCES = {Buy = true, UpgradeChicken = true, BuyUpgrade = true, Expand = true, BoardUpgrade = true,
+	Tree = true, Board = true}
+local GATE_REASONS = {Tutorial = true, New = true, Cap = true, Cooldown = true, Small = true, Test = true, Off = true,
+	Busy = true, Invite = true, Pending = true, NoPack = true}
+function Analytics:_CoinsGated(source: string, reason: string?, client: boolean?)
+	source = if source == "FeedChicken" then "UpgradeChicken" else source
+	if not client or source == "Tree" or source == "Board" then
+		self.ledger:Count("shop.short." .. (if SHORT_SOURCES[source] then source else "Other"))
+	end
+	if reason and reason ~= "Open" and reason ~= "Legacy" then
+		self.ledger:Count("shop.auto.gated." .. (if GATE_REASONS[reason] then reason else "Other"))
+	end
+end
+
+function Analytics:CoinsShortfall(session, action: string, reason: string?, _short: number?)
+	if not self:_State(session) then return end
+	pcall(self._CoinsGated, self, tostring(action), reason, false)
 end
 
 function Analytics:ClientEvents(session, events: any)
@@ -919,6 +985,11 @@ function Analytics:Leave(session)
 	self.ledger:Hist("econ.balanceAtLeave", "cash", session.coins or 0)
 	self.ledger:Hist("econ.sessionEarned", "cash", st.sessionEarned)
 	if st.rolls > 0 then self.ledger:Hist("roll.perSession", "count", st.rolls) end
+	-- Oct 27 WS3: left within 60 s of cancelling a checkout (auto-prompt or a chosen buy).
+	local closed = st.promptClosed
+	if closed and closed.cancel and now - closed.at <= 60 then
+		self.ledger:Count("shop." .. (if closed.auto then "auto" else "intent") .. ".quit60")
+	end
 	if st.guideStep and st.guideStepAt then self.ledger:Hist("guide.dwell." .. st.guideStep, "seconds", now - st.guideStepAt) end
 	-- Version 15: onboarding exits (ob.exit.NN) come from AnalyticsTutorial:Leave.
 	local stage = self:_Stage(st)

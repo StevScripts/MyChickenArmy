@@ -9,12 +9,25 @@ local CrateRoll=require(script.Parent.GalaxyCrateRollPresentation)
 local Theme=require(script.Parent.UITheme)
 local Controller={}
 Controller.__index=Controller
--- Lifetime Coins earned before a Coins shortfall may open a pack's checkout (BuyCoins).
-local COINS_PROMPT_EARNED=2000
+-- October 27 (WS3): no automatic checkout within this many seconds of a friend invite
+-- prompt (FriendBoost.lastInviteAt), so two Roblox dialogs never stack.
+local INVITE_QUIET_SECONDS=60
+-- Held-back sources the server never hears about (local pre-checks): coins.gated counts
+-- their shortfall too; for the others the server already counted it.
+local LOCAL_SOURCES={Tree=true,Board=true}
+
+-- AnalyticsClient is optional (scripts-only builds, isolated checks).
+local function track(name,detail)
+	local module=script.Parent:FindFirstChild("AnalyticsClient")
+	if not module then return end
+	local ok,client=pcall(require,module)
+	if ok and type(client)=="table" and client.Track then client.Track(name,detail) end
+end
 
 function Controller.new(app,dependencies)
 	local deps=dependencies or {}
-	return setmetatable({app=app,products={},connections={},alive=true,pending=nil,revision=0,
+	return setmetatable({app=app,products={},connections={},alive=true,pending=nil,revision=0,lastPromptAt=-math.huge,
+		serverNow=deps.serverNow or function() return workspace:GetServerTimeNow() end,track=deps.track or track,
 		marketplace=deps.marketplace or Marketplace,player=deps.player or Players.LocalPlayer,
 		catalog=deps.catalog or Catalog,clock=deps.clock or os.clock,spawn=deps.spawn or task.spawn,
 		delay=deps.delay or task.delay,togglePending={},justBought={},cratePresenting=false,crateResults={},crateResultOrder={},
@@ -121,7 +134,8 @@ end
 
 function Controller:Prepare(pending)
 	self.pending=pending
-	pending.requestId=self.app:Request("PreparePurchase",{key=pending.key,jobId=pending.jobId})
+	-- October 27 (WS3): the automatic shortfall checkout names itself; the server gates it again.
+	pending.requestId=self.app:Request("PreparePurchase",{key=pending.key,jobId=pending.jobId,source=pending.source,need=pending.need})
 	self:Changed()
 	self.delay(20,function()
 		if not self.alive or self.pending~=pending or pending.prompted then return end
@@ -130,22 +144,77 @@ function Controller:Prepare(pending)
 	end)
 end
 
--- October 23 (Stevin): short of Coins, Roblox's checkout opens straight away for the
--- smallest Coins pack that covers the shortfall (the biggest when none does), with
--- no menu first. False means no prompt (a test session, a purchase already open),
--- so the caller shows its usual message; `fallback` is shown if the server refuses.
-function Controller:BuyCoins(needed,fallback)
-	if not self.alive or type(needed)~="number" or needed<=0 or self.pending or self.autoCrate
-		or self.cratePending or self.cratePresenting then return false end
-	-- October 23 empty start: not before the tutorial is complete and 2,000 Coins have
-	-- been earned in all (eggs and battles); until then the caller's plain message shows.
+-- October 27 (WS3): the os.clock of the last Roblox purchase prompt opened (-math.huge
+-- before the first), so a friend invite never lands on top of a checkout.
+function Controller:LastPromptAt():number
+	return self.lastPromptAt
+end
+
+-- October 27 (WS3): the client's half of the Coins-shortfall gate. "Open" when a
+-- checkout may open now, else the reason it is held back: the server's own
+-- (state.shop.coinsPrompt mirrors CommerceService:CoinsPromptGate: Tutorial, New, Cap,
+-- Cooldown, Small, Test, Off) or a local one: Pending (a purchase or crate is open),
+-- Busy (another popup or a celebration beat; the Upgrades tree and the board are
+-- exempt, the player is buying there), Invite (a friend invite under 60 s ago).
+function Controller:CoinsGate(needed,source)
+	if self.pending or self.autoCrate or self.cratePending or self.cratePresenting then return "Pending" end
 	local state=self.app.state
 	local tutorial=state and state.tutorial
-	if type(tutorial)~="table" or tutorial.guideCompleted~=true then return false end
-	if (tonumber(state.passiveEarned) or 0)+(tonumber(state.battleEarned) or 0)<COINS_PROMPT_EARNED then return false end
+	if type(tutorial)~="table" or tutorial.guideCompleted~=true then return "Tutorial" end
+	local shop=state.shop
+	if type(shop)~="table" then return "Pending" end
+	if shop.testAllowed==true then return "Test" end
+	local mirror=shop.coinsPrompt
+	if type(mirror)~="table" then return "Off" end
+	if mirror.eligible~=true then return if type(mirror.reason)=="string" then mirror.reason else "New" end
+	if mirror.reason~="Legacy" then
+		if self.serverNow()<(tonumber(mirror.readyAt) or 0) then return "Cooldown" end
+		if needed<(tonumber(mirror.income) or 0)*(tonumber(mirror.minShortfallSeconds) or 0) then return "Small" end
+	end
+	local app=self.app
+	local buying=LOCAL_SOURCES[source] or source=="BuyUpgrade" or source=="BoardUpgrade"
+	if not buying and app.ModalBusy and app:ModalBusy() then return "Busy" end
+	if app.BeatBusy and app:BeatBusy() then return "Busy" end
+	local friends=app.friendBoost
+	local invitedAt=friends and tonumber(friends.lastInviteAt)
+	if invitedAt and self.clock()-invitedAt<INVITE_QUIET_SECONDS then return "Invite" end
+	return "Open"
+end
+
+-- October 23 (Stevin): short of Coins, Roblox's checkout opens straight away for the
+-- smallest Coins pack that covers the shortfall (the biggest when none does), with
+-- no menu first. October 27 (WS3, live 1.25.0 data: 0.12% of these checkouts bought,
+-- 6.6 a prompted player): only when CoinsGate says "Open". Returns true when the
+-- checkout is being prepared, else false and the reason, and the caller shows the
+-- inline hint (HeldBack). `source` names the shortfall for analytics: the server
+-- action, or "Tree"/"Board" for local pre-checks. If the server refuses after all,
+-- the hint shows (`fallback` is kept for old callers and used only without a source).
+function Controller:BuyCoins(needed,fallback,source)
+	if not self.alive or type(needed)~="number" or needed<=0 then return false,"Pending" end
+	needed=math.ceil(needed)
+	local reason=self:CoinsGate(needed,source)
+	local key
+	if reason=="Open" then
+		key=self:CoinsPack(needed)
+		if not key then reason="NoPack" end
+	end
+	-- The server never saw a local pre-check, nor a checkout it allowed that stays shut.
+	if type(source)=="string" and (LOCAL_SOURCES[source] or reason~="Open") then
+		self.track("coins.gated",source..":"..reason)
+	end
+	if reason~="Open" then return false,reason end
+	local definition,kind,id=self:Definition(key or "")
+	if not definition then return false,"NoPack" end
+	self:Prepare({key=key,kind=kind,productId=id,prompted=false,source="Shortfall",need=needed,
+		fallback=if source then nil else fallback,heldBack=if source then {short=needed,source=source} else nil})
+	return true,reason
+end
+
+-- The smallest on-sale Coins pack covering `needed` (the biggest when none does).
+function Controller:CoinsPack(needed)
 	local shop=self.app.state and self.app.state.shop
 	local amounts=shop and shop.cashPacks
-	if type(amounts)~="table" or shop.testAllowed==true then return false end
+	if type(amounts)~="table" then return nil end
 	local closest,closestAmount,biggest,biggestAmount
 	for _,key in self.catalog.ProductOrder or {} do
 		local product,amount=self.catalog.Products[key],amounts[key]
@@ -154,11 +223,68 @@ function Controller:BuyCoins(needed,fallback)
 			if not biggestAmount or amount>biggestAmount then biggest,biggestAmount=key,amount end
 		end
 	end
-	local key=closest or biggest
-	local definition,kind,id=self:Definition(key or "")
-	if not definition then return false end
-	self:Prepare({key=key,kind=kind,productId=id,prompted=false,fallback=fallback})
-	return true
+	return closest or biggest
+end
+
+-- October 27 (WS3): the held-back hint's words, as the tutorial's earn() step says them.
+function Controller:ShortText(short)
+	local amount=math.max(1,math.ceil(short))
+	local eggs=self.app.state and self.app.state.eggs
+	local carried=type(eggs)=="table" and tonumber(eggs.carriedValue) or 0
+	return "You need "..Theme.Money(amount).." more "..(if amount==1 then "Coin" else "Coins").."! "
+		..(if carried>0 and carried>=amount then "Sell your eggs on the green pad." else "Collect eggs and sell them on the green pad.")
+end
+
+-- Where a world shortfall happened, for the "Need N" float: the podium the player
+-- stands at (Buy) or the chicken being fed (FeedChicken). Nil elsewhere.
+function Controller:ShortfallAnchor(result)
+	local action=type(result)=="table" and result.action or nil
+	if action=="FeedChicken" then
+		local target=self.app.tools and self.app.tools.target
+		local part=target and target.part
+		return if part and part.Parent then part.Position+Vector3.new(0,3,0) else nil
+	end
+	if action~="Buy" then return nil end
+	local state=self.app.state
+	local world=workspace:FindFirstChild("PetRollWorld")
+	local plot=state and world and world:FindFirstChild("Plot"..tostring(state.plotIndex))
+	local character=self.player and self.player.Character
+	local root=character and character:FindFirstChild("HumanoidRootPart")
+	if not plot or not root or not root:IsA("BasePart") then return nil end
+	local best,bestDistance=nil,math.huge
+	for _,model in plot:GetChildren() do
+		if model:GetAttribute("IsRollStation") and model:GetAttribute("OwnerUserId")==self.player.UserId then
+			local pad=model:FindFirstChild("RevealPad") or model:FindFirstChild("Podium")
+			if pad and pad:IsA("BasePart") then
+				local distance=(pad.Position-root.Position).Magnitude
+				if distance<bestDistance then best,bestDistance=pad,distance end
+			end
+		end
+	end
+	return if best then best.Position+Vector3.new(0,5,0) else nil
+end
+
+-- October 27 (WS3): the one place a held-back Coins shortfall answers. An info toast
+-- (no error sound) in the tutorial's earn() words, a "Need N" float at `anchor`, and,
+-- once a session, a Shop-button glow for a gap of ShopHintIncomeSeconds of income or
+-- more while the player is too new, capped or cooling down (Hud:HintShop, which says
+-- false while the Shop button is hidden). Never a checkout. `options.silent` leaves the
+-- toast to the caller (the Upgrades tree's refusal shows ShortText itself).
+function Controller:HeldBack(short,source,anchor,reason,options)
+	if not self.alive or type(short)~="number" or short<=0 then return end
+	short=math.ceil(short)
+	if not (options and options.silent) then self.app:Notify(self:ShortText(short),"info") end
+	local feel=self.app.worldFeel
+	if anchor and feel then feel:Text(anchor,"Need "..Theme.Money(short),{color=Theme.Tones.Short,size=26,seconds=1.1}) end
+	if self.shopHinted or (reason~="New" and reason~="Cap" and reason~="Cooldown") then return end
+	local shop=self.app.state and self.app.state.shop
+	local mirror=shop and shop.coinsPrompt
+	if type(mirror)~="table" or short<(tonumber(mirror.income) or 0)*(tonumber(mirror.hintSeconds) or math.huge) then return end
+	local hud=self.app.hud
+	if hud and hud.HintShop and hud:HintShop(6) then
+		self.shopHinted=true
+		self.track("hint.shown","ShopCoins")
+	end
 end
 
 function Controller:Toggle(key)
@@ -290,17 +416,23 @@ function Controller:Receive(result)
 			local definition=self.catalog.Products[pending.key]
 			if (pending.jobId or (definition and definition.chickenOffer)) and type(result.message)=="string" and result.message~="" then self.app:Notify(result.message,false)
 			elseif type(pending.fallback)=="string" and pending.fallback~="" then self.app:Notify(pending.fallback,false) end
-			self.pending=nil;self:Changed();return
+			self.pending=nil
+			-- October 27 (WS3): the server's gate held the shortfall checkout back after all.
+			if pending.heldBack then self:HeldBack(pending.heldBack.short,pending.heldBack.source,nil,nil) end
+			self:Changed();return
 		end
 		-- A validated server response permits the native checkout, never a local grant.
 		pending.prompted=true
+		self.lastPromptAt=self.clock()
 		local ok=pcall(function()
 			if pending.kind=="Pass" then self.marketplace:PromptGamePassPurchase(self.player,pending.productId)
 			else self.marketplace:PromptProductPurchase(self.player,pending.productId) end
 		end)
 		if not ok then
 			if self.autoCrate==pending.crateIntent then self.autoCrate=nil end
-			self.pending=nil;self.app:Notify(pending.fallback or "Roblox couldn't open the purchase. Try again.",false)
+			self.pending=nil
+			if pending.heldBack then self:HeldBack(pending.heldBack.short,pending.heldBack.source,nil,nil)
+			else self.app:Notify(pending.fallback or "Roblox couldn't open the purchase. Try again.",false) end
 		end
 	end
 	self:Changed()

@@ -25,6 +25,9 @@ Controller.__index=Controller
 
 local POLL_SECONDS=0.1
 local PROMPT_LIFT=Vector3.new(0,1.2,0)
+-- October 27 (WS3): the Feed prompt's hold while the level costs more than the wallet
+-- (the podium's Buy prompt uses the same). 0 turns the hold off.
+local UNAFFORDABLE_HOLD=((Config :: any).CoinsPrompt or {}).UnaffordableHoldSeconds or 0.5
 -- Roblox's hotbar (CoreGui BackpackScript): 60 px slots (100 px on consoles) with
 -- 5 px gaps, at the bottom of the whole screen. Only filled slots show, centred,
 -- and a new tool takes the lowest free slot. Our anchors and meter follow that.
@@ -260,7 +263,15 @@ function Controller:UpdateTarget(feeding: boolean)
  local maxed=level>=(pet.levelCap or Config.MaxPetLevel)
  -- "Duck · Lv 3 → 4" over "Feed · 9,000 Coins", at the server's quote.
  prompt.ObjectText=if maxed then name.." · Lv "..level else name.." · Lv "..level.." → "..(level+1)
- prompt.ActionText=if maxed then "Max level" else "Feed · "..Theme.Coins(pet.upgradePrice or 0)
+ -- October 27 (WS3): short of Coins it reads "Need 1,240 more Coins" and needs a short
+ -- hold, so a stray E press in the yard no longer fires a Feed (46% of live Feeds failed).
+ local short=if maxed then 0 else math.ceil((pet.upgradePrice or 0)-((state and state.coins) or 0))
+ local actionText=if maxed then "Max level"
+  elseif short>0 then "Need "..Theme.Money(short).." more "..(if short==1 then "Coin" else "Coins")
+  else "Feed · "..Theme.Coins(pet.upgradePrice or 0)
+ local hold=if short>0 then UNAFFORDABLE_HOLD else 0
+ if prompt.ActionText~=actionText then prompt.ActionText=actionText end
+ if prompt.HoldDuration~=hold then prompt.HoldDuration=hold end
  self.target={petId=pet.id,part=best.PrimaryPart,level=level,price=pet.upgradePrice,maxed=maxed}
  prompt.Enabled=true
 end

@@ -261,7 +261,11 @@ function GameServer:Handle(player,request)
 	elseif action=="PreparePurchase" then
 		if request.key=="FinishEggs" and not self.eggs:CanUseBoard(player,session) then
 			message="Walk up to your egg selling board."
-		else ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session),request.jobId) end
+		-- Oct 27 WS3: the automatic Coins-shortfall checkout names itself (source "Shortfall").
+		else
+			local source=if request.source=="Shortfall" then "Shortfall" else nil
+			ok,message,purchase=self.commerce:PreparePurchase(player,session,request.key,self.products:CanPurchase(session),request.jobId,source,tonumber(request.need))
+		end
 	elseif action=="ClaimFreeGift" then
 		-- The group lookup is a web call: at most one every 3 s per player.
 		if session.freeGiftClaimed then message="You already claimed your free chicken!"
@@ -382,8 +386,17 @@ function GameServer:Handle(player,request)
 	end
 	-- October 23 (Stevin): a Coins shortfall tells the client how many Coins are missing,
 	-- so it opens the closest Coins pack's Roblox checkout instead of an error.
-	local needCoins=if not ok and type(session.coinShortfall)=="number" and type(message)=="string"
+	-- Oct 27 WS3: every reply carries the shortfall (shortCoins) and the gate's reason
+	-- (coinsGate); needCoins, which opens the checkout, only when CoinsPromptGate allows.
+	local shortCoins=if not ok and type(session.coinShortfall)=="number" and type(message)=="string"
 		and message:lower():find("^not enough coins") then math.ceil(session.coinShortfall) else nil
+	local needCoins,coinsGate=nil,nil
+	if shortCoins then
+		local open,reason=self.commerce:CoinsPromptGate(session,shortCoins,workspace:GetServerTimeNow())
+		coinsGate=reason
+		if open then needCoins=shortCoins end
+		self.analytics:CoinsShortfall(session,action,reason,shortCoins)
+	end
 	session.coinShortfall=nil
 	-- Research finished inside Start/Cancel/Skip (Step reports timer completions).
 	if action=="StartResearch" or action=="CancelResearch" or action=="SkipResearch" then
@@ -421,7 +434,8 @@ function GameServer:Handle(player,request)
  end
 	self.armyCommands:Sync(session)
 	self.world:UpdateSession(session)
-	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift,needCoins=needCoins})
+	self:Send(player,{id=request.id,ok=ok,message=message,petId=petId,action=action,recruit=recruit,receipt=receipt,purchase=purchase,crate=crate,freeGift=freeGift,needCoins=needCoins,
+		shortCoins=shortCoins,coinsGate=coinsGate}) -- Oct 27 WS3
 end
 
 -- Observation only: what a pull put on the podiums, manual or Auto Roll (October 20, S12).

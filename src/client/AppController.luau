@@ -1051,9 +1051,17 @@ function AppController:Receive(packet)
 	if result and result.action~="RefreshShop" and result.action~="PreparePurchase" and result.action~="AcknowledgeResearch" then
   if result.ok and result.action=="Buy" then shownRecruit,newRecruit=self:TrackRecruit(result) end
 		-- October 23: a Coins shortfall opens the closest Coins pack's checkout instead of an error.
-		local coinsOffered=not researchFeedback and not result.ok and type(result.needCoins)=="number"
-			and self.commerce:BuyCoins(result.needCoins,result.message)
-		if not researchFeedback and not shownCrate and not coinsOffered
+		-- Oct 27 WS3: needCoins only when the server's gate allows; any other shortfall
+		-- (shortCoins) shows the inline "You need N more Coins" hint instead of an error.
+		local coinsOffered,coinsReason=false,nil
+		if not researchFeedback and not result.ok and type(result.needCoins)=="number" then
+			coinsOffered,coinsReason=self.commerce:BuyCoins(result.needCoins,result.message,result.action)
+		end
+		local heldBack=not researchFeedback and not result.ok and not coinsOffered and type(result.shortCoins)=="number"
+		if heldBack then
+			self.commerce:HeldBack(result.shortCoins,result.action,self.commerce:ShortfallAnchor(result),coinsReason or result.coinsGate)
+		end
+		if not researchFeedback and not shownCrate and not coinsOffered and not heldBack
 			and not (result.ok and (result.action=="Roll" or shownRecruit or QUIET_SUCCESS[result.action])) then self:Notify(result.message,result.ok) end
 		if result.ok and result.action == "Buy" and not shownRecruit then self.feedback:Action("Buy");self.base:PetPulse(result.petId, C.gold) end
 		-- October 21 game feel: the Sell menu and My Army play their own sale feedback

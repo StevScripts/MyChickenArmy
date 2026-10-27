@@ -272,6 +272,45 @@ local function uiSection(c: {[string]: number}, h: {[string]: any}, t: {[string]
 	}
 end
 
+-- Oct 27 WS3 (docs/team/COINS_SHORTFALL_PROMPT.md "Analytics"): Coins shortfalls by source,
+-- the gate's held-back reasons, automatic vs chosen checkouts (results, quits within 60 s
+-- of a cancel) and lifetime play at each purchase per product.
+local function coinsPromptSection(c: {[string]: number}, h: {[string]: any})
+	local prompted = 0
+	for _, n in prefixed(c, "shop.prompt.") do prompted += n end
+	local auto = c["shop.auto.prompt"] or 0
+	local intent = math.max(0, prompted - auto)
+	local sessions = c["session.count"] or 0
+	local buys = {}
+	for name, n in prefixed(c, "robux.buy.") do
+		local key, kind = string.match(name, "^(.+)%.(%a+)$")
+		if key and (kind == "auto" or kind == "intent") then
+			local row = buys[key] or {key = key, auto = 0, intent = 0}
+			row[kind] = n
+			buys[key] = row
+		end
+	end
+	local byProduct = {}
+	for key, row in buys do
+		row.playSeconds = stat(h["robux.buy." .. key .. ".playSeconds"])
+		table.insert(byProduct, row)
+	end
+	table.sort(byProduct, function(a, b) return a.auto + a.intent > b.auto + b.intent end)
+	local autoBought, autoCancel = c["shop.auto.result.bought"] or 0, c["shop.auto.result.cancel"] or 0
+	local intentBought, intentCancel = c["shop.intent.result.bought"] or 0, c["shop.intent.result.cancel"] or 0
+	return {
+		shortfalls = prefixed(c, "shop.short."), gated = prefixed(c, "shop.auto.gated."),
+		autoPrompts = auto, autoByKey = prefixed(c, "shop.auto.prompt."), intentPrompts = intent,
+		autoPerSession = if sessions > 0 then math.floor(auto / sessions * 1000 + 0.5) / 1000 else nil,
+		autoPlaySeconds = stat(h["shop.auto.playSeconds"]),
+		auto = {bought = autoBought, cancel = autoCancel, conversion = pct(autoBought, auto),
+			quit60 = c["shop.auto.quit60"] or 0, quit60Pct = pct(c["shop.auto.quit60"], auto)},
+		intent = {bought = intentBought, cancel = intentCancel, conversion = pct(intentBought, intent),
+			quit60 = c["shop.intent.quit60"] or 0, quit60Pct = pct(c["shop.intent.quit60"], intent)},
+		byProduct = byProduct,
+	}
+end
+
 -- Payers are counted once, at a player's first purchase, so a range's payers are
 -- its NEW payers while revenue includes repeat buyers: ARPPU runs high on short ranges.
 local function segmentRow(label: string, sessions: number, payers: number, revenue: number)
@@ -545,6 +584,7 @@ function Report.Summarize(pulled: any, options: Options?)
 		serverEvents = serverEventsSection(c, h), playtime = playtimeSection(c),
 		exits = {menu = sortedTop(total.t["exit.menu"], 30), action = sortedTop(total.t["exit.action"], 30)},
 		devices = devices, robuxActual = robuxActualSection(c, h, devices.newPayers),
+		coinsPrompt = coinsPromptSection(c, h), -- Oct 27 WS3
 	}
 	summary.flags = Report.Flags(summary)
 	return summary
