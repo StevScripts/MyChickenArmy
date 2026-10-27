@@ -73,7 +73,9 @@ function Readout:Render(state)
 	local boosts=state and state.boosts
 	if type(boosts)~="table" then self.root.Visible=false;return end
 	-- October 23: hidden while the tutorial keeps the HUD quiet (lessons 1-2); Hud re-renders it.
-	self.root.Visible=not (self.app.hud~=nil and self.app.hud.quiet==true)
+	-- October 27 (WS5): until the boosts are revealed after the tutorial (Hud:Revealed).
+	local hud=self.app.hud
+	self.root.Visible=not (hud~=nil and (if hud.Revealed then not hud:Revealed("Boosts") else hud.quiet==true))
 	local running=type(boosts.running)=="table" and boosts.running or {}
 	for kind,column in self.columns do
 		local total=tonumber(boosts[KEYS[kind]]) or 1

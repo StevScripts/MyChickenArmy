@@ -221,7 +221,8 @@ function GameServer:Handle(player,request)
 		self:Send(player,{id=request.id,action="Sync",ok=true});return
 	elseif action=="TutorialSignal" then
 		self.tutorial:Signal(session,request.signal,request.input)
-		self.analytics:Signal(session,request.signal)
+		-- Oct 27 WS5: Card/Reveal signals carry the card id or HUD key (Analytics validates it).
+		self.analytics:Signal(session,request.signal,request.card)
 		self:Send(player);return
 	elseif action=="StartResearch" then
 		ok,message=ResearchService.Start(session,request.nodeId,request.expectedRevision,request.expectedPrice,request.expectedDuration,os.time())
@@ -702,6 +703,13 @@ function GameServer:Step(dt)
 				pcall(self.ObserveDeposits,self,session,now)
 				self.world:SyncPlotBuild(session,wallTime)
 			end
+		end
+	end
+	-- Oct 27 WS5: Day 1 right after the tutorial completes (TutorialService sets dailyCheckDue).
+	for _,session in self.sessions do
+		if session.dailyCheckDue and session.dailyReady and session.loaded and not session.closing and not session.saveLost then
+			session.dailyCheckDue=nil
+			DailyService.Check(session,wallTime,self)
 		end
 	end
 	if now>=(self.nextDailyCheckAt or 0) then

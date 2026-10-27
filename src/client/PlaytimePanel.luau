@@ -61,7 +61,7 @@ end
 
 function Panel.new(app)
 	local self=setmetatable({app=app,connections={},windowConnections={},alive=true,seen={},primed=false,
-		pendingUntil=0,ready=0,nextStepAt=0,attention=false},Panel)
+		pendingUntil=0,ready=0,nextStepAt=0,attention=false,held=false},Panel)
 	Audio=app.audio
 	if not app.editPreview then
 		self:BuildButton()
@@ -163,16 +163,30 @@ function Panel:Step(force: boolean?)
 	if not playtime then return end
 	local now=workspace:GetServerTimeNow()
 	local ready=0
+	-- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): the gift comes into the
+	-- HUD after the tutorial (Hud:Revealed). Until then no tile counts as seen; on the
+	-- reveal one "Free Reward Ready!" covers every tile that is ready.
+	local hud=self.app.hud
+	local revealed=hud==nil or hud.Revealed==nil or hud:Revealed("Playtime")
+	local fresh={}
 	for index,data in playtime.tiles do
 		local open=data.claimed~=true and type(data.unlockAt)=="number" and now>=data.unlockAt
 		if open then
 			ready+=1
-			if not self.seen[index] then
+			if revealed and not self.seen[index] then
 				self.seen[index]=true
-				-- Tiles already ready on the first look were announced before.
-				if self.primed then self:Announce(index) end
+				table.insert(fresh,index)
 			end
 		end
+	end
+	if not revealed then
+		self.held=true
+	elseif self.held then
+		self.held=false
+		if #fresh>0 then self:Announce(fresh[#fresh]) end
+	elseif self.primed then
+		-- Tiles already ready on the first look were announced before.
+		for _,index in fresh do self:Announce(index) end
 	end
 	self.primed=true
 	self:SetBadge(ready)

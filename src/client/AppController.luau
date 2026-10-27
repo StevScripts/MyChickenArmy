@@ -499,6 +499,39 @@ function AppController:CloseOtherMenus(keep: string?)
 	if self.offlineCash then self.offlineCash:Dismiss(true) end
 end
 
+-- Oct 27 WS5: one emphasis at a time (docs/team/POST_TUTORIAL_FLOW_20261027.md). ModalBusy
+-- is true while a menu, popup, film or the roll zoom holds the screen: Daily, corner
+-- notices, HUD reveals (and WS3's checkout, WS7's invite) wait for it. Beat/BeatBusy share
+-- CommanderGuide's beat queue: a feature's big moment calls app:Beat(kind, seconds) so
+-- cards and reveals wait; without the guide it plays at once.
+function AppController:ModalBusy(): boolean
+	local research=self.research
+	local base=self.base :: any
+	local zoom=base and base.roller and base.roller.rollCamera and base.roller.rollCamera.zoom
+	local friend=self.friendBoost :: any
+	return self.panel.Visible or (research~=nil and research.root.Visible)
+		or (self.rebirthPanel~=nil and self.rebirthPanel.gui~=nil) or (self.dailyReward~=nil and self.dailyReward.gui~=nil)
+		or (self.freeGift~=nil and self.freeGift.gui~=nil) or (self.playtimePanel~=nil and self.playtimePanel.gui~=nil)
+		or (self.autoRollMenu~=nil and self.autoRollMenu.gui~=nil) or (self.offlineCash~=nil and self.offlineCash.gui~=nil)
+		or self.dialogueActive==true or self.commerce.cratePresenting==true
+		or (self.marchFilm~=nil and self.marchFilm.playing==true) or (self.intro~=nil and self.intro:Pending())
+		or zoom~=nil or (friend~=nil and friend.invitePromptOpen==true)
+end
+
+function AppController:Beat(kind: string, seconds: number, fn: (() -> ())?)
+	if self.commander then self.commander:Beat(kind,seconds,fn) elseif fn then fn() end
+end
+
+function AppController:BeatBusy(): boolean
+	return self.commander~=nil and self.commander:BeatBusy()
+end
+
+-- Oct 27 WS5 (for WS7): the tutorial itself is done (the HUD may still be coming in).
+function AppController:TutorialComplete(): boolean
+	local tutorial=self.state and self.state.tutorial
+	return type(tutorial)=="table" and tutorial.guideCompleted==true
+end
+
 function AppController:ClosePanel()
 	if self.research and self.research.root.Visible then self.research:Close();return end
 	self:CloseMainPanel()
@@ -822,6 +855,16 @@ function AppController:RenderSettings()
 	toggle("ToggleEffects", "Sound Effects", "Coin, chicken and menu sounds", self.audio.sfxEnabled, function() self.audio:SetEffects(not self.audio.sfxEnabled);self:RenderPanel(true) end)
 	toggle("ToggleMusic", "Music", "Background music", self.audio.musicEnabled, function() self.audio:SetMusic(not self.audio.musicEnabled);self:RenderPanel(true) end)
 	toggle("ReducedMotion", "Reduced Motion", "Fewer shakes, flashes and particles", self.reducedMotion, function() self.reducedMotion = not self.reducedMotion;Theme.Motion:SetReduced(self.reducedMotion);if self.animator then self.animator:SetReducedMotion(self.reducedMotion) end;if self.galaxyCrateVisuals then self.galaxyCrateVisuals:SetReducedMotion(self.reducedMotion) end;self:RenderPanel(true) end)
+	-- Oct 27 WS5: "Goal hints" (saved tutorial.goalsHidden) turns off the goal ladder after the
+	-- tutorial (GOAL, Grow, Rebuild and the Army count cards); Stevin's own tips stay.
+	if self.state.introRebirth~=nil and tutorial.guideCompleted==true then
+		local on=tutorial.goalsHidden~=true
+		toggle("ToggleGoals","Goal hints","Show your next goal at the top",on,function()
+			if type(self.state.tutorial)=="table" then self.state.tutorial.goalsHidden=on end
+			self:Request("TutorialSignal",{signal=if on then "HideGoals" else "ShowGoals"})
+			self:RenderPanel(true)
+		end)
+	end
 	-- October 20 Auto Roll (Gem Upgrade): its settings live in their own popup (S12).
 	local auto=self.state.autoRoll
 	if auto and auto.unlocked then

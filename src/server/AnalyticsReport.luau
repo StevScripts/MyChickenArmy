@@ -402,6 +402,32 @@ local function serverEventsSection(c: {[string]: number}, h: {[string]: any})
 	return out
 end
 
+-- Oct 27 WS5 (schema 16, docs/team/POST_TUTORIAL_FLOW_20261027.md): where tutorial
+-- finishers leave, by the card on their screen (post.exit.<card>, "None"/"Hidden" = no
+-- card), the gap they sat in without one, card entries and dwell, and the HUD reveals with
+-- the time to each piece's first press.
+local function postSection(c: {[string]: number}, h: {[string]: any})
+	local exits, exitTotal = {}, 0
+	for card, n in prefixed(c, "post.exit.") do
+		if card ~= "gap" then table.insert(exits, {card = card, n = n}); exitTotal += n end
+	end
+	table.sort(exits, function(a, b) return a.n > b.n end)
+	local cards = {}
+	for card, n in prefixed(c, "post.card.enter.") do
+		local dwell = stat(h["post.card.dwell." .. card])
+		table.insert(cards, {card = card, enters = n, exits = c["post.exit." .. card] or 0, dwellP50 = dwell.p50})
+	end
+	table.sort(cards, function(a, b) return a.enters > b.enters end)
+	local reveals = {}
+	for key, n in prefixed(c, "hud.reveal.") do
+		table.insert(reveals, {key = key, n = n, firstClick = stat(h["hud.firstClick." .. key])})
+	end
+	table.sort(reveals, function(a, b) return a.n > b.n end)
+	local none = (c["post.exit.None"] or 0) + (c["post.exit.Hidden"] or 0)
+	return {exits = exits, exitTotal = exitTotal, noCardExits = none, noCardPct = pct(none, exitTotal),
+		gap = stat(h["post.exit.gap"]), afterCore = stat(h["post.sessionAfterCore"]), cards = cards, reveals = reveals}
+end
+
 -- Summary ------------------------------------------------------------------------
 
 function Report.Summarize(pulled: any, options: Options?)
@@ -545,6 +571,7 @@ function Report.Summarize(pulled: any, options: Options?)
 		serverEvents = serverEventsSection(c, h), playtime = playtimeSection(c),
 		exits = {menu = sortedTop(total.t["exit.menu"], 30), action = sortedTop(total.t["exit.action"], 30)},
 		devices = devices, robuxActual = robuxActualSection(c, h, devices.newPayers),
+		post = postSection(c, h), -- Oct 27 WS5
 	}
 	summary.flags = Report.Flags(summary)
 	return summary
@@ -589,6 +616,25 @@ function Report.Flags(s: any)
 	end
 	if (s.health.meta.ledgerFlushFail or 0) > 0 then
 		flag("low", "analytics", "Ledger flush failures: " .. s.health.meta.ledgerFlushFail .. " (data was requeued).")
+	end
+	-- Oct 27 WS5: the post-tutorial card with the most exits per entry (20+ entries).
+	local post = s.post
+	if post then
+		local worst, worstRate = nil, 0
+		for _, row in post.cards do
+			if row.enters >= 20 and row.card ~= "None" and row.card ~= "Hidden" then
+				local rate = row.exits / row.enters
+				if rate > worstRate then worst, worstRate = row, rate end
+			end
+		end
+		if worst and worstRate >= 0.2 then
+			flag(if worstRate >= 0.4 then "high" else "medium", "post", string.format(
+				"Post-tutorial card %s: %d of %d entries ended the session there (%d%%).",
+				worst.card, worst.exits, worst.enters, math.floor(worstRate * 100)))
+		end
+		if post.exitTotal >= 20 and (post.noCardPct or 0) >= 25 then
+			flag("medium", "post", tostring(post.noCardPct) .. "% of finisher exits had no card on screen (target <= 25%).")
+		end
 	end
 
 	-- Version 5 heuristics.
@@ -676,6 +722,30 @@ function Report.OnboardingText(summaryOrOptions: any?): string
 		table.insert(lines, string.format("Biggest drop: %s -> %s: %d of %d lost (%s%%), %d sessions ended there",
 			drop.from, drop.to, drop.lost, drop.fromPlayers, tostring(drop.pct), drop.exitsAtFrom))
 	end
+	return table.concat(lines, "\n")
+end
+
+-- Oct 27 WS5: the post-tutorial section as text (exits by card, the no-card gap, cards
+-- and their dwell, HUD reveals). Pass a summary, or options for Report.Summary. Journeys
+-- carry tl (the last trail entries), cv/cs (card at leave, seconds there) and hr (reveals).
+function Report.PostText(summaryOrOptions: any?): string
+	local summary = if type(summaryOrOptions) == "table" and summaryOrOptions.post then summaryOrOptions
+		else Report.Summary(summaryOrOptions)
+	local post, range = summary.post, summary.range or {}
+	local lines = {string.format("Post-tutorial %s..%s  %d finisher exits, %s%% with no card; no-card gap p50 %s p90 %s",
+		tostring(range.from), tostring(range.to), post.exitTotal, tostring(post.noCardPct or "-"),
+		tostring(post.gap.p50 or "-"), tostring(post.gap.p90 or "-"))}
+	table.insert(lines, "Exits by card:")
+	for _, row in post.exits do table.insert(lines, string.format("  %-24s %6d", row.card, row.n)) end
+	table.insert(lines, string.format("%-26s %7s %6s %8s", "card", "enters", "exits", "dwellP50"))
+	for _, row in post.cards do
+		table.insert(lines, string.format("%-26s %7d %6d %8s", row.card, row.enters, row.exits, row.dwellP50 or "-"))
+	end
+	table.insert(lines, "HUD reveals (first press p50):")
+	for _, row in post.reveals do
+		table.insert(lines, string.format("  %-12s %6d  %s", row.key, row.n, row.firstClick.p50 or "-"))
+	end
+	table.insert(lines, "Session after completion p50 " .. tostring(post.afterCore.p50 or "-") .. " (n " .. post.afterCore.n .. ")")
 	return table.concat(lines, "\n")
 end
 

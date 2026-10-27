@@ -30,6 +30,14 @@ local PlayerInfo = optional("AnalyticsPlayer")
 -- Onboarding dashboard and names the session stage. The module keeps its schema 11
 -- file name.
 local OnboardingFunnel = optional("AnalyticsTutorial")
+-- Oct 27 WS5: the post-tutorial card ids and HUD reveal keys (validates Card/Reveal signals).
+local GuideOk, Guide = pcall(require, Shared.TutorialGuide)
+if not GuideOk then Guide = nil end
+local REVEAL_CODES = {Army = "A", Rebirth = "R", Settings = "ST", Playtime = "P", Index = "I", FreeGift = "F",
+	Shop = "S", GoldRush = "G", Boosts = "B", FriendBoost = "FB"}
+-- ui.click "Hud/<Button>" -> the revealed HUD key (hud.firstClick.<key>).
+local REVEAL_CLICKS = {["Hud/Shop"] = "Shop", ["Hud/Index"] = "Index", ["Hud/PlaytimeRewards"] = "Playtime",
+	["Hud/FreeGift"] = "FreeGift", ["Hud/ChickenOffer"] = "FreeGift", ["Hud/GoldRushChip"] = "GoldRush"}
 
 local Analytics = {}
 Analytics.__index = Analytics
@@ -223,9 +231,15 @@ function Analytics:_State(session): any
 end
 
 function Analytics:_Trail(st, code: string)
+	local entry = {math.floor(self.clock() - st.joinedAt), code}
 	if #st.trail < Schema.JourneyEventCap then
-		table.insert(st.trail, {math.floor(self.clock() - st.joinedAt), code})
+		table.insert(st.trail, entry)
 	end
+	-- Oct 27 WS5 (schema 16): the last JourneyTailCap entries, also past the cap (journey tl).
+	local tail = st.tail
+	if not tail then tail = {}; st.tail = tail end
+	table.insert(tail, entry)
+	if #tail > (Schema.JourneyTailCap or 15) then table.remove(tail, 1) end
 end
 
 function Analytics:_Play(st): number
@@ -351,13 +365,21 @@ function Analytics:Observe(session, state)
 		st.guideStep, st.guideStepAt = step, now
 	end
 	st.lastState = state
+	-- Oct 27 WS5: the moment the tutorial completes in this session (post.sessionAfterCore).
+	local completed = type(session.tutorial) == "table" and session.tutorial.guideCompleted == true
+	if st.wasCompleted == false and completed then st.coreAt = now end
+	st.wasCompleted = completed
 	self:_Part(self.funnels, "State", st, session, state)
 	self:_Part(self.onboarding, "State", st, session, state)
 end
 
-function Analytics:Signal(session, signal: any)
+function Analytics:Signal(session, signal: any, card: any?)
 	local st = self:_State(session)
 	if not st or type(signal) ~= "string" or #signal > 32 then return end
+	-- Oct 27 WS5: what the player actually sees after the tutorial and each HUD reveal
+	-- (no ui.<signal> count for these two, to keep the key families small).
+	if signal == "Card" then self:_Card(st, card); return end
+	if signal == "Reveal" then self:_Reveal(st, card); return end
 	self:_Part(self.onboarding, "Signal", st, signal)
 	if signal == "IntroStarted" then
 		st.introStarted = true
@@ -374,6 +396,38 @@ function Analytics:Signal(session, signal: any)
 	else
 		self.ledger:Count("ui." .. signal)
 	end
+end
+
+-- Oct 27 WS5 (schema 16, docs/team/POST_TUTORIAL_FLOW_20261027.md): the client's visible
+-- card: post.card.enter.<id>, post.card.dwell.<id> (seconds) and a card:<id> trail entry.
+-- Unknown ids read "Other"; "None" (no card) and "Hidden" (behind a menu, popup or peek).
+function Analytics:_Card(st, card: any)
+	local id = "Other"
+	if card == "None" or card == "Hidden" then id = card
+	elseif type(card) == "string" and #card <= 32 and Guide and Guide.CardIds and Guide.CardIds[card] then id = card end
+	if id == st.card then return end
+	local now = self.clock()
+	if st.card and st.cardAt then self.ledger:Hist("post.card.dwell." .. st.card, "seconds", now - st.cardAt) end
+	self.ledger:Count("post.card.enter." .. id)
+	self:_Trail(st, "card:" .. id)
+	st.card, st.cardAt = id, now
+	if id == "None" or id == "Hidden" then
+		if not st.noneAt then st.noneAt = now end
+	else
+		st.noneAt = nil
+	end
+end
+
+-- Oct 27 WS5: a HUD piece revealed after the tutorial: hud.reveal.<key>; its first click
+-- after that records hud.firstClick.<key> (seconds, from ui.click "Hud/<Button>").
+function Analytics:_Reveal(st, key: any)
+	if type(key) ~= "string" or not REVEAL_CODES[key] then return end
+	st.revealAt = st.revealAt or {}
+	if st.revealAt[key] then return end
+	st.revealAt[key] = self.clock()
+	self.ledger:Count("hud.reveal." .. key)
+	self:_Trail(st, "reveal:" .. key)
+	st.revealed = (if st.revealed then st.revealed .. "," else "") .. REVEAL_CODES[key]
 end
 
 -- Actions, economy, rolls ------------------------------------------------------
@@ -751,6 +805,13 @@ function Analytics:_UiEvent(st, name: string, detail: string?, value: number?)
 	elseif name == "ui.click" then
 		ledger:Count("ui.click")
 		ledger:Top("ui.click", detail :: string)
+		-- Oct 27 WS5: the first press of a HUD piece after its reveal.
+		local key = REVEAL_CLICKS[detail :: string]
+		local at = key and st.revealAt and st.revealAt[key]
+		if key and at then
+			ledger:Hist("hud.firstClick." .. key, "seconds", self.clock() - at)
+			st.revealAt[key] = false
+		end
 	elseif name == "tab" then
 		ledger:Top("ui.tab", detail :: string)
 	elseif name == "inspect" then
@@ -923,6 +984,14 @@ function Analytics:Leave(session)
 	-- Version 15: onboarding exits (ob.exit.NN) come from AnalyticsTutorial:Leave.
 	local stage = self:_Stage(st)
 	local inOnboarding = string.sub(stage, 1, 3) == "Ob:"
+	-- Oct 27 WS5: where tutorial finishers leave, by the card on their screen.
+	local finished = type(session.tutorial) == "table" and session.tutorial.guideCompleted == true
+	if finished and (inOnboarding or stage == "Post") then
+		self.ledger:Count("post.exit." .. (st.card or "Unknown"))
+		if (st.card == "None" or st.card == "Hidden") and st.noneAt then self.ledger:Hist("post.exit.gap", "seconds", now - st.noneAt) end
+	end
+	if st.card and st.cardAt then self.ledger:Hist("post.card.dwell." .. st.card, "seconds", now - st.cardAt) end
+	if st.coreAt then self.ledger:Hist("post.sessionAfterCore", "seconds", now - st.coreAt) end
 	local player = st.player
 	self:_Queue(false, "custom:SessionEnded", function()
 		AnalyticsService:LogCustomEvent(player, "SessionEnded", math.floor(seconds), fields(platform, stage, cohort))
@@ -948,6 +1017,9 @@ function Analytics:Leave(session)
 			r = st.rolls, b = st.buys, er = st.errors, earned = st.sessionEarned, rej = rejects,
 			ping = if st.pingN > 0 then math.floor(st.pingSum / st.pingN) else nil,
 			fps = if st.fpsN > 0 then math.floor(st.fpsSum / st.fpsN) else nil, trail = st.trail,
+			-- Oct 27 WS5: the trail's last entries past the cap, the card on screen at leave and
+			-- its seconds there, and the HUD pieces revealed (codes, e.g. "P,I,S").
+			tl = st.tail, cv = st.card, cs = if st.cardAt then math.floor(now - st.cardAt) else nil, hr = st.revealed,
 		})
 	end
 	if st.profile then

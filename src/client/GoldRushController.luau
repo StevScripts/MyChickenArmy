@@ -97,8 +97,11 @@ function Controller:Step()
 	if active~=self.active then self:SetActive(active,if known then endsAt-startsAt else 0) end
 	self.seen=true
 	local app=self.app
-	-- October 23: also hidden while the tutorial keeps the HUD quiet (lessons 1-2).
-	local quiet=(app.panel~=nil and app.panel.Visible) or app.dialogueActive==true or (app.hud~=nil and app.hud.quiet==true)
+	-- October 23: also hidden while the tutorial keeps the HUD quiet (lessons 1-2);
+	-- October 27 (WS5): until the chip is revealed after the tutorial (Hud:Revealed).
+	local hud=app.hud
+	local quiet=(app.panel~=nil and app.panel.Visible) or app.dialogueActive==true
+		or (hud~=nil and (if hud.Revealed then not hud:Revealed("GoldRush") else hud.quiet==true))
 	Theme.Motion:Appear(self.chip,known and not quiet,0.8)
 	if known then
 		self.clock.Text=if active then times().." Coins! "..clock(endsAt-serverNow)

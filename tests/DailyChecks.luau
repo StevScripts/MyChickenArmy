@@ -209,6 +209,36 @@ function Checks.Run()
   assert(s.daily.streak==2)
  end)
 
+ -- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): the tutorial completing
+ -- marks Day 1 due on the next server step (GameServer), not the 10 s cadence.
+ test("The tutorial completing marks Day 1 due at once; a finished save or DailyAtCore off does not",function()
+  local Tutorial=require(Server.TutorialService)
+  local Config=require(Shared.Config)
+  local function observe(s)
+   local service=Tutorial.new(function() end)
+   service:Begin(nil,s)
+   service:Observe(s,{tutorial={coreDone=true},pets={}})
+  end
+  local s=Session.new(-971,"Daily core",1);s.loaded=true
+  s.tutorial.guideCompleted=false
+  observe(s)
+  assert(s.tutorial.coreDone and s.tutorial.guideCompleted and s.dailyCheckDue==true,"Due at completion")
+  -- One check grants Day 1 straight away (GameServer clears the flag and runs it).
+  local granted=Daily.Check(s,at(0),stubServer())
+  assert(granted and granted.slot==1,"Day 1 granted")
+  local done=newSession(-970)
+  observe(done)
+  assert(done.dailyCheckDue==nil,"A save finished before this visit is untouched")
+  local guide=Config.Guide
+  local saved=guide.DailyAtCore
+  guide.DailyAtCore=false
+  local off=Session.new(-969,"Daily core off",1);off.loaded=true
+  local ok,why=pcall(observe,off)
+  guide.DailyAtCore=saved
+  assert(ok,why)
+  assert(off.tutorial.coreDone and off.dailyCheckDue==nil,"DailyAtCore off keeps the 10 s cadence")
+ end)
+
  local failed=0
  for _,r in results do if not r.passed then failed+=1 end end
  print(("DailyChecks: %d passed, %d failed"):format(#results-failed,failed))
