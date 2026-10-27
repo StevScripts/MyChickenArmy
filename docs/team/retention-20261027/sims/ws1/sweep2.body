@@ -1,0 +1,18 @@
+local FR = Progression.Roster(1,2)
+local gp = Rules.Power(FR)
+local combos = {}
+local species = {{"Duck",13},{"Pajama",19.3},{"Bee",29.7},{"Bucket",38.4}}
+-- n chickens of a species at level L, plus mixes
+for n = 4, 8 do for _, sp in {"Duck","Pajama","Bee"} do for L = 1, 5 do
+	local t = {} for i = 1, n do table.insert(t, {sp, L}) end
+	local p = M.power(t)
+	if p/gp >= 0.95 and p/gp <= 1.45 then table.insert(combos, {n.."x"..sp.." L"..L, t, p}) end
+end end end
+table.sort(combos, function(a,b) return a[3] < b[3] end)
+for _, c in combos do
+	local outs = {}
+	local wins = 0
+	for seed = 1, 20 do local o = M.fight(c[2], FR, 2, seed*7919); outs[o] = (outs[o] or 0) + 1; if o=="A" then wins+=1 end end
+	local s = "" for k,v in outs do s ..= k.."="..v.." " end
+	print(string.format("%-16s power %4d ratio %.2f win %3d%% %s", c[1], c[3], c[3]/gp, wins*5, s))
+end

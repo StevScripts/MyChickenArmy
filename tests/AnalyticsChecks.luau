@@ -66,7 +66,7 @@ function Checks.Run()
 		for _ in skus do sCount += 1 end
 		-- Recruit and Upgrade expand by rarity / upgrade key (<= 6 + 10).
 		assert(tCount <= Schema.RobloxLimits.transactionTypes and sCount + 16 <= Schema.RobloxLimits.itemSkus)
-		assert(Schema.Version == 15, "schema version")
+		assert(Schema.Version == 16, "schema version")
 	end)
 
 	check("Histogram labels are stable and cover every value", function()

@@ -11,7 +11,17 @@ local Economy = {
 	-- Then the next FavoredRolls.rolls pulls after the tutorial put the basic Chicken on the
 	-- first podium with this chance (normal price), so the first Army fills with chickens
 	-- the player can afford; the other podiums and later pulls draw normally.
-	FavoredRolls = {rolls = 5, chance = 0.6, species = "Duck"},
+	-- October 27 (retention plan C1, WS4): 3 pulls at 50% (was 5 at 60%, which covered the
+	-- median player's whole first session and halved the new chickens seen). Lucky Start
+	-- wins over it; set rolls = 0 to stop favouring once Starter prices make Commons cheap.
+	FavoredRolls = {rolls = 3, chance = 0.5, species = "Duck"},
+	-- October 27 (WS2 retention, live data: 46% of Buy attempts lacked Coins; Recruited10 16%):
+	-- empty-start profiles see podium offers at a starter price, Fraction of the catalog quote
+	-- while they own 2 chickens, rising linearly to the full quote at FullAt owned chickens.
+	-- Rounded up to Step, never below Floor or above the catalog. Catalog prices are untouched
+	-- (Every chicken its own odds and value, Oct 23); this is the podium's quote, like StarterLadder.
+	-- Enabled = false restores the full catalog quote. docs/team/EARLY_ECONOMY_20261027.md.
+	StarterPrices = {Enabled = true, Fraction = 0.25, FullAt = 20, Floor = 150, Step = 5},
 	FusionRecruitFraction = 0.25, -- Cash fee relative to one normal matching recruit.
 	-- One paid level; scales with the current recruit level. October 21 later (P5): 0.45
 	-- (was 0.75) with x1.6 eggs a level, so the first Feed level pays back as before.
@@ -48,7 +58,7 @@ local Config = {
 	-- set it back to true to bring the film (and Settings > Replay Intro) back.
 	Features = {Merging = false, AutoMerging = false, IntroCutscene = false, ChickenCashUpgrades = true},
 	Economy = Economy,
- Version="1.26.0-first-minute", GameTitle="My Chicken Army!",
+ Version="1.27.0-retention", GameTitle="My Chicken Army!",
  -- October 10: the shared territory contest now runs The Hill inside the King's
  -- arena (Config.Hill). Only one site exists; its internal key stays "income:1".
  -- Rate is unused while the Hill is enabled: HillService pays the holder's boost.
@@ -122,7 +132,9 @@ local Config = {
   -- It resets like a Rebirth without changing the rank, pays Gems and multiplies egg
   -- income by Multiplier while the rank is 0 (Rebirth 1's x2 replaces it). Saves from
   -- before it (no introRebirth) never see it. docs/team/REBIRTH_SCREEN.md "Rebirth 0".
-  Intro={Enabled=true,Cost=1700,Multiplier=1.5,Gems=30}},
+  -- Oct 27 (WS2): KeepTree = Rebirth 0 keeps the Upgrades tree and Feed levels; it still
+  -- costs the Coins and pays Gems and x1.5. false = the Oct 23 behaviour (tree resets).
+  Intro={Enabled=true,Cost=1700,Multiplier=1.5,Gems=30,KeepTree=true}},
  -- Limited event; StartsAt/EndsAt are unix seconds (2026-10-14 to 2026-11-01 00:00 UTC).
  -- Off until the Pumpkin Chicken model and portrait are in (docs/team/launch/handoff/H1.md).
  Event={Enabled=false,Id="Halloween2026",StartsAt=1791936000,EndsAt=1793491200,Species="Pumpkin",OfferChance=0.02},
@@ -145,6 +157,16 @@ local Config = {
  -- Oct 27 (live data, TUTORIAL_FIXES_20261027.md): the empty start's free first chicken
  -- (always the basic Chicken) reveals faster; every later pull keeps RollRevealSeconds.
  StarterRevealSeconds=1.5,
+ -- October 27 Lucky Start (docs/team/LUCKY_START_20261027.md): after the tutorial, an
+ -- empty-start profile's post-tutorial pull UncommonAt shows an Uncommon and RareAt a
+ -- Rare on podium 1 unless one was offered already; a natural or forced offer moves the
+ -- next one Again pulls later; at most MaxForced each; never once that rarity is owned
+ -- or past Window pulls. Guard: the first manual pull past such an offer is refused once.
+ -- Enabled=false restores plain odds.
+ LuckyStart={Enabled=true,UncommonAt=2,UncommonAgain=5,RareAt=8,RareAgain=10,MaxForced=2,
+  Window=40,Guard=true,Icon="rbxassetid://111087925336083"},
+ -- Podium tag extras: "NEW!" for chickens missing from the Index, and the advice line.
+ Discovery={NewTag=true,Advice=true},
  -- Pre-October 20 Auto Roll stop names, kept only so AutoRollRules.Read converts old saves.
  AutoRollStops={"Upgrade","Rare","Epic","Legendary","Mythic","Secret"},
  -- October 20 Auto Roll panel (S12b, Stevin: Drop a Fruit's board 1:1; AutoRollRules.luau).
@@ -244,6 +266,19 @@ local Config = {
  -- honor-system (Roblox exposes no like check); only group membership is verified.
  -- October 23 (Stevin): also 5 minutes of total playtime (saved across visits).
  FreeGift={Enabled=true,GroupId=778575811,Species="Bucket",MinPlaySeconds=300},
+ -- October 27 (WS3, live 1.25.0 data: 2,429 auto-prompts, 3 bought): the Coins-shortfall
+ -- checkout is for settled players. docs/team/COINS_SHORTFALL_PROMPT.md "Gate".
+ -- Mode "Legacy" restores October 23 exactly (tutorial + LegacyEarned, no limits); "Off" never prompts.
+ CoinsPrompt={
+  Mode="Gated",
+  MinPlaySeconds=600,           -- 10 minutes of total play (PlayerSession:PlaySeconds) ...
+  MinRebirths=1,                -- ... or Rebirth 1 done
+  LegacyEarned=2000,            -- the October 23 earned gate, kept for Mode "Legacy"
+  SessionCap=2,                 -- auto-prompts per session (runtime only, never saved)
+  CooldownSeconds=600,          -- between auto-prompts, from the moment one opens
+  MinShortfallIncomeSeconds=60, -- no prompt when steady income covers the gap within a minute
+  ShopHintIncomeSeconds=300,    -- held-back shortfall of 5+ minutes of income -> Shop glow (once a session)
+ },
  -- October 20 Gold Rush (GoldRushService, docs/team/GOLD_RUSH_FRIEND_BOOST.md): every
  -- earned Coin (eggs, battles, Missions, the Hill) is multiplied by CoinMultiplier
  -- for Seconds out of every EverySeconds, stacking with 2x Coins. One wall clock for
@@ -254,6 +289,33 @@ local Config = {
  -- Roblox friend in the same server, up to Max. Never saved; never offline.
  -- StudioTestPlayersAreFriends: Studio's local test players count as friends.
  FriendBoost={Enabled=true,PerFriend=0.10,Max=0.50,StudioTestPlayersAreFriends=true},
+ -- October 27 WS7 social moments (docs/team/SOCIAL_MOMENTS.md): other players' firsts
+ -- in this server as a chat line, toast and beacon; Visit; one invite prompt per session.
+ Social={Enabled=true,
+  Moments={Enabled=true,ChatMinRarity="Rare",ToastMinRarity="Epic",RebirthToastRank=5,
+   ActorGapSeconds=45,ServerPerMinute=6,ToastGapSeconds=20,BeaconSeconds=10},
+  Visit={Enabled=true},
+  Invite={Enabled=true,MinSessionSeconds=240,DelaySeconds=3,QuietAfterPurchasePromptSeconds=60},
+  Notifications={Enabled=false,DelayHours=20}},
+ -- October 27 (WS5, docs/team/POST_TUTORIAL_FLOW_20261027.md): post-tutorial goal ladder,
+ -- HUD reveal and popup sequencing. Every flag off restores 1.26 behaviour.
+ Guide={Goals=true,ArmyTips=true,Rebuild=true,Grow=true,HudReveal=true,
+  DailyAtCore=true,ModalQueue=true,
+  GoalUntilRank=1,GoalAlwaysSeconds=900,GoalPeekSeconds=10,GoalIdleSeconds=25,
+  RevealAllSeconds=480,ShopRevealEarned=2000,DailyWaitMaxSeconds=45,
+  GrowNodes={"EggSpeed1","EggValue1","ArmySize1"},
+  BeatGapSeconds=1.5},
+ -- October 27 (WS6, docs/team/MOBILE_PERFORMANCE_20261027.md): client quality tiers from
+ -- measured FPS, animation LOD and a capped loading veil. TiersEnabled=false keeps "high"
+ -- (today's behaviour); AnimLOD=false steps every chicken each frame; VeilCapSeconds=nil
+ -- waits for the whole preload; StagedBoot builds menus on first use (off until checked).
+ Performance={TiersEnabled=true,AnimLOD=true,VeilCapSeconds=4,StagedBoot=false},
+ -- October 27 camp ladder (docs/team/CAMP_LADDER_20261027.md): Strength multiplies a camp
+ -- garrison's hp and damage (and its shown power), like the Rebirth enemy scale; 0.60 for
+ -- Fort Roost from the combined-package simulation (RETENTION_PLAN_20261027.md §4).
+ -- {1,1,1} restores. ReadinessTip: the "Next up" card waits for a ready Army;
+ -- AttackWarning: the first attack below even odds warns first.
+ CampLadder={Strength={1,0.6,0.55},ReadinessTip=true,AttackWarning=true},
  Camps={
   -- Mirror of Progression's roster: one basic Chicken since the October 23 empty start.
   {name="Cluck Camp",position={0,-273},roster={"Duck"}},

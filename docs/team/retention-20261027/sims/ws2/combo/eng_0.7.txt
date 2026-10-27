@@ -1,0 +1,48 @@
+WS2 early model · seeds 30 · discount 0.25 (rank1) · r0mult 1.5 · tree ArmySize:1:300,ArmySize:2:2500 · patience 45s pullGap 15s sell 60s eff 0.85
+  min    coins  Coins/s  earned  power  chick flock army     buys
+    2      330     12.0     480     38      3     4    3        1
+    3      391     12.0     541     38      3     4    3        2
+    4       61     24.0    1588     57      5     4    4        4
+    5       63     33.6    2807     64      6     4    4        7
+    6      136     66.0    6636     64      7     4    4        9
+    7      208    143.4   10660    109      8     4    6       11
+    8     1069    154.7   12515    112      9     4    6       13
+    9     2705    226.4   19098    122     11     5    6       15
+   10     7673    336.4   38270    126     12     6    6       19
+   11    12468    434.7   63567    133     13     6    6       19
+   12    12371    481.3   93811    136     14     7    6       20
+   13    55319    481.3  169076    161     15     7    8       23
+   14    41306    631.3  193966    212     16     7   10       24
+   15    72853    641.7  244010    219     17     7   10       24
+   16   106067    724.5  379433    227     17     7   10       25
+   17    97800    744.0  413151    233     18     7   10       25
+   18   115409    750.4  458426    234     18     7   10       25
+   19   123440    771.1  520349    234     19     8   10       26
+   20   120904    798.0  570220    234     20     8   10       26
+   21    95274   1014.3  752417    243     20     8   10       27
+   22   117379   1041.9  805350    243     20     8   10       29
+   23   168696   1076.4  870869    243     21     8   10       29
+   24   216390   1110.9  929710    243     22     8   10       30
+   25   230568   1200.0  986084    245     22     8   10       30
+   26   129126   1255.8 1063302    245     22     8   10       30
+   27   190396   1290.3 1126514    245     23     8   10       30
+   28   205854   1645.6 1245650    254     23     8   10       32
+   29   219557   1676.7 1373547    253     23     8   10       35
+   30   218494   1676.7 1460598    254     24     8   10       35
+tutorial-10 min  purchases 19 · gap median 20s p90 66s · longest dry spell (median run) 90s
+10-20 min        purchases 8 · gap median 30s p90 127s · longest dry spell (median run) 223s
+  rebirth0   median 5.0 min (30/30)
+  Camp1      median 2.7 min (30/30)
+  Camp2      median 7.5 min (30/30)
+  rebirth1   median 12.0 min (18/30)
+  ArmySize1  median 2.7 min (30/30)
+  ArmySize2  median 6.0 min (30/30)
+  Flock2     median 7.7 min (30/30)
+  Flock3     median 8.7 min (30/30)
+  Flock4     median 10.4 min (30/30)
+  RollSlot1  median 8.4 min (30/30)
+  EggSpeed2  median 8.9 min (30/30)
+  EggValue2  median 9.2 min (30/30)
+  ChickenFeed median 8.2 min (30/30)
+rolls median 40 · recruits median 22 · bought by rarity Common=463,Epic=1,Rare=36,Uncommon=125
+SUMMARY fortGoal=97 fortWin p50=7.5 p90=8.1 (30/30) rate5=33.6 rate10=336.4 power5=64 power10=126 gapEarly=20s

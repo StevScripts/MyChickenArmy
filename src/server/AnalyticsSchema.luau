@@ -48,7 +48,18 @@ local Schema = {}
 -- ("Ob:<step>" / "Post" / "Untracked"). Schema.TutorialFunnel stays declared but is not
 -- recorded any more (tf.* keys live in days before this version only); the TutorialExit
 -- custom event is no longer sent. docs/analytics/ONBOARDING_FUNNEL.md.
-Schema.Version = 15
+-- 16 (October 27 retention package, build 1.27.0-retention,
+-- docs/team/RETENTION_PLAN_20261027.md): camp readiness and first-win timing (camp.CampN.ready,
+-- camp.CampN.firstWin.play/.firstSession, ui.AttackWarned/AttackAnyway; ledger only, no new
+-- Onboarding step), early-economy pacing (econ.*, the rate bucket), the Coins-shortfall gate
+-- (shop.short.*, shop.auto.*, robux.buy.*, client coins.gated), Lucky Start and discovery
+-- (luckyStart.*, roll.new, index.first, index.firstSeconds, three Roll funnel steps, the
+-- indexFound snapshot), the post-tutorial goal ladder (journey tail ring tl, visible card
+-- post.card.*/post.exit.*, hud.reveal.*/hud.firstClick.*), performance windows and tiers
+-- (perf.fpsLoad/fpsPlay/tier/demoted/hitches, ui.load.<phase>|<platform>, PerfTiers, the
+-- frameMs bucket) and social moments (social.moment, social.visit, invite.prompt, client
+-- moment.seen/moment.missed/invite.sent, the Social funnel, seg.join.invite/notification).
+Schema.Version = 16
 
 -- Agent ledger (DataStores). Studio writes to the _Studio twins so test runs
 -- never pollute live data.
@@ -64,6 +75,7 @@ Schema.PerfSampleSeconds = 60
 Schema.EconomyFlushSeconds = 120
 Schema.JourneyCapPerKey = 60   -- sampled journeys per day per shard key
 Schema.JourneyEventCap = 60    -- trail entries kept per journey
+Schema.JourneyTailCap = 15     -- version 16: the last trail entries, kept past the cap (journey field tl)
 Schema.TopCap = 150            -- distinct keys per top table per bucket
 Schema.TopKeyLength = 96
 Schema.PendingDayLimit = 3     -- unflushed days kept in memory after failures
@@ -419,6 +431,14 @@ Schema.LaunchCounters = {
 	["playtimeReward.claim"] = true, -- playtimeReward.claim.<1..12>: a Playtime Rewards tile claimed
 	-- Version 13 (October 23 empty start; RebirthService.RebirthIntro emits it).
 	["rebirth0.count"] = true,    -- a Rebirth 0 taken (once per new profile)
+	-- Version 16 (October 27 retention package; docs/team/RETENTION_PLAN_20261027.md).
+	["econ.starterRecruit"] = true, -- WS2: a recruit bought at a starter price
+	["econ.starterSaved"] = true,   -- WS2: n = Coins under the list price
+	["luckyStart.forced"] = true,   -- WS4: luckyStart.forced.<Uncommon|Rare>.<1|2>
+	["luckyStart.bought"] = true,   -- WS4: luckyStart.bought.<Uncommon|Rare>
+	["luckyStart.guard"] = true,    -- WS4: luckyStart.guard.<shown|rolledPast>
+	["roll.new"] = true,            -- WS4: roll.new.<offer|bought>: a chicken missing from the Index
+	["index.first"] = true,         -- WS4: index.first.<rarity> (LaunchFirst)
 }
 -- Histogram name (prefix) -> bucket kind.
 Schema.LaunchHistograms = {
@@ -426,6 +446,11 @@ Schema.LaunchHistograms = {
 	["rebirth.cashAtRebirth"] = "bigCash",
 	["daily.streak"] = "count",
 	["rebirth2.playSeconds"] = "longSeconds", -- version 7: total play when v2 rank N was reached
+	-- Version 16 (October 27 retention package).
+	["econ.buyGap"] = "seconds",    -- WS2: econ.buyGap.<early|mid>, seconds since the previous Coins purchase
+	["econ.rate"] = "rate",         -- WS2: econ.rate.<m5|m10|m20>, steady Coins/s at 5/10/20 min of play
+	["econ.buys"] = "count",        -- WS2: econ.buys.m10, Coins purchases by 10 min of play
+	["index.firstSeconds"] = "longSeconds", -- WS4: index.firstSeconds.<rarity>, play at the first find
 }
 -- Analytics profile field: highest re-enlist rank seen (profile.rebirths).
 
@@ -452,6 +477,10 @@ Schema.FeatureFunnels = {
 		{id = "RareOrBetter", trigger = "recruited a Rare+ chicken"},
 		{id = "EpicOrBetter", trigger = "recruited an Epic+ chicken"},
 		{id = "LegendaryOrBetter", trigger = "recruited a Legendary+ chicken"},
+		-- Version 16 (October 27, WS4 Lucky Start and discovery).
+		{id = "UncommonOrBetter", trigger = "recruited an Uncommon+ chicken"},
+		{id = "Found5", trigger = "5 different chickens in the Index"},
+		{id = "LuckyRareSeen", trigger = "server:luckyStart.forced.Rare"},
 	}},
 	{id = "RollSlots", steps = {
 		{id = "Unlocked2", trigger = "state:rollSlotCount>=2"},
@@ -593,6 +622,13 @@ Schema.FeatureFunnels = {
 		{id = "Tile6", trigger = "server:playtimeReward.claim.<6+>"},
 		{id = "Tile12", trigger = "server:playtimeReward.claim.12"},
 	}},
+	-- Version 16 (October 27, WS7 social moments).
+	{id = "Social", steps = {
+		{id = "MomentSeen", trigger = "client:moment.seen"},
+		{id = "Visited", trigger = "server:social.visit"},
+		{id = "InvitePrompted", trigger = "server:invite.prompt"},
+		{id = "InviteSent", trigger = "client:invite.sent"},
+	}},
 }
 Schema.FeatureFunnelIndex = {} :: {[string]: {[string]: number}}
 for _, funnel in Schema.FeatureFunnels do
@@ -641,6 +677,11 @@ Schema.ClientEvents = {
 	["chat.sent"] = "none",      -- a chat message was sent (count only; never content)
 	["emote"] = "none",
 	["menu.blocked"] = "menu",   -- tried to open a menu that refused (locked/busy)
+	-- Version 16 (October 27 retention package).
+	["coins.gated"] = "free",    -- WS3: a client-side Coins shortfall held back: "<source>:<reason>"
+	["moment.seen"] = "free",    -- WS7: another player's moment shown: <kind>
+	["moment.missed"] = "free",  -- WS7: a moment hidden by the tutorial quiet rule: <kind>
+	["invite.sent"] = "free",    -- WS7: the invite prompt sent: <reason>, value = recipients
 }
 Schema.ClientEventsPerMinute = 120
 Schema.ClientEventBatch = 50
@@ -670,11 +711,17 @@ Schema.ServerEvents = {
 	["daily.shown"] = "none",
 	["giant.result"] = "free",      -- detail = Fused/NewGiant/Giant/NewColossal/Colossal
 	["mission.result"] = "free",    -- detail = "<won|lost|timeout|expired>.<tier>"
+	-- Version 16 (October 27, WS7 social moments).
+	["social.moment"] = "free",     -- detail = find/camp/king/rebirth/hill
+	["social.visit"] = "none",
+	["invite.prompt"] = "free",     -- detail = Rebirth0/EpicFind/FortRoost
 }
 
 -- Device tiers (AnalyticsPlayer.DeviceTier). A proxy from screen, memory, frame
 -- rate and graphics quality: Roblox does not expose the device model.
 Schema.DeviceTiers = {"Low", "Mid", "High", "Unknown"}
+-- Version 16 (October 27, WS6): the client's PerfTier quality tier (measured FPS + device).
+Schema.PerfTiers = {"low", "mid", "high"}
 
 -- Per-player state snapshot at session end (AnalyticsPlayer): ledger hist
 -- state.<name> with the bucket kind given here.
@@ -682,6 +729,7 @@ Schema.StateSnapshot = {
 	rebirths = "count", eggSpeed = "count", eggValue = "count", luck = "count", rollSlots = "count",
 	plotLevel = "count", armySize = "count", flock = "count", research = "count", campsWon = "count",
 	missionsWon = "count", coins = "bigCash", power = "bigCash", bestRarity = "count", passes = "count",
+	indexFound = "count", -- version 16 (WS4): different chickens in the Index
 }
 
 -- Every Roblox custom event name this game may send (Roblox cap: 100).
@@ -721,6 +769,9 @@ Schema.Buckets = {
 	accountDays = {7, 30, 90, 180, 365, 730, 1460, 2920},
 	percent = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100},
 	longSeconds = {1800, 3600, 5400, 7200, 10800, 14400, 21600, 28800, 43200, 72000, 108000, 172800, 360000},
+	-- Version 16 (October 27).
+	rate    = {5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120}, -- WS2: steady Coins/s
+	frameMs = {16, 22, 33, 50, 66, 100, 200},                      -- WS6: p90 frame time
 }
 
 function Schema.Bucket(kind: string, value: number): string

@@ -162,7 +162,7 @@ function Checks.Run()
 		assert(Guide.Version=="empty-8-recruit" and Guide.CompleteText=="Your yard is up and running. Keep collecting!","Version and payoff")
 		local ladder,favor=Config.Economy.StarterLadder,Config.Economy.FavoredRolls
 		assert(#ladder==2 and ladder[1].species=="Duck" and ladder[1].price==0 and ladder[2].species=="Duck" and ladder[2].price==20,"Starter ladder")
-		assert(favor.rolls==5 and favor.chance==0.6 and favor.species=="Duck","Favoured pulls")
+		assert(favor.rolls==3 and favor.chance==0.5 and favor.species=="Duck","Favoured pulls (Oct 27: 3 x 50%)")
 		return "No vacuum or Camp lessons; the second chicken ends it"
 	end)
 

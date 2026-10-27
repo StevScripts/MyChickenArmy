@@ -1,0 +1,33 @@
+local FR = {{species="CampRoostWarden",level=1},{species="CampRoostArcher",level=1},{species="CampRoostRecruit",level=1},{species="CampRoostRecruit",level=1}}
+local function rep(sp, lv, n) local t = {} for i = 1, n do table.insert(t, {sp, lv}) end return t end
+local function cat(...) local t = {} for _, l in {...} do for _, e in l do table.insert(t, e) end end return t end
+local cases = {
+	{"3 Duck L1", rep("Duck",1,3)},
+	{"3 Pajama L1", rep("Pajama",1,3)},
+	{"4 Duck L1", rep("Duck",1,4)},
+	{"4 Pajama L1", rep("Pajama",1,4)},
+	{"4 Duck L3", rep("Duck",3,4)},
+	{"4 Duck L4", rep("Duck",4,4)},
+	{"5 Duck L3", rep("Duck",3,5)},
+	{"4 Pajama L2", rep("Pajama",2,4)},
+	{"4 Pajama L3", rep("Pajama",3,4)},
+	{"4 Bee L1", rep("Bee",1,4)},
+	{"6 Duck L1", rep("Duck",1,6)},
+	{"6 Duck L2", rep("Duck",2,6)},
+	{"6 Duck L3", rep("Duck",3,6)},
+	{"6 Pajama L1", rep("Pajama",1,6)},
+	{"6 Pajama L2", rep("Pajama",2,6)},
+	{"6 Duck L4", rep("Duck",4,6)},
+	{"6 Bee L1", rep("Bee",1,6)},
+	{"8 Pajama L1", rep("Pajama",1,8)},
+	{"8 Pajama L2", rep("Pajama",2,8)},
+}
+local target = ARGS[1] and tonumber(ARGS[1]) or 2
+local guards = if target == 2 then FR else Progression.Roster(1, target)
+local gp = Rules.Power(Progression.Normalize(guards))
+print("camp", target, "power", gp)
+for _, c in cases do
+	local p = M.power(c[2])
+	local r, s = M.rate(c[2], guards, target, 30)
+	print(string.format("%-14s power %4d ratio %.2f  win %3d%%  avg %.0fs", c[1], p, p / gp, math.floor(r * 100 + 0.5), s))
+end

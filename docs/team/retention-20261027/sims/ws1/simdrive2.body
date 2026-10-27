@@ -1,0 +1,22 @@
+for i,v in string.gmatch(ARGS[6] or "", "(%d)=([%d%.]+)") do CAMP_STRENGTH[tonumber(i)]=tonumber(v) end
+local opts = {seeds=tonumber(ARGS[1]) or 8, hours=tonumber(ARGS[2]) or 1, print=false, traceEvery=60, profile=ARGS[3] or "fast", targetRank=50}
+if ARGS[4] then opts.rollEverySeconds = tonumber(ARGS[4]) end
+if ARGS[5] then opts.depositSeconds = tonumber(ARGS[5]) end
+local res = Simulation.Run(opts)
+local function med(t) table.sort(t) return t[math.ceil(#t/2)] end
+for _, key in {"Tutorial","Rebirth0","Camp1","Camp2","Camp3","King","Rebirth1","Rebirth2","Rebirth3","Rebirth5","Rebirth10"} do
+	local v = {}
+	for _, run in res.runs do local m = run.milestones[key]; if m then table.insert(v, m.minutes) end end
+	local pw = {}
+	for _, run in res.runs do local m = run.milestones[key]; if m then table.insert(pw, m.power) end end
+	print(string.format("%-9s reached %d/%d  median min %s  power %s", key, #v, #res.runs, tostring(v[1] and string.format("%.1f", med(v))), tostring(pw[1] and med(pw))))
+end
+print("minute  power  cap  pets  coins  income  camps  armyTier rebirths")
+for _, minute in {1,2,3,4,5,6,8,10,12,15,20,25,30,40,50,60} do
+	local p, c, n, co, inc, cp, at, rb, ea = {}, {}, {}, {}, {}, {}, {}, {}, {}
+	for _, run in res.runs do
+		for _, t in run.trace do if math.abs(t.minutes - minute) < 0.01 or (t.minutes >= minute and t.minutes < minute + 1) then
+			table.insert(p, t.power); table.insert(c, t.cap); table.insert(n, t.pets); table.insert(co, t.coins); table.insert(inc, t.income); table.insert(cp, t.camps); table.insert(at, t.armyTier); table.insert(rb, t.rebirths); table.insert(ea, t.earned) break end end
+	end
+	if #p > 0 then print(string.format("%5d %6d %4d %5d %7.0f %7.1f %5d %5d %5d earned %8.0f", minute, med(p), med(c), med(n), med(co), med(inc), med(cp), med(at), med(rb), med(ea))) end
+end

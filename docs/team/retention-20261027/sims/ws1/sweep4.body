@@ -1,0 +1,16 @@
+local function rep(sp, lv, n) local t = {} for i = 1, n do table.insert(t, {sp, lv}) end return t end
+local function cat(...) local t = {} for _, l in {...} do for _, e in l do table.insert(t, e) end end return t end
+print("Cluck Camp (12)")
+for _, a in {{"1 Duck",rep("Duck",1,1)},{"1 Rooster",rep("Rooster",1,1)},{"1 Pajama",rep("Pajama",1,1)},{"1 Duck L3",rep("Duck",3,1)},{"1 Bee",rep("Bee",1,1)},{"2 Duck",rep("Duck",1,2)},{"3 Duck",rep("Duck",1,3)}} do
+	local p = M.power(a[2]); local r = M.rate(a[2], Progression.Roster(1,1), 1, 12)
+	print(string.format("  %-12s %4d %.2f %3d%%", a[1], p, p/12, math.floor(r*100+.5)))
+end
+local IB = Progression.Roster(1,3); local ip = Rules.Power(IB)
+print("Ironbeak", ip)
+for n = 5, 10 do for _, sp in {"Pajama","Bee","Bucket"} do for L = 1, 4 do
+	local t = rep(sp, L, n); local p = M.power(t)
+	if p/ip > 0.95 and p/ip < 1.5 then
+		local r = M.rate(t, IB, 3, 10)
+		print(string.format("  %dx%s L%d %4d %.2f %3d%%", n, sp, L, p, p/ip, math.floor(r*100+.5)))
+	end
+end end end

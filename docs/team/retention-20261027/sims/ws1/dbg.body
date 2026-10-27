@@ -1,0 +1,18 @@
+local function scaledGuards(roster, scale)
+	local out = {}
+	for i, pet in Progression.Normalize(roster) do
+		local u = table.clone(pet)
+		local st = table.clone(Rules.Stats(pet.species, 1, pet.level))
+		st.hp *= scale; st.damage *= scale
+		u.combatStats = st
+		out[i] = u
+	end
+	return out
+end
+local W,A,R = {species="CampRoostWarden",level=1},{species="CampRoostArcher",level=1},{species="CampRoostRecruit",level=1}
+for _, sc in {1, 0.5} do
+	local g = scaledGuards({W,A,R,R}, sc)
+	local o, t, b = M.fight({{"Duck",3},{"Duck",3},{"Duck",3},{"Duck",3}}, g, 2, 7919)
+	print(sc, o, t, b.captureElapsed, b.defenderRespawns, b.arrivedAt)
+	for _, u in b.units do print(u.side, u.species, u.hp, u.maxHp, u.damage) end
+end
