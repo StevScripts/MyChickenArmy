@@ -135,7 +135,6 @@ function HillIntro:Run()
 	self:Lock()
 	self:SetVFX(true)
 	self:BudgetVFX() -- October 27 (WS6): the film always shows the sparks
-
 	self:Film(scene)
 end
 
