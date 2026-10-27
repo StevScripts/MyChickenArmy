@@ -36,6 +36,8 @@ local GemUpgradeService=require(script.Parent.GemUpgradeService)
 local RebirthChickens=require(script.Parent.RebirthChickens)
 local ToolService=require(script.Parent.ToolService)
 local PlaytimeService=require(script.Parent.PlaytimeService)
+-- Oct 27 WS7: server moments, Visit and the invite prompt (docs/team/SOCIAL_MOMENTS.md).
+local SocialService=require(script.Parent.SocialService)
 local GameServer={}
 -- October 20 economy: Auto Rebirth, waiting Skip credits and Rebirth chicken credits.
 local REBIRTH_STEP_SECONDS=1
@@ -64,6 +66,11 @@ function GameServer.new()
 	self.operations=OperationService.new(self.battles,self.world,self.sessions)
 	self.hill=HillService.new(self.battles,self.world,self.sessions,os.clock())
 	self.armyCommands=ArmyCommandService.new(self.world,self.battles,self.sessions)
+	-- Oct 27 WS7: other players see this server's firsts; BattleService (WS1) and the Hill report theirs.
+	self.social=SocialService.new(self)
+	self.hill.social=self.social
+	local battles: any=self.battles
+	battles.onFirstWin=function(attacker,campIndex,isKing) self.social:FirstWin(attacker,campIndex,isKing) end
 	-- Local loop observations also feed the agent analytics ledger.
 	self.telemetry=LoopTelemetry.new(function(event) if self.analytics then self.analytics:LoopEvent(event);pcall(self.BattleEnded,self,event) end end)
 	self.tutorial=TutorialService.new()
@@ -152,6 +159,8 @@ function GameServer:Send(player,result)
 	local adminRank=self.admin:Rank(player)
 	state.admin=if adminRank then {rank=adminRank} else nil
 	state.researchSkipAllowed=self:ResearchSkipAllowed(player)
+	-- Oct 27 WS7: a pending invite prompt trigger, sent once (never saved).
+	state.invitePrompt=self.social:TakeInvite(session)
 	GameServer.ShowRebirths(player,session.rebirths)
 	-- October 20 storage (up to Config.StorageLimit chickens): an unchanged chicken list
 	-- is left out; AppController keeps the last one. A Sync reply always carries it.
@@ -304,9 +313,11 @@ function GameServer:Handle(player,request)
 			if ok then self:CountOffers(session) end
 		else
 			local battle=self.battles.battles[session.outgoing]
+			local unseen=self.social:Unseen(session,request.offerId) -- Oct 27 WS7
 			ok,message,petId,recruit=self.rolls:Buy(session,request.offerId,now,battle and {
 				battleId=battle.id,phase=battle.phase})
 			if ok then self:CountRecruit(session,recruit) end
+			if ok then self.social:Bought(session,recruit,unseen) end -- Oct 27 WS7: first Rare+ find
 		end
 	elseif action=="SetArmy" then ok,message=ArmyService.SetSelection(session,request.petIds,request.expectedIds)
 	elseif action=="SelectBest" then ok,message=ArmyService.SelectBest(session)
@@ -357,9 +368,11 @@ function GameServer:Handle(player,request)
 	elseif action=="Rebirth" then
 		ok,message,receipt=RebirthService.Rebirth(session,request.expectedRank,self,request.useSkip==true)
 		if ok and receipt and receipt.petId then petId=receipt.petId;self.world:Recruit(session,receipt.petId) end
+		if ok then self.social:Rebirthed(session) end -- Oct 27 WS7
 	elseif action=="RebirthIntro" then
 		-- October 23 Rebirth 0 (Config.Rebirth.Intro): the reset without a rank, once.
 		ok,message,receipt=RebirthService.RebirthIntro(session,self)
+		if ok then self.social:HighMoment(session,"Rebirth0") end -- Oct 27 WS7: the invite prompt
 	elseif action=="Income" then ok,message=self.upgrades:BuyFamily(session,"EggValue")
  elseif action=="Luck" then ok,message=self.upgrades:BuyFamily(session,"Luck")
  elseif action=="Attack" then
@@ -372,6 +385,9 @@ function GameServer:Handle(player,request)
   ok,message=self.armyCommands:CallArmy(player,session,now)
  elseif action=="GoBase" then
   ok,message=self.armyCommands:GoBase(player,session,now)
+ elseif action=="VisitPlot" then
+  -- Oct 27 WS7: the Visit button on another player's moment (shares the GoBase wait).
+  ok,message=self.social:Visit(player,session,request.plotIndex,now)
 	elseif action=="Retreat" or action=="ReturnHome" then message="Choose your Army in the Army menu. Chickens walk to and from the fight."
 	elseif action=="Debug" then ok,message=self.debug:Run(player,session,request.command,request.argument,now)
 	elseif action=="Admin" then ok,message=self.admin:Run(player,request.text)
@@ -771,7 +787,7 @@ function GameServer:Start()
 	self.analytics:Start()
 	local folder=ReplicatedStorage.PetRoll:FindFirstChild("Remotes")
 	if not folder then folder=Instance.new("Folder");folder.Name="Remotes";folder.Parent=ReplicatedStorage.PetRoll end
-	for _,name in {"RequestAction","StateChanged","BattleChanged"} do
+	for _,name in {"RequestAction","StateChanged","BattleChanged","ServerMoment"} do -- Oct 27 WS7: ServerMoment
 		if not folder:FindFirstChild(name) then local remote=Instance.new("RemoteEvent");remote.Name=name;remote.Parent=folder end
 	end
 	self.remotes=folder

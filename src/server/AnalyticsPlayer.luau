@@ -307,6 +307,7 @@ end
 --   power       state.power (army power)
 --   bestRarity  highest Schema.Rarities rank (1 Common .. 7 Secret) among owned chickens
 --   passes      owned passes in state.shop.owned | session.entitlements
+--   indexFound  different chickens in the Index: session.discovered | state.discovered (version 16)
 local function snapshot(host: any, st: any, session: any): {[string]: number}
 	local stateValue: any = if type(st.lastState) == "table" then st.lastState else {}
 	local s: any = if type(session) == "table" then session else {}
@@ -353,6 +354,9 @@ local function snapshot(host: any, st: any, session: any): {[string]: number}
 		end
 	end
 	if best > 0 then snap.bestRarity = best end
+	local discovered: any = if type(s.discovered) == "table" then s.discovered
+		elseif type(stateValue.discovered) == "table" then stateValue.discovered else nil
+	if discovered then snap.indexFound = countTrue(discovered) end
 	local shop: any = stateValue.shop
 	if type(shop) == "table" and type(shop.owned) == "table" then
 		snap.passes = countTrue(shop.owned)
@@ -411,6 +415,14 @@ function AnalyticsPlayer:Join(st: any, player: Player, session: any)
 		local data: any = if okJoin and type(joinData) == "table" then joinData else {}
 		local teleported = type(data.SourcePlaceId) == "number" and data.SourcePlaceId ~= 0
 		ap.joinSource = if teleported then "teleport" elseif ap.followed then "follow" else "direct"
+		-- Version 16 (October 27, WS7 SOCIAL_MOMENTS.md): a join from a Roblox invite
+		-- ("inv:<inviterUserId>", FriendBoost:Invite) or a notification ("note:...").
+		local launch = data.LaunchData
+		if type(launch) == "string" and string.sub(launch, 1, 4) == "inv:" then
+			ap.joinSource = "invite"
+		elseif type(launch) == "string" and string.sub(launch, 1, 5) == "note:" then
+			ap.joinSource = "notification"
+		end
 		ledger:Count("seg.join." .. ap.joinSource)
 		local date: any = os.date("!*t", host.wall())
 		ledger:Hist("session.hourUTC", "hour", date.hour)
@@ -418,6 +430,7 @@ function AnalyticsPlayer:Join(st: any, player: Player, session: any)
 		local okPlayers, list = pcall(function(): any return Players:GetPlayers() end)
 		local others: any = if okPlayers and type(list) == "table" then list else {}
 		ledger:Hist("seg.serverSize", "count", #others)
+		st.serverSizeAtJoin = #others -- version 16 (WS7): the journey's sv
 		task.spawn(function()
 			self:_Guard(function()
 				local okGeo, code = pcall(function(): any

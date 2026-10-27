@@ -112,6 +112,9 @@ local ServerSteps = {
 	["hill.hold"] = {"Hill", "Held"},
 	["hill.win"] = {"Hill", "Won"},
 	["rebirth.count"] = {"Rebirth", "Rebirthed"},
+	-- Oct 27 WS7: the Social funnel (schema 16; client steps in clientImpl).
+	["social.visit"] = {"Social", "Visited"},
+	["invite.prompt"] = {"Social", "InvitePrompted"},
 } :: {[string]: {string}}
 
 local function code(index: number): string
@@ -454,6 +457,10 @@ local function clientImpl(self: any, st: any, name: any, detail: any)
 		named(self, st, "Settings", "Changed")
 	elseif name == "leaderboard.view" then
 		named(self, st, "Leaderboard", "Viewed")
+	elseif name == "moment.seen" then -- Oct 27 WS7: the Social funnel (schema 16)
+		named(self, st, "Social", "MomentSeen")
+	elseif name == "invite.sent" then -- Oct 27 WS7
+		named(self, st, "Social", "InviteSent")
 	end
 end
 

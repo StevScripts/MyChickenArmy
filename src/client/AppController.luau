@@ -30,6 +30,7 @@ local OfflineCashController = require(script.Parent.OfflineCashController)
 local FreeGiftController = require(script.Parent.FreeGiftController)
 local GoldRushController = require(script.Parent.GoldRushController)
 local FriendBoost = require(script.Parent.FriendBoost)
+local ServerMoments = require(script.Parent.ServerMoments) -- Oct 27 WS7
 local PlaytimePanel = require(script.Parent.PlaytimePanel)
 local BoostReadout = require(script.Parent.BoostReadout)
 local CornerNotice = require(script.Parent.CornerNotice)
@@ -1071,6 +1072,8 @@ function AppController:Receive(packet)
 	self:StepRecruitFeedback()
 	-- Rank-ups arrive as the server's own message (e.g. "Fusion up to Lv 5 unlocked!"); show it as sent.
 	if state.banner and state.banner ~= "" and state.banner ~= self.lastBanner then self:Notify(state.banner,true);self.lastBanner = state.banner end
+	-- Oct 27 WS7: the server picked this visit's invite moment (sent once); FriendBoost times the prompt.
+	if state.invitePrompt and self.friendBoost then self.friendBoost:Prompted(state.invitePrompt) end
 	if old and state.lastResult ~= old.lastResult and not packet.result then
 		local kind=if state.lastResult:match("^You've conquered ") then "conquest" else nil
 		self:Notify(state.lastResult,kind)
@@ -1127,6 +1130,8 @@ function AppController:Start()
 	-- October 20 live Coin boosts: the Gold Rush chip/sky/air and the Friend Boost line.
 	self.goldRush=GoldRushController.new(self)
 	self.friendBoost=FriendBoost.new(self)
+	-- Oct 27 WS7: other players' moments in this server (chat line, toast, beacon, Visit).
+	self.serverMoments=ServerMoments.new(self)
 	-- October 20 (S16): the corner notice, the Coins/Luck readout and Playtime Rewards.
 	self.cornerNotice=CornerNotice.new(self)
 	self.boostReadout=BoostReadout.new(self)
@@ -1212,6 +1217,7 @@ function AppController:Destroy()
 	self.rebirthPanel:Destroy();self.dailyReward:Destroy();self.operationsPanel:Destroy();self.autoRollMenu:Destroy()
 	if self.goldRush then self.goldRush:Destroy() end
 	if self.friendBoost then self.friendBoost:Destroy() end
+	if self.serverMoments then self.serverMoments:Destroy() end -- Oct 27 WS7
 	if self.playtimePanel then self.playtimePanel:Destroy() end
 	if self.boostReadout then self.boostReadout:Destroy() end
 	if self.cornerNotice then self.cornerNotice:Destroy() end
