@@ -9,6 +9,7 @@ local Catalog = require(game:GetService("ReplicatedStorage").PetRoll.Shared.PetC
 local Progression = require(game:GetService("ReplicatedStorage").PetRoll.Shared.Progression)
 local CampCommand=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CampCommand)
 local Guide=require(game:GetService("ReplicatedStorage").PetRoll.Shared.TutorialGuide)
+local CampGuide=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CampGuide)
 local Feel=require(game:GetService("ReplicatedStorage").PetRoll.Shared.CollectionFeel)
 local Theme = require(script.Parent.UITheme)
 local GuideArrow = require(script.Parent.GuideArrow)
@@ -75,13 +76,18 @@ function BaseController:CommandFor(part)
 		local allowed = canMove and available and (armyCount > 0 or ownedCount > 0)
 		local reason = if not available then (if income then income.reason else entry.reason) elseif not allowed then "You have no chickens to send yet"
 			else ""
-		-- Shared bands (TutorialGuide.Difficulty): <1.3x Very tough, 1.3-2x Close fight, 2x+ Should win.
-		local strength = Guide.Difficulty(state.power, entry.power)
+		-- October 27 bands (CampGuide.Difficulty, docs/team/CAMP_LADDER_20261027.md): <1.0x Very
+		-- tough, 1.0-1.3x Close fight, 1.3x+ Should win (were 1.3 and 2.0).
+		local strength = CampGuide.Difficulty(state.power, entry.power)
 		local bounty = Theme.Money(entry.killRewardMin or 0) .. (if entry.killRewardMax~=entry.killRewardMin then "–"..Theme.Money(entry.killRewardMax or 0) else "") .. " Coins/kill"
 		-- Held territories pay egg value while the flag stands (Mini War style).
 		local pays = if (entry.holdBonus or 0) > 0 then " · +" .. math.floor(entry.holdBonus * 100 + 0.5) .. "% eggs" else ""
+		-- October 27: the Army against the Should-win power ("Army 38/84") instead of the
+		-- defender count; below even, the first Send Army warns (Triggered).
+		local power, goal = math.floor(state.power or 0), CampGuide.Goal(entry.power)
+		local army = if (entry.power or 0) > 0 then "Army " .. Theme.Money(power) .. "/" .. Theme.Money(goal) else (entry.count or 0) .. " defenders"
 		local hint = if entry.via then "Fights " .. entry.via .. " first"
-			else strength .. " · " .. (entry.count or 0) .. " defenders · " .. bounty .. pays
+			else strength .. " · " .. army .. " · " .. bounty .. pays
 		local text = if allowed then "Send Army · " .. hint else reason
 		if allowed and entry.via then text = "Via " .. entry.via .. "\nEarlier camps are fought in order" end
         if allowed and entry.ownerId and not entry.via then text=if entry.owned then "Station Army" else "Capture territory" end
@@ -93,7 +99,8 @@ function BaseController:CommandFor(part)
 			end
 		end
 		return {model = target, action = if allowed then "Attack" else nil, targetId = id,
-			canUnclaim=entry.canUnclaim==true,
+			canUnclaim=entry.canUnclaim==true, power = power, goal = goal,
+			warn = allowed and not income and not entry.via and not entry.owned and CampGuide.ShouldWarn(power, entry.power),
 			hint = if allowed and income then (if (income.count or 0) > 0 then strength .. " · " .. income.count .. " defenders" else "Undefended")
 				elseif allowed then hint else nil,
 			-- Unavailable targets explain why on a heading; the current target and
@@ -124,8 +131,12 @@ function BaseController:MissionCommand(model,missionId)
 		elseif not canMove then "Your Army is busy" elseif not allowed then "You have no chickens to send yet" else ""
 	local enemies=if mission.holder then mission.count.." chickens of "..mission.holder else mission.count.." loyalists"
 	local payout=if mission.rewarded then "already rewarded" else Theme.CompactCoins(mission.reward)
-	local hint=Guide.Difficulty(state.power,mission.power).." · "..enemies.." · "..payout
+	-- October 27: the same bands and "Army 38/84" as camps (CampGuide).
+	local power,goal=math.floor(state.power or 0),CampGuide.Goal(mission.power)
+	local army=if (mission.power or 0)>0 then " · Army "..Theme.Money(power).."/"..Theme.Money(goal) else ""
+	local hint=CampGuide.Difficulty(state.power,mission.power)..army.." · "..enemies.." · "..payout
 	return {model=model,action=if allowed then "StartOperation" else nil,missionId=missionId,targetId="mission:"..missionId,
+		power=power,goal=goal,warn=allowed and CampGuide.ShouldWarn(power,mission.power),
 		hint=if allowed then hint else nil,locked=not allowed,reason=reason,title=mission.name,
 		text=if allowed then "Send Army · "..hint else reason,color=if allowed then C.red else C.line}
 end
@@ -423,6 +434,20 @@ function BaseController:Start()
 		command=command and self:CommandFor(command.model)
 		if command and command.action and not self.app.panel.Visible and not self.app.dialogueActive and not UserInputService:GetFocusedTextBox() then
 			self.app.audio:Play("Click")
+			-- October 27 (CAMP_LADDER_20261027.md): below even odds the first Send Army only
+			-- warns and arms "Attack anyway" for CampGuide.ConfirmSeconds; the second sends.
+			-- The server is unchanged: the player can always attack.
+			if command.warn then
+				if not self:AttackArmed(command.targetId) then
+					self.confirmTarget,self.confirmUntil=command.targetId,os.clock()+CampGuide.ConfirmSeconds
+					self.app:Notify(CampGuide.Warning(command.title or "This camp",command.power,command.goal),"warning")
+					self.commandPrompt.ActionText="Attack anyway"
+					self.app:Request("TutorialSignal",{signal="AttackWarned"})
+					return
+				end
+				self.app:Request("TutorialSignal",{signal="AttackAnyway"})
+			end
+			self.confirmTarget,self.confirmUntil=nil,nil
 			if command.missionId then self.app:Request("StartOperation",{missionId=command.missionId})
 			else self.app:Request(command.action,{targetId=command.targetId}) end
 		end
@@ -452,6 +477,11 @@ function BaseController:Start()
 		if model and model:GetAttribute("PetId") and (model:GetAttribute("OwnerUserId") or model:GetAttribute("OwnerId"))==state.userId then self.app:SelectPet(model:GetAttribute("PetId")) end
 	end))
 
+end
+
+-- October 27: the below-even warning armed "Attack anyway" for this target.
+function BaseController:AttackArmed(targetId: string?): boolean
+	return targetId~=nil and self.confirmTarget==targetId and os.clock()<=(self.confirmUntil or 0)
 end
 
 -- A world-space heading supplements the native E prompt; it never replaces its input UI.
@@ -495,6 +525,10 @@ function BaseController:UpdateCommandPresentation()
 		self.commandHighlight.FillColor,self.commandHighlight.OutlineColor=command.color,command.color
 	end
 	local heading=visible and hostile==true
+	-- October 27: below even odds the heading reads VERY TOUGH in gold, not ATTACK in red.
+	local tough=command~=nil and command.warn==true
+	self.commandLabel.Text=if tough then "⚔ VERY TOUGH" else "⚔ ATTACK"
+	self.commandLabel.TextColor3=if tough then C.gold else C.red
 	if heading and not self.commandHeading.Enabled then Theme.Motion:PopScale(self.commandLabel,0.7) end
 	self.commandHeading.Enabled=heading
 end
@@ -631,9 +665,12 @@ function BaseController:UpdateObjective()
  end
  -- October 26 (Stevin): once Cluck Camp is won, a NEXT marker stays over the next camp
  -- on the route until it is won (its tip card shows for a few seconds; this does not).
+ -- October 27 (CAMP_LADDER_20261027.md): only once the Army reads Should win there; until
+ -- then the readiness card's own step (yard, pad, podium) carries the marker.
  local nextCamp=nil
  if not guidance and not waiting then
   nextCamp=Guide.NextCamp(state)
+  if nextCamp and CampGuide.Enabled() and (state.power or 0)<CampGuide.Goal(CampGuide.EnemyPower(state,nextCamp)) then nextCamp=nil end
   target=if nextCamp then lane and lane:FindFirstChild("Camp"..nextCamp) else nil
   if not target then nextCamp=nil end
  end
@@ -641,7 +678,8 @@ function BaseController:UpdateObjective()
  local campName=campIndex and Progression.Camps(1)[campIndex] and Progression.Camps(1)[campIndex].name
  -- October 24: card 7 ("Pull the lever again!") points at the lever even with a chicken
  -- waiting on the podium; buying it is the player's call.
- local lever=guidance~=nil and guidance.id=="RollAgain"
+ -- October 27: so does the readiness card's "Roll a stronger chicken" (CampGuide).
+ local lever=guidance~=nil and (guidance.id=="RollAgain" or guidance.id=="TipCampRoll")
  local anchor=if target and (target:IsA("BasePart") or target:IsA("Attachment")) then target
   elseif target and target.Name=="RollStation" then target:FindFirstChild(if state.offer and not lever then "Podium" else "LeverBase") or target:FindFirstChild("RevealPad")
   else CampCommand.Anchor(target)
@@ -724,8 +762,8 @@ function BaseController:PollCommand()
 		-- Center the compact controls; inactive commands remain hidden in combat.
 		self.commandAnchor.Position=Vector3.new(0,2.5,0)
 		self.commandPrompt.MaxActivationDistance=CampCommand.Radius(nearest.model)
-		self.commandPrompt.ActionText="Send Army"
-		-- Odds and bounty, e.g. "Close fight · 4 defenders · 100–520 Coins/kill".
+		self.commandPrompt.ActionText=if nearest.warn and self:AttackArmed(nearest.targetId) then "Attack anyway" else "Send Army"
+		-- Odds and bounty, e.g. "Close fight · Army 70/84 · 160–520 Coins/kill" (October 27).
 		self.commandPrompt.ObjectText=nearest.hint or ""
 		self.commandPrompt.UIOffset=Vector2.new(0,if nearest.canUnclaim then 28 else 0)
 		self.unclaimPrompt.MaxActivationDistance=self.commandPrompt.MaxActivationDistance

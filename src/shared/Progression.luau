@@ -2,6 +2,8 @@
 -- Permanent combat limits and fixed encounters. All species can roll from the start.
 -- Legacy pool metadata stays compatible; Rules.Odds uses one full roster at every rank.
 -- Stronger locations never replace earlier camps, reset wins, or scale to the player.
+local Config = require(script.Parent.Config)
+local Rules = require(script.Parent.Rules)
 local Progression = {}
 local ranks = {
 	{name="Rookie Flock",capacityCap=5,levelCap=3,benchmarkIncome=12,
@@ -59,7 +61,8 @@ homeCamps[1].name = "Cluck Camp"
 -- be the normal white chickens but the rest should be custom"): Fort Roost and Ironbeak HQ
 -- are guarded by their own enemy-only chickens (PetCatalog.CampGuards), each a copy of the
 -- guard it replaced, so every fight keeps its exact strength (12, 106, 192). The King is
--- unchanged.
+-- unchanged. October 27: the guards keep those stats; Progression.Strength scales the
+-- fight (Fort Roost 64, Ironbeak HQ 105).
 homeCamps[1].roster = {"Duck"}
 homeCamps[2] = table.clone(homeCamps[2])
 homeCamps[2].name = "Fort Roost"
@@ -90,6 +93,33 @@ end
 function Progression.Roster(_rank, index)
  local camp=homeCamps[index]
  return if camp then Progression.Normalize(camp.roster) else {}
+end
+-- October 27 camp ladder (WS1, docs/team/CAMP_LADDER_20261027.md): 74% of Cluck Camp
+-- winners never beat Fort Roost, because no three-slot Army of early chickens reaches
+-- its 106. Config.CampLadder.Strength multiplies each camp garrison's hp and damage (and
+-- the power shown for it), the same hook as the Rebirth enemy scale (BattleService):
+-- Fort Roost x0.60 = 64, Ironbeak HQ x0.55 = 105, Cluck Camp x1. Guards, names, models
+-- and Kill Coins are unchanged; {1, 1, 1} restores October 26. The King has no entry.
+function Progression.Strength(index: number): number
+ local ladder=(Config :: any).CampLadder
+ local list=if type(ladder)=="table" then ladder.Strength else nil
+ local value=if type(list)=="table" then list[index] else nil
+ return if type(value)=="number" and value==value then math.clamp(value,0.05,1) else 1
+end
+-- A roster's power with hp and damage both multiplied by `scale`. PetPower is
+-- sqrt(hp x damage / interval), so it grows by exactly `scale`; the sum is scaled before
+-- rounding (Fort Roost 106.7 x 0.6 reads 64, not 63). Scale 1 is Rules.Power.
+function Progression.ScaledPower(roster, scale: number?): number
+ local s=scale or 1
+ if s==1 then return Rules.Power(roster) end
+ local raw=0
+ for _,pet in roster do raw+=Rules.PetPower(pet.species,pet.stars or 1,pet.level,pet.giantSize) end
+ return math.floor(raw*s+1e-6)
+end
+-- A main-route camp's power as fought: its strength times `scale` (the Rebirth enemy
+-- scale; 1 at rank 0). Tests, the simulation and CampGuide's fallback read it.
+function Progression.CampPower(index: number, scale: number?): number
+ return Progression.ScaledPower(Progression.Roster(1,index),Progression.Strength(index)*(scale or 1))
 end
 function Progression.OutpostRoster(index)
  return Progression.Normalize(outposts[index].roster)
